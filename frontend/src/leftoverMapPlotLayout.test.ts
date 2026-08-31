@@ -8,6 +8,7 @@ import {
   leftoverMapPlotCriterionBadge,
   leftoverMapComparePlotCriterionBadge,
   leftoverMapComparePlotPostBadge,
+  leftoverMapPlotPostBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
@@ -1300,6 +1301,47 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
   });
 });
 
+describe("leftoverMapPlotPostBadge", () => {
+  it("names persisted leftover-map person coordinates without inventing a leftover score", () => {
+    expect(leftoverMapPlotPostBadge("Public post", 0.5, 0.1)).toEqual({
+      key: LEFTOVER_MAP_PLOT_POST_ACTION,
+      values: { title: "Public post", person: "(+0.50, +0.10)" },
+    });
+    expect(leftoverMapPlotPostBadge("negative", -0.7, -0.4)).toEqual({
+      key: LEFTOVER_MAP_PLOT_POST_ACTION,
+      values: { title: "negative", person: "(\u22120.70, \u22120.40)" },
+    });
+  });
+
+  it("names rank-0 origin leftover-map person coordinates as ξ (0.00, 0.00)", () => {
+    expect(leftoverMapPlotPostBadge("Public post", 0, 0)).toEqual({
+      key: LEFTOVER_MAP_PLOT_POST_ACTION,
+      values: { title: "Public post", person: "(0.00, 0.00)" },
+    });
+  });
+
+  it("omits leftover-map person coordinates when ξ is missing or non-finite", () => {
+    expect(leftoverMapPlotPostBadge("Public post", null, 0.1)).toBeNull();
+    expect(leftoverMapPlotPostBadge("Public post", 0.5, undefined)).toBeNull();
+    expect(leftoverMapPlotPostBadge("Public post", Number.NaN, 0.1)).toBeNull();
+    expect(leftoverMapPlotPostBadge("Public post", 0.5, Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("stays distinct from leftover-map comparison graphic leftover-map post markers and leftover-map graphic leftover-map criterion markers", () => {
+    expect(LEFTOVER_MAP_PLOT_POST_ACTION).toBe("Open leftover-map post {title} at ξ {person}");
+    expect(LEFTOVER_MAP_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
+    expect(LEFTOVER_MAP_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED);
+    expect(LEFTOVER_MAP_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
+    expect(LEFTOVER_MAP_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION);
+    expect(leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_PLOT_CRITERION,
+    );
+  });
+});
+
 describe("leftoverMapComparePlotPostBadge", () => {
   it("names persisted leftover-map person coordinates without inventing a leftover score", () => {
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)).toEqual({
@@ -1336,6 +1378,9 @@ describe("leftoverMapComparePlotPostBadge", () => {
     expect(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       LEFTOVER_MAP_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      leftoverMapPlotPostBadge("Public post", 0.5, 0.1)?.key ?? "",
     );
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_CRITERION,

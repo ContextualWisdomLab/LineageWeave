@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 17:20 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #879 leftover-map person coordinates on leftover-map comparison graphic leftover-map
+> post markers independently of leftover-map criterion leftover-map item coordinates (v2.94.0 / ADR 0337) is
+> `d9972c2`, stacked on #878 @ `617b971`. Independent APPROVE is missing. Next buyer increment on this cycle: leftover-map graphic leftover-map
+> post markers naming persisted leftover-map person coordinates independently of leftover-map
+> comparison graphic leftover-map post markers (ADR 0338 / v2.95.0) delivered locally on
+> `feat/leftover-map-plot-post-coordinates-v2950`. Caption persisted leftover-map
+> person coordinates on leftover-map graphic leftover-map post markers when leftoverMapPlotPostBadge
+> returns a usable leftover-map graphic leftover-map post leftover-map person coordinate caption. Distinct accessible name
+> `Open leftover-map post {title} at ξ {person}`.
+> Rank-0 unused axes still name leftover-map person coordinates `(0.00, 0.00)`. A missing or
+> non-finite leftover-map person coordinate pair omits independently of leftover-map comparison graphic leftover-map post `ξ` and keeps
+> `Open leftover-map post {title}`. Leftover-map comparison graphic leftover-map post markers stay
+> `Open leftover map comparison graphic leftover-map post {title} at ξ {person}` this increment. Do not invent leftover-map
+> person coordinates from leftover-map item coordinates `ζ`. Do not invent leftover-map
+> item coordinates `ζ` from leftover-map person coordinates `ξ`. Do not persist leftover-map inner product, cosine, or length. Stack onto #879.
+> Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79
+> and #87 stay open. Do not merge #808 without independent APPROVE. Never self-approve. Do not mix #877.
+
 > Exact-head loop overlay: 2026-08-31 17:03 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #878 leftover-map item coordinates on leftover-map comparison graphic leftover-map
