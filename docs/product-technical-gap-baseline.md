@@ -2,8 +2,8 @@
 
 > Current exact-head overlay: 2026-08-31 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through `c52ad5bd0b087588157c9930e8eef29c83c09471`. The repository has 82 open
-> PRs, including 6 drafts. This current overlay supersedes the older dated
+> through `c52ad5bd0b087588157c9930e8eef29c83c09471`. The repository has 84 open
+> PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
 > queue snapshots below; neither branch tests nor the running Compose stack
 > are protected-main delivery evidence.
 >
