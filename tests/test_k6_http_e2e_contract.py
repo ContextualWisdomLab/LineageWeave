@@ -18,6 +18,7 @@ def test_k6_harness_renews_expired_auth_and_discloses_job_state() -> None:
     assert 'endpoint: "post_search"' in source
     assert "encodeURIComponent(searchTerm)" in source
     assert 'lineageweave_read_duration: ["max<=20"]' in source
+    assert '"lineageweave_read_duration{endpoint:post_search}": ["max<=20"]' in source
     assert 'lineageweave_ask_poll_duration: ["max<=20"]' in source
 
 

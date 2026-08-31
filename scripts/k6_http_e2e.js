@@ -29,6 +29,10 @@ let vuToken;
 export const options = {
   thresholds: {
     lineageweave_read_duration: ["max<=20"],
+    "lineageweave_read_duration{endpoint:posts}": ["max<=20"],
+    "lineageweave_read_duration{endpoint:post_search}": ["max<=20"],
+    "lineageweave_read_duration{endpoint:lineage}": ["max<=20"],
+    "lineageweave_read_duration{endpoint:dashboard}": ["max<=20"],
     lineageweave_ask_poll_duration: ["max<=20"],
     checks: ["rate==1"],
   },
