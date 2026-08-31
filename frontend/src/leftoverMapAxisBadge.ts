@@ -4,6 +4,8 @@
  *  ADR 0323 captions leftover-axis report badges on the grouping comparison strip
  *  with a distinct leftover map comparison leftover axis name, not this helper.
  *  ADR 0324 captions leftover-map graphic-display axes, not this helper.
+ *  ADR 0326 captions leftover-map comparison graphic leftover-map axes as
+ *  leftoverMapComparePlotAxisBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";

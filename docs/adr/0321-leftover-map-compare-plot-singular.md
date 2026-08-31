@@ -100,7 +100,9 @@ leftover-map axis share is `σ_k² / Σ_j σ_j²`.
 ## Related
 
 Independent of leftover-map singular values on leftover-axis report badges
-([ADR 0322](0322-leftover-map-axis-singular.md)).
+([ADR 0322](0322-leftover-map-axis-singular.md)). Independent of leftover-map
+comparison graphic leftover-map axis leftover-map singular values as leftoverMapComparePlotAxisBadge
+([ADR 0326](0326-leftover-map-compare-plot-axis-badge.md)).
 
 ## References
 

@@ -89,6 +89,8 @@
  *  with persisted leftover-map singular values, not this graphic.
  *  ADR 0324 captions leftover-map graphic-display axes with persisted leftover-map
  *  singular values `σ_k`.
+ *  ADR 0326 fail-closes leftover-map comparison graphic leftover-map axis leftover-map
+ *  singular values through leftoverMapComparePlotAxisBadge.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

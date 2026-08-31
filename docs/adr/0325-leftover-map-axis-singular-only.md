@@ -104,7 +104,9 @@ leftover-map singular values on leftover-axis report badges on the grouping
 comparison strip ([ADR 0323](0323-leftover-map-compare-axis-singular.md)).
 Independent of leftover-map singular values on leftover-axis report badges
 that still require leftover-map axis share in the combined caption
-([ADR 0322](0322-leftover-map-axis-singular.md)).
+([ADR 0322](0322-leftover-map-axis-singular.md)). Independent of leftover-map
+comparison graphic leftover-map axis leftover-map singular values as leftoverMapComparePlotAxisBadge
+([ADR 0326](0326-leftover-map-compare-plot-axis-badge.md)).
 
 ## References
 

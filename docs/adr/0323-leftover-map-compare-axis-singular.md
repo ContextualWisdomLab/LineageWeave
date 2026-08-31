@@ -107,7 +107,9 @@ Independent of leftover-map singular values on leftover-map graphic-display
 axes ([ADR 0324](0324-leftover-map-plot-axis-singular.md)).
 Independent of leftover-map singular values on leftover-axis report badges
 independently of leftover-map axis share
-([ADR 0325](0325-leftover-map-axis-singular-only.md)).
+([ADR 0325](0325-leftover-map-axis-singular-only.md)). Independent of leftover-map
+comparison graphic leftover-map axis leftover-map singular values as leftoverMapComparePlotAxisBadge
+([ADR 0326](0326-leftover-map-compare-plot-axis-badge.md)).
 
 ## References
 
