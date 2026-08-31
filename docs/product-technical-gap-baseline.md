@@ -1,5 +1,47 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-09-01 04:05 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs and
+> ten non-PR issues are open. PR #780 is at
+> `8403a64011abad2b07bb869c8fd3657e6707c5f3`, based directly on that
+> `main`. All review threads are resolved and normal squash auto-merge remains
+> armed, but no independent `APPROVED` review exists. Sixteen exact-head
+> checks succeed, ten are skipped, and three fail. The failed evidence remains
+> unavailable rather than being promoted to acceptance: GitHub denies the
+> exact dependency comparison with HTTP 403, the governed Noema request times
+> out, and the central Pingora gate treats a committed documentation PNG as a
+> UTF-8 runtime candidate.
+>
+> The PNG failure is reproduced independently on the next direct-`main` PR,
+> #774 at `5949e243673e7068743340a97ce33168a9d01969`; its product, frontend,
+> CodeQL, Noema, Semgrep, OSV, Trivy, and ontology-independent checks succeed,
+> all review threads are resolved, and normal auto-merge remains armed. Its
+> Strix run exhausted the governed virtual provider route without a finding,
+> and dependency review received the same HTTP 403. These external failures
+> are not repaired by weakening LineageWeave tests or workflows.
+>
+> The central owner-bound repair is still candidate-only. In
+> `ContextualWisdomLab/.github#1420`, another Agent's active ownership and
+> unresolved bounded-PNG validation review are preserved; the branch is behind
+> central `main` and has no independent approval or auto-merge. The newer
+> `ContextualWisdomLab/.github#1466` is also open at
+> `c17841917764960208e89b204c50e527d644db70`. Neither candidate is protected-
+> main evidence, so affected LineageWeave required workflows are not rerun as
+> though the root fix had landed.
+>
+> The largest implemented buyer-visible candidate remains #780: exact-value
+> UI/CSV distinguishes the carrying Post from derivation evidence, additional
+> Voices preserve authorized Post evidence, server-created PROV-O derivation,
+> truth status, and cutoff, and paged JSON-LD unions multi-Voice properties for
+> one subject. ADR 0246's twelve atomic classifications remain extensible rows,
+> not enumerated combinations; hidden evidence is never replaced with the
+> carrying Post. The committed desktop/mobile renders and authenticated
+> PostgreSQL/API evidence remain revision-scoped. Protected-main delivery,
+> merge SHA, and deployed acceptance remain unavailable. Fresh remote checks
+> preserve canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+> `ThreadWeave`, lowercase `disksage`, and `TEPP`. No self-approval, admin
+> bypass, force push, invented weight, or heuristic classification was used.
+
 > Exact-head development-loop overlay: 2026-09-01 01:41 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
 > ten non-PR issues are open. PR #780's exact pre-overlay evidence parent is
