@@ -1,21 +1,26 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-08-31 22:01 KST. Protected
+> Exact-head development-loop overlay: 2026-08-31 23:16 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
 > ten non-PR issues are open. PR #780's exact product and rendered-evidence
 > parent for this documentation-only update is
-> `03276027083a1b5aba5799b473527dd80aab74c0`, based on `main`; the later
+> `72c9636a4a03deec9b6115e2ec41503ff52bd11e`, based on `main`; the later
 > documentation revision does not inherit that parent's hosted evidence. All
-> review threads were resolved and normal squash auto-merge was armed, but no
-> independent `APPROVED` review exists. Ten checks succeed, two fail, twelve
-> are skipped, and five remain non-terminal. The two failures remain
-> fail-closed owner/platform evidence gaps: the required review bootstrap does
-> not produce a current-head verdict and GitHub denies dependency-graph
-> comparison. Pending Checks are not treated as product blockers or success.
+> 24 review threads are resolved, but no independent `APPROVED` review exists.
+> Fourteen checks succeed, three fail, fourteen are skipped, and none is
+> pending. The failures remain fail-closed owner/platform evidence gaps: the
+> required review bootstrap rejects the committed PNG before the central
+> binary-evidence repair lands, Noema times out after the governed
+> contextual-orchestrator sidecar is ready, and GitHub denies exact-base/head
+> dependency-graph comparison with HTTP 403. They are not relabeled as product
+> success.
 >
-> Fresh exact-head local verification passes 54 focused Voice, ontology,
-> SHACL, and authenticated-API tests and 29 affected frontend tests. Frontend
-> lint, type checking, and the production build also succeed. Direct
+> Fresh exact-head local verification passes 53 focused Voice, ontology, and
+> SHACL tests, one authenticated PostgreSQL/API Voice projection test, and all
+> 534 frontend tests. Frontend lint, type checking, and the production build
+> also succeed. A broader local API-file run exposed three unrelated stale
+> shared-stack schema failures, so those paths are not counted as acceptance.
+> Direct
 > inspection of the committed 1440-by-1400 desktop and 390-by-1688 mobile
 > Storybook renders confirms that the exact-value view keeps its carrying Post
 > action distinct from derivation evidence, including the horizontally
@@ -27,7 +32,12 @@
 > authenticated PostgreSQL/runtime evidence remains revision-scoped;
 > protected-main delivery and merge SHA remain unavailable.
 >
-> PR #847 remains a candidate-only PRD identity repair at
+> The central root repair is now `ContextualWisdomLab/.github#1466` at
+> `c17841917764960208e89b204c50e527d644db70`: its focused policy contract
+> validates complete bounded PNG evidence and rejects malformed or appended
+> payloads. Normal squash auto-merge is armed, but Noema and OpenCode reruns are
+> queued and no independent approval exists; it remains candidate-only. PR
+> #847 remains a candidate-only PRD identity repair at
 > `a87c6ec96c546c214461727efedeb8e7549d0fdd`; every review thread is resolved
 > and auto-merge is armed, but dependency review and the current-head review
 > verdict fail closed and no independent approval exists. PR #640's current
