@@ -32,21 +32,27 @@ def source_context_missing_sql(alias: str) -> str:
     )
 
 
-SOURCE_POST_ELIGIBILITY_SQL = (
-    "({alias}.source_draft_code is null or btrim({alias}.source_draft_code) = '') "
-    "and ({alias}.source_deleted_flag is null or btrim({alias}.source_deleted_flag) = '') "
-    "and not ("
-    "({missing_context}) "
-    "and exists ("
-    "select 1 from source_post real_post "
-    "where ({present_context})"
-    ")"
-    ")"
-).format(
-    alias="{alias}",
-    missing_context=source_context_missing_sql("{alias}"),
-    present_context=source_context_present_sql("real_post"),
-)
+def source_post_eligibility_sql(
+    alias: str, *, source_context_required: bool | None = None
+) -> str:
+    """Return the exact publication predicate for a known or unknown corpus mode."""
+    active = (
+        f"({alias}.source_draft_code is null or btrim({alias}.source_draft_code) = '') "
+        f"and ({alias}.source_deleted_flag is null or btrim({alias}.source_deleted_flag) = '')"
+    )
+    if source_context_required is False:
+        return active
+    local_context = source_context_present_sql(alias)
+    if source_context_required is True:
+        return f"{active} and ({local_context})"
+    return (
+        f"{active} and (({local_context}) or not exists ("
+        "select 1 from source_post real_post "
+        f"where ({source_context_present_sql('real_post')})))"
+    )
+
+
+SOURCE_POST_ELIGIBILITY_SQL = source_post_eligibility_sql("{alias}")
 
 
 def source_post_scope_sql(alias: str) -> str:

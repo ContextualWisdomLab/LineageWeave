@@ -26,6 +26,7 @@ decision from them.
 | [`GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md`](../doctoring/GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md) | [0217](0217-evidence-constrained-semantic-query-rewrite.md) |
 | [`MCP_GLOBAL_ASK_REFERENCES.md`](../doctoring/MCP_GLOBAL_ASK_REFERENCES.md) | [0218](0218-current-contract-mcp-global-ask.md) |
 | [`operability/http-concurrency-evidence.md`](../operability/http-concurrency-evidence.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0212](0212-single-query-authorized-post-filter-options.md), [0213](0213-global-ask-embedding-pool-release.md) |
+| [`READ_PERFORMANCE_REFERENCES.md`](../doctoring/READ_PERFORMANCE_REFERENCES.md) | [0271](0271-twenty-millisecond-read-slo.md) |
 | [`operability/mcp-concurrency-evidence.md`](../operability/mcp-concurrency-evidence.md) | [0218](0218-current-contract-mcp-global-ask.md) |
 | Evidence operations Dashboard (`/`) | [0206](0206-evidence-operations-dashboard.md) |
 | Project-journey temporal evidence | [0270](0270-digest-bound-project-journey-temporal-evidence.md) |

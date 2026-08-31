@@ -285,7 +285,8 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     ]
     assert result["topic_context"]["status_code"] == "unavailable"
     assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
-    assert len(conn.queries) == 8
+    assert len(conn.queries) == 7
+    assert not any("candidate_runs as" in query for query, _args in conn.queries)
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
@@ -496,9 +497,11 @@ async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> N
                 }
             return await super().fetchrow(query, *args)
 
-    result = await fetch_operations_dashboard(TeppOnlyConnection(), [])
+    connection = TeppOnlyConnection()
+    result = await fetch_operations_dashboard(connection, [])
     assert result["topic_context"]["reason_code"] == "fast_mlsirm_influence_not_persisted"
     assert result["topic_context"]["topics"] == []
+    assert not any("candidate_runs as" in query for query, _args in connection.queries)
 
 
 @pytest.mark.anyio

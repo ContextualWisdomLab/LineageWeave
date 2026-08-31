@@ -271,6 +271,7 @@ def test_dashboard_external_query_reaches_projection(
     async def _fake_dashboard(
         _conn, _corporate_entity_ids, _process_unit_ids,
         _period_start=None, _period_end=None, external_only=False,
+        _source_context_required=None,
     ):
         observed.append(external_only)
         return {"external_only": external_only}

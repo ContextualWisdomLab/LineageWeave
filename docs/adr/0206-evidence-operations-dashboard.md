@@ -225,11 +225,10 @@ treated as a negative case.
   aggregate-only. The runner then exercises the authenticated Dashboard API and
   rendered UI without printing source rows.
   The same operator-declared run invokes `scripts/k6_operations_dashboard.js`
-  with explicit VUs and duration; it observes Dashboard reads only, defines no
-  performance threshold, and keeps its summary outside the repository. The
-  runner accepts the observation only when the summary records zero failed
-  functional checks and a zero HTTP-request failure rate; this is a correctness
-  postcondition, not a latency or capacity SLO.
+  with explicit VUs and duration; it observes Dashboard reads only and keeps
+  its summary outside the repository. ADR 0271 now supplies the 20 ms maximum
+  read SLO that this earlier record deliberately left unset. The runner accepts
+  a release only when both functional checks and the ADR 0271 latency gate pass.
 - `scripts/accept_operations_dashboard_synthetic.sh` obtains only the local
   synthetic Keycloak identity and makes authenticated Dashboard reads without
   starting content analysis or calling a provider. It rejects backend, worker,

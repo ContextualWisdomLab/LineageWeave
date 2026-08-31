@@ -892,6 +892,9 @@ async def operations_dashboard(
     _require_post_read(account)
     async with pool.acquire() as conn:
         try:
+            source_context_required = await has_real_source_context(
+                conn, list(account.corporate_entity_ids)
+            )
             return await fetch_operations_dashboard(
                 conn,
                 account.corporate_entity_ids,
@@ -899,6 +902,7 @@ async def operations_dashboard(
                 period_start,
                 period_end,
                 external_only,
+                source_context_required,
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
@@ -1826,7 +1830,10 @@ async def read_voice_taxonomy_summary(
         )
     async with pool.acquire() as conn:
         excluded_entity_ids: tuple[str, ...] = ()
-        if await has_real_source_context(conn, list(account.corporate_entity_ids)):
+        source_context_required = await has_real_source_context(
+            conn, list(account.corporate_entity_ids)
+        )
+        if source_context_required:
             excluded_entity_ids = tuple(sorted(await fetch_demo_corporate_entity_ids(conn)))
         summary = await load_voice_taxonomy_summary(
             conn,
@@ -1841,6 +1848,7 @@ async def read_voice_taxonomy_summary(
             product_catalog_id=str(product_catalog_id) if product_catalog_id else None,
             project_key=project_key.strip() if project_key and project_key.strip() else None,
             excluded_corporate_entity_ids=excluded_entity_ids,
+            source_context_required=source_context_required,
         )
     total = int(summary["total_eligible"])
     raw_category_counts = summary["category_post_counts"]

@@ -6,7 +6,7 @@ from datetime import date, datetime
 import json
 from typing import Any, Protocol
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import source_post_eligibility_sql
 from lineageweave.ontology import LW
 from lineageweave.operations_case_analysis import REQUIRED_FACT_TYPES
 from lineageweave.prov_o import PROV_RELATIONS
@@ -128,21 +128,25 @@ class _Connection(Protocol):
         pass  # pragma: no cover - structural Protocol member
 
 
-def _visible_scope_sql(alias: str = "post") -> str:
+def _visible_scope_sql(
+    alias: str = "post", *, source_context_required: bool | None = None
+) -> str:
     """Return the shared ABAC and source-eligibility predicate."""
     return f"""
         ({alias}.visibility_code = 'public'
          or ({alias}.corporate_entity_id::text = any($1::text[])
              and (cardinality($2::text[]) = 0
                   or {alias}.process_unit_id::text = any($2::text[]))))
-        and {SOURCE_POST_ELIGIBILITY_SQL.format(alias=alias)}
+         and {source_post_eligibility_sql(alias, source_context_required=source_context_required)}
     """
 
 
-def _visible_period_sql(alias: str = "post") -> str:
+def _visible_period_sql(
+    alias: str = "post", *, source_context_required: bool | None = None
+) -> str:
     """Return the shared visibility predicate plus the requested event interval."""
     return f"""
-        {_visible_scope_sql(alias)}
+        {_visible_scope_sql(alias, source_context_required=source_context_required)}
         and ($3::date is null or (coalesce({alias}.event_occurred_at, {alias}.created_at)
              at time zone 'Asia/Seoul')::date >= $3)
         and ($4::date is null or (coalesce({alias}.event_occurred_at, {alias}.created_at)
@@ -157,13 +161,16 @@ async def fetch_operations_dashboard(
     period_start: date | None = None,
     period_end: date | None = None,
     external_only: bool = False,
+    source_context_required: bool | None = None,
 ) -> dict[str, Any]:
     """Return quantified cases and their persisted source evidence."""
     if period_start and period_end and period_start > period_end:
         raise ValueError("period_start must not be after period_end")
     args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end, external_only)
-    visible = _visible_period_sql()
-    visible_evidence = _visible_scope_sql("evidence_post")
+    visible = _visible_period_sql(source_context_required=source_context_required)
+    visible_evidence = _visible_scope_sql(
+        "evidence_post", source_context_required=source_context_required
+    )
     metrics = await conn.fetchrow(
         f"""
         with visible_post as (
@@ -549,6 +556,37 @@ def _project_lifecycles(
     return result
 
 
+def _unavailable_topic_context(tepp_ready: bool) -> dict[str, Any]:
+    """Return the existing fail-closed topic-context state."""
+    return {
+        "status_code": "unavailable",
+        "reason_code": (
+            "fast_mlsirm_influence_not_persisted"
+            if tepp_ready
+            else "tepp_topic_posterior_not_persisted"
+        ),
+        "next_action": (
+            "선택한 범위의 글 영향도 분석 결과를 먼저 완료하세요."
+            if tepp_ready
+            else "선택한 범위의 시간 흐름 분석 결과를 먼저 완료하세요."
+        ),
+        "required_contracts": [
+            {
+                "authority": "TEPP",
+                "schema_version": "tepp.topic_context_posterior.v1",
+                "state_code": "persisted" if tepp_ready else "not_persisted",
+            },
+            {
+                "authority": "fast-mlsirm",
+                "schema_version": "fast_mlsirm.topic_context_influence.v1",
+                "state_code": "not_persisted",
+            },
+        ],
+        "model_run": None,
+        "topics": [],
+    }
+
+
 async def _fetch_topic_context_dashboard(
     conn: _Connection,
     visible_post_sql: str,
@@ -606,6 +644,13 @@ async def _fetch_topic_context_dashboard(
         """,
         *args,
     )
+    tepp_ready = bool(readiness and readiness["tepp_posterior_persisted"])
+    fast_mlsirm_ready = bool(
+        readiness and readiness["fast_mlsirm_influence_persisted"]
+    )
+    if not tepp_ready or not fast_mlsirm_ready:
+        return _unavailable_topic_context(tepp_ready)
+
     rows = await conn.fetch(
         f"""
         with visible_post as (
@@ -744,43 +789,11 @@ async def _fetch_topic_context_dashboard(
         *args,
     )
     if not rows:
-        tepp_ready = bool(readiness and readiness["tepp_posterior_persisted"])
         # The readiness query can see an accepted influence row from a
         # different selected run than the projection query.  In an empty
         # projection, report fast-mlsirm as unavailable for this exact
         # visible/time window rather than claiming a persisted contract.
-        fast_mlsirm_ready = False
-        return {
-            "status_code": "unavailable",
-            "reason_code": (
-                "fast_mlsirm_influence_not_persisted"
-                if tepp_ready
-                else "tepp_topic_posterior_not_persisted"
-            ),
-            "next_action": (
-                "선택한 범위의 글 영향도 분석 결과를 먼저 완료하세요."
-                if tepp_ready
-                else "선택한 범위의 시간 흐름 분석 결과를 먼저 완료하세요."
-            ),
-            "required_contracts": [
-                {
-                    "authority": "TEPP",
-                    "schema_version": "tepp.topic_context_posterior.v1",
-                    "state_code": "persisted" if tepp_ready else "not_persisted",
-                },
-                {
-                    "authority": "fast-mlsirm",
-                    "schema_version": "fast_mlsirm.topic_context_influence.v1",
-                    "state_code": (
-                        "persisted"
-                        if fast_mlsirm_ready
-                        else "not_persisted"
-                    ),
-                },
-            ],
-            "model_run": None,
-            "topics": [],
-        }
+        return _unavailable_topic_context(tepp_ready)
 
     if not all(bool(row["provenance_complete"]) for row in rows):
         return {

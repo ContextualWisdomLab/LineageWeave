@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import source_post_eligibility_sql
 
 
 class _Connection(Protocol):
@@ -27,6 +27,7 @@ async def load_voice_taxonomy_summary(
     product_catalog_id: str | None = None,
     project_key: str | None = None,
     excluded_corporate_entity_ids: tuple[str, ...] = (),
+    source_context_required: bool | None = None,
 ) -> dict[str, Any]:
     """Count overlapping voice memberships over one authorized denominator."""
     row = await conn.fetchrow(
@@ -34,7 +35,7 @@ async def load_voice_taxonomy_summary(
         with eligible as (
             select post.post_id
               from source_post post
-             where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+             where {source_post_eligibility_sql('post', source_context_required=source_context_required)}
                and (post.visibility_code = 'public'
                     or (post.corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0

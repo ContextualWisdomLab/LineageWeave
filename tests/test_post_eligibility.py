@@ -3,6 +3,7 @@ from backend.app.post_eligibility import (
     SOURCE_POST_ELIGIBILITY_SQL,
     source_context_missing_sql,
     source_context_present_sql,
+    source_post_eligibility_sql,
 )
 from backend.app.auth import CurrentAccount
 from backend.app.main import _can_see_post, _can_see_product_relation_target
@@ -71,8 +72,20 @@ def test_real_source_context_hides_pure_seed_rows_at_read_boundary() -> None:
     assert "source_deleted_flag" in eligibility
     assert "post.source_draft_code is null or btrim(post.source_draft_code) = ''" in eligibility
     assert "post.source_deleted_flag is null or btrim(post.source_deleted_flag) = ''" in eligibility
-    assert "not ((" in eligibility
-    assert "exists (select 1 from source_post real_post" in eligibility
+    assert "or not exists (select 1 from source_post real_post" in eligibility
     for column in SOURCE_CONTEXT_COLUMNS:
         assert f"post.{column}" in source_context_missing_sql("post")
         assert f"real_post.{column}" in source_context_present_sql("real_post")
+
+
+def test_known_corpus_mode_removes_only_the_redundant_global_probe() -> None:
+    required = source_post_eligibility_sql("post", source_context_required=True)
+    dataless = source_post_eligibility_sql("post", source_context_required=False)
+
+    assert "real_post" not in required
+    assert "real_post" not in dataless
+    for column in SOURCE_CONTEXT_COLUMNS:
+        assert f"post.{column}" in required
+        assert f"post.{column}" not in dataless
+    assert "source_draft_code" in required and "source_draft_code" in dataless
+    assert "source_deleted_flag" in required and "source_deleted_flag" in dataless
