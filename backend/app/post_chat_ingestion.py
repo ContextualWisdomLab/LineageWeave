@@ -573,6 +573,12 @@ async def gather_global_chat_sources(
     authorized_process_ids = list(authorized_process_unit_ids)
     if process_scope_limited is None:
         process_scope_limited = bool(authorized_process_ids)
+    if process_scope_limited and not authorized_process_ids:
+        # A queued job that captured a process scope stays process-limited even
+        # after every captured grant is revoked. Clear the entity admission
+        # list before any retrieval query so private candidate identifiers and
+        # relationships cannot enter ranking ahead of the final ABAC check.
+        authorized_entity_ids = []
     if vision_client is None:
         vision_client = NullImageContentClient()
     if embedding_client is None:

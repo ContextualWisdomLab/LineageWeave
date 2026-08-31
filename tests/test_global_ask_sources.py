@@ -925,6 +925,37 @@ def test_global_sources_keep_body_and_title_lexical_fallback_disabled() -> None:
     assert "unnest($9::text[])" in candidate_queries[0]
 
 
+def test_revoked_captured_process_scope_excludes_private_candidates_before_ranking() -> None:
+    """An empty retained process scope cannot admit private candidate identities."""
+    candidate_scope_arguments: list[tuple[object, object]] = []
+    final_scope_arguments: list[tuple[object, object]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "evidence_post_candidates" in query:
+                candidate_scope_arguments.append((args[3], args[4]))
+            if "array_position($3::uuid[], post_id)" in query:
+                final_scope_arguments.append((args[0], args[1]))
+            return []
+
+    for knowledge_cutoff in (None, datetime(2026, 8, 25, tzinfo=timezone.utc)):
+        sources = asyncio.run(
+            gather_global_chat_sources(
+                FakeConnection(),
+                lambda _row: True,
+                authorized_corporate_entity_ids=("retained-entity",),
+                authorized_process_unit_ids=(),
+                process_scope_limited=True,
+                question="Synthetic governed evidence question",
+                knowledge_cutoff=knowledge_cutoff,
+            )
+        )
+        assert sources == []
+
+    assert candidate_scope_arguments == [([], []), ([], [])]
+    assert final_scope_arguments == [([], []), ([], [])]
+
+
 def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(
     monkeypatch,
 ) -> None:
