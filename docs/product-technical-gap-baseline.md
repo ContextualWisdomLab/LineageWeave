@@ -2,10 +2,22 @@
 
 > Current exact-head overlay: 2026-08-31 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through `e339e5434223a461e8634f66c6119b910a209e30`. The repository has 82 open
+> through `c52ad5bd0b087588157c9930e8eef29c83c09471`. The repository has 82 open
 > PRs, including 6 drafts. This current overlay supersedes the older dated
 > queue snapshots below; neither branch tests nor the running Compose stack
 > are protected-main delivery evidence.
+>
+> Exact-head buyer acceptance: authenticated desktop and 390-pixel mobile
+> Dashboard browser tests passed against the canonical Compose stack, including
+> grounded-case evidence opening, responsive navigation, and Korean/English
+> switching. The same screen reported 43,161 failed analyses among 43,162
+> visible posts, so populated UI acceptance does not establish corpus readiness.
+> PR #966 in contextual-orchestrator converts the structured-synthesis raw 500
+> into the typed provider-failure contract; its required checks and a composed
+> embedding-compatible runtime candidate remain delivery gates before bounded
+> retry. PR #640 now also declares and SHACL-validates the operations-case JSON-LD
+> vocabulary that its Dashboard already emits. No screenshot or identifying
+> runtime record is committed.
 
 > Current rebuild overlay: 2026-08-28 KST. Protected `main` is
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
