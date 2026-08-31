@@ -100,7 +100,9 @@ singular values independently of leftover-map axis share
 independently of leftover-map axis share ([ADR 0325](0325-leftover-map-axis-singular-only.md)). Independent of leftover-map
 coordinate ticks on the leftover-map graphic ([ADR 0270](0270-leftover-map-coordinate-ticks.md)). Independent of leftover-map
 comparison graphic leftover-map axis tick leftover-map axis share independently of leftover-map
-singular values ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md)).
+singular values ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md)). Independent of leftover-map
+graphic leftover-map axis tick leftover-map axis share independently of leftover-map
+singular values ([ADR 0332](0332-leftover-map-plot-tick-share-badge.md)).
 
 ## References
 
