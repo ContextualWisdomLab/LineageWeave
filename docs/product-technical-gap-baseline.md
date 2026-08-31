@@ -2,7 +2,7 @@
 
 > Current exact-head overlay: 2026-08-31 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through `c52ad5bd0b087588157c9930e8eef29c83c09471`. The repository has 84 open
+> through `7ac1b079a535a787831d90749fb9969e9a8844b8`. The repository has 84 open
 > PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
 > queue snapshots below; neither branch tests nor the running Compose stack
 > are protected-main delivery evidence.
@@ -12,12 +12,14 @@
 > grounded-case evidence opening, responsive navigation, and Korean/English
 > switching. The same screen reported 43,161 failed analyses among 43,162
 > visible posts, so populated UI acceptance does not establish corpus readiness.
-> PR #966 in contextual-orchestrator converts the structured-synthesis raw 500
-> into the typed provider-failure contract; its required checks and a composed
-> embedding-compatible runtime candidate remain delivery gates before bounded
-> retry. PR #640 now also declares and SHACL-validates the operations-case JSON-LD
+> PR #970 in contextual-orchestrator supplies the current-main structured-failure
+> and provider-embedding runtime candidate; its protected delivery remains a gate
+> before the first bounded terminal retry. Terminal retry and unbounded continuation
+> are now mutually exclusive, so each admitted page must settle before another
+> page is selected. PR #640 now also declares and SHACL-validates the operations-case JSON-LD
 > vocabulary that its Dashboard already emits. No screenshot or identifying
-> runtime record is committed.
+> runtime record is committed. The exact LineageWeave head passed 2,308 repository
+> tests with 16 integration skips; those branch tests are not protected-main proof.
 
 > Current rebuild overlay: 2026-08-28 KST. Protected `main` is
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
