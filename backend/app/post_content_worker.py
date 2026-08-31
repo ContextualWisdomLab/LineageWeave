@@ -670,8 +670,8 @@ async def process_post_content_job(
                         settings.orchestrator_base_url,
                         settings.orchestrator_api_key,
                     )
-                except HttpAdmissionDeferred:
-                    raise
+                except HttpAdmissionDeferred as exc:
+                    voice_failure = exc
                 except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
                     voice_failure = exc
                     _logger.error("derived Voice ingestion failed for post_id=%s", post_id)

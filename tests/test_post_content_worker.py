@@ -504,6 +504,75 @@ def test_voice_failure_does_not_starve_independent_operations(monkeypatch) -> No
     assert failed_stages == ["voice_classification"]
 
 
+def test_voice_admission_defer_waits_for_independent_operations(monkeypatch) -> None:
+    """Voice admission delay is preserved after independent evidence persists."""
+    persisted: list[str] = []
+    deferred: list[tuple[int, int]] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def defer_voice(*_args, **_kwargs):
+        raise HttpAdmissionDeferred(30)
+
+    async def persist_operations(*_args, **_kwargs):
+        persisted.append("operations")
+
+    async def defer(*_args, expected_attempt_count: int, retry_after_seconds: int, **_kwargs):
+        deferred.append((expected_attempt_count, retry_after_seconds))
+        return True
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="gateway", orchestrator_api_key="key"),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_persist_voice_classification_if_needed", defer_voice
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        persist_operations,
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker, "persist_post_content", lambda *_args, **_kwargs: asyncio.sleep(0)
+    )
+    monkeypatch.setattr(post_content_worker, "defer_post_content_job", defer)
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert persisted == ["operations"]
+    assert deferred == [(2, 30)]
+
+
 def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch) -> None:
     connection = _Connection(values=[False, 2])
     pool = _Pool(connection)
