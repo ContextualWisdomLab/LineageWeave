@@ -60,7 +60,7 @@ URL is an unavailable source, not permission to synthesize one.
 | Observation | Client action |
 | --- | --- |
 | queued or running | Keep the job id and poll later with bounded backoff. |
-| succeeded | Render the persisted answer and keep citations linked to their record ids. |
+| succeeded | Render the persisted answer and keep citations linked to their record ids. If the result has no authorized citations, show its limitation and next action; do not turn the empty evidence set into an answer. |
 | failed | Show the returned safe failure detail and allow a new submission after the operator restores the dependency. |
 | 401 | Renew the resource token, initialize a new MCP session, and retry the read. |
 | 403 | Request the required permission or affiliation; do not broaden the query locally. |
@@ -75,6 +75,10 @@ id after connectivity returns.
 
 - Preserve each citation's record id and event-clock metadata when rendering
   the answer.
+- A succeeded job with no authorized citations is an honest no-evidence result,
+  not permission to fill the gap. Keep the result, suggest narrowing the
+  question, and ask the account administrator to confirm access when the user
+  expected an eligible record.
 - Render related public sources only from the persisted citation payload.
 - Treat an unavailable TEPP or topic/importance measurement as unavailable;
   do not manufacture a score, weight, or journey edge.
