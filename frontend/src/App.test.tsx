@@ -4654,6 +4654,16 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover map comparison graphic leftover-map distance d 0.12",
+      ),
+    ).toHaveTextContent("d 0.12");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover-map distance d 0.12",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
       within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
         /leftover-map axis \d tick/,
       ).length,

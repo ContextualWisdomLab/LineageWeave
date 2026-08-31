@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 09:25 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #858 leftover-map rank on the grouping comparison leftover-map
+> graphic (v2.75.0 / ADR 0318) is `4b9184f`, stacked on #857 @ `9f34d2c`. Independent
+> APPROVE is missing. Next buyer increment on this
+> cycle: leftover-map distance on the grouping comparison leftover-map
+> graphic (ADR 0319 / v2.76.0) delivered locally on
+> `feat/leftover-map-compare-plot-distance-v2760`. Caption persisted leftover-map
+> distance `d` on that comparison graphic from already-named leftover_distance.
+> Distinct accessible name `leftover map comparison graphic leftover-map
+> distance {label}`. Omit when formatLeftoverMapDistance fail-closes.
+> Do not caption leftover-map coordinate ticks on that comparison graphic with a distinct name this
+> increment. Do not invent leftover-map distance from plotted coordinates.
+> Stack onto #858. Leave open for independent review. Do not squash-merge. Do not
+> self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
+> Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 09:19 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #857 leftover expected on the grouping comparison leftover-map

@@ -8,6 +8,21 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover-map distance on the grouping
+  comparison leftover-map graphic (ADR 0319 / v2.76.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with leftover-map
+  distance `d` on that grouping comparison leftover-map graphic when
+  formatLeftoverMapDistance returns a usable badge; click a post marker or a pair
+  button opens that post. A missing or non-finite `d` omits that leftover-map
+  comparison graphic leftover-map distance caption and keeps leftover-map rank.
+  Rank-0 origin cells still name `d 0.00` when that persisted leftover-map distance
+  is finite. Comparison copy uses
+  `leftover map comparison graphic leftover-map distance {label}` so it stays
+  distinct from `leftover-map distance {label}`. This increment does not caption leftover-map
+  coordinate ticks on the comparison graphic with a distinct name. Do not invent leftover-map
+  distance from plotted coordinates. A finite negative leftover is shown, never clamped.
+  Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now name leftover-map rank on the grouping
   comparison leftover-map graphic (ADR 0318 / v2.75.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with leftover-map

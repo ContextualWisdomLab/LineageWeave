@@ -103,6 +103,7 @@ describe("i18n", () => {
     "Leftover map comparison expected",
     "leftover map comparison graphic leftover-map rank {label}",
     "Leftover map comparison rank",
+    "leftover map comparison graphic leftover-map distance {label}",
     "Leftover map comparison coordinates",
     "Leftover map comparison graphic",
     "Leftover map comparison",
@@ -646,6 +647,23 @@ describe("i18n", () => {
       expect(
         tf("leftover map comparison graphic leftover-map rank {label}", {
           label: "rank 1",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 거리 d 0.12"],
+    ["zh", "残差地图比较图形距离 d 0.12"],
+    ["ja", "残差マップの比較図距離 d 0.12"],
+    ["vi", "khoảng cách đồ họa so sánh bản đồ phần dư d 0.12"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map distance in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic leftover-map distance {label}", {
+          label: "d 0.12",
         }),
       ).toBe(expected);
     },
