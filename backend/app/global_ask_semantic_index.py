@@ -89,6 +89,13 @@ class GlobalAskExactSemanticIndex:
             self._matching_snapshot(snapshot_version, model_identity, vector_dimension)
             is not None
             and self._authorization_version == authorization_version
+            and all(
+                prepared.projection_version == projection_version
+                and prepared.authorization_version == authorization_version
+                and prepared.model_identity == model_identity
+                and prepared.vector_dimension == vector_dimension
+                for prepared in self._prepared_authorizations.values()
+            )
         )
 
     async def prepare(
@@ -435,14 +442,22 @@ class GlobalAskExactSemanticIndex:
                     on permission.access_role_id = assignment.access_role_id
                  where permission.permission_code = 'post_read'
             ), local_scope as (
-                select affiliation.user_account_id,
-                       array_agg(distinct affiliation.corporate_entity_id::text
-                                 order by affiliation.corporate_entity_id::text) as entity_ids,
+                select readers.user_account_id,
+                       coalesce(
+                           array_agg(
+                               distinct affiliation.corporate_entity_id::text
+                               order by affiliation.corporate_entity_id::text
+                           ) filter (
+                               where affiliation.corporate_entity_id is not null
+                           ),
+                           array[]::text[]
+                       ) as entity_ids,
                        array[]::text[] as process_ids,
                        false as process_scope_limited
-                  from account_affiliation affiliation
-                  join readers on readers.user_account_id = affiliation.user_account_id
-                 group by affiliation.user_account_id
+                  from readers
+                  left join account_affiliation affiliation
+                    on affiliation.user_account_id = readers.user_account_id
+                 group by readers.user_account_id
             ), atomic_scope as (
                 select affiliation.user_account_id,
                        array[affiliation.corporate_entity_id::text] as entity_ids,

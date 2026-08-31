@@ -18,15 +18,26 @@ def record_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
     temporary.replace(path)
 
 
+def invalidate_worker_readiness(
+    ready: asyncio.Event,
+    path: Path = HEARTBEAT_PATH,
+) -> None:
+    """Clear readiness and remove progress evidence from the prior snapshot."""
+    ready.clear()
+    path.unlink(missing_ok=True)
+
+
 async def run_worker_heartbeat(
     path: Path = HEARTBEAT_PATH,
     *,
     ready: asyncio.Event | None = None,
 ) -> None:
     """Record progress only after every required startup barrier is ready."""
-    if ready is not None:
-        await ready.wait()
     while True:
+        if ready is not None:
+            if not ready.is_set():
+                path.unlink(missing_ok=True)
+            await ready.wait()
         record_worker_heartbeat(path)
         await asyncio.sleep(1.0)
 

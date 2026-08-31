@@ -48,6 +48,13 @@ class _Connection:
         self.authorization_version = 11
         self.authorization_queries: list[str] = []
         self.packed_authorization = _pack_authorization(("post-a", "unit-a"))
+        self.scope_rows = [
+            {
+                "entity_ids": ["entity-a"],
+                "process_ids": [],
+                "process_scope_limited": False,
+            }
+        ]
 
     def transaction(self, **kwargs):
         assert kwargs == {"isolation": "repeatable_read", "readonly": True}
@@ -69,13 +76,8 @@ class _Connection:
             self.snapshot_fetches += 1
             return self.snapshot_rows
         if "with readers as" in query:
-            return [
-                {
-                    "entity_ids": ["entity-a"],
-                    "process_ids": [],
-                    "process_scope_limited": False,
-                }
-            ]
+            assert "left join account_affiliation" in query
+            return self.scope_rows
         self.authorization_queries.append(query)
         return self.authorized_rows
 
@@ -83,6 +85,7 @@ class _Connection:
 class _OwnerIndex:
     constructions = 0
     leak = False
+    preflight_failure = False
 
     def __init__(self, version, model, dimension, candidate_ids, packed_vectors):
         type(self).constructions += 1
@@ -108,6 +111,8 @@ class _OwnerIndex:
         return SimpleNamespace(snapshot=self.snapshot_evidence, results=[result])
 
     def preflight_authorized_packed(self, model, packed_authorization):
+        if self.preflight_failure:
+            raise ValueError("synthetic preflight failure")
         return self.rank_authorized_packed(model, [1.0, 0.0], packed_authorization)
 
 
@@ -222,6 +227,94 @@ def test_request_never_builds_an_unprepared_or_stale_snapshot(monkeypatch) -> No
     with pytest.raises(RankWeaveNotAvailable, match="not prepared"):
         asyncio.run(index.rank_authorized(conn, **parameters))
     assert conn.snapshot_fetches == 1
+
+
+def test_failed_refresh_never_marks_stale_authorization_prepared(monkeypatch) -> None:
+    """A replaced owner snapshot cannot reuse authorization from its predecessor."""
+    _OwnerIndex.preflight_failure = False
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    index = GlobalAskExactSemanticIndex()
+
+    async def exercise() -> None:
+        await index.prepare(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+        conn.projection_version = 8
+        _OwnerIndex.preflight_failure = True
+        with pytest.raises(RankWeaveNotAvailable, match="preflight failed"):
+            await index.prepare(
+                conn, model_identity="synthetic-model", vector_dimension=2
+            )
+        assert not await index.is_prepared_for(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+
+        _OwnerIndex.preflight_failure = False
+        await index.prepare(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+        assert await index.is_prepared_for(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+
+    try:
+        asyncio.run(exercise())
+    finally:
+        _OwnerIndex.preflight_failure = False
+
+
+@pytest.mark.parametrize(
+    "scope_rows",
+    [
+        [
+            {
+                "entity_ids": [],
+                "process_ids": [],
+                "process_scope_limited": False,
+            }
+        ],
+        [
+            {
+                "entity_ids": [],
+                "process_ids": [],
+                "process_scope_limited": False,
+            },
+            {
+                "entity_ids": ["entity-a"],
+                "process_ids": [],
+                "process_scope_limited": False,
+            },
+            {
+                "entity_ids": ["entity-a"],
+                "process_ids": ["unit-a"],
+                "process_scope_limited": True,
+            },
+        ],
+    ],
+)
+def test_active_scopes_include_public_only_readers(monkeypatch, scope_rows) -> None:
+    """Every reader contributes its local scope even without affiliation rows."""
+    _OwnerIndex.preflight_failure = False
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    conn.scope_rows = scope_rows
+    index = GlobalAskExactSemanticIndex()
+
+    async def exercise() -> None:
+        await index.prepare(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+        scopes = await index._active_authorization_scopes(conn)
+        assert index._scope([], [], process_scope_limited=False) in scopes
+
+    asyncio.run(exercise())
 
 
 def test_warm_immutable_snapshot_allows_concurrent_exact_ranking(monkeypatch) -> None:

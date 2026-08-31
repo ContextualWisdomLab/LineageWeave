@@ -71,6 +71,34 @@ def test_heartbeat_waits_for_required_startup_readiness(tmp_path: Path) -> None:
     asyncio.run(exercise())
 
 
+def test_heartbeat_invalidates_and_resumes_with_readiness(tmp_path: Path) -> None:
+    """A stale snapshot removes health evidence until replacement is ready."""
+    heartbeat = tmp_path / "heartbeat"
+
+    async def exercise() -> None:
+        ready = asyncio.Event()
+        ready.set()
+        task = asyncio.create_task(
+            worker_health.run_worker_heartbeat(heartbeat, ready=ready)
+        )
+        await asyncio.sleep(0)
+        assert heartbeat.exists()
+
+        worker_health.invalidate_worker_readiness(ready, heartbeat)
+        assert not heartbeat.exists()
+        await asyncio.sleep(1.05)
+        assert not heartbeat.exists()
+
+        ready.set()
+        await asyncio.sleep(0)
+        assert heartbeat.exists()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+
+
 def test_shell_probe_requires_monotonic_progress(tmp_path: Path) -> None:
     """The lightweight container probe preserves the Python progress contract."""
     heartbeat = tmp_path / "heartbeat"

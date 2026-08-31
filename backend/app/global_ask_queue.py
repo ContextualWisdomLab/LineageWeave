@@ -73,6 +73,7 @@ from .post_chat_ingestion import (
     prepare_global_question_embedding,
 )
 from .source_research_ingestion import list_ask_source_references
+from .worker_health import invalidate_worker_readiness
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -942,7 +943,7 @@ async def run_global_ask_worker(
                             vector_dimension=vector_dimension,
                         ):
                             if readiness is not None:
-                                readiness.clear()
+                                invalidate_worker_readiness(readiness)
                             await exact_semantic_index.prepare(
                                 conn,
                                 model_identity=model_identity,
