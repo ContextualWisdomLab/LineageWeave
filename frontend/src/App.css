@@ -1560,6 +1560,13 @@
 .dashboard-case-card dd { margin: 0; font-weight: 600; }
 .dashboard-case-card button { margin-top: auto; }
 
+.dashboard-milestone-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-control-gap);
+}
+
 .occupation-rating-profile {
   max-width: 1440px;
   margin: 0 auto 2rem;

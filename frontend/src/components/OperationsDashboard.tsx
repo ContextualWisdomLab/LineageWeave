@@ -284,7 +284,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
                     {lifecycle.elapsed_seconds !== null ? <p>{t("Confirmed elapsed time")} <b>{formatElapsed(lifecycle.elapsed_seconds)}</b></p> : <p>{t("Elapsed time is calculated after both required start and end evidence are observed.")}</p>}
                     <ol>
                       {[lifecycle.start_milestone, lifecycle.end_milestone].filter((milestone) => milestone !== null).map((milestone) => (
-                        <li key={milestone.milestone_type_code}>
+                        <li key={milestone.milestone_type_code} className="dashboard-milestone-row">
                           <time dateTime={milestone.observed_at}>{milestone.observed_at}</time>
                           <span>{controlledLabel(milestone.milestone_type_code, milestone.milestone_type_label, milestoneLabels)} · {controlledLabel(milestone.time_axis_code, milestone.time_axis_label, timeAxisLabels)}</span>
                           <button type="button" className="btn-link" onClick={() => onOpenPost(milestone.evidence_post_id)}>{tf("Open {label} evidence", { label: controlledLabel(milestone.milestone_type_code, milestone.milestone_type_label, milestoneLabels) })}</button>
