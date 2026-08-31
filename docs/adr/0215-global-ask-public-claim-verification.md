@@ -31,7 +31,7 @@ carried by a cited public source. Private sources, Keyman/person facts, raw
 source hints, source bodies, TEPP artifacts, fast-mlsirm artifacts, prompts,
 credentials, and uncited facts never form a public query.
 
-ADR 0269 strengthens admission: the production queue now requires a persisted,
+ADR 0275 strengthens admission: the production queue now requires a persisted,
 PROV-O-bound public-claim envelope for an exact cited post. Question-token
 overlap is retained only as legacy library compatibility and is not a runtime
 egress decision.

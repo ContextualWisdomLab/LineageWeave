@@ -1233,7 +1233,7 @@ describe("App, authenticated", () => {
                     },
                   ],
                   total_count: 1,
-                  limit: 50,
+                  limit: 20,
                   offset: 0,
                   ...(options?.omitVoiceOptions
                     ? {}
@@ -1259,6 +1259,16 @@ describe("App, authenticated", () => {
       const postOneUrl = new URL(url, "https://backend.test");
       if (postOneUrl.pathname === "/api/posts/post-1/similar-voc") {
         return Promise.resolve(jsonResponse({ items: [] }));
+      }
+      if (postOneUrl.pathname === "/api/posts/post-1/body") {
+        return Promise.resolve(
+          new Response(
+            postOneUrl.searchParams.has("as_of")
+              ? "The cutoff body this run knew."
+              : options?.postBody ?? "The full body text.",
+            { status: 200 },
+          ),
+        );
       }
       if (postOneUrl.pathname === "/api/posts/post-1") {
         const asOf = postOneUrl.searchParams.get("as_of");
@@ -1335,6 +1345,11 @@ describe("App, authenticated", () => {
             visibility_code: "public",
             created_at: "2026-01-02T00:00:00Z",
           }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/body")) {
+        return Promise.resolve(
+          new Response("The evidence panel should show exactly this text.", { status: 200 }),
         );
       }
       if (url.endsWith("/api/posts/post-1/evaluation")) {
@@ -1995,17 +2010,21 @@ describe("App, authenticated", () => {
                         post_body_truncated: false,
                       },
                     ],
+                    related_posts_next_cursor: null,
+                    related_posts_loaded: true,
                     resolution_status: "hint_only",
                     hint_trust: "normal",
                     provenance: "source_post.source_customer_code",
                   },
                 ]
               : options?.manyCustomerHints
-                ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                ? Array.from({ length: Math.min(20, options.manyCustomerHints) }, (_, index) => ({
                     customer_code: `CUST-${index}`,
                     customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
                     post_count: options.manyCustomerHints! - index,
                     related_posts: [],
+                    related_posts_next_cursor: null,
+                    related_posts_loaded: true,
                     resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
                     hint_trust: "normal",
                     provenance: "source_post.source_customer_code",
@@ -2029,6 +2048,8 @@ describe("App, authenticated", () => {
                         post_body_truncated: false,
                       },
                     ],
+                    related_posts_next_cursor: null,
+                    related_posts_loaded: true,
                     resolution_status: "hint_only",
                     provenance: "source_post.source_author_code",
                   },
@@ -2055,6 +2076,10 @@ describe("App, authenticated", () => {
                 multi_role: false,
               },
             ],
+            source_customer_hint_total: options?.manyCustomerHints ?? (options?.hintRelatedPosts ? 1 : 0),
+            source_author_hint_total: options?.hintRelatedPosts ? 1 : 0,
+            next_customer_cursor: options?.manyCustomerHints && options.manyCustomerHints > 20 ? "next-customer" : null,
+            next_author_cursor: null,
           }),
         );
       }
@@ -2397,9 +2422,9 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
-    expect(screen.getByText(/Showing the first 30 of 45 observed customer identifiers/)).toBeInTheDocument();
-    expect(screen.getByText("CUST-29")).toBeInTheDocument();
-    expect(screen.queryByText("CUST-30")).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing the first 20 of 45 observed customer identifiers/)).toBeInTheDocument();
+    expect(screen.getByText("CUST-19")).toBeInTheDocument();
+    expect(screen.queryByText("CUST-20")).not.toBeInTheDocument();
     expect(screen.queryByText("CUST-44")).not.toBeInTheDocument();
   });
 
@@ -3618,7 +3643,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
     expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
 
-    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+    const linkedPosts = await screen.findAllByLabelText("Open post: Linked post");
     await userEvent.click(linkedPosts[linkedPosts.length - 1]);
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),

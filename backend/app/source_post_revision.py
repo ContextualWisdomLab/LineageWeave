@@ -93,6 +93,31 @@ async def fetch_known_at_revision(
     }
 
 
+async def fetch_known_at_revision_metadata(
+    conn: "asyncpg.Connection",
+    post_id: str,
+    as_of: datetime,
+) -> dict[str, str] | None:
+    """Return cutoff revision identity and clocks without detoasting its body."""
+    row = await conn.fetchrow(
+        "select source_post_revision_id, post_title, written_at "
+        "from source_post_revision "
+        "where post_id = $1 and written_at <= $2 "
+        "and (superseded_at is null or superseded_at > $2) "
+        "order by written_at desc limit 1",
+        post_id,
+        as_of,
+    )
+    if row is None:
+        return None
+    return {
+        "source_post_revision_id": str(row["source_post_revision_id"]),
+        "post_title": row["post_title"],
+        "written_at": _iso(row["written_at"]),
+        "as_of": _iso(as_of),
+    }
+
+
 async def fetch_known_at_revisions(
     conn: "asyncpg.Connection",
     post_ids: list[str],

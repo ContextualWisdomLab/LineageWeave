@@ -33,6 +33,7 @@ def test_api_lifespan_opens_clients_without_starting_queue_workers(monkeypatch) 
     )
     monkeypatch.setattr(main, "create_pool", lambda _url: _async_value(pool))
     monkeypatch.setattr(main, "create_valkey_client", lambda _url: valkey)
+    monkeypatch.setattr(main, "warm_oidc_jwks", lambda _settings: _async_value(None))
     monkeypatch.setattr(main, "configure_telemetry", lambda _name: None)
     monkeypatch.setattr(main, "shutdown_telemetry", lambda: None)
     app = SimpleNamespace(state=SimpleNamespace())
@@ -119,13 +120,20 @@ def test_worker_process_owns_all_configured_durable_consumers(
     monkeypatch.setattr(worker, "run_global_ask_worker", global_ask)
     monkeypatch.setattr(
         worker,
+        "run_voice_taxonomy_transition_worker",
+        lambda *a, **kw: called("voice_taxonomy", *a, **kw),
+    )
+    monkeypatch.setattr(
+        worker,
         "run_topic_influence_worker",
         lambda *a, **kw: called("topic_influence", *a, **kw),
     )
 
     asyncio.run(worker.run_worker_process())
 
-    assert calls[:4] == ["lease_acquired", "analysis", "content", "global_ask"]
+    assert calls[:5] == [
+        "lease_acquired", "analysis", "content", "global_ask", "voice_taxonomy"
+    ]
     assert ("topic_influence" in calls) is expects_topic_consumer
     assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
     assert global_ask_kwargs["claim_verification_factory"]() is verification_client

@@ -1,4 +1,4 @@
-# ADR 0269: Persist public-claim admission before external verification
+# ADR 0275: Persist public-claim admission before external verification
 
 ## Status
 

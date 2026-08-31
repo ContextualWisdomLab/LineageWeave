@@ -248,11 +248,13 @@ _LATE_REPLAYABLE_MIGRATIONS = tuple(
         "0244_report_leftover_map_explained_share.sql",
         "0245_operations_case_missing_fact.sql",
         "0246_operations_external_relation_target.sql",
+        "0247_topic_context_influence_projection.sql",
         "0248_operations_case_milestone.sql",
         "0250_operations_case_analysis_input.sql",
         "0251_product_semantic_catalog.sql",
         "0253_voice_semantic_taxonomy.sql",
         "0257_public_claim_envelope.sql",
+        "0263_voice_taxonomy_read_projection.sql",
     )
 )
 
@@ -286,7 +288,7 @@ def test_dashboard_external_query_reaches_projection(
     async def _fake_dashboard(
         _conn, _corporate_entity_ids, _process_unit_ids,
         _period_start=None, _period_end=None, external_only=False,
-        _source_context_required=None,
+        _source_context_required=None, _case_cursor=None, _case_limit=20,
     ):
         observed.append(external_only)
         return {"external_only": external_only}
@@ -325,6 +327,21 @@ _EVENT_OCCURRED_AT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0183_source_post_event_occurred_at.sql"
+)
+_CUSTOMER_MASTER_READ_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0266_customer_master_group_read_projection.sql"
+)
+_DASHBOARD_READ_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0264_dashboard_post_read_projection.sql"
+)
+_POST_LIST_READ_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0265_post_list_read_projection_index.sql"
 )
 
 
@@ -489,6 +506,45 @@ def seeded_db(demo_analyst_token):
                     db_dsn,
                     "-f",
                     str(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION),
+                ],
+                check=True,
+            )
+            cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
+            # The Dashboard projection is migration 0264 and therefore reads
+            # the case-analysis schema established by these earlier replayable
+            # migrations.  Keep the throwaway fixture in production migration
+            # order; the full replay below remains the idempotency check.
+            for migration_path in _LATE_REPLAYABLE_MIGRATIONS:
+                if migration_path.name in {
+                    "0017_prov_o_standard_relations.sql",
+                    "0208_operations_case_analysis.sql",
+                    "0209_operations_case_evidence_source.sql",
+                    "0245_operations_case_missing_fact.sql",
+                    "0246_operations_external_relation_target.sql",
+                    "0247_topic_context_influence_projection.sql",
+                    "0248_operations_case_milestone.sql",
+                    "0250_operations_case_analysis_input.sql",
+                }:
+                    cur.execute(migration_path.read_text())
+            cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
+            subprocess.run(
+                [
+                    "psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn,
+                    "-f", str(_DASHBOARD_READ_MIGRATION),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    "psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn,
+                    "-f", str(_POST_LIST_READ_MIGRATION),
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    "psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn,
+                    "-f", str(_CUSTOMER_MASTER_READ_MIGRATION),
                 ],
                 check=True,
             )
@@ -1657,68 +1713,35 @@ def test_update_me_preferences_requires_authentication(client) -> None:
     assert response.status_code in (401, 403)
 
 
-def test_rankings_fail_closed_payload_is_exact(
+def test_rankings_without_selection_lists_only_persisted_context_choices(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
-    """A missing RankWeave transport is unavailable, never ambiguous success."""
-    from lineageweave.rankweave_client import RankWeaveClient
-
-    monkeypatch.setattr("backend.app.main._rankweave_client", RankWeaveClient)
+    """An unselected read never fabricates a default ranking channel."""
     response = client.get("/api/rankings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     assert response.json() == {
-        "port": "rankweave",
-        "status": "unavailable",
-        "status_reason": "rankweave_not_available",
+        "status": "selection_required",
+        "context_choices": [],
         "rankings": [],
     }
 
 
-def test_rankings_accept_only_abac_visible_posts(
+def test_rankings_reject_partial_or_extra_selection(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
-    """A deterministic RankWeave adapter ranks visible synthetic posts only."""
-    from lineageweave.rankweave_client import RankWeaveClient
-
-    captured_channels: dict[str, list[str]] = {}
-
-    def fuse_visible(
-        channels: dict[str, list[str]], _weights: dict[str, float]
-    ) -> list[dict[str, str]]:
-        captured_channels.update(channels)
-        return [{"item_id": post_id} for post_id in channels["temporal"]]
-
-    monkeypatch.setattr(
-        "backend.app.main._rankweave_client",
-        lambda: RankWeaveClient(transport=fuse_visible),
-    )
-    response = client.get(
-        "/api/rankings",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["port"] == "rankweave"
-    assert body["status"] == "accepted"
-    assert body["status_reason"] is None
-    assert [row["fused_rank"] for row in body["rankings"]] == list(
-        range(1, len(body["rankings"]) + 1)
-    )
-    visible_by_id = {row["post_id"]: row for row in body["rankings"]}
-    assert visible_by_id[seeded_db["own_private_post_id"]]["post_title"] == (
-        "Own-corp private post"
-    )
-    assert visible_by_id[seeded_db["public_post_id"]]["post_title"] == "Public post"
-    assert seeded_db["other_private_post_id"] not in visible_by_id
-    assert seeded_db["other_private_post_id"] not in captured_channels["temporal"]
-    assert "theta" not in str(body).lower()
+    """A ranking requires exactly ADR 0278's five selection keys."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    assert client.get("/api/rankings?topic_index=0", headers=headers).status_code == 422
+    query = "topic_model_run_id=x&influence_run_id=y&topic_index=0&dimension=team&context=z&extra=1"
+    assert client.get(f"/api/rankings?{query}", headers=headers).status_code == 422
 
 
 def test_rankings_requires_authentication(client) -> None:
     """Anonymous callers cannot enumerate the buyer's visible ranking corpus."""
     response = client.get("/api/rankings")
     assert response.status_code in (401, 403)
+
+
 
 
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
@@ -1786,8 +1809,15 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     body = response.json()
     assert set(body) == {
         "corporate_entities", "keymen", "source_customer_hints", "source_author_hints",
-        "relationship_network",
+        "relationship_network", "source_customer_hint_total",
+        "source_author_hint_total", "next_customer_cursor", "next_author_cursor",
     }
+    assert body["source_customer_hint_total"] == 1
+    assert body["source_author_hint_total"] == 1
+    assert body["next_customer_cursor"] is None
+    assert body["next_author_cursor"] is None
+
+
     entity = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Corp")
     assert {
         "corporate_entity_id", "corporate_entity_code", "entity_name",
@@ -1826,10 +1856,9 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             "customer_code": "TEST-CUSTOMER-001",
             "customer_name": None,
             "post_count": 1,
-            "related_posts": [{
-                "post_id": seeded_db["public_post_id"],
-                "post_title": "Public post",
-            }],
+            "related_posts": [],
+            "related_posts_next_cursor": None,
+            "related_posts_loaded": False,
             "resolution_status": "hint_only",
             "hint_trust": "normal",
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",
@@ -1851,18 +1880,103 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                 "provenance": "post_person_mention.person_id|post_summary_role.cataloged_person_id/source_post.author_account_id",
         }
     ]
-    assert author_hint[0]["related_posts"] == [
-        {
-            "post_id": seeded_db["public_post_id"],
-            "post_title": "Public post",
-        }
-    ]
+    assert author_hint[0]["related_posts"] == []
+    assert author_hint[0]["related_posts_next_cursor"] is None
+    assert author_hint[0]["related_posts_loaded"] is False
     assert author_hint[0]["resolution_status"] == "our_side_context_only"
     assert any(
         affiliation["entity_name"] == "Test Corp"
         for affiliation in author_hint[0]["account_affiliations"]
     )
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
+
+
+def test_customer_master_keysets_customer_and_author_groups_independently(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Bounded pages preserve exact group totals without duplicate continuations."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            for index in range(5):
+                cur.execute(
+                    "insert into source_post "
+                    "(post_title, post_body, created_at, visibility_code, corporate_entity_id, "
+                    " author_account_id, voc_type_code, source_customer_code, source_author_code) "
+                    "select %s, %s, now() + (%s || ' seconds')::interval, 'public', %s, "
+                    " author_account_id, voc_type_code, %s, %s from source_post where post_id = %s",
+                    (
+                        f"Synthetic customer page {index}", "Synthetic body", index,
+                        seeded_db["own_corp_id"], f"CUSTOMER-{index:02d}",
+                        f"AUTHOR-{index:02d}", seeded_db["public_post_id"],
+                    ),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    first = client.get("/api/customer-master?hint_limit=2", headers=headers)
+    assert first.status_code == 200
+    first_body = first.json()
+    assert first_body["source_customer_hint_total"] == 5
+    assert first_body["source_author_hint_total"] == 5
+    assert first_body["next_customer_cursor"]
+    assert first_body["next_author_cursor"]
+    second = client.get(
+        "/api/customer-master",
+        params={
+            "hint_limit": 2,
+            "customer_cursor": first_body["next_customer_cursor"],
+            "author_cursor": first_body["next_author_cursor"],
+        },
+        headers=headers,
+    )
+    assert second.status_code == 200
+    second_body = second.json()
+    assert {
+        row["customer_code"] for row in first_body["source_customer_hints"]
+    }.isdisjoint({row["customer_code"] for row in second_body["source_customer_hints"]})
+    assert {
+        row["author_code"] for row in first_body["source_author_hints"]
+    }.isdisjoint({row["author_code"] for row in second_body["source_author_hints"]})
+    assert client.get(
+        "/api/customer-master?customer_cursor=not-a-cursor", headers=headers
+    ).status_code == 422
+
+
+def test_customer_master_related_posts_load_as_an_independent_keyset(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Opening one group retrieves its exact authorized evidence separately."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_customer_code = %s where post_id = %s",
+                ("TEST-CUSTOMER-001", seeded_db["public_post_id"]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    related = client.get(
+        "/api/customer-master/related-posts",
+        params={"kind": "customer", "customer_code": "TEST-CUSTOMER-001", "limit": 1},
+        headers=headers,
+    )
+    assert related.status_code == 200
+    assert [post["post_id"] for post in related.json()["related_posts"]] == [
+        seeded_db["public_post_id"]
+    ]
+    assert client.get(
+        "/api/customer-master/related-posts",
+        params={
+            "kind": "customer",
+            "customer_code": "TEST-CUSTOMER-001",
+            "cursor": "not-a-cursor",
+        },
+        headers=headers,
+    ).status_code == 422
 
 
 def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
@@ -2424,15 +2538,26 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
 
 
-def test_post_detail_as_of_returns_the_cutoff_known_body(
+def test_post_detail_as_of_streams_the_exact_cutoff_body_separately(
     client, demo_analyst_token, seeded_db
 ) -> None:
     """Opened marked titles compare two real sentences, not two clocks."""
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     live = client.get(f"/api/posts/{seeded_db['edited_own_post_id']}", headers=headers)
     assert live.status_code == 200
-    assert live.json()["post_body"] == "A January post rewritten after the run cutoff."
+    assert "post_body" not in live.json()
     assert "known_at" not in live.json()
+    rejected_inline_body = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"include_body": "true"},
+        headers=headers,
+    )
+    assert rejected_inline_body.status_code == 422
+    live_body = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}/body", headers=headers
+    )
+    assert live_body.status_code == 200
+    assert live_body.text == "A January post rewritten after the run cutoff."
 
     known = client.get(
         f"/api/posts/{seeded_db['edited_own_post_id']}",
@@ -2441,12 +2566,19 @@ def test_post_detail_as_of_returns_the_cutoff_known_body(
     )
     assert known.status_code == 200
     body = known.json()
-    assert body["post_body"] == "A January post rewritten after the run cutoff."
-    assert body["known_at"]["post_body"] == "A January post before the rewrite."
+    assert "post_body" not in body
+    assert "post_body" not in body["known_at"]
     assert body["known_at"]["written_at"].startswith("2026-01-10")
     assert body["product_evidence"] == []
     assert body["product_evidence_status"]["status_code"] == "historical_unavailable"
     assert "postgresql://" not in str(body)
+    known_body = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}/body",
+        params={"as_of": "2026-01-12T12:00:00Z"},
+        headers=headers,
+    )
+    assert known_body.status_code == 200
+    assert known_body.text == "A January post before the rewrite."
 
     missing = client.get(
         f"/api/posts/{seeded_db['edited_own_post_id']}",
@@ -2455,6 +2587,12 @@ def test_post_detail_as_of_returns_the_cutoff_known_body(
     )
     assert missing.status_code == 200
     assert "known_at" not in missing.json()
+    missing_body = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}/body",
+        params={"as_of": "2026-01-01T00:00:00Z"},
+        headers=headers,
+    )
+    assert missing_body.status_code == 404
 
     invalid = client.get(
         f"/api/posts/{seeded_db['edited_own_post_id']}",
@@ -2945,14 +3083,25 @@ def test_own_corp_private_post_detail_is_readable(client, demo_analyst_token, se
         f"/api/posts/{seeded_db['own_private_post_id']}", headers={"Authorization": f"Bearer {demo_analyst_token}"}
     )
     assert response.status_code == 200
-    assert "Test Corp" in response.json()["post_body"]
+    assert "post_body" not in response.json()
+    body = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/body",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert body.status_code == 200
+    assert "Test Corp" in body.text
 
 
 def test_other_corp_private_post_detail_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     response = client.get(
-        f"/api/posts/{seeded_db['other_private_post_id']}", headers={"Authorization": f"Bearer {demo_analyst_token}"}
+        f"/api/posts/{seeded_db['other_private_post_id']}", headers=headers
     )
     assert response.status_code == 403
+    body = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/body", headers=headers
+    )
+    assert body.status_code == 403
 
 
 def test_nonexistent_post_is_not_found(client, demo_analyst_token) -> None:

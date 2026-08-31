@@ -28,23 +28,10 @@ async def has_real_source_context(
             """
             select exists (
                 select 1
-                  from source_post
+                  from dashboard_post_read_projection source_post
                  where (visibility_code = 'public'
                         or corporate_entity_id = any($1::uuid[]))
-                   and (
-                       nullif(btrim(source_post.source_author_code), '') is not null
-                       or nullif(btrim(source_post.source_author_name), '') is not null
-                       or nullif(btrim(source_post.source_company_code), '') is not null
-                       or nullif(btrim(source_post.source_company_name), '') is not null
-                       or nullif(btrim(source_post.source_process_unit_code), '') is not null
-                       or nullif(btrim(source_post.source_process_unit_name), '') is not null
-                       or nullif(btrim(source_post.source_sales_pool_code), '') is not null
-                       or nullif(btrim(source_post.source_sales_pool_name), '') is not null
-                       or nullif(btrim(source_post.source_customer_code), '') is not null
-                       or nullif(btrim(source_post.source_customer_name), '') is not null
-                       or nullif(btrim(source_post.source_project_code), '') is not null
-                       or nullif(btrim(source_post.source_project_name), '') is not null
-                   )
+                   and source_context_present
             )
             """,
             list(corporate_entity_ids),
@@ -61,22 +48,9 @@ async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
          where entity.corporate_entity_code like 'DEMO-%'
            and not exists (
                select 1
-                 from source_post real_post
+                 from dashboard_post_read_projection real_post
                 where real_post.corporate_entity_id = entity.corporate_entity_id
-                  and (
-                      nullif(btrim(real_post.source_author_code), '') is not null
-                      or nullif(btrim(real_post.source_author_name), '') is not null
-                      or nullif(btrim(real_post.source_company_code), '') is not null
-                      or nullif(btrim(real_post.source_company_name), '') is not null
-                      or nullif(btrim(real_post.source_process_unit_code), '') is not null
-                      or nullif(btrim(real_post.source_process_unit_name), '') is not null
-                      or nullif(btrim(real_post.source_sales_pool_code), '') is not null
-                      or nullif(btrim(real_post.source_sales_pool_name), '') is not null
-                      or nullif(btrim(real_post.source_customer_code), '') is not null
-                      or nullif(btrim(real_post.source_customer_name), '') is not null
-                      or nullif(btrim(real_post.source_project_code), '') is not null
-                      or nullif(btrim(real_post.source_project_name), '') is not null
-                  )
+                  and real_post.source_context_present
            )
         """
     )

@@ -128,6 +128,7 @@ export interface OperationsDashboardResponse {
   }>;
   topic_context: TopicContextDashboard;
   cases: OperationsDashboardCase[];
+  next_case_cursor?: string | null;
 }
 
 export interface TopicContextDashboard {
@@ -195,11 +196,13 @@ export function fetchOperationsDashboard(
   periodStart = "",
   periodEnd = "",
   externalOnly = false,
+  caseCursor = "",
 ): Promise<OperationsDashboardResponse> {
   const query = new URLSearchParams();
   if (periodStart) query.set("period_start", periodStart);
   if (periodEnd) query.set("period_end", periodEnd);
   if (externalOnly) query.set("external_only", "true");
+  if (caseCursor) query.set("case_cursor", caseCursor);
   const suffix = query.size ? `?${query}` : "";
   return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }
@@ -241,13 +244,13 @@ export type PostSortOrder = "newest" | "oldest" | "title";
 
 export interface PostKnownAt {
   post_title: string;
-  post_body: string;
+  post_body?: string;
   written_at: string;
   as_of: string;
 }
 
 export interface PostDetail extends PostSummary {
-  post_body: string;
+  post_body?: string;
   occupational_construct_assertions: OccupationalConstructAssertion[];
   occupational_construct_evidence_status:
     | "complete"
@@ -847,6 +850,8 @@ export interface SourceCustomerHint {
   customer_name: string | null;
   post_count: number;
   related_posts: LinkedPostRef[];
+  related_posts_next_cursor: string | null;
+  related_posts_loaded: boolean;
   resolution_status: string;
   hint_trust: string;
   provenance: string;
@@ -887,6 +892,8 @@ export interface SourceAuthorHint {
   post_count: number;
   keyman_hints: SourceAuthorKeymanHint[];
   related_posts: LinkedPostRef[];
+  related_posts_next_cursor: string | null;
+  related_posts_loaded: boolean;
   resolution_status: string;
   provenance: string;
 }
@@ -911,6 +918,17 @@ export interface CustomerMasterResponse {
   source_customer_hints: SourceCustomerHint[];
   source_author_hints: SourceAuthorHint[];
   relationship_network: RelationshipNetworkEntry[];
+  source_customer_hint_total: number;
+  source_author_hint_total: number;
+  next_customer_cursor: string | null;
+  next_author_cursor: string | null;
+}
+
+export function fetchCustomerMasterRelatedPosts(
+  accessToken: string,
+  params: Record<string, string>,
+): Promise<{ related_posts: LinkedPostRef[]; next_cursor: string | null }> {
+  return backendFetch(`/api/customer-master/related-posts?${new URLSearchParams(params)}`, accessToken);
 }
 
 export interface CurrentUser {
@@ -935,8 +953,16 @@ export function setPreferredLocale(
   });
 }
 
-export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
-  return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
+export function fetchCustomerMaster(
+  accessToken: string,
+  customerCursor?: string | null,
+  authorCursor?: string | null,
+): Promise<CustomerMasterResponse> {
+  const params = new URLSearchParams();
+  if (customerCursor) params.set("customer_cursor", customerCursor);
+  if (authorCursor) params.set("author_cursor", authorCursor);
+  const query = params.size ? `?${params.toString()}` : "";
+  return backendFetch<CustomerMasterResponse>(`/api/customer-master${query}`, accessToken);
 }
 
 export interface CustomerHintResolution {
@@ -1002,6 +1028,28 @@ export function fetchPost(
 ): Promise<PostDetail> {
   const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
+}
+
+export async function fetchPostBody(
+  accessToken: string,
+  postId: string,
+  signal?: AbortSignal,
+  asOf?: string,
+): Promise<string> {
+  const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
+  const path = `/api/posts/${postId}/body${query}`;
+  let response: Response;
+  try {
+    response = await fetch(`${config.backendBaseUrl}${path}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    throw new BackendError(path, 0);
+  }
+  if (!response.ok) throw new BackendError(path, response.status);
+  return response.text();
 }
 
 export function createPostVoiceAssignment(

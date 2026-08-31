@@ -13,6 +13,7 @@ schemes, so provider configuration cannot become a file-scheme read.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 
@@ -28,6 +29,11 @@ from lineageweave.http_client import HttpClientError, get_json
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 _jwks_cache: dict[tuple[str, str, str], dict] = {}
+
+
+async def warm_oidc_jwks(settings: Settings) -> None:
+    """Populate the issuer-bound JWKS cache before serving authenticated reads."""
+    await asyncio.to_thread(_jwks, settings)
 
 
 def _jwks_cache_key(settings: Settings) -> tuple[str, str, str]:
@@ -204,9 +210,17 @@ async def resolve_current_account(
                        account.preferred_locale,
                        array[affiliation.corporate_entity_id] as corporate_entity_ids,
                        array[affiliation.process_unit_id] as process_unit_ids,
-                       coalesce(array_agg(distinct permission.permission_code)
-                           filter (where permission.permission_code is not null),
-                           array[]::text[]) as permission_codes
+                       coalesce((
+                           select array_agg(distinct permission.permission_code
+                                            order by permission.permission_code)
+                             from account_role_assignment assignment
+                             join access_role role
+                               on role.access_role_id = assignment.access_role_id
+                              and role.role_code = any($4::text[])
+                             join role_permission permission
+                               on permission.access_role_id = role.access_role_id
+                            where assignment.user_account_id = account.user_account_id
+                       ), array[]::text[]) as permission_codes
                   from user_account account
                   join account_affiliation affiliation
                     on affiliation.user_account_id = account.user_account_id
@@ -215,18 +229,9 @@ async def resolve_current_account(
                   join process_unit process
                     on process.process_unit_id = affiliation.process_unit_id
                    and process.corporate_entity_id = entity.corporate_entity_id
-                  left join account_role_assignment assignment
-                    on assignment.user_account_id = account.user_account_id
-                  left join access_role role
-                    on role.access_role_id = assignment.access_role_id
-                   and role.role_code = any($4::text[])
-                  left join role_permission permission
-                    on permission.access_role_id = role.access_role_id
                  where account.external_subject_id = $1
                    and entity.corporate_entity_code = $2
                    and process.process_unit_code = $3
-                 group by account.user_account_id, affiliation.corporate_entity_id,
-                          affiliation.process_unit_id
                 """,
                 subject,
                 organization,
@@ -238,22 +243,23 @@ async def resolve_current_account(
                 """
                 select account.user_account_id, account.display_name,
                        account.preferred_locale,
-                       coalesce(array_agg(distinct affiliation.corporate_entity_id)
-                           filter (where affiliation.corporate_entity_id is not null),
-                           array[]::uuid[]) as corporate_entity_ids,
+                       coalesce((
+                           select array_agg(distinct affiliation.corporate_entity_id
+                                            order by affiliation.corporate_entity_id)
+                             from account_affiliation affiliation
+                            where affiliation.user_account_id = account.user_account_id
+                       ), array[]::uuid[]) as corporate_entity_ids,
                        array[]::uuid[] as process_unit_ids,
-                       coalesce(array_agg(distinct permission.permission_code)
-                           filter (where permission.permission_code is not null),
-                           array[]::text[]) as permission_codes
+                       coalesce((
+                           select array_agg(distinct permission.permission_code
+                                            order by permission.permission_code)
+                             from account_role_assignment assignment
+                             join role_permission permission
+                               on permission.access_role_id = assignment.access_role_id
+                            where assignment.user_account_id = account.user_account_id
+                       ), array[]::text[]) as permission_codes
                   from user_account account
-                  left join account_affiliation affiliation
-                    on affiliation.user_account_id = account.user_account_id
-                  left join account_role_assignment assignment
-                    on assignment.user_account_id = account.user_account_id
-                  left join role_permission permission
-                    on permission.access_role_id = assignment.access_role_id
                  where account.external_subject_id = $1
-                 group by account.user_account_id
                 """,
                 subject,
             )

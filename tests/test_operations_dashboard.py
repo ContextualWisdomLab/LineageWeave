@@ -1,22 +1,99 @@
 """Focused tests for the operational dashboard evidence projection."""
 
+import asyncio
+
 from datetime import date, datetime, timezone
 import json
+from pathlib import Path
+from uuid import UUID
 
 import pytest
 
-from backend.app.operations_dashboard import _project_lifecycles, fetch_operations_dashboard
+from backend.app.operations_dashboard import (
+    _decode_case_cursor,
+    _encode_case_cursor,
+    _project_lifecycles,
+    fetch_operations_dashboard,
+)
 from lineageweave.operations_case_analysis import REQUIRED_FACT_TYPES
+
+
+def test_dashboard_read_projection_is_transactionally_maintained_and_replay_safe() -> None:
+    """The narrow exact-count projection follows every authoritative mutation."""
+    migration = Path("migrations/0264_dashboard_post_read_projection.sql").read_text()
+
+    assert "create table if not exists dashboard_post_read_projection" in migration
+    assert "on conflict (source_post_id) do update" in migration
+    assert "dashboard_source_post_read_projection_trigger" in migration
+    assert "dashboard_case_analysis_read_projection_trigger" in migration
+    assert "dashboard_ingestion_job_read_projection_trigger" in migration
+    assert "exists (select 1 from operations_case_analysis" in migration
+    assert "exists (select 1 from post_content_ingestion_job" in migration
+    assert "create table if not exists dashboard_case_rollup_read_projection" in migration
+    assert "dashboard_case_rollup_classification_trigger" in migration
+    assert "dashboard_case_rollup_milestone_trigger" in migration
+    assert "dashboard_case_rollup_missing_milestone_trigger" in migration
+    assert "create table if not exists dashboard_case_milestone_read_projection" in migration
+    assert "create table if not exists dashboard_case_contributor_read_projection" in migration
+    assert "dashboard_case_rollup_fact_trigger" in migration
+    assert "dashboard_case_rollup_product_relation_trigger" in migration
+    assert "create table if not exists dashboard_post_daily_summary" in migration
+    assert "after insert or update or delete on dashboard_post_read_projection" in migration
+    assert "if tg_op in ('UPDATE', 'DELETE') and old.active_source" in migration
+    assert "if tg_op in ('INSERT', 'UPDATE') and new.active_source" in migration
+    assert "group by occurred_date, visibility_code, corporate_entity_id, process_unit_id" in migration
+    assert "dashboard_case_rollup_project_mention_trigger" in migration
+    assert "dashboard_case_rollup_post_projection_trigger" in migration
+
+
+def test_dashboard_rejects_a_rollup_with_any_unauthorized_contributor() -> None:
+    """Complete counts and pages share the normalized contributor ABAC guard."""
+    conn = _Connection()
+    asyncio.run(fetch_operations_dashboard(conn, []))
+    statement = conn.queries[0][0]
+    assert statement.count("dashboard_case_contributor_read_projection contributor") == 2
+    assert "contributor_evidence.source_post_id is null" in statement
+    assert "or not (" in statement
 
 
 class _Connection:
     """Return deterministic rows while retaining the executed SQL."""
+
+    tepp_ready = False
+    fast_ready = False
 
     def __init__(self) -> None:
         self.queries: list[tuple[str, tuple[object, ...]]] = []
 
     async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
         self.queries.append((query, args))
+        if "dashboard_single_statement" in query:
+            query_count = len(self.queries)
+            result = {
+                "metrics": ({
+                    "total_post_count": 0,
+                    "external_post_count": 0,
+                    "pending_analysis_count": 0,
+                    "failed_analysis_count": 0,
+                } if getattr(self, "empty", False) else {
+                    "total_post_count": 4,
+                    "external_post_count": 1,
+                    "pending_analysis_count": 1,
+                    "failed_analysis_count": 2,
+                }),
+                "case_rollups": ([] if getattr(self, "empty", False) else await self.fetch("/* dashboard_case_rollup */")),
+                "cases": ([] if getattr(self, "empty", False) or getattr(self, "hide_cases", False) else await self.fetch("limit $9")),
+                "details": ([] if getattr(self, "empty", False) else await self.fetch("select row_kind, payload")),
+                "topic_readiness": {
+                    "topic_tepp_ready": self.tepp_ready,
+                    "topic_fast_ready": self.fast_ready,
+                },
+                "topic_details": await self.fetch(
+                    "from topic_post_context_influence influence", None, None, None, None
+                ),
+            }
+            del self.queries[query_count:]
+            return result
         if "tepp_posterior_persisted" in query:
             assert len(args) == 4
             return {
@@ -33,7 +110,67 @@ class _Connection:
 
     async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
         self.queries.append((query, args))
-        if "from product_operations_fact_relation relation" in query:
+        if "dashboard_case_rollup" in query:
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "case_kind_code": "claim_investigation",
+                "case_analysis_present": True,
+                "ingestion_failed": False,
+                "event_count": 2,
+                "claim_started": True,
+                "claim_ended": True,
+                "rebid_started": False,
+                "rebid_ended": False,
+                "handover_started": False,
+                "handover_ended": False,
+                "claim_start_missing": False,
+                "rebid_start_missing": False,
+                "handover_start_missing": False,
+            }]
+        if "select row_kind, payload" in query:
+            return [
+                {
+                    "row_kind": "fact",
+                    "payload": {
+                        "post_id": "00000000-0000-0000-0000-000000000001",
+                        "case_kind_code": "claim_investigation",
+                        "fact_type_code": "originating_order",
+                        "value_text": "Synthetic order 7",
+                        "evidence_text": "Synthetic cited sentence",
+                        "evidence_post_id": "00000000-0000-0000-0000-000000000002",
+                        "fact_ordinal": 0,
+                        "relation_target_kind_code": None,
+                    },
+                },
+                {
+                    "row_kind": "missing_fact",
+                    "payload": {
+                        "post_id": "00000000-0000-0000-0000-000000000001",
+                        "case_kind_code": "claim_investigation",
+                        "fact_type_code": "sales_pool",
+                    },
+                },
+                *[
+                    {
+                        "row_kind": "milestone",
+                        "payload": {
+                            "post_id": "00000000-0000-0000-0000-000000000001",
+                            "case_kind_code": "claim_investigation",
+                            "milestone_type_code": milestone_type,
+                            "evidence_text": evidence_text,
+                            "evidence_post_id": evidence_post_id,
+                            "observed_at": observed_at.isoformat(),
+                            "time_axis_code": time_axis,
+                            "is_missing": False,
+                        },
+                    }
+                    for milestone_type, evidence_text, evidence_post_id, observed_at, time_axis in (
+                        ("claim_received", "The claim was received", "00000000-0000-0000-0000-000000000001", datetime(2026, 8, 1, 9, tzinfo=timezone.utc), "event_occurred_at"),
+                        ("cause_confirmed", "The cause was confirmed", "00000000-0000-0000-0000-000000000002", datetime(2026, 8, 3, 12, 30, tzinfo=timezone.utc), "created_at"),
+                    )
+                ],
+            ]
+        if "product_operations_fact_relation relation" in query:
             return []
         if "operations_case_missing_fact missing" in query:
             return [{
@@ -114,25 +251,76 @@ def test_projected_start_with_unavailable_end_remains_open() -> None:
     assert lifecycle["next_action_text"] == "원인 확정 Event 근거를 연결하세요."
 
 
+def test_dashboard_case_cursor_round_trips_a_stable_key() -> None:
+    """Continuation retains the exact descending-time case key and rejects junk."""
+    occurred_at = datetime(2026, 8, 31, 9, tzinfo=timezone.utc)
+    cursor = _encode_case_cursor({
+        "occurred_at": occurred_at,
+        "post_id": "00000000-0000-0000-0000-000000000001",
+        "case_kind_code": "claim_investigation",
+    })
+
+    assert _decode_case_cursor(cursor) == (
+        occurred_at,
+        "00000000-0000-0000-0000-000000000001",
+        "claim_investigation",
+    )
+    with pytest.raises(ValueError, match="last Dashboard case"):
+        _decode_case_cursor("not-a-dashboard-cursor")
+
+
+@pytest.mark.anyio
+async def test_dashboard_bounds_details_without_shrinking_exact_rollup() -> None:
+    """A page limit constrains detail SQL while headline counts use every case."""
+
+    class BoundedConnection(_Connection):
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if "dashboard_case_rollup" in query:
+                first = (await super().fetch(query, *args))[0]
+                return [first, {**first, "post_id": "00000000-0000-0000-0000-000000000003"}]
+            if "limit $9" in query:
+                self.queries.append((query, args))
+                first = (await _Connection().fetch(query, *args))[0]
+                return [
+                    first,
+                    {
+                        **first,
+                        "post_id": "00000000-0000-0000-0000-000000000003",
+                        "occurred_at": datetime(2026, 8, 11, tzinfo=timezone.utc),
+                    },
+                ]
+            return await super().fetch(query, *args)
+
+    connection = BoundedConnection()
+    result = await fetch_operations_dashboard(connection, [], case_limit=1)
+
+    assert result["case_metrics"][0]["post_count"] == 2
+    assert len(result["cases"]) == 1
+    assert result["next_case_cursor"]
+    assert len(connection.queries) == 1
+    query, args = connection.queries[0]
+    assert "selected_case as materialized" in query
+    assert args[8] == 1
+
+
 @pytest.mark.anyio
 async def test_dashboard_reads_evidence_bound_product_relation() -> None:
     """A visible relation is attached to its exact persisted fact target."""
 
     class ProductRelationConnection(_Connection):
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
-            if "from product_operations_fact_relation relation" in query:
-                self.queries.append((query, args))
-                return [{
+            rows = await super().fetch(query, *args)
+            if "select row_kind, payload" in query:
+                rows.append({"row_kind": "product", "payload": {
                     "post_id": "00000000-0000-0000-0000-000000000001",
-                    "case_kind_code": "claim_investigation",
-                    "fact_ordinal": 0,
+                    "case_kind_code": "claim_investigation", "fact_ordinal": 0,
                     "relation_type_code": "concerns_product",
                     "extracted_product_name": "Synthetic Product",
-                    "canonical_product_name": None,
-                    "evidence_text": "Synthetic cited sentence",
+                    "canonical_product_name": None, "evidence_text": "Synthetic cited sentence",
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
-                }]
-            return await super().fetch(query, *args)
+                }})
+                return rows
+            return rows
 
     result = await fetch_operations_dashboard(ProductRelationConnection(), [])
     assert result["cases"][0]["facts"][0]["product_relations"] == [{
@@ -149,9 +337,12 @@ async def test_dashboard_rejects_malformed_product_relation_rows() -> None:
 
     class MalformedProductRelationConnection(_Connection):
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
-            if "from product_operations_fact_relation relation" in query:
-                return [{"post_id": "00000000-0000-0000-0000-000000000001"}]
-            return await super().fetch(query, *args)
+            rows = await super().fetch(query, *args)
+            if "select row_kind, payload" in query:
+                rows.append({"row_kind": "product", "payload": {
+                    "post_id": "00000000-0000-0000-0000-000000000001"
+                }})
+            return rows
 
     with pytest.raises(KeyError, match="case_kind_code"):
         await fetch_operations_dashboard(MalformedProductRelationConnection(), [])
@@ -285,53 +476,29 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     ]
     assert result["topic_context"]["status_code"] == "unavailable"
     assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
-    assert len(conn.queries) == 7
-    assert not any("candidate_runs as" in query for query, _args in conn.queries)
-    for query, args in conn.queries:
-        assert "visibility_code = 'public'" in query
-        assert "corporate_entity_id::text = any($1::text[])" in query
-        assert "process_unit_id::text = any($2::text[])" in query
-        assert "coalesce(post.event_occurred_at, post.created_at)" in query
-        assert args[:4] == (
-            ["00000000-0000-0000-0000-000000000009"],
-            ["00000000-0000-0000-0000-000000000008"],
-            date(2026, 8, 1),
-            date(2026, 8, 31),
-        )
-        if "$6" in query:
-            assert args[4] is False
-            assert args[5] == json.dumps(
-                {
-                    case_kind: sorted(fact_types)
-                    for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
-                }
-            )
-        else:
-            assert args[4:] == ((False,) if "$5" in query else ())
-    case_query = conn.queries[1][0]
-    assert "order by primary_mention.confidence desc" in case_query
-    assert (
-        "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)"
-        in case_query
+    assert len(conn.queries) == 1
+    query, args = conn.queries[0]
+    assert "dashboard_single_statement" in query
+    assert "visibility_code = 'public'" in query
+    assert "corporate_entity_id = any($1::uuid[])" in query
+    assert "process_unit_id = any($2::uuid[])" in query
+    assert args[:2] == (
+        [UUID("00000000-0000-0000-0000-000000000009")],
+        [UUID("00000000-0000-0000-0000-000000000008")],
     )
-    assert "observed_at nulls last" in conn.queries[5][0]
-    metrics_query = conn.queries[0][0]
-    assert "post_summary_event" not in metrics_query
-    assert "post_summary_event" not in case_query
-    milestone_query = conn.queries[5][0]
-    assert "join source_post evidence_post" in milestone_query
-    assert "evidence_post.post_id = milestone.evidence_post_id" in milestone_query
-    assert "evidence_post.visibility_code = 'public'" in milestone_query
-    for evidence_query in (
-        conn.queries[0][0],
-        conn.queries[1][0],
-        conn.queries[2][0],
-        conn.queries[3][0],
-    ):
-        assert "join source_post evidence_post" in evidence_query
-        assert "evidence_post.corporate_entity_id::text = any($1::text[])" in evidence_query
-    missing_query = conn.queries[4][0]
-    assert "($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code" in missing_query
+    assert args[2:9] == (
+        date(2026, 8, 1), date(2026, 8, 31), False,
+        None, None, None, 20,
+    )
+    assert json.loads(args[9]) == {
+        case_kind: sorted(fact_types)
+        for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+    }
+    assert "dashboard_case_rollup_read_projection rollup" in query
+    assert "order by rollup.occurred_at desc" in query
+    assert "operations_case_missing_fact missing" in query
+    assert "($10::jsonb -> fact.case_kind_code) ? fact.fact_type_code" in query
+    assert "post_summary_event" not in query
 
 
 @pytest.mark.anyio
@@ -341,7 +508,10 @@ async def test_dashboard_counts_each_case_milestone_set_once() -> None:
     class DuplicateClassificationConnection(_Connection):
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             rows = await super().fetch(query, *args)
-            if "operations_case_classification classification" in query:
+            if (
+                "operations_case_classification classification" in query
+                and "dashboard_case_rollup" not in query
+            ):
                 return [rows[0], {**rows[0], "evidence_post_id": "00000000-0000-0000-0000-000000000003"}]
             return rows
 
@@ -357,7 +527,7 @@ async def test_dashboard_headline_excludes_hidden_milestone_evidence() -> None:
 
     class HiddenMilestoneConnection(_Connection):
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
-            if "operations_case_milestone milestone" in query:
+            if "/* dashboard_case_rollup */" in query:
                 self.queries.append((query, args))
                 return []
             return await super().fetch(query, *args)
@@ -373,10 +543,14 @@ async def test_dashboard_event_counts_exclude_hidden_classification_evidence() -
     """A milestone cannot outlive the visible classification that owns it."""
 
     class HiddenClassificationConnection(_Connection):
+        hide_cases = True
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             if (
-                "from operations_case_classification classification" in query
-                and "operations_case_fact" not in query
+                "/* dashboard_case_rollup */" in query
+                or (
+                    "from operations_case_classification classification" in query
+                    and "operations_case_fact" not in query
+                )
             ):
                 self.queries.append((query, args))
                 return []
@@ -395,6 +569,8 @@ async def test_dashboard_projects_exact_topic_influence_without_local_scoring() 
 
     class TopicConnection(_Connection):
         provenance_complete = True
+        tepp_ready = True
+        fast_ready = True
 
         async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
             if "tepp_posterior_persisted" in query:
@@ -473,14 +649,10 @@ async def test_dashboard_projects_exact_topic_influence_without_local_scoring() 
     assert unavailable["status_code"] == "unavailable"
     assert unavailable["reason_code"] == "topic_context_provenance_not_navigable"
     assert unavailable["topics"] == []
-    projection_sql = next(
-        query for query, _args in incomplete.queries
-        if "candidate_runs as" in query
-    )
-    assert projection_sql.index("candidate_runs as") < projection_sql.index("eligible as")
+    projection_sql = incomplete.queries[0][0]
+    assert "topic_candidate as materialized" in projection_sql
     assert "left join visible_post checked_visible" in projection_sql
-    assert "left join visible_post on visible_post.post_id = membership.source_post_id" in projection_sql
-    assert "visible_post.post_id is not null" in projection_sql
+    assert "join visible_post post on post.source_post_id = membership.source_post_id" in projection_sql
 
 
 @pytest.mark.anyio
@@ -488,6 +660,7 @@ async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> N
     """A persisted TEPP membership never becomes a fabricated influence value."""
 
     class TeppOnlyConnection(_Connection):
+        tepp_ready = True
         async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
             if "tepp_posterior_persisted" in query:
                 self.queries.append((query, args))
@@ -509,6 +682,8 @@ async def test_empty_projection_does_not_claim_fast_result_persisted() -> None:
     """An empty visible projection must not contradict its contract state."""
 
     class ReadyButEmptyConnection(_Connection):
+        tepp_ready = True
+        fast_ready = True
         async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
             if "tepp_posterior_persisted" in query:
                 self.queries.append((query, args))
@@ -529,33 +704,33 @@ async def test_topic_readiness_uses_projection_temporal_windows() -> None:
     """Readiness cannot count influence rows the projection must reject by time."""
     conn = _Connection()
     await fetch_operations_dashboard(conn, [])
-    readiness_query = next(
-        query for query, _args in conn.queries if "tepp_posterior_persisted" in query
-    )
-    assert "coalesce(post.event_occurred_at, post.created_at) as occurred_at" in readiness_query
+    readiness_query = conn.queries[0][0]
+    assert "topic_tepp_ready" in readiness_query
     assert "visible_post.occurred_at >= membership.valid_from" in readiness_query
     assert "visible_post.occurred_at < membership.valid_to" in readiness_query
     assert "join topic_activity_interval activity" in readiness_query
-    assert "visible_post.occurred_at >= activity.valid_from" in readiness_query
-    assert "visible_post.occurred_at < activity.valid_to" in readiness_query
+    assert "post.occurred_at >= activity.valid_from" in readiness_query
+    assert "post.occurred_at < activity.valid_to" in readiness_query
 
 @pytest.mark.anyio
 async def test_external_scope_filters_cases_without_shrinking_coverage_denominator() -> None:
     """External-only cases retain all visible posts as the percentage denominator."""
     conn = _Connection()
     await fetch_operations_dashboard(
-        conn, ["corp"], ["pu"], date(2026, 8, 1), date(2026, 8, 31), external_only=True
+        conn,
+        ["00000000-0000-0000-0000-000000000009"],
+        ["00000000-0000-0000-0000-000000000008"],
+        date(2026, 8, 1),
+        date(2026, 8, 31),
+        external_only=True,
     )
     assert conn.queries
     metrics_query, metrics_args = conn.queries[0]
-    assert "scoped_post" in metrics_query
-    assert "count(*) from visible_post) as total_post_count" in metrics_query
-    assert "count(*) from scoped_post) as total_post_count" not in metrics_query
+    assert "sum(summary.total_post_count)" in metrics_query
+    assert "group by classification.post_id" in metrics_query
+    assert "select count(*) from external_post" in metrics_query
     assert "$5::boolean" in metrics_query
-    assert metrics_args[-1] is True
-    for query, args in conn.queries[1:]:
-        assert "$5::boolean" in query
-        assert args[4] is True
+    assert metrics_args[4] is True
 
 
 @pytest.mark.anyio
@@ -563,27 +738,7 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     """An empty corpus has 0%, while an inverted interval fails closed."""
 
     class EmptyConnection(_Connection):
-        async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
-            self.queries.append((query, args))
-            if "tepp_posterior_persisted" in query:
-                return {
-                    "tepp_posterior_persisted": False,
-                    "fast_mlsirm_influence_persisted": False,
-                }
-            return dict.fromkeys(
-                (
-                    "total_post_count",
-                    "total_event_count",
-                    "external_post_count",
-                    "pending_analysis_count",
-                    "failed_analysis_count",
-                ),
-                0,
-            )
-
-        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
-            self.queries.append((query, args))
-            return []
+        empty = True
 
     empty = await fetch_operations_dashboard(EmptyConnection(), [])
     assert empty["external_percent"] == 0.0
@@ -612,25 +767,19 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
 
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             self.queries.append((query, args))
-            if "from product_operations_fact_relation relation" in query:
-                return []
-            if "operations_case_milestone milestone" in query:
+            if "/* dashboard_case_rollup */" in query:
                 return []
             if "from topic_post_context_influence influence" in query:
                 return []
-            if "operations_case_fact fact" in query:
-                return [{
+            if "select row_kind, payload" in query:
+                return [{"row_kind": "fact", "payload": {
                     "post_id": "00000000-0000-0000-0000-000000000001",
                     "case_kind_code": "external_information",
-                    "fact_type_code": "external_relation",
-                    "value_text": "Synthetic Project",
+                    "fact_type_code": "external_relation", "value_text": "Synthetic Project",
                     "evidence_text": "Synthetic tender evidence",
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
-                    "fact_ordinal": 0,
-                    "relation_target_kind_code": "project",
-                }]
-            if "operations_case_missing_fact missing" in query:
-                return []
+                    "fact_ordinal": 0, "relation_target_kind_code": "project",
+                }}]
             return [{
                 "post_id": "00000000-0000-0000-0000-000000000001",
                 "case_kind_code": "external_information",

@@ -27,6 +27,9 @@ from backend.app.main import (
 )
 from backend.app.post_content_worker import run_post_content_worker
 from backend.app.topic_influence_worker import run_topic_influence_worker
+from backend.app.voice_taxonomy_transition_worker import (
+    run_voice_taxonomy_transition_worker,
+)
 from backend.app.worker_health import run_worker_heartbeat
 from lineageweave.observability import configure_telemetry, shutdown_telemetry
 from lineageweave.topic_influence_client import HttpTopicInfluenceClient
@@ -160,6 +163,9 @@ async def run_worker_process() -> None:
                         semantic_query_factory=_semantic_query_client,
                         claim_verification_factory=_claim_verification_client_factory,
                     )
+                ),
+                asyncio.create_task(
+                    run_voice_taxonomy_transition_worker(settings.database_url)
                 ),
             ]
             if topic_influence_url and influence_timeouts is not None:

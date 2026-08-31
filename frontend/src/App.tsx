@@ -19,10 +19,12 @@ import {
   fetchAnalysisRuns,
   fetchCalendar,
   fetchCustomerMaster,
+  fetchCustomerMasterRelatedPosts,
   resolveCustomerHint,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
+  fetchPostBody,
   fetchPostContent,
   fetchPostActivity,
   fetchPostBookmark,
@@ -229,20 +231,30 @@ function EvidencePanel({
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [postError, setPostError] = useState(false);
+  const [postBodyError, setPostBodyError] = useState(false);
 
   useEffect(() => {
     let current = true;
+    const bodyController = new AbortController();
     setPost(null);
     setPostError(false);
+    setPostBodyError(false);
     fetchPost(accessToken, postId)
-      .then((result) => {
+      .then(async (result) => {
         if (current) setPost(result);
+        try {
+          const postBody = await fetchPostBody(accessToken, postId, bodyController.signal);
+          if (current) setPost({ ...result, post_body: postBody });
+        } catch {
+          if (current && !result.post_body) setPostBodyError(true);
+        }
       })
       .catch(() => {
         if (current) setPostError(true);
       });
     return () => {
       current = false;
+      bodyController.abort();
     };
   }, [postId, accessToken]);
 
@@ -256,10 +268,15 @@ function EvidencePanel({
           {t("Source evidence is unavailable. Continue with the saved answer.")}
         </p>
       )}
+      {postBodyError && (
+        <p className="error" role="alert">
+          {t("The source text could not be loaded. Close this panel and try again.")}
+        </p>
+      )}
       {post && (
         <>
           <h4>{post.post_title}</h4>
-          <PostBody body={post.post_body} />
+          <PostBody body={post.post_body ?? ""} />
         </>
       )}
     </div>
@@ -1972,6 +1989,11 @@ function PostDetailPopup({
   voiceOptions?: PostFilterOption[];
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [postBody, setPostBody] = useState<string | null>(null);
+  const [knownAtBody, setKnownAtBody] = useState<string | null>(null);
+  const [knownAtBodyError, setKnownAtBodyError] = useState(false);
+  const [postBodyError, setPostBodyError] = useState(false);
+  const [postBodyRetry, setPostBodyRetry] = useState(0);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
   const [structureUnits, setStructureUnits] = useState<PostContentUnit[]>([]);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
@@ -2101,6 +2123,10 @@ function PostDetailPopup({
 
   useEffect(() => {
     setPost(null);
+    setPostBody(null);
+    setKnownAtBody(null);
+    setKnownAtBodyError(false);
+    setPostBodyError(false);
     setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
@@ -2133,6 +2159,27 @@ function PostDetailPopup({
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const bodyController = new AbortController();
+    fetchPostBody(accessToken, postId, bodyController.signal)
+      .then((body) => {
+        if (!disposed) setPostBody(body);
+      })
+      .catch((err) => {
+        if (!disposed && !(err instanceof DOMException && err.name === "AbortError")) {
+          setPostBodyError(true);
+        }
+      });
+    if (asOf) {
+      fetchPostBody(accessToken, postId, bodyController.signal, asOf)
+        .then((body) => {
+          if (!disposed) setKnownAtBody(body);
+        })
+        .catch((err) => {
+          if (!disposed && !(err instanceof DOMException && err.name === "AbortError")) {
+            setKnownAtBodyError(true);
+          }
+        });
+    }
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -2204,12 +2251,13 @@ function PostDetailPopup({
       });
     return () => {
       disposed = true;
+      bodyController.abort();
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
       if (contentReloadRef.current === reloadContent) {
         contentReloadRef.current = () => undefined;
       }
     };
-  }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+  }, [postId, accessToken, liveBodyWarning, knowledgeCutoff, postBodyRetry]);
 
   useEffect(() => {
     let disposed = false;
@@ -2355,13 +2403,22 @@ function PostDetailPopup({
                 {postActionStatus}
               </p>
             )}
-            {post.known_at ? (
+            {post.known_at && knownAtBody !== null ? (
               <CutoffKnownBody
                 title={post.known_at.post_title}
-                body={post.known_at.post_body}
+                body={knownAtBody}
                 writtenAt={post.known_at.written_at}
                 cutoff={post.known_at.as_of}
               />
+            ) : post.known_at && knownAtBodyError ? (
+              <div role="alert">
+                <p>{t("The earlier source text could not be loaded. Try again before comparing versions.")}</p>
+                <button type="button" onClick={() => setPostBodyRetry((value) => value + 1)}>
+                  {t("Try again")}
+                </button>
+              </div>
+            ) : post.known_at ? (
+              <p role="status">{t("Loading earlier source text...")}</p>
             ) : null}
             {liveBodyWarning ? (
               <p className="popup-live-body-warning" role="status" aria-label={t("Live body warning")}>
@@ -2370,8 +2427,17 @@ function PostDetailPopup({
             ) : null}
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
-              {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
+              {postBody === null && !postBodyError ? (
+                <p role="status">{t("Loading original text...")}</p>
+              ) : postBodyError ? (
+                <div role="alert">
+                  <p>{t("The original text could not be loaded. Try again to continue reviewing this post.")}</p>
+                  <button type="button" onClick={() => setPostBodyRetry((value) => value + 1)}>
+                    {t("Try again")}
+                  </button>
+                </div>
+              ) : postBody?.trim() ? (
+                <PostBody body={postBody} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
                   {t(
@@ -3224,8 +3290,6 @@ const VISIBLE_POSTS_RENDER_LIMIT = 200;
 // "Related posts" details -- collapsed by default but still mounted in the
 // DOM -- pushed the page to a ~37,000px scroll height. Same pattern as
 // VISIBLE_POSTS_RENDER_LIMIT above: cap the initial render, name the total.
-const HINT_RENDER_LIMIT = 30;
-
 function AnalysisRunsPanel({
   accessToken,
   currentReportPeriod,
@@ -4117,7 +4181,7 @@ function ReportsPanel({
   );
 }
 
-const POST_PAGE_SIZE = 50;
+const POST_PAGE_SIZE = 20;
 type BoardSortOrder = PostSortOrder;
 
 function PostList({
@@ -4830,6 +4894,8 @@ function CustomerMasterPanel({
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
   const [canResolveHints, setCanResolveHints] = useState(false);
+  const [loadingMoreHints, setLoadingMoreHints] = useState<"customer" | "author" | null>(null);
+  const [loadingRelatedHint, setLoadingRelatedHint] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -4890,6 +4956,80 @@ function CustomerMasterPanel({
       setResolveError(t("This hint could not be resolved to a corroborated organization name."));
     } finally {
       setResolvingHint(null);
+    }
+  }
+
+  async function loadMoreHints(kind: "customer" | "author") {
+    if (!master) return;
+    const cursor = kind === "customer" ? master.next_customer_cursor : master.next_author_cursor;
+    if (!cursor) return;
+    setLoadingMoreHints(kind);
+    try {
+      const page = await fetchCustomerMaster(
+        accessToken,
+        kind === "customer" ? cursor : null,
+        kind === "author" ? cursor : null,
+      );
+      setMaster((current) => current && ({
+        ...current,
+        source_customer_hints: kind === "customer"
+          ? [...current.source_customer_hints, ...page.source_customer_hints]
+          : current.source_customer_hints,
+        source_author_hints: kind === "author"
+          ? [...current.source_author_hints, ...page.source_author_hints]
+          : current.source_author_hints,
+        next_customer_cursor: kind === "customer"
+          ? page.next_customer_cursor : current.next_customer_cursor,
+        next_author_cursor: kind === "author"
+          ? page.next_author_cursor : current.next_author_cursor,
+      }));
+    } catch {
+      setError(t("Customer master could not be loaded."));
+    } finally {
+      setLoadingMoreHints(null);
+    }
+  }
+
+  async function loadMoreRelated(kind: "customer" | "author", index: number) {
+    if (!master) return;
+    const hint = kind === "customer"
+      ? master.source_customer_hints[index]
+      : master.source_author_hints[index];
+    if (!hint || (hint.related_posts_loaded && !hint.related_posts_next_cursor)) return;
+    const loadingKey = `${kind}:${index}`;
+    setLoadingRelatedHint(loadingKey);
+    try {
+      const params: Record<string, string> = {
+        kind,
+      };
+      if (hint.related_posts_next_cursor) params.cursor = hint.related_posts_next_cursor;
+      if (kind === "customer") {
+        const customer = master.source_customer_hints[index];
+        if (customer.customer_code) params.customer_code = customer.customer_code;
+        else if (customer.customer_name) params.customer_name = customer.customer_name;
+      } else {
+        const author = master.source_author_hints[index];
+        params.author_code = author.author_code;
+        params.author_account_id = author.author_account_id;
+        params.account_display_name = author.account_display_name;
+      }
+      const page = await fetchCustomerMasterRelatedPosts(accessToken, params);
+      setMaster((current) => {
+        if (!current) return current;
+        const key = kind === "customer" ? "source_customer_hints" : "source_author_hints";
+        const hints = [...current[key]];
+        hints[index] = {
+          ...hints[index],
+          related_posts: [...hints[index].related_posts, ...page.related_posts],
+          related_posts_next_cursor: page.next_cursor,
+          related_posts_loaded: true,
+        };
+        return { ...current, [key]: hints } as CustomerMasterResponse;
+      });
+    } catch {
+      setError(t("Customer master could not be loaded."));
+    } finally {
+      setLoadingRelatedHint(null);
     }
   }
 
@@ -4967,17 +5107,17 @@ function CustomerMasterPanel({
           <p className="workspace-destination-intro">
             {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
           </p>
-          {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
+          {master.source_customer_hint_total > master.source_customer_hints.length && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed customer identifiers, ranked by post count.", {
-                shown: HINT_RENDER_LIMIT,
-                total: master.source_customer_hints.length,
+                shown: master.source_customer_hints.length,
+                total: master.source_customer_hint_total,
               })}
             </p>
           )}
           {resolveError ? <p className="error">{resolveError}</p> : null}
           <ul className="customer-master-list">
-            {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
+            {master.source_customer_hints.map((hint, hintIndex) => (
               <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
                 <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
                 {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
@@ -4992,9 +5132,12 @@ function CustomerMasterPanel({
                     {resolvingHint === hint.customer_code ? t("Resolving...") : t("Resolve")}
                   </button>
                 ) : null}
-                {hint.related_posts.length > 0 ? (
-                  <details className="hint-disclosure">
-                    <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
+                {hint.post_count > 0 ? (
+                  <details className="hint-disclosure" onToggle={(event) => {
+                    if (event.currentTarget.open && !hint.related_posts_loaded) void loadMoreRelated("customer", hintIndex);
+                  }}>
+                    <summary>{t("Related posts")} ({hint.post_count})</summary>
+                    {loadingRelatedHint === `customer:${hintIndex}` ? <p role="status">{t("Loading...")}</p> : null}
                     <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
                       {hint.related_posts.map((post) => (
                         <li key={post.post_id}>
@@ -5008,26 +5151,36 @@ function CustomerMasterPanel({
                         </li>
                       ))}
                     </ul>
+                    {hint.related_posts_next_cursor ? (
+                      <button type="button" onClick={() => void loadMoreRelated("customer", hintIndex)} disabled={loadingRelatedHint !== null}>
+                        {loadingRelatedHint === `customer:${hintIndex}` ? t("Loading...") : t("Load more")}
+                      </button>
+                    ) : null}
                   </details>
                 ) : null}
               </li>
             ))}
           </ul>
+          {master.next_customer_cursor ? (
+            <button type="button" onClick={() => void loadMoreHints("customer")} disabled={loadingMoreHints !== null}>
+              {loadingMoreHints === "customer" ? t("Loading...") : t("Load more")}
+            </button>
+          ) : null}
         </section>
       ) : null}
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
           <h3 id="source-author-evidence-heading">{t("Author context")}</h3>
-          {master.source_author_hints.length > HINT_RENDER_LIMIT && (
+          {master.source_author_hint_total > master.source_author_hints.length && (
             <p className="post-meta">
               {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
-                shown: HINT_RENDER_LIMIT,
-                total: master.source_author_hints.length,
+                shown: master.source_author_hints.length,
+                total: master.source_author_hint_total,
               })}
             </p>
           )}
           <ul className="customer-master-list">
-            {master.source_author_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
+            {master.source_author_hints.map((hint, hintIndex) => (
               <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
                 <details className="hint-disclosure">
@@ -5045,9 +5198,12 @@ function CustomerMasterPanel({
                   ) : null}
                 </details>
                 <span>{hint.post_count} {t("posts")}</span>
-                {hint.related_posts.length > 0 ? (
-                  <details className="hint-disclosure">
-                    <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
+                {hint.post_count > 0 ? (
+                  <details className="hint-disclosure" onToggle={(event) => {
+                    if (event.currentTarget.open && !hint.related_posts_loaded) void loadMoreRelated("author", hintIndex);
+                  }}>
+                    <summary>{t("Related posts")} ({hint.post_count})</summary>
+                    {loadingRelatedHint === `author:${hintIndex}` ? <p role="status">{t("Loading...")}</p> : null}
                     <ul className="related-post-list">
                       {hint.related_posts.map((post) => (
                         <li key={post.post_id}>
@@ -5061,11 +5217,21 @@ function CustomerMasterPanel({
                         </li>
                       ))}
                     </ul>
+                    {hint.related_posts_next_cursor ? (
+                      <button type="button" onClick={() => void loadMoreRelated("author", hintIndex)} disabled={loadingRelatedHint !== null}>
+                        {loadingRelatedHint === `author:${hintIndex}` ? t("Loading...") : t("Load more")}
+                      </button>
+                    ) : null}
                   </details>
                 ) : null}
               </li>
             ))}
           </ul>
+          {master.next_author_cursor ? (
+            <button type="button" onClick={() => void loadMoreHints("author")} disabled={loadingMoreHints !== null}>
+              {loadingMoreHints === "author" ? t("Loading...") : t("Load more")}
+            </button>
+          ) : null}
         </section>
       ) : null}
       {master && master.keymen.length > 0 ? (

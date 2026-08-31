@@ -388,7 +388,7 @@ stale evidence from a previously opened post.
 - Persist an explicit per-question opt-in before any external search begins.
 - Admit only persisted, provenance-bearing claims for exact cited public posts;
   source bodies, private facts, personal facts, measurement outputs, and claims
-  nominated from question-token overlap never become external queries (ADR 0269).
+  nominated from question-token overlap never become external queries (ADR 0275).
 - Retrieve bounded public evidence through SearXNG and adjudicate through
   contextual-orchestrator's verification mode.
 - Report supported, refuted, and not-enough-information outcomes without
@@ -459,16 +459,20 @@ comes from the cited answer rather than frontend inference.
 - Count Events per work type only from those cited, normalized milestones.
   Never copy a Post's general summary Events into each case classification;
   a case with no supported milestone reports zero Events.
+- Keep exact all-period headline and lifecycle counts while returning detailed
+  case evidence through stable keyset continuation; loading another page must
+  not repeat, omit, or recalculate an already displayed case.
 - Present project-specific journeys only from accepted evidence-bearing
   predecessor and branch relations. A timestamp sort may be labeled observed
   events, but never promoted to a journey.
 - Attach digest-bound interval-consistency evidence only to an already
   admitted predecessor edge. Temporal order alone never creates a predecessor,
-  branch, responsibility handoff, or causal transition (ADR 0270).
+  branch, responsibility handoff, or causal transition (ADR 0276).
 
 Acceptance: every populated fact, lifecycle endpoint, membership, and journey
 event opens an authorized evidence post; an incomplete provenance chain fails
-closed instead of returning a partial fitted result.
+closed instead of returning a partial fitted result. Dashboard detail pages are
+bounded and continuable while their summary counts remain exact.
 
 ### PRD-FR-5F — Product and Voice semantic evidence
 

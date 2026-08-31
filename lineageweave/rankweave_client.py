@@ -31,6 +31,7 @@ DEFAULT_RANKING_LIMIT = 20
 # synthetic demo query, not a customer string.
 DEFAULT_RANKING_QUERY = "pricing quote delivery"
 RANKING_SIGNAL_LABELS = {
+    "influence": "Model influence",
     "temporal": "Newest first",
     "lexical": "Title overlap",
 }
@@ -219,15 +220,19 @@ class RankedPost:
     post_title: str
     fused_rank: int
     channel_evidence: tuple[RankingChannelEvidence, ...] = ()
+    evidence: Mapping[str, Any] | None = None
 
     def to_json(self) -> dict[str, Any]:
         """Serialize this ranked hit to its API-facing JSON shape."""
-        return {
+        payload = {
             "post_id": self.post_id,
             "post_title": self.post_title,
             "fused_rank": self.fused_rank,
             "channel_evidence": [item.to_json() for item in self.channel_evidence],
         }
+        if self.evidence is not None:
+            payload["evidence"] = dict(self.evidence)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -436,6 +441,68 @@ class RankWeaveClient:
             raise RankWeaveNotAvailable(
                 "rankweave_not_available: ranking projection failed"
             ) from exc
+
+    def fuse_selected_rows(self, rows: Sequence[Mapping[str, Any]]) -> RankingList:
+        """Fuse exact influence and temporal streams over one selected population."""
+        ordered_influence = sorted(
+            rows,
+            key=lambda row: (
+                -float(row["influence_value"]),
+                -_as_datetime(row["event_time"]).timestamp(),
+                str(row["post_id"]),
+            ),
+        )
+        ordered_temporal = sorted(
+            rows,
+            key=lambda row: (_as_datetime(row["event_time"]), str(row["post_id"])),
+            reverse=True,
+        )
+        channels = {
+            "influence": [str(row["post_id"]) for row in ordered_influence],
+            "temporal": [str(row["post_id"]) for row in ordered_temporal],
+        }
+        ranks: dict[str, dict[str, int]] = {
+            post_id: {} for post_id in channels["influence"]
+        }
+        for name, values in channels.items():
+            for rank, post_id in enumerate(values, start=1):
+                ranks[post_id][name] = rank
+        first_seen = {
+            post_id: index for index, post_id in enumerate(channels["influence"])
+        }
+        try:
+            hits = _import_rankweave().lazy_reciprocal_rank_fuse(
+                channels,
+                lambda post_id: (first_seen[post_id], ranks[post_id]),
+                limit=DEFAULT_RANKING_LIMIT,
+                rank_constant_eta=DEFAULT_RANK_CONSTANT_ETA,
+            )
+        except Exception as exc:
+            raise RankWeaveNotAvailable(
+                "rankweave_not_available: lazy reciprocal-rank fusion failed"
+            ) from exc
+        by_id = {str(row["post_id"]): row for row in rows}
+        items = []
+        for hit in hits:
+            post_id = _item_id_from_hit(hit)
+            row = by_id[post_id]
+            items.append(
+                RankedPost(
+                    post_id=post_id,
+                    post_title=str(row["post_title"]),
+                    fused_rank=len(items) + 1,
+                    channel_evidence=_evidence_from_owner_hit(hit),
+                    evidence={
+                        "influence_value": row["influence_value"],
+                        "uncertainty_method_code": row["uncertainty_method_code"],
+                        "uncertainty_lower_value": row["uncertainty_lower_value"],
+                        "uncertainty_upper_value": row["uncertainty_upper_value"],
+                        "membership_evidence_sha256": row["evidence_sha256"],
+                        "provenance_assertion_id": row["provenance_assertion_id"],
+                    },
+                )
+            )
+        return RankingList(tuple(items))
 
     def as_api_payload(
         self,

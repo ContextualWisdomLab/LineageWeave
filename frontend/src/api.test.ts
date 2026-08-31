@@ -5,6 +5,7 @@ import {
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   fetchOperationsDashboard,
+  fetchPostBody,
   fetchRatingSourceOccupations,
   updateTenantConfig,
 } from "./api";
@@ -14,16 +15,59 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it("loads the exact post body from the authorized streaming route", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("Complete source text", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPostBody("access-token", "post-1")).resolves.toBe(
+      "Complete source text",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-1/body"),
+      expect.objectContaining({
+        headers: { Authorization: "Bearer access-token" },
+      }),
+    );
+  });
+
+  it("preserves cancellation when the reader opens another post", async () => {
+    const aborted = new DOMException("aborted", "AbortError");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(aborted));
+
+    await expect(
+      fetchPostBody("access-token", "post-1", new AbortController().signal),
+    ).rejects.toBe(aborted);
+  });
+
+  it("binds the cutoff when streaming an earlier source body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("Earlier text"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchPostBody(
+      "access-token",
+      "post-1",
+      undefined,
+      "2026-01-01T00:00:00Z",
+    );
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/api/posts/post-1/body?as_of=2026-01-01T00%3A00%3A00Z",
+    );
+  });
+
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await fetchOperationsDashboard("access-token", "2026-08-01", "2026-08-25");
+    await fetchOperationsDashboard(
+      "access-token", "2026-08-01", "2026-08-25", false, "next-case",
+    );
 
     expect(fetchMock.mock.calls[0][0]).toContain(
-      "/api/dashboard?period_start=2026-08-01&period_end=2026-08-25",
+      "/api/dashboard?period_start=2026-08-01&period_end=2026-08-25&case_cursor=next-case",
     );
   });
 

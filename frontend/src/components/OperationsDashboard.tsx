@@ -119,6 +119,8 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   const [voiceSummary, setVoiceSummary] = useState<VoiceSummary | null>(null);
   const [voiceSummaryError, setVoiceSummaryError] = useState(false);
   const [voiceRetryCount, setVoiceRetryCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -157,7 +159,25 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         <button type="button" className="btn-secondary" onClick={() => setRetryCount((count) => count + 1)}>{t("Retry")}</button>
       </section>
     ) : data ? (
-      <OperationsDashboardView data={data} externalOnly={externalOnly} onOpenPost={onOpenPost} />
+      <OperationsDashboardView
+        data={data}
+        externalOnly={externalOnly}
+        onOpenPost={onOpenPost}
+        loadingMore={loadingMore}
+        loadMoreError={loadMoreError}
+        onLoadMore={data.next_case_cursor ? () => {
+          setLoadingMore(true);
+          setLoadMoreError(false);
+          fetchOperationsDashboard(accessToken, ...submittedPeriod, externalOnly, data.next_case_cursor ?? "")
+            .then((page) => setData((current) => current ? {
+              ...current,
+              cases: [...current.cases, ...page.cases],
+              next_case_cursor: page.next_case_cursor,
+            } : page))
+            .catch(() => setLoadMoreError(true))
+            .finally(() => setLoadingMore(false));
+        } : undefined}
+      />
     ) : null}
     {!externalOnly && voiceSummary ? <VoiceTaxonomySummary data={voiceSummary} /> : null}
     {!externalOnly && voiceSummaryError ? (
@@ -177,7 +197,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
 }
 
 /** Renders a completed Dashboard response for runtime and Storybook scenes. */
-export function OperationsDashboardView({ data, externalOnly = false, onOpenPost }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void }) {
+export function OperationsDashboardView({ data, externalOnly = false, onOpenPost, onLoadMore, loadingMore = false, loadMoreError = false }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void; onLoadMore?: () => void; loadingMore?: boolean; loadMoreError?: boolean }) {
   useLocale();
   const cases = externalOnly ? data.cases.filter((item) => item.case_kind_code === "external_information") : data.cases;
   const observedProjectEvents = Object.entries(
@@ -287,6 +307,14 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
           </article>
         ))}
       </div>
+      {data.next_case_cursor && onLoadMore ? (
+        <>
+          {loadMoreError ? <p role="alert">{t("Dashboard evidence could not be loaded.")}</p> : null}
+          <button type="button" className="btn-secondary" disabled={loadingMore} onClick={onLoadMore}>
+            {t(loadingMore ? "Loading more posts..." : "Load more posts")}
+          </button>
+        </>
+      ) : null}
       {cases.length === 0 && (externalOnly || data.failed_analysis_count === 0) ? (
         <p role="status">{t(externalOnly ? "No external information was classified in this period. Check the period or your access scope." : data.pending_analysis_count > 0 ? "No evidence has completed analysis in this period. Process the awaiting items first." : "No evidence can be analyzed in this period. Check the period or your access scope.")}</p>
       ) : null}

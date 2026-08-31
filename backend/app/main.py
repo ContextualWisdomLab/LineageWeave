@@ -20,18 +20,20 @@ read is ``source_post`` -- two-or-more-word table names, per AGENTS.md.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date, datetime, timezone
-from typing import Any, Literal
+from typing import Any, AsyncIterator, Literal
 from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from lineageweave.claim_verification import (
@@ -71,7 +73,7 @@ from backend.app.analysis_run_start import (
     deliver_queued_analysis_run,
     enqueue_pending_analysis_run,
 )
-from backend.app.auth import CurrentAccount, get_current_account
+from backend.app.auth import CurrentAccount, get_current_account, warm_oidc_jwks
 from backend.app.config import load_settings
 from backend.app.customer_hint_ingestion import resolve_customer_hint
 from backend.app.db import create_pool, get_pool
@@ -142,17 +144,12 @@ from backend.app.post_content_queue import (
     post_content_api_status,
     post_content_is_complete,
     publish_post_content_event,
-    source_body_sha256,
 )
 from backend.app.product_catalog_provisioning import (
     ProductCatalogImport,
     ProductCatalogParentMissing,
     ProductCatalogProvisioningConflict,
     provision_product_catalog_entry,
-)
-from backend.app.occupational_construct_ingestion import (
-    load_occupational_construct_assertions,
-    load_occupational_construct_evidence_status,
 )
 from backend.app.occupational_construct_search import (
     OccupationalConstructSearchError,
@@ -161,7 +158,12 @@ from backend.app.occupational_construct_search import (
     search_page_to_payload,
     search_visible_occupational_constructs,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    source_context_present_sql,
+    source_post_eligibility_sql,
+    source_post_visible,
+)
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
@@ -181,7 +183,10 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.ranking_ingestion import load_visible_ranking_posts
+from backend.app.ranking_ingestion import (
+    load_ranking_context_choices,
+    load_selected_ranking_rows,
+)
 from backend.app.relation_verification_ingestion import verify_post_relations_from_pool
 from backend.app.source_research_ingestion import (
     list_source_research_citations,
@@ -196,7 +201,7 @@ from backend.app.report_ingestion import (
     parse_period_code,
     rebuild_period_reports,
 )
-from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
+from backend.app.source_post_revision import parse_as_of_clock
 from backend.app.source_post_voice_ingestion import (
     PrimaryVoiceAssignmentError,
     persist_additional_voice_assignment,
@@ -274,7 +279,7 @@ from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
 )
-from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.rankweave_client import RankWeaveNotAvailable, build_rankweave_client
 from lineageweave.relation_verification import (
     NullRelationVerificationClient,
     SearxngRelationVerificationClient,
@@ -306,7 +311,9 @@ async def lifespan(app: FastAPI):
     valkey = None
     try:
         settings = load_settings()
+        await warm_oidc_jwks(settings)
         pool = await create_pool(settings.database_url)
+        await _warm_post_detail_read_paths(pool)
         app.state.pool = pool
         valkey = create_valkey_client(settings.valkey_url)
         app.state.valkey = valkey
@@ -760,49 +767,396 @@ async def _load_post_voice_types(
     ]
 
 
+async def _fetch_post_detail_bundle(
+    conn: asyncpg.Connection,
+    post_id: str,
+    as_of_clock: datetime | None,
+    account: CurrentAccount,
+    *,
+    evidence_configured: bool,
+) -> asyncpg.Record | None:
+    """Load one Post's authorized metadata envelope in one database statement."""
+    context_present = source_context_present_sql("source_post")
+    def bundled_eligibility(alias: str) -> str:
+        """Apply the account-scoped corpus mode already computed by the bundle."""
+        return (
+            f"({alias}.source_draft_code is null or btrim({alias}.source_draft_code) = '') and "
+            f"({alias}.source_deleted_flag is null or btrim({alias}.source_deleted_flag) = '') and "
+            "(not (select source_context_required from corpus_mode) or ("
+            f"{source_context_present_sql(alias)}))"
+        )
+
+    evidence_eligible = bundled_eligibility("evidence_post")
+    target_eligible = bundled_eligibility("target_evidence_post")
+    evidence_visible = (
+        "(evidence_post.visibility_code = 'public' or "
+        "(evidence_post.corporate_entity_id = any($3::uuid[]) and "
+        "(cardinality($4::uuid[]) = 0 or evidence_post.process_unit_id = any($4::uuid[]))))"
+    )
+    target_visible = (
+        "(target_evidence_post.visibility_code = 'public' or "
+        "(target_evidence_post.corporate_entity_id = any($3::uuid[]) and "
+        "(cardinality($4::uuid[]) = 0 or target_evidence_post.process_unit_id = any($4::uuid[]))))"
+    )
+    # Safe SQL: immutable schema predicates are interpolated; all request and scope values stay bound.
+    return await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        with corpus_mode as (
+            select exists (
+                select 1 from dashboard_post_read_projection candidate
+                 where (candidate.visibility_code = 'public'
+                        or candidate.corporate_entity_id = any($3::uuid[]))
+                   and candidate.source_context_present
+            ) as source_context_required
+        ), post as (
+            select source_post.*,
+                   (select job.source_body_sha256
+                      from post_content_ingestion_job job
+                     where job.post_id = source_post.post_id
+                     order by job.updated_at desc limit 1) as current_body_sha256
+              from source_post cross join corpus_mode
+             where source_post.post_id = $1
+               and (source_post.source_draft_code is null
+                    or btrim(source_post.source_draft_code) = '')
+               and (source_post.source_deleted_flag is null
+                    or btrim(source_post.source_deleted_flag) = '')
+               and (not corpus_mode.source_context_required or ({context_present}))
+        ), relations as (
+            select relation.mention_ordinal,
+                   jsonb_agg(jsonb_build_object(
+                       'relation_type_code', relation.relation_type_code,
+                       'target_kind_code', relation.target_kind_code,
+                       'target_id', relation.target_id,
+                       'target_label', relation.target_label,
+                       'evidence_text', relation.evidence_text,
+                       'evidence_post_id', relation.evidence_post_id
+                   ) order by relation.target_kind_code, relation.target_id) as items
+              from (
+                    select relation.mention_ordinal, relation.relation_type_code,
+                           'operations_fact'::text as target_kind_code,
+                           'operations_fact:' || relation.case_kind_code || ':' ||
+                               relation.fact_ordinal::text as target_id,
+                           fact.value_text as target_label, relation.evidence_text,
+                           relation.evidence_post_id
+                      from product_operations_fact_relation relation
+                      join operations_case_fact fact on fact.post_id = relation.post_id
+                       and fact.case_kind_code = relation.case_kind_code
+                       and fact.fact_ordinal = relation.fact_ordinal
+                      join source_post evidence_post
+                        on evidence_post.post_id = relation.evidence_post_id
+                      join source_post target_evidence_post
+                        on target_evidence_post.post_id = fact.evidence_post_id
+                     where relation.post_id = $1 and {evidence_eligible}
+                       and {target_eligible} and {evidence_visible} and {target_visible}
+                    union all
+                    select relation.mention_ordinal, relation.relation_type_code,
+                           'project'::text as target_kind_code,
+                           'project:' || relation.project_key as target_id,
+                           project.project_name as target_label, relation.evidence_text,
+                           relation.evidence_post_id
+                      from product_project_relation relation
+                      join post_project_mention project on project.post_id = relation.post_id
+                       and project.project_key = relation.project_key
+                      join source_post evidence_post
+                        on evidence_post.post_id = relation.evidence_post_id
+                     where relation.post_id = $1 and {evidence_eligible}
+                       and {evidence_visible}
+              ) relation
+             group by relation.mention_ordinal
+        )
+        select post.post_id, post.post_title, null::text as post_body,
+               post.voc_type_code, post.visibility_code,
+               post.source_stage_code, post.source_detail_state_code,
+               post.source_draft_code, post.source_deleted_flag,
+               post.source_author_code, post.source_author_name,
+               post.source_company_code, post.source_company_name,
+               post.source_process_unit_code, post.source_process_unit_name,
+               post.source_sales_pool_code, post.source_sales_pool_name,
+               post.source_customer_code, post.source_customer_name,
+               post.source_project_code, post.source_project_name,
+               post.source_system_code, post.source_record_key,
+               post.corporate_entity_id, post.process_unit_id, post.created_at,
+               post.current_body_sha256,
+               coalesce((select jsonb_object_agg(lookup.lookup_code, lookup.lookup_label)
+                           from common_lookup_value lookup
+                          where lookup.lookup_code in
+                                (post.voc_type_code, post.visibility_code)), '{{}}'::jsonb) as labels,
+               coalesce((select jsonb_agg(jsonb_build_object(
+                                'project_key', project.project_key,
+                                'project_name', project.project_name,
+                                'evidence', project.evidence_text,
+                                'confidence', project.confidence,
+                                'ontology_iri', project.ontology_iri,
+                                'ontology_label', 'Project',
+                                'extraction_method', project.extraction_method,
+                                'resolution_status', 'semantic_candidate',
+                                'provenance', 'post_project_mention.evidence_text'
+                            ) order by project.confidence desc, project.project_name,
+                                       project.project_key)
+                           from post_project_mention project where project.post_id = $1),
+                        '[]'::jsonb) as project_evidence,
+               coalesce((select jsonb_agg(jsonb_build_object(
+                                'code', voice.voice_type_code,
+                                'label', lookup.lookup_label,
+                                'is_primary', voice.is_primary,
+                                'truth_status_code', voice.truth_status_code,
+                                'evidence_available', voice.provenance_assertion_id is not null
+                            ) order by voice.is_primary desc, lookup.display_order,
+                                       voice.voice_type_code)
+                           from source_post_voice voice
+                           join common_lookup_value lookup
+                             on lookup.lookup_category = 'voc_type'
+                            and lookup.lookup_code = voice.voice_type_code
+                          where voice.post_id = $1
+                            and (($2::timestamptz is null and voice.effective_to is null)
+                              or ($2::timestamptz is not null and voice.effective_from <= $2
+                                  and (voice.effective_to is null or $2 < voice.effective_to)))),
+                        '[]'::jsonb) as voice_types,
+               case when $2::timestamptz is not null then '[]'::jsonb else
+                   coalesce((select jsonb_agg(jsonb_build_object(
+                       'construct_iri', construct.construct_iri,
+                       'construct_family_code', construct.construct_family_code,
+                       'preferred_label', construct.preferred_label,
+                       'vocabulary_iri', vocabulary.vocabulary_iri,
+                       'vocabulary_version', vocabulary.version_label,
+                       'evidence_text', assertion.evidence_text,
+                       'truth_status_code', assertion.truth_status_code,
+                       'extraction_method', assertion.extraction_method,
+                       'generated_at', assertion.generated_at,
+                       'unit_index', unit.unit_index,
+                       'provenance', 'post_occupational_construct_assertion.evidence_text'
+                   ) order by unit.unit_index, construct.construct_family_code,
+                              construct.preferred_label, construct.construct_iri)
+                     from post_occupational_construct_assertion assertion
+                     join occupational_construct construct
+                       on construct.construct_id = assertion.construct_id
+                     join occupational_construct_vocabulary vocabulary
+                       on vocabulary.vocabulary_id = construct.vocabulary_id
+                     join post_content_unit unit
+                       on unit.post_content_unit_id = assertion.post_content_unit_id
+                     join post_occupational_construct_extraction extraction
+                       on extraction.post_id = assertion.post_id
+                     join post_content_ingestion_job job on job.post_id = assertion.post_id
+                      and job.source_body_sha256 = extraction.source_body_sha256
+                    where assertion.post_id = $1), '[]'::jsonb) end
+                    as occupational_construct_assertions,
+               case when $2::timestamptz is not null then 'historical_unavailable'
+                    else coalesce((select case
+                        when job.status_code in ('post_content_ingestion_queued',
+                                                 'post_content_ingestion_running') and $5
+                            then 'processing'
+                        when extraction.source_body_sha256 = job.source_body_sha256
+                            then 'complete'
+                        else 'unavailable' end
+                      from post_content_ingestion_job job
+                      left join post_occupational_construct_extraction extraction
+                        on extraction.post_id = job.post_id
+                     where job.post_id = $1),
+                     case when $5 then 'unavailable' else 'setup_required' end)
+                    end as occupational_construct_evidence_status,
+               case when $2::timestamptz is not null then '[]'::jsonb else
+                   coalesce((select jsonb_agg(jsonb_build_object(
+                       'mention_ordinal', mention.mention_ordinal,
+                       'extracted_product_name', mention.extracted_product_name,
+                       'resolution_status_code', mention.resolution_status_code,
+                       'canonical_product_name', catalog.canonical_product_name,
+                       'product_catalog_id', catalog.product_catalog_id,
+                       'product_catalog_code', catalog.product_catalog_code,
+                       'product_level_code', catalog.product_level_code,
+                       'evidence_text', mention.evidence_text,
+                       'evidence_post_id', mention.evidence_post_id,
+                       'relations', coalesce(relations.items, '[]'::jsonb)
+                   ) order by mention.mention_ordinal)
+                     from post_product_mention mention
+                     left join product_catalog catalog
+                       on catalog.product_catalog_id = mention.product_catalog_id
+                     join source_post evidence_post
+                       on evidence_post.post_id = mention.evidence_post_id
+                     left join relations on relations.mention_ordinal = mention.mention_ordinal
+                    where mention.post_id = $1 and {evidence_eligible}
+                      and {evidence_visible}), '[]'::jsonb) end as product_evidence,
+               case when $2::timestamptz is not null then null::jsonb else
+                   (select jsonb_build_object(
+                       'analysis_present', exists(select 1 from post_product_analysis analysis
+                           where analysis.post_id = $1
+                             and analysis.source_body_sha256 = post.current_body_sha256),
+                       'job_status_code', (select job.status_code
+                           from post_content_ingestion_job job
+                          where job.post_id = $1
+                            and job.source_body_sha256 = post.current_body_sha256
+                          order by job.updated_at desc limit 1))) end
+                    as product_analysis_state,
+               case when $2::timestamptz is null then null::jsonb else
+                   (select jsonb_build_object(
+                       'source_post_revision_id', revision.source_post_revision_id,
+                       'post_title', revision.post_title,
+                       'written_at', revision.written_at,
+                       'as_of', $2::timestamptz)
+                      from source_post_revision revision
+                     where revision.post_id = $1 and revision.written_at <= $2
+                       and (revision.superseded_at is null or revision.superseded_at > $2)
+                     order by revision.written_at desc limit 1) end as known_at
+          from post
+        """,
+        post_id,
+        as_of_clock,
+        list(account.corporate_entity_ids),
+        list(account.process_unit_ids),
+        evidence_configured,
+    )
+
+
+async def _warm_post_detail_read_paths(pool: asyncpg.Pool) -> None:
+    """Prepare the exact Post-detail statement on every pooled connection."""
+    account = CurrentAccount(
+        user_account_id="readiness",
+        external_subject_id="readiness",
+        display_name="Readiness",
+        preferred_locale=None,
+        corporate_entity_ids=frozenset(),
+        process_unit_ids=frozenset(),
+        permission_codes=frozenset({"post_read"}),
+    )
+
+    async def warm_one() -> None:
+        """Hold one pool slot while its statement cache is populated."""
+        async with pool.acquire() as conn:
+            await _fetch_post_detail_bundle(
+                conn,
+                "00000000-0000-0000-0000-000000000000",
+                None,
+                account,
+                evidence_configured=False,
+            )
+
+    await asyncio.gather(*(warm_one() for _ in range(pool.get_max_size())))
+
+
 async def _post_filter_options(
     conn: asyncpg.Connection,
     corporate_entity_ids: frozenset[str],
     process_unit_ids: frozenset[str],
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    """Return every authorized filter value, not only values on the current page."""
-    options_sql = f"""
-        select distinct option.lookup_category, option.code,
-               coalesce(lookup.lookup_label, option.code) as label,
-               coalesce(lookup.display_order, 2147483647) as display_order
-          from source_post post
-          left join source_post_voice voice
-            on voice.post_id = post.post_id and voice.effective_to is null
-         cross join lateral (
-               values ('post_visibility', post.visibility_code),
-                      ('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))
-         ) as option(lookup_category, code)
-          left join common_lookup_value lookup
-            on lookup.lookup_category = option.lookup_category
-           and lookup.lookup_code = option.code
-         where (post.visibility_code = 'public'
-            or (post.corporate_entity_id::text = any($1::text[])
-                and (cardinality($2::text[]) = 0
-                     or post.process_unit_id::text = any($2::text[]))))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-         order by option.lookup_category, display_order, option.code
-    """
-    # Safe SQL: this is a closed lookup statement; entity ids remain asyncpg parameters.
-    option_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        options_sql, list(corporate_entity_ids), list(process_unit_ids)
+    selected_voice_codes: list[str] | None = None,
+    selected_visibility: str | None = None,
+) -> tuple[
+    list[dict[str, str]],
+    list[dict[str, str]],
+    int | None,
+    bool,
+    dict[str, str],
+    list[dict[str, str]],
+]:
+    """Return exact authorized filter values and count from the maintained projection."""
+    rows = await conn.fetch(
+        """
+        with corpus_mode as (
+            select exists (
+                select 1 from voice_taxonomy_day_read_projection candidate
+                 where candidate.source_context_present
+                   and (candidate.visibility_code = 'public'
+                        or candidate.corporate_entity_id = any($1::uuid[]))
+            ) as source_context_required
+        ), filtered_scope as (
+            select scope.*
+              from voice_taxonomy_day_read_projection scope
+              cross join corpus_mode mode
+             where scope.source_context_present = mode.source_context_required
+               and (scope.visibility_code = 'public'
+                    or (scope.corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or scope.process_unit_key = any($2::uuid[]))))
+        )
+        select scope.visibility_code, sum(scope.total_eligible) as total_eligible,
+               (select array_agg(distinct category.code)
+                  from filtered_scope candidate
+                  cross join lateral jsonb_object_keys(candidate.category_post_counts)
+                      category(code)
+                 where candidate.visibility_code = scope.visibility_code) as voice_codes,
+               mode.source_context_required,
+               (select jsonb_object_agg(lookup.lookup_code, lookup.lookup_label)
+                  from common_lookup_value lookup
+                 where lookup.lookup_category in ('voc_type', 'post_visibility')) as labels,
+               (select jsonb_object_agg(lookup.lookup_code, lookup.display_order)
+                  from common_lookup_value lookup
+                 where lookup.lookup_category in ('voc_type', 'post_visibility')) as display_orders,
+               (select jsonb_agg(jsonb_build_object(
+                            'code', lookup.lookup_code, 'label', lookup.lookup_label
+                        ) order by lookup.display_order, lookup.lookup_code)
+                  from common_lookup_value lookup
+                 where lookup.lookup_category = 'voc_type') as voice_catalog,
+               case
+                   when cardinality($3::text[]) = 0 then (
+                       select sum(candidate.total_eligible)
+                         from filtered_scope candidate
+                        where $4::text is null
+                           or candidate.visibility_code = $4
+                   )
+                   when cardinality($3::text[]) = 1 then (
+                       select sum(coalesce(
+                           (candidate.category_post_counts ->> $3[1])::bigint, 0
+                       ))
+                         from filtered_scope candidate
+                        where $4::text is null
+                           or candidate.visibility_code = $4
+                   )
+               end as selected_total_count
+          from filtered_scope scope
+          cross join corpus_mode mode
+         group by scope.visibility_code, mode.source_context_required
+        """,
+        list(corporate_entity_ids),
+        list(process_unit_ids),
+        selected_voice_codes or [],
+        selected_visibility,
+    )
+    labels_value = rows[0]["labels"] if rows else None
+    labels = json.loads(labels_value) if isinstance(labels_value, str) else dict(labels_value or {})
+    display_orders_value = rows[0]["display_orders"] if rows else None
+    display_orders = (
+        json.loads(display_orders_value)
+        if isinstance(display_orders_value, str)
+        else dict(display_orders_value or {})
+    )
+    voice_catalog_value = rows[0]["voice_catalog"] if rows else None
+    voice_catalog = (
+        json.loads(voice_catalog_value)
+        if isinstance(voice_catalog_value, str)
+        else list(voice_catalog_value or [])
+    )
+    voice_codes = sorted(
+        {
+            str(code)
+            for row in rows
+            for code in (row["voice_codes"] or [])
+        }
+    )
+    visibility_codes = sorted(
+        {str(row["visibility_code"]) for row in rows},
+        key=lambda code: (int(display_orders.get(code, 2147483647)), code),
     )
     return (
-        [
-            {"code": row["code"], "label": row["label"]}
-            for row in option_rows
-            if row["lookup_category"] == "voc_type"
-        ],
-        [
-            {"code": row["code"], "label": row["label"]}
-            for row in option_rows
-            if row["lookup_category"] == "post_visibility"
-        ],
+        [{"code": code, "label": labels.get(code, code)} for code in voice_codes],
+        [{"code": code, "label": labels.get(code, code)} for code in visibility_codes],
+        int(rows[0]["selected_total_count"])
+        if rows and rows[0]["selected_total_count"] is not None
+        else None,
+        bool(rows[0]["source_context_required"]) if rows else False,
+        labels,
+        voice_catalog,
     )
+
+
+@asynccontextmanager
+async def _post_list_query_plan(
+    conn: asyncpg.Connection, *, default_population: bool
+) -> AsyncIterator[None]:
+    """Confine the measured default-list custom plan to one transaction."""
+    if not default_population:
+        yield
+        return
+    async with conn.transaction():
+        await conn.execute("set local plan_cache_mode = 'force_custom_plan'")
+        yield
 
 
 @app.get("/api/settings", response_model=dict)
@@ -885,6 +1239,8 @@ async def operations_dashboard(
     period_start: date | None = Query(None),
     period_end: date | None = Query(None),
     external_only: bool = Query(False),
+    case_cursor: str | None = Query(None),
+    case_limit: int = Query(20, ge=1, le=50),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -892,9 +1248,6 @@ async def operations_dashboard(
     _require_post_read(account)
     async with pool.acquire() as conn:
         try:
-            source_context_required = await has_real_source_context(
-                conn, list(account.corporate_entity_ids)
-            )
             return await fetch_operations_dashboard(
                 conn,
                 account.corporate_entity_ids,
@@ -902,7 +1255,9 @@ async def operations_dashboard(
                 period_start,
                 period_end,
                 external_only,
-                source_context_required,
+                None,
+                case_cursor,
+                case_limit,
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
@@ -1008,6 +1363,70 @@ class CustomerHintResolveRequest(BaseModel):
     hint_code: str
 
 
+def _customer_master_cursor(value: str | None) -> tuple[int | None, str, str]:
+    """Decode one opaque count-ordered Customer Master continuation."""
+    if value is None:
+        return None, "", ""
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(value + "=" * (-len(value) % 4)))
+        if not isinstance(decoded, list) or len(decoded) != 3:
+            raise ValueError
+        return int(decoded[0]), str(decoded[1]), str(decoded[2])
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Invalid customer continuation") from exc
+
+
+def _encode_customer_master_cursor(count: int, first: str, second: str) -> str:
+    """Encode one opaque count-ordered Customer Master continuation."""
+    payload = json.dumps([count, first, second], separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(payload).decode().rstrip("=")
+
+
+def _author_master_cursor(
+    value: str | None,
+) -> tuple[int | None, int | None, str, UUID | None, str]:
+    """Decode one opaque Keyman-prioritized author continuation."""
+    if value is None:
+        return None, None, "", None, ""
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(value + "=" * (-len(value) % 4)))
+        if not isinstance(decoded, list) or len(decoded) != 5:
+            raise ValueError
+        return int(decoded[0]), int(decoded[1]), str(decoded[2]), UUID(str(decoded[3])), str(decoded[4])
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Invalid author continuation") from exc
+
+
+def _encode_author_master_cursor(
+    priority: int, count: int, code: str, account_id: UUID, display_name: str
+) -> str:
+    """Encode the complete stable author-group ordering key."""
+    payload = json.dumps(
+        [priority, count, code, str(account_id), display_name], separators=(",", ":")
+    ).encode()
+    return base64.urlsafe_b64encode(payload).decode().rstrip("=")
+
+
+def _related_post_cursor(value: str | None) -> tuple[datetime | None, UUID | None]:
+    """Decode a related-Post `(created_at, post_id)` continuation."""
+    if value is None:
+        return None, None
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(value + "=" * (-len(value) % 4)))
+        if not isinstance(decoded, list) or len(decoded) != 2:
+            raise ValueError
+        instant = datetime.fromisoformat(str(decoded[0]).replace("Z", "+00:00"))
+        return instant, UUID(str(decoded[1]))
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Invalid related-post continuation") from exc
+
+
+def _encode_related_post_cursor(created_at: datetime, post_id: UUID) -> str:
+    """Encode a related-Post continuation without exposing ordering fields."""
+    raw = json.dumps([created_at.isoformat(), str(post_id)], separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
 @app.patch("/api/me/preferences")
 async def update_me_preferences(
     preference: LocalePreferenceRequest,
@@ -1026,174 +1445,160 @@ async def update_me_preferences(
 
 @app.get("/api/customer-master")
 async def read_customer_master(
+    customer_cursor: str | None = Query(None),
+    author_cursor: str | None = Query(None),
+    hint_limit: int = Query(20, ge=1, le=50),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Return the authorized customer catalog and its cataloged Keymen."""
     _require_post_read(account)
+    customer_after = _customer_master_cursor(customer_cursor)
+    author_after = _author_master_cursor(author_cursor)
     if not account.corporate_entity_ids:
         return {
             "corporate_entities": [],
             "keymen": [],
             "source_customer_hints": [],
             "source_author_hints": [],
+            "source_customer_hint_total": 0,
+            "source_author_hint_total": 0,
+            "next_customer_cursor": None,
+            "next_author_cursor": None,
             "relationship_network": [],
         }
 
     async with pool.acquire() as conn:
-        # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
-        source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            f"""
-            with scoped as (
-                select post_id, post_title, created_at,
-                       nullif(btrim(source_customer_code), '') as customer_code,
-                       nullif(btrim(source_customer_name), '') as customer_name,
-                       case when nullif(btrim(source_customer_code), '') is null
-                            then nullif(btrim(source_customer_name), '')
-                            else null end as customer_name_group
-                  from source_post
-                 where (nullif(btrim(source_customer_code), '') is not null
-                        or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or (
-                        corporate_entity_id = any($1::uuid[])
-                        and (cardinality($2::uuid[]) = 0
-                             or process_unit_id = any($2::uuid[]))))
-                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
-            ), ranked as (
-                select scoped.*,
-                       row_number() over (
-                           partition by customer_code, customer_name_group
-                           order by created_at desc, post_id desc
-                       ) as related_rank
-                  from scoped
-            ), groups as (
-                select customer_code, customer_name_group,
+        source_customer_rows = await conn.fetch(
+            """
+            with visible_groups as (
+                select customer_code_key, customer_name_group_key,
                        max(customer_name) as customer_name,
-                       count(*) as post_count
-                  from ranked
-                 group by customer_code, customer_name_group
-            ), top_groups as materialized (
-                select *
-                  from groups
-                 order by post_count desc, customer_code, customer_name
-                 limit 100
-            ), related as (
-                select ranked.customer_code, ranked.customer_name_group,
-                       json_agg(
-                           json_build_object(
-                               'post_id', post.post_id::text,
-                               'post_title', post.post_title
-                           )
-                           order by ranked.created_at desc, ranked.post_id desc
-                       ) as related_posts
-                  from ranked
-                  join top_groups
-                    on top_groups.customer_code is not distinct from ranked.customer_code
-                   and top_groups.customer_name_group is not distinct from ranked.customer_name_group
-                  join source_post post on post.post_id = ranked.post_id
-                 where ranked.related_rank <= 20
-                 group by ranked.customer_code, ranked.customer_name_group
+                       sum(post_count)::bigint as post_count
+                  from customer_hint_group_read_projection
+                 where visibility_code = 'public'
+                    or (corporate_entity_key = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or process_unit_key = any($2::uuid[])))
+                 group by customer_code_key, customer_name_group_key
+            ), counted as (
+                select *, count(*) over ()::bigint as total_count
+                  from visible_groups
+            ), page as materialized (
+                select * from counted
+                 where $3::bigint is null
+                    or post_count < $3
+                    or (post_count = $3 and
+                        (customer_code_key, customer_name_group_key) > ($4, $5))
+                 order by post_count desc, customer_code_key, customer_name_group_key
+                 limit $6 + 1
             )
-            select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
-                   coalesce(related.related_posts, '[]'::json) as related_posts
-              from top_groups
-              left join related
-                on related.customer_code is not distinct from top_groups.customer_code
-               and related.customer_name_group is not distinct from top_groups.customer_name_group
-             order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
+            select page.*
+              from page
+             order by page.post_count desc, page.customer_code_key, page.customer_name_group_key
             """,
             list(account.corporate_entity_ids),
             list(account.process_unit_ids),
+            customer_after[0], customer_after[1], customer_after[2],
+            hint_limit,
         )
+        customer_has_more = len(source_customer_rows) > hint_limit
+        source_customer_rows = source_customer_rows[:hint_limit]
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
-            with scoped as (
-                select post.post_id, post.post_title, post.created_at,
-                       btrim(post.source_author_code) as author_code,
-                       case
-                           when post.source_author_name is null
-                             or btrim(post.source_author_name) = ''
-                             or lower(btrim(post.source_author_name)) = lower(btrim(post.source_author_code))
-                           then null
-                           else btrim(post.source_author_name)
-                       end as source_author_name,
-                       post.author_account_id,
-                       author.display_name as account_display_name
-                  from source_post post
-                  join user_account author on author.user_account_id = post.author_account_id
-                 where post.source_author_code is not null
-                   and btrim(post.source_author_code) <> ''
+            with groups as (
+                select author_code, author_account_id, account_display_name,
+                       max(author_name) as author_name,
+                       sum(post_count)::bigint as post_count
+                  from author_hint_group_read_projection
+                 where visibility_code = 'public'
+                    or (corporate_entity_key = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or process_unit_key = any($2::uuid[])))
+                 group by author_code, author_account_id, account_display_name
+            ), keyman_authors as (
+                select distinct post.author_code, post.author_account_id,
+                       post.account_display_name
+                  from post_summary_role role
+                  join customer_master_post_read_projection post
+                    on post.post_id = role.post_id
                    and (post.visibility_code = 'public' or (
                         post.corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
                              or post.process_unit_id = any($2::uuid[]))))
-                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-            ), ranked as (
-                select scoped.*,
-                       row_number() over (
-                           partition by author_code, author_account_id, account_display_name
-                           order by created_at desc, post_id desc
-                       ) as related_rank
-                  from scoped
-            ), groups as (
-                select author_code, author_account_id, account_display_name,
-                       max(source_author_name) as author_name,
-                       count(*) as post_count
-                  from ranked
-                 group by author_code, author_account_id, account_display_name
-            ), keyman_mentions as (
-                select ranked.author_code, ranked.author_account_id,
-                       ranked.account_display_name, ranked.post_id,
-                       person.person_id, person.person_name,
-                       person.person_side_code, person.last_known_job_title
-                  from ranked
-                  join post_summary_role role
-                    on role.post_id = ranked.post_id
-                   and role.actor_type_code = 'prov_person'
                   join cataloged_person person
                     on person.person_id = role.cataloged_person_id
                    and person.person_side_code = 'our_side'
-                 where role.cataloged_person_id is not null
+                 where post.author_code is not null
+                   and role.actor_type_code = 'prov_person'
+                   and role.cataloged_person_id is not null
                 union
-                select ranked.author_code, ranked.author_account_id,
-                       ranked.account_display_name, ranked.post_id,
-                       person.person_id, person.person_name,
-                       person.person_side_code, person.last_known_job_title
-                  from ranked
-                  join post_person_mention mention
-                    on mention.post_id = ranked.post_id
+                select distinct post.author_code, post.author_account_id,
+                       post.account_display_name
+                  from post_person_mention mention
+                  join customer_master_post_read_projection post
+                    on post.post_id = mention.post_id
+                   and (post.visibility_code = 'public' or (
+                        post.corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or post.process_unit_id = any($2::uuid[]))))
                   join cataloged_person person
                     on person.person_id = mention.person_id
                    and person.person_side_code = 'our_side'
-            ), keyman_authors as (
-                select distinct author_code, author_account_id, account_display_name
-                  from keyman_mentions
-            ), top_groups as materialized (
-                select groups.*
+                 where post.author_code is not null
+            ), ordered_groups as (
+                select groups.*,
+                       (keyman_authors.author_code is not null)::integer as keyman_priority,
+                       count(*) over ()::bigint as total_count
                   from groups
                   left join keyman_authors
                     on keyman_authors.author_code = groups.author_code
                    and keyman_authors.author_account_id = groups.author_account_id
                    and keyman_authors.account_display_name = groups.account_display_name
-                 order by (keyman_authors.author_code is not null) desc,
-                          groups.post_count desc, groups.author_code
-                 limit 100
+            ), top_groups as materialized (
+                select * from ordered_groups
+                 where $3::integer is null
+                    or keyman_priority < $3
+                    or (keyman_priority = $3 and post_count < $4)
+                    or (keyman_priority = $3 and post_count = $4 and
+                        (author_code, author_account_id, account_display_name) > ($5, $6, $7))
+                 order by keyman_priority desc, post_count desc, author_code,
+                          author_account_id, account_display_name
+                 limit $8 + 1
             ), keyman_groups as (
-                select mentions.author_code, mentions.author_account_id,
-                       mentions.account_display_name,
-                       mentions.person_id, mentions.person_name,
-                       mentions.person_side_code, mentions.last_known_job_title,
-                       count(distinct mentions.post_id) as mention_count
-                  from keyman_mentions mentions
-                  join top_groups
-                    on top_groups.author_code = mentions.author_code
-                   and top_groups.author_account_id = mentions.author_account_id
-                   and top_groups.account_display_name = mentions.account_display_name
-                 group by mentions.author_code, mentions.author_account_id,
-                          mentions.account_display_name, mentions.person_id,
-                          mentions.person_name, mentions.person_side_code,
-                          mentions.last_known_job_title
+                select post.author_code, post.author_account_id,
+                       post.account_display_name, person.person_id,
+                       person.person_name, person.person_side_code,
+                       person.last_known_job_title,
+                       count(distinct post.post_id) as mention_count
+                  from top_groups
+                  join customer_master_post_read_projection post
+                    on post.author_code = top_groups.author_code
+                   and post.author_account_id = top_groups.author_account_id
+                   and post.account_display_name = top_groups.account_display_name
+                   and (post.visibility_code = 'public' or (
+                        post.corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or post.process_unit_id = any($2::uuid[]))))
+                  join lateral (
+                      select role.cataloged_person_id as person_id
+                        from post_summary_role role
+                       where role.post_id = post.post_id
+                         and role.actor_type_code = 'prov_person'
+                         and role.cataloged_person_id is not null
+                      union
+                      select mention.person_id
+                        from post_person_mention mention
+                       where mention.post_id = post.post_id
+                  ) evidence on true
+                  join cataloged_person person
+                    on person.person_id = evidence.person_id
+                   and person.person_side_code = 'our_side'
+                 group by post.author_code, post.author_account_id,
+                          post.account_display_name, person.person_id,
+                          person.person_name, person.person_side_code,
+                          person.last_known_job_title
             ), keyman_related as (
                 select author_code, author_account_id, account_display_name,
                        json_agg(
@@ -1210,42 +1615,27 @@ async def read_customer_master(
                        ) as keyman_hints
                   from keyman_groups
                  group by author_code, author_account_id, account_display_name
-            ), related as (
-                select ranked.author_code, ranked.author_account_id, ranked.account_display_name,
-                       json_agg(
-                           json_build_object(
-                               'post_id', post.post_id::text,
-                               'post_title', post.post_title
-                           )
-                           order by ranked.created_at desc, ranked.post_id desc
-                       ) as related_posts
-                  from ranked
-                  join top_groups
-                    on top_groups.author_code = ranked.author_code
-                   and top_groups.author_account_id = ranked.author_account_id
-                   and top_groups.account_display_name = ranked.account_display_name
-                  join source_post post on post.post_id = ranked.post_id
-                 where ranked.related_rank <= 20
-                 group by ranked.author_code, ranked.author_account_id, ranked.account_display_name
             )
             select top_groups.author_code, top_groups.author_name, top_groups.author_account_id,
                    top_groups.account_display_name, top_groups.post_count,
-                   coalesce(keyman_related.keyman_hints, '[]'::json) as keyman_hints,
-                   coalesce(related.related_posts, '[]'::json) as related_posts
+                   top_groups.keyman_priority, top_groups.total_count,
+                   coalesce(keyman_related.keyman_hints, '[]'::json) as keyman_hints
               from top_groups
               left join keyman_related
                 on keyman_related.author_code = top_groups.author_code
                and keyman_related.author_account_id = top_groups.author_account_id
                and keyman_related.account_display_name = top_groups.account_display_name
-              left join related
-                on related.author_code = top_groups.author_code
-               and related.author_account_id = top_groups.author_account_id
-               and related.account_display_name = top_groups.account_display_name
-             order by top_groups.post_count desc, top_groups.author_code
+             order by top_groups.keyman_priority desc,
+                      top_groups.post_count desc, top_groups.author_code,
+                      top_groups.author_account_id, top_groups.account_display_name
             """,
             list(account.corporate_entity_ids),
             list(account.process_unit_ids),
+            author_after[0], author_after[1], author_after[2], author_after[3],
+            author_after[4], hint_limit,
         )
+        author_has_more = len(source_author_rows) > hint_limit
+        source_author_rows = source_author_rows[:hint_limit]
         entity_rows = await conn.fetch(
             """
             select corporate_entity_id, corporate_entity_code, entity_name,
@@ -1341,16 +1731,16 @@ async def read_customer_master(
         "keymen": list(keymen_by_id.values()),
         "source_customer_hints": [
             {
-                "customer_code": row["customer_code"],
+                "customer_code": row["customer_code_key"] or None,
                 "customer_name": row["customer_name"],
                 "post_count": row["post_count"],
-                "related_posts": (
-                    json.loads(row["related_posts"])
-                    if isinstance(row["related_posts"], str)
-                    else row["related_posts"] or []
-                ),
+                "related_posts": [],
+                "related_posts_next_cursor": None,
+                "related_posts_loaded": False,
                 "resolution_status": "hint_only",
-                "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
+                "hint_trust": customer_hint_trust(
+                    row["customer_name"], row["customer_code_key"] or None
+                ),
                 "provenance": "source_post.source_customer_code/source_post.source_customer_name",
             }
             for row in source_customer_rows
@@ -1370,11 +1760,9 @@ async def read_customer_master(
                     if isinstance(row["keyman_hints"], str)
                     else row["keyman_hints"] or []
                 ),
-                "related_posts": (
-                    json.loads(row["related_posts"])
-                    if isinstance(row["related_posts"], str)
-                    else row["related_posts"] or []
-                ),
+                "related_posts": [],
+                "related_posts_next_cursor": None,
+                "related_posts_loaded": False,
                 "resolution_status": (
                     "our_side_context_only"
                     if source_author_affiliations.get(str(row["author_account_id"]), [])
@@ -1388,6 +1776,91 @@ async def read_customer_master(
             for row in source_author_rows
         ],
         "relationship_network": relationship_network,
+        "source_customer_hint_total": (
+            int(source_customer_rows[0]["total_count"]) if source_customer_rows else 0
+        ),
+        "source_author_hint_total": (
+            int(source_author_rows[0]["total_count"]) if source_author_rows else 0
+        ),
+        "next_customer_cursor": (
+            _encode_customer_master_cursor(
+                int(source_customer_rows[-1]["post_count"]),
+                str(source_customer_rows[-1]["customer_code_key"]),
+                str(source_customer_rows[-1]["customer_name_group_key"]),
+            ) if customer_has_more and source_customer_rows else None
+        ),
+        "next_author_cursor": (
+            _encode_author_master_cursor(
+                int(source_author_rows[-1]["keyman_priority"]),
+                int(source_author_rows[-1]["post_count"]),
+                str(source_author_rows[-1]["author_code"]),
+                source_author_rows[-1]["author_account_id"],
+                str(source_author_rows[-1]["account_display_name"]),
+            ) if author_has_more and source_author_rows else None
+        ),
+    }
+
+
+@app.get("/api/customer-master/related-posts")
+async def read_customer_master_related_posts(
+    kind: Literal["customer", "author"] = Query(...),
+    customer_code: str | None = Query(None),
+    customer_name: str | None = Query(None),
+    author_code: str | None = Query(None),
+    author_account_id: UUID | None = Query(None),
+    account_display_name: str | None = Query(None),
+    cursor: str | None = Query(None),
+    limit: int = Query(20, ge=1, le=50),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Continue one authorized customer or author hint's related Posts."""
+    _require_post_read(account)
+    after = _related_post_cursor(cursor)
+    if kind == "customer":
+        code_key = (customer_code or "").strip()
+        name_key = "" if code_key else (customer_name or "").strip()
+        if not code_key and not name_key:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Customer hint identity is required")
+        identity_sql = "customer_code_key = $3 and customer_name_group_key = $4"
+        identity_values: tuple[Any, ...] = (code_key, name_key)
+    else:
+        if not author_code or author_account_id is None or not account_display_name:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Author hint identity is required")
+        identity_sql = "author_code = $3 and author_account_id = $4 and account_display_name = $5"
+        identity_values = (author_code.strip(), author_account_id, account_display_name)
+    cursor_offset = 3 + len(identity_values)
+    sql = f"""
+        select post_id, post_title, created_at
+          from customer_master_post_read_projection
+         where {identity_sql}
+           and (visibility_code = 'public'
+                or (corporate_entity_id = any($1::uuid[])
+                    and (cardinality($2::uuid[]) = 0
+                         or process_unit_id = any($2::uuid[]))))
+           and (${cursor_offset}::timestamptz is null
+                or (created_at, post_id) < (${cursor_offset}, ${cursor_offset + 1}))
+         order by created_at desc, post_id desc
+         limit ${cursor_offset + 2} + 1
+    """
+    async with pool.acquire() as conn:
+        # Safe SQL: identity_sql contains only closed schema predicates; all values are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            sql,
+            list(account.corporate_entity_ids), list(account.process_unit_ids),
+            *identity_values, after[0], after[1], limit,
+        )
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    return {
+        "related_posts": [
+            {"post_id": str(row["post_id"]), "post_title": row["post_title"]}
+            for row in rows
+        ],
+        "next_cursor": (
+            _encode_related_post_cursor(rows[-1]["created_at"], rows[-1]["post_id"])
+            if has_more and rows else None
+        ),
     }
 
 
@@ -1491,7 +1964,7 @@ async def rebuild_lineage_graph(
 
 @app.get("/api/posts")
 async def list_posts(
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     search: str | None = Query(None, max_length=200),
     voc_type: list[str] | None = Query(None, max_length=80),
@@ -1499,25 +1972,27 @@ async def list_posts(
     sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
-) -> dict[str, Any]:
+) -> JSONResponse:
     """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
+    voice_filters = [code.strip() for code in voc_type if code.strip()] if voc_type else []
+    visibility_filter = visibility.strip() if visibility and visibility.strip() else None
     async with pool.acquire() as conn:
-        voc_type_options, visibility_options = await _post_filter_options(
-            conn, account.corporate_entity_ids, account.process_unit_ids
+        (
+            voc_type_options,
+            visibility_options,
+            projected_total_count,
+            source_context_required,
+            labels,
+            voice_type_catalog,
+        ) = await _post_filter_options(
+            conn,
+            account.corporate_entity_ids,
+            account.process_unit_ids,
+            voice_filters,
+            visibility_filter,
         )
-        voice_type_catalog = [
-            {"code": row["lookup_code"], "label": row["lookup_label"]}
-            for row in await conn.fetch(
-                """
-                select lookup_code, lookup_label
-                  from common_lookup_value
-                 where lookup_category = 'voc_type'
-                 order by display_order, lookup_code
-                """
-            )
-        ]
         body_search_ids: list[str] = []
         if search_term:
             # Safe SQL: search SQL is a closed schema query; search_term is bound through $1.
@@ -1525,7 +2000,7 @@ async def list_posts(
                 f"""
                 select post_id
                   from source_post
-                where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+                where {source_post_eligibility_sql('source_post', source_context_required=source_context_required)}
                   and (lower(left(source_post_search_text(post_body), 16384))
                            like '%' || lower($1) || '%'
                     or to_tsvector('simple', source_post_search_text(post_body))
@@ -1542,35 +2017,28 @@ async def list_posts(
                 search_term,
             )
             body_search_ids = [str(row["post_id"]) for row in body_rows]
-        # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
-        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        uses_projected_population = search_term is None and projected_total_count is not None
+        total_count_sql = "0::bigint" if uses_projected_population else "count(*) over()"
+        async def fetch_page() -> list[asyncpg.Record]:
+            """Execute the closed post-page query with bound request values."""
+            # Safe SQL: page SQL is closed schema text; every request value is bound.
+            return await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with page as (
-                select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
-                       post.source_stage_code, post.source_detail_state_code,
-                       post.source_draft_code, post.source_deleted_flag,
-                       post.source_author_code, post.source_author_name,
-                       post.source_company_code, post.source_company_name,
-                       post.source_process_unit_code, post.source_process_unit_name,
-                       post.source_sales_pool_code, post.source_sales_pool_name,
-                       post.source_customer_code, post.source_customer_name,
-                       post.source_project_code, post.source_project_name,
-                       post.source_system_code,
-                       post.source_record_key,
-                       post.corporate_entity_id, post.process_unit_id, post.created_at,
+                select post.post_id, post.post_title, post.created_at,
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
                            when post.post_id = any($5::uuid[]) then 1
                            else 2
                        end as search_priority,
-                       count(*) over() as total_count
+                       {total_count_sql} as total_count
                   from source_post post
              where (post.visibility_code = 'public'
                 or (post.corporate_entity_id::text = any($2::text[])
                     and (cardinality($9::text[]) = 0
                          or post.process_unit_id::text = any($9::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+               and {source_post_eligibility_sql('post', source_context_required=source_context_required)}
                and (
                     $1::text is null
                     or post.post_title ilike '%' || $1 || '%'
@@ -1712,10 +2180,21 @@ async def list_posts(
                    offset $6
                    limit $7
             )
-            select page.*,
+            select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
+                   post.source_stage_code, post.source_detail_state_code,
+                   post.source_draft_code, post.source_deleted_flag,
+                   post.source_author_code, post.source_author_name,
+                   post.source_company_code, post.source_company_name,
+                   post.source_process_unit_code, post.source_process_unit_name,
+                   post.source_sales_pool_code, post.source_sales_pool_name,
+                   post.source_customer_code, post.source_customer_name,
+                   post.source_project_code, post.source_project_name,
+                   post.source_system_code, post.source_record_key,
+                   post.corporate_entity_id, post.process_unit_id, post.created_at,
+                   page.search_priority, page.total_count,
                    case
-                       when $1::text is not null
-                            and strpos(lower(source_post_search_text(post.post_body)), lower($1)) > 0
+                       when $1::text is null then projection.post_body_excerpt
+                       when strpos(lower(source_post_search_text(post.post_body)), lower($1)) > 0
                        then btrim(substring(
                            source_post_search_text(post.post_body)
                            from greatest(
@@ -1723,15 +2202,16 @@ async def list_posts(
                                strpos(lower(source_post_search_text(post.post_body)), lower($1)) - 140
                            ) for 420
                        ))
-                       else btrim(left(source_post_search_text(post.post_body), 420))
+                       else projection.post_body_excerpt
                    end as post_body_excerpt,
-                   char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
+                   projection.post_body_truncated,
                    coalesce(projects.project_evidence, '[]'::json) as project_evidence,
                    coalesce(voices.voice_types, '[]'::json) as voice_types
               from page
               join source_post post on post.post_id = page.post_id
-              left join lateral (
-                  select json_agg(
+              join post_list_read_projection projection on projection.post_id = page.post_id
+              left join (
+                  select project.post_id, json_agg(
                              json_build_object(
                                  'project_key', project.project_key,
                                  'project_name', project.project_name,
@@ -1746,16 +2226,22 @@ async def list_posts(
                              order by project.confidence desc, project.project_name, project.project_key
                          ) as project_evidence
                     from (
-                        select project_key, project_name, evidence_text, confidence,
-                               ontology_iri, extraction_method
-                          from post_project_mention
-                         where post_id = page.post_id
-                         order by confidence desc, project_name, project_key
-                         limit 5
+                        select candidate.*,
+                               row_number() over (
+                                   partition by candidate.post_id
+                                   order by candidate.confidence desc,
+                                            candidate.project_name,
+                                            candidate.project_key
+                               ) as project_rank
+                          from post_project_mention candidate
+                          join page project_page
+                            on project_page.post_id = candidate.post_id
                     ) project
-              ) projects on true
-              left join lateral (
-                  select json_agg(
+                   where project.project_rank <= 5
+                   group by project.post_id
+              ) projects on projects.post_id = page.post_id
+              left join (
+                  select voice.post_id, json_agg(
                              json_build_object(
                                  'code', voice.voice_type_code,
                                  'label', lookup.lookup_label,
@@ -1770,9 +2256,10 @@ async def list_posts(
                     join common_lookup_value lookup
                       on lookup.lookup_category = 'voc_type'
                      and lookup.lookup_code = voice.voice_type_code
-                   where voice.post_id = page.post_id
-                     and voice.effective_to is null
-              ) voices on true
+                    join page voice_page on voice_page.post_id = voice.post_id
+                   where voice.effective_to is null
+                   group by voice.post_id
+              ) voices on voices.post_id = page.post_id
              order by
                 case when $1::text is not null then page.search_priority end asc,
                 case
@@ -1786,18 +2273,30 @@ async def list_posts(
             """,
             search_term,
             list(account.corporate_entity_ids),
-            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
-            visibility.strip() if visibility and visibility.strip() else None,
+            voice_filters or None,
+            visibility_filter,
             body_search_ids,
             offset,
             limit,
             sort,
             list(account.process_unit_ids),
         )
+        # Nullable search/filter parameters keep the wire contract stable, but
+        # their generic plan measured 42--64 ms versus 4.4 ms for the exact
+        # custom plan. The context limits that measured exception to one tx.
+        async with _post_list_query_plan(
+            conn, default_population=search_term is None
+        ):
+            rows = await fetch_page()
         visible = [row for row in rows if _can_see_post(account, row)]
-        labels = await _lookup_post_labels(conn, visible)
-    total_count = int(rows[0]["total_count"]) if rows else 0
-    return {
+    total_count = (
+        projected_total_count
+        if uses_projected_population
+        else int(rows[0]["total_count"])
+        if rows
+        else 0
+    )
+    return JSONResponse({
         "posts": [_serialize_post(row, labels) for row in visible],
         "total_count": total_count,
         "limit": limit,
@@ -1805,7 +2304,7 @@ async def list_posts(
         "voc_type_options": voc_type_options,
         "voice_type_catalog": voice_type_catalog,
         "visibility_options": visibility_options,
-    }
+    })
 
 
 @app.get("/api/voice-taxonomy/summary")
@@ -1874,19 +2373,24 @@ async def read_voice_taxonomy_summary(
 @app.get("/api/posts/{post_id}")
 async def read_post(
     post_id: str,
+    request: Request,
     as_of: str | None = None,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Return one source_post, or 404 / 403 if it is missing or out of scope.
 
-    ``as_of`` adds ``known_at`` when a ``source_post_revision`` covers that
-    clock (ADR 0025). The live ``post_body`` stays the live row. A missing
-    cover is omitted -- never a fabricated cutoff sentence. Next action:
-    pass the analysis-run cutoff, then compare ``known_at`` with the live
-    body before treating the live text as reconstructed evidence.
+    ``as_of`` adds revision metadata when a ``source_post_revision`` covers
+    that clock (ADR 0025). Fetch the corresponding exact text from the body
+    endpoint after presenting this metadata; a missing historical cover is
+    never replaced with live text.
     """
     _require_post_read(account)
+    if "include_body" in request.query_params:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Fetch the complete source text from this Post's body endpoint.",
+        )
     settings = load_settings()
     as_of_clock = None
     if as_of is not None:
@@ -1899,117 +2403,57 @@ async def read_post(
                 "then compare the known body with the live body.",
             ) from exc
     async with pool.acquire() as conn:
-        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
-        row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            "select post_id, post_title, post_body, voc_type_code, visibility_code, "
-            "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
-                "source_author_code, source_author_name, source_company_code, source_company_name, "
-                "source_process_unit_code, source_process_unit_name, "
-                "source_sales_pool_code, source_sales_pool_name, "
-                "source_customer_code, source_customer_name, source_project_code, source_project_name, "
-                "source_system_code, source_record_key, "
-            "corporate_entity_id, process_unit_id, created_at "
-            f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+        evidence_configured = bool(
+            settings.orchestrator_base_url and settings.orchestrator_api_key
+        )
+        row = await _fetch_post_detail_bundle(
+            conn,
             post_id,
+            as_of_clock,
+            account,
+            evidence_configured=evidence_configured,
         )
         if row is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
         if not _can_see_post(account, row):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
-        labels = await _lookup_post_labels(conn, [row])
-        project_evidence = await _load_project_evidence(
-            conn, post_id, row["source_project_code"], row["source_project_name"]
+        def decoded_json(value: Any, fallback: Any) -> Any:
+            """Decode asyncpg's default JSON text codec without changing native values."""
+            return json.loads(value) if isinstance(value, str) else value or fallback
+
+        labels = decoded_json(row["labels"], {})
+        project_evidence = decoded_json(row["project_evidence"], [])
+        source_project_code = (row["source_project_code"] or "").strip()
+        source_project_name = (row["source_project_name"] or "").strip()
+        if source_project_code or source_project_name:
+            source_field = (
+                "source_post.source_project_name"
+                if source_project_name
+                else "source_post.source_project_code"
+            )
+            project_evidence.insert(0, {
+                "project_key": source_project_code or source_project_name,
+                "project_name": source_project_name or source_project_code,
+                "evidence": source_field,
+                "confidence": None,
+                "ontology_iri": str(LW.Project),
+                "ontology_label": "Project",
+                "extraction_method": "source_field_hint",
+                "resolution_status": "hint_only",
+                "provenance": source_field,
+            })
+        voice_types = decoded_json(row["voice_types"], [])
+        occupational_construct_assertions = decoded_json(
+            row["occupational_construct_assertions"], []
         )
-        voice_types = await _load_post_voice_types(conn, post_id, as_of_clock)
-        if as_of_clock is None:
-            occupational_construct_assertions = (
-                await load_occupational_construct_assertions(conn, post_id)
-            )
-            occupational_construct_evidence_status = (
-                await load_occupational_construct_evidence_status(
-                    conn,
-                    post_id,
-                    evidence_configured=bool(
-                        settings.orchestrator_base_url
-                        and settings.orchestrator_api_key
-                    ),
-                )
-            )
-        else:
-            occupational_construct_assertions = []
-            occupational_construct_evidence_status = "historical_unavailable"
-        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
-        product_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            "select mention.mention_ordinal, mention.extracted_product_name, "
-            "mention.resolution_status_code, catalog.canonical_product_name, "
-            "catalog.product_catalog_id, catalog.product_catalog_code, "
-            "catalog.product_level_code, mention.evidence_text, "
-            "mention.evidence_post_id, evidence_post.visibility_code, "
-            "evidence_post.corporate_entity_id, evidence_post.process_unit_id "
-            "from post_product_mention mention "
-            "left join product_catalog catalog "
-            "on catalog.product_catalog_id = mention.product_catalog_id "
-            "join source_post evidence_post "
-            "on evidence_post.post_id = mention.evidence_post_id "
-            "where mention.post_id = $1 and "
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
-            "order by mention.mention_ordinal",
-            post_id,
-        ) if as_of_clock is None else []
-        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
-        product_relation_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            "select relation.mention_ordinal, relation.relation_type_code, "
-            "'operations_fact' as target_kind_code, "
-            "'operations_fact:' || relation.case_kind_code || ':' || relation.fact_ordinal::text as target_id, "
-            "fact.value_text as target_label, relation.evidence_text, "
-            "relation.evidence_post_id, evidence_post.visibility_code, "
-            "evidence_post.corporate_entity_id, evidence_post.process_unit_id, "
-            "target_evidence_post.visibility_code as target_visibility_code, "
-            "target_evidence_post.corporate_entity_id as target_corporate_entity_id, "
-            "target_evidence_post.process_unit_id as target_process_unit_id "
-            "from product_operations_fact_relation relation "
-            "join operations_case_fact fact on fact.post_id = relation.post_id "
-            "and fact.case_kind_code = relation.case_kind_code "
-            "and fact.fact_ordinal = relation.fact_ordinal "
-            "join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id "
-            "join source_post target_evidence_post on target_evidence_post.post_id = fact.evidence_post_id "
-            "where relation.post_id = $1 and "
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} and "
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='target_evidence_post')} "
-            "union all "
-            "select relation.mention_ordinal, relation.relation_type_code, "
-            "'project' as target_kind_code, 'project:' || relation.project_key as target_id, "
-            "project.project_name as target_label, relation.evidence_text, "
-            "relation.evidence_post_id, evidence_post.visibility_code, "
-            "evidence_post.corporate_entity_id, evidence_post.process_unit_id, "
-            "evidence_post.visibility_code as target_visibility_code, "
-            "evidence_post.corporate_entity_id as target_corporate_entity_id, "
-            "evidence_post.process_unit_id as target_process_unit_id "
-            "from product_project_relation relation "
-            "join post_project_mention project on project.post_id = relation.post_id "
-            "and project.project_key = relation.project_key "
-            "join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id "
-            "where relation.post_id = $1 and "
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='evidence_post')} "
-            "order by mention_ordinal, target_kind_code, target_id",
-            post_id,
-        ) if as_of_clock is None else []
-        current_body_sha256 = source_body_sha256(row["post_body"])
-        product_analysis_state = await conn.fetchrow(
-            "select exists(select 1 from post_product_analysis "
-            "where post_id = $1 and source_body_sha256 = $2) as analysis_present, "
-            "(select status_code from post_content_ingestion_job "
-            "where post_id = $1 and source_body_sha256 = $2 "
-            "order by updated_at desc limit 1) as job_status_code",
-            post_id,
-            current_body_sha256,
-        ) if as_of_clock is None else None
-        known_at = None
-        if as_of_clock is not None:
-            known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
+        occupational_construct_evidence_status = row[
+            "occupational_construct_evidence_status"
+        ]
+        product_rows = decoded_json(row["product_evidence"], [])
+        product_analysis_state = decoded_json(row["product_analysis_state"], None)
+        known_at = decoded_json(row["known_at"], None)
     payload = {
         **_serialize_post(row, labels),
-        "post_body": row["post_body"],
         "project_evidence": project_evidence,
         "voice_types": voice_types,
         "occupational_construct_assertions": occupational_construct_assertions,
@@ -2028,7 +2472,8 @@ async def read_post(
                     else "Open the source text and confirm that no product was mentioned."
                 ),
             }
-            if product_analysis_state and product_analysis_state["analysis_present"]
+            if product_rows
+            or (product_analysis_state and product_analysis_state["analysis_present"])
             else {
                 "status_code": (
                     "processing"
@@ -2056,42 +2501,148 @@ async def read_post(
         ),
         "product_evidence": [
             {
-                "mention_ordinal": item["mention_ordinal"],
-                "extracted_product_name": item["extracted_product_name"],
-                "resolution_status_code": item["resolution_status_code"],
-                "canonical_product_name": item["canonical_product_name"],
-                "product_catalog_id": item["product_catalog_id"],
-                "product_catalog_code": item["product_catalog_code"],
+                **item,
                 "ontology_iri": (
                     ontology_node_iri("product", str(item["product_catalog_id"]))
                     if item["product_catalog_id"] is not None
                     else None
                 ),
-                "product_level_code": item["product_level_code"],
-                "evidence_text": item["evidence_text"],
-                "evidence_post_id": item["evidence_post_id"],
-                "relations": [
-                    {
-                        "relation_type_code": relation["relation_type_code"],
-                        "target_kind_code": relation["target_kind_code"],
-                        "target_id": relation["target_id"],
-                        "target_label": relation["target_label"],
-                        "evidence_text": relation["evidence_text"],
-                        "evidence_post_id": relation["evidence_post_id"],
-                    }
-                    for relation in product_relation_rows
-                    if relation["mention_ordinal"] == item["mention_ordinal"]
-                    and _can_see_post(account, relation)
-                    and _can_see_product_relation_target(account, relation)
-                ],
             }
             for item in product_rows
-            if _can_see_post(account, item)
         ],
     }
+    if row["post_body"] is not None:
+        payload["post_body"] = row["post_body"]
     if known_at is not None:
         payload["known_at"] = known_at
     return payload
+
+
+@app.get("/api/posts/{post_id}/body")
+async def stream_post_body(
+    post_id: str,
+    as_of: str | None = None,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> StreamingResponse:
+    """Stream the complete authorized source body in bounded database slices."""
+    _require_post_read(account)
+    as_of_clock = None
+    if as_of is not None:
+        try:
+            as_of_clock = parse_as_of_clock(as_of)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "as_of must be an ISO-8601 timestamp. Use the run cutoff, then retry.",
+            ) from exc
+    revision_id: str | None = None
+    async with pool.acquire() as conn:
+        source_context_required = await has_real_source_context(
+            conn, list(account.corporate_entity_ids)
+        )
+        eligibility = source_post_eligibility_sql(
+            "source_post", source_context_required=source_context_required
+        )
+        # Safe SQL: eligibility is immutable schema text and the post id is bound.
+        visible_row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select source_post.post_id, visibility_code, corporate_entity_id, process_unit_id, "
+            "source_post.xmin::text as body_version, projection.post_body_character_count, "
+            "projection.post_body_byte_count from source_post "
+            "join post_list_read_projection projection on projection.post_id = source_post.post_id "
+            f"where source_post.post_id = $1 and {eligibility}",
+            post_id,
+        )
+        if as_of_clock is not None:
+            revision_value = await conn.fetchrow(
+                "select source_post_revision_id, xmin::text as body_version "
+                "from source_post_revision "
+                "where post_id = $1 and written_at <= $2 "
+                "and (superseded_at is null or superseded_at > $2) "
+                "order by written_at desc limit 1",
+                post_id,
+                as_of_clock,
+            )
+            revision_id = (
+                str(revision_value["source_post_revision_id"])
+                if revision_value is not None
+                else None
+            )
+    if visible_row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
+    if not _can_see_post(account, visible_row):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
+    if as_of_clock is not None and revision_id is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no source revision covers this cutoff")
+    body_version = str(
+        revision_value["body_version"]
+        if revision_id is not None
+        else visible_row["body_version"]
+    )
+    body_character_count = (
+        None
+        if revision_id is not None
+        else int(visible_row["post_body_character_count"])
+    )
+    body_byte_count = (
+        None if revision_id is not None else int(visible_row["post_body_byte_count"])
+    )
+
+    async def body_chunks() -> AsyncIterator[bytes]:
+        """Read complete Unicode text without materializing the full TOAST value."""
+        chunk_characters = 262_144
+        position = 1
+        while body_character_count is None or position <= body_character_count:
+            async with pool.acquire() as conn:
+                body_source = (
+                    "source_post_revision revision"
+                    if revision_id is not None
+                    else "source_post revision"
+                )
+                body_key = (
+                    "revision.source_post_revision_id = $1"
+                    if revision_id is not None
+                    else "revision.post_id = $1"
+                )
+                post_join = (
+                    "join source_post post on post.post_id = revision.post_id"
+                    if revision_id is not None
+                    else "join source_post post on post.post_id = revision.post_id"
+                )
+                # Safe SQL: table/key fragments and eligibility are closed schema text.
+                chunk_row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                    f"select substring(revision.post_body from $3::integer for $4::integer) as body_chunk "
+                    f"from {body_source} {post_join} where {body_key} "
+                    "and revision.xmin::text = $2 "
+                    "and (post.visibility_code = 'public' or ("
+                    "post.corporate_entity_id = any($5::uuid[]) and ("
+                    "cardinality($6::uuid[]) = 0 or post.process_unit_id = any($6::uuid[])))) "
+                    f"and {source_post_eligibility_sql('post', source_context_required=source_context_required)}",
+                    revision_id or post_id,
+                    body_version,
+                    position,
+                    chunk_characters,
+                    list(account.corporate_entity_ids),
+                    list(account.process_unit_ids),
+                )
+            if chunk_row is None:
+                raise RuntimeError("Post body changed while it was being transferred. Retry.")
+            chunk = str(chunk_row["body_chunk"] or "")
+            if not chunk:
+                break
+            yield str(chunk).encode("utf-8")
+            if len(chunk) < chunk_characters:
+                break
+            position += len(chunk)
+
+    response_headers = {"Cache-Control": "private, no-store"}
+    if body_byte_count is not None:
+        response_headers["Content-Length"] = str(body_byte_count)
+    return StreamingResponse(
+        body_chunks(),
+        media_type="text/plain; charset=utf-8",
+        headers=response_headers,
+    )
 
 
 class CreatePostVoiceAssignmentRequest(BaseModel):
@@ -4402,10 +4953,11 @@ async def read_calendar(
 
 @app.get("/api/rankings")
 async def read_rankings(
+    request: Request,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0167).
+    """List governed choices or fuse one exact selected context (ADR 0278).
 
     Hidden posts are omitted from every channel. Never invents a fused
     score or a theta. Channel evidence is computed from owned rank
@@ -4413,10 +4965,39 @@ async def read_rankings(
     missing.
     """
     _require_post_read(account)
+    expected = {"topic_model_run_id", "influence_run_id", "topic_index", "dimension", "context"}
+    supplied = set(request.query_params)
+    if supplied and supplied != expected:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "select one complete topic context")
     async with pool.acquire() as conn:
-        posts = await load_visible_ranking_posts(
-            conn, lambda row: _can_see_post(account, row)
+        if not supplied:
+            choices = await load_ranking_context_choices(
+                conn, account.corporate_entity_ids, account.process_unit_ids
+            )
+            return {"status": "selection_required", "context_choices": choices, "rankings": []}
+        try:
+            selection = {
+                "topic_model_run_id": str(UUID(request.query_params["topic_model_run_id"])),
+                "influence_run_id": str(UUID(request.query_params["influence_run_id"])),
+                "topic_index": int(request.query_params["topic_index"]),
+                "dimension": request.query_params["dimension"],
+                "context": request.query_params["context"],
+            }
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "ranking selection is invalid") from exc
+        if (
+            selection["topic_index"] < 0
+            or selection["dimension"] not in {"business_unit", "process_unit", "team", "person"}
+            or not selection["context"].strip()
+        ):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "ranking selection is invalid")
+        rows = await load_selected_ranking_rows(
+            conn, selection, account.corporate_entity_ids, account.process_unit_ids
         )
-    return _rankweave_client().as_api_payload(
-        posts, can_see_post=lambda _row: True
-    )
+    if not rows:
+        return {"status": "unavailable", "status_reason": "selected_evidence_not_available", "selection": selection, "rankings": []}
+    try:
+        rankings = _rankweave_client().fuse_selected_rows(rows)
+    except RankWeaveNotAvailable:
+        return {"status": "unavailable", "status_reason": RankWeaveNotAvailable.reason, "selection": selection, "rankings": []}
+    return {"status": "accepted", "status_reason": None, "selection": selection, "rankings": rankings.to_json()}

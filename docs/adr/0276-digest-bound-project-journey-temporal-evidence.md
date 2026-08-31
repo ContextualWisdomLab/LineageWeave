@@ -1,4 +1,4 @@
-# ADR 0270: Digest-bound project-journey temporal evidence
+# ADR 0276: Digest-bound project-journey temporal evidence
 
 - Status: Accepted on this stacked branch; not protected-main truth until merge
 - Date: 2026-08-28

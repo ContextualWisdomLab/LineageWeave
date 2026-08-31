@@ -72,3 +72,11 @@ def test_account_scope_uses_one_database_round_trip(keyverse_required: bool) -> 
     assert account.corporate_entity_ids == frozenset({"entity-1"})
     assert account.process_unit_ids == frozenset({"unit-1"})
     assert account.permission_codes == frozenset({"post_read"})
+    query, arguments = connection.calls[0]
+    assert "group by account.user_account_id" not in query.lower()
+    if keyverse_required:
+        assert "role.role_code = any($4::text[])" in query
+        assert arguments == ("subject-1", "ORG", "PU", ["member"])
+    else:
+        assert "where affiliation.user_account_id = account.user_account_id" in query
+        assert arguments == ("subject-1",)

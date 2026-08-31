@@ -2,6 +2,8 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 def test_shared_metric_migration_does_not_narrow_later_report_dimensions() -> None:
     sql = (
@@ -299,6 +301,7 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     assert "drop trigger if exists topic_tepp_receipt_influence_wake" in sql
     assert "create trigger topic_tepp_receipt_influence_wake" not in sql
     assert "drop trigger if exists topic_terminal_influence_wake" in sql
+
     assert "create trigger topic_terminal_influence_wake" not in sql
     assert "after insert or update on topic_post_coordinate" in sql
     assert "after insert or update on topic_context_membership" in sql
@@ -329,6 +332,15 @@ def test_topic_influence_job_migration_is_replay_safe_and_fail_closed() -> None:
     assert "on conflict (topic_model_run_id) do nothing" in sql
     assert "where status_code = 'queued'" in sql
     assert "influence_value" not in sql
+
+
+@pytest.mark.parametrize("migration_number", range(263, 269))
+def test_latency_projection_migrations_do_not_relock_hot_tables(
+    migration_number: int,
+) -> None:
+    """Interactive read projections replay without dropping live triggers."""
+    migration = next(Path("migrations").glob(f"{migration_number:04d}_*.sql"))
+    assert "drop trigger" not in migration.read_text().casefold()
 
 
 def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:

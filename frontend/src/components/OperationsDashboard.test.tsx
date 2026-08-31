@@ -270,6 +270,51 @@ describe("OperationsDashboardView", () => {
     expect(fetchVoiceTaxonomySummary).not.toHaveBeenCalled();
   });
 
+  it("continues bounded case evidence without replacing the loaded page", async () => {
+    vi.mocked(fetchVoiceTaxonomySummary).mockResolvedValue({
+      total_eligible: 0, classified_unique: 0, multi_membership: 0,
+      source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+      counts_overlap: true, category_memberships: [],
+    });
+    vi.mocked(fetchOperationsDashboard)
+      .mockReset()
+      .mockResolvedValueOnce({ ...data, next_case_cursor: "synthetic-cursor" })
+      .mockResolvedValueOnce({
+        ...data,
+        cases: [{ ...data.cases[0], post_id: "post-continued", summary_text: "Continued evidence" }],
+        next_case_cursor: null,
+      });
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "글 더 불러오기" }));
+
+    expect(await screen.findByText("Continued evidence")).toBeInTheDocument();
+    expect(screen.getByText(data.cases[0].summary_text)).toBeInTheDocument();
+    expect(fetchOperationsDashboard).toHaveBeenLastCalledWith(
+      "synthetic-token", "", "", false, "synthetic-cursor",
+    );
+    expect(screen.queryByRole("button", { name: "글 더 불러오기" })).not.toBeInTheDocument();
+  });
+
+  it("keeps loaded evidence visible when continuation fails", async () => {
+    vi.mocked(fetchVoiceTaxonomySummary).mockResolvedValue({
+      total_eligible: 0, classified_unique: 0, multi_membership: 0,
+      source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0,
+      counts_overlap: true, category_memberships: [],
+    });
+    vi.mocked(fetchOperationsDashboard)
+      .mockReset()
+      .mockResolvedValueOnce({ ...data, next_case_cursor: "synthetic-cursor" })
+      .mockRejectedValueOnce(new Error("synthetic continuation failure"));
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "글 더 불러오기" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("대시보드 근거를 불러오지 못했습니다.");
+    expect(screen.getByText(data.cases[0].summary_text)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "글 더 불러오기" })).toBeEnabled();
+  });
+
   it("shows a failed voice summary and retries only that evidence", async () => {
     vi.mocked(fetchOperationsDashboard).mockReset().mockResolvedValue(data);
     vi.mocked(fetchVoiceTaxonomySummary)

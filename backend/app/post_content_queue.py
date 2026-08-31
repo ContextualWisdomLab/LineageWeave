@@ -402,15 +402,20 @@ async def ensure_post_content_job(
 
 
 POST_CONTENT_BACKFILL_CANDIDATE_SQL = f"""
+        with candidate_id as materialized (
+            select post.post_id
+              from source_post post
+              left join post_content_ingestion_job job on job.post_id = post.post_id
+             where job.post_id is null
+            union all
+            select job.post_id
+              from post_content_ingestion_job job
+             where job.status_code = $1
+        )
         select post.post_id, post.post_body
-          from source_post post
+          from candidate_id candidate
+          join source_post post on post.post_id = candidate.post_id
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-           and not exists (
-               select 1
-                 from post_content_ingestion_job job
-                where job.post_id = post.post_id
-                  and job.status_code is distinct from $1
-           )
            and (
                not exists (
                    select 1 from post_content_unit unit
@@ -519,7 +524,23 @@ async def enqueue_post_content_backfill(
     async with pool.acquire() as conn:
         async with conn.transaction():
             rows = []
-            if require_structure:
+            recovery_state = await conn.fetchrow(
+                "select active_source_count, active_job_count, "
+                "active_succeeded_job_count, context_source_count, "
+                "context_job_count, context_succeeded_job_count "
+                "from post_content_recovery_state where recovery_state_id = 1"
+            )
+            recovery_is_empty = False
+            if recovery_state:
+                source_prefix = (
+                    "context" if recovery_state["context_source_count"] else "active"
+                )
+                recovery_is_empty = bool(
+                    recovery_state[f"{source_prefix}_source_count"]
+                    == recovery_state[f"{source_prefix}_job_count"]
+                    and recovery_state[f"{source_prefix}_succeeded_job_count"] == 0
+                )
+            if require_structure and not recovery_is_empty:
                 # Safe SQL: the eligibility predicate is an immutable schema fragment; values are bound.
                 rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                     POST_CONTENT_BACKFILL_CANDIDATE_SQL,
@@ -529,7 +550,7 @@ async def enqueue_post_content_backfill(
                     limit,
                     True,
                 )
-            if len(rows) < limit:
+            if not recovery_is_empty and len(rows) < limit:
                 # Safe SQL: the same immutable candidate statement is reused with bound tier values.
                 rows += await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                     POST_CONTENT_BACKFILL_CANDIDATE_SQL,

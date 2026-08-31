@@ -7,10 +7,16 @@ inputs. The client never invents a fused score or a theta.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from types import SimpleNamespace
 
 import pytest
+
+from backend.app.ranking_ingestion import (
+    load_ranking_context_choices,
+    load_selected_ranking_rows,
+)
 
 from lineageweave.rankweave_client import (
     LibraryRankWeaveTransport,
@@ -38,6 +44,40 @@ HIDDEN = {
     "post_title": "Private parent",
     "created_at": "2026-01-10T00:00:00Z",
 }
+
+
+class _CaptureConnection:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[object, ...]]] = []
+
+    async def fetch(self, sql: str, *args: object) -> list[dict[str, object]]:
+        self.calls.append((sql, args))
+        return []
+
+
+def test_context_choice_abac_is_bound_inside_sql() -> None:
+    conn = _CaptureConnection()
+    asyncio.run(load_ranking_context_choices(conn, ["entity-1"], ["unit-1"]))
+    sql, args = conn.calls[0]
+    assert "post.visibility_code = 'public'" in sql
+    assert "post.corporate_entity_id::text = any($1::text[])" in sql
+    assert args == (["entity-1"], ["unit-1"])
+
+
+def test_selected_population_abac_precedes_projection() -> None:
+    conn = _CaptureConnection()
+    selection = {
+        "topic_model_run_id": "run-1",
+        "influence_run_id": "influence-1",
+        "topic_index": 2,
+        "dimension": "team",
+        "context": "context-1",
+    }
+    asyncio.run(load_selected_ranking_rows(conn, selection, ["entity-1"], []))
+    sql, args = conn.calls[0]
+    assert "post.process_unit_id::text = any($2::text[])" in sql
+    assert "influence.topic_model_run_id = $3::uuid" in sql
+    assert args == (["entity-1"], [], "run-1", "influence-1", 2, "team", "context-1")
 
 
 def _lexical_then_temporal(post_id: str, channel_rank: int) -> list[dict[str, object]]:
@@ -280,6 +320,72 @@ def test_hidden_post_is_omitted_from_every_channel() -> None:
     assert "hidden-parent" not in channels["lexical"]
     assert channels["temporal"][0] == "post-2"
     assert channels["lexical"][0] == "post-2"
+
+
+def test_selected_rows_use_exact_lazy_influence_and_temporal_population(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Selected Rankings delegates exact bounded fusion and preserves evidence."""
+    captured: dict[str, object] = {}
+
+    class FakeRw:
+        @staticmethod
+        def lazy_reciprocal_rank_fuse(channels, resolver, **kwargs):
+            captured.update(channels=channels, kwargs=kwargs)
+            assert set(channels["influence"]) == set(channels["temporal"])
+            assert "lexical" not in channels
+            assert resolver("post-2") == (0, {"influence": 1, "temporal": 2})
+            return [
+                SimpleNamespace(
+                    item_id="post-2",
+                    channel_contributions=(
+                        SimpleNamespace(
+                            channel_name="influence",
+                            rank=1,
+                            weight=1.0,
+                            contribution=1 / 61,
+                        ),
+                        SimpleNamespace(
+                            channel_name="temporal",
+                            rank=2,
+                            weight=1.0,
+                            contribution=1 / 62,
+                        ),
+                    ),
+                )
+            ]
+
+    monkeypatch.setattr(
+        "lineageweave.rankweave_client._import_rankweave", lambda: FakeRw
+    )
+    rows = [
+        {
+            "post_id": "post-2", "post_title": "Older influence",
+            "event_time": "2026-01-01T00:00:00Z", "influence_value": 4.0,
+            "uncertainty_method_code": "bootstrap", "uncertainty_lower_value": 3.0,
+            "uncertainty_upper_value": 5.0, "evidence_sha256": "a" * 64,
+            "provenance_assertion_id": "assertion-2",
+        },
+        {
+            "post_id": "post-1", "post_title": "Newer post",
+            "event_time": "2026-01-02T00:00:00Z", "influence_value": 2.0,
+            "uncertainty_method_code": "bootstrap", "uncertainty_lower_value": 1.0,
+            "uncertainty_upper_value": 3.0, "evidence_sha256": "b" * 64,
+            "provenance_assertion_id": "assertion-1",
+        },
+    ]
+
+    item = RankWeaveClient().fuse_selected_rows(rows).to_json()[0]
+
+    assert captured["kwargs"] == {"limit": 20, "rank_constant_eta": 60}
+    assert item["evidence"] == {
+        "influence_value": 4.0,
+        "uncertainty_method_code": "bootstrap",
+        "uncertainty_lower_value": 3.0,
+        "uncertainty_upper_value": 5.0,
+        "membership_evidence_sha256": "a" * 64,
+        "provenance_assertion_id": "assertion-2",
+    }
 
 
 def test_lexical_channel_ranks_quote_ahead_of_generic_title() -> None:

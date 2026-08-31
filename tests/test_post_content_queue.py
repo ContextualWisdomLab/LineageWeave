@@ -99,10 +99,19 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
         def transaction(self) -> Transaction:
             return Transaction()
 
+        async def fetchrow(self, _query: str) -> dict[str, int]:
+                return {
+                    "active_source_count": 1, "active_job_count": 0,
+                    "active_succeeded_job_count": 0, "context_source_count": 0,
+                    "context_job_count": 0, "context_succeeded_job_count": 0,
+                }
+
         async def fetch(self, query: str, *args: object) -> list[dict[str, str]]:
             assert "source_draft_code" in query
             assert "source_deleted_flag" in query
-            assert "job.status_code is distinct from $1" in query
+            assert "left join post_content_ingestion_job job on job.post_id = post.post_id" in query
+            assert "where job.post_id is null" in query
+            assert "where job.status_code = $1" in query
             assert "join operations_case_analysis analysis" in query
             assert "analysis.post_id = job.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
@@ -191,6 +200,13 @@ def test_backfill_skips_a_candidate_that_became_complete(
         def transaction(self) -> Transaction:
             return Transaction()
 
+        async def fetchrow(self, _query: str) -> dict[str, int]:
+                return {
+                    "active_source_count": 1, "active_job_count": 0,
+                    "active_succeeded_job_count": 0, "context_source_count": 0,
+                    "context_job_count": 0, "context_succeeded_job_count": 0,
+                }
+
         async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
             assert _args[-1] is False
             return [
@@ -254,6 +270,13 @@ def test_backfill_deduplicates_a_candidate_that_changes_tier(
     class Connection:
         def transaction(self) -> Transaction:
             return Transaction()
+
+        async def fetchrow(self, _query: str) -> dict[str, int]:
+                return {
+                    "active_source_count": 1, "active_job_count": 0,
+                    "active_succeeded_job_count": 0, "context_source_count": 0,
+                    "context_job_count": 0, "context_succeeded_job_count": 0,
+                }
 
         async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
             return [candidate]
@@ -319,6 +342,13 @@ def test_backfill_requeues_complete_content_missing_operations_analysis(
     class Connection:
         def transaction(self) -> Transaction:
             return Transaction()
+
+        async def fetchrow(self, _query: str) -> dict[str, int]:
+                return {
+                    "active_source_count": 1, "active_job_count": 0,
+                    "active_succeeded_job_count": 0, "context_source_count": 0,
+                    "context_job_count": 0, "context_succeeded_job_count": 0,
+                }
 
         async def fetch(self, _query: str, *_args: object) -> list[dict[str, str]]:
             return [

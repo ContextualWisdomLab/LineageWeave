@@ -31,7 +31,8 @@ async def test_operations_dashboard_sql_binds_against_postgres() -> None:
             "operations_case_missing_milestone",
             "topic_context_membership",
             "topic_activity_interval",
-            "topic_post_context_influence",
+                "topic_post_context_influence",
+                "dashboard_case_contributor_read_projection",
         )
         for table_name in required_tables:
             if await connection.fetchval(

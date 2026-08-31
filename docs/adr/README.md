@@ -1,5 +1,7 @@
 # Architecture Decision Records
 
+- [ADR 0278: Selected topic-context Rankings](0278-selected-topic-context-rankings.md)
+
 ADRs are the normative source for architecture decisions. Research notes,
 implementation matrices, schema references, runtime evidence, and Storybook
 inventories remain supporting documents unless an ADR explicitly promotes a
@@ -21,7 +23,7 @@ decision from them.
 | [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0184](0184-ontology-provenance-explorer.md), [0222](0222-project-nodes-in-ontology-neighborhood.md), [0256](0256-evidence-bearing-voice-combinations.md) |
 | [`POSTGRESQL_CONCURRENCY_REFERENCES.md`](../doctoring/POSTGRESQL_CONCURRENCY_REFERENCES.md) | [0204](0204-analysis-run-short-transaction-delivery.md), [0213](0213-global-ask-embedding-pool-release.md) |
 | [`GLOBAL_ASK_PUBLIC_VERIFICATION_REFERENCES.md`](../doctoring/GLOBAL_ASK_PUBLIC_VERIFICATION_REFERENCES.md) | [0215](0215-global-ask-public-claim-verification.md) |
-| Persisted public-claim admission | [0269](0269-persisted-public-claim-admission.md) |
+| Persisted public-claim admission | [0275](0275-persisted-public-claim-admission.md) |
 | [`GLOBAL_ASK_KNOWLEDGE_CUTOFF_REFERENCES.md`](../doctoring/GLOBAL_ASK_KNOWLEDGE_CUTOFF_REFERENCES.md) | [0216](0216-global-ask-knowledge-cutoff.md) |
 | [`GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md`](../doctoring/GLOBAL_ASK_QUERY_REWRITE_REFERENCES.md) | [0217](0217-evidence-constrained-semantic-query-rewrite.md) |
 | [`MCP_GLOBAL_ASK_REFERENCES.md`](../doctoring/MCP_GLOBAL_ASK_REFERENCES.md) | [0218](0218-current-contract-mcp-global-ask.md) |
@@ -29,14 +31,14 @@ decision from them.
 | [`READ_PERFORMANCE_REFERENCES.md`](../doctoring/READ_PERFORMANCE_REFERENCES.md) | [0272](0272-twenty-millisecond-read-slo.md) |
 | [`operability/mcp-concurrency-evidence.md`](../operability/mcp-concurrency-evidence.md) | [0218](0218-current-contract-mcp-global-ask.md) |
 | Evidence operations Dashboard (`/`) | [0206](0206-evidence-operations-dashboard.md) |
-| Project-journey temporal evidence | [0270](0270-digest-bound-project-journey-temporal-evidence.md) |
+| Project-journey temporal evidence | [0276](0276-digest-bound-project-journey-temporal-evidence.md) |
 | [`temporal-topic-context-influence-research.md`](../temporal-topic-context-influence-research.md) | [0210](0210-temporal-topic-context-influence-dashboard.md) |
 | [`python-mathematical-compute-boundary-audit.md`](../doctoring/python-mathematical-compute-boundary-audit.md) | [0208](0208-externalize-local-mathematical-compute.md) |
 | [`WORKER_FUNCTION_TAXONOMY_REFERENCES.md`](../doctoring/WORKER_FUNCTION_TAXONOMY_REFERENCES.md) | [0232](0232-worker-function-taxonomy-in-the-published-ontology.md) |
 | [`OCCUPATIONAL_CONSTRUCT_REFERENCES.md`](../doctoring/OCCUPATIONAL_CONSTRUCT_REFERENCES.md) | [0248](0248-occupational-construct-evidence-boundary.md), [0250](0250-official-occupational-construct-catalog-sync.md), [0253](0253-catalog-bound-occupational-construct-extraction.md), [0255](0255-occupational-construct-ontology-navigation.md), [0265](0265-occupational-construct-catalog-search.md) |
 | [`IOPSY_TAXONOMY_REFERENCES.md`](../doctoring/IOPSY_TAXONOMY_REFERENCES.md) | [0251](0251-fja-iopsy-cognitive-affective-behavioral-ontology.md) |
 
-| [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md), [0267](0267-complete-2018-soc-hierarchy.md) |
+| [`IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md`](../doctoring/IO_OCCUPATIONAL_TAXONOMY_REFERENCES.md) | [0245](0245-io-occupational-taxonomy-in-the-published-ontology.md), [0273](0273-complete-2018-soc-hierarchy.md) |
 
 | [`ANALYSIS_RUN_REGISTRY_REFERENCES.md`](../doctoring/ANALYSIS_RUN_REGISTRY_REFERENCES.md) | [0013](0013-normalized-analysis-run-registry.md)-[0022](0022-authorized-tepp-start.md) registry family, [0017](0017-authorized-analysis-run-create.md), [0020](0020-analysis-run-retention-purge.md), [0021](0021-authorized-analysis-run-start.md) |
 | [`DESIGN_TOKEN_REFERENCES.md`](../doctoring/DESIGN_TOKEN_REFERENCES.md) | [0099](0099-badge-and-accent-color-tokens.md), [0118](0118-uiux-standard-guide-v3-design-overhaul.md) |

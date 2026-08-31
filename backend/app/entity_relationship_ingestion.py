@@ -161,47 +161,13 @@ async def fetch_relationship_network(
                    counterparty.relationship_type_code,
                    lookup.lookup_label as relationship_label
               from post_counterparty_entity counterparty
-              join source_post post on post.post_id = counterparty.post_id
+              join dashboard_post_read_projection post
+                on post.source_post_id = counterparty.post_id
               join common_lookup_value lookup
                 on lookup.lookup_code = counterparty.relationship_type_code
              where (post.visibility_code = 'public'
                     or post.corporate_entity_id = any($1::uuid[]))
-               and nullif(btrim(post.source_draft_code), '') is null
-               and nullif(btrim(post.source_deleted_flag), '') is null
-               and not (
-                   (
-                       nullif(btrim(post.source_author_code), '') is null
-                       and nullif(btrim(post.source_author_name), '') is null
-                       and nullif(btrim(post.source_company_code), '') is null
-                       and nullif(btrim(post.source_company_name), '') is null
-                       and nullif(btrim(post.source_process_unit_code), '') is null
-                       and nullif(btrim(post.source_process_unit_name), '') is null
-                       and nullif(btrim(post.source_sales_pool_code), '') is null
-                       and nullif(btrim(post.source_sales_pool_name), '') is null
-                       and nullif(btrim(post.source_customer_code), '') is null
-                       and nullif(btrim(post.source_customer_name), '') is null
-                       and nullif(btrim(post.source_project_code), '') is null
-                       and nullif(btrim(post.source_project_name), '') is null
-                   )
-                   and exists (
-                       select 1
-                         from source_post real_post
-                        where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
-                            or nullif(btrim(real_post.source_author_name), '') is not null
-                            or nullif(btrim(real_post.source_company_code), '') is not null
-                            or nullif(btrim(real_post.source_company_name), '') is not null
-                            or nullif(btrim(real_post.source_process_unit_code), '') is not null
-                            or nullif(btrim(real_post.source_process_unit_name), '') is not null
-                            or nullif(btrim(real_post.source_sales_pool_code), '') is not null
-                            or nullif(btrim(real_post.source_sales_pool_name), '') is not null
-                            or nullif(btrim(real_post.source_customer_code), '') is not null
-                            or nullif(btrim(real_post.source_customer_name), '') is not null
-                            or nullif(btrim(real_post.source_project_code), '') is not null
-                            or nullif(btrim(real_post.source_project_name), '') is not null
-                        )
-                   )
-               )
+               and post.source_context_present
         ), grouped as (
             select counterparty_entity_name,
                    relationship_type_code,

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import date, datetime
 import json
 from typing import Any, Protocol
+from uuid import UUID
 
 from backend.app.post_eligibility import source_post_eligibility_sql
 from lineageweave.ontology import LW
@@ -61,6 +63,39 @@ EXTERNAL_RELATION_TARGETS = {
     ),
 }
 PROV_WAS_DERIVED_FROM = PROV_RELATIONS["wasDerivedFrom"].iri
+DASHBOARD_CASE_PAGE_SIZE = 20
+DASHBOARD_CASE_PAGE_SIZE_MAX = 50
+
+
+def _decode_case_cursor(raw: str | None) -> tuple[datetime, str, str] | None:
+    """Decode and validate the last key of a Dashboard case page."""
+    if not raw:
+        return None
+    try:
+        padding = "=" * (-len(raw) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(raw + padding))
+        occurred_at = datetime.fromisoformat(payload["occurred_at"])
+        post_id = str(UUID(payload["post_id"]))
+        case_kind_code = payload["case_kind_code"]
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError("Resume from the last Dashboard case returned.") from exc
+    if occurred_at.tzinfo is None or case_kind_code not in CASE_KIND_LABELS:
+        raise ValueError("Resume from the last Dashboard case returned.")
+    return occurred_at, post_id, case_kind_code
+
+
+def _encode_case_cursor(row: Any) -> str:
+    """Encode the stable sort key of one Dashboard case page."""
+    payload = json.dumps(
+        {
+            "occurred_at": row["occurred_at"].isoformat(),
+            "post_id": str(row["post_id"]),
+            "case_kind_code": row["case_kind_code"],
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
 
 
 def _operations_case_jsonld(
@@ -128,6 +163,63 @@ class _Connection(Protocol):
         pass  # pragma: no cover - structural Protocol member
 
 
+def _json_array(value: Any) -> list[dict[str, Any]]:
+    """Normalize an asyncpg JSON array without changing its values."""
+    decoded = json.loads(value) if isinstance(value, str) else value
+    return [dict(row) for row in (decoded or [])]
+
+
+class _DashboardBundleConnection:
+    """Expose one database JSON bundle to the existing pure projection path."""
+
+    def __init__(self, bundle: Any) -> None:
+        self.metrics = dict(
+            json.loads(bundle["metrics"])
+            if isinstance(bundle["metrics"], str)
+            else bundle["metrics"]
+        )
+        self.case_rollups = _json_array(bundle["case_rollups"])
+        self.cases = _json_array(bundle["cases"])
+        for row in self.cases:
+            if isinstance(row["occurred_at"], str):
+                row["occurred_at"] = datetime.fromisoformat(row["occurred_at"])
+        self.details = _json_array(bundle["details"])
+        self.topic_readiness = dict(
+            json.loads(bundle["topic_readiness"])
+            if isinstance(bundle["topic_readiness"], str)
+            else bundle["topic_readiness"]
+        )
+        self.topic_readiness = {
+            "tepp_posterior_persisted": self.topic_readiness.get("topic_tepp_ready"),
+            "fast_mlsirm_influence_persisted": self.topic_readiness.get("topic_fast_ready"),
+        }
+        self.topic_details = _json_array(bundle["topic_details"])
+        for row in self.topic_details:
+            for key in (
+                "occurred_at", "activity_valid_from", "activity_valid_to",
+                "knowledge_cutoff", "accepted_at",
+            ):
+                if isinstance(row.get(key), str):
+                    row[key] = datetime.fromisoformat(row[key])
+
+    async def fetchrow(self, query: str, *args: object) -> Any:
+        """Return the bundled scalar section selected by the projection."""
+        if "tepp_posterior_persisted" in query:
+            return self.topic_readiness
+        return self.metrics
+
+    async def fetch(self, query: str, *args: object) -> list[Any]:
+        """Return the bundled row section selected by the projection."""
+        if "dashboard_case_rollup" in query:
+            return self.case_rollups
+        if "select row_kind, payload" in query:
+            return self.details
+        if "from topic_post_context_influence influence" in query:
+            return self.topic_details
+        if "limit $9" in query:
+            return self.cases
+        return []
+
 def _visible_scope_sql(
     alias: str = "post", *, source_context_required: bool | None = None
 ) -> str:
@@ -154,6 +246,439 @@ def _visible_period_sql(
     """
 
 
+def _visible_projection_scope_sql(
+    alias: str, *, source_context_required: bool | None
+) -> str:
+    """Return ABAC and eligibility over the maintained narrow read projection."""
+    context = (
+        ""
+        if source_context_required is False
+        else f"and {alias}.source_context_present"
+        if source_context_required is True
+        else f"""and ({alias}.source_context_present or not exists (
+                    select 1 from dashboard_post_read_projection real_post
+                     where real_post.active_source
+                       and real_post.source_context_present
+                       and (real_post.visibility_code = 'public'
+                            or (real_post.corporate_entity_id = any($1::uuid[])
+                                and (cardinality($2::uuid[]) = 0
+                                     or real_post.process_unit_id = any($2::uuid[]))))
+                ))"""
+    )
+    return f"""
+        ({alias}.visibility_code = 'public'
+         or ({alias}.corporate_entity_id = any($1::uuid[])
+             and (cardinality($2::uuid[]) = 0
+                  or {alias}.process_unit_id = any($2::uuid[]))))
+        and {alias}.active_source {context}
+    """
+
+
+def _visible_projection_period_sql(
+    alias: str, *, source_context_required: bool | None
+) -> str:
+    """Return projected ABAC and the requested event-date interval."""
+    return f"""
+        {_visible_projection_scope_sql(alias, source_context_required=source_context_required)}
+        and ($3::date is null or {alias}.occurred_date >= $3)
+        and ($4::date is null or {alias}.occurred_date <= $4)
+    """
+
+
+def _dashboard_single_statement_sql(source_context_required: bool | None) -> str:
+    """Return the exact Dashboard read contract as one PostgreSQL statement."""
+    visible = _visible_projection_period_sql(
+        "post", source_context_required=source_context_required
+    )
+    evidence = _visible_projection_scope_sql(
+        "evidence_post", source_context_required=source_context_required
+    )
+    milestone_evidence = _visible_projection_scope_sql(
+        "milestone_evidence", source_context_required=source_context_required
+    )
+    contributor_evidence = _visible_projection_scope_sql(
+        "contributor_evidence", source_context_required=source_context_required
+    )
+    summary_context = (
+        "summary.source_context_present"
+        if source_context_required is True
+        else "true"
+        if source_context_required is False
+        else """(summary.source_context_present or not exists (
+                    select 1 from dashboard_post_read_projection real_post
+                     where real_post.active_source
+                       and real_post.source_context_present
+                       and (real_post.visibility_code = 'public'
+                            or (real_post.corporate_entity_id = any($1::uuid[])
+                                and (cardinality($2::uuid[]) = 0
+                                     or real_post.process_unit_id = any($2::uuid[]))))
+                ))"""
+    )
+    return f"""
+    /* dashboard_single_statement */
+    with visible_post as not materialized (
+        select post.*
+          from dashboard_post_read_projection post
+         where {visible}
+    ), external_post as materialized (
+        select classification.post_id,
+               bool_or(not visible_post.case_analysis_present
+                       and not visible_post.ingestion_failed) as pending_analysis,
+               bool_or(visible_post.ingestion_failed) as failed_analysis
+          from operations_case_classification classification
+          join visible_post on visible_post.source_post_id = classification.post_id
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = classification.evidence_post_id
+         where {evidence}
+           and classification.case_kind_code = 'external_information'
+         group by classification.post_id
+    ), summary_metric as (
+        select coalesce(sum(summary.total_post_count), 0) as total_post_count,
+               coalesce(sum(summary.pending_analysis_count), 0)
+                   as pending_analysis_count,
+               coalesce(sum(summary.failed_analysis_count), 0)
+                   as failed_analysis_count
+          from dashboard_post_daily_summary summary
+         where (summary.visibility_code = 'public'
+                or (summary.corporate_entity_id = any($1::uuid[])
+                    and (cardinality($2::uuid[]) = 0
+                         or summary.process_unit_id = any($2::uuid[]))))
+           and ($3::date is null or summary.occurred_date >= $3)
+           and ($4::date is null or summary.occurred_date <= $4)
+           and ({summary_context})
+    ), metric as (
+        select summary_metric.total_post_count,
+               (select count(*) from external_post) as external_post_count,
+               case when $5::boolean
+                    then (select count(*) from external_post where pending_analysis)
+                    else summary_metric.pending_analysis_count end
+                   as pending_analysis_count,
+               case when $5::boolean
+                    then (select count(*) from external_post where failed_analysis)
+                    else summary_metric.failed_analysis_count end
+                   as failed_analysis_count
+          from summary_metric
+    ), case_rollup as materialized (
+        select rollup.source_post_id as post_id, rollup.case_kind_code,
+               coalesce(milestone.event_count, 0) as event_count,
+               coalesce(milestone.claim_started, false) as claim_started,
+               coalesce(milestone.claim_ended, false) as claim_ended,
+               coalesce(milestone.rebid_started, false) as rebid_started,
+               coalesce(milestone.rebid_ended, false) as rebid_ended,
+               coalesce(milestone.handover_started, false) as handover_started,
+               coalesce(milestone.handover_ended, false) as handover_ended,
+               rollup.claim_start_missing, rollup.rebid_start_missing,
+               rollup.handover_start_missing
+          from dashboard_case_rollup_read_projection rollup
+          join visible_post post on post.source_post_id = rollup.source_post_id
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = rollup.classification_evidence_post_id
+          left join lateral (
+              select sum(value.event_count) as event_count,
+                     bool_or(value.claim_started) as claim_started,
+                     bool_or(value.claim_ended) as claim_ended,
+                     bool_or(value.rebid_started) as rebid_started,
+                     bool_or(value.rebid_ended) as rebid_ended,
+                     bool_or(value.handover_started) as handover_started,
+                     bool_or(value.handover_ended) as handover_ended
+                from dashboard_case_milestone_read_projection value
+                join dashboard_post_read_projection milestone_evidence
+                  on milestone_evidence.source_post_id = value.evidence_post_id
+               where value.source_post_id = rollup.source_post_id
+                 and value.case_kind_code = rollup.case_kind_code
+                 and {milestone_evidence}
+          ) milestone on true
+         where {evidence}
+           and not exists (
+               select 1
+                 from dashboard_case_contributor_read_projection contributor
+                 left join dashboard_post_read_projection contributor_evidence
+                   on contributor_evidence.source_post_id = contributor.evidence_post_id
+                where contributor.source_post_id = rollup.source_post_id
+                  and contributor.case_kind_code = rollup.case_kind_code
+                  and (contributor_evidence.source_post_id is null
+                       or not ({contributor_evidence}))
+           )
+           and ($5::boolean is false or rollup.case_kind_code = 'external_information')
+    ), case_ranked as materialized (
+        select rollup.source_post_id as post_id, rollup.case_kind_code,
+               rollup.summary_text, rollup.evidence_text,
+               rollup.classification_evidence_post_id as evidence_post_id,
+               rollup.occurred_at, rollup.project_name, rollup.project_names
+          from dashboard_case_rollup_read_projection rollup
+          join visible_post post on post.source_post_id = rollup.source_post_id
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = rollup.classification_evidence_post_id
+         where {evidence}
+           and not exists (
+               select 1
+                 from dashboard_case_contributor_read_projection contributor
+                 left join dashboard_post_read_projection contributor_evidence
+                   on contributor_evidence.source_post_id = contributor.evidence_post_id
+                where contributor.source_post_id = rollup.source_post_id
+                  and contributor.case_kind_code = rollup.case_kind_code
+                  and (contributor_evidence.source_post_id is null
+                       or not ({contributor_evidence}))
+           )
+           and ($5::boolean is false or rollup.case_kind_code = 'external_information')
+           and ($6::timestamptz is null
+                or (rollup.occurred_at,
+                    rollup.source_post_id, rollup.case_kind_code)
+                   < ($6, $7::uuid, $8::text))
+         order by rollup.occurred_at desc, rollup.source_post_id desc,
+                  rollup.case_kind_code desc
+         limit $9 + 1
+    ), case_summary as materialized (
+        select case_kind_code,
+               count(*) as post_count,
+               coalesce(sum(event_count), 0) as event_count,
+               count(*) filter (where claim_started and claim_ended
+                                      and not claim_start_missing) as claim_resolved,
+               count(*) filter (where claim_started and not claim_ended
+                                      and not claim_start_missing) as claim_open,
+               count(*) filter (where not claim_started or claim_start_missing)
+                   as claim_missing,
+               count(*) filter (where rebid_started and rebid_ended
+                                      and not rebid_start_missing) as rebid_resolved,
+               count(*) filter (where rebid_started and not rebid_ended
+                                      and not rebid_start_missing) as rebid_open,
+               count(*) filter (where not rebid_started or rebid_start_missing)
+                   as rebid_missing,
+               count(*) filter (where handover_started and handover_ended
+                                      and not handover_start_missing) as handover_resolved,
+               count(*) filter (where handover_started and not handover_ended
+                                      and not handover_start_missing) as handover_open,
+               count(*) filter (where not handover_started or handover_start_missing)
+                   as handover_missing
+          from case_rollup
+         group by case_kind_code
+    ), selected_case as materialized (
+        select post_id, case_kind_code
+          from case_ranked
+         order by occurred_at desc, post_id desc, case_kind_code desc
+         limit $9
+    ), detail as materialized (
+        select 'fact'::text as row_kind, fact.post_id, fact.case_kind_code,
+               fact.fact_ordinal::bigint as sort_ordinal,
+               jsonb_build_object(
+                   'post_id', fact.post_id, 'case_kind_code', fact.case_kind_code,
+                   'fact_type_code', fact.fact_type_code, 'value_text', fact.value_text,
+                   'evidence_text', fact.evidence_text,
+                   'evidence_post_id', fact.evidence_post_id,
+                   'fact_ordinal', fact.fact_ordinal,
+                   'relation_target_kind_code', fact.relation_target_kind_code
+               ) as payload
+          from selected_case selected
+          join operations_case_fact fact using (post_id, case_kind_code)
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = fact.evidence_post_id
+         where {evidence}
+        union all
+        select 'product', relation.post_id, relation.case_kind_code,
+               relation.fact_ordinal::bigint,
+               jsonb_build_object(
+                   'post_id', relation.post_id, 'case_kind_code', relation.case_kind_code,
+                   'fact_ordinal', relation.fact_ordinal,
+                   'relation_type_code', relation.relation_type_code,
+                   'extracted_product_name', mention.extracted_product_name,
+                   'canonical_product_name', catalog.canonical_product_name,
+                   'evidence_text', relation.evidence_text,
+                   'evidence_post_id', relation.evidence_post_id
+               )
+          from selected_case selected
+          join product_operations_fact_relation relation using (post_id, case_kind_code)
+          join post_product_mention mention
+            on mention.post_id = relation.post_id
+           and mention.mention_ordinal = relation.mention_ordinal
+          left join product_catalog catalog
+            on catalog.product_catalog_id = mention.product_catalog_id
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = relation.evidence_post_id
+         where {evidence}
+        union all
+        select 'missing_fact', missing.post_id, missing.case_kind_code, 0,
+               jsonb_build_object(
+                   'post_id', missing.post_id, 'case_kind_code', missing.case_kind_code,
+                   'fact_type_code', missing.fact_type_code
+               )
+          from selected_case selected
+          join operations_case_missing_fact missing using (post_id, case_kind_code)
+        union all
+        select 'missing_fact', fact.post_id, fact.case_kind_code,
+               fact.fact_ordinal::bigint,
+               jsonb_build_object(
+                   'post_id', fact.post_id, 'case_kind_code', fact.case_kind_code,
+                   'fact_type_code', fact.fact_type_code
+               )
+          from selected_case selected
+          join operations_case_fact fact using (post_id, case_kind_code)
+          left join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = fact.evidence_post_id
+         where (evidence_post.source_post_id is null or not ({evidence}))
+           and ($10::jsonb -> fact.case_kind_code) ? fact.fact_type_code
+        union all
+        select 'milestone', milestone.post_id, milestone.case_kind_code,
+               (extract(epoch from milestone.observed_at) * 1000000)::bigint,
+               jsonb_build_object(
+                   'post_id', milestone.post_id,
+                   'case_kind_code', milestone.case_kind_code,
+                   'milestone_type_code', milestone.milestone_type_code,
+                   'evidence_text', milestone.evidence_text,
+                   'evidence_post_id', milestone.evidence_post_id,
+                   'observed_at', milestone.observed_at,
+                   'time_axis_code', milestone.time_axis_code,
+                   'is_missing', false
+               )
+          from selected_case selected
+          join operations_case_milestone milestone using (post_id, case_kind_code)
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = milestone.evidence_post_id
+         where {evidence}
+        union all
+        select 'milestone', missing.post_id, missing.case_kind_code,
+               9223372036854775807,
+               jsonb_build_object(
+                   'post_id', missing.post_id,
+                   'case_kind_code', missing.case_kind_code,
+                   'milestone_type_code', missing.milestone_type_code,
+                   'evidence_text', null, 'evidence_post_id', null,
+                   'observed_at', null, 'time_axis_code', null,
+                   'is_missing', true
+               )
+          from selected_case selected
+          join operations_case_missing_milestone missing using (post_id, case_kind_code)
+    ), topic_candidate as materialized (
+        select model.topic_model_run_id, influence_run.topic_influence_run_id,
+               model.tepp_run_id, model.tepp_snapshot_id,
+               model.tepp_schema_version, model.tepp_model_contract_version,
+               model.tepp_artifact_sha256, model.posterior_draw_set_id,
+               model.posterior_draw_count, model.topic_count,
+               snapshot.snapshot_sha256 as source_snapshot_sha256,
+               analysis.knowledge_cutoff,
+               influence_run.fast_mlsirm_schema_version,
+               influence_run.fast_mlsirm_version,
+               influence_run.fast_mlsirm_code_revision,
+               influence_run.fast_mlsirm_artifact_sha256,
+               influence_run.compute_backend_code, influence_run.precision_code,
+               influence_run.membership_fingerprint_sha256
+          from topic_model_run model
+          join analysis_run analysis on analysis.analysis_run_id = model.analysis_run_id
+          join analysis_source_snapshot snapshot
+            on snapshot.analysis_source_snapshot_id = analysis.analysis_source_snapshot_id
+          join analysis_run_scope scope on scope.analysis_run_id = analysis.analysis_run_id
+          join topic_influence_run influence_run
+            on influence_run.topic_model_run_id = model.topic_model_run_id
+         where $5::boolean is false
+           and ((scope.scope_kind_code = 'analysis_scope_corporate_entity'
+                 and scope.corporate_entity_id = any($1::uuid[])
+                 and cardinality($2::uuid[]) = 0)
+                or (scope.scope_kind_code = 'analysis_scope_process_unit'
+                    and scope.process_unit_id = any($2::uuid[])))
+         order by influence_run.accepted_at desc, model.topic_model_run_id,
+                  influence_run.topic_influence_run_id
+         limit 1
+    ), topic_detail as materialized (
+        select influence.*, membership.dimension_code, membership.context_id,
+               context.context_label, membership.membership_weight,
+               membership.source_post_id,
+               evidence_binding.node_id as membership_evidence_post_id,
+               post.occurred_at,
+               activity.state_code, activity.valid_from as activity_valid_from,
+               activity.valid_to as activity_valid_to,
+               candidate.*,
+               evidence_post.source_post_id is not null
+               and not exists (
+                   select 1
+                     from topic_lineage_relation checked_relation
+                     left join provenance_assertion checked_assertion
+                       on checked_assertion.assertion_id = checked_relation.provenance_assertion_id
+                     left join provenance_resource_binding checked_binding
+                       on checked_binding.resource_id = checked_assertion.object_resource_id
+                      and checked_binding.node_type_code = 'node_post'
+                     left join visible_post checked_visible
+                       on checked_visible.source_post_id = checked_binding.node_id
+                    where checked_relation.topic_model_run_id = candidate.topic_model_run_id
+                      and checked_visible.source_post_id is null
+               ) as provenance_complete,
+               coalesce((
+                   select jsonb_agg(jsonb_build_object(
+                              'event_code', relation.event_code,
+                              'source_topic_index', relation.source_topic_index,
+                              'target_topic_index', relation.target_topic_index,
+                              'event_time', relation.event_time,
+                              'evidence_post_id', relation_binding.node_id
+                          ) order by relation.event_time, relation.relation_ordinal)
+                     from topic_lineage_relation relation
+                     join provenance_assertion relation_assertion
+                       on relation_assertion.assertion_id = relation.provenance_assertion_id
+                     join provenance_resource_binding relation_binding
+                       on relation_binding.resource_id = relation_assertion.object_resource_id
+                      and relation_binding.node_type_code = 'node_post'
+                     join visible_post relation_visible
+                       on relation_visible.source_post_id = relation_binding.node_id
+                    where relation.topic_model_run_id = candidate.topic_model_run_id
+                      and (relation.source_topic_index = influence.topic_index
+                           or relation.target_topic_index = influence.topic_index)
+               ), '[]'::jsonb) as lineage_events
+          from topic_candidate candidate
+          join topic_post_context_influence influence
+            on influence.topic_model_run_id = candidate.topic_model_run_id
+           and influence.topic_influence_run_id = candidate.topic_influence_run_id
+          join topic_context_membership membership
+            on membership.topic_model_run_id = influence.topic_model_run_id
+           and membership.topic_context_membership_id = influence.topic_context_membership_id
+          join topic_context_definition context
+            on context.topic_model_run_id = membership.topic_model_run_id
+           and context.dimension_code = membership.dimension_code
+           and context.context_id = membership.context_id
+          join visible_post post on post.source_post_id = membership.source_post_id
+          join topic_activity_interval activity
+            on activity.topic_model_run_id = influence.topic_model_run_id
+           and activity.topic_index = influence.topic_index
+           and post.occurred_at >= activity.valid_from
+           and post.occurred_at < activity.valid_to
+           and post.occurred_at >= membership.valid_from
+           and post.occurred_at < membership.valid_to
+          left join provenance_assertion membership_assertion
+            on membership_assertion.assertion_id = membership.provenance_assertion_id
+          left join provenance_resource_binding evidence_binding
+            on evidence_binding.resource_id = membership_assertion.object_resource_id
+           and evidence_binding.node_type_code = 'node_post'
+          left join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = evidence_binding.node_id
+           and {evidence}
+    )
+    select row_to_json(metric) as metrics,
+           coalesce((select json_agg(row_to_json(case_summary)
+                                     order by case_kind_code)
+                       from case_summary), '[]'::json) as case_rollups,
+           coalesce((select json_agg(row_to_json(case_ranked)
+                                     order by occurred_at desc, post_id desc,
+                                              case_kind_code desc)
+                       from case_ranked), '[]'::json) as cases,
+           coalesce((select json_agg(json_build_object(
+                                'row_kind', row_kind, 'payload', payload)
+                                     order by post_id, case_kind_code,
+                                              sort_ordinal, row_kind)
+                       from detail), '[]'::json) as details,
+           json_build_object(
+               'topic_tepp_ready', exists(
+                   select 1 from topic_context_membership membership
+                   join visible_post on visible_post.source_post_id = membership.source_post_id
+                     and visible_post.occurred_at >= membership.valid_from
+                     and visible_post.occurred_at < membership.valid_to
+               ),
+               'topic_fast_ready', exists(select 1 from topic_detail)
+           ) as topic_readiness,
+           coalesce((select json_agg(row_to_json(topic_detail)
+                                     order by topic_index, dimension_code,
+                                              context_label, influence_value desc,
+                                              occurred_at, source_post_id)
+                       from topic_detail), '[]'::json) as topic_details
+      from metric
+    """
+
+
 async def fetch_operations_dashboard(
     conn: _Connection,
     corporate_entity_ids: tuple[str, ...] | list[str],
@@ -162,57 +687,119 @@ async def fetch_operations_dashboard(
     period_end: date | None = None,
     external_only: bool = False,
     source_context_required: bool | None = None,
+    case_cursor: str | None = None,
+    case_limit: int = DASHBOARD_CASE_PAGE_SIZE,
 ) -> dict[str, Any]:
     """Return quantified cases and their persisted source evidence."""
     if period_start and period_end and period_start > period_end:
         raise ValueError("period_start must not be after period_end")
-    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end, external_only)
+    if case_limit < 1 or case_limit > DASHBOARD_CASE_PAGE_SIZE_MAX:
+        raise ValueError(
+            f"Request between 1 and {DASHBOARD_CASE_PAGE_SIZE_MAX} Dashboard cases."
+        )
+    cursor = _decode_case_cursor(case_cursor)
+    source_args = (
+        list(corporate_entity_ids), list(process_unit_ids),
+        period_start, period_end, external_only,
+    )
+    args = (
+        [UUID(value) for value in corporate_entity_ids],
+        [UUID(value) for value in process_unit_ids],
+        period_start, period_end, external_only,
+    )
+    cursor_args = cursor or (None, None, None)
+    bundle = await conn.fetchrow(
+        _dashboard_single_statement_sql(source_context_required),
+        *args,
+        *cursor_args,
+        case_limit,
+        json.dumps(
+            {
+                case_kind: sorted(fact_types)
+                for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+            }
+        ),
+    )
+    conn = _DashboardBundleConnection(bundle)
     visible = _visible_period_sql(source_context_required=source_context_required)
     visible_evidence = _visible_scope_sql(
         "evidence_post", source_context_required=source_context_required
     )
+    projected_visible = _visible_projection_period_sql(
+        "post", source_context_required=source_context_required
+    )
+    projected_evidence = _visible_projection_scope_sql(
+        "evidence_post", source_context_required=source_context_required
+    )
     metrics = await conn.fetchrow(
         f"""
-        with visible_post as (
-            select post.post_id
-              from source_post post
-             where {visible}
-        ), classified as (
-            select classification.post_id, classification.case_kind_code
+        with visible_post as materialized (
+            select post.source_post_id as post_id,
+                   post.case_analysis_present, post.ingestion_failed
+              from dashboard_post_read_projection post
+             where {projected_visible}
+        ), external_post as (
+            select distinct classification.post_id
               from operations_case_classification classification
               join visible_post on visible_post.post_id = classification.post_id
-              join source_post evidence_post
-                on evidence_post.post_id = classification.evidence_post_id
-             where {visible_evidence}
-        ), scoped_post as (
-            select visible_post.post_id
-              from visible_post
-             where $5::boolean is false
-                or exists (
-                    select 1
-                      from classified
-                     where classified.post_id = visible_post.post_id
-                       and classified.case_kind_code = 'external_information'
-                )
+              join dashboard_post_read_projection evidence_post
+                on evidence_post.source_post_id = classification.evidence_post_id
+             where {projected_evidence}
+               and classification.case_kind_code = 'external_information'
         )
-        select (select count(*) from visible_post) as total_post_count,
-               (select count(distinct post_id) from classified
-                 where case_kind_code = 'external_information') as external_post_count,
-               (select count(*) from scoped_post
-                 where not exists (
-                     select 1 from operations_case_analysis analysis
-                      where analysis.post_id = scoped_post.post_id
-                 ) and not exists (
-                     select 1 from post_content_ingestion_job job
-                      where job.post_id = scoped_post.post_id
-                        and job.status_code = 'post_content_ingestion_failed'
-                 )) as pending_analysis_count,
-               (select count(*) from scoped_post
-                  where exists (
-                      select 1 from post_content_ingestion_job job
-                       where job.post_id = scoped_post.post_id
-                         and job.status_code = 'post_content_ingestion_failed'
-                  )) as failed_analysis_count
+        select count(*) as total_post_count,
+               count(external_post.post_id) as external_post_count,
+               count(*) filter (
+                   where ($5::boolean is false or external_post.post_id is not null)
+                     and not visible_post.case_analysis_present
+                     and not visible_post.ingestion_failed
+               ) as pending_analysis_count,
+               count(*) filter (
+                   where ($5::boolean is false or external_post.post_id is not null)
+                     and visible_post.ingestion_failed
+               ) as failed_analysis_count
+          from visible_post
+          left join external_post using (post_id)
+        """,
+        *args,
+    )
+    case_rollup_rows = await conn.fetch(
+        f"""
+        /* dashboard_case_rollup */
+        select rollup.source_post_id as post_id, rollup.case_kind_code,
+               coalesce(milestone.event_count, 0) as event_count,
+               coalesce(milestone.claim_started, false) as claim_started,
+               coalesce(milestone.claim_ended, false) as claim_ended,
+               coalesce(milestone.rebid_started, false) as rebid_started,
+               coalesce(milestone.rebid_ended, false) as rebid_ended,
+               coalesce(milestone.handover_started, false) as handover_started,
+               coalesce(milestone.handover_ended, false) as handover_ended,
+               rollup.claim_start_missing, rollup.rebid_start_missing,
+               rollup.handover_start_missing
+          from dashboard_case_rollup_read_projection rollup
+          join dashboard_post_read_projection post
+            on post.source_post_id = rollup.source_post_id
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = rollup.classification_evidence_post_id
+          left join lateral (
+              select sum(value.event_count) as event_count,
+                     bool_or(value.claim_started) as claim_started,
+                     bool_or(value.claim_ended) as claim_ended,
+                     bool_or(value.rebid_started) as rebid_started,
+                     bool_or(value.rebid_ended) as rebid_ended,
+                     bool_or(value.handover_started) as handover_started,
+                     bool_or(value.handover_ended) as handover_ended
+                from dashboard_case_milestone_read_projection value
+                join dashboard_post_read_projection milestone_evidence
+                  on milestone_evidence.source_post_id = value.evidence_post_id
+               where value.source_post_id = rollup.source_post_id
+                 and value.case_kind_code = rollup.case_kind_code
+                 and {_visible_projection_scope_sql('milestone_evidence', source_context_required=source_context_required)}
+          ) milestone on true
+         where {projected_visible}
+           and {projected_evidence}
+           and ($5::boolean is false
+                or rollup.case_kind_code = 'external_information')
         """,
         *args,
     )
@@ -226,9 +813,11 @@ async def fetch_operations_dashboard(
                    as project_name,
                coalesce(project.project_names, array[]::text[]) as project_names
           from operations_case_classification classification
-          join source_post post on post.post_id = classification.post_id
-          join source_post evidence_post
-            on evidence_post.post_id = classification.evidence_post_id
+          join dashboard_post_read_projection post_scope
+            on post_scope.source_post_id = classification.post_id
+          join source_post post on post.post_id = post_scope.source_post_id
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = classification.evidence_post_id
           left join lateral (
               select array_agg(names.project_name order by names.project_name) as project_names,
                      (
@@ -249,70 +838,128 @@ async def fetch_operations_dashboard(
                 ) names
                where names.project_name is not null
           ) project on true
-             where {visible}
-               and {visible_evidence}
+             where {_visible_projection_period_sql('post_scope', source_context_required=source_context_required)}
+               and {projected_evidence}
                and ($5::boolean is false or classification.case_kind_code = 'external_information')
+               and ($6::timestamptz is null
+                    or (coalesce(post.event_occurred_at, post.created_at),
+                        classification.post_id, classification.case_kind_code)
+                       < ($6, $7::uuid, $8::text))
          order by coalesce(post.event_occurred_at, post.created_at) desc,
-                  classification.post_id, classification.case_kind_code
+                  classification.post_id desc, classification.case_kind_code desc
+         limit $9
         """,
         *args,
+        *cursor_args,
+        case_limit + 1,
     )
-    fact_rows = await conn.fetch(
+    has_more_cases = len(case_rows) > case_limit
+    if has_more_cases:
+        case_rows = case_rows[:case_limit]
+    next_case_cursor = _encode_case_cursor(case_rows[-1]) if has_more_cases else None
+    selected_post_ids = [str(row["post_id"]) for row in case_rows]
+    selected_case_kinds = [row["case_kind_code"] for row in case_rows]
+    selected_args = (args[0], args[1], selected_post_ids, selected_case_kinds)
+    detail_bundle_rows = await conn.fetch(
         f"""
-        select fact.post_id, fact.case_kind_code, fact.fact_type_code,
-               fact.value_text, fact.evidence_text, fact.evidence_post_id,
-               fact.fact_ordinal, fact.relation_target_kind_code
-          from operations_case_fact fact
-          join source_post post on post.post_id = fact.post_id
-          join source_post evidence_post on evidence_post.post_id = fact.evidence_post_id
-         where {visible}
-           and {visible_evidence}
-           and ($5::boolean is false or fact.case_kind_code = 'external_information')
-         order by fact.post_id, fact.case_kind_code, fact.fact_ordinal
-        """,
-        *args,
-    )
-    product_relation_rows = await conn.fetch(
-        f"""
-        select relation.post_id, relation.case_kind_code, relation.fact_ordinal,
-               relation.relation_type_code, mention.extracted_product_name,
-               catalog.canonical_product_name, relation.evidence_text,
-               relation.evidence_post_id
-          from product_operations_fact_relation relation
+        with selected_case as (
+            select * from unnest($3::uuid[], $4::text[])
+                as selected(post_id, case_kind_code)
+        ), detail as (
+        select 'fact'::text as row_kind,
+               jsonb_build_object(
+                   'post_id', fact.post_id, 'case_kind_code', fact.case_kind_code,
+                   'fact_type_code', fact.fact_type_code, 'value_text', fact.value_text,
+                   'evidence_text', fact.evidence_text,
+                   'evidence_post_id', fact.evidence_post_id,
+                   'fact_ordinal', fact.fact_ordinal,
+                   'relation_target_kind_code', fact.relation_target_kind_code
+               ) as payload,
+               fact.post_id as sort_post_id, fact.case_kind_code as sort_case_kind,
+               fact.fact_ordinal::bigint as sort_ordinal
+          from selected_case selected
+          join operations_case_fact fact using (post_id, case_kind_code)
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = fact.evidence_post_id
+         where {projected_evidence}
+        union all
+        select 'product',
+               jsonb_build_object(
+                   'post_id', relation.post_id, 'case_kind_code', relation.case_kind_code,
+                   'fact_ordinal', relation.fact_ordinal,
+                   'relation_type_code', relation.relation_type_code,
+                   'extracted_product_name', mention.extracted_product_name,
+                   'canonical_product_name', catalog.canonical_product_name,
+                   'evidence_text', relation.evidence_text,
+                   'evidence_post_id', relation.evidence_post_id
+               ), relation.post_id, relation.case_kind_code,
+               relation.fact_ordinal::bigint
+          from selected_case selected
+          join product_operations_fact_relation relation using (post_id, case_kind_code)
           join post_product_mention mention
             on mention.post_id = relation.post_id
            and mention.mention_ordinal = relation.mention_ordinal
           left join product_catalog catalog
             on catalog.product_catalog_id = mention.product_catalog_id
-          join source_post post on post.post_id = relation.post_id
-          join source_post evidence_post on evidence_post.post_id = relation.evidence_post_id
-         where {visible}
-           and {visible_evidence}
-           and ($5::boolean is false or relation.case_kind_code = 'external_information')
-         order by relation.post_id, relation.case_kind_code, relation.fact_ordinal,
-                  relation.mention_ordinal
-        """,
-        *args,
-    )
-    missing_rows = await conn.fetch(
-        f"""
-        select missing.post_id, missing.case_kind_code, missing.fact_type_code
-          from operations_case_missing_fact missing
-          join source_post post on post.post_id = missing.post_id
-         where {visible}
-           and ($5::boolean is false or missing.case_kind_code = 'external_information')
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = relation.evidence_post_id
+         where {projected_evidence}
         union all
-        select fact.post_id, fact.case_kind_code, fact.fact_type_code
-          from operations_case_fact fact
-          join source_post post on post.post_id = fact.post_id
-          join source_post evidence_post on evidence_post.post_id = fact.evidence_post_id
-         where {visible}
-           and not ({visible_evidence})
-           and ($6::jsonb -> fact.case_kind_code) ? fact.fact_type_code
-           and ($5::boolean is false or fact.case_kind_code = 'external_information')
-         order by post_id, case_kind_code, fact_type_code
+        select 'missing_fact',
+               jsonb_build_object(
+                   'post_id', missing.post_id, 'case_kind_code', missing.case_kind_code,
+                   'fact_type_code', missing.fact_type_code
+               ), missing.post_id, missing.case_kind_code, 0
+          from selected_case selected
+          join operations_case_missing_fact missing using (post_id, case_kind_code)
+        union all
+        select 'missing_fact',
+               jsonb_build_object(
+                   'post_id', fact.post_id, 'case_kind_code', fact.case_kind_code,
+                   'fact_type_code', fact.fact_type_code
+               ), fact.post_id, fact.case_kind_code, fact.fact_ordinal::bigint
+          from selected_case selected
+          join operations_case_fact fact using (post_id, case_kind_code)
+          left join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = fact.evidence_post_id
+         where (evidence_post.source_post_id is null or not ({projected_evidence}))
+           and ($5::jsonb -> fact.case_kind_code) ? fact.fact_type_code
+        union all
+        select 'milestone',
+               jsonb_build_object(
+                   'post_id', milestone.post_id,
+                   'case_kind_code', milestone.case_kind_code,
+                   'milestone_type_code', milestone.milestone_type_code,
+                   'evidence_text', milestone.evidence_text,
+                   'evidence_post_id', milestone.evidence_post_id,
+                   'observed_at', milestone.observed_at,
+                   'time_axis_code', milestone.time_axis_code,
+                   'is_missing', false
+               ), milestone.post_id, milestone.case_kind_code,
+               (extract(epoch from milestone.observed_at) * 1000000)::bigint
+          from selected_case selected
+          join operations_case_milestone milestone using (post_id, case_kind_code)
+          join dashboard_post_read_projection evidence_post
+            on evidence_post.source_post_id = milestone.evidence_post_id
+         where {projected_evidence}
+        union all
+        select 'milestone',
+               jsonb_build_object(
+                   'post_id', missing.post_id,
+                   'case_kind_code', missing.case_kind_code,
+                   'milestone_type_code', missing.milestone_type_code,
+                   'evidence_text', null, 'evidence_post_id', null,
+                   'observed_at', null, 'time_axis_code', null,
+                   'is_missing', true
+               ), missing.post_id, missing.case_kind_code, 9223372036854775807
+          from selected_case selected
+          join operations_case_missing_milestone missing using (post_id, case_kind_code)
+        )
+        select row_kind, payload
+          from detail
+         order by sort_post_id, sort_case_kind, sort_ordinal, row_kind
         """,
-        *args,
+        *selected_args,
         json.dumps(
             {
                 case_kind: sorted(fact_types)
@@ -320,30 +967,21 @@ async def fetch_operations_dashboard(
             }
         ),
     )
-    milestone_rows = await conn.fetch(
-        f"""
-        select milestone.post_id, milestone.case_kind_code,
-               milestone.milestone_type_code, milestone.evidence_text,
-               milestone.evidence_post_id, milestone.observed_at,
-               milestone.time_axis_code, false as is_missing
-          from operations_case_milestone milestone
-          join source_post post on post.post_id = milestone.post_id
-          join source_post evidence_post on evidence_post.post_id = milestone.evidence_post_id
-         where {visible}
-           and {visible_evidence}
-           and ($5::boolean is false or milestone.case_kind_code = 'external_information')
-        union all
-        select missing.post_id, missing.case_kind_code,
-               missing.milestone_type_code, null, null, null, null, true
-          from operations_case_missing_milestone missing
-          join source_post post on post.post_id = missing.post_id
-         where {visible}
-           and ($5::boolean is false or missing.case_kind_code = 'external_information')
-         order by post_id, case_kind_code, observed_at nulls last,
-                  milestone_type_code
-        """,
-        *args,
-    )
+    fact_rows: list[dict[str, Any]] = []
+    product_relation_rows: list[dict[str, Any]] = []
+    missing_rows: list[dict[str, Any]] = []
+    milestone_rows: list[dict[str, Any]] = []
+    detail_targets = {
+        "fact": fact_rows,
+        "product": product_relation_rows,
+        "missing_fact": missing_rows,
+        "milestone": milestone_rows,
+    }
+    for bundle_row in detail_bundle_rows:
+        payload = bundle_row["payload"]
+        detail_targets[bundle_row["row_kind"]].append(
+            json.loads(payload) if isinstance(payload, str) else dict(payload)
+        )
     topic_context = (
         {
             "status_code": "not_applicable",
@@ -354,7 +992,7 @@ async def fetch_operations_dashboard(
             "topics": [],
         }
         if external_only
-        else await _fetch_topic_context_dashboard(conn, visible, args[:4])
+        else await _fetch_topic_context_dashboard(conn, visible, source_args[:4])
     )
     product_relations: dict[tuple[str, str, int], list[dict[str, str]]] = {}
     for row in product_relation_rows:
@@ -414,6 +1052,7 @@ async def fetch_operations_dashboard(
         if row["is_missing"]:
             missing_milestones.setdefault(key, set()).add(row["milestone_type_code"])
             continue
+        observed_at = row["observed_at"]
         milestones.setdefault(key, []).append(
             {
                 "milestone_type_code": row["milestone_type_code"],
@@ -422,7 +1061,9 @@ async def fetch_operations_dashboard(
                 ],
                 "evidence_text": row["evidence_text"],
                 "evidence_post_id": str(row["evidence_post_id"]),
-                "observed_at": row["observed_at"].isoformat(),
+                "observed_at": (
+                    observed_at if isinstance(observed_at, str) else observed_at.isoformat()
+                ),
                 "time_axis_code": row["time_axis_code"],
                 "time_axis_label": (
                     "사건 발생일"
@@ -432,20 +1073,19 @@ async def fetch_operations_dashboard(
             }
         )
     total = int(metrics["total_post_count"])
-    external = int(metrics["external_post_count"])
-    case_post_ids: dict[str, set[str]] = {}
+    case_post_counts: dict[str, int] = {}
     case_event_counts: dict[str, int] = {}
-    counted_case_keys: set[tuple[str, str]] = set()
-    for row in case_rows:
+    for row in case_rollup_rows:
         kind = row["case_kind_code"]
-        post_id = str(row["post_id"])
-        case_post_ids.setdefault(kind, set()).add(post_id)
-        key = (post_id, kind)
-        if key not in counted_case_keys:
-            case_event_counts[kind] = case_event_counts.get(kind, 0) + len(
-                milestones.get(key, ())
-            )
-            counted_case_keys.add(key)
+        case_post_counts[kind] = case_post_counts.get(kind, 0) + int(
+            row.get("post_count", 1)
+        )
+        case_event_counts[kind] = case_event_counts.get(kind, 0) + int(
+            row["event_count"]
+        )
+    external = int(metrics["external_post_count"])
+    pending_analysis_count = int(metrics["pending_analysis_count"])
+    failed_analysis_count = int(metrics["failed_analysis_count"])
     projected_cases = []
     lifecycle_metrics = {
         lifecycle_code: {
@@ -457,16 +1097,35 @@ async def fetch_operations_dashboard(
         }
         for lifecycle_code, _kind, label, _start, _end in LIFECYCLE_DEFINITIONS
     }
+    for row in case_rollup_rows:
+        for lifecycle_code, required_kind, _label, start_code, end_code in LIFECYCLE_DEFINITIONS:
+            if row["case_kind_code"] != required_kind:
+                continue
+            prefix = lifecycle_code.removesuffix("_investigation").removesuffix("_response").removesuffix("_gap")
+            if f"{prefix}_resolved" in row:
+                lifecycle_metrics[lifecycle_code]["resolved_case_count"] += int(
+                    row[f"{prefix}_resolved"]
+                )
+                lifecycle_metrics[lifecycle_code]["open_case_count"] += int(
+                    row[f"{prefix}_open"]
+                )
+                lifecycle_metrics[lifecycle_code]["evidence_missing_case_count"] += int(
+                    row[f"{prefix}_missing"]
+                )
+                continue
+            started = bool(row[f"{prefix}_started"])
+            ended = bool(row[f"{prefix}_ended"])
+            start_missing = bool(row[f"{prefix}_start_missing"])
+            status_code = "resolved" if started and ended else "open" if started else "evidence_missing"
+            if start_missing:
+                status_code = "evidence_missing"
+            lifecycle_metrics[lifecycle_code][f"{status_code}_case_count"] += 1
     for row in case_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
         case_milestones = milestones.get(key, [])
         case_lifecycles = _project_lifecycles(
             row["case_kind_code"], case_milestones, missing_milestones.get(key, set())
         )
-        for lifecycle in case_lifecycles:
-            lifecycle_metrics[lifecycle["lifecycle_kind_code"]][
-                f"{lifecycle['status_code']}_case_count"
-            ] += 1
         projected_cases.append(
             {
                 "post_id": str(row["post_id"]),
@@ -499,21 +1158,37 @@ async def fetch_operations_dashboard(
         "total_event_count": sum(case_event_counts.values()),
         "external_post_count": external,
         "external_percent": external * 100 / total if total else 0.0,
-        "pending_analysis_count": int(metrics["pending_analysis_count"]),
-        "failed_analysis_count": int(metrics["failed_analysis_count"]),
+        "pending_analysis_count": pending_analysis_count,
+        "failed_analysis_count": failed_analysis_count,
         "case_metrics": [
             {
                 "case_kind_code": kind,
                 "case_kind_label": label,
                 "event_count": case_event_counts.get(kind, 0),
-                "post_count": len(case_post_ids.get(kind, set())),
+                "post_count": case_post_counts.get(kind, 0),
             }
             for kind, label in CASE_KIND_LABELS.items()
         ],
         "topic_context": topic_context,
         "lifecycle_metrics": list(lifecycle_metrics.values()),
         "cases": projected_cases,
+        "next_case_cursor": next_case_cursor,
     }
+
+
+async def warm_operations_dashboard_read_statements(conn: _Connection) -> None:
+    """Prepare the bounded Dashboard query shapes before serving requests."""
+    required_facts = json.dumps(
+        {
+            case_kind: sorted(fact_types)
+            for case_kind, fact_types in REQUIRED_FACT_TYPES.items()
+        }
+    )
+    for source_context_required in (None, True, False):
+        await conn.fetchrow(
+            _dashboard_single_statement_sql(source_context_required),
+            [], [], None, None, False, None, None, None, 20, required_facts,
+        )
 
 
 def _project_lifecycles(
