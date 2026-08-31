@@ -359,6 +359,20 @@ def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
     assert "create index if not exists" in sql
 
 
+def test_derived_voice_analysis_receipt_migration_is_replayable() -> None:
+    """A valid empty derived analysis has a replay-safe digest-bound receipt."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0271_derived_voice_classification_analysis.sql"
+    ).read_text(encoding="utf-8")
+    assert "create table if not exists post_voice_classification_analysis" in sql.lower()
+    assert "source_body_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "assertion_count integer not null check (assertion_count >= 0)" in sql
+    assert "orchestrator_model_receipt text not null" in sql
+    assert "create index if not exists" in sql
+
+
 def test_tepp_receipt_read_requires_the_replayed_schema() -> None:
     """A missing required table must fail before it poisons a claim transaction."""
     source = (
