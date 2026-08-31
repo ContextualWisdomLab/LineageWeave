@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
-import { fetchOperationsDashboard, fetchVoiceTaxonomySummary, type OperationsDashboardResponse, type VoiceTaxonomySummary as VoiceSummary } from "../api";
+import { useEffect, useState, type ReactNode } from "react";
+import { fetchOperationsDashboard, fetchProjectHistory, fetchVoiceTaxonomySummary, type OperationsDashboardCase, type OperationsDashboardResponse, type VoiceTaxonomySummary as VoiceSummary } from "../api";
 import { t, tf, useLocale } from "../i18n";
+import type { ProjectHistoryProjection } from "../projectHistory";
+import { ProjectHistoryTimeline } from "./ProjectHistoryTimeline";
+import { StatusNotice } from "./StatusNotice";
 import { VoiceTaxonomySummary } from "./VoiceTaxonomySummary";
 
 function formatElapsed(seconds: number): string {
@@ -107,6 +110,56 @@ type Props = {
   onOpenPost: (postId: string) => void;
 };
 
+type DashboardProjectSelection = {
+  project: OperationsDashboardCase["projects"][number];
+  focusPostId: string;
+  knowledgeCutoff: string;
+};
+
+function DashboardProjectHistory({
+  accessToken,
+  selection,
+  onOpenPost,
+}: {
+  accessToken: string;
+  selection: DashboardProjectSelection;
+  onOpenPost: (postId: string) => void;
+}) {
+  const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setProjection(null);
+    setFailed(false);
+    fetchProjectHistory(
+      accessToken,
+      selection.project.project_key,
+      selection.focusPostId,
+      selection.knowledgeCutoff,
+    )
+      .then((value) => active && setProjection(value))
+      .catch(() => active && setFailed(true));
+    return () => { active = false; };
+  }, [accessToken, retryCount, selection]);
+
+  if (projection) {
+    return <ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} />;
+  }
+  if (failed) {
+    return (
+      <StatusNotice
+        kind="retry"
+        message={t("Project history could not be loaded.")}
+        nextAction={t("Retry the same project and evidence cutoff.")}
+        onRetry={() => setRetryCount((count) => count + 1)}
+      />
+    );
+  }
+  return <p role="status">{t("Loading project history. Review the timeline when it appears.")}</p>;
+}
+
 /** Shows quantified operational cases and opens their cited source posts. */
 export function OperationsDashboard({ accessToken, externalOnly = false, onOpenPost }: Props) {
   useLocale();
@@ -121,11 +174,13 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
   const [voiceRetryCount, setVoiceRetryCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
+  const [projectSelection, setProjectSelection] = useState<DashboardProjectSelection | null>(null);
 
   useEffect(() => {
     let active = true;
     setError(false);
     setData(null);
+    setProjectSelection(null);
     fetchOperationsDashboard(accessToken, ...submittedPeriod, externalOnly)
       .then((value) => active && setData(value))
       .catch(() => active && setError(true));
@@ -163,6 +218,21 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
         data={data}
         externalOnly={externalOnly}
         onOpenPost={onOpenPost}
+        onOpenProjectHistory={(project, focusPostId) => {
+          setProjectSelection({
+            project,
+            focusPostId,
+            knowledgeCutoff: data.project_history_knowledge_cutoff ?? "",
+          });
+        }}
+        projectHistoryPanel={projectSelection ? (
+          <DashboardProjectHistory
+            key={`${projectSelection.project.project_key}:${projectSelection.focusPostId}:${projectSelection.knowledgeCutoff}`}
+            accessToken={accessToken}
+            selection={projectSelection}
+            onOpenPost={onOpenPost}
+          />
+        ) : null}
         loadingMore={loadingMore}
         loadMoreError={loadMoreError}
         onLoadMore={data.next_case_cursor ? () => {
@@ -197,7 +267,7 @@ export function OperationsDashboard({ accessToken, externalOnly = false, onOpenP
 }
 
 /** Renders a completed Dashboard response for runtime and Storybook scenes. */
-export function OperationsDashboardView({ data, externalOnly = false, onOpenPost, onLoadMore, loadingMore = false, loadMoreError = false }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void; onLoadMore?: () => void; loadingMore?: boolean; loadMoreError?: boolean }) {
+export function OperationsDashboardView({ data, externalOnly = false, onOpenPost, onOpenProjectHistory, projectHistoryPanel, onLoadMore, loadingMore = false, loadMoreError = false }: { data: OperationsDashboardResponse; externalOnly?: boolean; onOpenPost: (postId: string) => void; onOpenProjectHistory?: (project: OperationsDashboardCase["projects"][number], focusPostId: string) => void; projectHistoryPanel?: ReactNode; onLoadMore?: () => void; loadingMore?: boolean; loadMoreError?: boolean }) {
   useLocale();
   const cases = externalOnly ? data.cases.filter((item) => item.case_kind_code === "external_information") : data.cases;
   const observedProjectEvents = Object.entries(
@@ -250,6 +320,11 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       {!externalOnly ? (
         <TopicContextInfluence data={data} onOpenPost={onOpenPost} />
       ) : null}
+      {!externalOnly && projectHistoryPanel ? (
+        <section className="dashboard-project-history" aria-label={t("Project history")}>
+          {projectHistoryPanel}
+        </section>
+      ) : null}
       {!externalOnly && observedProjectEvents.length ? (
         <section className="dashboard-journeys" aria-labelledby="project-observed-events-heading">
           <h3 id="project-observed-events-heading">{t("Observed events by project")}</h3>
@@ -301,6 +376,26 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
               <section className="dashboard-missing-facts" aria-label={t("Items requiring additional evidence")}>
                 <h4>{t("Additional evidence needed")}</h4>
                 <ul>{item.missing_facts.map((fact) => <li key={fact.fact_type_code}>{tf("{label}: Find and connect the related evidence, then review the refreshed result.", { label: controlledLabel(fact.fact_type_code, fact.fact_type_label, factTypeLabels) })}</li>)}</ul>
+              </section>
+            ) : null}
+            {!externalOnly ? (
+              <section className="dashboard-project-history-actions" aria-label={t("Project history")}>
+                {item.projects.length ? item.projects.map((project) => (
+                  <button
+                    key={`${project.project_key}-${project.key_provenance}`}
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => onOpenProjectHistory?.(project, item.post_id)}
+                  >
+                    {tf("Open project history: {name}", { name: project.project_name })}
+                  </button>
+                )) : (
+                  <StatusNotice
+                    kind="unavailable"
+                    message={t("This case has no explicit project key.")}
+                    nextAction={t("Open the source evidence and connect an explicit project code or accepted semantic project key.")}
+                  />
+                )}
               </section>
             ) : null}
             <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.evidence_post_id)}>{t("Open classification evidence")}</button>

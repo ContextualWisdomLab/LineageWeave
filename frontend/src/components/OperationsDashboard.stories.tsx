@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
+import type { ProjectHistoryProjection } from "../projectHistory";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 import "../App.css";
 
@@ -7,10 +8,36 @@ const meta = { title: "Workspace/OperationsDashboard", component: OperationsDash
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const storyProjectHistory = {
+  contract_version: 1,
+  project_key: "SYNTHETIC-TR-100",
+  normalized_project_key: "synthetic-tr-100",
+  project_name: "Synthetic Transformer Renewal",
+  focus_event_id: "synthetic-post-1",
+  time_basis_code: "document_time",
+  event_count: 2,
+  distinct_observed_actor_count: 1,
+  truncated: false,
+  events: [
+    {
+      event_id: "synthetic-project-start", source_post_id: "synthetic-project-start", event_title: "Synthetic project initiated",
+      event_type_code: "source_recorded", event_type_basis_code: "controlled_source_code", occurred_at: "2026-08-01T00:00:00Z",
+      time_basis_code: "document_time", voc_type_code: null, source_stage_code: "planning", source_detail_state_code: null,
+      project_matches: [], observed_responsibilities: [], responsibility_transition_code: null, related_prior_paths: [],
+    },
+    {
+      event_id: "synthetic-post-1", source_post_id: "synthetic-post-1", event_title: "Synthetic claim evidence",
+      event_type_code: "voc_received", event_type_basis_code: "controlled_source_code", occurred_at: "2026-08-04T00:00:00Z",
+      time_basis_code: "document_time", voc_type_code: "voc", source_stage_code: "review", source_detail_state_code: null,
+      project_matches: [], observed_responsibilities: [{ actor_key: "team:synthetic", actor_name: "Synthetic Review Team", actor_type_code: "prov_organization", affiliated_organization_name: null, responsibility: "Observed review owner", truth_status_code: "observed", provenance: "post_summary_role" }], responsibility_transition_code: "assignment_gap", related_prior_paths: [],
+    },
+  ],
+} satisfies ProjectHistoryProjection;
+
 export const EvidenceReady: Story = {
   args: {
     data: {
-      period_label: "2026-08-01–2026-08-25 · Event time", total_post_count: 40, total_event_count: 17,
+      period_label: "2026-08-01–2026-08-25 · Event time", period_start: "2026-08-01", period_end: "2026-08-25", project_history_knowledge_cutoff: "2026-08-25T23:59:59.999999+09:00", total_post_count: 40, total_event_count: 17,
       external_post_count: 9, external_percent: 22.5, pending_analysis_count: 3,
       case_metrics: [
         { case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 규명", event_count: 7, post_count: 5 },
@@ -33,10 +60,10 @@ export const EvidenceReady: Story = {
       },
       failed_analysis_count: 0,
       cases: [
-        { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100 · SP-20", evidence_text: "order SO-100 from pool SP-20", evidence_post_id: "synthetic-post-1" }], missing_facts: [{ fact_type_code: "order", fact_type_label: "발생 수주" }, { fact_type_code: "specification_change", fact_type_label: "사양 변경" }, { fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }], milestones: [], lifecycles: [] },
-        { post_id: "synthetic-post-2", case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", project_name: "Synthetic Transformer Renewal", summary_text: "담당자 교체 전 협의와 후속 결정을 연결", evidence_text: "The account owner and design lead agreed to submit the revised proposal.", evidence_post_id: "synthetic-post-2", occurred_at: "2026-08-11T00:00:00Z", facts: [{ fact_type_code: "decision", fact_type_label: "이어진 결정", value_text: "수정 제안 제출", evidence_text: "submit the revised proposal", evidence_post_id: "synthetic-post-2" }], missing_facts: [{ fact_type_code: "discussion", fact_type_label: "협의 내용" }, { fact_type_code: "counterparty", fact_type_label: "협의 상대" }, { fact_type_code: "our_owner", fact_type_label: "우리측 담당자" }], milestones: [], lifecycles: [] },
-        { post_id: "synthetic-post-3", case_kind_code: "external_information", case_kind_label: "외부 정보", project_name: "Synthetic Transformer Renewal", summary_text: "시장 공고를 영업 기회와 연결", evidence_text: "The public procurement notice opened on August 15.", evidence_post_id: "synthetic-post-3", occurred_at: "2026-08-15T00:00:00Z", facts: [{ fact_type_code: "external_relation", fact_type_label: "업무 관계", value_text: "갱신 제안 준비", evidence_text: "procurement notice", evidence_post_id: "synthetic-post-3", relation_target_kind_code: "project", relation_target_kind_label: "프로젝트" }], missing_facts: [], milestones: [], lifecycles: [] },
-        { post_id: "synthetic-post-4", case_kind_code: "repeat_issue", case_kind_label: "반복 이슈 반영", project_name: "Synthetic Transformer Renewal", summary_text: "동일 유형 이슈를 설계 개선으로 환류", evidence_text: "The same enclosure issue recurred after Revision B.", evidence_post_id: "synthetic-post-4", occurred_at: "2026-08-18T00:00:00Z", facts: [{ fact_type_code: "improvement_action", fact_type_label: "개선 과제", value_text: "표준 사양 개정", evidence_text: "Update the standard enclosure specification.", evidence_post_id: "synthetic-post-4" }], missing_facts: [{ fact_type_code: "issue_pattern", fact_type_label: "반복 유형" }], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "SYNTHETIC-TR-100", project_name: "Synthetic Transformer Renewal", key_provenance: "source_post.source_project_code", evidence_post_id: "synthetic-post-1" }], summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100 · SP-20", evidence_text: "order SO-100 from pool SP-20", evidence_post_id: "synthetic-post-1" }], missing_facts: [{ fact_type_code: "order", fact_type_label: "발생 수주" }, { fact_type_code: "specification_change", fact_type_label: "사양 변경" }, { fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-2", case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "synthetic-transformer-renewal", project_name: "Synthetic Transformer Renewal", key_provenance: "post_project_mention.project_key", evidence_post_id: "synthetic-post-2" }], summary_text: "담당자 교체 전 협의와 후속 결정을 연결", evidence_text: "The account owner and design lead agreed to submit the revised proposal.", evidence_post_id: "synthetic-post-2", occurred_at: "2026-08-11T00:00:00Z", facts: [{ fact_type_code: "decision", fact_type_label: "이어진 결정", value_text: "수정 제안 제출", evidence_text: "submit the revised proposal", evidence_post_id: "synthetic-post-2" }], missing_facts: [{ fact_type_code: "discussion", fact_type_label: "협의 내용" }, { fact_type_code: "counterparty", fact_type_label: "협의 상대" }, { fact_type_code: "our_owner", fact_type_label: "우리측 담당자" }], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-3", case_kind_code: "external_information", case_kind_label: "외부 정보", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "SYNTHETIC-TR-100", project_name: "Synthetic Transformer Renewal", key_provenance: "source_post.source_project_code", evidence_post_id: "synthetic-post-3" }], summary_text: "시장 공고를 영업 기회와 연결", evidence_text: "The public procurement notice opened on August 15.", evidence_post_id: "synthetic-post-3", occurred_at: "2026-08-15T00:00:00Z", facts: [{ fact_type_code: "external_relation", fact_type_label: "업무 관계", value_text: "갱신 제안 준비", evidence_text: "procurement notice", evidence_post_id: "synthetic-post-3", relation_target_kind_code: "project", relation_target_kind_label: "프로젝트" }], missing_facts: [], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-4", case_kind_code: "repeat_issue", case_kind_label: "반복 이슈 반영", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [], summary_text: "동일 유형 이슈를 설계 개선으로 환류", evidence_text: "The same enclosure issue recurred after Revision B.", evidence_post_id: "synthetic-post-4", occurred_at: "2026-08-18T00:00:00Z", facts: [{ fact_type_code: "improvement_action", fact_type_label: "개선 과제", value_text: "표준 사양 개정", evidence_text: "Update the standard enclosure specification.", evidence_post_id: "synthetic-post-4" }], missing_facts: [{ fact_type_code: "issue_pattern", fact_type_label: "반복 유형" }], milestones: [], lifecycles: [] },
       ],
     },
     onOpenPost: () => undefined,
@@ -45,8 +72,41 @@ export const EvidenceReady: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("9 posts · 22.5%")).toBeInTheDocument();
     await expect(canvas.getByText("7 events · 5 posts")).toBeVisible();
-    await expect(canvas.getByText("3d 3h 30m 0s")).toBeVisible();
+    await expect(canvas.getAllByRole("button", { name: "Open project history: Synthetic Transformer Renewal" })[0]).toBeVisible();
+    await expect(canvas.getByRole("region", { name: /Unavailable/ })).toHaveTextContent("no explicit project key");
     await expect(canvas.getAllByRole("button", { name: "Open classification evidence" })[0]).toBeVisible();
+  },
+};
+
+export const ProjectHistoryReady: Story = {
+  args: EvidenceReady.args,
+  render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />,
+  beforeEach: () => {
+    const fetchBeforeStory = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("/api/dashboard")) {
+        return new Response(JSON.stringify(EvidenceReady.args!.data!), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/projects/SYNTHETIC-TR-100/history")) {
+        return new Response(JSON.stringify(storyProjectHistory), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/voice-taxonomy/summary")) {
+        return new Response(JSON.stringify({ total_eligible: 0, classified_unique: 0, multi_membership: 0, source_count: 0, derived_count: 0, unavailable: 0, disagreement: 0, counts_overlap: true, category_memberships: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      throw new Error("unexpected synthetic request");
+    };
+    return () => { globalThis.fetch = fetchBeforeStory; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const historyButtons = await canvas.findAllByRole("button", { name: "Open project history: Synthetic Transformer Renewal" });
+    await userEvent.click(historyButtons[0]);
+    const focusTab = await canvas.findByRole("tab", { name: /Synthetic claim evidence/ });
+    await expect(focusTab).toHaveAttribute("aria-selected", "true");
+    focusTab.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect(canvas.getByRole("tab", { name: /Synthetic project initiated/ })).toHaveFocus();
   },
 };
 

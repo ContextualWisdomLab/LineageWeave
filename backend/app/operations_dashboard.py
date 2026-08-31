@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import base64
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 import json
 from typing import Any, Protocol
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from backend.app.post_eligibility import source_post_eligibility_sql
 from lineageweave.ontology import LW
@@ -285,6 +286,55 @@ def _visible_projection_period_sql(
     """
 
 
+def _project_identity_lateral_sql(
+    post_alias: str, post_id_column: str = "source_post_id"
+) -> str:
+    """Return exact source/semantic project keys separately from display names."""
+    return f"""
+        left join lateral (
+            select array_agg(identity.project_key order by identity.project_name,
+                                                       identity.project_key) as project_keys,
+                   array_agg(identity.project_name order by identity.project_name,
+                                                        identity.project_key) as project_key_labels,
+                   array_agg(identity.key_provenance order by identity.project_name,
+                                                            identity.project_key)
+                       as project_key_provenances
+              from (
+                  select distinct on (
+                             lower(btrim(normalize(candidate.project_key, NFKC),
+                                         E' \t\n\r\f\v'))
+                         )
+                         candidate.project_key,
+                         candidate.project_name,
+                         candidate.key_provenance
+                    from (
+                        select nullif(btrim({post_alias}.source_project_code), '')
+                                   as project_key,
+                               coalesce(nullif(btrim({post_alias}.source_project_name), ''),
+                                        nullif(btrim({post_alias}.source_project_code), ''))
+                                   as project_name,
+                               'source_post.source_project_code'::text as key_provenance,
+                               0 as provenance_priority
+                        union all
+                        select nullif(btrim(key_mention.project_key), ''),
+                               coalesce(nullif(btrim(key_mention.project_name), ''),
+                                        nullif(btrim(key_mention.project_key), '')),
+                               'post_project_mention.project_key'::text,
+                               1
+                          from post_project_mention key_mention
+                         where key_mention.post_id = {post_alias}.{post_id_column}
+                    ) candidate
+                   where candidate.project_key is not null
+                   order by lower(btrim(normalize(candidate.project_key, NFKC),
+                                        E' \t\n\r\f\v')),
+                            candidate.provenance_priority,
+                            candidate.project_name,
+                            candidate.project_key
+              ) identity
+        ) project_identity on true
+    """
+
+
 def _dashboard_single_statement_sql(source_context_required: bool | None) -> str:
     """Return the exact Dashboard read contract as one PostgreSQL statement."""
     visible = _visible_projection_period_sql(
@@ -404,11 +454,17 @@ def _dashboard_single_statement_sql(source_context_required: bool | None) -> str
         select rollup.source_post_id as post_id, rollup.case_kind_code,
                rollup.summary_text, rollup.evidence_text,
                rollup.classification_evidence_post_id as evidence_post_id,
-               rollup.occurred_at, rollup.project_name, rollup.project_names
+               rollup.occurred_at, rollup.project_name, rollup.project_names,
+               coalesce(project_identity.project_keys, array[]::text[]) as project_keys,
+               coalesce(project_identity.project_key_labels, array[]::text[])
+                   as project_key_labels,
+               coalesce(project_identity.project_key_provenances, array[]::text[])
+                   as project_key_provenances
           from dashboard_case_rollup_read_projection rollup
           join visible_post post on post.source_post_id = rollup.source_post_id
           join dashboard_post_read_projection evidence_post
             on evidence_post.source_post_id = rollup.classification_evidence_post_id
+          {_project_identity_lateral_sql('post')}
          where {evidence}
            and not exists (
                select 1
@@ -815,7 +871,11 @@ async def fetch_operations_dashboard(
                coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name,
                         nullif(btrim(post.source_project_code), ''))
                    as project_name,
-               coalesce(project.project_names, array[]::text[]) as project_names
+               coalesce(project.project_names, array[]::text[]) as project_names,
+               coalesce(project_identity.project_keys, array[]::text[]) as project_keys,
+               coalesce(project_identity.project_key_labels, array[]::text[]) as project_key_labels,
+               coalesce(project_identity.project_key_provenances, array[]::text[])
+                   as project_key_provenances
           from operations_case_classification classification
           join dashboard_post_read_projection post_scope
             on post_scope.source_post_id = classification.post_id
@@ -843,6 +903,7 @@ async def fetch_operations_dashboard(
                 ) names
                where names.project_name is not null
           ) project on true
+          {_project_identity_lateral_sql('post', 'post_id')}
              where {_visible_projection_period_sql('post_scope', source_context_required=source_context_required)}
                and {projected_evidence}
                and ($5::boolean is false or classification.case_kind_code = 'external_information')
@@ -1144,6 +1205,20 @@ async def fetch_operations_dashboard(
                 "case_kind_label": CASE_KIND_LABELS[row["case_kind_code"]],
                 "project_name": row["project_name"],
                 "project_names": list(row["project_names"]),
+                "projects": [
+                    {
+                        "project_key": project_key,
+                        "project_name": project_name,
+                        "key_provenance": key_provenance,
+                        "evidence_post_id": str(row["post_id"]),
+                    }
+                    for project_key, project_name, key_provenance in zip(
+                        row["project_keys"],
+                        row["project_key_labels"],
+                        row["project_key_provenances"],
+                        strict=True,
+                    )
+                ],
                 "summary_text": row["summary_text"],
                 "evidence_text": row["evidence_text"],
                 "evidence_post_id": str(row["evidence_post_id"]),
@@ -1164,6 +1239,18 @@ async def fetch_operations_dashboard(
         "period_label": _period_label(period_start, period_end),
         "period_start": period_start.isoformat() if period_start else None,
         "period_end": period_end.isoformat() if period_end else None,
+        "project_history_knowledge_cutoff": (
+            (
+                datetime.combine(
+                    period_end + timedelta(days=1),
+                    time.min,
+                    tzinfo=ZoneInfo("Asia/Seoul"),
+                )
+                - timedelta(microseconds=1)
+            ).isoformat()
+            if period_end
+            else None
+        ),
         "period_time_axis_code": "event_occurred_at",
         "total_post_count": total,
         "total_event_count": sum(case_event_counts.values()),
