@@ -50,6 +50,38 @@ def test_heartbeat_records_before_first_sleep(
     assert int(heartbeat.read_text(encoding="ascii")) >= 0
 
 
+def test_reboot_discards_prior_monotonic_probe_baseline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A lower monotonic value after reboot starts a new worker epoch."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    heartbeat.write_text("9000000000", encoding="ascii")
+    state.write_text("9000000000", encoding="ascii")
+    monkeypatch.setattr(worker_health.time, "monotonic_ns", lambda: 1)
+
+    async def exercise() -> None:
+        task = asyncio.create_task(
+            worker_health.run_worker_heartbeat(heartbeat, state_path=state)
+        )
+        await asyncio.sleep(0)
+        assert heartbeat.read_text(encoding="ascii") == "1"
+        assert not state.exists()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+    accepted = subprocess.run(
+        ["/bin/sh", _SHELL_PROBE, heartbeat, state],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert accepted.returncode == 0
+    assert accepted.stderr == ""
+
+
 def test_shell_probe_requires_monotonic_progress(tmp_path: Path) -> None:
     """The lightweight container probe preserves the Python progress contract."""
     heartbeat = tmp_path / "heartbeat"

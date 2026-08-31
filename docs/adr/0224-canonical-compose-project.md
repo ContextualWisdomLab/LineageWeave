@@ -38,6 +38,11 @@ probe observes its event loop. The probe reads the worker's monotonic heartbeat
 with the image's POSIX shell rather than starting and importing a Python
 process on every interval. This preserves progress detection while preventing
 concurrent health probes from amplifying container-runtime and filesystem load.
+The worker removes both the heartbeat and the probe's prior baseline before it
+publishes the first heartbeat of a process. Those files may survive a process
+or VM restart in the container writable layer while the operating system's
+monotonic clock restarts from a smaller value; monotonic samples are therefore
+compared only within one worker-process epoch and never across boots.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments

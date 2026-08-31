@@ -18,8 +18,16 @@ def record_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
     temporary.replace(path)
 
 
-async def run_worker_heartbeat(path: Path = HEARTBEAT_PATH) -> None:
+async def run_worker_heartbeat(
+    path: Path = HEARTBEAT_PATH,
+    *,
+    state_path: Path = HEALTHCHECK_STATE_PATH,
+) -> None:
     """Record progress once per broker-poll interval until cancelled."""
+    # A restarted container can retain /tmp while the host monotonic clock has
+    # restarted from zero. Begin a fresh comparison epoch before publishing.
+    path.unlink(missing_ok=True)
+    state_path.unlink(missing_ok=True)
     while True:
         record_worker_heartbeat(path)
         await asyncio.sleep(1.0)
