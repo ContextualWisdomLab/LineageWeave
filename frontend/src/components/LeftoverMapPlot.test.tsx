@@ -166,8 +166,9 @@ describe("LeftoverMapPlot", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 σ 0.00 (0%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 σ 0.00 (0%)")).toBeInTheDocument();
-    expect(screen.getAllByLabelText("leftover-map axis 1 tick 0.00 σ 0.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("leftover-map axis 1 tick 0.00 σ 0.00 0%").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("leftover-map axis 1 tick 0.00")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick 0.00 σ 0.00")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick +1.00")).not.toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map distance d 0.00")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map reconstruction R̂ 0.00")).toBeInTheDocument();
@@ -195,9 +196,10 @@ describe("LeftoverMapPlot", () => {
     );
     expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map axis 2 tick −0.02 σ 0.86")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 2 tick −0.02 σ 0.86 18%")).toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
   });
 
   it("captions leftover-map graphic leftover-map axis ticks with leftover-map singular values independently of leftover-map axis share", () => {
@@ -214,6 +216,42 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map axis 2 tick −0.02")).toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50")).not.toBeInTheDocument();
     expect(screen.queryByText(/leftover-map axis 1 tick \+0\.50 \(82%\)/)).not.toBeInTheDocument();
+  });
+
+  it("captions leftover-map graphic leftover-map axis ticks with leftover-map axis share independently of leftover-map singular values", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: Number.NaN, leftover_share: 0.18 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50 82%")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 2 tick −0.02 18%")).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 82%")).not.toBeInTheDocument();
+  });
+
+  it("captions leftover-map graphic leftover-map axis ticks with leftover-map singular values and leftover-map axis share together", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: Number.NaN, leftover_share: 0.18 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 2 tick −0.02 18%")).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50 σ 1.84 82%")).not.toBeInTheDocument();
   });
 
   it("captions leftover-map graphic-display singular values when share is missing or non-finite", () => {

@@ -718,6 +718,16 @@ comparison graphic leftover-map axis tick leftover-map axis share `0%`. Do not i
 axis share from leftover-map singular values. Do not invent leftover-map singular values from leftover-map
 axis share. Leftover-map graphic leftover-map axis ticks, leftover-map comparison leftover-axis ticks,
 and leftover-axis ticks never name leftover-map axis share this increment.
+ADR 0332 captions leftover-map graphic leftover-map axis ticks with persisted leftover-map
+axis share when leftoverMapPlotTickAxisBadge returns a usable leftover-map axis tick leftover-map
+axis share caption. Distinct accessible names
+`leftover-map axis {axis} tick {value} {share}%` and
+`leftover-map axis {axis} tick {value} σ {singular} {share}%`.
+Share and singular value omit independently. Rank-0 unused axes still name leftover-map
+graphic leftover-map axis tick leftover-map axis share `0%`. Do not invent leftover-map
+axis share from leftover-map singular values. Do not invent leftover-map singular values from leftover-map
+axis share. Leftover-map comparison graphic leftover-map axis ticks, leftover-map comparison leftover-axis ticks,
+and leftover-axis ticks never name leftover-map axis share this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -846,6 +856,10 @@ singular values `σ_k` when leftoverMapAxisTickBadge returns a usable leftover-a
 Leftover-map comparison graphic leftover-map axis tick leftover-map axis share independently of leftover-map singular values
 (ADR 0331) captions leftover-map comparison graphic leftover-map axis ticks with persisted leftover-map
 axis share when leftoverMapComparePlotTickAxisBadge returns a usable leftover-map axis tick leftover-map
+axis share caption.
+Leftover-map graphic leftover-map axis tick leftover-map axis share independently of leftover-map singular values
+(ADR 0332) captions leftover-map graphic leftover-map axis ticks with persisted leftover-map
+axis share when leftoverMapPlotTickAxisBadge returns a usable leftover-map axis tick leftover-map
 axis share caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria

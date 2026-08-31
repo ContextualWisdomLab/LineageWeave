@@ -8,6 +8,36 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map graphic leftover-map
+  axis ticks with persisted leftover-map axis share through leftoverMapPlotTickAxisBadge
+  independently of leftover-map singular values (ADR 0332 / v2.89.0). After `make seed`,
+  leftover-map graphic leftover-map axis ticks name persisted leftover-map
+  axis share when leftoverMapPlotTickAxisBadge returns a usable leftover-map
+  axis tick leftover-map axis share caption even when leftover-map singular values are
+  omitted; click a leftover pair opens that post. A missing or non-finite leftover-map
+  axis share omits that leftover-map axis share tick caption and keeps
+  `leftover-map axis {k} tick {value}` or
+  `leftover-map axis {k} tick {value} σ {singular}`.
+  Rank-0 unused axes still name leftover-map axis share `0%`. Leftover-map
+  graphic leftover-map axis ticks stay
+  `leftover-map axis {k} tick {value} {share}%` when leftover-map
+  axis share is finite and `σ_k` omits, and
+  `leftover-map axis {k} tick {value} σ {singular} {share}%`
+  when both are finite so they stay distinct from leftover-map comparison graphic leftover-map axis ticks
+  `leftover map comparison graphic leftover-map axis {k} tick {value} σ {singular} {share}%`, from leftover-map graphic leftover-map
+  axis `leftover-map axis {k} σ {value} ({share}%)`, from leftover-axis
+  `leftover axis {k} {share}%`, from comparison leftover-axis
+  `leftover map comparison leftover axis {k} {share}%`, from comparison graphic leftover-map
+  axis `leftover map comparison graphic leftover-map axis {k} σ {value} ({share}%)`, from comparison
+  leftover-axis ticks `leftover map comparison leftover axis {k} tick {value} σ {singular}`,
+  from leftover-axis ticks `leftover axis {k} tick {value} σ {singular}`, and from leftover-map
+  graphic leftover-map axis ticks
+  `leftover-map axis {k} tick {value} σ {singular}`. Do not invent
+  leftover-map axis share from `σ_k`. Do not invent `σ_k` from leftover-map axis
+  share. This increment does not change leftover-map comparison graphic leftover-map axis ticks,
+  leftover-map comparison leftover-axis ticks, or leftover-axis ticks. A finite negative leftover
+  is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map comparison graphic leftover-map
   axis ticks with persisted leftover-map axis share through leftoverMapComparePlotTickAxisBadge
   independently of leftover-map singular values (ADR 0331 / v2.88.0). After `make seed`,

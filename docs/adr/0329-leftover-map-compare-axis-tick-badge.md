@@ -120,7 +120,9 @@ comparison leftover-map graphic
 tick leftover-map singular values independently of leftover-map axis share
 ([ADR 0330](0330-leftover-map-axis-tick-badge.md)). Independent of leftover-map
 comparison graphic leftover-map axis tick leftover-map axis share independently of leftover-map
-singular values ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md)).
+singular values ([ADR 0331](0331-leftover-map-compare-plot-tick-share-badge.md)). Independent of leftover-map
+graphic leftover-map axis tick leftover-map axis share independently of leftover-map
+singular values ([ADR 0332](0332-leftover-map-plot-tick-share-badge.md)).
 
 ## References
 

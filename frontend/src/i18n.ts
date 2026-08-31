@@ -663,6 +663,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} σ {value} ({share}%)": "잔여 지도 축 {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}": "잔여 지도 축 {axis} 눈금 {value}",
     "leftover-map axis {axis} tick {value} σ {singular}": "잔여 지도 축 {axis} 눈금 {value} σ {singular}",
+    "leftover-map axis {axis} tick {value} {share}%": "잔여 지도 축 {axis} 눈금 {value} {share}%",
+    "leftover-map axis {axis} tick {value} σ {singular} {share}%":
+      "잔여 지도 축 {axis} 눈금 {value} σ {singular} {share}%",
     "leftover-map distance {label}": "잔여 지도 거리 {label}",
     "leftover-map reconstruction {label}": "잔여 지도 재구성 {label}",
     "leftover-map explained leftover share {label}": "잔여 지도 설명 잔여 점유율 {label}",
@@ -1328,6 +1331,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} σ {value} ({share}%)": "残差图轴 {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}": "残差图轴 {axis} 刻度 {value}",
     "leftover-map axis {axis} tick {value} σ {singular}": "残差图轴 {axis} 刻度 {value} σ {singular}",
+    "leftover-map axis {axis} tick {value} {share}%": "残差图轴 {axis} 刻度 {value} {share}%",
+    "leftover-map axis {axis} tick {value} σ {singular} {share}%":
+      "残差图轴 {axis} 刻度 {value} σ {singular} {share}%",
     "leftover-map distance {label}": "残差图距离 {label}",
     "leftover-map reconstruction {label}": "残差图重建 {label}",
     "leftover-map explained leftover share {label}": "残差图已解释残差份额 {label}",
@@ -1997,6 +2003,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} σ {value} ({share}%)": "残差マップ軸 {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}": "残差マップ軸 {axis} 目盛 {value}",
     "leftover-map axis {axis} tick {value} σ {singular}": "残差マップ軸 {axis} 目盛 {value} σ {singular}",
+    "leftover-map axis {axis} tick {value} {share}%": "残差マップ軸 {axis} 目盛 {value} {share}%",
+    "leftover-map axis {axis} tick {value} σ {singular} {share}%":
+      "残差マップ軸 {axis} 目盛 {value} σ {singular} {share}%",
     "leftover-map distance {label}": "残差マップ距離 {label}",
     "leftover-map reconstruction {label}": "残差マップ再構成 {label}",
     "leftover-map explained leftover share {label}": "残差マップ説明済み残差割合 {label}",
@@ -2671,6 +2680,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",
     "leftover-map axis {axis} tick {value} σ {singular}":
       "vạch trục bản đồ phần dư {axis} {value} σ {singular}",
+    "leftover-map axis {axis} tick {value} {share}%": "vạch trục bản đồ phần dư {axis} {value} {share}%",
+    "leftover-map axis {axis} tick {value} σ {singular} {share}%":
+      "vạch trục bản đồ phần dư {axis} {value} σ {singular} {share}%",
     "leftover-map distance {label}": "khoảng cách bản đồ phần dư {label}",
     "leftover-map reconstruction {label}": "tái dựng bản đồ phần dư {label}",
     "leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",

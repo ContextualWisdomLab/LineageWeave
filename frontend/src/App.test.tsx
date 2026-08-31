@@ -4213,6 +4213,9 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover map comparison graphic")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map axis 2 tick −0.02 σ 0.86 18%")).toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map axis 1 tick +0.50 σ 1.84")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(
@@ -4744,6 +4747,11 @@ describe("App, authenticated", () => {
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         "leftover-map axis 1 tick +0.50",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover-map axis 1 tick +0.50 σ 1.84 82%",
       ),
     ).not.toBeInTheDocument();
     expect(

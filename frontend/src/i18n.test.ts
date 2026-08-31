@@ -73,6 +73,8 @@ describe("i18n", () => {
     "leftover-map axis {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}",
     "leftover-map axis {axis} tick {value} σ {singular}",
+    "leftover-map axis {axis} tick {value} {share}%",
+    "leftover-map axis {axis} tick {value} σ {singular} {share}%",
     "leftover-map distance {label}",
     "leftover-map reconstruction {label}",
     "leftover-map explained leftover share {label}",
@@ -1157,6 +1159,42 @@ describe("i18n", () => {
       }),
     ).toBe(expected);
   });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 눈금 +0.50 82%"],
+    ["zh", "残差图轴 1 刻度 +0.50 82%"],
+    ["ja", "残差マップ軸 1 目盛 +0.50 82%"],
+    ["vi", "vạch trục bản đồ phần dư 1 +0.50 82%"],
+  ] as const)("formats leftover-map graphic leftover-map axis tick leftover-map axis share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover-map axis {axis} tick {value} {share}%", {
+        axis: 1,
+        value: "+0.50",
+        share: "82",
+      }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 눈금 +0.50 σ 1.84 82%"],
+    ["zh", "残差图轴 1 刻度 +0.50 σ 1.84 82%"],
+    ["ja", "残差マップ軸 1 目盛 +0.50 σ 1.84 82%"],
+    ["vi", "vạch trục bản đồ phần dư 1 +0.50 σ 1.84 82%"],
+  ] as const)(
+    "formats leftover-map graphic leftover-map axis tick leftover-map singular values and leftover-map axis share in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover-map axis {axis} tick {value} σ {singular} {share}%", {
+          axis: 1,
+          value: "+0.50",
+          singular: "1.84",
+          share: "82",
+        }),
+      ).toBe(expected);
+    },
+  );
 
   it.each([
     ["ko", "잔여 지도 거리 d 0.12"],
