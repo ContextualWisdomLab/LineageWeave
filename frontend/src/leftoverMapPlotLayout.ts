@@ -143,6 +143,10 @@
  *  person coordinates ξ through leftoverMapCompareListPostBadge independently of leftover-map
  *  comparison leftover-pair leftover-map criterion leftover-map item coordinates ζ, not leftover-map
  *  pair-list leftover-map post leftover-map person coordinates.
+ *  ADR 0342 fail-closes leftover-map comparison leftover-pair leftover-map criterion leftover-map
+ *  item coordinates ζ through leftoverMapCompareListCriterionBadge independently of leftover-map
+ *  comparison leftover-pair leftover-map post leftover-map person coordinates ξ, not leftover-map
+ *  pair-list leftover-map criterion leftover-map item coordinates.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";

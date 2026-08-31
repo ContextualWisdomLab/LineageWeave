@@ -33,7 +33,7 @@ import {
   PLOT_PADDING,
   PLOT_WIDTH,
 } from "./leftoverMapPlotLayout";
-import { leftoverMapCompareListPostBadge } from "./leftoverMapCoordinates";
+import { leftoverMapCompareListCriterionBadge, leftoverMapCompareListPostBadge } from "./leftoverMapCoordinates";
 
 function pair(
   overrides: Partial<LeftoverMapPlottablePair> = {},
@@ -1298,6 +1298,9 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
     );
     expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION,
+    );
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
+      leftoverMapCompareListCriterionBadge("sales-lead", 0.5, -0.02)?.key ?? "",
     );
   });
 });

@@ -649,6 +649,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 쌍 잔여 지도 기준 {label} (ζ {item})",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "잔여 지도 비교 잔여 쌍 잔여 지도 글 {title} (ξ {person})",
+    "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
+      "잔여 지도 비교 잔여 쌍 잔여 지도 기준 {label} (ζ {item})",
     "Open this post to read the criterion it sat closest to after main effects.":
       "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
     "Open this post to read the criterion it sat farthest from after main effects.":
@@ -1336,6 +1338,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差配对残差图准则 {label}（ζ {item}）",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "残差图比较残差配对残差图帖子 {title}（ξ {person}）",
+    "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
+      "残差图比较残差配对残差图准则 {label}（ζ {item}）",
     "Open this post to read the criterion it sat closest to after main effects.":
       "打开这篇帖子，阅读主效应后距离最近的准则。",
     "Open this post to read the criterion it sat farthest from after main effects.":
@@ -2027,6 +2031,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差ペアの残差マップ基準 {label}（ζ {item}）",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "残差マップ比較の残差ペアの残差マップ投稿 {title}（ξ {person}）",
+    "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
+      "残差マップ比較の残差ペアの残差マップ基準 {label}（ζ {item}）",
     "Open this post to read the criterion it sat closest to after main effects.":
       "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
     "Open this post to read the criterion it sat farthest from after main effects.":
@@ -2722,6 +2728,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Cặp phần dư tiêu chí bản đồ phần dư {label} tại ζ {item}",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "Cặp phần dư so sánh bản đồ phần dư bài viết {title} tại ξ {person}",
+    "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
+      "Cặp phần dư so sánh bản đồ phần dư tiêu chí {label} tại ζ {item}",
     "Open this post to read the criterion it sat closest to after main effects.":
       "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
     "Open this post to read the criterion it sat farthest from after main effects.":
