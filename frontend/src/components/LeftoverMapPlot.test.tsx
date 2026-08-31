@@ -926,8 +926,10 @@ describe("LeftoverMapPlot", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Criterion ζ sales-lead")).toBeInTheDocument();
-    expect(screen.getByLabelText("Criterion ζ negative")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover map comparison graphic leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover map comparison graphic leftover-map criterion negative at ζ (−0.70, −0.40)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Criterion ζ negative")).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)"),
     ).not.toBeInTheDocument();
@@ -938,6 +940,47 @@ describe("LeftoverMapPlot", () => {
     expect(screen.queryByText("leftover-map axis 2 σ 0.86 (18%)")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 1 (82%)")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 2 (18%)")).not.toBeInTheDocument();
+  });
+
+  it("names leftover map comparison graphic leftover-map criterion rank-0 origin leftover-map item coordinates", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            pair_kind: "closest",
+            post_id: "post-demo-public",
+            post_title: "Public post",
+            criterion_code: "sales_lead_quality",
+            leftover_distance: 0,
+            leftover_residual: 0,
+            observed_response: 0,
+            expected_response: 0,
+            leftover_map_reconstruction: 0,
+            leftover_map_explained_share: 0,
+            leftover_map_unexplained_share: 0,
+            leftover_map_cross_share: 0,
+            leftover_map_unexplained: 0,
+            leftover_map_rank: 0,
+            leftover_map_person_axis_1: 0,
+            leftover_map_person_axis_2: 0,
+            leftover_map_item_axis_1: 0,
+            leftover_map_item_axis_2: 0,
+          },
+        ]}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+          { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(
+      screen.getByLabelText("leftover map comparison graphic leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).not.toBeInTheDocument();
   });
 
   it("keeps leftover map comparison axis text when share is missing or non-finite", () => {

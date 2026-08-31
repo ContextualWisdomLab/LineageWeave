@@ -30,7 +30,9 @@
 [ADR 0304](0304-leftover-map-compare-graphic.md)
 (leftover-map graphic display on the grouping comparison strip);
 [ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map graphic leftover-map criterion markers)
+(leftover-map item coordinates on leftover-map graphic leftover-map criterion markers);
+[ADR 0336](0336-leftover-map-compare-plot-criterion-coordinates.md)
+(leftover-map item coordinates on leftover-map comparison graphic leftover-map criterion markers)
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and
 [ADR 0267](0267-leftover-map-coordinates.md). Independent of leftover-map

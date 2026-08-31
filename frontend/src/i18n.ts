@@ -664,6 +664,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "글 ξ",
     "Criterion ζ": "기준 ζ",
     "leftover-map criterion {label} at ζ {item}": "잔여 지도 기준 {label} (ζ {item})",
+    "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
+      "잔여 지도 비교 그림 기준 {label} (ζ {item})",
     "leftover-map axis 1": "잔여 지도 축 1",
     "leftover-map axis 2": "잔여 지도 축 2",
     "leftover-map axis {axis} ({share}%)": "잔여 지도 축 {axis} ({share}%)",
@@ -1340,6 +1342,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "帖子 ξ",
     "Criterion ζ": "准则 ζ",
     "leftover-map criterion {label} at ζ {item}": "残差图准则 {label}（ζ {item}）",
+    "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
+      "残差地图比较图形准则 {label}（ζ {item}）",
     "leftover-map axis 1": "残差图轴 1",
     "leftover-map axis 2": "残差图轴 2",
     "leftover-map axis {axis} ({share}%)": "残差图轴 {axis} ({share}%)",
@@ -2020,6 +2024,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "投稿 ξ",
     "Criterion ζ": "基準 ζ",
     "leftover-map criterion {label} at ζ {item}": "残差マップの基準 {label}（ζ {item}）",
+    "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
+      "残差マップの比較図基準 {label}（ζ {item}）",
     "leftover-map axis 1": "残差マップ軸 1",
     "leftover-map axis 2": "残差マップ軸 2",
     "leftover-map axis {axis} ({share}%)": "残差マップ軸 {axis} ({share}%)",
@@ -2704,6 +2710,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Post ξ": "Bài viết ξ",
     "Criterion ζ": "Tiêu chí ζ",
     "leftover-map criterion {label} at ζ {item}": "tiêu chí bản đồ phần dư {label} tại ζ {item}",
+    "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
+      "tiêu chí đồ họa so sánh bản đồ phần dư {label} tại ζ {item}",
     "leftover-map axis 1": "trục bản đồ phần dư 1",
     "leftover-map axis 2": "trục bản đồ phần dư 2",
     "leftover-map axis {axis} ({share}%)": "trục bản đồ phần dư {axis} ({share}%)",

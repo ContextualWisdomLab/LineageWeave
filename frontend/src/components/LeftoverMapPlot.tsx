@@ -35,6 +35,7 @@ import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   leftoverMapPlotCriterionBadge,
+  leftoverMapComparePlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -125,7 +126,11 @@ function leftoverMapPlotCriterionText(
   variant: LeftoverMapPlotVariant,
 ): string {
   if (variant === "comparison") {
-    return `${t("Criterion ζ")} ${marker.label}`;
+    const badge = leftoverMapComparePlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
+    if (badge === null) {
+      return `${t("Criterion ζ")} ${marker.label}`;
+    }
+    return tf(badge.key, badge.values);
   }
   const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
   if (badge === null) {
@@ -141,8 +146,10 @@ function leftoverMapPlotCriterionText(
  * post marker to open that post. Caption leftover-map graphic leftover-map
  * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
  * when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion
- * leftover-map item coordinate caption. Leftover-map comparison graphic leftover-map
- * criterion markers stay ``Criterion ζ {label}`` this increment. Caption leftover-map axes with persisted
+ * leftover-map item coordinate caption. Caption leftover-map comparison graphic leftover-map
+ * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
+ * when leftoverMapComparePlotCriterionBadge returns a usable leftover-map comparison
+ * graphic leftover-map criterion leftover-map item coordinate caption. Caption leftover-map axes with persisted
  * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
  * including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
