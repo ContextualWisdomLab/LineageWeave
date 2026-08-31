@@ -98,7 +98,7 @@ describe("AskAgentPanel public verification", () => {
     );
     const timestampedPost = screen.getByText("Internal Apollo post").closest("li");
     expect(timestampedPost).not.toBeNull();
-    expect(screen.getByText(/Fully cutoff-grounded/)).toBeInTheDocument();
+    expect(screen.getByText(/All cited evidence was available by this time/)).toBeInTheDocument();
     expect(within(timestampedPost!).getByText(/Retained revision/)).toHaveTextContent(
       "Live source changed later",
     );

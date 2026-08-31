@@ -31,8 +31,8 @@ describe("AskEvidenceLayerPopup", () => {
     expect(screen.getByText(/project: Checkout revamp/)).toBeInTheDocument();
     expect(screen.getByText("Screenshot of the checkout error")).toBeInTheDocument();
     expect(screen.getByText(/Error code 500 on checkout/)).toBeInTheDocument();
-    expect(screen.getByText(/Semantic project:/).closest("li")).toHaveTextContent(
-      "Semantic project: project: Checkout revamp | evidence: Body evidence",
+    expect(screen.getByText(/Related project:/).closest("li")).toHaveTextContent(
+      "Related project: project: Checkout revamp | evidence: Body evidence",
     );
     expect(screen.getByText("Screenshot of the checkout error").closest("li")).toHaveTextContent(
       "Screenshot of the checkout error · Error code 500 on checkout · Image tags: screenshot, error",

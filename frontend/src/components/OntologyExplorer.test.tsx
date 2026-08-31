@@ -270,8 +270,9 @@ describe("OntologyExplorer", () => {
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
     expect(onOpenEvidence).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
-    expect(screen.getByText(/Property IRI/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
+    expect(screen.getByText("Provenance: Recorded evidence")).toBeInTheDocument();
+    expect(screen.queryByText(/Property IRI|knowledge_graph_edge|example\.test/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
@@ -395,7 +396,7 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getByText(
-        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        "Too many related records match. Narrow the relationship filter or open a source post.",
       ),
     ).toBeInTheDocument();
     rerender(
@@ -460,7 +461,7 @@ describe("OntologyExplorer", () => {
     );
     expect(
       screen.getByText(
-        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        "Too many related records match. Narrow the relationship filter or open a source post.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();

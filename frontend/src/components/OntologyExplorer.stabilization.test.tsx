@@ -187,7 +187,7 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       screen.getByText(
-        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        "Too many related records match. Narrow the relationship filter or open a source post.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -207,7 +207,7 @@ describe("OntologyExplorer stabilization contracts", () => {
     await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
     expect(
       screen.getByText(
-        "No direct evidence post is attached. Review the provenance reference above.",
+        "No source post is attached to this relationship. Review the connected records instead.",
       ),
     ).toBeInTheDocument();
     expect(

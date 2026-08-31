@@ -146,3 +146,7 @@ def test_bootstrap_delegates_embedding_discovery_upstream(monkeypatch) -> None:
     assert agents["agents"][0]["credential_key"] == "LLM_GATEWAY_API_KEY"
     assert agents["agents"][0]["tags"] == ["bootstrap_seed"]
     assert "--auto-discover-model-agents" in argv
+    assert "--production" in argv
+    assert "--auth-token" not in argv
+    assert argv[argv.index("--inference-token") + 1] == "orchestrator-token"
+    assert argv[argv.index("--admin-token") + 1] != "orchestrator-token"

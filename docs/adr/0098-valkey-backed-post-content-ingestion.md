@@ -154,6 +154,19 @@ page, observes aggregate worker, PostgreSQL, Valkey, and orchestrator health
 until that page settles, and only then chooses whether to admit another page.
 Each failed page uses the existing explicit retry transition and commits before
 its wake-ups.
+
+The post-content consumer remains serial within the sole leased worker. Low
+local CPU or memory use during provider waits is not a concurrency capacity
+measurement: the database pool is shared with the lease and other durable
+consumers, and the configured gateway has no measured post-content concurrency
+envelope. Operators therefore MUST NOT infer a parallelism constant from idle
+hardware or queue depth. In-process concurrency requires a measured provider
+and database capacity envelope plus deterministic tests that preserve
+attempt-count fencing, per-post session lineage, stream-cursor advancement, and
+trim-after-settlement semantics. Until that evidence exists, bounded pages may
+take one provider deadline per attempted record and this is an explicit
+throughput limitation, not permission to admit another page.
+
 The producer applies `SOURCE_POST_ELIGIBILITY_SQL`, locks source rows with
 `SKIP LOCKED`, selects only new or incomplete-succeeded jobs, rechecks the
 shared completeness predicate, and records the existing job state in

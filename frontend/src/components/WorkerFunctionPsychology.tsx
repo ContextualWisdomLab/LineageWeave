@@ -51,7 +51,7 @@ export function WorkerFunctionPsychology({
       <h3 id="worker-psychology-heading">{workerFunctionPsychologyText("Work psychology")}</h3>
       {loading ? (
         <p role="status" className="popup-placeholder">
-          {workerFunctionPsychologyText("Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.")}
+          {workerFunctionPsychologyText("Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.")}
         </p>
       ) : null}
       {!loading && profile ? (

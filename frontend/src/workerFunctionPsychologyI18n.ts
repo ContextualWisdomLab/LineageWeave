@@ -5,8 +5,8 @@ const WORKER_FUNCTION_PSYCHOLOGY_COPY = {
     "Work psychology": "Work psychology",
     "Open the DOT/FJA worker-function glossary entry in DOT Appendix B.":
       "Open the DOT/FJA worker-function glossary entry in DOT Appendix B.",
-    "Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.":
-      "Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.",
+    "Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.":
+      "Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.",
     "Catalog dimensions": "Catalog dimensions",
     "Reference": "Reference",
     "Select a worker function to review its I/O psychology demand profile.":
@@ -16,8 +16,8 @@ const WORKER_FUNCTION_PSYCHOLOGY_COPY = {
     "Work psychology": "직무 심리",
     "Open the DOT/FJA worker-function glossary entry in DOT Appendix B.":
       "DOT 부록 B의 DOT/FJA 직무 기능 용어집 항목을 엽니다.",
-    "Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.":
-      "직무 심리 카탈로그를 사용할 수 없습니다. 인증 관리자가 온톨로지 카탈로그 투영을 활성화하도록 요청하세요.",
+    "Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.":
+      "직무 심리 상세 정보가 아직 준비되지 않았습니다. 직무 기능을 선택하거나 카탈로그를 불러온 뒤 다시 시도하세요.",
     "Catalog dimensions": "카탈로그 차원",
     "Reference": "참고 문헌",
     "Select a worker function to review its I/O psychology demand profile.":
@@ -27,8 +27,8 @@ const WORKER_FUNCTION_PSYCHOLOGY_COPY = {
     "Work psychology": "工作心理",
     "Open the DOT/FJA worker-function glossary entry in DOT Appendix B.":
       "打开 DOT 附录 B 的 DOT/FJA 工作职能词条。",
-    "Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.":
-      "工作心理目录暂不可用。请联系管理员启用本体目录投影。",
+    "Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.":
+      "工作心理详情尚未就绪。请选择一项工作职能，或在目录加载完成后重试。",
     "Catalog dimensions": "目录维度",
     "Reference": "参考",
     "Select a worker function to review its I/O psychology demand profile.":
@@ -38,8 +38,8 @@ const WORKER_FUNCTION_PSYCHOLOGY_COPY = {
     "Work psychology": "仕事の心理",
     "Open the DOT/FJA worker-function glossary entry in DOT Appendix B.":
       "DOT 付録 B の DOT/FJA 作業機能用語の項目を開きます。",
-    "Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.":
-      "仕事の心理カタログは利用できません。管理者にオントロジーカタログ投影を有効にするよう依頼してください。",
+    "Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.":
+      "仕事の心理に関する詳細はまだ準備できていません。作業機能を選択するか、カタログの読み込み後に再試行してください。",
     "Catalog dimensions": "カタログの次元",
     "Reference": "引用文献",
     "Select a worker function to review its I/O psychology demand profile.":
@@ -49,8 +49,8 @@ const WORKER_FUNCTION_PSYCHOLOGY_COPY = {
     "Work psychology": "Tâm lý công việc",
     "Open the DOT/FJA worker-function glossary entry in DOT Appendix B.":
       "Mở mục thuật ngữ chức năng công việc DOT/FJA trong Phụ lục B của DOT.",
-    "Work psychology catalog is unavailable. Ask an administrator to enable the ontology catalog projection.":
-      "Danh mục tâm lý công việc hiện không khả dụng. Hãy yêu cầu quản trị viên bật phép chiếu danh mục ontology.",
+    "Work psychology details are not ready. Select a worker function or try again after the catalog finishes loading.":
+      "Chi tiết tâm lý công việc chưa sẵn sàng. Hãy chọn một chức năng công việc hoặc thử lại sau khi danh mục tải xong.",
     "Catalog dimensions": "Các khía cạnh danh mục",
     "Reference": "Tham khảo",
     "Select a worker function to review its I/O psychology demand profile.":

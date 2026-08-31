@@ -165,6 +165,5 @@ def test_orchestrator_build_verifier_executes_the_native_token_packer() -> None:
     verifier = (
         _ROOT / "docker/contextual-orchestrator/verify_startup_contract.py"
     ).read_text(encoding="utf-8")
-    assert "from contextual_orchestrator.token_counting import RustCl100kPacker" in verifier
-    assert "token_packer = RustCl100kPacker()" in verifier
-    assert 'token_packer.count_text("hello") == 1' in verifier
+    assert "from contextual_orchestrator import _token_packer" in verifier
+    assert '_token_packer.count_cl100k("hello") == 1' in verifier

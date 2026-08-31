@@ -2145,7 +2145,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
-    expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Related project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
@@ -2187,9 +2187,10 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    expect(await screen.findByRole("complementary", { name: "Report · alert · MCP" })).toHaveTextContent(
+    expect(await screen.findByRole("complementary", { name: "Reports and evidence alerts" })).toHaveTextContent(
       "1 evidence documents are linked to this report.",
     );
+    expect(screen.queryByText(/MCP|lineageweave:\/\//i)).not.toBeInTheDocument();
     expect(screen.queryByText(/근거 문서/)).not.toBeInTheDocument();
   });
 
@@ -2437,7 +2438,7 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Search related posts for: Semantic project" }),
     );
 
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    const searchInput = await screen.findByRole("searchbox", { name: "Search related evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });
@@ -2466,7 +2467,8 @@ describe("App, authenticated", () => {
 
     const board = await screen.findByRole("region", { name: "Board" });
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
-    expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
+    expect(within(board).getByLabelText("Search related evidence")).toHaveAttribute("type", "search");
+    expect(within(board).getByLabelText("Search related evidence")).not.toHaveAttribute("placeholder");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
     expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
@@ -2476,7 +2478,7 @@ describe("App, authenticated", () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true),
     );
 
-    await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
+    await userEvent.type(within(board).getByLabelText("Search related evidence"), "not found");
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
@@ -2530,6 +2532,22 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Please confirm.")).toBeInTheDocument();
     expect(screen.queryByText(/Extract Keyman or ask a question/)).not.toBeInTheDocument();
     expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
+  });
+
+  it("shows a shared next-action notice when source text is missing", async () => {
+    stubBackend({ postBody: "" });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const message = await screen.findByText(
+      "The original text of this post was not imported, so its summary and related details are unavailable.",
+    );
+    const notice = message.closest("section");
+    expect(notice).toHaveClass("status-notice", "status-notice-kind-unavailable");
+    expect(notice).toHaveTextContent(
+      "Open the post directly or ask the source owner to re-import it with its body.",
+    );
+    expect(notice).not.toHaveTextContent(/semantic|ontology|provider|model|orchestrator/i);
   });
 
   it("fetches and renders the post list, then opens a detail popup on click", async () => {
@@ -2678,7 +2696,7 @@ describe("App, authenticated", () => {
     expect(provenance).not.toHaveAttribute("open");
     await userEvent.click(screen.getByText("Why this item is listed"));
     expect(screen.getByText(/Category:/)).toBeInTheDocument();
-    expect(screen.getByText(/How this item was found: Semantic extraction/)).toBeInTheDocument();
+    expect(screen.getByText(/How this item was found: Derived from post evidence/)).toBeInTheDocument();
     expect(screen.getByText(/Recorded evidence: Project evidence from this post/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/LineageWeave/ontology#Project")).not.toBeInTheDocument();
@@ -2729,13 +2747,13 @@ describe("App, authenticated", () => {
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
-  it("labels a stale summary and retries the semantic refresh on request", async () => {
+  it("labels a stale summary and gives a buyer-facing retry action", async () => {
     const fetchMock = stubBackend({ staleSummary: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() =>
-      expect(screen.getByText("Last saved summary shown. Retry semantic refresh.")).toBeInTheDocument(),
+      expect(screen.getByText("Last saved summary shown. Retry summary refresh.")).toBeInTheDocument(),
     );
     const summaryCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
       String(input).endsWith("/api/posts/post-1/summary"),
@@ -3064,7 +3082,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(
-      screen.getByRole("button", { name: "Related nodes for Demo Corp (Corporate entity)" }),
+      screen.getByRole("button", { name: "Related nodes for Demo Corp (Organization)" }),
     );
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(

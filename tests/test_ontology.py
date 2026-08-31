@@ -10,11 +10,13 @@ the other doesn't know about.
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
 from rdflib import Graph, Literal, URIRef
 from rdflib.collection import Collection
+from rdflib.compare import isomorphic
 from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 from lineageweave.knowledge_graph import (
@@ -41,6 +43,13 @@ from lineageweave.ontology import (
 _SEED_SCRIPT_PATH = (
     Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 )
+_PACKAGED_ONTOLOGY_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "lineageweave"
+    / "data"
+    / "lineageweave-kg.ttl"
+)
+_PYPROJECT_PATH = Path(__file__).resolve().parents[1] / "pyproject.toml"
 
 # Several covered categories add lookup rows via their own migration
 # SQL rather than literally embedded in seed_demo_data.py's own source
@@ -112,6 +121,22 @@ def _seeded_lookup_codes_for_covered_categories() -> set[str]:
 def test_ontology_parses_as_valid_turtle() -> None:
     graph = load_ontology()
     assert len(graph) > 0
+
+
+def test_packaged_ontology_fallback_matches_authoritative_graph() -> None:
+    """Installed packages must expose the same graph as the source checkout."""
+    authoritative = load_ontology()
+    packaged = Graph().parse(_PACKAGED_ONTOLOGY_PATH, format="turtle")
+
+    assert isomorphic(authoritative, packaged)
+
+
+def test_packaged_ontology_fallback_is_included_in_wheels() -> None:
+    """The installed fallback must be declared as setuptools package data."""
+    config = tomllib.loads(_PYPROJECT_PATH.read_text())
+
+    package_data = config["tool"]["setuptools"]["package-data"]["lineageweave"]
+    assert "data/*.ttl" in package_data
 
 
 def test_every_seeded_lookup_code_is_declared_in_the_ontology() -> None:

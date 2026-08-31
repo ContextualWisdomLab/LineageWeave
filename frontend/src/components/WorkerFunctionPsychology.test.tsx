@@ -80,7 +80,21 @@ describe("WorkerFunctionPsychology", () => {
 
   it("shows an honest loading placeholder", () => {
     render(<WorkerFunctionPsychology profile={null} catalog={null} loading />);
-    expect(screen.getByText(/Work psychology catalog is unavailable/i)).toBeVisible();
+    expect(screen.getByText(/Work psychology details are not ready/i)).toBeVisible();
+    expect(screen.queryByText(/ontology|projection|provider|model/i)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["en", "Work psychology details are not ready."],
+    ["ko", "직무 심리 상세 정보가 아직 준비되지 않았습니다."],
+    ["zh", "工作心理详情尚未就绪。"],
+    ["ja", "仕事の心理に関する詳細はまだ準備できていません。"],
+    ["vi", "Chi tiết tâm lý công việc chưa sẵn sàng."],
+  ] as const)("keeps the loading next action customer-facing in %s", (locale, expected) => {
+    setLocale(locale);
+    render(<WorkerFunctionPsychology profile={null} catalog={null} loading />);
+    expect(screen.getByText(new RegExp(expected))).toBeVisible();
+    expect(screen.queryByText(/ontology|projection|provider|model/i)).not.toBeInTheDocument();
   });
 
   it("does not invent a profile when none is loaded", () => {

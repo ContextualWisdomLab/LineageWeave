@@ -203,6 +203,13 @@ describe("design tokens", () => {
     expect(rule).toContain("white-space: nowrap");
   });
 
+  it("separates Dashboard milestone time and labels with the shared control gap", () => {
+    const rule = appCss.match(/\.dashboard-milestone-row\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("display: flex");
+    expect(rule).toContain("flex-wrap: wrap");
+    expect(rule).toContain("gap: var(--space-control-gap)");
+  });
+
   it("keeps phone navigation readable without hiding destinations", () => {
     const phoneRules = [...appCss.matchAll(/@media \(max-width: 768px\)\s*\{[\s\S]*?\n\}/g)]
       .map((match) => match[0])

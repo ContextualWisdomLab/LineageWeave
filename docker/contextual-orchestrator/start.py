@@ -8,6 +8,7 @@ process environment before request handling begins.
 from __future__ import annotations
 
 import os
+import secrets
 import sys
 import json
 from pathlib import Path
@@ -60,6 +61,7 @@ def main() -> None:
     auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")
+    admin_token = secrets.token_urlsafe(48)
 
     provider_url = _pop_first_env("LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL", "LLM_API_GATEWAY")
     if not provider_url:
@@ -110,7 +112,10 @@ def main() -> None:
         "--port",
         "8000",
         "--allow-public-bind",
-        "--auth-token",
+        "--production",
+        "--admin-token",
+        admin_token,
+        "--inference-token",
         auth_token,
         "--max-output-tokens",
         str(max_output_tokens),
@@ -118,6 +123,7 @@ def main() -> None:
         str(max_body_bytes),
     ]
     del provider_url
+    del admin_token
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
 

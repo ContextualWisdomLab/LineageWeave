@@ -37,6 +37,8 @@ def _snapshot(**changes: object) -> dict[str, object]:
         "wal_buffers_full": 0,
         "checkpoints_timed": 0,
         "checkpoints_req": 0,
+        "active_transaction_count": 0,
+        "waiting_lock_count": 0,
         "wal_segment_size_bytes": 16 * tuning.MIB,
         "settings": {
             "checkpoint_timeout_seconds": 300,
@@ -227,6 +229,11 @@ def test_controlled_restart_checks_old_and_new_settings(monkeypatch, tmp_path: P
     commands: list[list[str]] = []
     monkeypatch.setattr(tuning, "_postgres_snapshot", lambda: next(snapshots))
     monkeypatch.setattr(
+        tuning,
+        "_container_resources",
+        lambda: (8 * 1024 * tuning.MIB, 100 * 1024 * tuning.MIB, 1024 * tuning.MIB),
+    )
+    monkeypatch.setattr(
         tuning, "_run", lambda command, **_kwargs: commands.append(list(command)) or ""
     )
 
@@ -254,6 +261,76 @@ def test_controlled_restart_rejects_stale_plan_before_compose(monkeypatch, tmp_p
     )
 
     with pytest.raises(tuning.TuningPlanError, match="no longer matches"):
+        tuning.controlled_restart(plan, tmp_path / "tuning.env", plan["plan_id"])
+
+
+@pytest.mark.parametrize(
+    ("current", "message"),
+    [
+        (
+            _snapshot(
+                settings={
+                    **_snapshot()["settings"],
+                    "synchronous_commit": "remote_write",
+                }
+            ),
+            "synchronous_commit no longer matches",
+        ),
+        (
+            _snapshot(
+                settings={
+                    **_snapshot()["settings"],
+                    "default_transaction_isolation": "serializable",
+                    "transaction_isolation": "serializable",
+                }
+            ),
+            "default_transaction_isolation no longer matches",
+        ),
+        (_snapshot(server_version_num=170000), "server major no longer matches"),
+        (_snapshot(active_transaction_count=1), "active transactions must be zero"),
+        (_snapshot(waiting_lock_count=1), "waiting locks must be zero"),
+    ],
+)
+def test_controlled_restart_revalidates_exact_database_state(
+    monkeypatch, tmp_path: Path, current: dict[str, object], message: str
+) -> None:
+    plan = tuning.build_plan(_observation(_snapshot(), _snapshot()))
+    monkeypatch.setattr(tuning, "_postgres_snapshot", lambda: current)
+    monkeypatch.setattr(
+        tuning,
+        "_run",
+        lambda *_args, **_kwargs: pytest.fail("Compose must not restart for stale evidence"),
+    )
+
+    with pytest.raises(tuning.TuningPlanError, match=message):
+        tuning.controlled_restart(plan, tmp_path / "tuning.env", plan["plan_id"])
+
+
+@pytest.mark.parametrize(
+    ("resources", "message"),
+    [
+        ((None, 0, 1024 * tuning.MIB), "current filesystem free space"),
+        ((1, 100 * 1024 * tuning.MIB, 1024 * tuning.MIB), "current container memory limit"),
+    ],
+)
+def test_controlled_restart_revalidates_current_resources(
+    monkeypatch,
+    tmp_path: Path,
+    resources: tuple[int | None, int, int],
+    message: str,
+) -> None:
+    plan = tuning.build_plan(
+        _observation(_snapshot(), _snapshot(wal_bytes=str(600 * tuning.MIB)))
+    )
+    monkeypatch.setattr(tuning, "_postgres_snapshot", _snapshot)
+    monkeypatch.setattr(tuning, "_container_resources", lambda: resources)
+    monkeypatch.setattr(
+        tuning,
+        "_run",
+        lambda *_args, **_kwargs: pytest.fail("Compose must not restart for stale resources"),
+    )
+
+    with pytest.raises(tuning.TuningPlanError, match=message):
         tuning.controlled_restart(plan, tmp_path / "tuning.env", plan["plan_id"])
 
 
@@ -368,6 +445,13 @@ def test_snapshot_reads_compose_environment_and_json(monkeypatch) -> None:
         tuning._postgres_snapshot()
 
 
+def test_snapshot_uses_only_aggregate_restart_fence_evidence() -> None:
+    assert "active_transaction_count" in tuning.SNAPSHOT_SQL
+    assert "waiting_lock_count" in tuning.SNAPSHOT_SQL
+    assert "pg_backend_pid()" in tuning.SNAPSHOT_SQL
+    assert "query" not in tuning.SNAPSHOT_SQL.lower()
+
+
 def test_container_resource_measurement_handles_cgroup_limit(monkeypatch) -> None:
     monkeypatch.setattr(tuning, "_run", lambda *_args, **_kwargs: "max\n4096\n1024")
     assert tuning._container_resources() == (None, 4096 * 1024, 1024 * 1024)
@@ -445,6 +529,11 @@ def test_controlled_restart_verifies_applied_settings(
     )
     snapshots = iter([_snapshot(), applied])
     monkeypatch.setattr(tuning, "_postgres_snapshot", lambda: next(snapshots))
+    monkeypatch.setattr(
+        tuning,
+        "_container_resources",
+        lambda: (8 * 1024 * tuning.MIB, 100 * 1024 * tuning.MIB, 1024 * tuning.MIB),
+    )
     monkeypatch.setattr(tuning, "_run", lambda *_args, **_kwargs: "")
     with pytest.raises(tuning.TuningPlanError, match=message):
         tuning.controlled_restart(plan, tmp_path / "env", plan["plan_id"])

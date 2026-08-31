@@ -198,6 +198,10 @@ treated as a negative case.
 - Parser and persistence tests cover multi-label output, cited spans, malformed
   responses, source-body and ordered evidence-window invalidation, replay-safe
   fingerprint storage, and unavailable orchestrator states.
+- The wheel includes a packaged ontology fallback that is graph-isomorphic
+  with the authoritative published Turtle source, so installed runtimes and
+  source checkouts expose the same operations-case, external-relation, and
+  product vocabulary.
 - Backend integration tests cover ABAC filtering, event-time fallback, event
   versus post counts, external-information percentage, multi-project
   membership, explicit missing facts, observed lifecycle endpoints, exact

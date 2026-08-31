@@ -73,6 +73,18 @@ restart. The base Compose file remains the rollback path: remove the overlay
 and restart PostgreSQL. The JSON plan records both proposed and rollback
 values.
 
+Immediately before that controlled restart, the procedure takes a new
+PostgreSQL snapshot and new container-resource measurements. It fails closed
+unless the server major version, current WAL settings, all three durability
+settings, and both isolation settings still match the plan's rollback values;
+unless the proposed WAL reservation still fits the measured free space and
+the proposed WAL buffers fit the measured cgroup limit when one exists; and
+unless PostgreSQL reports zero other active transactions and zero ungranted
+locks. These are exact current-state gates, not inferred workload thresholds.
+Compose validation alone does not authorize a restart, and an operator must
+still provide a maintenance window that prevents new work from entering after
+the final snapshot.
+
 ## Consequences
 
 - A tuning proposal is reproducible from captured measurements and contains no
@@ -84,6 +96,8 @@ values.
   reservation exceeds observed free space.
 - Applying or rolling back requires an intentional service restart and normal
   post-restart health/config verification.
+- A plan cannot carry old resource, correctness, or quiescence evidence across
+  the restart boundary; any mismatch requires a new observation and approval.
 
 ## References
 
@@ -96,3 +110,11 @@ PostgreSQL Global Development Group. (2026b). *PostgreSQL 16 documentation:
 PostgreSQL Global Development Group. (2026c). *PostgreSQL 16 documentation:
 20.4. Resource consumption*.
 https://www.postgresql.org/docs/16/runtime-config-resource.html
+
+PostgreSQL Global Development Group. (2026d). *PostgreSQL 16 documentation:
+28.2. The cumulative statistics system*.
+https://www.postgresql.org/docs/16/monitoring-stats.html
+
+PostgreSQL Global Development Group. (2026e). *PostgreSQL 16 documentation:
+54.12. pg_locks*.
+https://www.postgresql.org/docs/16/view-pg-locks.html
