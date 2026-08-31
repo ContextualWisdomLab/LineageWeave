@@ -1,5 +1,42 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-08-31 22:01 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's current head is
+> `03276027083a1b5aba5799b473527dd80aab74c0`, based on `main`. All review
+> threads are resolved and normal squash auto-merge is armed, but no
+> independent `APPROVED` review exists. Ten checks succeed, two fail, twelve
+> are skipped, and five remain non-terminal. The two failures remain
+> fail-closed owner/platform evidence gaps: the required review bootstrap does
+> not produce a current-head verdict and GitHub denies dependency-graph
+> comparison. Pending Checks are not treated as product blockers or success.
+>
+> Fresh exact-head local verification passes 54 focused Voice, ontology,
+> SHACL, and authenticated-API tests and 29 affected frontend tests. Frontend
+> lint, type checking, and the production build also succeed. Direct
+> inspection of the committed 1440-by-1400 desktop and 390-by-1688 mobile
+> Storybook renders confirms that the exact-value view keeps its carrying Post
+> action distinct from derivation evidence, including the horizontally
+> scrolled narrow table. The candidate keeps ADR 0246's twelve atomic Voice
+> classifications extensible; it does not enumerate combinations. Additional
+> assignments retain an authorized evidence Post, PROV-O derivation, truth
+> status, and cutoff, while an imported primary Voice acquires no invented
+> derivation. Paged JSON-LD unions same-subject multi-Voice relations. Earlier
+> authenticated PostgreSQL/runtime evidence remains revision-scoped;
+> protected-main delivery and merge SHA remain unavailable.
+>
+> PR #847 remains a candidate-only PRD identity repair at
+> `a87c6ec96c546c214461727efedeb8e7549d0fdd`; every review thread is resolved
+> and auto-merge is armed, but dependency review and the current-head review
+> verdict fail closed and no independent approval exists. PR #640's current
+> head `d56efa3a7358cc8e6f8498894782e079b9ec0114` likewise has all 139 review
+> threads resolved and normal auto-merge armed, but remains unapproved and is
+> not protected-main evidence. Fresh remote verification preserves canonical
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, `TEPP`, `fast-mlsirm`, and `contextual-orchestrator`. No
+> self-approval, admin bypass, force push, heuristic classification, invented
+> weight, or hidden-evidence substitution was used.
+
 > Exact-head development-loop overlay: 2026-08-31 20:49 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
 > ten non-PR issues are open. PR #780's exact implementation and rendered-
