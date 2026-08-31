@@ -16,6 +16,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1191,8 +1192,11 @@ describe("formatLeftoverMapDistance", () => {
   it("formats persisted leftover-map distance without inventing a leftover score", () => {
     expect(formatLeftoverMapDistance(0.12)).toBe("d 0.12");
     expect(formatLeftoverMapDistance(0)).toBe("d 0.00");
+    expect(formatLeftoverMapDistance(1.84)).toBe("d 1.84");
+    expect(formatLeftoverMapDistance(-0.05)).toBe("d -0.05");
     expect(formatLeftoverMapDistance(null)).toBeNull();
     expect(formatLeftoverMapDistance(Number.NaN)).toBeNull();
+    expect(formatLeftoverMapDistance(Number.POSITIVE_INFINITY)).toBeNull();
   });
 });
 
@@ -1334,6 +1338,18 @@ describe("leftover map comparison graphic labels", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
+    );
+  });
+
+  it("stays distinct from leftover-map distance copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).toBe(
+      "leftover map comparison graphic leftover-map distance {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).not.toBe(
+      "leftover-map distance {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
     );
   });
 });

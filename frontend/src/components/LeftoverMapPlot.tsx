@@ -42,6 +42,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -173,6 +174,9 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0318 captions leftover-map rank on that
  * comparison graphic from already-named leftover-map rank
  * with distinct leftover map comparison graphic leftover-map rank
+ * labels. ADR 0319 captions leftover-map distance on that
+ * comparison graphic from already-named leftover-map distance
+ * with distinct leftover map comparison graphic leftover-map distance
  * labels.
  * Never invent a leftover score.
  */
@@ -329,9 +333,12 @@ export function LeftoverMapPlot({
                   x={segment.labelX}
                   y={segment.labelY}
                   textAnchor="middle"
-                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {
-                    label: segment.distanceLabel,
-                  })}
+                  aria-label={tf(
+                    variant === "comparison"
+                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE
+                      : LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
+                    { label: segment.distanceLabel },
+                  )}
                 >
                   {segment.distanceLabel}
                 </text>

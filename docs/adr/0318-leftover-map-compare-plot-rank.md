@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0319](0319-leftover-map-compare-plot-distance.md)
+(leftover-map distance on the grouping comparison leftover-map graphic)
+
 Amends leftover-map rank on graphic-display pair segments
 ([ADR 0280](0280-leftover-map-segment-rank.md)), leftover-map rank
 on grouping comparison strip pair rows
@@ -75,8 +78,9 @@ Leftover-map rank omits independently of leftover expected captions and leftover
 A missing leftover-map rank omits leftover-map comparison graphic leftover-map rank and keeps
 a usable leftover expected caption and a usable leftover observed caption.
 
-This increment does not caption leftover-map distance on the comparison graphic
-with a distinct comparison-graphic name. That leftover-map distance already sits
+This increment does not caption leftover-map coordinate ticks on the comparison graphic
+with a distinct comparison-graphic name. Leftover-map distance on that comparison
+graphic is [ADR 0319](0319-leftover-map-compare-plot-distance.md). That leftover-map distance already sits
 on the period-report graphic through ADR 0271.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not invent a leftover
