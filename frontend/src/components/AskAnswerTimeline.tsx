@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { AskAgentResponse, CitedPostEvent } from "../api";
 import { chatEvidenceKindLabel } from "../evidenceKindLabels";
 import { getLocale, t, tf } from "../i18n";
+import { StatusNotice } from "./StatusNotice";
 
 type Props = {
   question: string;
@@ -111,7 +112,18 @@ export function AskAnswerTimeline({ question, answer, onOpenEvidence, onOpenPost
             </nav>
           ) : null}
         </div>
-        {answer.next_action ? <p className="ask-next-action">{t(answer.next_action)}</p> : null}
+        {citations.length === 0 ? (
+          <StatusNotice
+            kind="unavailable"
+            message={t("No authorized source posts matched this question.")}
+            nextAction={t(
+              answer.next_action
+                ?? "Ask about a specific project, person, organization, or time range, then retry.",
+            )}
+          />
+        ) : answer.next_action ? (
+          <p className="ask-next-action">{t(answer.next_action)}</p>
+        ) : null}
       </section>
 
       {chronological.length ? (
