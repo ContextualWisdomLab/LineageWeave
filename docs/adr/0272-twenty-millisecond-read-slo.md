@@ -126,6 +126,17 @@ derived from either standard or from a rule of thumb.
     read optimization. Historical bodies instead stream exact xmin-stable
     chunks to EOF without a fabricated Content-Length. Current bodies use the
     separately maintained Post-list projection populated on source writes.
+16. Post search reads normalized body, source, ontology/evidence, and master
+    text from the transaction-maintained `post_list_read_projection`. Unit
+    separator boundaries prevent a phrase from matching across two unrelated
+    source fields, while the source and normalized evidence tables remain
+    authoritative. Body normalization and full-text vectors are computed on
+    writes and one guarded historical backfill, not by decompressing wide
+    source bodies during a lookup. Project, role, person, summary, event,
+    customer, process-unit, author, and affiliation changes refresh the same
+    Post row in their write transaction. Search no longer uses the former
+    0.45 word-similarity guesses; exact evidence and the separately governed
+    normalized-identifier recovery path remain searchable.
 
 ## Consequences
 

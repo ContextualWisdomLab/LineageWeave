@@ -1150,12 +1150,11 @@ async def _post_filter_options(
 async def _post_list_query_plan(
     conn: asyncpg.Connection, *, default_population: bool
 ) -> AsyncIterator[None]:
-    """Confine the measured default-list custom plan to one transaction."""
-    if not default_population:
-        yield
-        return
+    """Confine the measured list-search planner settings to one transaction."""
     async with conn.transaction():
         await conn.execute("set local plan_cache_mode = 'force_custom_plan'")
+        if not default_population:
+            await conn.execute("set local pg_trgm.similarity_threshold = '0.78'")
         yield
 
 
@@ -1993,32 +1992,106 @@ async def list_posts(
             voice_filters,
             visibility_filter,
         )
+        search_candidate_ids: list[str] = []
         body_search_ids: list[str] = []
         if search_term:
-            # Safe SQL: search SQL is a closed schema query; search_term is bound through $1.
-            body_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            # Safe SQL: candidate SQL is closed schema text; every request value is bound.
+            candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 f"""
-                select post_id
-                  from source_post
-                where {source_post_eligibility_sql('source_post', source_context_required=source_context_required)}
-                  and (lower(left(source_post_search_text(post_body), 16384))
-                           like '%' || lower($1) || '%'
-                    or to_tsvector('simple', source_post_search_text(post_body))
-                           @@ plainto_tsquery('simple', $1))
-                order by
-                    case when lower(left(source_post_search_text(post_body), 16384))
-                              like '%' || lower($1) || '%' then 0 else 1 end,
-                    ts_rank(
-                        to_tsvector('simple', source_post_search_text(post_body)),
-                        plainto_tsquery('simple', $1)
-                    ) desc,
-                    post_id
+                with body_candidate as materialized (
+                    select projection.post_id,
+                           case when projection.post_body_search_prefix
+                                      like '%' || lower($1) || '%'
+                                then 0 else 1 end as body_priority,
+                           ts_rank(projection.post_body_search_vector,
+                                   plainto_tsquery('simple', $1)) as body_rank
+                      from post_list_read_projection projection
+                     where projection.post_body_search_prefix like '%' || lower($1) || '%'
+                        or projection.post_body_search_vector @@ plainto_tsquery('simple', $1)
+                ), candidate as (
+                    select body.post_id, true as body_match,
+                           body.body_priority, body.body_rank
+                      from body_candidate body
+                    union all
+                    select projection.post_id, false, 2, 0::real
+                      from post_list_read_projection projection
+                     where (
+                           projection.search_source_exact_text like '%' || lower($1) || '%'
+                        or projection.search_related_master_exact_text like '%' || lower($1) || '%'
+                        or (
+                            char_length($1) >= 3 and (
+                                (projection.search_normalized_post_id % lower($1)
+                                 and similarity(projection.search_normalized_post_id, lower($1)) >= 0.78)
+                                or (projection.search_source_record_key % lower($1)
+                                    and similarity(projection.search_source_record_key, lower($1)) >= 0.78)
+                            )
+                        )
+                       )
+                       and not exists (
+                           select 1 from body_candidate body
+                            where body.post_id = projection.post_id
+                       )
+                ), authorized as (
+                    select candidate.post_id, candidate.body_match,
+                           candidate.body_priority, candidate.body_rank
+                      from candidate
+                      join source_post source on source.post_id = candidate.post_id
+                     where (source.visibility_code = 'public'
+                        or (source.corporate_entity_id::text = any($2::text[])
+                            and (cardinality($3::text[]) = 0
+                                 or source.process_unit_id::text = any($3::text[]))))
+                       and {source_post_eligibility_sql('source', source_context_required=source_context_required)}
+                )
+                select authorized.post_id, authorized.body_match,
+                       count(*) over() as total_count
+                  from authorized
+                  join source_post source on source.post_id = authorized.post_id
+                 where ($4::text[] is null or exists (
+                           select 1 from source_post_voice voice_filter
+                            where voice_filter.post_id = source.post_id
+                              and voice_filter.effective_to is null
+                              and voice_filter.voice_type_code = any($4::text[])
+                       ))
+                   and ($5::text is null or source.visibility_code = $5)
+                 order by
+                    case
+                        when lower(coalesce(source.post_title, ''))
+                             like '%' || lower($1) || '%' then 0
+                        when authorized.body_match then 1
+                        else 2
+                    end,
+                    case when authorized.body_match then authorized.body_priority end,
+                    case when authorized.body_match then authorized.body_rank end desc,
+                    case when $8::text = 'title' then lower(coalesce(source.post_title, '')) end,
+                    case when $8::text = 'oldest' then source.created_at end,
+                    case when $8::text in ('newest', 'title') then source.created_at end desc,
+                    source.post_id desc
+                 offset $6 limit $7
                 """,
                 search_term,
+                list(account.corporate_entity_ids),
+                list(account.process_unit_ids),
+                voice_filters or None,
+                visibility_filter,
+                offset,
+                limit,
+                sort,
             )
-            body_search_ids = [str(row["post_id"]) for row in body_rows]
+            search_candidate_ids = [str(row["post_id"]) for row in candidate_rows]
+            body_search_ids = [
+                str(row["post_id"]) for row in candidate_rows if row["body_match"]
+            ]
+            search_total_count = (
+                int(candidate_rows[0]["total_count"]) if candidate_rows else 0
+            )
+        else:
+            search_total_count = None
         uses_projected_population = search_term is None and projected_total_count is not None
-        total_count_sql = "0::bigint" if uses_projected_population else "count(*) over()"
+        total_count_sql = (
+            "0::bigint"
+            if uses_projected_population or search_total_count is not None
+            else "count(*) over()"
+        )
         async def fetch_page() -> list[asyncpg.Record]:
             """Execute the closed post-page query with bound request values."""
             # Safe SQL: page SQL is closed schema text; every request value is bound.
@@ -2039,127 +2112,7 @@ async def list_posts(
                     and (cardinality($9::text[]) = 0
                          or post.process_unit_id::text = any($9::text[]))))
                and {source_post_eligibility_sql('post', source_context_required=source_context_required)}
-               and (
-                    $1::text is null
-                    or post.post_title ilike '%' || $1 || '%'
-                    or post.thread_group_key ilike '%' || $1 || '%'
-                    or post.secondary_grouping_key ilike '%' || $1 || '%'
-                    or concat_ws(' ',
-                        post.source_stage_code,
-                        post.source_detail_state_code,
-                        post.source_draft_code,
-                        post.source_deleted_flag,
-                        post.source_author_code,
-                        post.source_author_name,
-                        post.source_company_code,
-                        post.source_company_name,
-                        post.source_process_unit_code,
-                        post.source_process_unit_name,
-                        post.source_sales_pool_code,
-                        post.source_sales_pool_name,
-                        post.source_customer_code,
-                        post.source_customer_name,
-                        post.source_project_code,
-                        post.source_project_name,
-                        post.source_system_code,
-                        post.source_record_key
-                    ) ilike '%' || $1 || '%'
-                    or replace(post.post_id::text, '-', '') ilike '%' || lower($1) || '%'
-                    or (
-                        char_length($1) >= 3
-                        and (
-                            similarity(replace(post.post_id::text, '-', ''), lower($1)) >= 0.78
-                            or similarity(lower(coalesce(post.source_record_key, '')), lower($1)) >= 0.78
-                            or word_similarity(lower($1), lower(post.post_title)) >= 0.45
-                            or word_similarity(lower($1), lower(post.secondary_grouping_key)) >= 0.45
-                            or word_similarity(
-                                lower($1),
-                                lower(concat_ws(' ',
-                                    post.source_stage_code,
-                                    post.source_detail_state_code,
-                                    post.source_draft_code,
-                                    post.source_deleted_flag,
-                                    post.source_author_code,
-                                    post.source_author_name,
-                                    post.source_company_code,
-                                    post.source_company_name,
-                                    post.source_process_unit_code,
-                                    post.source_process_unit_name,
-                                    post.source_sales_pool_code,
-                                    post.source_sales_pool_name,
-                                    post.source_customer_code,
-                                    post.source_customer_name,
-                                    post.source_project_code,
-                                    post.source_project_name
-                                ))
-                            ) >= 0.45
-                        )
-                    )
-                    or post.post_id = any($5::uuid[])
-                    or exists (
-                        select 1 from post_project_mention project
-                         where project.post_id = post.post_id
-                           and (project.project_name ilike '%' || $1 || '%'
-                                or project.evidence_text ilike '%' || $1 || '%'
-                                or project.ontology_iri ilike '%' || $1 || '%'
-                                or (char_length($1) >= 3 and word_similarity(lower($1), lower(project.project_name)) >= 0.45))
-                    )
-                    or exists (
-                        select 1 from post_summary_role role
-                         where role.post_id = post.post_id
-                           and (role.actor_name ilike '%' || $1 || '%'
-                                or role.responsibility ilike '%' || $1 || '%'
-                                or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
-                                or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
-                    )
-                    or exists (
-                        select 1
-                          from post_person_mention mention
-                          join cataloged_person person on person.person_id = mention.person_id
-                         where mention.post_id = post.post_id
-                           and (
-                               person.person_name ilike '%' || $1 || '%'
-                               or (char_length($1) >= 3 and word_similarity(lower($1), lower(person.person_name)) >= 0.45)
-                           )
-                    )
-                    or exists (
-                        select 1 from post_summary_result summary
-                         where summary.post_id = post.post_id
-                           and summary.korean_summary ilike '%' || $1 || '%'
-                    )
-                    or exists (
-                        select 1 from post_summary_event event
-                         where event.post_id = post.post_id
-                           and event.event_text ilike '%' || $1 || '%'
-                    )
-                    or exists (
-                        select 1 from corporate_entity customer
-                         where customer.corporate_entity_id = post.corporate_entity_id
-                           and (customer.entity_name ilike '%' || $1 || '%'
-                                or customer.corporate_entity_code ilike '%' || $1 || '%')
-                    )
-                    or exists (
-                        select 1 from process_unit process
-                         where process.process_unit_id = post.process_unit_id
-                           and (process.process_unit_name ilike '%' || $1 || '%'
-                                or process.process_unit_code ilike '%' || $1 || '%')
-                    )
-                    or exists (
-                        select 1 from user_account author
-                         where author.user_account_id = post.author_account_id
-                           and (author.display_name ilike '%' || $1 || '%'
-                                or author.email_address ilike '%' || $1 || '%')
-                    )
-                    or exists (
-                        select 1
-                          from account_affiliation affiliation
-                          join corporate_entity affiliated
-                            on affiliated.corporate_entity_id = affiliation.corporate_entity_id
-                         where affiliation.user_account_id = post.author_account_id
-                           and (affiliated.entity_name ilike '%' || $1 || '%'
-                                or affiliated.corporate_entity_code ilike '%' || $1 || '%')
-                    )
-               )
+               and ($1::text is null or post.post_id = any($10::uuid[]))
                and ($3::text[] is null or exists (
                     select 1 from source_post_voice voice_filter
                      where voice_filter.post_id = post.post_id
@@ -2168,6 +2121,10 @@ async def list_posts(
                ))
                and ($4::text is null or post.visibility_code = $4)
                  order by
+                    case
+                        when $1::text is not null
+                        then array_position($10::uuid[], post.post_id)
+                    end asc,
                     search_priority asc,
                     case
                         when $1::text is not null and post.post_id = any($5::uuid[])
@@ -2194,12 +2151,12 @@ async def list_posts(
                    page.search_priority, page.total_count,
                    case
                        when $1::text is null then projection.post_body_excerpt
-                       when strpos(lower(source_post_search_text(post.post_body)), lower($1)) > 0
+                       when strpos(projection.post_body_search_prefix, lower($1)) > 0
                        then btrim(substring(
-                           source_post_search_text(post.post_body)
+                           projection.post_body_search_prefix
                            from greatest(
                                1,
-                               strpos(lower(source_post_search_text(post.post_body)), lower($1)) - 140
+                               strpos(projection.post_body_search_prefix, lower($1)) - 140
                            ) for 420
                        ))
                        else projection.post_body_excerpt
@@ -2261,6 +2218,10 @@ async def list_posts(
                    group by voice.post_id
               ) voices on voices.post_id = page.post_id
              order by
+                case
+                    when $1::text is not null
+                    then array_position($10::uuid[], page.post_id)
+                end asc,
                 case when $1::text is not null then page.search_priority end asc,
                 case
                     when $1::text is not null and page.search_priority = 1
@@ -2276,10 +2237,11 @@ async def list_posts(
             voice_filters or None,
             visibility_filter,
             body_search_ids,
-            offset,
+            0 if search_term else offset,
             limit,
             sort,
             list(account.process_unit_ids),
+            search_candidate_ids,
         )
         # Nullable search/filter parameters keep the wire contract stable, but
         # their generic plan measured 42--64 ms versus 4.4 ms for the exact
@@ -2292,6 +2254,8 @@ async def list_posts(
     total_count = (
         projected_total_count
         if uses_projected_population
+        else search_total_count
+        if search_total_count is not None
         else int(rows[0]["total_count"])
         if rows
         else 0

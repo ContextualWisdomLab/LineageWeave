@@ -343,6 +343,11 @@ _POST_LIST_READ_MIGRATION = (
     / "migrations"
     / "0265_post_list_read_projection_index.sql"
 )
+_POST_SEARCH_READ_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0269_post_body_search_read_projection.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -538,6 +543,7 @@ def seeded_db(demo_analyst_token):
                 [
                     "psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn,
                     "-f", str(_POST_LIST_READ_MIGRATION),
+                    "-f", str(_POST_SEARCH_READ_MIGRATION),
                 ],
                 check=True,
             )

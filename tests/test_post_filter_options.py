@@ -125,7 +125,13 @@ def test_default_post_list_custom_plan_is_transaction_local() -> None:
             filtered_conn.events.append("query")
 
     asyncio.run(exercise_filtered())
-    assert filtered_conn.events == ["query"]
+    assert filtered_conn.events == [
+        "begin",
+        "set local plan_cache_mode = 'force_custom_plan'",
+        "set local pg_trgm.similarity_threshold = '0.78'",
+        "query",
+        "end",
+    ]
 
 
 def test_filter_projection_returns_exact_single_category_count_only() -> None:
