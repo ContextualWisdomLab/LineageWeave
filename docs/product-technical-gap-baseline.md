@@ -1,11 +1,12 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-09-01 04:05 KST. Protected
+> Exact-head development-loop overlay: 2026-09-01 05:14 KST. Protected
 > `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs and
-> ten non-PR issues are open. PR #780 is at
-> `8403a64011abad2b07bb869c8fd3657e6707c5f3`, based directly on that
-> `main`. All review threads are resolved and normal squash auto-merge remains
-> armed, but no independent `APPROVED` review exists. Sixteen exact-head
+> ten non-PR issues are open. PR #780's exact product and rendered-evidence
+> parent for this documentation update is
+> `734bbcc312041ec50b117112caa2fda71320190d`, based directly on that
+> `main`. All review threads are resolved and normal squash auto-merge is
+> freshly armed, but no independent `APPROVED` review exists. Fourteen parent-head
 > checks succeed, ten are skipped, and three fail. The failed evidence remains
 > unavailable rather than being promoted to acceptance: GitHub denies the
 > exact dependency comparison with HTTP 403, the governed Noema request times
@@ -25,7 +26,10 @@
 > unresolved bounded-PNG validation review are preserved; the branch is behind
 > central `main` and has no independent approval or auto-merge. The newer
 > `ContextualWisdomLab/.github#1466` is also open at
-> `c17841917764960208e89b204c50e527d644db70`. Neither candidate is protected-
+> `c17841917764960208e89b204c50e527d644db70`; its 67 focused owner-repository
+> regression tests pass, all review threads are resolved, and normal squash
+> auto-merge is armed, while current-head OpenCode/Noema verdicts and independent
+> approval remain unavailable. Neither candidate is protected-
 > main evidence, so affected LineageWeave required workflows are not rerun as
 > though the root fix had landed.
 >
@@ -36,7 +40,12 @@
 > one subject. ADR 0246's twelve atomic classifications remain extensible rows,
 > not enumerated combinations; hidden evidence is never replaced with the
 > carrying Post. The committed desktop/mobile renders and authenticated
-> PostgreSQL/API evidence remain revision-scoped. Protected-main delivery,
+> PostgreSQL/API evidence remain revision-scoped. Fresh local verification on
+> the product parent passes 37 focused Voice/ontology/SHACL/API tests and 29
+> affected frontend tests plus frontend lint. The broader frontend run passed
+> 532 of 534 tests but two unrelated App tests exceeded their existing five-second
+> local timeout; the exact-head hosted frontend gate remains successful, so the
+> local timeout is not promoted to acceptance or hidden. Protected-main delivery,
 > merge SHA, and deployed acceptance remain unavailable. Fresh remote checks
 > preserve canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
 > `ThreadWeave`, lowercase `disksage`, and `TEPP`. No self-approval, admin
