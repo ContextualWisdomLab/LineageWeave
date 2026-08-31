@@ -28,8 +28,8 @@
 > `b87b186dd7213dc59d8e933e7d8c3f330598470f`; PR #781's last remote
 > exact-head evidence before this overlay is
 > `760d05896f96e5ce7fb9df0e4b62369448913fbd` and remains candidate-only.
-> Its contextual-orchestrator runtime is pinned to open upstream PR #857 exact
-> `17a7b13f5317e930bae496e6d65268fb15ac4e34`; this candidate is not
+> Its contextual-orchestrator runtime is pinned to open upstream replacement PR #970 exact
+> `18c108be6b884b051198f33c903b1ee6eeed405f`; this candidate is not
 > protected-main evidence.
 > The open queue has 14 PRs:
 > #783, #782, #781, #780, #778, #774, #772, #771, #770, #702, #679, #672,

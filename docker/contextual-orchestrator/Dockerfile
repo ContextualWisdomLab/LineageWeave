@@ -4,7 +4,7 @@
 ARG MATURIN_BUILDER_IMAGE=ghcr.io/pyo3/maturin@sha256:b6c8b59a0170b77eb31a35b56034abd39972483ad0ebfff344deaa42a85f3bd3
 FROM ${MATURIN_BUILDER_IMAGE} AS token-builder
 
-ADD --checksum=sha256:d97037228322a6a048c4fcd076a329e863c8d911a2ed54329e06a8e4ecf03890 https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/17a7b13f5317e930bae496e6d65268fb15ac4e34.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD --checksum=sha256:cc7cb6b693c40713046d55aea40a37dd9c42225f4bc8539806faed45d2ff8b55 https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/18c108be6b884b051198f33c903b1ee6eeed405f.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir -p /build/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 \
         -C /build/contextual-orchestrator \
@@ -36,6 +36,7 @@ RUN python -m pip install --no-cache-dir --require-hashes \
     && test "$#" -eq 1 \
     && test -f "$1" \
     && python -m pip install --no-cache-dir --no-deps "$1" \
+    && cp /usr/local/lib/python3.12/site-packages/contextual_orchestrator/_token_packer*.so /app/contextual_orchestrator/ \
     && rm -rf /tmp/token-wheels \
     && useradd --uid 10001 --no-create-home orchestrator
 
