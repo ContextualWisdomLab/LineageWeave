@@ -83,7 +83,9 @@ Independent of leftover-map singular values on the grouping comparison
 leftover-map graphic. This increment does not caption leftover-map singular
 values on leftover-axis badges on the grouping comparison strip with a
 distinct name
-([ADR 0323](0323-leftover-map-compare-axis-singular.md)).
+([ADR 0323](0323-leftover-map-compare-axis-singular.md)). This increment does
+not caption leftover-map singular values on leftover-map graphic-display axes
+([ADR 0324](0324-leftover-map-plot-axis-singular.md)).
 
 ## References
 

@@ -103,6 +103,8 @@ leftover-map axis share are finite, leftover-map axis share is
 
 Independent of leftover-map singular values on leftover-axis report badges
 in the period-report panel ([ADR 0322](0322-leftover-map-axis-singular.md)).
+Independent of leftover-map singular values on leftover-map graphic-display
+axes ([ADR 0324](0324-leftover-map-plot-axis-singular.md)).
 
 ## References
 

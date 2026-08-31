@@ -25,10 +25,10 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_1,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_2,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
-  LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
   formatLeftoverMapPlotAxisSingular,
+  leftoverMapPlotAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
@@ -86,13 +86,11 @@ function leftoverMapPlotAxisText(
   leftoverMapAxes: LeftoverMapAxis[] | undefined,
   variant: LeftoverMapPlotVariant,
 ): string {
-  const percent = formatLeftoverMapPlotAxisShare(
-    leftoverShareForAxis(leftoverMapAxes, axisIndex),
-  );
+  const leftoverShare = leftoverShareForAxis(leftoverMapAxes, axisIndex);
+  const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
   if (variant === "comparison") {
-    const singular = formatLeftoverMapPlotAxisSingular(
-      leftoverSingularForAxis(leftoverMapAxes, axisIndex),
-    );
+    const percent = formatLeftoverMapPlotAxisShare(leftoverShare);
+    const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
     if (singular === null && percent === null) {
       return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
     }
@@ -108,10 +106,11 @@ function leftoverMapPlotAxisText(
       share: percent as string,
     });
   }
-  if (percent === null) {
+  const badge = leftoverMapPlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
+  if (badge === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
-  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  return tf(badge.key, badge.values);
 }
 
 /**
@@ -119,7 +118,8 @@ function leftoverMapPlotAxisText(
  *
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
- * Gabriel inertia share when finite, including rank-0 zero-share axes.
+ * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
+ * including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -208,7 +208,8 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0322 captions leftover-axis report badges with persisted
  * leftover-map singular values, not this graphic. ADR 0323 captions leftover-axis
  * report badges on the grouping comparison strip with persisted leftover-map
- * singular values, not this graphic.
+ * singular values, not this graphic. ADR 0324 captions leftover-map
+ * graphic-display axes with persisted leftover-map singular values.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
