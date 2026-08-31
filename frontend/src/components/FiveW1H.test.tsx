@@ -47,7 +47,7 @@ describe("FiveW1H", () => {
     expect(screen.queryByText("post_summary_role.affiliated_organization_name")).not.toBeInTheDocument();
   });
 
-  it("falls back to the raw source string for an unmapped evidence source", () => {
+  it("keeps an unmapped evidence source behind a buyer-facing label", () => {
     render(
       <FiveW1H
         slots={[
@@ -65,7 +65,8 @@ describe("FiveW1H", () => {
         ]}
       />,
     );
-    expect(screen.getByText("some_future_source")).toBeInTheDocument();
+    expect(screen.getByText("Recorded evidence")).toBeInTheDocument();
+    expect(screen.queryByText("some_future_source")).not.toBeInTheDocument();
   });
 
   it("shows optional evidence text and ontology class badges only when present", async () => {
@@ -93,7 +94,7 @@ describe("FiveW1H", () => {
     expect(screen.getByText("Category: Contract renewal")).toBeInTheDocument();
   });
 
-  it("falls back to the ontology code when no ontology label is annotated", async () => {
+  it("does not expose an internal category code when no label is available", async () => {
     render(
       <FiveW1H
         slots={[
@@ -113,7 +114,7 @@ describe("FiveW1H", () => {
     );
 
     await userEvent.click(screen.getByText("Why this item is listed"));
-    expect(screen.getByText("Category: evt-42")).toBeInTheDocument();
+    expect(screen.queryByText(/evt-42|Category:/)).not.toBeInTheDocument();
   });
 
   it("renders one definition entry per slot with its human label", () => {

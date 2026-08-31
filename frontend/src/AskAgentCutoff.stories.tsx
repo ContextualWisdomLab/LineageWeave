@@ -47,7 +47,12 @@ const meta = {
               source_post_ids: ["synthetic-post"],
               knowledge_cutoff: "2026-01-15T03:00:00Z",
               grounding_status: "partially_cutoff_grounded",
-              limitations: ["Current-only semantic channels were excluded from this historical answer."],
+              limitations: [{
+                post_id: "synthetic-post",
+                limitation_code: "historical_body_unavailable",
+                unavailable_channels: ["historical_body", "knowledge_graph"],
+              }],
+              next_action: "Open the cited posts and compare their retained source text before relying on this answer.",
             },
           }), { status: 200 });
     };
@@ -67,8 +72,9 @@ export const PartialHistoricalEvidence: Story = {
       "2026-01-15T12:00",
     );
     await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
-    await expect(canvas.findByText(/Partially cutoff-grounded/)).resolves.toBeVisible();
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Current-only semantic channels were excluded");
+    await expect(canvas.findByText(/Some cited evidence was unavailable at this time/)).resolves.toBeVisible();
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Open the cited posts before relying on this answer");
+    await expect(canvas.queryByText(/semantic channels/i)).not.toBeInTheDocument();
     await expect(canvas.getByText(/Retained revision/)).toHaveTextContent("Live source changed later");
   },
 };

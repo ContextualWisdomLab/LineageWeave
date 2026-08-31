@@ -104,7 +104,7 @@ describe("LineageDag channel evidence", () => {
 
   it("discloses exact inferred values without hover-only interaction", async () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
-    const disclosure = screen.getByText(/fused score 0.700000/).closest("details");
+    const disclosure = screen.getByText(/connection score 0.700000/).closest("details");
     expect(disclosure).toHaveTextContent("Pricing follow-up follows Kickoff recap");
     const edgeButton = screen.getByRole("button", {
       name: "Open connection evidence: Kickoff recap to Pricing follow-up",
@@ -116,15 +116,16 @@ describe("LineageDag channel evidence", () => {
     expect(
       screen.getByText("Each connection is inferred from independent signals. It is not a causal claim."),
     ).toBeInTheDocument();
-    expect(screen.getByText("No LLM adjudication participated in this connection.")).toBeInTheDocument();
+    expect(screen.getByText("Additional context review was unavailable. Open both source posts and compare the listed signals before relying on this connection.")).toBeInTheDocument();
+    expect(screen.queryByText(/LLM|model|provider/i)).not.toBeInTheDocument();
     expect(screen.getByText("lineageweave.reconstruct/2.14.0")).toBeInTheDocument();
     expect(screen.getAllByText("0.250000").length).toBeGreaterThan(0);
     expect(screen.getByText("0.200000")).toBeInTheDocument();
-    expect(screen.getByText(/fused score 0.700000/)).toBeInTheDocument();
+    expect(screen.getByText(/connection score 0.700000/)).toBeInTheDocument();
     expect(screen.queryByText(/causal relationship/i)).not.toBeInTheDocument();
     expect(edgeButton).toHaveAttribute("tabindex", "0");
     expect(edgeButton).toHaveAttribute("aria-pressed", "true");
-    await userEvent.click(screen.getByText(/fused score 0.700000/));
+    await userEvent.click(screen.getByText(/connection score 0.700000/));
     expect(disclosure).not.toHaveAttribute("open");
     expect(edgeButton).toHaveAttribute("aria-pressed", "false");
   });
@@ -140,7 +141,7 @@ describe("LineageDag channel evidence", () => {
         onSelectPost={vi.fn()}
       />,
     );
-    expect(screen.queryByText("No LLM adjudication participated in this connection.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Additional context review was unavailable/)).not.toBeInTheDocument();
   });
 
   it("keeps the LLM channel visible when it participated", async () => {
@@ -169,9 +170,37 @@ describe("LineageDag channel evidence", () => {
         onSelectPost={vi.fn()}
       />,
     );
-    await userEvent.click(screen.getByText(/fused score 0.780000/));
-    expect(screen.getByText("LLM adjudication")).toBeInTheDocument();
-    expect(screen.queryByText("No LLM adjudication participated in this connection.")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText(/connection score 0.780000/));
+    expect(screen.getByText("Context review")).toBeInTheDocument();
+    expect(screen.queryByText(/LLM adjudication/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Additional context review was unavailable/)).not.toBeInTheDocument();
+  });
+
+  it("does not expose an undeclared signal code or backend label", async () => {
+    render(
+      <LineageDag
+        graph={{
+          ...graph,
+          edges: [{
+            source: "rec-002",
+            target: "rec-003",
+            fused_score: 0.78,
+            channel_evidence: [{
+              signal_code: "synthetic_internal_channel",
+              signal_label: "Synthetic provider fallback",
+              score: 0.5,
+              weight: 0.2,
+              contribution: 0.1,
+              rank: 1,
+            }],
+          }],
+        }}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByText(/connection score 0.780000/));
+    expect(screen.getByText("Recorded signal")).toBeInTheDocument();
+    expect(screen.queryByText(/synthetic_internal_channel|Synthetic provider fallback/)).not.toBeInTheDocument();
   });
 });
 

@@ -444,7 +444,7 @@ async def compute_global_ask_answer(
             "external_verification_status": verification_status,
             "external_claims": [claim.to_payload() for claim in external_claims],
             "next_action": (
-                "Review unavailable historical channels before relying on this cutoff answer."
+                "Open the cited posts and compare their retained source text before relying on this answer."
                 if limitations
                 else "No authorized source posts are available for this question."
             ),
@@ -525,7 +525,7 @@ async def compute_global_ask_answer(
     next_action = _verification_next_action(verification_status)
     if knowledge_cutoff is not None:
         next_action = (
-            "Review unavailable historical channels before relying on this cutoff answer."
+            "Open the cited posts and compare their retained source text before relying on this answer."
             if limitations
             else "Compare these cutoff-grounded citations with live evidence next."
         )

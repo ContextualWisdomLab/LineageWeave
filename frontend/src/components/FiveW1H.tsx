@@ -23,7 +23,7 @@ const EVIDENCE_SOURCE_LABELS: Record<string, string> = {
 };
 
 function evidenceSourceLabel(source: string): string {
-  return t(EVIDENCE_SOURCE_LABELS[source] ?? source);
+  return t(EVIDENCE_SOURCE_LABELS[source] ?? "Recorded evidence");
 }
 
 export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
@@ -47,11 +47,11 @@ export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
                           <summary>{t("Why this item is listed")}</summary>
                           <span className="post-badge">{evidenceSourceLabel(value.source)}</span>
                           {value.evidence_text ? <span>{value.evidence_text}</span> : null}
-                          {value.ontology_codes.map((code) => (
-                            <span className="post-badge" key={code}>
-                              {t("Category")}: {t(value.ontology_annotations.ontology_label ?? code)}
+                          {value.ontology_annotations.ontology_label ? (
+                            <span className="post-badge">
+                              {t("Category")}: {t(value.ontology_annotations.ontology_label)}
                             </span>
-                          ))}
+                          ) : null}
                         </details>
                       </li>
                     ))}

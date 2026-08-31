@@ -262,14 +262,14 @@ export function LineageDag({
               }}
             >
               <summary>
-                {tf("{from} follows {to}, fused score {score}", {
+                {tf("{from} follows {to}, connection score {score}", {
                   from: toLabel,
                   to: fromLabel,
                   score: formatExact(edge.fused_score),
                 })}
               </summary>
               {evidence.length > 0 && !llmParticipated(evidence) ? (
-                <p>{t("No LLM adjudication participated in this connection.")}</p>
+                <p>{t("Additional context review was unavailable. Open both source posts and compare the listed signals before relying on this connection.")}</p>
               ) : null}
               {evidence.length > 0 ? (
                 <table>
@@ -287,7 +287,7 @@ export function LineageDag({
                     {evidence.map((item) => (
                       <tr key={item.signal_code}>
                         <td>{item.rank}</td>
-                        <td>{t(item.signal_label)}</td>
+                        <td>{t(signalLabel(item.signal_code))}</td>
                         <td>{formatExact(item.score)}</td>
                         <td>{formatExact(item.weight)}</td>
                         <td>{formatExact(item.contribution)}</td>
@@ -315,8 +315,8 @@ function signalLabel(signalCode: string): string {
     case "text":
       return "Text similarity";
     case "llm":
-      return "LLM adjudication";
+      return "Context review";
     default:
-      return signalCode;
+      return "Recorded signal";
   }
 }

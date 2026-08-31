@@ -324,7 +324,7 @@ export const CombinedVoiceEvidence: Story = {
   args: { neighborhood: combinedVoiceNeighborhood },
   play: ({ canvasElement }) => {
     const evidence = canvasElement.querySelector<HTMLButtonElement>(
-      'button[aria-label="Open evidence: Demo public post"]',
+      'button[aria-label="Open evidence post"]',
     );
     if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
     evidence.focus();

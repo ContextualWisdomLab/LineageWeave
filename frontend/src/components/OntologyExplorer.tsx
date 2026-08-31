@@ -69,7 +69,11 @@ const TRUTH_LABEL: Record<string, string> = {
 function nodeTypeLabel(nodeTypeCode: string): string {
   return nodeTypeCode === "node_occupational_construct"
     ? occupationalConstructText("Work evidence")
-    : t(NODE_TYPE_LABEL[nodeTypeCode] ?? nodeTypeCode);
+    : t(NODE_TYPE_LABEL[nodeTypeCode] ?? "Evidence");
+}
+
+function truthStatusLabel(truthStatusCode: string | null): string {
+  return t(TRUTH_LABEL[truthStatusCode ?? ""] ?? "Unknown");
 }
 
 function nodeKey(node: Pick<OntologyGraphNodePayload, "node_type_code" | "node_id">): string {
@@ -401,6 +405,9 @@ function OntologyGraph({
   onSelectNode: (node: OntologyGraphNodePayload) => void;
   onSelectEdge: (edge: OntologyGraphEdgePayload) => void;
 }) {
+  const displayLabelByKey = new Map(
+    layout.nodes.map((node) => [nodeKey(node), node.display_label]),
+  );
   return (
     <svg
       className="ontology-graph"
@@ -426,7 +433,7 @@ function OntologyGraph({
               y={labelY}
               textAnchor="middle"
             >
-              {edge.property_label} · {t(TRUTH_LABEL[edge.truth_status_code] ?? edge.truth_status_code)}
+              {edge.property_label} · {truthStatusLabel(edge.truth_status_code)}
             </text>
             <circle
               className="ontology-edge-hit"
@@ -437,8 +444,8 @@ function OntologyGraph({
               tabIndex={0}
               aria-label={tf("Select edge: {property} from {source} to {target}", {
                 property: edge.property_label,
-                source: `${edge.source_node_type_code}:${edge.source_node_id}`,
-                target: `${edge.target_node_type_code}:${edge.target_node_id}`,
+                source: displayLabelByKey.get(`${edge.source_node_type_code}:${edge.source_node_id}`) ?? t("Evidence"),
+                target: displayLabelByKey.get(`${edge.target_node_type_code}:${edge.target_node_id}`) ?? t("Evidence"),
               })}
               aria-pressed={selected ? "true" : "false"}
               onClick={() => onSelectEdge(edge)}
@@ -573,7 +580,7 @@ function OntologyExactValueTable({
                 </td>
                 <td>{row.property_label}</td>
                 <td>{row.target_label}</td>
-                <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
+                <td>{truthStatusLabel(row.truth_status_code)}</td>
                 <td>{row.valid_from.slice(0, 10) || t("Unknown")}</td>
                 <td>{row.valid_to.slice(0, 10) || t("Unknown")}</td>
                 <td>
@@ -616,9 +623,8 @@ function OntologyNodeDrawer({
     <aside className="ontology-drawer" aria-label={t("Node evidence")}>
       <h4>{node.display_label}</h4>
       <p>
-        {nodeTypeLabel(node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
+        {nodeTypeLabel(node.node_type_code)} · {truthStatusLabel(node.truth_status_code)}
       </p>
-      <p>{t("Category")}: {node.ontology_class_iri}</p>
       <p>{t("Recorded at")}: {node.recorded_at?.slice(0, 10) ?? t("Unknown")}</p>
       <div className="ontology-explorer-actions">
         {canRefocus ? (
@@ -662,9 +668,8 @@ function OntologyEdgeDrawer({
       <p>
         {source?.display_label} → {target?.display_label}
       </p>
-      <p>{t("Truth status")}: {t(TRUTH_LABEL[edge.truth_status_code] ?? edge.truth_status_code)}</p>
-      <p>{t("Property IRI")}: {edge.ontology_property_iri}</p>
-      <p>{t("Provenance")}: {edge.provenance_reference ?? t("Unknown")}</p>
+      <p>{t("Truth status")}: {truthStatusLabel(edge.truth_status_code)}</p>
+      <p>{t("Provenance")}: {edge.provenance_reference ? t("Recorded evidence") : t("Unknown")}</p>
       <p>{t("Valid from")}: {edge.valid_from?.slice(0, 10) || t("Unknown")}</p>
       <p>{t("Valid to")}: {edge.valid_to?.slice(0, 10) || t("Unknown")}</p>
       <p>{t("Recorded at")}: {edge.recorded_at.slice(0, 10)}</p>
@@ -673,11 +678,11 @@ function OntologyEdgeDrawer({
           {edge.evidence_references.map((reference) => (
             <li key={reference}>
               {onOpenEvidence ? (
-                <button type="button" onClick={() => onOpenEvidence(reference)}>
-                  {tf("Open evidence: {title}", { title: reference })}
+                <button type="button" aria-label={t("Open evidence post")} onClick={() => onOpenEvidence(reference)}>
+                  {t("Open evidence post")}
                 </button>
               ) : (
-                reference
+                t("Recorded evidence")
               )}
             </li>
           ))}

@@ -382,7 +382,7 @@ export function TopicContextInfluence({ data, onOpenPost }: { data: OperationsDa
             <details className="dashboard-topic-provenance">
               <summary>{t("Review analysis basis")}</summary>
               <dl>
-                <div><dt>{t("Knowledge cutoff")}</dt><dd><time dateTime={topicContext.model_run.knowledge_cutoff}>{topicContext.model_run.knowledge_cutoff}</time></dd></div>
+                <div><dt>{t("Evidence included through")}</dt><dd><time dateTime={topicContext.model_run.knowledge_cutoff}>{topicContext.model_run.knowledge_cutoff}</time></dd></div>
                 <div><dt>{t("Topic count")}</dt><dd>{topicContext.model_run.topic_count}</dd></div>
               </dl>
             </details>

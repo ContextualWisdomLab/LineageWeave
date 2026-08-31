@@ -835,7 +835,7 @@ function isKnownRelatedNodeType(code: string): code is RelatedNodeType {
 }
 
 function relatedNodeCaption(node: RelatedNode): string {
-  const name = node.label ?? node.node_id;
+  const name = node.label?.trim() || t("Related record");
   if (node.node_type_code === NODE_PERSON) {
     const side = node.person_side_label ?? node.person_side_code;
     if (side) {
@@ -848,12 +848,21 @@ function relatedNodeCaption(node: RelatedNode): string {
       return aliased;
     }
   }
-  return `${name} (${node.ontology_label ?? node.node_type_code})`;
+  const typeLabel = node.node_type_code === NODE_PERSON
+    ? "Person"
+    : node.node_type_code === NODE_POST
+      ? "Post"
+      : node.node_type_code === NODE_CORPORATE_ENTITY
+        ? "Organization"
+        : node.node_type_code === NODE_TEAM
+          ? "Team"
+          : "Evidence";
+  return `${name} (${t(typeLabel)})`;
 }
 
 const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
   source_field_hint: "Explicit source field",
-  contextual_orchestrator_semantic: "Semantic extraction",
+  contextual_orchestrator_semantic: "Derived from post evidence",
 };
 
 const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
@@ -2439,11 +2448,11 @@ function PostDetailPopup({
               ) : postBody?.trim() ? (
                 <PostBody body={postBody} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
-                <p className="popup-placeholder" role="status">
-                  {t(
-                    "The original text of this post was not imported, so its summary and semantic extraction are unavailable. Open the post directly or ask the source owner to re-import it with its body.",
-                  )}
-                </p>
+                <StatusNotice
+                  kind="unavailable"
+                  message={t("The original text of this post was not imported, so its summary and related details are unavailable.")}
+                  nextAction={t("Open the post directly or ask the source owner to re-import it with its body.")}
+                />
               )}
             </section>
             {post.product_evidence_status?.status_code === "complete" && post.product_evidence?.length ? (
@@ -2633,7 +2642,7 @@ function PostDetailPopup({
                 <>
                   {summary.summary_status === "stale" ? (
                     <p className="post-meta" role="status">
-                      {t("Last saved summary shown. Retry semantic refresh.")} {" "}
+                      {t("Last saved summary shown. Retry summary refresh.")} {" "}
                       <button type="button" onClick={() => setSummaryRetry((value) => value + 1)}>
                         {t("Retry summary refresh")}
                       </button>
@@ -4481,17 +4490,16 @@ function PostList({
             }}
           >
             <label>
-              {t("Search semantic evidence")}
+              {t("Search related evidence")}
               <input
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={t("Search semantic evidence")}
-                aria-label={t("Search semantic evidence")}
+                aria-label={t("Search related evidence")}
               />
             </label>
             <button type="submit">{t("Search")}</button>
-            <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
+            <p className="board-search-help post-meta">{t("Search includes post text and related evidence.")}</p>
             <fieldset className="board-voc-type-filter">
               <legend>{t("Filter by VOC type")}</legend>
               {vocTypeOptions.map((option) => (
@@ -4595,7 +4603,7 @@ function PostList({
                         ) : null}
                         {post.project_evidence && post.project_evidence.length > 0 ? (
                           <span className="post-meta">
-                            {t("Semantic project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
+                            {t("Related project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
                           </span>
                         ) : null}
                         <span className="post-meta">
@@ -5105,7 +5113,7 @@ function CustomerMasterPanel({
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
           <p className="workspace-destination-intro">
-            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
+            {t("Before connecting a customer, compare each source identifier with the related posts and organization evidence.")}
           </p>
           {master.source_customer_hint_total > master.source_customer_hints.length && (
             <p className="post-meta">
@@ -5362,17 +5370,17 @@ export function AskAgentPanel({
             onOpenPost={onOpenPost}
           />
           {answer.knowledge_cutoff ? (
-            <aside className="ask-delivery" aria-label={t("Knowledge-cutoff grounding")}>
-              <h4>{t("Knowledge-cutoff grounding")}</h4>
+            <aside className="ask-delivery" aria-label={t("Evidence at selected time")}>
+              <h4>{t("Evidence at selected time")}</h4>
               <p>
                 {answer.grounding_status === "fully_cutoff_grounded"
-                  ? t("Fully cutoff-grounded")
-                  : t("Partially cutoff-grounded")}
+                  ? t("All cited evidence was available by this time")
+                  : t("Some cited evidence was unavailable at this time")}
                 {` · ${new Date(answer.knowledge_cutoff).toLocaleString()}`}
               </p>
               {answer.limitations?.length ? (
                 <p role="alert">
-                  {t("Some historical bodies or channels are unavailable. Review the cited limitations.")}
+                  {t("Some evidence was unavailable at the selected time. Open the cited posts before relying on this answer.")}
                 </p>
               ) : null}
             </aside>
@@ -5381,8 +5389,8 @@ export function AskAgentPanel({
             <PublicClaimVerification claims={answer.external_claims ?? []} />
           </SurfaceBoundary>
           {answer.delivery ? (
-            <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
-              <h4>{t("Report · alert · MCP")}</h4>
+            <aside className="ask-delivery" aria-label={t("Reports and evidence alerts")}>
+              <h4>{t("Reports and evidence alerts")}</h4>
               <p>
                 {tf("{count} evidence documents are linked to this report.", {
                   count: answer.delivery.report.source_documents.length,
@@ -5391,7 +5399,6 @@ export function AskAgentPanel({
                   ? ` ${t("You can subscribe to evidence-change alerts.")}`
                   : ` ${t("Connect evidence to enable change-alert subscriptions.")}`}
               </p>
-              <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
             </aside>
           ) : null}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
