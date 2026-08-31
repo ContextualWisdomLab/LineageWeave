@@ -4875,6 +4875,11 @@ describe("App, authenticated", () => {
       }),
     ).not.toHaveTextContent("ξ");
     expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: specification revision requested/i,
+      }),
+    ).not.toHaveTextContent(/leftover map comparison leftover pair leftover-map criterion/i);
+    expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
@@ -4943,6 +4948,21 @@ describe("App, authenticated", () => {
         name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
+    expect(
+      screen.getByLabelText(
+        "leftover map comparison leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toHaveTextContent(
+      "leftover map comparison leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)",
+    );
+    expect(
+      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (+0.50, −0.02)"),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",

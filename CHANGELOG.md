@@ -9,6 +9,30 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption leftover-map comparison leftover-pair leftover-map
+  criterion with persisted leftover-map item coordinates through leftoverMapCompareListCriterionBadge
+  independently of leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates (ADR 0342 / v2.99.0). After `make seed`,
+  leftover-map comparison leftover-pair leftover-map criterion name persisted leftover-map
+  item coordinates when leftoverMapCompareListCriterionBadge returns a usable leftover-map comparison leftover-pair leftover-map criterion
+  leftover-map item coordinate caption; click a leftover pair or a leftover-map post marker
+  opens that post. A missing or non-finite leftover-map item coordinate pair omits that leftover-map
+  comparison leftover-pair leftover-map criterion leftover-map item coordinate caption.
+  Rank-0 unused axes still name leftover-map item coordinates `(0.00, 0.00)`. Leftover-map comparison leftover-pair leftover-map
+  criterion stay
+  `leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}`
+  when leftover-map item coordinates are finite so they stay distinct from leftover-map pair leftover-map criterion leftover-map item coordinates
+  `leftover pair leftover-map criterion {label} at ζ {item}`, leftover-map graphic leftover-map criterion markers
+  `leftover-map criterion {label} at ζ {item}`, leftover-map comparison graphic leftover-map criterion markers
+  `leftover map comparison graphic leftover-map criterion {label} at ζ {item}`, and leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates
+  `leftover map comparison leftover pair leftover-map post {title} at ξ {person}`. Do not invent leftover-map
+  item coordinates from leftover-map person coordinates `ξ`. Do not invent leftover-map person coordinates `ξ` from leftover-map
+  item coordinates `ζ`. This increment does not change leftover-map pair leftover-map
+  post leftover-map person coordinates, leftover-map pair leftover-map criterion leftover-map item coordinates, leftover-map comparison leftover-pair leftover-map
+  post leftover-map person coordinates, leftover-map graphic leftover-map
+  post markers, leftover-map comparison graphic leftover-map post markers, leftover-map graphic leftover-map criterion markers, leftover-map comparison graphic leftover-map criterion markers, leftover-axis ticks, leftover-map graphic leftover-map axis ticks,
+  leftover-map comparison leftover-axis ticks, or leftover-map comparison graphic leftover-map axis ticks. A finite negative leftover
+  is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map comparison leftover-pair leftover-map
   post with persisted leftover-map person coordinates through leftoverMapCompareListPostBadge
   independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates (ADR 0341 / v2.98.0). After `make seed`,
   leftover-map comparison leftover-pair leftover-map post name persisted leftover-map

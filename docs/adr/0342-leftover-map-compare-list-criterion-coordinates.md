@@ -1,14 +1,13 @@
-# ADR 0341 — Name leftover-map person coordinates on leftover-map comparison leftover pair leftover-map post independently of leftover-map comparison leftover pair leftover-map criterion leftover-map item coordinates
+# ADR 0342 — Name leftover-map item coordinates on leftover-map comparison leftover pair leftover-map criterion independently of leftover-map comparison leftover pair leftover-map post leftover-map person coordinates
 
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
-**Amended by:** [ADR 0342](0342-leftover-map-compare-list-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map comparison leftover pair leftover-map criterion independently of leftover-map comparison leftover pair leftover-map post leftover-map person coordinates)
-
 Amends leftover-map coordinates
 ([ADR 0267](0267-leftover-map-coordinates.md)) and leftover-map coordinates on grouping comparison strip pair rows
 ([ADR 0302](0302-leftover-map-compare-coordinates.md)). Independent of leftover-map
+person coordinates on leftover-map comparison leftover pair leftover-map post independently of leftover-map comparison leftover pair leftover-map criterion leftover-map item coordinates
+([ADR 0341](0341-leftover-map-compare-list-post-coordinates.md)). Independent of leftover-map
 item coordinates on leftover-map pair leftover-map criterion independently of leftover-map pair leftover-map post leftover-map person coordinates
 ([ADR 0340](0340-leftover-map-list-criterion-coordinates.md)). Independent of leftover-map
 pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map criterion leftover-map item coordinates
@@ -32,43 +31,48 @@ ADR 0267 already persists two-axis Gabriel person coordinates
 auditable. ADR 0302 already names leftover-map coordinates on grouping
 comparison leftover-pair buttons through `formatLeftoverMapCoordinates`,
 which requires both leftover-map person coordinates `ξ` and leftover-map
-item coordinates `ζ`. ADR 0339 already names leftover-map pair leftover-map
+item coordinates `ζ`. ADR 0341 already names leftover-map comparison leftover-pair leftover-map
 post leftover-map person coordinates
-`leftover pair leftover-map post {title} at ξ {person}`
-independently of leftover-map pair leftover-map criterion leftover-map
-item coordinates. Grouping comparison leftover-pair leftover-map post leftover-map
-person coordinates still interpolate leftover-map person coordinates only through
-`formatLeftoverMapCoordinates`. A missing or non-finite leftover-map comparison leftover-pair leftover-map criterion leftover-map
-item coordinate pair hides leftover-map comparison leftover-pair leftover-map post leftover-map
-person coordinates. Rank-0 unused axes still persist leftover-map
-person coordinates `(0.00, 0.00)`. A finite negative leftover is shown, never
-clamped. Do not invent leftover-map person coordinates from leftover-map item
-coordinates `ζ`. Do not invent leftover-map item coordinates `ζ` from leftover-map
-person coordinates `ξ`. Leftover-map pair leftover-map post leftover-map person coordinates stay
-`leftover pair leftover-map post {title} at ξ {person}`
-this increment. Leftover-map graphic leftover-map post markers stay
-`Open leftover-map post {title} at ξ {person}`
-this increment. Leftover-map comparison graphic leftover-map post markers stay
-`Open leftover map comparison graphic leftover-map post {title} at ξ {person}`
+`leftover map comparison leftover pair leftover-map post {title} at ξ {person}`
+independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map
+item coordinates. Grouping comparison leftover-pair leftover-map criterion leftover-map
+item coordinates still interpolate leftover-map item coordinates only through
+`formatLeftoverMapCoordinates`. A missing or non-finite leftover-map comparison leftover-pair leftover-map post leftover-map
+person coordinate pair hides leftover-map comparison leftover-pair leftover-map criterion leftover-map
+item coordinates. Rank-0 unused axes still persist leftover-map
+item coordinates `(0.00, 0.00)`. A finite negative leftover is shown, never
+clamped. Do not invent leftover-map item coordinates from leftover-map person
+coordinates `ξ`. Do not invent leftover-map person coordinates `ξ` from leftover-map
+item coordinates `ζ`. Leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates stay
+`leftover map comparison leftover pair leftover-map post {title} at ξ {person}`
+this increment. Leftover-map pair leftover-map criterion leftover-map item coordinates stay
+`leftover pair leftover-map criterion {label} at ζ {item}`
+this increment. Leftover-map graphic leftover-map criterion markers stay
+`leftover-map criterion {label} at ζ {item}`
+this increment. Leftover-map comparison graphic leftover-map criterion markers stay
+`leftover map comparison graphic leftover-map criterion {label} at ζ {item}`
 this increment.
 
-This increment names leftover-map comparison leftover-pair leftover-map post leftover-map
-person coordinates as leftoverMapCompareListPostBadge, matching leftover-map
-pair leftover-map post leftover-map person coordinates independently of leftover-map
-comparison leftover-pair leftover-map criterion leftover-map item coordinates. Leftover-map comparison leftover-pair leftover-map
-post leftover-map person coordinates stay
-`leftover map comparison leftover pair leftover-map post {title} at ξ {person}`
-when leftover-map person coordinates are finite, so they stay distinct from leftover-map
-pair leftover-map post leftover-map person coordinates
-`leftover pair leftover-map post {title} at ξ {person}`,
-leftover-map graphic leftover-map post markers
-`Open leftover-map post {title} at ξ {person}`,
-and leftover-map comparison graphic leftover-map post markers
-`Open leftover map comparison graphic leftover-map post {title} at ξ {person}`.
+This increment names leftover-map comparison leftover-pair leftover-map criterion leftover-map
+item coordinates as leftoverMapCompareListCriterionBadge, matching leftover-map
+pair leftover-map criterion leftover-map item coordinates independently of leftover-map
+comparison leftover-pair leftover-map post leftover-map person coordinates. Leftover-map comparison leftover-pair leftover-map
+criterion leftover-map item coordinates stay
+`leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}`
+when leftover-map item coordinates are finite, so they stay distinct from leftover-map
+pair leftover-map criterion leftover-map item coordinates
+`leftover pair leftover-map criterion {label} at ζ {item}`,
+leftover-map graphic leftover-map criterion markers
+`leftover-map criterion {label} at ζ {item}`,
+leftover-map comparison graphic leftover-map criterion markers
+`leftover map comparison graphic leftover-map criterion {label} at ζ {item}`,
+and leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates
+`leftover map comparison leftover pair leftover-map post {title} at ξ {person}`.
 It does not add columns. Do not invent a leftover score. Do not invent a theta.
 
-This protected increment uses **0341** so it does not collide with leftover-map
-item coordinates on leftover-map pair leftover-map criterion independently of leftover-map pair leftover-map post leftover-map person coordinates
+This protected increment uses **0342** so it does not collide with leftover-map
+person coordinates on leftover-map comparison leftover pair leftover-map post independently of leftover-map comparison leftover pair leftover-map criterion leftover-map item coordinates
+(0341), leftover-map item coordinates on leftover-map pair leftover-map criterion independently of leftover-map pair leftover-map post leftover-map person coordinates
 (0340), leftover-map pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map criterion leftover-map item coordinates
 (0339), leftover-map graphic leftover-map post leftover-map person coordinates independently of leftover-map comparison graphic leftover-map post markers
 (0338), leftover-map comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates
@@ -79,19 +83,19 @@ item coordinates on leftover-map pair leftover-map criterion independently of le
 
 ## Decision
 
-On leftover-map comparison leftover-pair leftover-map post, caption leftover-map
-person coordinates `ξ_{1:2}` when leftoverMapCompareListPostBadge
-returns a usable leftover-map comparison leftover-pair leftover-map post leftover-map person coordinate caption.
-A missing or non-finite leftover-map person coordinate pair omits that leftover-map
-comparison leftover-pair leftover-map post leftover-map person coordinate caption and keeps
-`Open leftover {kind} pair from comparison: {title} · {criterion}`. Rank-0 unused axes still name leftover-map
-person coordinates `(0.00, 0.00)`. Click a leftover pair or a leftover-map
-post marker to open that post. Criterion markers are not post buttons.
+On leftover-map comparison leftover-pair leftover-map criterion, caption leftover-map
+item coordinates `ζ_{1:2}` when leftoverMapCompareListCriterionBadge
+returns a usable leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinate caption.
+A missing or non-finite leftover-map item coordinate pair omits that leftover-map
+comparison leftover-pair leftover-map criterion leftover-map item coordinate caption. Rank-0 unused axes still name leftover-map
+item coordinates `(0.00, 0.00)`. Click a leftover pair or a leftover-map
+post marker to open that post. Criterion captions are not post buttons.
 
-Leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates omit
-independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map item
+Leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates omit
+independently of leftover-map comparison leftover-pair leftover-map post leftover-map person
 coordinates. This increment does not change leftover-map pair leftover-map
-post leftover-map person coordinates, leftover-map pair leftover-map criterion leftover-map item coordinates, leftover-map graphic leftover-map
+post leftover-map person coordinates, leftover-map pair leftover-map criterion leftover-map item coordinates, leftover-map comparison leftover-pair leftover-map
+post leftover-map person coordinates, leftover-map graphic leftover-map
 post markers, leftover-map comparison graphic leftover-map
 post markers, leftover-map graphic leftover-map criterion markers,
 leftover-map comparison graphic leftover-map criterion markers,
@@ -104,15 +108,17 @@ score. Do not invent a theta.
 
 ## Consequences
 
-After `make seed`, leftover-map comparison leftover-pair leftover-map post name persisted
-leftover-map person coordinates when leftoverMapCompareListPostBadge returns a usable
-leftover-map comparison leftover-pair leftover-map post leftover-map person coordinate caption; click a leftover pair
+After `make seed`, leftover-map comparison leftover-pair leftover-map criterion name persisted
+leftover-map item coordinates when leftoverMapCompareListCriterionBadge returns a usable
+leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinate caption; click a leftover pair
 or a leftover-map post marker opens that post. Hidden posts stay hidden. Rank-0 unused
-axes still name leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates
-`(0.00, 0.00)`. Leftover-map pair leftover-map post leftover-map person coordinates stay
-`leftover pair leftover-map post {title} at ξ {person}`. Leftover-map graphic leftover-map post markers stay
-`Open leftover-map post {title} at ξ {person}`. Leftover-map comparison graphic leftover-map post markers stay
-`Open leftover map comparison graphic leftover-map post {title} at ξ {person}`. Leftover-map pair leftover-map criterion leftover-map item coordinates independently of leftover-map
+axes still name leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates
+`(0.00, 0.00)`. Leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates stay
+`leftover map comparison leftover pair leftover-map post {title} at ξ {person}`. Leftover-map pair leftover-map criterion leftover-map item coordinates stay
+`leftover pair leftover-map criterion {label} at ζ {item}`. Leftover-map graphic leftover-map criterion markers stay
+`leftover-map criterion {label} at ζ {item}`. Leftover-map comparison graphic leftover-map criterion markers stay
+`leftover map comparison graphic leftover-map criterion {label} at ζ {item}`. Leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates independently of leftover-map
+comparison leftover-pair leftover-map criterion leftover-map item coordinates (ADR 0341), leftover-map pair leftover-map criterion leftover-map item coordinates independently of leftover-map
 pair leftover-map post leftover-map person coordinates (ADR 0340), leftover-map pair leftover-map post leftover-map person coordinates independently of leftover-map
 pair leftover-map criterion leftover-map item coordinates (ADR 0339), leftover-map graphic leftover-map post leftover-map person coordinates independently of leftover-map
 comparison graphic leftover-map post markers (ADR 0338), leftover-map comparison graphic leftover-map post leftover-map person coordinates independently of leftover-map
@@ -123,7 +129,9 @@ coordinates (ADR 0267), and leftover-map coordinates on grouping comparison stri
 
 ## Related
 
-Independent of leftover-map item coordinates on leftover-map pair leftover-map criterion independently of leftover-map
+Independent of leftover-map person coordinates on leftover-map comparison leftover pair leftover-map post independently of leftover-map
+comparison leftover pair leftover-map criterion leftover-map item coordinates
+([ADR 0341](0341-leftover-map-compare-list-post-coordinates.md)). Independent of leftover-map item coordinates on leftover-map pair leftover-map criterion independently of leftover-map
 pair leftover-map post leftover-map person coordinates
 ([ADR 0340](0340-leftover-map-list-criterion-coordinates.md)). Independent of leftover-map pair leftover-map post leftover-map person coordinates independently of leftover-map
 pair leftover-map criterion leftover-map item coordinates

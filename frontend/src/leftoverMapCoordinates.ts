@@ -17,6 +17,9 @@ export const LEFTOVER_MAP_LIST_CRITERION =
 export const LEFTOVER_MAP_COMPARE_LIST_POST_ACTION =
   "leftover map comparison leftover pair leftover-map post {title} at ξ {person}";
 
+export const LEFTOVER_MAP_COMPARE_LIST_CRITERION =
+  "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}";
+
 const PERSON_BADGE = "\u03BE";
 const ITEM_BADGE = "\u03B6";
 
@@ -96,4 +99,17 @@ export function leftoverMapCompareListPostBadge(
     return null;
   }
   return { key: LEFTOVER_MAP_COMPARE_LIST_POST_ACTION, values: { title, person } };
+}
+
+/** ADR 0342 leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates ζ. */
+export function leftoverMapCompareListCriterionBadge(
+  label: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapListCriterionBadge | null {
+  const item = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (item === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_COMPARE_LIST_CRITERION, values: { label, item } };
 }

@@ -186,6 +186,7 @@ import {
 } from "./leftoverMapRank";
 import {
   formatLeftoverMapCoordinates,
+  leftoverMapCompareListCriterionBadge,
   leftoverMapCompareListPostBadge,
   LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
 } from "./leftoverMapCoordinates";
@@ -4227,6 +4228,11 @@ function ReportsPanel({
                       pair.leftover_map_person_axis_1,
                       pair.leftover_map_person_axis_2,
                     );
+                    const listCriterionBadge = leftoverMapCompareListCriterionBadge(
+                      criterion,
+                      pair.leftover_map_item_axis_1,
+                      pair.leftover_map_item_axis_2,
+                    );
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4335,6 +4341,14 @@ function ReportsPanel({
                               aria-label={t(LEFTOVER_MAP_COMPARE_COORDINATES_LABEL)}
                             >
                               {coordinates}
+                            </span>
+                          ) : null}
+                          {listCriterionBadge ? (
+                            <span
+                              className="post-badge"
+                              aria-label={tf(listCriterionBadge.key, listCriterionBadge.values)}
+                            >
+                              {tf(listCriterionBadge.key, listCriterionBadge.values)}
                             </span>
                           ) : null}
                         </button>
