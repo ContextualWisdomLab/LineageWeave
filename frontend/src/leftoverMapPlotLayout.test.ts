@@ -393,6 +393,34 @@ describe("layoutLeftoverMapPlot", () => {
     );
   });
 
+  it("keeps complete caption stacks inside top and bottom plot edges", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: -1,
+          leftover_map_person_axis_2: -1,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: -1,
+        }),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 1,
+          leftover_map_item_axis_1: -1,
+          leftover_map_item_axis_2: 1,
+        }),
+      ],
+      criterionLabel,
+    );
+
+    for (const segment of layout?.segments ?? []) {
+      expect(segment.labelY).toBeGreaterThanOrEqual(12);
+      expect(segment.explainedShareY).toBeLessThanOrEqual((layout?.height ?? 0) - 4);
+    }
+  });
+
   it("omits a leftover-map explained leftover share caption when e is missing or non-finite", () => {
     const layout = layoutLeftoverMapPlot(
       [

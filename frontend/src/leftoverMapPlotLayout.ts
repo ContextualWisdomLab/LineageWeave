@@ -39,6 +39,8 @@ const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
 const SEGMENT_LABEL_OFFSET = 24;
 const RECONSTRUCTION_LABEL_OFFSET = 12;
+const SEGMENT_LABEL_TOP_INSET = 12;
+const SEGMENT_LABEL_BOTTOM_INSET = 4;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
@@ -321,12 +323,23 @@ export function layoutLeftoverMapPlot(
       itemPos.x,
       itemPos.y,
     );
+    const captionCount = [distanceLabel, reconstructionLabel, explainedShareLabel].filter(
+      (label) => label !== null,
+    ).length;
+    const maximumLabelY =
+      height -
+      SEGMENT_LABEL_BOTTOM_INSET -
+      Math.max(0, captionCount - 1) * RECONSTRUCTION_LABEL_OFFSET;
+    const labelY = Math.min(
+      Math.max(labelPosition.labelY, SEGMENT_LABEL_TOP_INSET),
+      maximumLabelY,
+    );
     const reconstructionY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
     );
     const explainedShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
     );
     segments.push({
@@ -345,6 +358,7 @@ export function layoutLeftoverMapPlot(
       explainedShareX: labelPosition.labelX,
       explainedShareY,
       ...labelPosition,
+      labelY,
     });
   }
 
