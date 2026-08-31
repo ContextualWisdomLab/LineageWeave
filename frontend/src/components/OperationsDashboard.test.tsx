@@ -22,6 +22,9 @@ beforeEach(() => {
 
 const data: OperationsDashboardResponse = {
   period_label: "2026-08-01–2026-08-25 · Event time",
+  period_start: "2026-08-01",
+  period_end: "2026-08-25",
+  period_time_axis_code: "event_occurred_at",
   total_post_count: 20,
   total_event_count: 8,
   external_post_count: 5,

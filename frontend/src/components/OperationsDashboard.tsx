@@ -89,6 +89,18 @@ function controlledLabel(code: string, fallback: string, labels: Record<string, 
   return t(labels[code] ?? fallback);
 }
 
+function dashboardPeriodLabel(data: OperationsDashboardResponse): string {
+  const period = data.period_start && data.period_end
+    ? tf("{start}–{end}", { start: data.period_start, end: data.period_end })
+    : data.period_start
+      ? tf("{start} or later", { start: data.period_start })
+      : data.period_end
+        ? tf("Through {end}", { end: data.period_end })
+        : t("All periods");
+  const axis = timeAxisLabels[data.period_time_axis_code ?? "event_occurred_at"];
+  return `${period} · ${t(axis)}`;
+}
+
 type Props = {
   accessToken: string;
   externalOnly?: boolean;
@@ -178,7 +190,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
   return (
     <section className="operations-dashboard" aria-labelledby="dashboard-heading">
       <header className="operations-dashboard-heading">
-        <div><p className="dashboard-eyebrow">{data.period_label}</p><h2 id="dashboard-heading">{t(externalOnly ? "External information" : "Operations evidence dashboard")}</h2></div>
+        <div><p className="dashboard-eyebrow">{dashboardPeriodLabel(data)}</p><h2 id="dashboard-heading">{t(externalOnly ? "External information" : "Operations evidence dashboard")}</h2></div>
         <p>{t("Select a value, then open its source post to confirm the next action.")}</p>
       </header>
       <dl className="dashboard-metrics">

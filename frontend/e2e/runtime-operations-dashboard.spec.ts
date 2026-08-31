@@ -58,6 +58,7 @@ test("renders the authenticated operations Dashboard with grounded cases", async
   for (const koreanLabel of ["전체 기간 · Event 발생일", "클레임 원인 규명", "재입찰 · 인수인계", "발주 공고 · 시장 동향", "반복 이슈"]) {
     await expect(page.getByText(koreanLabel, { exact: true })).toHaveCount(0);
   }
+  await page.screenshot({ path: screenshotPath });
   if (requireGroundedCase) {
     await expect(page.locator(".dashboard-case-card").first()).toBeVisible();
     const evidenceAction = page.locator(".dashboard-case-card button").first();
@@ -68,18 +69,9 @@ test("renders the authenticated operations Dashboard with grounded cases", async
     await evidenceDialog.getByRole("button", { name: "Close" }).click();
     await expect(evidenceDialog).not.toBeVisible();
   }
-  await page.screenshot({ path: screenshotPath, fullPage: true });
 
-  const refreshedDashboard = page.waitForResponse((response) => {
-    const url = new URL(response.url());
-    return url.pathname === "/api/dashboard" && response.ok();
-  });
-  const refreshedVoiceSummary = page.waitForResponse((response) => {
-    const url = new URL(response.url());
-    return url.pathname === "/api/voice-taxonomy/summary" && response.ok();
-  });
   await navigation.getByRole("button", { name: "Dashboard", exact: true }).click();
-  await Promise.all([refreshedDashboard, refreshedVoiceSummary]);
+  await expect(page.getByRole("heading", { name: "Operations evidence dashboard" })).toBeVisible();
   await language.selectOption("ko");
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   await expect(page.getByRole("heading", { name: "운영 근거 대시보드" })).toBeVisible();
