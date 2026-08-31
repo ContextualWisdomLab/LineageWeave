@@ -96,16 +96,16 @@ function leftoverMapPlotAxisText(
     if (singular === null && percent === null) {
       return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
     }
-    if (singular === null) {
+    if (singular === null && percent !== null) {
       return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
     }
-    if (percent === null) {
+    if (singular !== null && percent === null) {
       return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
     }
     return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE, {
       axis: axisIndex,
-      value: singular,
-      share: percent,
+      value: singular as string,
+      share: percent as string,
     });
   }
   if (percent === null) {
@@ -206,7 +206,9 @@ function leftoverMapPlotAxisText(
  * comparison graphic from already-named leftover-map axes
  * with distinct leftover map comparison graphic leftover-map axis σ
  * labels. ADR 0322 captions leftover-axis report badges with persisted
- * leftover-map singular values, not this graphic.
+ * leftover-map singular values, not this graphic. ADR 0323 captions leftover-axis
+ * report badges on the grouping comparison strip with persisted leftover-map
+ * singular values, not this graphic.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({

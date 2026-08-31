@@ -108,6 +108,11 @@ describe("i18n", () => {
     "leftover map comparison graphic leftover-map axis {axis} tick {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value}",
     "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)",
+    "leftover map comparison leftover axis {axis} σ {value}",
+    "leftover map comparison leftover axis {axis} σ {value} {share}%",
+    "leftover map comparison leftover axis {axis} {share}%",
+    "Leftover map comparison leftover axis",
+    "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
     "Leftover map comparison coordinates",
     "Leftover map comparison graphic",
     "Leftover map comparison",
@@ -739,6 +744,43 @@ describe("i18n", () => {
       tf("leftover axis {axis} σ {value} {share}%", { axis: 1, value: "1.84", share: "82" }),
     ).toBe(expected);
   });
+
+  it.each([
+    ["ko", "잔여 지도 비교 잔차 축 1 σ 1.84"],
+    ["zh", "残差地图比较残差轴 1 σ 1.84"],
+    ["ja", "残差マップの比較残差軸 1 σ 1.84"],
+    ["vi", "trục phần dư so sánh bản đồ phần dư 1 σ 1.84"],
+  ] as const)(
+    "formats leftover map comparison leftover-axis singular values in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison leftover axis {axis} σ {value}", {
+          axis: 1,
+          value: "1.84",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 잔차 축 1 σ 1.84 82%"],
+    ["zh", "残差地图比较残差轴 1 σ 1.84 82%"],
+    ["ja", "残差マップの比較残差軸 1 σ 1.84 82%"],
+    ["vi", "trục phần dư so sánh bản đồ phần dư 1 σ 1.84 82%"],
+  ] as const)(
+    "formats leftover map comparison leftover-axis singular share in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison leftover axis {axis} σ {value} {share}%", {
+          axis: 1,
+          value: "1.84",
+          share: "82",
+        }),
+      ).toBe(expected);
+    },
+  );
 
   it.each([
     ["ko", "잔여 지도 비교 설명 잔여 점유율"],
