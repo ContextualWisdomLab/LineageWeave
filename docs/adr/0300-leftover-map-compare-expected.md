@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0317](0317-leftover-map-compare-plot-expected.md)
+(leftover expected on the grouping comparison leftover-map graphic)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover observed `Y` /
 expected `E` ([ADR 0163](0163-leftover-observed-expected.md)), leftover expected on

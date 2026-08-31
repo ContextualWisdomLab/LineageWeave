@@ -43,8 +43,9 @@
  *  unexplained leftover share on that graphic (ADR 0312), grouping comparison leftover-map
  *  cross share on that graphic (ADR 0313), grouping comparison leftover-map
  *  unexplained leftover on that graphic (ADR 0314), grouping comparison leftover
- *  residual on that graphic (ADR 0315), and grouping comparison leftover
- *  observed on that graphic (ADR 0316) caption the pair list or the grouping comparison
+ *  residual on that graphic (ADR 0315), grouping comparison leftover
+ *  observed on that graphic (ADR 0316), and grouping comparison leftover
+ *  expected on that graphic (ADR 0317) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -66,6 +67,8 @@
  *  already-named leftover residual.
  *  ADR 0316 captions leftover observed on that comparison graphic from already-named
  *  leftover observed.
+ *  ADR 0317 captions leftover expected on that comparison graphic from already-named
+ *  leftover expected.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -138,6 +141,8 @@ export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED } from "./leftoverObservedEx
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_EXPECTED =
   "leftover expected {label}";
+
+export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED } from "./leftoverObservedExpected";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_RANK =
   "leftover-map rank {label}";
