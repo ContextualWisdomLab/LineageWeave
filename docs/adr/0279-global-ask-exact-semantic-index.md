@@ -31,6 +31,9 @@ post-authorization without approximating or dropping evidence.
    the set-based refresh function. Delete and rebuild are transactionally
    invisible to readers. A statement trigger advances one monotonic global
    projection version after projection inserts, updates, deletes, and cascades.
+   Migration replay bootstraps all existing embeddings only while the
+   projection is empty; an already-maintained projection is not repacked or
+   version-advanced merely because the idempotent migration runs at startup.
 3. A cold worker or changed projection loads the ordered rows once, verifies
    every persisted row digest, concatenates the packed bytes, and asks
    RankWeave to build a complete immutable snapshot. It accepts the snapshot
@@ -68,6 +71,11 @@ post-authorization without approximating or dropping evidence.
    20-millisecond maximum. Each request repeats that check and returns no
    candidates only while both versions still match. This lets unrelated
    non-empty scopes proceed without admitting a stale or unauthorized item.
+   Preparation also includes the current-grant intersection of every queued or
+   running job's enqueue-time entity and process-unit scope. Job scope-table
+   mutations advance the authorization version, so a newly queued historical
+   scope closes readiness and is prepared before dispatch. Later grants can
+   never widen that captured scope, while revocations still narrow it.
 5. Every query supplies the
    matching immutable packed scope to RankWeave, and reauthorizes the exact
    returned identities in PostgreSQL before constructing a source. The final

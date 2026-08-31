@@ -829,10 +829,55 @@ class GlobalAskExactSemanticIndex:
                   from account_affiliation affiliation
                   join readers on readers.user_account_id = affiliation.user_account_id
                  where affiliation.process_unit_id is not null
+            ), active_job_scope as (
+                select job.global_ask_job_id,
+                       coalesce(
+                           array(
+                               select distinct captured.corporate_entity_id::text
+                                 from global_ask_job_corporate_entity_scope captured
+                                 join account_affiliation affiliation
+                                   on affiliation.corporate_entity_id =
+                                      captured.corporate_entity_id
+                                  and affiliation.user_account_id =
+                                      job.requesting_account_id
+                                where captured.global_ask_job_id =
+                                      job.global_ask_job_id
+                                order by captured.corporate_entity_id::text
+                           ),
+                           array[]::text[]
+                       ) as entity_ids,
+                       coalesce(
+                           array(
+                               select distinct captured.process_unit_id::text
+                                 from global_ask_job_process_unit_scope captured
+                                 join account_affiliation affiliation
+                                   on affiliation.process_unit_id =
+                                      captured.process_unit_id
+                                  and affiliation.user_account_id =
+                                      job.requesting_account_id
+                                where captured.global_ask_job_id =
+                                      job.global_ask_job_id
+                                order by captured.process_unit_id::text
+                           ),
+                           array[]::text[]
+                       ) as process_ids,
+                       exists (
+                           select 1
+                             from global_ask_job_process_unit_scope captured
+                            where captured.global_ask_job_id =
+                                  job.global_ask_job_id
+                       ) as process_scope_limited
+                  from global_ask_job job
+                  join readers on readers.user_account_id =
+                                  job.requesting_account_id
+                 where job.job_status_code in ('queued', 'running')
             )
             select entity_ids, process_ids, process_scope_limited from local_scope
             union
             select entity_ids, process_ids, process_scope_limited from atomic_scope
+            union
+            select entity_ids, process_ids, process_scope_limited
+              from active_job_scope
             order by process_scope_limited, entity_ids, process_ids
             """
         )

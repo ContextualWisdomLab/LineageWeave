@@ -16,6 +16,8 @@ def test_exact_authorization_version_tracks_every_scope_authority() -> None:
         "role_permission",
         "process_unit",
         "source_post",
+        "global_ask_job_corporate_entity_scope",
+        "global_ask_job_process_unit_scope",
     ):
         assert f"on {relation}" in sql
     assert "after insert or update or delete or truncate" in sql

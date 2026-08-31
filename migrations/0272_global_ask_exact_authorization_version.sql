@@ -49,4 +49,18 @@ create trigger global_ask_exact_authorization_post
 after insert or update or delete or truncate on source_post
 for each statement execute function bump_global_ask_exact_authorization_version();
 
+drop trigger if exists global_ask_exact_authorization_job_entity_scope
+    on global_ask_job_corporate_entity_scope;
+create trigger global_ask_exact_authorization_job_entity_scope
+after insert or update or delete or truncate
+    on global_ask_job_corporate_entity_scope
+for each statement execute function bump_global_ask_exact_authorization_version();
+
+drop trigger if exists global_ask_exact_authorization_job_process_scope
+    on global_ask_job_process_unit_scope;
+create trigger global_ask_exact_authorization_job_process_scope
+after insert or update or delete or truncate
+    on global_ask_job_process_unit_scope
+for each statement execute function bump_global_ask_exact_authorization_version();
+
 commit;

@@ -50,6 +50,7 @@ class _Connection:
         self.projection_version = 7
         self.authorization_version = 11
         self.authorization_queries: list[str] = []
+        self.scope_queries: list[str] = []
         self.packed_authorization = _pack_authorization(("post-a", "unit-a"))
         self.scope_rows = [
             {
@@ -85,6 +86,7 @@ class _Connection:
             return self.snapshot_rows
         if "with readers as" in query:
             assert "left join account_affiliation" in query
+            self.scope_queries.append(query)
             return self.scope_rows
         self.authorization_queries.append(query)
         if "authorized on true" in query:
@@ -433,6 +435,42 @@ def test_active_scopes_include_public_only_readers(monkeypatch, scope_rows) -> N
         assert index._scope([], [], process_scope_limited=False) in scopes
 
     asyncio.run(exercise())
+
+
+def test_active_scopes_include_effective_queued_job_scope(monkeypatch) -> None:
+    """A queued job retains its narrower captured scope after a later grant."""
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    conn.scope_rows = [
+        {
+            "entity_ids": ["entity-a", "entity-b"],
+            "process_ids": [],
+            "process_scope_limited": False,
+        },
+        {
+            "entity_ids": ["entity-a"],
+            "process_ids": [],
+            "process_scope_limited": False,
+        },
+    ]
+    index = GlobalAskExactSemanticIndex()
+
+    async def exercise() -> None:
+        scopes = await index._active_authorization_scopes(conn)
+        assert index._scope(
+            ["entity-a"], [], process_scope_limited=False
+        ) in scopes
+        assert index._scope(
+            ["entity-a", "entity-b"], [], process_scope_limited=False
+        ) in scopes
+
+    asyncio.run(exercise())
+    assert "global_ask_job_corporate_entity_scope" in conn.scope_queries[0]
+    assert "global_ask_job_process_unit_scope" in conn.scope_queries[0]
+    assert "job.job_status_code in ('queued', 'running')" in conn.scope_queries[0]
 
 
 def test_empty_authorization_scope_returns_no_candidates_with_current_versions(

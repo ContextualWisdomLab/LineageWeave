@@ -16,5 +16,7 @@ def test_exact_projection_is_digest_bound_and_replay_safe() -> None:
     assert "after insert or update or delete" in sql
     assert "refresh_post_content_embedding_exact_projection" in sql
     assert "packed.dimension_count = embedding.embedding_dimension_count" in sql
+    assert "if not exists (" in sql
+    assert "select 1 from post_content_embedding_exact_projection" in sql
     assert "ivfflat" not in sql.lower()
     assert "hnsw" not in sql.lower()

@@ -116,12 +116,20 @@ begin
 end;
 $$;
 
-select refresh_post_content_embedding_exact_projection(
-    array(
-        select post_content_embedding_id
-          from post_content_embedding
-         order by post_content_embedding_id
-    )
-);
+do $$
+begin
+    if not exists (
+        select 1 from post_content_embedding_exact_projection
+    ) then
+        perform refresh_post_content_embedding_exact_projection(
+            array(
+                select post_content_embedding_id
+                  from post_content_embedding
+                 order by post_content_embedding_id
+            )
+        );
+    end if;
+end;
+$$;
 
 commit;
