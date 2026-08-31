@@ -48,6 +48,9 @@ identifier beside the monotonic value. A probe compares counters only inside
 one identifier and atomically adopts a changed identifier. Consequently, a
 probe that read the prior files before startup cannot poison the new epoch by
 publishing its stale baseline after the worker reset.
+The Python and POSIX-shell parsers accept the same non-negative signed-64-bit
+counter domain. An existing malformed or out-of-domain heartbeat or baseline
+fails closed instead of becoming progress evidence.
 Consequently, targeted canonical startup such
 as `docker compose up backend` also starts the worker and does not expose an API
 that can accept durable jobs while no consumer exists. Non-Compose deployments

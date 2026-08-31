@@ -14,6 +14,7 @@ from backend.app import worker_health
 _SHELL_PROBE = Path(__file__).parents[1] / "backend" / "worker-healthcheck.sh"
 _OLD_EPOCH = "a" * 32
 _NEW_EPOCH = "b" * 32
+_OVERSIZED_COUNTER = 1 << 63
 
 
 def _sample(epoch: str, counter: int) -> str:
@@ -39,6 +40,21 @@ def test_malformed_heartbeat_fails_closed(tmp_path: Path) -> None:
     heartbeat.write_text("not-a-counter", encoding="ascii")
 
     assert worker_health.heartbeat_has_advanced(heartbeat, tmp_path / "state") is False
+
+
+def test_out_of_domain_heartbeat_or_baseline_fails_closed(tmp_path: Path) -> None:
+    """Counters outside the shared signed-64-bit domain are not progress."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    oversized = _sample(_NEW_EPOCH, _OVERSIZED_COUNTER)
+
+    heartbeat.write_text(oversized, encoding="ascii")
+    assert worker_health.heartbeat_has_advanced(heartbeat, state) is False
+
+    heartbeat.write_text(_sample(_NEW_EPOCH, 2), encoding="ascii")
+    state.write_text(oversized, encoding="ascii")
+    assert worker_health.heartbeat_has_advanced(heartbeat, state) is False
+    assert state.read_text(encoding="ascii") == oversized
 
 
 def test_heartbeat_records_before_first_sleep(
@@ -137,8 +153,27 @@ def test_shell_probe_rejects_malformed_or_regressed_heartbeat(tmp_path: Path) ->
     for value in (
         "not-a-counter\n",
         "1\n",
+        _sample(_NEW_EPOCH, _OVERSIZED_COUNTER),
         _sample(_NEW_EPOCH, 1),
     ):
         heartbeat.write_text(value, encoding="ascii")
         result = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
         assert result.returncode != 0
+
+
+def test_shell_probe_rejects_out_of_domain_baseline(tmp_path: Path) -> None:
+    """An oversized stored counter cannot be adopted as a healthy baseline."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+    heartbeat.write_text(_sample(_NEW_EPOCH, 2), encoding="ascii")
+    state.write_text(_sample(_NEW_EPOCH, _OVERSIZED_COUNTER), encoding="ascii")
+
+    result = subprocess.run(
+        ["/bin/sh", _SHELL_PROBE, heartbeat, state],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert result.stderr == ""

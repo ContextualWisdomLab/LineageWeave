@@ -11,6 +11,7 @@ import uuid
 HEARTBEAT_PATH = Path("/tmp/lineageweave-worker-heartbeat")
 HEALTHCHECK_STATE_PATH = Path("/tmp/lineageweave-worker-healthcheck-state")
 _SAMPLE_VERSION = "v1"
+_MAX_MONOTONIC_COUNTER = (1 << 63) - 1
 
 
 def _parse_sample(value: str) -> tuple[str, int] | None:
@@ -25,7 +26,12 @@ def _parse_sample(value: str) -> tuple[str, int] | None:
         or not counter_text.isdecimal()
     ):
         return None
-    return epoch, int(counter_text)
+    if len(counter_text) > 19:
+        return None
+    counter = int(counter_text)
+    if counter > _MAX_MONOTONIC_COUNTER:
+        return None
+    return epoch, counter
 
 
 def record_worker_heartbeat(path: Path = HEARTBEAT_PATH, *, epoch: str) -> None:
@@ -68,13 +74,13 @@ def heartbeat_has_advanced(
     current = _parse_sample(current_text)
     if current is None:
         return False
-    previous: tuple[str, int] | None = None
     try:
         previous = _parse_sample(state_path.read_text(encoding="ascii"))
     except FileNotFoundError:
-        # A missing or malformed probe state is an absent prior baseline. The
-        # current worker heartbeat becomes the next probe's baseline below.
         previous = None
+    else:
+        if previous is None:
+            return False
     temporary = state_path.with_suffix(".tmp")
     temporary.write_text(current_text, encoding="ascii")
     temporary.replace(state_path)
