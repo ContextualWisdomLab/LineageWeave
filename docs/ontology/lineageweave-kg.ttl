@@ -367,7 +367,27 @@
 # combination. Additional assignments use prov:wasDerivedFrom to retain their
 # evidence lineage.
 :VoiceAssignment a owl:Class ;
-    rdfs:subClassOf prov:Entity ;
+    rdfs:subClassOf prov:Entity,
+        [ a owl:Restriction ;
+          owl:onProperty :assignedVoiceType ;
+          owl:allValuesFrom [
+              a owl:Class ;
+              owl:oneOf (
+                  :voiceOfCustomerType
+                  :voiceOfCustomersCustomerType
+                  :voiceOfCompetitorType
+                  :voiceOfMarketType
+                  :voiceOfPartnerType
+                  :voiceOfSupplierType
+                  :voiceOfEmployeeType
+                  :voiceOfBusinessType
+                  :voiceOfRegulatorType
+                  :voiceOfInvestorType
+                  :voiceOfSocietyType
+                  :voiceOfProcessType
+              )
+          ]
+        ] ;
     rdfs:label "Voice assignment"@en ;
     rdfs:comment "One atomic Voice-of-X classification attached to a post with its own truth and provenance contract."@en .
 
@@ -392,6 +412,11 @@
     rdfs:range :Post ;
     rdfs:label "voice assignment evidence"@en ;
     rdfs:comment "The authorized source post that supports this qualified voice assignment."@en .
+
+:truthStatus a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "truth status"@en ;
+    rdfs:comment "The governed ontology truth state carried by nodes, reified edges, and qualified Voice assignments; no domain is declared because these are distinct resource kinds."@en .
 
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
@@ -623,15 +648,21 @@
     rdfs:label "Evidence-bound product relation"@en .
 
 :concernsProduct a owl:ObjectProperty ;
-    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product ;
+    rdfs:label "concerns product"@en .
 :changesProduct a owl:ObjectProperty ;
-    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product ;
+    rdfs:label "changes product"@en .
 :originatesFromProduct a owl:ObjectProperty ;
-    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product ;
+    rdfs:label "originates from product"@en .
 :sensesProduct a owl:ObjectProperty ;
-    rdfs:domain :OperationsCaseFact ; rdfs:range :Product .
+    rdfs:domain :OperationsCaseFact ; rdfs:range :Product ;
+    rdfs:label "senses product"@en ;
+    rdfs:comment "An evidence-bound external-sensing fact concerns the identified product; the relation does not arise from lexical overlap."@en .
 :usesProduct a owl:ObjectProperty ;
-    rdfs:domain :Project ; rdfs:range :Product .
+    rdfs:domain :Project ; rdfs:range :Product ;
+    rdfs:label "uses product"@en .
 :productRelationEvidence a owl:DatatypeProperty ;
     rdfs:domain :ProductRelationAssertion ; rdfs:range xsd:string .
 

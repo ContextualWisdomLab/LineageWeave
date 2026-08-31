@@ -53,7 +53,11 @@ compound lookup codes.
   a voice.
 - The public ontology represents each row as a qualified `VoiceAssignment`
   linked from its post. Each assignment names one atomic SKOS voice concept;
-  additional assignments retain evidence through `prov:wasDerivedFrom`.
+  closed-world SHACL admits only the twelve canonical concepts in
+  `postTypeScheme`, not an arbitrary SKOS concept. Additional assignments
+  retain the same authorized evidence Post through both the explicit Voice
+  evidence property and `prov:wasDerivedFrom`; SHACL requires those source
+  links to agree.
 - Authorized post list/detail responses expose ordered voice assignments with
   labels, truth state, and evidence availability but never internal assertion
   identifiers. Filters match any associated voice, and repeated post cards show

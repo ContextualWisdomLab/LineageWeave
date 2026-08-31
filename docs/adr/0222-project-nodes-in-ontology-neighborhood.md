@@ -51,6 +51,9 @@ API, and UI.
    subject/predicate/object chain, evidence, confidence, creation time, and
    PROV derivation. It performs no database access and creates no mutable RDF
    store; callers must still apply authorization before supplying a row.
+   Closed-world SHACL requires those evidence, confidence, creation-time, and
+   same-source PROV fields so a hand-authored or downstream projection cannot
+   silently discard the source binding preserved by the production projector.
 
 ## Consequences
 

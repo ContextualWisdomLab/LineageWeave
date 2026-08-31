@@ -155,6 +155,7 @@
         sh:path :semanticConfidence ;
         sh:name "semantic confidence" ;
         sh:description "Extraction confidence stays inside [0.0, 1.0] inclusive." ;
+        sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:decimal ;
         sh:minInclusive 0.0 ;
@@ -163,9 +164,31 @@
     sh:property [
         sh:path :projectEvidence ;
         sh:name "project evidence" ;
-        sh:description "At most one verbatim evidence span per mention; missing evidence is an honest unknown, never zero-filled." ;
+        sh:description "Every projected mention retains its one verbatim source span." ;
+        sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
+        sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:name "project mention source" ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path prov:generatedAtTime ;
+        sh:name "project mention recorded at" ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Project mention provenance must identify the same Post as rdf:subject." ;
+        sh:select """
+            SELECT $this WHERE {
+                $this rdf:subject ?post ; prov:wasDerivedFrom ?source .
+                FILTER (?post != ?source)
+            }
+        """ ;
     ] .
 
 :VoiceAssignmentShape a sh:NodeShape ;
@@ -177,7 +200,13 @@
         sh:description "Every qualified assignment names exactly one governed atomic Voice-of-X concept." ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-        sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
+        sh:in (
+            :voiceOfCustomerType :voiceOfCustomersCustomerType
+            :voiceOfCompetitorType :voiceOfMarketType :voiceOfPartnerType
+            :voiceOfSupplierType :voiceOfEmployeeType :voiceOfBusinessType
+            :voiceOfRegulatorType :voiceOfInvestorType :voiceOfSocietyType
+            :voiceOfProcessType
+        ) ;
     ] ;
     sh:property [
         sh:path :primaryVoiceAssignment ;
@@ -194,6 +223,31 @@
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:name "voice assignment provenance" ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
+    ] ;
+    sh:property [
+        sh:path :truthStatus ;
+        sh:name "voice assignment truth status" ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in (
+            "truth_authoritative" "truth_observed" "truth_inferred"
+            "truth_proposed" "truth_superseded" "truth_rejected"
+        ) ;
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Voice assignment evidence and PROV source must identify the same Post." ;
+        sh:select """
+            SELECT $this WHERE {
+                $this :voiceAssignmentEvidence ?evidence ;
+                      prov:wasDerivedFrom ?source .
+                FILTER (?evidence != ?source)
+            }
+        """ ;
     ] .
 
 :OccupationalConstructAssertionShape a sh:NodeShape ;
@@ -310,7 +364,26 @@
     ] ;
     sh:property [
         sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class :Post ;
-    ] .
+    ] ;
+    sh:or (
+        [
+            sh:property [
+                sh:path rdf:predicate ;
+                sh:in (:concernsProduct :changesProduct :originatesFromProduct :sensesProduct) ;
+            ] ;
+            sh:property [
+                sh:path rdf:subject ; sh:class :OperationsCaseFact ;
+                sh:name "operational product relation subject" ;
+            ]
+        ]
+        [
+            sh:property [ sh:path rdf:predicate ; sh:hasValue :usesProduct ] ;
+            sh:property [
+                sh:path rdf:subject ; sh:class :Project ;
+                sh:name "project product relation subject" ;
+            ]
+        ]
+    ) .
 
 :PostVoiceClassificationAssertionShape a sh:NodeShape ;
     sh:targetClass :PostVoiceClassificationAssertion ;

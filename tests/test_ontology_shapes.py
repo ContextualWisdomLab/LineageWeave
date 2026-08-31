@@ -82,6 +82,14 @@ def _representative_projection() -> Graph:
     data.add((voice_assignment, LWn.assignedVoiceType, LWn.voiceOfCustomerType))
     data.add((voice_assignment, LWn.primaryVoiceAssignment, Literal(True)))
     data.add((voice_assignment, LWn.voiceAssignmentEvidence, post))
+    data.add((voice_assignment, LWn.truthStatus, Literal("truth_observed")))
+    data.add(
+        (
+            voice_assignment,
+            Namespace("http://www.w3.org/ns/prov#").wasDerivedFrom,
+            post,
+        )
+    )
     person = URIRef(LW + "person-okonkwo")
     data.add((person, RDF.type, LWn.Person))
     data.add((person, LWn.personName, Literal("Sam Okonkwo")))
@@ -110,6 +118,15 @@ def _representative_projection() -> Graph:
         )
     )
     data.add((mention, LWn.projectEvidence, Literal("proj-alpha kickoff cited verbatim.")))
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    data.add((mention, prov.wasDerivedFrom, post))
+    data.add(
+        (
+            mention,
+            prov.generatedAtTime,
+            Literal("2026-08-25T01:24:00+00:00", datatype=XSD.dateTime),
+        )
+    )
     return data
 
 
@@ -124,6 +141,30 @@ def test_voice_assignment_requires_source_evidence() -> None:
 
     assert conforms is False
     assert "voice assignment evidence" in report.lower()
+
+
+def test_voice_assignment_rejects_non_voice_concept_and_split_provenance() -> None:
+    """Qualified Voice rows stay inside the governed scheme and one source."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    data.set((assignment, LWn.assignedVoiceType, LWn.dataSynthesizing))
+
+    conforms, report = _conforms(data)
+    assert conforms is False
+    assert "assigned voice type" in report.lower()
+
+    data.set((assignment, LWn.assignedVoiceType, LWn.voiceOfCustomerType))
+    data.set(
+        (
+            assignment,
+            Namespace("http://www.w3.org/ns/prov#").wasDerivedFrom,
+            URIRef(LW + "post-other"),
+        )
+    )
+    conforms, report = _conforms(data)
+    assert conforms is False
+    assert "same Post" in report
 
 
 def test_shipped_shapes_conform_to_shacl_specification() -> None:
@@ -198,6 +239,33 @@ def test_product_relation_projection_passes_validation_and_closed_codes() -> Non
             post_body="Synthetic evidence",
             post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
         )
+
+
+def test_external_sensing_relation_requires_an_operations_fact_subject() -> None:
+    """A sensing predicate cannot be attached to a Project-shaped target."""
+    data = project_product_relation_rdf(
+        post_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+        mention_ordinal=0,
+        product_id="synthetic-product",
+        target_kind_code="operations_fact",
+        target_id="synthetic-sensing-fact",
+        relation_type_code="senses_product",
+        evidence_text="A synthetic external sensor reports the product state",
+        evidence_input_sha256="a" * 64,
+        post_title="Synthetic sensing source",
+        post_body="A synthetic external sensor reports the product state",
+        post_created_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+    )
+    conforms, report = _conforms(data)
+    assert conforms, report
+
+    LWn = Namespace(LW)
+    subject = next(data.subjects(LWn.sensesProduct, None))
+    data.remove((subject, RDF.type, LWn.OperationsCaseFact))
+    data.add((subject, RDF.type, LWn.Project))
+    conforms, report = _conforms(data)
+    assert conforms is False
+    assert "operational product relation subject" in report
 
 
 def test_catalog_product_projection_preserves_identity_and_hierarchy() -> None:
@@ -315,6 +383,17 @@ def test_project_row_projection_rejects_invalid_source_values(
             ),
             "mentioned by post",
             id="missing-project-mention-subject",
+        ),
+        pytest.param(
+            lambda g: g.remove(
+                (
+                    URIRef(LW + "mention-alpha"),
+                    Namespace("http://www.w3.org/ns/prov#").wasDerivedFrom,
+                    None,
+                )
+            ),
+            "project mention source",
+            id="missing-project-mention-provenance",
         ),
         pytest.param(
             lambda g: g.set(

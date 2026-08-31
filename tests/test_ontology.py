@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 from rdflib import Graph, Literal, URIRef
+from rdflib.collection import Collection
 from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 from lineageweave.knowledge_graph import (
@@ -472,3 +473,16 @@ def test_voice_combinations_use_qualified_assignments() -> None:
     assert (LW.assignedVoiceType, RDFS.domain, LW.VoiceAssignment) in graph
     assert (LW.assignedVoiceType, RDFS.range, SKOS.Concept) in graph
     assert (LW.primaryVoiceAssignment, RDFS.range, XSD.boolean) in graph
+    restrictions = set(graph.objects(LW.VoiceAssignment, RDFS.subClassOf))
+    voice_range = next(
+        graph.value(restriction, OWL.allValuesFrom)
+        for restriction in restrictions
+        if graph.value(restriction, OWL.onProperty) == LW.assignedVoiceType
+    )
+    assert voice_range is not None
+    voice_list = graph.value(voice_range, OWL.oneOf)
+    assert voice_list is not None
+    assert set(Collection(graph, voice_list)) == {
+        subject for subject in graph.subjects(SKOS.inScheme, LW.postTypeScheme)
+    }
+    assert (LW.truthStatus, RDF.type, OWL.DatatypeProperty) in graph

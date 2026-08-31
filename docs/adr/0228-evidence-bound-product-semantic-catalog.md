@@ -87,9 +87,12 @@ for an already-complete analysis.
 Post and Dashboard reads re-apply source eligibility and ABAC to every
 relation evidence post. RDF projection uses the same normalized target and
 closed predicate and must conform to the published ProductRelationAssertion
-SHACL shape. Until the contextual-orchestrator revision providing the owned
-structured-output transport is merged to its protected main and pinned by
-exact merge SHA, provider-backed relation production remains unavailable;
+SHACL shape. The shape validates both the closed predicate and its subject
+kind: `usesProduct` starts at a `Project`; the four operational predicates,
+including externally sensed product evidence, start at an
+`OperationsCaseFact`. Until the contextual-orchestrator revision providing the
+owned structured-output transport is merged to its protected main and pinned
+by exact merge SHA, provider-backed relation production remains unavailable;
 local code and a branch head are not release authority.
 
 Each RDF assertion IRI includes the focal post, mention ordinal, target,
