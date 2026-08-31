@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+> Development-loop evidence snapshot: 2026-08-31 14:58 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; seventy-eight PRs and
+> ten issues are open. PR #780's exact product parent is
+> `3da03c8fcde4ae437f2eabb490f1fe01789e3fdb`; this documentation update
+> records that parent rather than transferring evidence to itself. All review
+> threads are resolved and normal squash auto-merge is armed, but no
+> independent `APPROVED` review exists. Exact-parent product, frontend,
+> ontology-publication, and security checks succeeded except two owner-side
+> fail-closed gates: dependency-graph comparison returned HTTP 403 and the
+> central OpenCode bootstrap rejected PNG evidence as text. The central owner
+> repair is now `.github#1420` at
+> `d84d65cc1a5b32cda3f5a723a61bab82be0c3d1e`: its valid review finding is
+> repaired with bounded PNG ancillary-chunk ordering, cardinality,
+> mutual-exclusion, payload, and decompression validation. The owner suite
+> passes (2,128 tests, 1 skipped, 21 subtests), review threads are resolved,
+> and fresh hosted checks are running; it remains candidate-only and still
+> lacks an independent approval.
+>
+> Fresh LineageWeave validation passes 36 focused Python tests (one live-stack
+> test skipped), 29 serial affected frontend tests, lint, type checking, and
+> production build. A concurrent whole-frontend run produced eight timeout
+> failures while 526 tests passed; the affected selection passes when run
+> serially, so this is recorded as non-terminal local load evidence rather
+> than hidden or promoted to a product failure. Direct desktop and mobile
+> screenshot inspection confirms that the carrying Post and derivation
+> evidence remain distinct, including the narrow horizontally scrollable
+> exact-value table. The accepted Voice contract remains twelve extensible
+> atomic classifications with no enumerated combinations; additional Voices
+> retain authorized Post evidence, PROV-O derivation, truth status, and
+> cutoff. Protected merge and merge SHA remain unavailable. Canonical remote
+> names are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, and `TEPP`. No self-approval, bypass, force push,
+> heuristic classification, invented weight, or hidden-evidence substitution
+> is used.
+>
 > Exact-head development-loop overlay: 2026-08-31 13:28 KST.
 > Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
 > seventy-four open PRs and ten open issues were enumerated in a fresh
