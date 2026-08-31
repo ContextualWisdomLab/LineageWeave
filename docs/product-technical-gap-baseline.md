@@ -1,5 +1,35 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-09-01 00:34 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's exact implementation and rendered-
+> evidence parent for this documentation-only update is
+> `81b425f1253e15f615e3395c2c5ff9cce5456a75`, based on `main`. All review
+> threads are resolved and normal squash auto-merge is armed, but the required
+> independent `APPROVED` review is unavailable. Fourteen checks succeed, nine
+> are skipped, and four exact-head reruns are queued or running; pending checks
+> are not promoted to acceptance and did not stop review of the next direct
+> `main` PR. PR #847 at `a87c6ec96c546c214461727efedeb8e7549d0fdd`
+> also has all review threads resolved and normal squash auto-merge re-armed;
+> it likewise remains blocked on independent approval and fresh failed-check
+> reruns.
+>
+> Fresh local verification on #780's parent passes 38 focused Voice,
+> ontology, SHACL, and authenticated-API selections plus 29 affected frontend
+> tests. Frontend lint, type checking, and production build pass. Direct
+> inspection of the committed 1440-by-1400 desktop and 390-by-1688 mobile
+> Storybook renders confirms that carrying-Post navigation remains distinct
+> from derivation evidence, including the horizontally scrolled narrow table.
+> The candidate preserves ADR 0246's twelve extensible atomic Voice rows,
+> authorized evidence, server-created PROV-O derivation, truth status, cutoff,
+> and same-subject multi-Voice JSON-LD unions without enumerating combinations
+> or substituting hidden evidence. Protected-main delivery, merge SHA, and a
+> deployed authenticated runtime claim remain unavailable. Fresh remote
+> verification preserves canonical `ContextualWisdomLab/LineageWeave`,
+> `RankWeave`, `ThreadWeave`, lowercase `disksage`, and `TEPP`. No
+> self-approval, admin bypass, force push, invented weight, or heuristic
+> classification was used.
+
 > Exact-head development-loop overlay: 2026-08-31 23:16 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
 > ten non-PR issues are open. PR #780's exact product and rendered-evidence
