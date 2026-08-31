@@ -134,6 +134,87 @@ def test_worker_reprepares_when_embedding_model_identity_changes(monkeypatch) ->
     assert invalidations == 1
 
 
+def test_worker_prepares_empty_corpus_then_reprepares_first_embedding(
+    monkeypatch,
+) -> None:
+    """A fresh database consumes work and replaces its empty exact snapshot."""
+
+    class IdentityConnection:
+        def __init__(self) -> None:
+            self.fetches = 0
+
+        async def fetch(self, query: str, model_identity: str):
+            assert "embedding_dimension_count" in query
+            assert model_identity == "synthetic-model"
+            self.fetches += 1
+            return [] if self.fetches == 1 else [{"embedding_dimension_count": 2}]
+
+    class ExactIndex:
+        def __init__(self) -> None:
+            self.prepared: list[tuple[str, int]] = []
+
+        def _bind_pool(self, _pool) -> None:
+            return None
+
+        async def prepare(self, _conn, *, model_identity, vector_dimension) -> None:
+            self.prepared.append((model_identity, vector_dimension))
+
+        async def is_prepared_for(self, _conn, **_identity) -> bool:
+            return True
+
+    def embedding_factory():
+        return SimpleNamespace(
+            available=True,
+            resolved_model="synthetic-model",
+            batch_capabilities=lambda: None,
+        )
+
+    exact_index = ExactIndex()
+    pool = _Pool(IdentityConnection())
+    readiness = asyncio.Event()
+    invalidations = 0
+
+    def invalidate(ready: asyncio.Event) -> None:
+        nonlocal invalidations
+        invalidations += 1
+        ready.clear()
+
+    async def stream_tail(_client) -> str:
+        return "0-0"
+
+    async def republish(_client, _pool) -> None:
+        return None
+
+    async def consume(*_args, **_kwargs) -> str:
+        assert exact_index.prepared == [
+            ("synthetic-model", 0),
+            ("synthetic-model", 2),
+        ]
+        assert readiness.is_set()
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(global_ask_queue, "invalidate_worker_readiness", invalidate)
+    monkeypatch.setattr(global_ask_queue, "_stream_tail", stream_tail)
+    monkeypatch.setattr(
+        global_ask_queue, "republish_queued_global_ask_jobs", republish
+    )
+    monkeypatch.setattr(global_ask_queue, "consume_global_ask_stream_once", consume)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            global_ask_queue.run_global_ask_worker(
+                object(),
+                pool,
+                chat_factory=_AvailableClient,
+                embedding_factory=embedding_factory,
+                exact_semantic_index=exact_index,
+                readiness=readiness,
+            )
+        )
+
+    assert invalidations == 1
+
+
 def test_worker_restores_readiness_after_identity_discovery_recovers(
     monkeypatch,
 ) -> None:

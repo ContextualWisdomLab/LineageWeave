@@ -893,6 +893,8 @@ async def _discover_global_ask_exact_identity(
             """,
             model_identity,
         )
+    if not dimension_rows:
+        return model_identity, 0
     if len(dimension_rows) != 1:
         raise RankWeaveNotAvailable(
             "rankweave_not_available: exact semantic model dimension is ambiguous"

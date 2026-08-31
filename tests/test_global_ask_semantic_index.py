@@ -76,6 +76,10 @@ class _Connection:
         return self.projection_version, self.authorization_version
 
     async def fetch(self, query, *args):
+        if "select distinct embedding_dimension_count" in query:
+            return (
+                [{"embedding_dimension_count": 2}] if self.snapshot_rows else []
+            )
         if "vector_bytes" in query:
             self.snapshot_fetches += 1
             return self.snapshot_rows
@@ -427,6 +431,74 @@ def test_active_scopes_include_public_only_readers(monkeypatch, scope_rows) -> N
         )
         scopes = await index._active_authorization_scopes(conn)
         assert index._scope([], [], process_scope_limited=False) in scopes
+
+    asyncio.run(exercise())
+
+
+def test_empty_authorization_scope_returns_no_candidates_with_current_versions(
+    monkeypatch,
+) -> None:
+    """An exact empty scope cannot block peers or bypass current-state checks."""
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    conn.packed_authorization = b"\x00" * 8
+    index = GlobalAskExactSemanticIndex(_Pool(conn))
+
+    async def exercise() -> None:
+        await index.prepare(
+            conn, model_identity="synthetic-model", vector_dimension=2
+        )
+        parameters = {
+            "model_identity": "synthetic-model",
+            "query_vector": [1.0, 0.0],
+            "authorized_corporate_entity_ids": ["entity-a"],
+            "authorized_process_unit_ids": [],
+            "start_date": None,
+            "end_date": None,
+            "limit": 4,
+        }
+        assert await index.rank_authorized(conn, **parameters) == []
+        conn.authorization_version += 1
+        with pytest.raises(RankWeaveNotAvailable, match="scope is not prepared"):
+            await index.rank_authorized(conn, **parameters)
+
+    asyncio.run(exercise())
+    assert not any("authorized on true" in sql for sql in conn.authorization_queries)
+
+
+def test_empty_projection_returns_no_candidates_until_projection_version_changes(
+    monkeypatch,
+) -> None:
+    """An authoritative empty corpus is ready but a first embedding invalidates it."""
+    monkeypatch.setattr(
+        "backend.app.global_ask_semantic_index._import_rankweave",
+        lambda: SimpleNamespace(SemanticUnitExactIndex=_OwnerIndex),
+    )
+    conn = _Connection()
+    conn.snapshot_rows = []
+    conn.packed_authorization = b"\x00" * 8
+    index = GlobalAskExactSemanticIndex(_Pool(conn))
+
+    async def exercise() -> None:
+        await index.prepare(
+            conn, model_identity="synthetic-model", vector_dimension=0
+        )
+        parameters = {
+            "model_identity": "synthetic-model",
+            "query_vector": [1.0, 0.0],
+            "authorized_corporate_entity_ids": ["entity-a"],
+            "authorized_process_unit_ids": [],
+            "start_date": None,
+            "end_date": None,
+            "limit": 4,
+        }
+        assert await index.rank_authorized(conn, **parameters) == []
+        conn.projection_version += 1
+        with pytest.raises(RankWeaveNotAvailable, match="scope is not prepared"):
+            await index.rank_authorized(conn, **parameters)
 
     asyncio.run(exercise())
 

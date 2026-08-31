@@ -55,6 +55,8 @@ class _PendingExactQuery:
 
 _READINESS_MAX_SECONDS = 0.020
 _GLOBAL_ASK_SOURCE_LIMIT = 4
+_EMPTY_PACKED_AUTHORIZATION = b"\x00" * 8
+_EMPTY_EXACT_SNAPSHOT = object()
 
 
 class GlobalAskExactSemanticIndex:
@@ -171,10 +173,6 @@ class GlobalAskExactSemanticIndex:
                     vector_dimension=vector_dimension,
                     scope=scope,
                 )
-                if packed == b"\x00" * 8:
-                    raise RankWeaveNotAvailable(
-                        "rankweave_not_available: configured authorization scope is empty"
-                    )
                 prepared_scope = _PreparedAuthorization(
                     projection_version=projection_version,
                     authorization_version=authorization_version,
@@ -184,32 +182,40 @@ class GlobalAskExactSemanticIndex:
                     packed_digest=hashlib.sha256(packed).hexdigest(),
                     packed_authorization=packed,
                 )
-                await self._preflight_scope(
-                    conn,
-                    index=index,
-                    snapshot_version=snapshot_version,
-                    model_identity=model_identity,
-                    vector_dimension=vector_dimension,
-                    scope=scope,
-                    packed_authorization=packed,
-                    projection_version=projection_version,
-                    authorization_version=authorization_version,
-                )
-                elapsed = await self._preflight_scope(
-                    conn,
-                    index=index,
-                    snapshot_version=snapshot_version,
-                    model_identity=model_identity,
-                    vector_dimension=vector_dimension,
-                    scope=scope,
-                    packed_authorization=packed,
-                    projection_version=projection_version,
-                    authorization_version=authorization_version,
-                )
-                if elapsed > _READINESS_MAX_SECONDS:
-                    raise RankWeaveNotAvailable(
-                        "rankweave_not_available: exact authorization preflight exceeds readiness SLO"
+                if packed == _EMPTY_PACKED_AUTHORIZATION:
+                    await self._validate_empty_scope(conn, prepared_scope)
+                    elapsed = await self._validate_empty_scope(conn, prepared_scope)
+                    if elapsed > _READINESS_MAX_SECONDS:
+                        raise RankWeaveNotAvailable(
+                            "rankweave_not_available: exact empty authorization preflight exceeds readiness SLO"
+                        )
+                else:
+                    await self._preflight_scope(
+                        conn,
+                        index=index,
+                        snapshot_version=snapshot_version,
+                        model_identity=model_identity,
+                        vector_dimension=vector_dimension,
+                        scope=scope,
+                        packed_authorization=packed,
+                        projection_version=projection_version,
+                        authorization_version=authorization_version,
                     )
+                    elapsed = await self._preflight_scope(
+                        conn,
+                        index=index,
+                        snapshot_version=snapshot_version,
+                        model_identity=model_identity,
+                        vector_dimension=vector_dimension,
+                        scope=scope,
+                        packed_authorization=packed,
+                        projection_version=projection_version,
+                        authorization_version=authorization_version,
+                    )
+                    if elapsed > _READINESS_MAX_SECONDS:
+                        raise RankWeaveNotAvailable(
+                            "rankweave_not_available: exact authorization preflight exceeds readiness SLO"
+                        )
                 prepared[scope] = prepared_scope
             if not prepared:
                 raise RankWeaveNotAvailable(
@@ -241,10 +247,14 @@ class GlobalAskExactSemanticIndex:
             process_scope_limited=process_scope_limited,
         )
         prepared = self._prepared_authorizations.get(scope)
+        packed_is_empty = (
+            prepared is not None
+            and prepared.packed_authorization == _EMPTY_PACKED_AUTHORIZATION
+        )
         if (
             prepared is None
             or prepared.model_identity != model_identity
-            or prepared.vector_dimension != vector_dimension
+            or (not packed_is_empty and prepared.vector_dimension != vector_dimension)
             or prepared.scope_digest != self._scope_digest(scope)
             or prepared.packed_digest
             != hashlib.sha256(prepared.packed_authorization).hexdigest()
@@ -254,17 +264,20 @@ class GlobalAskExactSemanticIndex:
             )
         snapshot_version = (
             f"lineageweave.embedding-projection.v1:{prepared.projection_version}:"
-            f"{model_identity}:{vector_dimension}"
+            f"{model_identity}:{prepared.vector_dimension}"
         )
         if (
             self._matching_snapshot(
-                snapshot_version, model_identity, vector_dimension
+                snapshot_version, model_identity, prepared.vector_dimension
             )
             is None
         ):
             raise RankWeaveNotAvailable(
                 "rankweave_not_available: exact semantic snapshot is not prepared"
             )
+        if packed_is_empty:
+            await self._validate_empty_scope(conn, prepared)
+            return []
         batch_key = (
             snapshot_version,
             prepared.projection_version,
@@ -553,30 +566,32 @@ class GlobalAskExactSemanticIndex:
             results.append(ranked)
         return results
 
-    async def _postauthorize_one(
-        self,
-        request: _PendingExactQuery,
-        *,
-        report: Any,
-        model_identity: str,
-        vector_dimension: int,
-        projection_version: int,
-        authorization_version: int,
-    ) -> list[ExactEmbeddingCandidate]:
-        """Apply one request's current final ABAC check after shared owner work."""
-        async with request.conn.transaction(isolation="repeatable_read", readonly=True):
-            return await self._postauthorize_results(
-                request.conn,
-                owner_results=list(report.results),
-                model_identity=model_identity,
-                vector_dimension=vector_dimension,
-                scope=request.scope,
-                start_date=request.start_date,
-                end_date=request.end_date,
-                limit=request.limit,
-                projection_version=projection_version,
-                authorization_version=authorization_version,
+    @staticmethod
+    async def _validate_empty_scope(
+        conn: asyncpg.Connection, prepared: _PreparedAuthorization
+    ) -> float:
+        """Revalidate the authoritative versions for an exact empty result."""
+        started = time.perf_counter()
+        current_projection_version, current_authorization_version = (
+            int(value)
+            for value in await conn.fetchrow(
+                """
+                select projection.projection_version,
+                       auth_state.authorization_version
+                  from post_content_embedding_exact_projection_state projection
+                  cross join global_ask_exact_authorization_state auth_state
+                 where projection.singleton and auth_state.singleton
+                """
             )
+        )
+        if (
+            current_projection_version != prepared.projection_version
+            or current_authorization_version != prepared.authorization_version
+        ):
+            raise RankWeaveNotAvailable(
+                "rankweave_not_available: exact authorization scope is not prepared"
+            )
+        return time.perf_counter() - started
 
     async def _postauthorize_results(
         self,
@@ -940,6 +955,21 @@ class GlobalAskExactSemanticIndex:
         vector_dimension: int,
     ) -> Any:
         """Load and validate a complete projection before activation."""
+        if vector_dimension == 0:
+            dimensions = await conn.fetch(
+                """
+                select distinct embedding_dimension_count
+                  from post_content_embedding_exact_projection
+                 where embedding_model_code = $1
+                 order by embedding_dimension_count
+                """,
+                model_identity,
+            )
+            if dimensions:
+                raise RankWeaveNotAvailable(
+                    "rankweave_not_available: exact semantic projection changed during preparation"
+                )
+            return _EMPTY_EXACT_SNAPSHOT
         rows = await conn.fetch(
             """
             select post_id::text as item_id,

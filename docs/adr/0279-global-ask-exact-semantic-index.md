@@ -43,6 +43,14 @@ post-authorization without approximating or dropping evidence.
    readiness opens, the worker also prepares every distinct authorization
    scope held by a currently configured `post_read` account: the local
    all-affiliation scope and each Keyverse-compatible atomic affiliation.
+   An authoritative projection with no rows is a complete empty snapshot, not
+   an owner failure: there is no vector dimension or candidate to score. The
+   worker may open readiness for that version after preparing the configured
+   scopes, but every request rechecks the current projection and authorization
+   versions before returning the exact empty result. The first projected
+   embedding advances the projection version, closes readiness, and requires
+   normal dimension discovery and owner snapshot preparation before service
+   resumes.
 4. A monotonic authorization version advances on the normalized affiliation,
    role-permission, process-unit, and source-Post authorities that can change a
    visible candidate set. For each declared scope and exact projection version,
@@ -52,7 +60,14 @@ post-authorization without approximating or dropping evidence.
    result reauthorization for that real scope. Readiness opens only after
    every declared scope's warm owner-plus-postauth path completes within ADR
    0272's 20-millisecond maximum. The preflight results are discarded; they
-   are not answer or authorization caching.
+   are not answer or authorization caching. A scope whose canonical packed
+   count is zero is nevertheless prepared as an exact empty authorization
+   scope. It has no candidate on which to run an owner preflight or final row
+   reauthorization. Before readiness, the worker warms and measures the same
+   projection-and-authorization version check twice against the unchanged
+   20-millisecond maximum. Each request repeats that check and returns no
+   candidates only while both versions still match. This lets unrelated
+   non-empty scopes proceed without admitting a stale or unauthorized item.
 5. Every query supplies the
    matching immutable packed scope to RankWeave, and reauthorizes the exact
    returned identities in PostgreSQL before constructing a source. The final
