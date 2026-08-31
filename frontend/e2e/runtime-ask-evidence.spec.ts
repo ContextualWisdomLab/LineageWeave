@@ -56,10 +56,10 @@ test("asks one operator-supplied question and opens cited evidence", async ({ pa
   await page.getByRole("button", { name: "Ask Agent" }).click();
   await page.getByRole("textbox", { name: "Ask a question" }).fill(question);
   await page.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Answer" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Answer", exact: true })).toBeVisible({
     timeout: timeoutSeconds * 1000,
   });
-  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Answer evidence timeline" })).toBeVisible();
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
   await page.getByRole("button", { name: "View evidence" }).first().click();
@@ -67,5 +67,5 @@ test("asks one operator-supplied question and opens cited evidence", async ({ pa
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Close evidence panel" }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Answer evidence timeline" })).toBeVisible();
 });

@@ -67,6 +67,9 @@ must never be returned through a buyer-facing API or persisted failure detail.
   message that tells them to retry or restore the provider configuration.
 - `CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS` must explicitly allow the
   hostname selected by `LLM_GATEWAY_API_URL`; wildcard allowlists are forbidden.
+  Compose reads both values from the orchestrator service's `env_file`; it must
+  not redeclare the allowlist under `environment`, because host-shell
+  interpolation would replace the runtime file's value with a local default.
 - Local Compose development permits only the explicitly enumerated
   `host.docker.internal:8080` text gateway and `host.docker.internal:18082`
   Vision gateway when `LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP=1`; arbitrary local

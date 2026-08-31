@@ -114,14 +114,14 @@ services:
       AGENTS_FILE: /app/agents.json
       PORT: 8000
       CONTEXTUAL_ORCHESTRATOR_TOKEN: ${CONTEXTUAL_ORCHESTRATOR_TOKEN:-${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}}
-      # Gateway credentials and URL are supplied only by env_file (${HOME}/.env).
+      # Gateway credentials, URL, and provider allowlist are supplied only by
+      # env_file (${HOME}/.env).
       # Do not repeat them under environment:, where Compose interpolation can
       # overwrite env_file values with an empty host-shell value.
       # The upstream default remains 64 KiB for ordinary text APIs. Buyer
       # image blocks are base64 data URIs, so the multimodal boundary gets an
       # explicit bounded 8 MiB limit rather than an unbounded request size.
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
-      CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
       BATCH_JOB_REGISTRY_VALKEY_URL: redis://valkey:6379/1
       OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
       # Do not set OTEL_EXPORTER_OTLP_ENDPOINT here. An empty
