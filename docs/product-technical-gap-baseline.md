@@ -15,10 +15,12 @@
 >
 > The reusable central-policy root repair remains candidate-only in
 > `ContextualWisdomLab/.github#1420`. Its exact head is now
-> `a8dcb8d12001eb09af462d98782bba219b8ed562` after a normal merge of current
+> `b4dfa616aa09eec3169547fef8d03b17e1cc3437` after normal merges of current
 > central `main`; the sole CHANGELOG conflict retained both independently
-> owned entries. The focused policy and queue-contract selection passes 166
-> tests. Eighteen hosted checks succeed while six run and four queue. It still
+> owned entries; the later synchronization cleanly adopts the protected-main
+> Noema module-entrypoint repair. The focused policy and queue-contract
+> selection passed 166 tests on the preceding synchronized head; fresh hosted
+> evidence is required for the moved head. It still
 > lacks an independent approval. GitHub's GraphQL quota prevented enabling
 > normal auto-merge on both PRs in this snapshot; `auto_merge` is therefore
 > honestly recorded as unavailable rather than armed. No bypass or
