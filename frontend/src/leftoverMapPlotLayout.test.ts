@@ -1379,6 +1379,12 @@ describe("leftover map comparison graphic labels", () => {
       "leftover map comparison leftover axis {axis} σ {value}",
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
+      "leftover map comparison leftover axis {axis} tick {value}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
+      "leftover map comparison leftover axis {axis} tick {value} σ {singular}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
     );
   });

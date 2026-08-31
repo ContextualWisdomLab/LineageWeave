@@ -1,5 +1,26 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 13:17 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #869 leftover-map singular values on leftover-map comparison graphic leftover-map
+> axis ticks independently of leftover-map axis share (v2.85.0 / ADR 0328) is
+> `98a29e4`, stacked on #868 @ `5218a5c`. Independent APPROVE is missing. Devin
+> Review is COMMENTED, not APPROVE. Next buyer increment on this cycle: leftover-map
+> comparison leftover-axis ticks naming persisted leftover-map singular
+> values independently of leftover-map axis share (ADR 0329 / v2.86.0) delivered
+> locally on `feat/leftover-map-compare-axis-tick-badge-v2860`. Caption persisted leftover-map
+> singular values `σ_k` on leftover-map comparison leftover-axis ticks when
+> leftoverMapCompareAxisTickBadge returns a usable leftover-axis tick `σ`
+> caption. Distinct accessible name `leftover map comparison leftover axis {axis} tick {value} σ {singular}`.
+> Rank-0 unused axes still name `σ 0.00`. Singular value omits independently of
+> leftover-map axis share. Leftover-map comparison leftover-axis ticks never name
+> leftover-map axis share. Do not invent `σ_k` from leftover-map axis share. Do not
+> invent leftover-map axis share from `σ_k`. Do not persist leftover-map inner
+> product, cosine, or length. Do not change leftover-map comparison graphic leftover-map
+> axis ticks this increment. Stack onto #869. Leave open for independent review. Do
+> not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge
+> #808 without independent APPROVE. Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 12:20 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #868 leftover-map singular values on leftover-map graphic leftover-map

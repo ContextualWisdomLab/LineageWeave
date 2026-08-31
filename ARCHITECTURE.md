@@ -767,6 +767,9 @@ axis tick caption independently of leftover-map axis share.
 ADR 0328 captions leftover-map comparison graphic leftover-map axis ticks with persisted leftover-map
 singular values `σ_k` when leftoverMapComparePlotTickAxisBadge returns a usable leftover-map
 axis tick caption independently of leftover-map axis share.
+ADR 0329 captions leftover-map comparison leftover-axis ticks with persisted leftover-map
+singular values `σ_k` when leftoverMapCompareAxisTickBadge returns a usable leftover-axis
+tick caption independently of leftover-map axis share.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -825,7 +828,8 @@ report badges independently of leftover-map axis share (ADR 0325), leftover-map
 comparison graphic leftover-map axis leftover-map singular values as leftoverMapComparePlotAxisBadge
 (ADR 0326), leftover-map graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share
 (ADR 0327), leftover-map comparison graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share
-(ADR 0328);
+(ADR 0328), leftover-map comparison leftover-axis tick leftover-map singular values independently of leftover-map axis share
+(ADR 0329);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
