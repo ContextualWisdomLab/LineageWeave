@@ -34,7 +34,16 @@ test("renders the authenticated operations Dashboard with grounded cases", async
     { token: accessToken, storageKey: `oidc.user:${issuer}:${clientId}` },
   );
 
+  const dashboardResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === "/api/dashboard" && response.ok();
+  });
+  const voiceSummaryResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === "/api/voice-taxonomy/summary" && response.ok();
+  });
   await page.goto("/");
+  await Promise.all([dashboardResponse, voiceSummaryResponse]);
   const language = page.locator(".language-switcher select");
   await language.selectOption("en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");

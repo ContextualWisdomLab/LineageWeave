@@ -69,6 +69,8 @@ def test_real_source_context_hides_pure_seed_rows_at_read_boundary() -> None:
 
     assert "source_draft_code" in eligibility
     assert "source_deleted_flag" in eligibility
+    assert "post.source_draft_code is null or btrim(post.source_draft_code) = ''" in eligibility
+    assert "post.source_deleted_flag is null or btrim(post.source_deleted_flag) = ''" in eligibility
     assert "not ((" in eligibility
     assert "exists (select 1 from source_post real_post" in eligibility
     for column in SOURCE_CONTEXT_COLUMNS:

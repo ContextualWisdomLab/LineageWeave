@@ -33,8 +33,8 @@ def source_context_missing_sql(alias: str) -> str:
 
 
 SOURCE_POST_ELIGIBILITY_SQL = (
-    "nullif(btrim({alias}.source_draft_code), '') is null "
-    "and nullif(btrim({alias}.source_deleted_flag), '') is null "
+    "({alias}.source_draft_code is null or btrim({alias}.source_draft_code) = '') "
+    "and ({alias}.source_deleted_flag is null or btrim({alias}.source_deleted_flag) = '') "
     "and not ("
     "({missing_context}) "
     "and exists ("
