@@ -16,6 +16,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Derived Voice classification now uses one strict contextual-orchestrator
+  receipt over the exact focal Post body, admits all twelve governed Voice
+  concepts as evidence-supported multi-label assertions, and preserves the
+  imported source category separately. Exact spans and source digests fail
+  closed; valid empty results retain a completion receipt, and operations-case
+  failures no longer suppress the independent Voice stage (ADR 0244).
+
 - Governed product-catalog provisioning now accepts only explicit product
   master rows with authorized source-record provenance, a canonical payload
   digest, and source-linked aliases. Replays are idempotent, contradictory

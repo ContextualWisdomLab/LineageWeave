@@ -116,6 +116,7 @@ def test_bounded_backfill_is_idempotent_and_broker_loss_stays_recoverable(
             assert "analysis.post_id = job.post_id" in query
             assert "analysis.source_body_sha256 = job.source_body_sha256" in query
             assert "join post_product_analysis product_analysis" in query
+            assert "join post_voice_classification_analysis voice_analysis" in query
             assert "from post_project_mention project" in query
             assert "nullif(btrim(project.ontology_iri), '') is not null" in query
             assert "job.source_body_sha256 is not null" in query
@@ -361,6 +362,7 @@ def test_backfill_requeues_complete_content_missing_operations_analysis(
         async def fetchval(self, query: str, *args: object) -> bool:
             assert "operations_case_analysis" in query
             assert "post_product_analysis" in query
+            assert "post_voice_classification_analysis" in query
             assert args == (
                 "00000000-0000-0000-0000-000000000001",
                 source_body_sha256("historical success"),

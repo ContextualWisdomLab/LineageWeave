@@ -18,10 +18,11 @@ from backend.app.post_content_queue import (
     RUNNING,
     SUCCEEDED,
 )
-from lineageweave.operations_case_analysis import OperationsEvidenceSource
 from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
+from lineageweave.operations_case_analysis import OperationsEvidenceSource
 
 _PRODUCT_ANALYSIS = post_content_worker._persist_product_analysis_if_needed
+_VOICE_CLASSIFICATION = post_content_worker._persist_voice_classification_if_needed
 
 
 @pytest.fixture(autouse=True)
@@ -30,6 +31,11 @@ def _isolate_product_analysis(monkeypatch):
     monkeypatch.setattr(
         post_content_worker,
         "_persist_product_analysis_if_needed",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_voice_classification_if_needed",
         lambda *_args, **_kwargs: asyncio.sleep(0),
     )
 
@@ -344,6 +350,158 @@ def test_successful_job_reclaims_when_product_analysis_is_missing(monkeypatch) -
         "attempt_count = attempt_count + 1" in query
         for query, _args in connection.executed
     )
+
+
+def test_successful_job_reclaims_when_voice_receipt_is_missing(monkeypatch) -> None:
+    """A successful job is incomplete until the exact Voice receipt exists."""
+    row = _row(SUCCEEDED, 0)
+    row["product_analysis_source_body_sha256"] = "a" * 64
+    row["voice_analysis_source_body_sha256"] = None
+    connection = _Connection(row, values=[True, True])
+
+    async def complete(*_args, **_kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr(post_content_worker, "post_content_is_complete", complete)
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            require_embedding=True,
+            require_structure=True,
+        )
+    )
+
+    assert claimed is row
+
+
+def test_voice_receipt_persists_before_operations_failure(monkeypatch) -> None:
+    """An operations outage cannot suppress an independent Voice producer."""
+    persisted: list[str] = []
+    failed_stages: list[str | None] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def persist_voice(*_args, **_kwargs):
+        persisted.append("voice")
+
+    async def fail_operations(*_args, **_kwargs):
+        raise RuntimeError("synthetic operations failure")
+
+    async def finish_failed(_pool, _post_id, **kwargs):
+        failed_stages.append(kwargs.get("channel_stage_code"))
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="gateway", orchestrator_api_key="key"),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_persist_voice_classification_if_needed", persist_voice
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        fail_operations,
+    )
+    monkeypatch.setattr(post_content_worker, "_finish_failed_job", finish_failed)
+    monkeypatch.setattr(
+        post_content_worker, "record_server_failure", lambda *_args, **_kwargs: None
+    )
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert persisted == ["voice"]
+    assert failed_stages == ["operations_case"]
+
+
+def test_voice_failure_does_not_starve_independent_operations(monkeypatch) -> None:
+    """A failed Voice channel retries after other independent evidence persists."""
+    persisted: list[str] = []
+    failed_stages: list[str | None] = []
+
+    async def claim(*_args, **_kwargs):
+        return _row(RUNNING, 1)
+
+    async def fail_voice(*_args, **_kwargs):
+        raise ValueError("synthetic invalid Voice response")
+
+    async def persist_operations(*_args, **_kwargs):
+        persisted.append("operations")
+
+    async def finish_failed(_pool, _post_id, **kwargs):
+        failed_stages.append(kwargs.get("channel_stage_code"))
+
+    monkeypatch.setattr(post_content_worker, "_claim_job", claim)
+    monkeypatch.setattr(
+        post_content_worker,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="gateway", orchestrator_api_key="key"),
+    )
+    monkeypatch.setattr(
+        post_content_worker, "_persist_voice_classification_if_needed", fail_voice
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_operations_evidence_sources",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "_persist_operations_case_analysis_if_needed",
+        persist_operations,
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "extract_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0, result=()),
+    )
+    monkeypatch.setattr(
+        post_content_worker,
+        "persist_occupational_construct_assertions",
+        lambda *_args, **_kwargs: asyncio.sleep(0),
+    )
+    monkeypatch.setattr(post_content_worker, "normalize_post_body", lambda *_args: object())
+    monkeypatch.setattr(
+        post_content_worker, "persist_post_content", lambda *_args, **_kwargs: asyncio.sleep(0)
+    )
+    monkeypatch.setattr(post_content_worker, "_finish_failed_job", finish_failed)
+    monkeypatch.setattr(
+        post_content_worker, "record_server_failure", lambda *_args, **_kwargs: None
+    )
+    client = SimpleNamespace(available=True, resolved_model="synthetic-model")
+
+    asyncio.run(
+        post_content_worker.process_post_content_job(
+            _Pool(_Connection()),
+            post_id="00000000-0000-0000-0000-000000000001",
+            source_body_digest="a" * 64,
+            vision_factory=lambda: client,
+            embedding_factory=lambda: client,
+            structure_factory=lambda: client,
+        )
+    )
+
+    assert persisted == ["operations"]
+    assert failed_stages == ["voice_classification"]
 
 
 def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch) -> None:

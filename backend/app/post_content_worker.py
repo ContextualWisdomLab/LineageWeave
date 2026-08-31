@@ -43,6 +43,9 @@ from backend.app.post_chat_ingestion import (
     find_project_sibling_post_ids,
     gather_chat_sources,
 )
+from backend.app.voice_classification_ingestion import (
+    persist_derived_voice_classification,
+)
 from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.http_client import HttpAdmissionDeferred, HttpClientError
 from lineageweave.image_content import ImageContentClient
@@ -64,6 +67,9 @@ from lineageweave.product_semantics import (
     ProductEvidenceSource,
     ProductRelationTarget,
     product_analysis_input_sha256,
+)
+from lineageweave.voice_classification import (
+    ContextualOrchestratorVoiceClassificationClient,
 )
 
 _logger = logging.getLogger(__name__)
@@ -298,6 +304,36 @@ async def _persist_product_analysis_if_needed(
         )
 
 
+async def _persist_voice_classification_if_needed(
+    pool: asyncpg.Pool,
+    post_id: str,
+    source_body_digest: str,
+    raw_body: str,
+    orchestrator_base_url: str,
+    orchestrator_api_key: str,
+) -> None:
+    """Persist one strict derived Voice receipt for the exact focal body."""
+    async with pool.acquire() as conn:
+        already_persisted = bool(
+            await conn.fetchval(
+                "select exists (select 1 from post_voice_classification_analysis "
+                "where post_id = $1::uuid and source_body_sha256 = $2)",
+                post_id,
+                source_body_digest,
+            )
+        )
+    if already_persisted:
+        return
+    client = ContextualOrchestratorVoiceClassificationClient(
+        orchestrator_base_url, orchestrator_api_key
+    )
+    result = await asyncio.to_thread(client.classify, raw_body)
+    if result.source_revision_digest != source_body_digest:
+        raise ValueError("derived Voice result digest did not match the claimed source")
+    async with pool.acquire() as conn:
+        await persist_derived_voice_classification(conn, post_id, result)
+
+
 async def _requeue_project_missing_case_jobs(
     pool: asyncpg.Pool,
     post_id: str,
@@ -375,7 +411,12 @@ async def _claim_job(
                            select analysis.source_body_sha256
                              from post_product_analysis analysis
                             where analysis.post_id = p.post_id
-                       ) as product_analysis_source_body_sha256
+                       ) as product_analysis_source_body_sha256,
+                       (
+                           select analysis.source_body_sha256
+                             from post_voice_classification_analysis analysis
+                            where analysis.post_id = p.post_id
+                       ) as voice_analysis_source_body_sha256
                 from post_content_ingestion_job j
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
@@ -454,6 +495,11 @@ async def _claim_job(
                     and (
                         not require_structure
                         or row["product_analysis_source_body_sha256"]
+                        == source_body_digest
+                    )
+                    and (
+                        not require_structure
+                        or row.get("voice_analysis_source_body_sha256")
                         == source_body_digest
                     )
                 ):
@@ -612,7 +658,28 @@ async def process_post_content_job(
         structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
+            voice_failure: Exception | None = None
             if settings.orchestrator_base_url and settings.orchestrator_api_key:
+                channel_stage_code = "voice_classification"
+                try:
+                    await _persist_voice_classification_if_needed(
+                        pool,
+                        post_id,
+                        source_body_digest,
+                        raw_body,
+                        settings.orchestrator_base_url,
+                        settings.orchestrator_api_key,
+                    )
+                except HttpAdmissionDeferred:
+                    raise
+                except (HttpClientError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
+                    voice_failure = exc
+                    _logger.error("derived Voice ingestion failed for post_id=%s", post_id)
+                    record_server_failure(
+                        "voice_classification_ingestion",
+                        exc,
+                        outcome="provider_unavailable",
+                    )
                 channel_stage_code = "operations_evidence"
                 evidence_sources = await _operations_evidence_sources(
                     pool, post_id, row, vision_client
@@ -687,6 +754,9 @@ async def process_post_content_job(
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
                 )
+            if voice_failure is not None:
+                channel_stage_code = "voice_classification"
+                raise voice_failure
             async with pool.acquire() as conn:
                 complete = await post_content_is_complete(
                     conn,
