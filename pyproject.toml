@@ -66,6 +66,9 @@ backend = [
 [tool.setuptools.packages.find]
 include = ["lineageweave*", "backend*"]
 
+[tool.setuptools.package-data]
+lineageweave = ["data/*.ttl"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "backend/tests"]
 pythonpath = ["."]

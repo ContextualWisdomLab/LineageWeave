@@ -606,6 +606,81 @@
 # do NOT carry :lookupCode: they are not common_lookup_value rows, so
 # the lookup-code round trip is unaffected.
 #################################################################
+#################################################################
+# Evidence-grounded operations Dashboard (ADR 0206).
+#
+# These terms project the normalized operations_case_* tables. They are
+# ontology navigation over cited facts, not Event Lineage edges or permission
+# to infer a case from text locally.
+#################################################################
+
+:OperationsCase a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Operations case"@en .
+
+:ClaimInvestigation a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "Claim investigation"@en .
+
+:RebidHandover a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "Rebid or handover"@en .
+
+:ExternalInformation a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "External information"@en .
+
+:RepeatIssue a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "Repeat issue"@en .
+
+:OperationsCaseFact a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Operations case fact"@en ;
+    rdfs:comment "One schema-validated fact retaining its exact authorized source Post through prov:wasDerivedFrom."@en .
+
+:hasOperationsFact a owl:ObjectProperty ;
+    rdfs:domain :OperationsCase ;
+    rdfs:range :OperationsCaseFact ;
+    rdfs:label "has operations fact"@en .
+
+:factTypeCode a owl:DatatypeProperty ;
+    rdfs:domain :OperationsCaseFact ;
+    rdfs:range xsd:string .
+
+:factValue a owl:DatatypeProperty ;
+    rdfs:domain :OperationsCaseFact ;
+    rdfs:range xsd:string .
+
+:Order a owl:Class ;
+    rdfs:label "Order"@en .
+
+:SalesContext a owl:Class ;
+    rdfs:label "Sales context"@en .
+
+:BusinessManagementContext a owl:Class ;
+    rdfs:label "Business management context"@en .
+
+:relatesToOrder a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ;
+    rdfs:range :Order .
+
+:relatesToProject a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ;
+    rdfs:range :Project .
+
+:relatesToSales a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ;
+    rdfs:range :SalesContext .
+
+:relatesToBusinessManagement a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ;
+    rdfs:range :BusinessManagementContext .
+
+#################################################################
+# Evidence-bound product semantic catalog (ADR 0228).
+#################################################################
+
 :Product a owl:Class ;
     rdfs:label "Product"@en ;
     rdfs:comment "A governed product catalog identity at group, model, variant, or trade-item level."@en .
