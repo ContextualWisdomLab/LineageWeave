@@ -4,7 +4,9 @@
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0339](0339-leftover-map-list-post-coordinates.md)
-(leftover-map person coordinates on leftover-map pair leftover-map post independently of leftover-map pair leftover-map criterion leftover-map item coordinates)
+(leftover-map person coordinates on leftover-map pair leftover-map post independently of leftover-map pair leftover-map criterion leftover-map item coordinates);
+[ADR 0348](0348-leftover-map-plot-post-origin-badge.md)
+(leftover-map origin on leftover-map graphic leftover-map post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates)
 
 Amends leftover-map graphic display of persisted coordinates
 ([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map

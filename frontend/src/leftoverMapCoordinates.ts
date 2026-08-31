@@ -3,6 +3,10 @@
  *  criterion leftover-map item coordinates as leftoverMapPlotCriterionBadge
  *  independently of leftover-map person coordinates. leftoverMapListCriterionBadge
  *  stays leftover-map pair leftover-map criterion leftover-map item coordinate keys.
+ *  ADR 0348 names leftover-map origin on leftover-map graphic leftover-map
+ *  post leftover-map person coordinates as leftoverMapPlotPostBadge independently of leftover-map
+ *  criterion leftover-map item coordinates. leftoverMapListPostBadge stays leftover-map pair leftover-map
+ *  post leftover-map person coordinate keys.
  */
 
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
@@ -56,7 +60,7 @@ export function formatLeftoverMapCoordinatePair(
 /** True when the formatted leftover-map coordinate pair is leftover-map origin
  *  `(formatSignedLeftoverValue(0), formatSignedLeftoverValue(0))`. Rank-0 unused
  *  axes still name leftover-map origin `(0.00, 0.00)`. Do not invent leftover-map
- *  origin from leftover-map person coordinates ξ.
+ *  origin from leftover-map axis share or leftover-map singular values.
  */
 export function leftoverMapPlotCoordinatePairIsOrigin(pairLabel: string): boolean {
   const origin = formatLeftoverMapCoordinatePair(0, 0);
@@ -77,7 +81,10 @@ export function formatLeftoverMapCoordinates(
   return `${PERSON_BADGE} ${person} ${ITEM_BADGE} ${item}`;
 }
 
-/** ADR 0339 leftover-map pair leftover-map post leftover-map person coordinates ξ. */
+/** ADR 0339 leftover-map pair leftover-map post leftover-map person coordinates ξ.
+ *  ADR 0348 names leftover-map origin on leftover-map graphic leftover-map post leftover-map
+ *  person coordinates as leftoverMapPlotPostBadge, not this helper.
+ */
 export function leftoverMapListPostBadge(
   title: string,
   axis1: number | null | undefined,

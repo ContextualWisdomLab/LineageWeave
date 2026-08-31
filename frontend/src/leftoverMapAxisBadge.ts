@@ -32,6 +32,8 @@
  *  independently of leftover-map axis share and leftover-map singular values.
  *  ADR 0347 names leftover-map origin on leftover-map graphic leftover-map criterion leftover-map
  *  item coordinates as leftoverMapPlotCriterionBadge, not this helper.
+ *  ADR 0348 names leftover-map origin on leftover-map graphic leftover-map post leftover-map
+ *  person coordinates as leftoverMapPlotPostBadge, not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";

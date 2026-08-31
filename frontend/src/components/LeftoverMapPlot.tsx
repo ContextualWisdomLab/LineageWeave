@@ -167,6 +167,8 @@ function leftoverMapPlotPostText(
  * when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion
  * leftover-map item coordinate caption. Caption leftover-map origin on leftover-map graphic leftover-map
  * criterion leftover-map item coordinates independently of leftover-map person coordinates when leftoverMapPlotCoordinatePairIsOrigin
+ * returns true. Caption leftover-map origin on leftover-map graphic leftover-map
+ * post leftover-map person coordinates independently of leftover-map criterion leftover-map item coordinates when leftoverMapPlotCoordinatePairIsOrigin
  * returns true. Caption leftover-map comparison graphic leftover-map
  * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
  * when leftoverMapComparePlotCriterionBadge returns a usable leftover-map comparison
@@ -298,6 +300,9 @@ function leftoverMapPlotPostText(
  * ADR 0347 fail-closes leftover-map graphic leftover-map criterion leftover-map origin leftover-map
  * item coordinates through leftoverMapPlotCriterionBadge independently of leftover-map
  * person coordinates.
+ * ADR 0348 fail-closes leftover-map graphic leftover-map post leftover-map origin leftover-map
+ * person coordinates through leftoverMapPlotPostBadge independently of leftover-map
+ * criterion leftover-map item coordinates.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
