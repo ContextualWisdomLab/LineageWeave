@@ -15,6 +15,7 @@ const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
 const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
+const searchTerm = __ENV.K6_SEARCH_TERM || "post";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
@@ -62,6 +63,12 @@ function readBatch(token, askJobId) {
       null,
       { ...params, tags: { endpoint: "ask_poll" }, timeout: requestTimeout },
     ],
+    [
+      "GET",
+      `${backendUrl}/api/posts?search=${encodeURIComponent(searchTerm)}&limit=20`,
+      null,
+      { ...params, tags: { endpoint: "post_search" } },
+    ],
   ]);
 }
 
@@ -97,6 +104,7 @@ export default function (data) {
   readDuration.add(responses[0].timings.duration, { endpoint: "posts" });
   readDuration.add(responses[1].timings.duration, { endpoint: "lineage" });
   readDuration.add(responses[2].timings.duration, { endpoint: "dashboard" });
+  readDuration.add(responses[4].timings.duration, { endpoint: "post_search" });
   askPollDuration.add(responses[3].timings.duration);
   if (responses[3].status === 200) {
     askStateObservations.add(1, {
@@ -107,4 +115,5 @@ export default function (data) {
   check(responses[1], { "lineage read succeeds": (response) => response.status === 200 });
   check(responses[2], { "dashboard read succeeds": (response) => response.status === 200 });
   check(responses[3], { "Ask poll succeeds": (response) => response.status === 200 });
+  check(responses[4], { "Post search succeeds": (response) => response.status === 200 });
 }
