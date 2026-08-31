@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 import json
 from typing import Any, Protocol
 from uuid import UUID
@@ -1241,12 +1241,7 @@ async def fetch_operations_dashboard(
         "period_end": period_end.isoformat() if period_end else None,
         "project_history_knowledge_cutoff": (
             (
-                datetime.combine(
-                    period_end + timedelta(days=1),
-                    time.min,
-                    tzinfo=ZoneInfo("Asia/Seoul"),
-                )
-                - timedelta(microseconds=1)
+                datetime.combine(period_end, time.max, tzinfo=ZoneInfo("Asia/Seoul"))
             ).isoformat()
             if period_end
             else None

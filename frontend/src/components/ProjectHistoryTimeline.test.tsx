@@ -104,6 +104,18 @@ const projection: ProjectHistoryProjection = {
           source_relation_code: "post_lineage_edge",
           provenance: "post_lineage_edge.fused_score",
         },
+        {
+          source_event_id: "award",
+          target_event_id: "voc",
+          event_ids: ["award", "voc"],
+          edges: [
+            { parent_event_id: "award", child_event_id: "voc", fused_score: 0.68 },
+          ],
+          minimum_fused_score: 0.68,
+          truth_status_code: "inferred",
+          source_relation_code: "post_lineage_edge",
+          provenance: "post_lineage_edge.fused_score",
+        },
       ],
     },
   ],
@@ -124,6 +136,8 @@ describe("ProjectHistoryTimeline", () => {
     expect(screen.getByText("delivery")).toBeInTheDocument();
     expect(screen.getByText("delivered")).toBeInTheDocument();
     expect(screen.getByText(/Time order checked/)).toBeInTheDocument();
+    expect(screen.getByText("Contract awarded → Specification changed → VOC received")).toBeVisible();
+    expect(screen.getByText("Contract awarded → VOC received")).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");

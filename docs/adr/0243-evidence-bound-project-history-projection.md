@@ -21,6 +21,17 @@ eligibility, and knowledge cutoff are applied before child evidence is read.
 Project identity uses exact NFKC-normalized source or semantic evidence; no
 fuzzy match is allowed.
 
+Candidate selection is the union of the two accepted exact key-bearing fields:
+`source_post.source_project_code` and `post_project_mention.project_key`.
+Display names never become identity. After the visible event set is selected,
+its stored names remain presentation evidence. Each key field has an index over
+the same NFKC, ASCII-edge-trimmed, case-folded expression used by the query. The
+union yields only candidate Post identities;
+source eligibility, cutoff, and current caller ABAC are still applied after the
+candidate join and before any child evidence is read. This query shape removes
+a whole-corpus identity scan without caching authorization or changing exact
+membership, ordering, or truncation.
+
 The existing post-detail popup hosts the shared timeline; there is no new
 navigation destination. Controlled VOC codes may label VOC evidence. Other
 records remain `source_recorded`; source stage and detail-state codes are shown

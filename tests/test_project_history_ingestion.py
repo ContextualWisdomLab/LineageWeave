@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
 
 from backend.app.project_history import (
     ProjectHistoryRequestError,
@@ -53,6 +54,11 @@ def test_project_history_query_binds_corporate_and_process_scopes() -> None:
     event_query, event_args = connection.calls[0]
     assert "post.process_unit_id::text = any($3::text[])" in event_query
     assert "coalesce(post.event_occurred_at, post.created_at)" in event_query
+    assert "with matching_post as materialized" in event_query
+    assert "join source_post post on post.post_id = matching.post_id" in event_query
+    assert event_query.count(" union ") == 1
+    assert "normalize(coalesce(source_project_name" not in event_query
+    assert "normalize(project_name" not in event_query
     assert event_args[1:3] == (["corp-1"], ["pu-1"])
     assert result["events"][0]["event_type_code"] == "source_recorded"
     assert result["events"][0]["occurred_at"] == "2025-12-20T00:00:00Z"
@@ -64,6 +70,36 @@ def test_project_history_query_binds_corporate_and_process_scopes() -> None:
     assert "project_journey_temporal_relation_kind" in edge_query
     assert "temporal_run.knowledge_cutoff <= $2" in edge_query
     assert edge_args[1] == datetime(2026, 2, 1, tzinfo=timezone.utc)
+
+
+def test_project_history_identity_indexes_match_the_exact_query_expression() -> None:
+    """Replay-safe indexes and rollback cover every accepted identity field."""
+
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "migrations/0273_project_history_identity_indexes.sql").read_text()
+    rollback = (
+        root / "migrations/rollback/0273_project_history_identity_indexes.sql"
+    ).read_text()
+    for field, index_name in (
+        ("source_project_code", "source_post_project_code_identity_idx"),
+        ("project_key", "post_project_mention_key_identity_idx"),
+    ):
+        assert field in migration
+        assert f"create index if not exists {index_name}" in migration
+        assert f"drop index if exists {index_name};" in rollback
+    assert "source_project_name" not in migration
+    assert "project_name" not in migration
+    assert migration.count("normalize(") == 2
+    assert migration.count("E' \\t\\n\\r\\f\\v'") == 2
+
+
+def test_project_history_focus_never_promotes_display_names_to_keys() -> None:
+    """A display-name collision cannot admit a focus event for another project."""
+
+    from backend.app.project_history import _FOCUS_SQL
+
+    assert "normalize(coalesce(post.source_project_name" not in _FOCUS_SQL
+    assert "normalize(mention.project_name" not in _FOCUS_SQL
 
 
 def test_project_history_query_uses_the_same_ascii_edge_whitespace_as_python() -> None:
@@ -81,7 +117,7 @@ def test_project_history_query_uses_the_same_ascii_edge_whitespace_as_python() -
         )
     )
     event_query, event_args = connection.calls[0]
-    assert "btrim(normalize(coalesce(post.source_project_code, ''), NFKC), E'" in event_query
+    assert "btrim(normalize(coalesce(source_project_code, ''), NFKC), E'" in event_query
     assert event_args[0] == "p-100"
 
 

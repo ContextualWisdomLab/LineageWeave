@@ -140,7 +140,7 @@ export const ProjectHistoryReady: Story = {
     await expect(canvas.getByText("Synthetic project initiated → Synthetic supply review → Synthetic claim evidence")).toBeVisible();
     focusTab.focus();
     await userEvent.keyboard("{ArrowLeft}");
-    await expect(canvas.getByRole("tab", { name: /Synthetic project initiated/ })).toHaveFocus();
+    await expect(canvas.getByRole("tab", { name: /Synthetic supply review/ })).toHaveFocus();
   },
 };
 

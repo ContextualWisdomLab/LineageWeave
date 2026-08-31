@@ -540,6 +540,17 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
 
 
 @pytest.mark.anyio
+async def test_dashboard_maximum_period_end_has_a_representable_cutoff() -> None:
+    """The maximum accepted date maps directly to its own inclusive last instant."""
+
+    result = await fetch_operations_dashboard(_Connection(), [], [], period_end=date.max)
+
+    assert result["project_history_knowledge_cutoff"] == (
+        "9999-12-31T23:59:59.999999+09:00"
+    )
+
+
+@pytest.mark.anyio
 async def test_dashboard_counts_each_case_milestone_set_once() -> None:
     """Multiple classification evidence rows cannot duplicate one case's events."""
 
