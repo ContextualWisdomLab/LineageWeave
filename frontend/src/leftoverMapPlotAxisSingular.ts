@@ -37,8 +37,9 @@
  *  leftover-map singular values.
  *  ADR 0345 names leftover-map comparison leftover-axis origin ticks as
  *  leftoverMapCompareAxisTickBadge independently of leftover-map axis share and
- *  leftover-map singular values. leftoverMapAxisTickBadge
- *  does not name leftover-map origin this increment.
+ *  leftover-map singular values.
+ *  ADR 0346 names leftover-map leftover-axis origin ticks as leftoverMapAxisTickBadge
+ *  independently of leftover-map axis share and leftover-map singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";

@@ -3,6 +3,8 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0346](0346-leftover-map-axis-tick-origin-badge.md)
+
 Amends leftover-axis tick leftover-map singular values independently of leftover-map
 axis share
 ([ADR 0330](0330-leftover-map-axis-tick-badge.md)), leftover-map

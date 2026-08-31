@@ -28,6 +28,8 @@
  *  leftoverMapComparePlotTickAxisBadge, not this helper.
  *  ADR 0345 captions leftover-map comparison leftover-axis origin ticks as
  *  leftoverMapCompareAxisTickBadge, not this helper.
+ *  ADR 0346 names leftover-map leftover-axis origin ticks as leftoverMapAxisTickBadge
+ *  independently of leftover-map axis share and leftover-map singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";
@@ -35,6 +37,7 @@ import { formatLeftoverMapPlotAxisShare } from "./leftoverMapPlotAxisShare";
 import type { LeftoverMapCompareAxisBadge } from "./leftoverMapPlotAxisSingular";
 import {
   formatLeftoverMapPlotAxisSingular,
+  leftoverMapPlotTickIsOrigin,
   leftoverSingularForAxis,
 } from "./leftoverMapPlotAxisSingular";
 
@@ -52,6 +55,16 @@ export const LEFTOVER_MAP_AXIS_TICK_SHARE = "leftover axis {axis} tick {value} {
 
 export const LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE =
   "leftover axis {axis} tick {value} σ {singular} {share}%";
+
+export const LEFTOVER_MAP_AXIS_ORIGIN_TICK = "leftover axis {axis} origin tick {value}";
+
+export const LEFTOVER_MAP_AXIS_ORIGIN_TICK_SINGULAR =
+  "leftover axis {axis} origin tick {value} σ {singular}";
+
+export const LEFTOVER_MAP_AXIS_ORIGIN_TICK_SHARE = "leftover axis {axis} origin tick {value} {share}%";
+
+export const LEFTOVER_MAP_AXIS_ORIGIN_TICK_SINGULAR_SHARE =
+  "leftover axis {axis} origin tick {value} σ {singular} {share}%";
 
 export function leftoverMapAxisBadgeShare(
   leftoverShare: LeftoverMapAxis["leftover_share"] | null | undefined,
@@ -99,23 +112,29 @@ export function leftoverMapAxisTickBadge(
 ): LeftoverMapCompareAxisBadge {
   const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
   const percent = leftoverMapAxisBadgeShare(leftoverShare);
+  const origin = leftoverMapPlotTickIsOrigin(tickLabel);
   if (singular === null && percent === null) {
-    return { key: LEFTOVER_MAP_AXIS_TICK, values: { axis: axisIndex, value: tickLabel } };
+    return {
+      key: origin ? LEFTOVER_MAP_AXIS_ORIGIN_TICK : LEFTOVER_MAP_AXIS_TICK,
+      values: { axis: axisIndex, value: tickLabel },
+    };
   }
   if (singular === null && percent !== null) {
     return {
-      key: LEFTOVER_MAP_AXIS_TICK_SHARE,
+      key: origin ? LEFTOVER_MAP_AXIS_ORIGIN_TICK_SHARE : LEFTOVER_MAP_AXIS_TICK_SHARE,
       values: { axis: axisIndex, value: tickLabel, share: percent },
     };
   }
   if (singular !== null && percent === null) {
     return {
-      key: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+      key: origin ? LEFTOVER_MAP_AXIS_ORIGIN_TICK_SINGULAR : LEFTOVER_MAP_AXIS_TICK_SINGULAR,
       values: { axis: axisIndex, value: tickLabel, singular },
     };
   }
   return {
-    key: LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE,
+    key: origin
+      ? LEFTOVER_MAP_AXIS_ORIGIN_TICK_SINGULAR_SHARE
+      : LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE,
     values: { axis: axisIndex, value: tickLabel, singular: singular as string, share: percent as string },
   };
 }
