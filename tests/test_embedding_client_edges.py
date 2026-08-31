@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 import pytest
 
 from lineageweave import embedding_client
@@ -174,14 +176,18 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_embedding_clients_do_not_accept_a_caller_selected_model() -> None:
-    with pytest.raises(TypeError):
-        embedding_client.ContextualOrchestratorEmbeddingClient(
-            "http://orchestrator", "key", "caller-model"
-        )
-    with pytest.raises(TypeError):
-        embedding_client.OpenAiCompatibleEmbeddingClient(
-            "http://orchestrator", "key", "caller-model"
-        )
+    assert "model" not in inspect.signature(
+        embedding_client.ContextualOrchestratorEmbeddingClient
+    ).parameters
+    assert "model" not in inspect.signature(
+        embedding_client.ContextualOrchestratorEmbeddingClient.embed_many
+    ).parameters
+    assert "model" not in inspect.signature(
+        embedding_client.OpenAiCompatibleEmbeddingClient
+    ).parameters
+    assert "model" not in inspect.signature(
+        embedding_client.OpenAiCompatibleEmbeddingClient.embed
+    ).parameters
 
 
 def test_batch_body_size_matches_post_scoped_orchestrator_wire_body() -> None:
