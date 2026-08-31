@@ -28,7 +28,9 @@
 [ADR 0280](0280-leftover-map-segment-rank.md)
 (leftover-map rank on pair segments);
 [ADR 0304](0304-leftover-map-compare-graphic.md)
-(leftover-map graphic display on the grouping comparison strip)
+(leftover-map graphic display on the grouping comparison strip);
+[ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)
+(leftover-map item coordinates on leftover-map graphic leftover-map criterion markers)
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and
 [ADR 0267](0267-leftover-map-coordinates.md). Independent of leftover-map

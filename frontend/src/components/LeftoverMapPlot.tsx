@@ -34,6 +34,7 @@ import {
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
+  leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -119,11 +120,29 @@ function leftoverMapPlotTickText(
   return tf(badge.key, badge.values);
 }
 
+function leftoverMapPlotCriterionText(
+  marker: { label: string; axis1: number; axis2: number },
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant === "comparison") {
+    return `${t("Criterion ζ")} ${marker.label}`;
+  }
+  const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
+  if (badge === null) {
+    return `${t("Criterion ζ")} ${marker.label}`;
+  }
+  return tf(badge.key, badge.values);
+}
+
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
  * Person markers are posts; item markers are leftover criteria. Click a
- * post marker to open that post. Caption leftover-map axes with persisted
+ * post marker to open that post. Caption leftover-map graphic leftover-map
+ * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
+ * when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion
+ * leftover-map item coordinate caption. Leftover-map comparison graphic leftover-map
+ * criterion markers stay ``Criterion ζ {label}`` this increment. Caption leftover-map axes with persisted
  * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
  * including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
@@ -547,7 +566,7 @@ export function LeftoverMapPlot({
             </g>
           ))}
           {layout.items.map((marker) => (
-            <g key={`item:${marker.id}`} aria-label={`${t("Criterion ζ")} ${marker.label}`}>
+            <g key={`item:${marker.id}`} aria-label={leftoverMapPlotCriterionText(marker, variant)}>
               <polygon className="leftover-map-plot-item" points={diamondPoints(marker.x, marker.y, 7)} />
               <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y + 14}>
                 {marker.label}

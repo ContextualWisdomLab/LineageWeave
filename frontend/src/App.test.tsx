@@ -4211,6 +4211,15 @@ describe("App, authenticated", () => {
     expect(await screen.findByLabelText("Leftover pairs")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText("Criterion ζ sales-lead"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover-map criterion sales-lead at ζ (+0.50, −0.02)",
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();

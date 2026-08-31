@@ -746,6 +746,15 @@ Share and singular value omit independently. Rank-0 unused axes still name lefto
 leftover-axis tick leftover-map axis share `0%`. Do not invent leftover-map
 axis share from leftover-map singular values. Do not invent leftover-map singular values from leftover-map
 axis share.
+ADR 0335 captions leftover-map graphic leftover-map criterion markers with persisted leftover-map
+item coordinates when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion leftover-map
+item coordinate caption. Distinct accessible name
+`leftover-map criterion {label} at ζ {item}`.
+A missing or non-finite leftover-map item coordinate pair omits that leftover-map criterion leftover-map
+item coordinate caption and keeps `Criterion ζ {label}`. Rank-0 unused axes still name leftover-map
+item coordinates `(0.00, 0.00)`. Do not invent leftover-map item coordinates from leftover-map post
+`ξ`. Do not invent leftover-map post `ξ` from leftover-map item coordinates. Leftover-map comparison graphic leftover-map
+criterion markers never name leftover-map item coordinates this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -887,6 +896,10 @@ Leftover-axis tick leftover-map axis share independently of leftover-map singula
 (ADR 0334) captions leftover-axis ticks with persisted leftover-map
 axis share when leftoverMapAxisTickBadge returns a usable leftover-axis tick leftover-map
 axis share caption.
+Leftover-map graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
+(ADR 0335) captions leftover-map graphic leftover-map criterion markers with persisted leftover-map
+item coordinates when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion leftover-map
+item coordinate caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

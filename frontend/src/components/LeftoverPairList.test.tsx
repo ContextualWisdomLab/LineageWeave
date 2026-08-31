@@ -167,6 +167,8 @@ describe("LeftoverPairList", () => {
         name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
   });
 
   it("opens the named post from a leftover-map graphic display marker", async () => {

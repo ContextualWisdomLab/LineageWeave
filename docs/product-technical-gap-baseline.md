@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 16:00 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #875 leftover-map axis share on leftover-axis ticks independently of leftover-map
+> singular values (v2.91.0 / ADR 0334) is
+> `d19f1fd`, stacked on #874 @ `ba58c21`. Independent APPROVE is missing (Devin COMMENTED,
+> not APPROVE; trailing blank line resolved). Next buyer increment on this cycle: leftover-map graphic leftover-map
+> criterion markers naming persisted leftover-map item coordinates independently of leftover-map
+> post ξ markers (ADR 0335 / v2.92.0) delivered locally on
+> `feat/leftover-map-plot-criterion-coordinates-v2920`. Caption persisted leftover-map
+> item coordinates on leftover-map graphic leftover-map criterion markers when leftoverMapPlotCriterionBadge
+> returns a usable leftover-map criterion leftover-map item coordinate caption. Distinct accessible name
+> `leftover-map criterion {label} at ζ {item}`.
+> Rank-0 unused axes still name leftover-map item coordinates `(0.00, 0.00)`. A missing or
+> non-finite leftover-map item coordinate pair omits independently of leftover-map post `ξ`.
+> Leftover-map comparison graphic leftover-map criterion markers never name leftover-map item coordinates this
+> increment. Do not invent leftover-map item coordinates from leftover-map post `ξ`. Do not invent leftover-map
+> post `ξ` from leftover-map item coordinates. Do not persist leftover-map inner product, cosine, or length. Stack onto #875.
+> Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79
+> and #87 stay open. Do not merge #808 without independent APPROVE. Never self-approve.
+
 > Exact-head loop overlay: 2026-08-31 15:40 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #874 leftover-map axis share on leftover-map comparison leftover-axis
