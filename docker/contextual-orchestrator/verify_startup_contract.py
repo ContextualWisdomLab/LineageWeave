@@ -18,14 +18,13 @@ from contextual_orchestrator.orchestrator import (
     TaskOrchestrator,
     load_agents,
 )
-from contextual_orchestrator.token_counting import RustCl100kPacker
+from contextual_orchestrator import _token_packer
 from start import _configured_agents
 
 
 def main() -> None:
     """Prove wrapper output expands into a same-origin concrete serving pool."""
-    token_packer = RustCl100kPacker()
-    assert token_packer.count_text("hello") == 1
+    assert _token_packer.count_cl100k("hello") == 1
 
     gateway_origin = "https://gateway.synthetic.example/v1"
     configured = _configured_agents(
@@ -69,11 +68,16 @@ def main() -> None:
         ),
     )
     original_discovery = entrypoint.discover_all_models
+    original_probe = entrypoint._probe_configured_gateway_structured_chat
     entrypoint.discover_all_models = lambda _sources, **_kwargs: (catalog, [])
+    entrypoint._probe_configured_gateway_structured_chat = (
+        lambda _orchestrator, model: model.provider_name == "configured_gateway"
+    )
     try:
         entrypoint._auto_discover_runtime_agents(orchestrator)
     finally:
         entrypoint.discover_all_models = original_discovery
+        entrypoint._probe_configured_gateway_structured_chat = original_probe
 
     active_gateway = [
         agent
