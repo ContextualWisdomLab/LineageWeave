@@ -70,6 +70,22 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
     assert match is None, f"private post identifier in product-gap baseline: {match.group(0)!r}"
 
 
+def test_product_gap_baseline_preserves_read_latency_failure_evidence() -> None:
+    """The open 20 ms gap retains the latest aggregate failed-runtime evidence."""
+    baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+
+    for required_evidence in (
+        "PR #888 remains deliberately inactive and fail-closed",
+        "native request path already uses Uvicorn 0.52.1 with uvloop 0.22.1 and httptools 0.8.0",
+        "first cold Post search spent 87.24 ms of 89.20 ms in database work",
+        "approximately 78 ms of event-loop lag",
+        "6,875 accepted reads with no response failure",
+        "GC-off remained a discarded experiment; no production runtime or configuration changed",
+        "The 20 ms contract is not met",
+    ):
+        assert required_evidence in baseline
+
+
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
     """ADR 0019 / 0027: fetch must not rejoin the catalog by a non-unique name."""
 
