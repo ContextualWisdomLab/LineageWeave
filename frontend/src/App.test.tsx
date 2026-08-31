@@ -4885,64 +4885,74 @@ describe("App, authenticated", () => {
     );
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("d 0.12");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("R̂ +0.25");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("R̂²/R² 0.76");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("U²/R² 0.02");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("2R̂U/R² 0.12");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("U +0.05");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("R +0.40");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("Y 2.40");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("E 2.00");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("rank 1");
     expect(
       screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     ).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
+    expect(
+      screen.getByRole("button", {
+        name: "leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open leftover map comparison graphic leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),
@@ -4966,7 +4976,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
+        name: "leftover map comparison leftover pair leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());

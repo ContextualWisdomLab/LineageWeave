@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 18:45 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #882 leftover-map item coordinates on leftover-map pair leftover-map
+> criterion independently of leftover-map pair leftover-map post leftover-map person coordinates (v2.97.0 / ADR 0340) is
+> `094d1a0`, stacked on #881 @ `167888d`. Independent APPROVE is missing (Devin COMMENTED,
+> not APPROVE). Next buyer increment on this cycle: leftover-map comparison leftover-pair leftover-map
+> post naming persisted leftover-map person coordinates independently of leftover-map
+> comparison leftover-pair leftover-map criterion leftover-map item coordinates (ADR 0341 / v2.98.0) delivered locally on
+> `feat/leftover-map-compare-list-post-coordinates-v2980`. Caption persisted leftover-map
+> person coordinates on leftover-map comparison leftover-pair leftover-map post when leftoverMapCompareListPostBadge
+> returns a usable leftover-map comparison leftover-pair leftover-map post leftover-map person coordinate caption. Distinct accessible name
+> `leftover map comparison leftover pair leftover-map post {title} at ξ {person}`.
+> Rank-0 unused axes still name leftover-map person coordinates `(0.00, 0.00)`. A missing or
+> non-finite leftover-map person coordinate pair omits independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map item `ζ` and keeps
+> `Open leftover {kind} pair from comparison: {title} · {criterion}`. Leftover-map pair leftover-map post leftover-map person coordinates stay
+> `leftover pair leftover-map post {title} at ξ {person}` this increment. Leftover-map graphic leftover-map post markers stay
+> `Open leftover-map post {title} at ξ {person}` this increment. Leftover-map comparison graphic leftover-map post markers stay
+> `Open leftover map comparison graphic leftover-map post {title} at ξ {person}` this increment. Do not invent leftover-map
+> person coordinates from leftover-map item coordinates `ζ`. Do not invent leftover-map
+> item coordinates `ζ` from leftover-map person coordinates `ξ`. Do not persist leftover-map inner product, cosine, or length. Stack onto #882.
+> Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79
+> and #87 stay open. Do not merge #808 without independent APPROVE. Never self-approve. Do not mix #877.
+
 > Exact-head loop overlay: 2026-08-31 18:20 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #881 leftover-map person coordinates on leftover-map pair leftover-map

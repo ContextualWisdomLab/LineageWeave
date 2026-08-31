@@ -186,6 +186,7 @@ import {
 } from "./leftoverMapRank";
 import {
   formatLeftoverMapCoordinates,
+  leftoverMapCompareListPostBadge,
   LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
 } from "./leftoverMapCoordinates";
 import "./App.css";
@@ -4221,6 +4222,11 @@ function ReportsPanel({
                       pair.leftover_map_item_axis_1,
                       pair.leftover_map_item_axis_2,
                     );
+                    const listPostBadge = leftoverMapCompareListPostBadge(
+                      pair.post_title,
+                      pair.leftover_map_person_axis_1,
+                      pair.leftover_map_person_axis_2,
+                    );
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4228,7 +4234,11 @@ function ReportsPanel({
                       >
                         <button
                           className="post-list-item"
-                          aria-label={`Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`}
+                          aria-label={
+                            listPostBadge !== null
+                              ? tf(listPostBadge.key, listPostBadge.values)
+                              : `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`
+                          }
                           onClick={() =>
                             // Same promise, same landing: the badge tells the
                             // reader the criterion will be current in Post
