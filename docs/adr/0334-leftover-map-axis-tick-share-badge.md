@@ -117,7 +117,9 @@ tick leftover-map singular values independently of leftover-map axis share
 ([ADR 0330](0330-leftover-map-axis-tick-badge.md)). Independent of leftover-map
 singular values on leftover-axis report badges independently of leftover-map axis share
 ([ADR 0325](0325-leftover-map-axis-singular-only.md)). Independent of leftover-map
-axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
+axis share persistence ([ADR 0148](0148-leftover-map-axis-share.md)). Independent of leftover-map
+graphic leftover-map criterion leftover-map item coordinates independently of leftover-map post ξ markers
+([ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)).
 
 ## References
 

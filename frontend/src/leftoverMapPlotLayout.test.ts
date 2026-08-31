@@ -5,6 +5,7 @@ import {
   formatLeftoverMapDistance,
   hasLeftoverMapPlotCoordinates,
   layoutLeftoverMapPlot,
+  leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
@@ -19,6 +20,8 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
+  LEFTOVER_MAP_PLOT_CRITERION,
+  LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_TICK,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1199,6 +1202,46 @@ describe("formatLeftoverMapDistance", () => {
     expect(formatLeftoverMapDistance(null)).toBeNull();
     expect(formatLeftoverMapDistance(Number.NaN)).toBeNull();
     expect(formatLeftoverMapDistance(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+});
+
+describe("leftoverMapPlotCriterionBadge", () => {
+  it("names persisted leftover-map item coordinates without inventing a leftover score", () => {
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0.5, -0.02)).toEqual({
+      key: LEFTOVER_MAP_PLOT_CRITERION,
+      values: { label: "sales-lead", item: "(+0.50, \u22120.02)" },
+    });
+    expect(leftoverMapPlotCriterionBadge("negative", -0.7, -0.4)).toEqual({
+      key: LEFTOVER_MAP_PLOT_CRITERION,
+      values: { label: "negative", item: "(\u22120.70, \u22120.40)" },
+    });
+  });
+
+  it("names rank-0 origin leftover-map item coordinates as ζ (0.00, 0.00)", () => {
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)).toEqual({
+      key: LEFTOVER_MAP_PLOT_CRITERION,
+      values: { label: "sales-lead", item: "(0.00, 0.00)" },
+    });
+  });
+
+  it("omits leftover-map item coordinates when ζ is missing or non-finite", () => {
+    expect(leftoverMapPlotCriterionBadge("sales-lead", null, -0.02)).toBeNull();
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0.5, undefined)).toBeNull();
+    expect(leftoverMapPlotCriterionBadge("sales-lead", Number.NaN, -0.02)).toBeNull();
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0.5, Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("stays distinct from leftover-map post ξ markers and leftover-map comparison graphic leftover-map criterion markers", () => {
+    expect(LEFTOVER_MAP_PLOT_CRITERION).toBe("leftover-map criterion {label} at ζ {item}");
+    expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
+    expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe("Criterion ζ {label}");
+    expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe("Criterion ζ");
+    expect(LEFTOVER_MAP_PLOT_CRITERION).not.toBe(
+      "leftover map comparison graphic leftover-map criterion {label} at ζ {item}",
+    );
+    expect(leftoverMapPlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
+      LEFTOVER_MAP_PLOT_POST_ACTION,
+    );
   });
 });
 

@@ -68,6 +68,7 @@ describe("i18n", () => {
     "Leftover map",
     "Post ξ",
     "Criterion ζ",
+    "leftover-map criterion {label} at ζ {item}",
     "leftover-map axis 1",
     "leftover-map axis 2",
     "leftover-map axis {axis} ({share}%)",
@@ -427,6 +428,21 @@ describe("i18n", () => {
       t(
         "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 기준 sales-lead (ζ (+0.50, −0.02))"],
+    ["zh", "残差图准则 sales-lead（ζ (+0.50, −0.02)）"],
+    ["ja", "残差マップの基準 sales-lead（ζ (+0.50, −0.02)）"],
+    ["vi", "tiêu chí bản đồ phần dư sales-lead tại ζ (+0.50, −0.02)"],
+  ] as const)("formats leftover-map graphic leftover-map criterion ζ in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover-map criterion {label} at ζ {item}", {
+        label: "sales-lead",
+        item: "(+0.50, −0.02)",
+      }),
     ).toBe(expected);
   });
 

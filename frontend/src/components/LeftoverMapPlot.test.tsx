@@ -66,6 +66,9 @@ describe("LeftoverMapPlot", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Post ξ")).toBeInTheDocument();
     expect(screen.getByText("Criterion ζ")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)")).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map criterion negative at ζ (−0.70, −0.40)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2")).toBeInTheDocument();
     expect(screen.getByLabelText("leftover-map axis 1 tick +0.50")).toBeInTheDocument();
@@ -164,6 +167,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByRole("button", { name: "Open leftover-map post Public post at ξ (0.00, 0.00)" }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("leftover-map criterion sales-lead at ζ (0.00, 0.00)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Criterion ζ sales-lead")).not.toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 1 σ 0.00 (0%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 σ 0.00 (0%)")).toBeInTheDocument();
     expect(screen.getAllByLabelText("leftover-map axis 1 tick 0.00 σ 0.00 0%").length).toBeGreaterThan(0);
@@ -921,6 +926,14 @@ describe("LeftoverMapPlot", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison graphic leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Criterion ζ sales-lead")).toBeInTheDocument();
+    expect(screen.getByLabelText("Criterion ζ negative")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover-map criterion sales-lead at ζ (+0.50, −0.02)"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover-map criterion negative at ζ (−0.70, −0.40)"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 1 σ 1.84 (82%)")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 2 σ 0.86 (18%)")).not.toBeInTheDocument();
     expect(screen.queryByText("leftover-map axis 1 (82%)")).not.toBeInTheDocument();

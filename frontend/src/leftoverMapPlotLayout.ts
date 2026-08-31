@@ -115,6 +115,10 @@
  *  ADR 0334 fail-closes leftover-map leftover-axis ticks leftover-map
  *  axis share through leftoverMapAxisTickBadge independently of leftover-map
  *  singular values, not this graphic.
+ *  ADR 0335 fail-closes leftover-map graphic leftover-map criterion markers
+ *  leftover-map item coordinates ζ through leftoverMapPlotCriterionBadge
+ *  independently of leftover-map post ξ markers, not leftover-map comparison
+ *  graphic leftover-map criterion markers.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -143,6 +147,26 @@ export const LEFTOVER_MAP_COMPARE_PLOT_SVG = "Leftover map comparison";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
+
+export const LEFTOVER_MAP_PLOT_CRITERION =
+  "leftover-map criterion {label} at ζ {item}";
+
+export type LeftoverMapPlotCriterionBadge = {
+  key: string;
+  values: { label: string; item: string };
+};
+
+export function leftoverMapPlotCriterionBadge(
+  label: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapPlotCriterionBadge | null {
+  const item = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (item === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_PLOT_CRITERION, values: { label, item } };
+}
 
 export const LEFTOVER_MAP_PLOT_TICK =
   "leftover-map axis {axis} tick {value}";
