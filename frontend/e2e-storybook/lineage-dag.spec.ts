@@ -88,3 +88,28 @@ test("operates lineage edge evidence from the keyboard", async ({ page }) => {
   await expect(edge).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("details").first()).toHaveAttribute("open", "");
 });
+
+test("keeps parallel lineage edge evidence independently keyboard-selectable", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openStory(page, "lineage-lineagedag-parallel-edges--parallel-relationships");
+
+  const viewport = page.getByRole("region", { name: "A-100 lineage viewport" });
+  const edges = page.getByRole("button", {
+    name: /Open connection evidence: Initial site visit to Pricing follow-up/,
+  });
+  await expect(edges).toHaveCount(2);
+
+  const labels = await edges.evaluateAll((elements) => elements.map((element) => element.getAttribute("aria-label")));
+  expect(new Set(labels).size).toBe(2);
+
+  await page.locator("body").click({ position: { x: 1, y: 1 } });
+  await page.keyboard.press("Tab");
+  await expect(viewport).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(edges.nth(0)).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(edges.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await expect(edges.nth(1)).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("details[open]")).toHaveCount(1);
+});
