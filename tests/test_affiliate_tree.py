@@ -113,23 +113,22 @@ def test_to_dict_is_the_api_shape() -> None:
     assert payload["children"][0]["people"][0]["person_name"] == "Ada West"
 
 
-def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> None:
-    """One request shares its alias snapshot with Keyman and forest hydration."""
-    aliases = (OrganizationNameAlias("DC", "Demo Corp", "demo-id"),)
+def test_affiliate_forest_skips_alias_catalog_when_no_keymen(monkeypatch) -> None:
+    """A post with no affiliations must not load the organization alias catalog."""
 
     class _Connection:
         async def fetch(self, _query: str, *_args: object):
             raise AssertionError("no corporate hierarchy query is needed without resolved affiliations")
 
     conn = _Connection()
-    fetch_aliases = AsyncMock(return_value=aliases)
+    fetch_aliases = AsyncMock(return_value=())
     fetch_keymen = AsyncMock(return_value=[])
     monkeypatch.setattr(ingestion, "fetch_corroborated_organization_aliases", fetch_aliases)
     monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
 
     assert asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1")) == []
-    fetch_aliases.assert_awaited_once_with(conn)
-    fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=aliases)
+    fetch_aliases.assert_not_awaited()
+    fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=())
 
 
 def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -> None:
@@ -246,8 +245,13 @@ def test_affiliate_forest_loads_only_resolved_affiliation_ancestor_closure(monke
     monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
     monkeypatch.setattr(ingestion, "_attach_lookup_labels", attach_labels)
 
-    forest = asyncio.run(ingestion.fetch_affiliate_forest(_Connection(), "post-1"))
+    conn = _Connection()
+    forest = asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1"))
 
+    fetch_aliases.assert_awaited_once_with(
+        conn,
+        organization_names=("Unresolved Supplier",),
+    )
     assert len(observed_calls) == 1
     query, args = observed_calls[0]
     assert "with recursive affiliate_entity" in query.lower()
