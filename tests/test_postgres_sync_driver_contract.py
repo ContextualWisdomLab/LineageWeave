@@ -27,6 +27,7 @@ from lineageweave.postgres_sync import (
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 _FORBIDDEN_IMPORT = re.compile(r"(?m)^\s*(?:import\s+psycopg2\b|from\s+psycopg2\b)")
+_UPLOAD_ARTIFACT_SHA = "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
 
 
 def test_sync_postgres_driver_is_not_psycopg2() -> None:
@@ -57,6 +58,20 @@ def test_lockfile_matches_synchronous_postgres_driver_contract() -> None:
     assert 'name = "psycopg2"' not in lockfile
     assert 'name = "psycopg2-binary"' not in lockfile
     assert 'name = "pg8000"' in lockfile
+
+
+def test_ci_preserves_resolver_output_when_committed_lock_is_stale() -> None:
+    """A stale frozen lock must fail closed while preserving the resolver candidate."""
+    workflow = (_REPOSITORY_ROOT / ".github" / "workflows" / "tests.yml").read_text(
+        encoding="utf-8"
+    )
+
+    lock_check = workflow.index("uv lock --check")
+    frozen_sync = workflow.index("uv sync --frozen --extra dev --extra backend")
+    assert lock_check < frozen_sync
+    assert f"actions/upload-artifact@{_UPLOAD_ARTIFACT_SHA}" in workflow
+    assert "uv-lock-candidate-${{ github.sha }}" in workflow
+    assert "if-no-files-found: error" in workflow
 
 
 def test_generated_identifier_quoting_is_postgresql_safe() -> None:
