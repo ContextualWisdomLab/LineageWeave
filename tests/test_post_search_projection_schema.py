@@ -60,3 +60,22 @@ def test_post_search_uses_independently_indexable_match_branches() -> None:
     assert "min(body_priority)" in search_sql
     assert "max(body_rank)" in search_sql
     assert "body_candidate as materialized" not in search_sql
+
+
+def test_post_search_does_not_rejoin_authorized_source_before_page() -> None:
+    """Authorized source fields flow into filtering without a duplicate join."""
+    source = " ".join(BACKEND_MAIN.read_text(encoding="utf-8").lower().split())
+    authorized_sql = source.split("), authorized as (", maxsplit=1)[1].split(
+        "), filtered as (", maxsplit=1
+    )[0]
+    filtered_sql = source.split("), filtered as (", maxsplit=1)[1].split(
+        "), selected as (", maxsplit=1
+    )[0]
+
+    assert (
+        "source.post_title, source.created_at, source.visibility_code"
+        in authorized_sql
+    )
+    assert "authorized.post_title, authorized.created_at" in filtered_sql
+    assert "join source_post source" not in filtered_sql
+    assert "authorized.visibility_code = $5" in filtered_sql

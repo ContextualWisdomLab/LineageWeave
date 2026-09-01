@@ -2022,7 +2022,8 @@ async def _fetch_search_post_page(
              group by post_id
         ), authorized as (
             select candidate.post_id, candidate.body_match,
-                   candidate.body_priority, candidate.body_rank
+                   candidate.body_priority, candidate.body_rank,
+                   source.post_title, source.created_at, source.visibility_code
               from candidate
               join source_post source on source.post_id = candidate.post_id
              where (source.visibility_code = 'public'
@@ -2033,16 +2034,15 @@ async def _fetch_search_post_page(
         ), filtered as (
             select authorized.post_id, authorized.body_match,
                    authorized.body_priority, authorized.body_rank,
-                   source.post_title, source.created_at
+                   authorized.post_title, authorized.created_at
               from authorized
-              join source_post source on source.post_id = authorized.post_id
              where ($4::text[] is null or exists (
                        select 1 from source_post_voice voice_filter
-                        where voice_filter.post_id = source.post_id
+                        where voice_filter.post_id = authorized.post_id
                           and voice_filter.effective_to is null
                           and voice_filter.voice_type_code = any($4::text[])
                    ))
-               and ($5::text is null or source.visibility_code = $5)
+               and ($5::text is null or authorized.visibility_code = $5)
         ), selected as (
             select filtered.post_id, filtered.body_match,
                    count(*) over() as total_count,

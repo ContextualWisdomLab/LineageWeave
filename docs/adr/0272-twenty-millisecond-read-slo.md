@@ -151,6 +151,18 @@ derived from either standard or from a rule of thumb.
     filter membership, ranking, continuation, evidence, and the final in-process
     visibility check remain unchanged. This is a measured root improvement, not
     20 ms acceptance; the all-read gate remains closed.
+18. The search authorization CTE carries the already-authorized title, event
+    time, and visibility into filtering. It does not rejoin `source_post`
+    before the bounded page and then join the same row a third time for the
+    response. On the same authorized full snapshot, this removed one exact-key
+    lookup per candidate and reduced the warm plan's summed shared-hit nodes
+    from 46,868 to 38,738 while seven search, sort, filter, and exhausted-page
+    responses remained byte-identical. Three five-concurrent, 25-read series
+    improved from a 21.28 ms average / 33.86 ms maximum baseline to averages of
+    19.73, 18.93, and 18.28 ms and maxima of 27.37, 25.25, and 22.81 ms. The
+    query still performs request-time ABAC and the final in-process visibility
+    check. Because every series still exceeded 20 ms, this is an exact query
+    improvement rather than all-read activation.
 
 ## Consequences
 
