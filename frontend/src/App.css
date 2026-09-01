@@ -204,6 +204,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
+  min-height: var(--size-touch-target);
 }
 
 .btn-primary:hover {
@@ -219,6 +220,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
+  min-height: var(--size-touch-target);
 }
 
 .btn-secondary:hover {
@@ -228,7 +230,7 @@
 .btn-link {
   display: inline-flex;
   align-items: center;
-  min-height: var(--size-control-min);
+  min-height: var(--size-touch-target);
 }
 
 /* Language Switcher */
@@ -238,7 +240,7 @@
 }
 
 .language-switcher select {
-  min-height: var(--size-control-min);
+  min-height: var(--size-touch-target);
   padding: 0.35rem 1.8rem 0.35rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
@@ -1454,7 +1456,7 @@
   font-weight: 700;
 }
 
-.dashboard-period-form input { min-height: 44px; }
+.dashboard-period-form input { min-height: var(--size-touch-target); }
 
 .operations-dashboard-heading {
   display: flex;
@@ -1592,7 +1594,7 @@
 }
 
 .occupation-rating-form input,
-.occupation-rating-form select { min-height: var(--size-control-min); }
+.occupation-rating-form select { min-height: var(--size-touch-target); }
 .occupation-rating-source { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin: 1rem 0; }
 .occupation-rating-scroll-hint { display: none; }
 .occupation-rating-table { overflow-x: auto; border: 1px solid var(--color-border); }

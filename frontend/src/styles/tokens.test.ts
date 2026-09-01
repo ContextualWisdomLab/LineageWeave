@@ -190,12 +190,22 @@ describe("design tokens", () => {
     expect(citationChipBlock).toContain("align-items: center");
   });
 
-  it("gives Dashboard evidence links the shared minimum touch target", () => {
+  it("gives Dashboard evidence links the shared 44px touch target", () => {
     const rule = appCss.match(/\.btn-link\s*\{[^}]*\}/)?.[0] ?? "";
     expect(rule, ".btn-link rule not found in App.css").not.toBe("");
-    expect(rule).toContain("min-height: var(--size-control-min)");
+    expect(rule).toContain("min-height: var(--size-touch-target)");
     expect(rule).toContain("display: inline-flex");
     expect(rule).toContain("align-items: center");
+  });
+
+  it("gives global buttons, language selection, and Dashboard dates the shared 44px touch target", () => {
+    for (const selector of [".btn-primary", ".btn-secondary", ".language-switcher select", ".dashboard-period-form input"]) {
+      const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const rule = appCss.match(new RegExp(`${escaped}\\s*\\{[^}]*\\}`))?.[0] ?? "";
+      expect(rule, `${selector} rule not found in App.css`).toContain("min-height: var(--size-touch-target)");
+    }
+    expect(appCss.match(/\.occupation-rating-form input,[^}]*\.occupation-rating-form select\s*\{[^}]*\}/s)?.[0] ?? "")
+      .toContain("min-height: var(--size-touch-target)");
   });
 
   it("keeps localized Dashboard count-unit groups together", () => {
