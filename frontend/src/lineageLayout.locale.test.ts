@@ -10,7 +10,7 @@ afterEach(() => {
 const groupNode = (id: string, group: string) => ({
   id,
   group,
-  label: `${group} record`,
+  label: `${group || "unassigned"} record`,
   occurred_at: "2026-01-01T00:00:00Z",
   is_root: true,
   is_branch_point: false,
@@ -37,6 +37,33 @@ describe("layoutLineageDag locale independence", () => {
       "Zulu",
       "Älpha",
       "Ungrouped",
+    ]);
+  });
+
+  it("keeps a named Ungrouped group distinct from truly ungrouped nodes", () => {
+    const graph: LineageGraph = {
+      nodes: [
+        groupNode("loose", ""),
+        groupNode("named-ungrouped", "Ungrouped"),
+        groupNode("alpha", "Alpha"),
+      ],
+      edges: [],
+    };
+
+    expect(
+      layoutLineageDag(graph).map(({ group, heading, nodes }) => ({
+        group,
+        heading,
+        nodeIds: nodes.map(({ id }) => id),
+      })),
+    ).toEqual([
+      { group: "Alpha", heading: "Alpha", nodeIds: ["alpha"] },
+      {
+        group: "Ungrouped",
+        heading: "Ungrouped",
+        nodeIds: ["named-ungrouped"],
+      },
+      { group: "", heading: "Ungrouped", nodeIds: ["loose"] },
     ]);
   });
 });
