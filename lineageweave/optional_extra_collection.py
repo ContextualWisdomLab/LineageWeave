@@ -28,7 +28,14 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _imported_module_names(source: str) -> frozenset[str]:
-    """Return exact top-level module paths from syntactically valid imports."""
+    """Return exact top-level module paths from syntactically valid imports.
+
+    For ``from package import submodule`` both the package and candidate
+    submodule path are retained. The local-source resolver later decides
+    whether that candidate is a real repository module, which lets collection
+    tracing follow imports such as ``from lineageweave import postgres_sync``
+    without mistaking ordinary imported attributes for modules.
+    """
     try:
         tree = ast.parse(source)
     except (SyntaxError, ValueError):
@@ -39,6 +46,12 @@ def _imported_module_names(source: str) -> frozenset[str]:
             imported.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module)
+            if node.level == 0:
+                imported.update(
+                    f"{node.module}.{alias.name}"
+                    for alias in node.names
+                    if alias.name != "*"
+                )
     return frozenset(imported)
 
 
