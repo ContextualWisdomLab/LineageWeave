@@ -1964,6 +1964,207 @@ async def rebuild_lineage_graph(
     return {"edge_count": len(edges)}
 
 
+async def _fetch_search_post_page(
+    conn: asyncpg.Connection,
+    *,
+    search_term: str,
+    corporate_entity_ids: frozenset[str],
+    process_unit_ids: frozenset[str],
+    voice_filters: list[str],
+    visibility_filter: str | None,
+    offset: int,
+    limit: int,
+    sort: str,
+    source_context_required: bool,
+) -> list[asyncpg.Record]:
+    """Fetch one exact authorized search page in one database statement."""
+
+    return await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        with matched as (
+            select projection.post_id,
+                   true as body_match, 0 as body_priority,
+                   ts_rank(projection.post_body_search_vector,
+                           plainto_tsquery('simple', $1)) as body_rank
+              from post_list_read_projection projection
+             where projection.post_body_search_prefix like '%' || lower($1) || '%'
+            union all
+            select projection.post_id, true, 1,
+                   ts_rank(projection.post_body_search_vector,
+                           plainto_tsquery('simple', $1))
+              from post_list_read_projection projection
+             where projection.post_body_search_vector @@ plainto_tsquery('simple', $1)
+            union all
+            select projection.post_id, false, 2, 0::real
+              from post_list_read_projection projection
+             where projection.search_source_exact_text like '%' || lower($1) || '%'
+            union all
+            select projection.post_id, false, 2, 0::real
+              from post_list_read_projection projection
+             where projection.search_related_master_exact_text like '%' || lower($1) || '%'
+            union all
+            select projection.post_id, false, 2, 0::real
+              from post_list_read_projection projection
+             where char_length($1) >= 3
+               and projection.search_normalized_post_id % lower($1)
+               and similarity(projection.search_normalized_post_id, lower($1)) >= 0.78
+            union all
+            select projection.post_id, false, 2, 0::real
+              from post_list_read_projection projection
+             where char_length($1) >= 3
+               and projection.search_source_record_key % lower($1)
+               and similarity(projection.search_source_record_key, lower($1)) >= 0.78
+        ), candidate as (
+            select post_id, bool_or(body_match) as body_match,
+                   min(body_priority) as body_priority,
+                   max(body_rank) as body_rank
+              from matched
+             group by post_id
+        ), authorized as (
+            select candidate.post_id, candidate.body_match,
+                   candidate.body_priority, candidate.body_rank
+              from candidate
+              join source_post source on source.post_id = candidate.post_id
+             where (source.visibility_code = 'public'
+                or (source.corporate_entity_id::text = any($2::text[])
+                    and (cardinality($3::text[]) = 0
+                         or source.process_unit_id::text = any($3::text[]))))
+               and {source_post_eligibility_sql('source', source_context_required=source_context_required)}
+        ), selected as (
+            select authorized.post_id, authorized.body_match,
+                   count(*) over() as total_count,
+                   row_number() over (
+                       order by
+                           case
+                               when lower(coalesce(source.post_title, ''))
+                                    like '%' || lower($1) || '%' then 0
+                               when authorized.body_match then 1
+                               else 2
+                           end,
+                           case when authorized.body_match then authorized.body_priority end,
+                           case when authorized.body_match then authorized.body_rank end desc,
+                           case when $8::text = 'title'
+                                then lower(coalesce(source.post_title, '')) end,
+                           case when $8::text = 'oldest' then source.created_at end,
+                           case when $8::text in ('newest', 'title')
+                                then source.created_at end desc,
+                           source.post_id desc
+                   ) as candidate_position
+              from authorized
+              join source_post source on source.post_id = authorized.post_id
+             where ($4::text[] is null or exists (
+                       select 1 from source_post_voice voice_filter
+                        where voice_filter.post_id = source.post_id
+                          and voice_filter.effective_to is null
+                          and voice_filter.voice_type_code = any($4::text[])
+                   ))
+               and ($5::text is null or source.visibility_code = $5)
+             order by candidate_position
+             offset $6 limit $7
+        ), page as (
+            select post.post_id, post.post_title, post.created_at,
+                   case
+                       when lower(coalesce(post.post_title, ''))
+                            like '%' || lower($1) || '%' then 0
+                       when selected.body_match then 1
+                       else 2
+                   end as search_priority,
+                   selected.total_count, selected.candidate_position
+              from selected
+              join source_post post on post.post_id = selected.post_id
+        )
+        select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
+               post.source_stage_code, post.source_detail_state_code,
+               post.source_draft_code, post.source_deleted_flag,
+               post.source_author_code, post.source_author_name,
+               post.source_company_code, post.source_company_name,
+               post.source_process_unit_code, post.source_process_unit_name,
+               post.source_sales_pool_code, post.source_sales_pool_name,
+               post.source_customer_code, post.source_customer_name,
+               post.source_project_code, post.source_project_name,
+               post.source_system_code, post.source_record_key,
+               post.corporate_entity_id, post.process_unit_id, post.created_at,
+               page.search_priority, page.total_count,
+               case
+                   when strpos(projection.post_body_search_prefix, lower($1)) > 0
+                   then btrim(substring(
+                       projection.post_body_search_prefix
+                       from greatest(
+                           1,
+                           strpos(projection.post_body_search_prefix, lower($1)) - 140
+                       ) for 420
+                   ))
+                   else projection.post_body_excerpt
+               end as post_body_excerpt,
+               projection.post_body_truncated,
+               coalesce(projects.project_evidence, '[]'::json) as project_evidence,
+               coalesce(voices.voice_types, '[]'::json) as voice_types
+          from page
+          join source_post post on post.post_id = page.post_id
+          join post_list_read_projection projection on projection.post_id = page.post_id
+          left join (
+              select project.post_id, json_agg(
+                         json_build_object(
+                             'project_key', project.project_key,
+                             'project_name', project.project_name,
+                             'evidence', project.evidence_text,
+                             'confidence', project.confidence,
+                             'ontology_iri', project.ontology_iri,
+                             'ontology_label', 'Project',
+                             'extraction_method', project.extraction_method,
+                             'resolution_status', 'semantic_candidate',
+                             'provenance', 'post_project_mention.evidence_text'
+                         )
+                         order by project.confidence desc,
+                                  project.project_name, project.project_key
+                     ) as project_evidence
+                from (
+                    select candidate.*,
+                           row_number() over (
+                               partition by candidate.post_id
+                               order by candidate.confidence desc,
+                                        candidate.project_name,
+                                        candidate.project_key
+                           ) as project_rank
+                      from post_project_mention candidate
+                      join page project_page on project_page.post_id = candidate.post_id
+                ) project
+               where project.project_rank <= 5
+               group by project.post_id
+          ) projects on projects.post_id = page.post_id
+          left join (
+              select voice.post_id, json_agg(
+                         json_build_object(
+                             'code', voice.voice_type_code,
+                             'label', lookup.lookup_label,
+                             'is_primary', voice.is_primary,
+                             'truth_status_code', voice.truth_status_code,
+                             'evidence_available', voice.provenance_assertion_id is not null
+                         )
+                         order by voice.is_primary desc, lookup.display_order,
+                                  voice.voice_type_code
+                     ) as voice_types
+                from source_post_voice voice
+                join common_lookup_value lookup
+                  on lookup.lookup_category = 'voc_type'
+                 and lookup.lookup_code = voice.voice_type_code
+                join page voice_page on voice_page.post_id = voice.post_id
+               where voice.effective_to is null
+               group by voice.post_id
+          ) voices on voices.post_id = page.post_id
+         order by page.candidate_position
+        """,
+        search_term,
+        list(corporate_entity_ids),
+        list(process_unit_ids),
+        voice_filters or None,
+        visibility_filter,
+        offset,
+        limit,
+        sort,
+    )
+
+
 @app.get("/api/posts")
 async def list_posts(
     limit: int = Query(20, ge=1, le=50),
@@ -1995,112 +2196,33 @@ async def list_posts(
             voice_filters,
             visibility_filter,
         )
-        search_candidate_ids: list[str] = []
-        body_search_ids: list[str] = []
         if search_term:
-            # Safe SQL: candidate SQL is closed schema text; every request value is bound.
-            candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-                f"""
-                with matched as (
-                    select projection.post_id,
-                           true as body_match, 0 as body_priority,
-                           ts_rank(projection.post_body_search_vector,
-                                   plainto_tsquery('simple', $1)) as body_rank
-                      from post_list_read_projection projection
-                     where projection.post_body_search_prefix like '%' || lower($1) || '%'
-                    union all
-                    select projection.post_id, true, 1,
-                           ts_rank(projection.post_body_search_vector,
-                                   plainto_tsquery('simple', $1))
-                      from post_list_read_projection projection
-                     where projection.post_body_search_vector @@ plainto_tsquery('simple', $1)
-                    union all
-                    select projection.post_id, false, 2, 0::real
-                      from post_list_read_projection projection
-                     where projection.search_source_exact_text like '%' || lower($1) || '%'
-                    union all
-                    select projection.post_id, false, 2, 0::real
-                      from post_list_read_projection projection
-                     where projection.search_related_master_exact_text like '%' || lower($1) || '%'
-                    union all
-                    select projection.post_id, false, 2, 0::real
-                      from post_list_read_projection projection
-                     where char_length($1) >= 3
-                       and projection.search_normalized_post_id % lower($1)
-                       and similarity(projection.search_normalized_post_id, lower($1)) >= 0.78
-                    union all
-                    select projection.post_id, false, 2, 0::real
-                      from post_list_read_projection projection
-                     where char_length($1) >= 3
-                       and projection.search_source_record_key % lower($1)
-                       and similarity(projection.search_source_record_key, lower($1)) >= 0.78
-                ), candidate as (
-                    select post_id, bool_or(body_match) as body_match,
-                           min(body_priority) as body_priority,
-                           max(body_rank) as body_rank
-                      from matched
-                     group by post_id
-                ), authorized as (
-                    select candidate.post_id, candidate.body_match,
-                           candidate.body_priority, candidate.body_rank
-                      from candidate
-                      join source_post source on source.post_id = candidate.post_id
-                     where (source.visibility_code = 'public'
-                        or (source.corporate_entity_id::text = any($2::text[])
-                            and (cardinality($3::text[]) = 0
-                                 or source.process_unit_id::text = any($3::text[]))))
-                       and {source_post_eligibility_sql('source', source_context_required=source_context_required)}
-                )
-                select authorized.post_id, authorized.body_match,
-                       count(*) over() as total_count
-                  from authorized
-                  join source_post source on source.post_id = authorized.post_id
-                 where ($4::text[] is null or exists (
-                           select 1 from source_post_voice voice_filter
-                            where voice_filter.post_id = source.post_id
-                              and voice_filter.effective_to is null
-                              and voice_filter.voice_type_code = any($4::text[])
-                       ))
-                   and ($5::text is null or source.visibility_code = $5)
-                 order by
-                    case
-                        when lower(coalesce(source.post_title, ''))
-                             like '%' || lower($1) || '%' then 0
-                        when authorized.body_match then 1
-                        else 2
-                    end,
-                    case when authorized.body_match then authorized.body_priority end,
-                    case when authorized.body_match then authorized.body_rank end desc,
-                    case when $8::text = 'title' then lower(coalesce(source.post_title, '')) end,
-                    case when $8::text = 'oldest' then source.created_at end,
-                    case when $8::text in ('newest', 'title') then source.created_at end desc,
-                    source.post_id desc
-                 offset $6 limit $7
-                """,
-                search_term,
-                list(account.corporate_entity_ids),
-                list(account.process_unit_ids),
-                voice_filters or None,
-                visibility_filter,
-                offset,
-                limit,
-                sort,
+            rows = await _fetch_search_post_page(
+                conn,
+                search_term=search_term,
+                corporate_entity_ids=account.corporate_entity_ids,
+                process_unit_ids=account.process_unit_ids,
+                voice_filters=voice_filters,
+                visibility_filter=visibility_filter,
+                offset=offset,
+                limit=limit,
+                sort=sort,
+                source_context_required=source_context_required,
             )
-            search_candidate_ids = [str(row["post_id"]) for row in candidate_rows]
-            body_search_ids = [
-                str(row["post_id"]) for row in candidate_rows if row["body_match"]
-            ]
-            search_total_count = (
-                int(candidate_rows[0]["total_count"]) if candidate_rows else 0
-            )
-        else:
-            search_total_count = None
-        uses_projected_population = search_term is None and projected_total_count is not None
-        total_count_sql = (
-            "0::bigint"
-            if uses_projected_population or search_total_count is not None
-            else "count(*) over()"
-        )
+            visible = [row for row in rows if _can_see_post(account, row)]
+            total_count = int(rows[0]["total_count"]) if rows else 0
+            return JSONResponse({
+                "posts": [_serialize_post(row, labels) for row in visible],
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset,
+                "voc_type_options": voc_type_options,
+                "voice_type_catalog": voice_type_catalog,
+                "visibility_options": visibility_options,
+            })
+        uses_projected_population = projected_total_count is not None
+        total_count_sql = "0::bigint" if uses_projected_population else "count(*) over()"
+        empty_search_ids: list[str] = []
         async def fetch_page() -> list[asyncpg.Record]:
             """Execute the closed post-page query with bound request values."""
             # Safe SQL: page SQL is closed schema text; every request value is bound.
@@ -2245,12 +2367,12 @@ async def list_posts(
             list(account.corporate_entity_ids),
             voice_filters or None,
             visibility_filter,
-            body_search_ids,
+            empty_search_ids,
             0 if search_term else offset,
             limit,
             sort,
             list(account.process_unit_ids),
-            search_candidate_ids,
+            empty_search_ids,
         )
         # Nullable search/filter parameters keep the wire contract stable, but
         # their generic plan measured 42--64 ms versus 4.4 ms for the exact
@@ -2263,8 +2385,6 @@ async def list_posts(
     total_count = (
         projected_total_count
         if uses_projected_population
-        else search_total_count
-        if search_total_count is not None
         else int(rows[0]["total_count"])
         if rows
         else 0

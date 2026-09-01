@@ -140,6 +140,17 @@ derived from either standard or from a rule of thumb.
     Projection triggers fire only for authoritative columns that contribute to
     that search text. In particular, a member locale preference write does not
     rebuild every Post authored by that member.
+17. Post search candidate ranking and its bounded evidence page execute as one
+    PostgreSQL statement. The earlier path returned candidate UUIDs to Python
+    and rebound them into a second statement that repeated source and ABAC
+    work. With the same authorized full snapshot, five concurrent callers, and
+    25 accepted reads, that split path measured 40.57 ms average and 60.83 ms
+    maximum. The consolidated statement preserved byte-identical responses for
+    six search, sort, offset, visibility, and Voice combinations and measured
+    20.65 ms average and 27.00 ms maximum. Exact eligibility, request-time ABAC,
+    filter membership, ranking, continuation, evidence, and the final in-process
+    visibility check remain unchanged. This is a measured root improvement, not
+    20 ms acceptance; the all-read gate remains closed.
 
 ## Consequences
 
