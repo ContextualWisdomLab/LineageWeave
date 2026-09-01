@@ -12,11 +12,15 @@ def test_obsolete_direct_caldav_adapter_and_configuration_are_absent() -> None:
     assert not (ROOT / "tests" / "test_caldav_client.py").exists()
 
     config_source = (ROOT / "backend" / "app" / "config.py").read_text(encoding="utf-8")
+    main_source = (ROOT / "backend" / "app" / "main.py").read_text(encoding="utf-8")
     env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
     compose_source = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
     assert "caldav_base_url" not in config_source
     assert "CALDAV_BASE_URL" not in config_source
+    assert "lineageweave.caldav_client" not in main_source
+    assert "CALDAV_UNAVAILABLE_NEXT_ACTION" not in main_source
+    assert "build_caldav_client" not in main_source
     assert "\nCALDAV_BASE_URL=" not in env_example
     assert "CALDAV_BASE_URL:" not in compose_source
 
