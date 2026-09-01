@@ -80,6 +80,14 @@ def test_unknown_dsn_query_option_fails_closed() -> None:
         )
 
 
+def test_duplicate_dsn_query_option_fails_closed() -> None:
+    """Conflicting duplicate options must not be collapsed by query parsing."""
+    with pytest.raises(ValueError, match="duplicate PostgreSQL DSN option: sslmode"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive?sslmode=require&sslmode=disable"
+        )
+
+
 @pytest.mark.parametrize(
     ("sqlstate", "expected_type"),
     (
