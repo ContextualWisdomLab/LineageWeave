@@ -45,6 +45,15 @@ describe("buildCustomerEntityTree", () => {
     }
   });
 
+  it("rejects duplicate corporate entity identities instead of choosing one row", () => {
+    expect(() =>
+      buildCustomerEntityTree([
+        entity("duplicate", "Original entity", null),
+        entity("duplicate", "Conflicting entity", null),
+      ]),
+    ).toThrow("duplicate corporate_entity_id: duplicate");
+  });
+
   it("keeps ordinary parent-child structure deterministic", () => {
     const parent = entity("parent", "Parent", null);
     const childB = entity("child-b", "Child B", "parent");
