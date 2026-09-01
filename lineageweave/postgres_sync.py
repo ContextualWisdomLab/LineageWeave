@@ -1,15 +1,17 @@
 """Synchronous PostgreSQL adapter for admin, seed, and schema tooling.
 
-The application runtime uses ``asyncpg``.  A few administrative and integration
+The application runtime uses ``asyncpg``. A few administrative and integration
 paths still need a blocking DB-API connection, chiefly to create ephemeral test
-databases and to run the synthetic seed.  This module keeps that secondary
+databases and to run the synthetic seed. This module keeps that secondary
 boundary provider-specific in one place and deliberately exposes only the
 behaviour LineageWeave needs.
 
 Connection URIs are parsed explicitly because pg8000 accepts keyword arguments
-rather than libpq DSN strings.  Unsupported query options fail closed instead
-of disappearing during the driver migration.  Generated SQL identifiers are
-quoted locally; values must continue to use DB-API parameters.
+rather than libpq DSN strings. Unsupported query options fail closed instead
+of disappearing during the driver migration. Generated SQL identifiers are
+quoted locally; values must continue to use DB-API parameters. Server errors
+used as executable schema/security contracts are translated by SQLSTATE so the
+tests retain their semantic assertions without depending on a driver taxonomy.
 """
 
 from __future__ import annotations
@@ -31,6 +33,14 @@ class OperationalError(_dbapi.InterfaceError):
     """Connection/setup error used by reachability probes."""
 
 
+class NotNullViolation(DatabaseError):
+    """PostgreSQL SQLSTATE 23502: a mandatory column was omitted or nulled."""
+
+
+class UniqueViolation(DatabaseError):
+    """PostgreSQL SQLSTATE 23505: a uniqueness constraint rejected the statement."""
+
+
 class CheckViolation(DatabaseError):
     """PostgreSQL SQLSTATE 23514: a CHECK constraint rejected the statement."""
 
@@ -39,13 +49,20 @@ class ExclusionViolation(DatabaseError):
     """PostgreSQL SQLSTATE 23P01: an exclusion constraint rejected the statement."""
 
 
+class InsufficientPrivilege(DatabaseError):
+    """PostgreSQL SQLSTATE 42501: the current role lacks the required privilege."""
+
+
 class RaiseException(DatabaseError):
     """PostgreSQL SQLSTATE P0001: server-side ``RAISE EXCEPTION``."""
 
 
 errors = SimpleNamespace(
+    NotNullViolation=NotNullViolation,
+    UniqueViolation=UniqueViolation,
     CheckViolation=CheckViolation,
     ExclusionViolation=ExclusionViolation,
+    InsufficientPrivilege=InsufficientPrivilege,
     RaiseException=RaiseException,
 )
 
@@ -101,7 +118,7 @@ def connection_kwargs_from_dsn(
     """Translate one PostgreSQL URI into explicit pg8000 connection arguments.
 
     ``connect_timeout`` passed by the caller takes precedence over the URI's
-    ``connect_timeout`` query value, matching the old call sites.  Query
+    ``connect_timeout`` query value, matching the old call sites. Query
     options are allow-listed because silently discarding a libpq option could
     weaken transport security or alter session semantics.
     """
@@ -167,8 +184,11 @@ def _sqlstate(error: BaseException) -> str | None:
 def _translated_error(error: BaseException) -> BaseException:
     state = _sqlstate(error)
     translated_type = {
+        "23502": NotNullViolation,
+        "23505": UniqueViolation,
         "23514": CheckViolation,
         "23P01": ExclusionViolation,
+        "42501": InsufficientPrivilege,
         "P0001": RaiseException,
     }.get(state)
     if translated_type is None:
