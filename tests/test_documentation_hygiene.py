@@ -6,6 +6,8 @@ import re
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 _ROOT = Path(__file__).resolve().parents[1]
 _ADR_DIRECTORY = _ROOT / "docs" / "adr"
 _PRODUCT_GAP_BASELINE = _ROOT / "docs" / "product-technical-gap-baseline.md"
@@ -19,7 +21,8 @@ _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
 _PRD_REQUIREMENT_HEADING = re.compile(r"^### (?P<identifier>PRD-FR-[0-9A-Z-]+)\b", re.MULTILINE)
 _PRD_ADR_CLAUSE = re.compile(r"\bADRs?\s+(?P<references>[^.;)]*)")
 _ADR_NUMBER_OR_RANGE = re.compile(
-    r"(?P<start>[0-9]{4})(?:\s*[–-]\s*(?P<end>[0-9]{4}))?"
+    r"(?<![0-9])(?P<start>[0-9]{4})(?![0-9])"
+    r"(?:\s*[\u2013-]\s*(?P<end>[0-9]{4})(?![0-9]))?"
 )
 _PRIVATE_POST_IDENTIFIER = re.compile(
     r"(?i)"
@@ -45,6 +48,23 @@ def _adr_is_current(content: str) -> bool:
         section_status = re.search(r"(?im)^## Status\s*\n\s*([^\n]+)", content)
         status = section_status.group(1).strip().casefold() if section_status else ""
     return not status.startswith(("retired", "superseded by"))
+
+
+def _referenced_adr_numbers(content: str) -> set[str]:
+    """Return complete direct ADR references, rejecting malformed numbers."""
+    referenced_numbers: set[str] = set()
+    for clause in _PRD_ADR_CLAUSE.finditer(content):
+        references = clause.group("references")
+        malformed = [token for token in re.findall(r"[0-9]+", references) if len(token) != 4]
+        if malformed:
+            raise ValueError(f"malformed ADR reference: {malformed[0]}")
+        for reference in _ADR_NUMBER_OR_RANGE.finditer(references):
+            start = int(reference.group("start"))
+            end = int(reference.group("end") or start)
+            if start > end:
+                raise ValueError(f"descending ADR range: {start:04d}-{end:04d}")
+            referenced_numbers.update(f"{number:04d}" for number in range(start, end + 1))
+    return referenced_numbers
 
 
 def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
@@ -120,15 +140,7 @@ def test_retired_adr_status_is_excluded_without_hiding_partial_amendments() -> N
 def test_product_requirement_adr_references_exist() -> None:
     """Direct ADR references in the supporting PRD resolve to normative records."""
     product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
-    referenced_numbers: set[str] = set()
-    for clause in _PRD_ADR_CLAUSE.finditer(product_requirements):
-        for reference in _ADR_NUMBER_OR_RANGE.finditer(clause.group("references")):
-            start = int(reference.group("start"))
-            end = int(reference.group("end") or start)
-            assert start <= end, (
-                f"descending ADR range in product requirements: {start:04d}-{end:04d}"
-            )
-            referenced_numbers.update(f"{number:04d}" for number in range(start, end + 1))
+    referenced_numbers = _referenced_adr_numbers(product_requirements)
 
     assert {"0249", "0250", "0253", "0255"} <= referenced_numbers
     available_numbers = {
@@ -139,6 +151,13 @@ def test_product_requirement_adr_references_exist() -> None:
 
     missing = sorted(referenced_numbers - available_numbers)
     assert missing == [], f"PRD references missing ADRs: {missing}"
+
+
+def test_product_requirement_adr_references_reject_partial_numbers() -> None:
+    """A valid sibling reference cannot hide a malformed direct ADR number."""
+    for malformed in ("ADR 02490, ADR 0250", "ADR 249, ADR 0250"):
+        with pytest.raises(ValueError, match="malformed ADR reference"):
+            _referenced_adr_numbers(malformed)
 
 
 def test_adr_product_requirement_references_exist() -> None:
