@@ -39,6 +39,10 @@
 > measured 36.90 ms and was not reproduced or localized. Therefore the warm
 > Dashboard path meets the 20 ms target, while all-read cold-tail acceptance
 > remains open and must not be claimed from the warm run.
+> Exact 390-pixel visual acceptance found no document overflow or exposed
+> implementation terminology. After applying the shared 44-pixel touch-target
+> token, every visible Dashboard/global control met that minimum; desktop and
+> mobile authenticated browser flows and the production frontend build passed.
 >
 > PostgreSQL's measured state retains `read committed` isolation with `fsync`,
 > full-page writes, and synchronous commit enabled. The evidence-bound tuning
