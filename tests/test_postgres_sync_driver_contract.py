@@ -49,6 +49,14 @@ def test_sync_postgres_driver_is_not_psycopg2() -> None:
     assert offenders == []
 
 
+def test_lockfile_matches_synchronous_postgres_driver_contract() -> None:
+    """The reproducible environment must resolve the same driver as pyproject."""
+    lockfile = (_REPOSITORY_ROOT / "uv.lock").read_text(encoding="utf-8")
+    assert 'name = "psycopg2"' not in lockfile
+    assert 'name = "psycopg2-binary"' not in lockfile
+    assert 'name = "pg8000"' in lockfile
+
+
 def test_generated_identifier_quoting_is_postgresql_safe() -> None:
     """Generated database and role names stay identifiers, never SQL text."""
     statement = sql.SQL("create database {}").format(sql.Identifier('tenant"archive'))
