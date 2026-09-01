@@ -88,6 +88,17 @@ def test_dsn_query_options_are_mapped_without_silent_loss() -> None:
     assert kwargs["ssl_context"] is False
 
 
+def test_dsn_without_user_preserves_libpq_os_user_default(monkeypatch) -> None:
+    """Existing admin DSNs without a username still use the local OS account."""
+    monkeypatch.setattr("lineageweave.postgres_sync.getpass.getuser", lambda: "ci-runner")
+
+    kwargs = connection_kwargs_from_dsn("postgresql://localhost/postgres")
+
+    assert kwargs["user"] == "ci-runner"
+    assert kwargs["host"] == "localhost"
+    assert kwargs["database"] == "postgres"
+
+
 def test_unknown_dsn_query_option_fails_closed() -> None:
     """A connection option must never disappear merely because drivers differ."""
     with pytest.raises(ValueError, match="unsupported PostgreSQL DSN option"):
