@@ -1,5 +1,35 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop overlay: 2026-09-01 09:52 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs
+> and ten non-PR issues are open. PR #780's exact product and rendered-evidence
+> parent for this documentation update is
+> `10ca7c1a02d58bbb12436889d4256fedfb2da7dd`, based directly on that
+> `main`. All review threads remain resolved and normal squash auto-merge is
+> armed. Independent approval is still unavailable, so no protected merge or
+> merge SHA is claimed.
+>
+> The owner-bound documentation-image workflow repair advanced without a force
+> push in `ContextualWisdomLab/.github#1466` to exact head
+> `538314668dbaa2dff11d9f6ec390e1b1f8c64b4b` after merging current central
+> `main`. Seventy-nine focused owner-repository tests pass and normal squash
+> auto-merge is armed. Its new exact-head checks are queued and its prior
+> changes-requested verdict is not treated as approval. Until that parent
+> reaches protected central `main`, PR #780's PNG bootstrap failure remains
+> unavailable workflow evidence. The separate governed review timeout and
+> GitHub dependency-comparison HTTP 403 also remain unavailable rather than
+> product acceptance.
+>
+> The largest buyer-visible candidate remains the Voice exact-value/export
+> repair: carrying Post and derivation evidence stay distinct in UI and CSV;
+> additional Voices retain authorized Post evidence, server-created PROV-O
+> derivation, truth status, and cutoff; hidden evidence is not replaced; and
+> paged JSON-LD unions same-subject multi-Voice relations. ADR 0246's twelve
+> atomic classifications remain extensible rows rather than enumerated
+> combinations. The committed desktop/mobile renders and earlier authenticated
+> synthetic PostgreSQL/API evidence are revision-scoped; deployed acceptance
+> remains unavailable.
+
 > Exact-head development-loop overlay: 2026-09-01 07:31 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-seven PRs
 > and ten non-PR issues are open. PR #780's exact implementation and rendered-
