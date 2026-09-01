@@ -50,7 +50,10 @@ The runtime contract is:
   `error.detail.retry_after_seconds`; malformed or conflicting responses fail
   closed.
 - An empty seed model is expanded from the configured gateway `/v1/models`
-  endpoint; embedding-only rows are not added to the chat agent pool.
+  endpoint; embedding-only rows are not added to the chat agent pool. The
+  bootstrap passes every runtime `CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS`
+  entry through the orchestrator's repeated `--allowed-provider-host` contract
+  so configured-gateway discovery cannot silently disappear from the pool.
 - Chat Completions and Responses may constrain routing to an exact configured
   endpoint identity; the selector is never forwarded to a provider and is not
   applied to embeddings or deferred batch work.

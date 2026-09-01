@@ -68,6 +68,13 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
+    allowed_provider_hosts = [
+        host.strip()
+        for host in os.environ.get(
+            "CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", ""
+        ).split(",")
+        if host.strip()
+    ]
     batch_registry_url = os.environ.pop("BATCH_JOB_REGISTRY_VALKEY_URL", "").strip()
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:
@@ -122,6 +129,8 @@ def main() -> None:
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    for host in allowed_provider_hosts:
+        sys.argv.extend(("--allowed-provider-host", host))
     del provider_url
     del admin_token
     del auth_token
