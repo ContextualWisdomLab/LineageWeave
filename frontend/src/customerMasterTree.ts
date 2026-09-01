@@ -20,18 +20,39 @@ function compareEntity(left: CustomerMasterEntity, right: CustomerMasterEntity):
 }
 
 /**
+ * Indexes one authorized entity row per canonical corporate entity identity.
+ *
+ * A duplicated identity makes parent and child references ambiguous: silently taking
+ * either row would convert response ordering into business truth. The Customer Master
+ * therefore fails closed so the existing request error state can disclose a data-integrity
+ * failure instead of rendering a fabricated hierarchy.
+ */
+function indexEntitiesById(entities: CustomerMasterEntity[]): Map<string, CustomerMasterEntity> {
+  const byId = new Map<string, CustomerMasterEntity>();
+  for (const entity of entities) {
+    if (byId.has(entity.corporate_entity_id)) {
+      throw new Error(`duplicate corporate_entity_id: ${entity.corporate_entity_id}`);
+    }
+    byId.set(entity.corporate_entity_id, entity);
+  }
+  return byId;
+}
+
+/**
  * Builds the authorized Customer Master hierarchy without hiding malformed records.
  *
  * Parent pointers are presentation evidence, not permission to discard an otherwise
  * authorized entity. Missing parents, self-parent edges, and one deterministic edge
  * per pure cycle are therefore omitted from the rendered forest and disclosed on the
- * promoted root. No replacement parent or organization is invented. Ordering uses
- * code-point comparison rather than runtime locale so repeated renders are stable.
+ * promoted root. Conflicting duplicate entity identities fail closed because there is no
+ * safe presentation-only rule for choosing one source row. No replacement parent or
+ * organization is invented. Ordering uses code-point comparison rather than runtime locale
+ * so repeated renders are stable.
  */
 export function buildCustomerEntityTree(
   entities: CustomerMasterEntity[],
 ): CustomerEntityTreeNode[] {
-  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
+  const byId = indexEntitiesById(entities);
   const parentById = new Map<string, string | null>();
   const issueById = new Map<string, CustomerHierarchyIssue>();
 
