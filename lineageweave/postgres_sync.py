@@ -17,6 +17,7 @@ tests retain their semantic assertions without depending on a driver taxonomy.
 from __future__ import annotations
 
 import getpass
+import math
 import ssl
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -187,8 +188,8 @@ def connection_kwargs_from_dsn(
             raise ValueError("PostgreSQL connect_timeout must be numeric") from exc
     if timeout_value is not None:
         timeout = float(timeout_value)
-        if timeout <= 0:
-            raise ValueError("PostgreSQL connect_timeout must be positive")
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("PostgreSQL connect_timeout must be finite positive")
         kwargs["timeout"] = timeout
 
     if "application_name" in query:
