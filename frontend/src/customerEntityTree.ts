@@ -21,6 +21,25 @@ function compareEntity(left: CustomerMasterEntity, right: CustomerMasterEntity):
 }
 
 /**
+ * Returns buyer-facing disclosure for a parent edge that cannot be rendered.
+ *
+ * The wording deliberately avoids exposing an unavailable parent's opaque ID:
+ * authorization may make the child visible without granting access to that
+ * parent. The original parent reference stays in the derived node for internal
+ * evidence, while the UI explains only the condition the buyer can act on.
+ */
+export function customerHierarchyIssueMessage(issue: CustomerHierarchyIssue): string {
+  switch (issue) {
+    case "cycle_parent_ignored":
+      return "A parent cycle was ignored. This entity remains visible at the top level.";
+    case "self_parent_ignored":
+      return "A self-parent relationship was ignored. This entity remains visible at the top level.";
+    case "parent_not_available":
+      return "The parent is not available in this authorized view. This entity remains visible at the top level.";
+  }
+}
+
+/**
  * Builds the Customer Master presentation forest without changing catalog truth.
  *
  * The API may legitimately omit an unauthorized parent, and malformed imported
