@@ -62,13 +62,14 @@ const parallelEdgeGraph: LineageGraph = {
 };
 
 describe("LineageDag parallel edge identity", () => {
-  it("keeps source/target-identical edge evidence controls independently selectable", async () => {
+  it("keeps source/target-identical edge evidence controls independently identifiable and selectable", async () => {
     render(<LineageDag graph={parallelEdgeGraph} onSelectPost={vi.fn()} />);
 
     const edgeButtons = screen.getAllByRole("button", {
-      name: "Open connection evidence: Initial site visit to Pricing follow-up",
+      name: /Open connection evidence: Initial site visit to Pricing follow-up/,
     });
     expect(edgeButtons).toHaveLength(2);
+    expect(new Set(edgeButtons.map((button) => button.getAttribute("aria-label"))).size).toBe(2);
     expect(edgeButtons[0]).toHaveAttribute("aria-pressed", "false");
     expect(edgeButtons[1]).toHaveAttribute("aria-pressed", "false");
 
