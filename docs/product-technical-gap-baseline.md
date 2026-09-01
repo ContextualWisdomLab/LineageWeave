@@ -2,10 +2,10 @@
 
 > Current exact-head overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through head `006efe7c9165954d7b0d133a0b7f951895e840d9`. The PR is
+> through head `51ab4616b80ebb9fc5c3a6a596b79c209226e745`. The PR is
 > blocked, still requires review, and has required checks queued; auto-merge is
 > off. The repository has 98 open
-> PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
+> PRs and 11 open issues. This current overlay supersedes the older dated
 > queue snapshots below; neither branch tests nor the running Compose stack
 > are protected-main delivery evidence.
 >
@@ -49,7 +49,14 @@
 > proves fail-closed Sales-pool guidance. The frontend suite passed 605 tests and the
 > Storybook production build completed. Authenticated non-empty Ask citations,
 > grounded runtime detail cards, authoritative journey reconciliation, and a manual
-> screen-reader audit remain open acceptance evidence.
+> screen-reader audit remain open acceptance evidence. Global Ask now has an
+> independent durable consumer at this exact head. The exact-revision Ask worker
+> reached healthy while the broad post-content worker stayed stopped, settled the
+> one previously queued Ask job to succeeded, and persisted a non-empty answer with
+> one cited Post and one cited Event. No identifying question, answer, citation id,
+> or source record was retained in this baseline. Two pre-existing post-content
+> stream entries remained unconsumed, proving that Ask availability did not restart
+> or drain the stopped backfill path.
 >
 > PostgreSQL's measured state retains `read committed` isolation with `fsync`,
 > full-page writes, and synchronous commit enabled. The evidence-bound tuning
@@ -70,8 +77,10 @@
 > current exact head passed 2,351 repository tests with 16 integration skips;
 > those branch tests are not protected-main proof. Canonical Compose applied the
 > replay-safe 0271/0272 schema and serves the new Voice/Product read contracts from
-> exact PR #640 backend/frontend images. The worker remains on its earlier image, so
-> neither receipt-bearing producer is deployed. Derived Voice completions and active
+> exact PR #640 backend/frontend images. The broad worker remains stopped on its
+> earlier image, while the consumer-selective Ask-only worker runs exact head
+> `51ab4616b80ebb9fc5c3a6a596b79c209226e745`; therefore neither receipt-bearing
+> Voice/Product producer is deployed. Derived Voice completions and active
 > derived assertions are both zero. Historical Product analysis rows have no model
 > receipt and expose zero Product evidence; they are retry candidates, not completed
 > analyses or corpus prevalence. Worker replacement remains gated on stacked PR #895,
@@ -89,11 +98,13 @@
 > frontend jobs were cancelled by that merge and are not green evidence; fresh
 > integrated #640 checks are queued. #896's aggregate runtime evidence proves only
 > the selected Dashboard-to-Project-History path, not the all-read 20 ms contract or
-> #888 activation. Protected-main delivery remains unverified. Global Ask semantic retrieval remains
-> an open upstream runtime gap: the observed batch admission omitted its declared
-> result-retention and polling-cadence fields, so the LineageWeave embedding client
-> correctly failed closed and no source or citation was fabricated. Upstream repair,
-> repinning, and authenticated non-empty evidence acceptance remain unverified.
+> #888 activation. Protected-main delivery remains unverified. The earlier Global Ask
+> semantic-retrieval gap is closed in the canonical candidate runtime: the pinned
+> orchestrator accepts the configured endpoint contract, and the isolated Ask worker
+> persisted a non-empty answer with one Post citation and one Event citation while
+> the broad worker remained stopped. Protected-main upstream and LineageWeave
+> delivery, source-reference attachment for that answer, and wider authorized-corpus
+> acceptance remain unverified.
 
 > Current rebuild overlay: 2026-08-28 KST. Protected `main` is
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #640 is a ready-for-review
@@ -492,7 +503,7 @@ explicit unavailable state, not a reason to infer mappings from labels.
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
 | Project-specific journey | Explicit source/semantic project membership plus event-time ordering | **Implemented on the PR branch and aggregate runtime-accepted:** canonical storage retains three normalized membership rows on one Post. Separately, 24 project-bearing Dashboard case-kind rollups across 22 Posts use explicit source project fields; these are case rows, not membership rows, and may change while the bounded page settles. An authenticated 20-case page included 2 project-bound cases and one exact-code journey returned one matching event. Desktop/mobile rendering passed without retaining identifiers. **Unverified:** protected-main delivery and authoritative lifecycle/handover reconciliation. |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
-| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback. **Open/unverified:** canonical `e632` batch admission omitted declared result-retention and polling-cadence fields, so semantic retrieval failed closed; an exact evidence query found no eligible source and the product emitted no fabricated citation. PR #970 contains the upstream repair candidate, but its authoritative-environment acceptance returned HTTP 401 and its protected review gate is incomplete, so LineageWeave has not repinned. The zero-source UI gives a buyer next action; authenticated non-empty evidence acceptance remains pending. |
+| Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback. **Runtime-accepted on the PR head:** the exact `51ab4616` Ask-only worker became healthy while the broad worker stayed stopped, settled the one queued request, and persisted a non-empty answer with one cited Post and one cited Event. This closes the earlier configured-gateway admission and non-empty citation gap without exposing identifying records. **Open/unverified:** the latest answer attached no separate source-reference row, MCP authenticated E2E acceptance remains incomplete, and neither the upstream stack nor LineageWeave is protected-main delivery evidence. |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
 | TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
 | Temporal Lineage topics and multilevel important posts | ADR 0210; TEPP posterior topic/plausible-value contract followed by fast-mlsirm observed-information case-deletion influence | The stacked successor adds a durable, short-transaction producer request, exact accepted TEPP posterior run/snapshot/cutoff/artifact binding, four-level source-membership admission, complete-result validation, and normalized persistence. It does not misbind the older topic-lineage envelope or calibrated-measurement receipt to this scientifically distinct posterior projection. Incomplete evidence is stored until a new evidence event, expired work follows an operator-declared lease that strictly exceeds the request timeout, changed input automatically produces a fresh request, and exact request, membership, and result artifact bytes are digest-verified before parsing. The Dashboard remains unavailable until TEPP publishes the full posterior/membership artifact and fast-mlsirm publishes the domain-neutral continuous-posterior Rust result endpoint; the crossed weighted MAP binary kernel is not misapplied and no local Python substitute exists |
@@ -855,14 +866,14 @@ this file per §3.5 of the prior snapshot).
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
 | Protected release | 12 open PRs at snapshot, all targeting `main` with normal auto-merge enabled. None has the required independent approval, and running checks on #631/#632/#663 are not treated as blockers for safe work on other PRs. #666's merge into the non-default #663 branch is not protected-main delivery | Terminal exact-head checks, no unresolved threads, two independent approvals including last-push approval, protected squash-merge SHA |
-| Orchestrator admission and readiness | The LineageWeave embedding client requires positive server-declared result retention and polling cadence and fails closed when either is absent. The current pinned-runtime synthetic admission omitted both fields; no local timing estimate or retry heuristic was added. The upstream correction is not yet accepted in the canonical runtime. | Land the correction through its protected upstream gate, repin that protected commit, rebuild the exact LineageWeave images, and prove retention/cadence plus non-empty Ask evidence on an authorized synthetic fixture without fabricating sources. |
+| Orchestrator admission and readiness | The pinned `c2571264` orchestrator is healthy and contains the configured-endpoint contract plus the corrected JSON-object discovery probe. The exact `51ab4616` Ask worker used that boundary to persist a non-empty answer with Post/Event citations; no local provider selection or retry heuristic was added. | Complete the upstream protected gate, repin the eventual protected commit without changing the endpoint-neutral LineageWeave contract, and repeat MCP plus wider authorized-corpus acceptance. |
 | CI queue release latency | Two Tests runs for already merged PRs occupied the available runner slots while 54 newer runs remained queued. Manual cancellation released the stale work, but the central close workflow was itself queued behind those runs. #634 merged into #631's non-default branch and reuses the repository's existing per-PR concurrency group so a jobless close event can cancel obsolete Tests work before runner allocation; this is not protected-main delivery | Merge #631 through its refreshed protected gate; close a synthetic PR while its Tests run is active and verify the old run becomes cancelled, the close-event jobs remain skipped, and a newer exact-head run starts without manual intervention |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. PR #633's measured landing-query and event-loop work merged into open parent #629 rather than protected `main`; its aggregate observation improved 25-VU throughput but did not establish a latency SLO. The current exact #629 also persists each completed relation verification before propagating a later provider failure | Land #629 through its refreshed protected gate, rebuild that exact-head application image, and repeat `make load-http` with declared environment concurrency/window and retained raw distributions/resource configuration; set no SLO until representative capacity evidence is approved |
-| Test broker isolation | Backend integration tests now use Valkey database 15 and clear only that database at session boundaries; the canonical database 0 retained a zero-length ingestion stream after the 144-test API suite, and the stopped worker remained stopped | Keep runtime and test broker databases distinct; require both databases to be empty after integration acceptance and never restart a production backfill as part of a test |
+| Test broker isolation | Backend integration tests use Valkey database 15 and clear only that database at session boundaries. At the current exact-head runtime check, canonical database 0 retained two pre-existing post-content stream entries while the broad worker stayed stopped; the Ask-only worker neither consumed nor expanded that stream. | Keep runtime and test broker databases distinct; record pre/post stream length for integration acceptance and never restart or drain a production backfill as part of a test. Existing production work is not test debris and must not be deleted to manufacture an empty assertion. |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 now has aggregate authenticated proof that explicit source project fields produce project-bearing case rollups and render one matching journey event. Three normalized membership rows exist separately; rollup rows are not relabeled as memberships, and no authoritative lifecycle status is claimed. | Combined #663 must pass exact-head checks and independent approval before protected merge. Authenticated acceptance must still prove handover intervals and authoritative lifecycle reconciliation without promoting co-occurrence. |
