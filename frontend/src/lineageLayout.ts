@@ -70,6 +70,24 @@ function childrenByParent(edges: LineageGraphEdge[]): Map<string, string[]> {
   return children;
 }
 
+/**
+ * Index visible lineage nodes without allowing transport order to choose canonical identity.
+ *
+ * Layout and edge binding both use the node id as identity. Two visible rows claiming the
+ * same id make group, label, event time, and edge endpoints ambiguous, so the presentation
+ * fails closed instead of silently applying Map last-write-wins semantics.
+ */
+function indexNodesById(nodes: LineageGraphNode[]): Map<string, LineageGraphNode> {
+  const byId = new Map<string, LineageGraphNode>();
+  for (const node of nodes) {
+    if (byId.has(node.id)) {
+      throw new Error(`duplicate lineage node id: ${node.id}`);
+    }
+    byId.set(node.id, node);
+  }
+  return byId;
+}
+
 function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   positioned: PositionedNode[];
   width: number;
@@ -78,7 +96,7 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   const orderedNodes = [...nodes].sort((left, right) =>
     stableTextCompare(stableNodeSortKey(left), stableNodeSortKey(right)),
   );
-  const byId = new Map(orderedNodes.map((node) => [node.id, node]));
+  const byId = indexNodesById(orderedNodes);
   const children = childrenByParent(edges);
   const hasParent = new Set(edges.map((edge) => edge.target));
   const roots = orderedNodes.filter((node) => !hasParent.has(node.id));
@@ -197,7 +215,7 @@ function stableEdgeSortKey(
 /** Lay out only relationships whose two endpoints share one visible group. */
 export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
-  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const nodesById = indexNodesById(graph.nodes);
   for (const node of graph.nodes) {
     const group = node.group || "";
     const bucket = buckets.get(group) ?? { nodes: [], edges: [] };
