@@ -5,8 +5,11 @@ from __future__ import annotations
 import pytest
 
 from lineageweave.measurement_policy import (
+    DichotomousItemPolicy,
     DichotomousObservation,
     DichotomousObservationState,
+    InstrumentLifecycle,
+    InstrumentMeasurementPolicy,
     MeasurementDomain,
     MeasurementModelFamily,
     default_dichotomous_model_family,
@@ -48,6 +51,67 @@ def test_nonobserved_states_never_carry_a_binary_response() -> None:
 
     with pytest.raises(ValueError, match="observed state"):
         DichotomousObservation.unscored(DichotomousObservationState.OBSERVED)
+
+
+def test_item_policy_names_both_sides_of_the_binary_rubric() -> None:
+    """Zero and one encode explicit rubric criteria instead of score compression."""
+    policy = DichotomousItemPolicy(
+        item_id="importance-evidence-1",
+        rubric_version="2026-09-01",
+        not_supported_criterion="Evidence does not establish the stated criterion.",
+        supported_criterion="Evidence establishes the stated criterion.",
+    )
+    assert policy.not_supported_criterion != policy.supported_criterion
+
+    with pytest.raises(ValueError, match="distinct"):
+        DichotomousItemPolicy(
+            item_id="importance-evidence-1",
+            rubric_version="2026-09-01",
+            not_supported_criterion="same",
+            supported_criterion="same",
+        )
+
+
+def test_pilot_instrument_may_preserve_observations_without_a_latent_model() -> None:
+    """Pilot data are valid evidence even when no scoring model is defensible yet."""
+    policy = InstrumentMeasurementPolicy(
+        instrument_id="importance-evidence",
+        revision=1,
+        lifecycle=InstrumentLifecycle.PILOT,
+        model_family=None,
+        activation_evidence_ref=None,
+    )
+    assert policy.model_family is None
+
+
+def test_published_instrument_requires_model_and_activation_evidence() -> None:
+    """Operational scoring remains unavailable until model and evidence are bound."""
+    with pytest.raises(ValueError, match="activation evidence"):
+        InstrumentMeasurementPolicy(
+            instrument_id="importance-evidence",
+            revision=1,
+            lifecycle=InstrumentLifecycle.PUBLISHED,
+            model_family=MeasurementModelFamily.IRT_2PLM,
+            activation_evidence_ref=None,
+        )
+
+    with pytest.raises(ValueError, match="model family"):
+        InstrumentMeasurementPolicy(
+            instrument_id="importance-evidence",
+            revision=1,
+            lifecycle=InstrumentLifecycle.PUBLISHED,
+            model_family=None,
+            activation_evidence_ref="evidence://pilot/2026-09",
+        )
+
+    policy = InstrumentMeasurementPolicy(
+        instrument_id="importance-evidence",
+        revision=1,
+        lifecycle=InstrumentLifecycle.PUBLISHED,
+        model_family=MeasurementModelFamily.IRT_2PLM,
+        activation_evidence_ref="evidence://pilot/2026-09",
+    )
+    assert policy.lifecycle is InstrumentLifecycle.PUBLISHED
 
 
 def test_education_requires_an_explicit_rasch_or_guessing_mechanism() -> None:
