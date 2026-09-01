@@ -5,6 +5,7 @@
  * request has started. React callers cannot distinguish those promises once they resolve,
  * so an older response could otherwise overwrite the current authorized view. Stale
  * completions adopt the newest request's result instead of exposing their own payload.
+ * A request that throws before returning its promise never takes ownership of the view.
  */
 export class CustomerMasterRequestGate<T> {
   private generation = 0;
@@ -12,7 +13,13 @@ export class CustomerMasterRequestGate<T> {
 
   run(start: () => Promise<T>): Promise<T> {
     const generation = ++this.generation;
-    const pending = start();
+    let pending: Promise<T>;
+    try {
+      pending = start();
+    } catch (error) {
+      if (this.generation === generation) this.generation = generation - 1;
+      throw error;
+    }
     const guarded = pending.then(
       (value) => {
         if (generation !== this.generation) return this.latestRequest!;
