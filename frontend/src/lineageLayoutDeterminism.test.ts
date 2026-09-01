@@ -47,6 +47,32 @@ describe("layoutLineageDag deterministic geometry", () => {
     expect(reordered).toEqual(forward);
   });
 
+  it("fails closed when two visible nodes claim one canonical node id", () => {
+    const duplicateIdGraph = {
+      nodes: [
+        {
+          id: "same-node",
+          group: "Project Alpha",
+          label: "First visible record",
+          occurred_at: "2026-09-01T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+        {
+          id: "same-node",
+          group: "Project Beta",
+          label: "Conflicting visible record",
+          occurred_at: "2026-09-02T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+      ],
+      edges: [],
+    };
+
+    expect(() => layoutLineageDag(duplicateIdGraph)).toThrow(/duplicate lineage node id: same-node/);
+  });
+
   it("orders timezone-offset timestamps by the represented event instant", () => {
     const nodes = [
       {
