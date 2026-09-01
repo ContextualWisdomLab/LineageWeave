@@ -5,7 +5,9 @@
  * request has started. React callers cannot distinguish those promises once they resolve,
  * so an older response could otherwise overwrite the current authorized view. Stale
  * completions adopt the newest request's result instead of exposing their own payload.
- * A request that throws before returning its promise never takes ownership of the view.
+ * A request that throws before returning its promise never takes ownership of the view,
+ * and an outer start callback cannot reclaim ownership after starting a newer request
+ * re-entrantly.
  */
 export class CustomerMasterRequestGate<T> {
   private generation = 0;
@@ -30,7 +32,7 @@ export class CustomerMasterRequestGate<T> {
         throw error;
       },
     );
-    this.latestRequest = guarded;
+    if (this.generation === generation) this.latestRequest = guarded;
     return guarded;
   }
 }
