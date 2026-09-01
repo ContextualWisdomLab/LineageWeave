@@ -16,6 +16,7 @@ tests retain their semantic assertions without depending on a driver taxonomy.
 
 from __future__ import annotations
 
+import getpass
 import ssl
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -137,18 +138,25 @@ def connection_kwargs_from_dsn(
     weaken transport security or alter session semantics. Duplicate options
     are rejected because collapsing conflicting values would make the selected
     connection policy depend on parser ordering rather than explicit intent.
+
+    Libpq-style URIs may omit the username and then use the operating-system
+    account. Several repository PostgreSQL test fixtures rely on that default,
+    so the adapter resolves it explicitly before entering pg8000's required
+    ``user`` argument rather than changing fixture connection semantics.
     """
 
     parsed = urlsplit(dsn)
     if parsed.scheme not in {"postgres", "postgresql"}:
         raise ValueError("PostgreSQL DSN must use postgres:// or postgresql://")
-    if parsed.username is None:
-        raise ValueError("PostgreSQL DSN must include a user")
     if not parsed.path or parsed.path == "/":
         raise ValueError("PostgreSQL DSN must include a database name")
 
+    user = unquote(parsed.username) if parsed.username is not None else getpass.getuser()
+    if not user:
+        raise ValueError("PostgreSQL user could not be resolved")
+
     kwargs: dict[str, Any] = {
-        "user": unquote(parsed.username),
+        "user": user,
         "host": parsed.hostname or "localhost",
         "port": parsed.port or 5432,
         "database": unquote(parsed.path.lstrip("/")),
