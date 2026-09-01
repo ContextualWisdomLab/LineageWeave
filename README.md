@@ -1,5 +1,7 @@
 # LineageWeave
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ContextualWisdomLab/LineageWeave)
+
 Reconstructs git-branch-style lineage DAGs from scattered short records --
 turns a flat pile of loosely-grouped, timestamped items into a browsable set
 of branching threads, without any explicit "this follows from that" link
@@ -15,9 +17,9 @@ group A-100
   rec-006  Unrelated: annual account review   (own root -- no forced match)
 ```
 
-This is a **demo prototype**: it ships with synthetic sample data only
-(`lineageweave/fixtures.py`) and no connection to any real dataset or
-organization.
+LineageWeave now includes an authenticated API/web product stack backed by
+PostgreSQL and Keycloak. Synthetic fixtures and demo accounts remain safe
+example and test evidence; they are not the product boundary.
 
 The supporting [product requirements](docs/product-requirements.md) define
 the product outcomes, non-goals, ecosystem boundaries, and release evidence;
