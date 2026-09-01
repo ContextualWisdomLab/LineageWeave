@@ -1012,6 +1012,81 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert failure_detail == global_ask_queue._ASK_RETRY_MESSAGE
 
 
+def test_exact_state_rollover_requeues_and_republishes_without_terminal_failure(
+    monkeypatch,
+) -> None:
+    """A model/snapshot rollover after dispatch must preserve the durable job."""
+    connection = _Connection(_queued_row())
+    pool = _Pool(connection)
+
+    class WakeClient:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict[str, str], int, bool]] = []
+
+        async def xadd(self, stream, fields, *, maxlen: int, approximate: bool):
+            self.calls.append((stream, fields, maxlen, approximate))
+
+    wake_client = WakeClient()
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **_kwargs):
+        raise global_ask_queue.RankWeaveNotAvailable(
+            "rankweave_not_available: exact authorization scope is not prepared"
+        )
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+            wake_client=wake_client,
+        )
+    )
+
+    settle_query, settle_args = connection.executed[-1]
+    assert "failure_detail = null" in settle_query
+    assert settle_args == ("job-1", global_ask_queue.QUEUED, global_ask_queue.RUNNING)
+    assert wake_client.calls == [
+        (
+            global_ask_queue.GLOBAL_ASK_STREAM_KEY,
+            {"global_ask_job_id": "job-1"},
+            global_ask_queue._STREAM_MAX_LENGTH,
+            True,
+        )
+    ]
+
+
+def test_exact_state_rollover_escapes_compute_failure_wrapping(monkeypatch) -> None:
+    """Exact-state drift remains recognizable to the durable queue retry path."""
+    pool = _Pool(_Connection(None))
+
+    async def _fake_gather(*_args, **_kwargs):
+        raise global_ask_queue.RankWeaveNotAvailable(
+            "rankweave_not_available: exact semantic snapshot is not prepared"
+        )
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _fake_gather)
+
+    with pytest.raises(global_ask_queue.RankWeaveNotAvailable):
+        asyncio.run(
+            global_ask_queue.compute_global_ask_answer(
+                pool,
+                question_text="What changed?",
+                corporate_entity_ids={"corp-1"},
+                process_unit_ids=set(),
+                process_scope_limited=False,
+                chat_client=_AvailableClient(),
+            )
+        )
+
+
 def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
     monkeypatch,
 ) -> None:

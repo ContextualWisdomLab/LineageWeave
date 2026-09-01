@@ -112,6 +112,13 @@ _WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
 
+_RETRYABLE_EXACT_STATE_ERRORS = frozenset(
+    {
+        "rankweave_not_available: exact authorization scope is not prepared",
+        "rankweave_not_available: exact semantic snapshot is not prepared",
+    }
+)
+
 _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
     select envelope.public_claim_envelope_id,
            envelope.source_post_id,
@@ -142,6 +149,25 @@ _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
 
 class _SafeJobError(Exception):
     """Failure whose bounded message is safe to persist for the requester."""
+
+
+def _is_retryable_exact_state_error(exc: BaseException) -> bool:
+    """Return whether exact state changed after the worker's dispatch check."""
+
+    return isinstance(exc, RankWeaveNotAvailable) and str(exc) in (
+        _RETRYABLE_EXACT_STATE_ERRORS
+    )
+
+
+async def _publish_global_ask_wakeup(client: redis.Redis, job_id: str) -> None:
+    """Publish one lossy wake-up for a durable queued Ask row."""
+
+    await client.xadd(
+        GLOBAL_ASK_STREAM_KEY,
+        {"global_ask_job_id": str(job_id)},
+        maxlen=_STREAM_MAX_LENGTH,
+        approximate=True,
+    )
 
 
 async def enqueue_global_ask_job(
@@ -191,12 +217,7 @@ async def enqueue_global_ask_job(
             [(job_id, process_unit_id) for process_unit_id in sorted(process_unit_ids)],
         )
     try:
-        await client.xadd(
-            GLOBAL_ASK_STREAM_KEY,
-            {"global_ask_job_id": str(job_id)},
-            maxlen=_STREAM_MAX_LENGTH,
-            approximate=True,
-        )
+        await _publish_global_ask_wakeup(client, str(job_id))
     except redis.RedisError:
         # The committed row is the source of truth; the recovery sweep
         # republishes it within a minute, so the caller still gets a
@@ -414,6 +435,15 @@ async def compute_global_ask_answer(
                 process_scope_limited=process_scope_limited,
                 knowledge_cutoff=knowledge_cutoff,
             )
+    except RankWeaveNotAvailable as exc:
+        if _is_retryable_exact_state_error(exc):
+            raise
+        log_internal_fault("global_ask", exc)
+        record_server_failure("global_ask", exc, outcome="internal_error")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            _ASK_RETRY_MESSAGE,
+        ) from exc
     except Exception as exc:
         log_internal_fault("global_ask", exc)
         record_server_failure("global_ask", exc, outcome="internal_error")
@@ -613,13 +643,15 @@ async def process_global_ask_job(
         [], ClaimVerificationClient
     ] = NullClaimVerificationClient,
     exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
+    wake_client: redis.Redis | None = None,
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
     Claiming flips ``queued`` → ``running`` atomically so a duplicate
     stream wake-up (recovery republish racing the original entry) is a
-    no-op. Every failure path settles the row as ``failed`` with a
-    bounded detail string rather than leaving it stuck ``running``.
+    no-op. A snapshot/version rollover returns the durable row to
+    ``queued`` for exact re-preparation; every other failure settles it
+    as ``failed`` with a bounded detail rather than leaving it stuck.
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -679,6 +711,33 @@ async def process_global_ask_job(
         # only ever sees a generic, bounded message, never the raw
         # exception text (issue #361 -- a leaked orchestrator/provider
         # exception once exposed internals straight to a client).
+        if _is_retryable_exact_state_error(exc):
+            _logger.info(
+                "global ask exact state changed after dispatch; re-queuing job_id=%s",
+                job_id,
+            )
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """
+                    update global_ask_job set job_status_code = $2,
+                        failure_detail = null, updated_at = now()
+                    where global_ask_job_id = $1 and job_status_code = $3
+                    """,
+                    job_id,
+                    QUEUED,
+                    RUNNING,
+                )
+            if wake_client is not None:
+                try:
+                    await _publish_global_ask_wakeup(wake_client, job_id)
+                except redis.RedisError:
+                    # The queued row remains authoritative. The existing recovery
+                    # sweep republishes it if this best-effort wake-up is lost.
+                    _logger.exception(
+                        "global ask exact-state retry wake-up failed for job_id=%s",
+                        job_id,
+                    )
+            return
         _logger.exception("global ask job failed for job_id=%s", job_id)
         if isinstance(exc, _SafeJobError):
             # Raised locally with a pre-authored, safe message (permission
@@ -813,6 +872,7 @@ async def consume_global_ask_stream_once(
                         semantic_query_factory=semantic_query_factory,
                         claim_verification_factory=claim_verification_factory,
                         exact_semantic_index=exact_semantic_index,
+                        wake_client=client,
                     )
                 else:
                     await limiter.acquire()
@@ -825,6 +885,7 @@ async def consume_global_ask_stream_once(
                             semantic_query_factory=semantic_query_factory,
                             claim_verification_factory=claim_verification_factory,
                             exact_semantic_index=exact_semantic_index,
+                            wake_client=client,
                             limiter=limiter,
                         )
                     )
@@ -844,6 +905,7 @@ async def _process_and_release(
     semantic_query_factory: Callable[[], SemanticQueryClient],
     claim_verification_factory: Callable[[], ClaimVerificationClient],
     exact_semantic_index: GlobalAskExactSemanticIndex | None,
+    wake_client: redis.Redis,
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
@@ -856,6 +918,7 @@ async def _process_and_release(
             semantic_query_factory=semantic_query_factory,
             claim_verification_factory=claim_verification_factory,
             exact_semantic_index=exact_semantic_index,
+            wake_client=wake_client,
         )
     finally:
         limiter.release()
