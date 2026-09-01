@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
@@ -76,6 +75,7 @@ _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
 _RECOVERY_ENQUEUE_LIMIT = 200
 _BROKER_RECOVERY_DELAY_SECONDS = 1.0
+_STREAM_BATCH_SIZE = 10
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 _SOURCE_BODY_MISSING_FAILURE_CODE = "post_content_source_body_missing"
@@ -830,24 +830,18 @@ async def process_post_content_job(
     await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)
 
 
-async def consume_post_content_stream_once(
+async def _read_post_content_stream_once(
     client: redis.Redis,
-    pool: asyncpg.Pool,
     *,
     last_id: str,
-    vision_factory: Callable[[], ImageContentClient],
-    embedding_factory: Callable[[], EmbeddingClient],
-    structure_factory: Callable[[], PostStructureClient],
-) -> str:
-    """Process one batch of the Valkey wake-up stream and return the new cursor.
-
-    Reads up to 10 entries after `last_id`, runs `process_post_content_job`
-    for each, and returns the last-seen entry id so the caller can resume
-    from there on the next poll.
-    """
+) -> tuple[str, list[tuple[str, str, str]]]:
+    """Read and validate one bounded wake-up batch without running providers."""
+    work: list[tuple[str, str, str]] = []
     try:
         batches = await client.xread(
-            {POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000
+            {POST_CONTENT_STREAM_KEY: last_id},
+            count=_STREAM_BATCH_SIZE,
+            block=1000,
         )
     except Exception:
         # Keep idle polls silent, but retain a diagnostic span for broker failures.
@@ -861,7 +855,7 @@ async def consume_post_content_stream_once(
         ):
             raise
     if not batches:
-        return last_id
+        return last_id, work
     with traced(
         "lineageweave.valkey.post_content_batch",
         {
@@ -878,18 +872,9 @@ async def consume_post_content_stream_once(
                     UUID(post_id)
                 except ValueError:
                     post_id = ""
-                if post_id and len(digest) == 64:
-                    await process_post_content_job(
-                        pool,
-                        post_id=post_id,
-                        source_body_digest=digest,
-                        vision_factory=vision_factory,
-                        embedding_factory=embedding_factory,
-                        structure_factory=structure_factory,
-                    )
                 last_id = str(entry_id)
-        await trim_post_content_events_through(client, last_id)
-    return last_id
+                work.append((last_id, post_id, digest))
+    return last_id, work
 
 
 async def _recover_post_content_jobs(
@@ -945,6 +930,96 @@ async def _recover_post_content_jobs(
     return recovery_cursor
 
 
+async def consume_post_content_stream_once(
+    client: redis.Redis,
+    pool: asyncpg.Pool,
+    *,
+    last_id: str,
+    vision_factory: Callable[[], ImageContentClient],
+    embedding_factory: Callable[[], EmbeddingClient],
+    structure_factory: Callable[[], PostStructureClient],
+) -> str:
+    """Process one batch of the Valkey wake-up stream and return the new cursor.
+
+    Reads up to 10 entries after `last_id`, runs `process_post_content_job`
+    for each, and returns the last-seen entry id so the caller can resume
+    from there on the next poll.
+    """
+    last_id, work = await _read_post_content_stream_once(client, last_id=last_id)
+    for _entry_id, post_id, digest in work:
+        if post_id and len(digest) == 64:
+            await process_post_content_job(
+                pool,
+                post_id=post_id,
+                source_body_digest=digest,
+                vision_factory=vision_factory,
+                embedding_factory=embedding_factory,
+                structure_factory=structure_factory,
+            )
+    if work:
+        await trim_post_content_events_through(client, last_id)
+    return last_id
+
+
+async def _post_content_stream_reader(
+    client: redis.Redis,
+    work_queue: asyncio.Queue[tuple[str, str, str]],
+    *,
+    last_id: str,
+) -> None:
+    """Keep consuming wake-ups while the single provider processor is busy."""
+    while True:
+        try:
+            last_id, work = await _read_post_content_stream_once(client, last_id=last_id)
+        except (redis.RedisError, OSError) as exc:
+            _logger.warning(
+                "post-content Valkey poll failed; retrying (error_type=%s)",
+                type(exc).__name__,
+            )
+            await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)
+            continue
+        for item in work:
+            await work_queue.put(item)
+
+
+async def _post_content_processor(
+    pool: asyncpg.Pool,
+    client: redis.Redis,
+    work_queue: asyncio.Queue[tuple[str, str, str]],
+    *,
+    vision_factory: Callable[[], ImageContentClient],
+    embedding_factory: Callable[[], EmbeddingClient],
+    structure_factory: Callable[[], PostStructureClient],
+) -> None:
+    """Run exactly one provider pipeline while reader and recovery stay live."""
+    while True:
+        item = await work_queue.get()
+        try:
+            entry_id, post_id, digest = item
+            if post_id and len(digest) == 64:
+                await process_post_content_job(
+                    pool,
+                    post_id=post_id,
+                    source_body_digest=digest,
+                    vision_factory=vision_factory,
+                    embedding_factory=embedding_factory,
+                    structure_factory=structure_factory,
+                )
+            await trim_post_content_events_through(client, entry_id)
+        finally:
+            work_queue.task_done()
+
+
+async def _post_content_recovery_loop(client: redis.Redis, pool: asyncpg.Pool) -> None:
+    """Republish durable due work independently of provider latency."""
+    recovery_cursor: tuple[datetime, str] | None = None
+    while True:
+        recovery_cursor = await _recover_post_content_jobs(
+            client, pool, recovery_cursor
+        )
+        await asyncio.sleep(_RECOVERY_INTERVAL_SECONDS)
+
+
 async def run_post_content_worker(
     client: redis.Redis,
     pool: asyncpg.Pool,
@@ -953,29 +1028,30 @@ async def run_post_content_worker(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
-    """Run the at-least-once consumer and periodically recover queued rows."""
+    """Supervise one provider processor plus independent reader and recovery."""
     last_id = await _stream_tail(client)
-    last_recovery = 0.0
-    recovery_cursor: tuple[datetime, str] | None = None
-    while True:
-        now = time.monotonic()
-        if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
-            recovery_cursor = await _recover_post_content_jobs(
-                client, pool, recovery_cursor
-            )
-            last_recovery = now
-        try:
-            last_id = await consume_post_content_stream_once(
-                client,
+    work_queue: asyncio.Queue[tuple[str, str, str]] = asyncio.Queue(
+        maxsize=_STREAM_BATCH_SIZE
+    )
+    tasks = (
+        asyncio.create_task(
+            _post_content_stream_reader(client, work_queue, last_id=last_id)
+        ),
+        asyncio.create_task(
+            _post_content_processor(
                 pool,
-                last_id=last_id,
+                client,
+                work_queue,
                 vision_factory=vision_factory,
                 embedding_factory=embedding_factory,
                 structure_factory=structure_factory,
             )
-        except (redis.RedisError, OSError) as exc:
-            _logger.warning(
-                "post-content Valkey poll failed; retrying (error_type=%s)",
-                type(exc).__name__,
-            )
-            await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)
+        ),
+        asyncio.create_task(_post_content_recovery_loop(client, pool)),
+    )
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)

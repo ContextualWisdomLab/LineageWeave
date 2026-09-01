@@ -174,7 +174,7 @@ async def test_workers_retry_transient_broker_errors_without_dropping_the_task(m
         return None
 
     async def no_republish(*_args, **_kwargs):
-        return 0
+        await asyncio.Event().wait()
 
     monkeypatch.setattr(analysis_run_worker.asyncio, "sleep", no_sleep)
     monkeypatch.setattr(post_content_worker.asyncio, "sleep", no_sleep)
@@ -201,6 +201,100 @@ async def test_workers_retry_transient_broker_errors_without_dropping_the_task(m
 
     assert analysis_calls == 2
     assert post_content_calls == 2
+
+
+@pytest.mark.anyio
+async def test_post_content_supervisor_keeps_reader_and_recovery_live_during_provider_wait(
+    monkeypatch,
+):
+    """A slow provider does not suspend XREAD or durable-row recovery."""
+    provider_started = asyncio.Event()
+    provider_release = asyncio.Event()
+    second_read = asyncio.Event()
+    recovery_advanced = asyncio.Event()
+    recovery_calls = 0
+    read_calls = 0
+    active_processors = 0
+    max_active_processors = 0
+    process_calls = 0
+
+    class LiveValkey:
+        async def xrevrange(self, _stream, *, count):
+            assert count == 1
+            return []
+
+        async def xread(self, _streams, *, count, block):
+            nonlocal read_calls
+            assert (count, block) == (10, 1000)
+            read_calls += 1
+            if read_calls == 1:
+                return [
+                    (
+                        "post-content",
+                        [
+                            (
+                                "1-0",
+                                {
+                                    "post_id": "00000000-0000-0000-0000-000000000001",
+                                    "source_body_sha256": "a" * 64,
+                                },
+                            ),
+                            (
+                                "1-1",
+                                {
+                                    "post_id": "00000000-0000-0000-0000-000000000001",
+                                    "source_body_sha256": "a" * 64,
+                                },
+                            ),
+                        ],
+                    )
+                ]
+            second_read.set()
+            await asyncio.Event().wait()
+
+    async def slow_process(*_args, **_kwargs):
+        nonlocal active_processors, max_active_processors, process_calls
+        process_calls += 1
+        active_processors += 1
+        max_active_processors = max(max_active_processors, active_processors)
+        provider_started.set()
+        try:
+            await provider_release.wait()
+        finally:
+            active_processors -= 1
+
+    async def recover(*_args, **_kwargs):
+        nonlocal recovery_calls
+        recovery_calls += 1
+        if recovery_calls >= 2:
+            recovery_advanced.set()
+        return None
+
+    monkeypatch.setattr(post_content_worker, "process_post_content_job", slow_process)
+    monkeypatch.setattr(
+        post_content_worker, "_recover_post_content_jobs", recover
+    )
+    monkeypatch.setattr(post_content_worker, "_RECOVERY_INTERVAL_SECONDS", 0.01)
+
+    worker = asyncio.create_task(
+        post_content_worker.run_post_content_worker(
+            LiveValkey(),
+            _Pool(),
+            vision_factory=lambda: None,
+            embedding_factory=lambda: None,
+            structure_factory=lambda: None,
+        )
+    )
+    await asyncio.wait_for(provider_started.wait(), timeout=1)
+    await asyncio.wait_for(second_read.wait(), timeout=1)
+    await asyncio.wait_for(recovery_advanced.wait(), timeout=1)
+    assert max_active_processors == 1
+    assert process_calls == 1
+
+    worker.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await worker
+    assert active_processors == 0
 
 
 @pytest.mark.anyio

@@ -328,6 +328,11 @@ All notable changes to this project are documented here. Format follows
   with a deterministic keyset, while Valkey trims only entries already
   consumed by the worker. Large backfills can no longer replay the same first
   page until a later queued record starves or its unread wake-up is trimmed.
+- Post-content ingestion now keeps its bounded Valkey reader and durable-ledger
+  recovery sweep live while the single provider pipeline awaits a slow
+  structured operation. Provider work remains serial; PostgreSQL claim and
+  expected-attempt fencing, restart recovery, and the existing retry budget are
+  unchanged (ADR 0098).
 - Full-corpus Event Lineage rebuilds now count candidate pairs before provider
   work and omit the optional LLM channel above the 5,000-pair ADR budget,
   preventing millions of synchronous orchestrator calls while retaining one

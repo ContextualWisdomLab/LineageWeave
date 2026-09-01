@@ -219,3 +219,17 @@ content is never copied into the ledger.
 ### Operational timeout for structure adjudication
 
 The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.
+
+### Worker supervision liveness (2026-09-01)
+
+Provider latency must not suspend Valkey consumption or the durable-ledger
+recovery sweep. The worker therefore supervises three tasks: one stream reader,
+one recovery loop, and exactly one provider processor. The reader uses the
+existing ten-entry stream batch as its queue bound. This is not a new provider
+or database parallelism policy: provider work remains serial, and duplicate
+wake-ups still pass through the PostgreSQL claim/idempotency boundary, until
+independent capacity and lease evidence supports a different decision.
+
+PostgreSQL claim and expected-attempt fencing remain authoritative. Cancelling
+the worker cancels all three supervised tasks; after restart, the stream-tail
+cursor and durable queued/stale-row recovery rules above remain unchanged.
