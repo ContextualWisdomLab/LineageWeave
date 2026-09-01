@@ -148,6 +148,8 @@ def connection_kwargs_from_dsn(
     parsed = urlsplit(dsn)
     if parsed.scheme not in {"postgres", "postgresql"}:
         raise ValueError("PostgreSQL DSN must use postgres:// or postgresql://")
+    if parsed.fragment:
+        raise ValueError("PostgreSQL DSN must not include a fragment")
     if not parsed.path or parsed.path == "/":
         raise ValueError("PostgreSQL DSN must include a database name")
 
