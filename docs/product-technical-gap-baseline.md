@@ -1,24 +1,32 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop overlay: 2026-09-01 09:52 KST. Protected
+> Exact-head development-loop overlay: 2026-09-01 11:03 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs
 > and ten non-PR issues are open. PR #780's exact product and rendered-evidence
 > parent for this documentation update is
 > `10ca7c1a02d58bbb12436889d4256fedfb2da7dd`, based directly on that
-> `main`. All review threads remain resolved and normal squash auto-merge is
-> armed. Independent approval is still unavailable, so no protected merge or
-> merge SHA is claimed.
+> `main`; the current exact head is
+> `c9db49da74e71b94d721ee40a6ee7becec676aa1` and differs from that parent
+> only in this baseline. Normal squash auto-merge remains armed and no
+> independent `APPROVED` review exists. GitHub's review-thread GraphQL query is
+> rate-limited in this snapshot, so the earlier resolved-thread evidence is not
+> promoted to a fresh claim; the REST review and inline-comment feeds expose no
+> newer actionable finding. Thirteen exact-head checks are queued and seven are
+> skipped. No protected merge or merge SHA is claimed.
 >
 > The owner-bound documentation-image workflow repair advanced without a force
 > push in `ContextualWisdomLab/.github#1466` to exact head
-> `538314668dbaa2dff11d9f6ec390e1b1f8c64b4b` after merging current central
-> `main`. Seventy-nine focused owner-repository tests pass and normal squash
-> auto-merge is armed. Its new exact-head checks are queued and its prior
-> changes-requested verdict is not treated as approval. Until that parent
-> reaches protected central `main`, PR #780's PNG bootstrap failure remains
-> unavailable workflow evidence. The separate governed review timeout and
-> GitHub dependency-comparison HTTP 403 also remain unavailable rather than
-> product acceptance.
+> `3efa7ded68826301a6fbf56237c436740b0b4c1b` on central `main`. Its latest
+> published review is `COMMENTED`, no independent approval or auto-merge is
+> present, fourteen checks are queued, fourteen are skipped, and two are
+> cancelled. Until that parent reaches protected central `main`, PR #780's PNG
+> bootstrap failure remains unavailable workflow evidence. The separate
+> governed review timeout and GitHub dependency-comparison HTTP 403 also remain
+> unavailable rather than product acceptance. One queued Strix run for PR #640
+> was cancelled only after the PR's live head was verified as
+> `5c430d4d91b22bd99a6d74b288c9356a62a50a5d` and the run was verified against
+> stale head `f40e4ed8020a7db4099730d558da942a0f331614`; current `main` and open-PR
+> exact-head runs were left intact.
 >
 > The largest buyer-visible candidate remains the Voice exact-value/export
 > repair: carrying Post and derivation evidence stay distinct in UI and CSV;
@@ -26,9 +34,13 @@
 > derivation, truth status, and cutoff; hidden evidence is not replaced; and
 > paged JSON-LD unions same-subject multi-Voice relations. ADR 0246's twelve
 > atomic classifications remain extensible rows rather than enumerated
-> combinations. The committed desktop/mobile renders and earlier authenticated
-> synthetic PostgreSQL/API evidence are revision-scoped; deployed acceptance
-> remains unavailable.
+> combinations. Fresh local verification passes 54 focused Voice, ontology,
+> SHACL, and API selections plus 29 affected frontend tests, frontend lint, and
+> the production build. Direct inspection of the committed desktop and mobile
+> renders keeps the carrying-Post action separate from the additional Voice's
+> derivation-evidence action, including the narrow table's horizontal scroll.
+> The earlier authenticated synthetic PostgreSQL/API evidence is
+> revision-scoped; deployed acceptance remains unavailable.
 
 > Exact-head development-loop overlay: 2026-09-01 07:31 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-seven PRs
