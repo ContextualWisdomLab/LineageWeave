@@ -54,3 +54,18 @@ def test_missing_parent_is_kept_and_disclosed_without_inventing_an_edge() -> Non
     assert forest[0].entity_id == "child-id"
     assert forest[0].hierarchy_issue == "parent_not_available"
     assert forest[0].children == ()
+
+
+def test_unavailable_entity_references_do_not_collapse_by_display_name() -> None:
+    forest = build_affiliate_forest(
+        (),
+        (
+            _leaf("missing-alpha", "Shared Display Name"),
+            _leaf("missing-beta", "Shared Display Name"),
+        ),
+    )
+
+    assert [(node.entity_id, node.entity_name, node.resolved) for node in forest] == [
+        ("missing-alpha", "Shared Display Name", False),
+        ("missing-beta", "Shared Display Name", False),
+    ]
