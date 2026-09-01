@@ -149,3 +149,31 @@ def test_fetch_corroborated_aliases_keeps_catalog_ties_unbound() -> None:
     )
     aliases = asyncio.run(ingestion.fetch_corroborated_organization_aliases(conn))
     assert aliases == (OrganizationNameAlias("DC", "Demo Corp", None),)
+
+
+class _BoundedAliasConnection:
+    def __init__(self) -> None:
+        self.query = ""
+        self.args: tuple[object, ...] = ()
+
+    async def fetch(self, query: str, *args: object):
+        self.query = query
+        self.args = args
+        return []
+
+
+def test_fetch_corroborated_aliases_bounds_rows_before_catalog_join() -> None:
+    conn = _BoundedAliasConnection()
+
+    aliases = asyncio.run(
+        ingestion.fetch_corroborated_organization_aliases(
+            conn,
+            organization_names=(" Demo Co ", "Demo Corp", "Demo Co"),
+        )
+    )
+
+    assert aliases == ()
+    assert conn.args == (STATUS_CORROBORATED, ["Demo Co", "Demo Corp"])
+    lowered = conn.query.lower()
+    assert "raw_organization_name = any($2::text[])" in lowered
+    assert "resolved_organization_name = any($2::text[])" in lowered
