@@ -61,7 +61,7 @@ def test_lockfile_matches_synchronous_postgres_driver_contract() -> None:
 
 
 def test_ci_preserves_resolver_output_when_committed_lock_is_stale() -> None:
-    """A stale frozen lock must fail closed while preserving the resolver candidate."""
+    """A stale frozen lock must fail closed while preserving a valid resolver candidate."""
     workflow = (_REPOSITORY_ROOT / ".github" / "workflows" / "tests.yml").read_text(
         encoding="utf-8"
     )
@@ -69,6 +69,7 @@ def test_ci_preserves_resolver_output_when_committed_lock_is_stale() -> None:
     lock_check = workflow.index("uv lock --check")
     frozen_sync = workflow.index("uv sync --frozen --extra dev --extra backend")
     assert lock_check < frozen_sync
+    assert "set -euo pipefail" in workflow
     assert f"actions/upload-artifact@{_UPLOAD_ARTIFACT_SHA}" in workflow
     assert "uv-lock-candidate-${{ github.sha }}" in workflow
     assert "if-no-files-found: error" in workflow
