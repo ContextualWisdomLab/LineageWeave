@@ -29,6 +29,21 @@ export function groupHeading(group: string): string {
   return group;
 }
 
+function stableTextCompare(left: string, right: string): number {
+  return Number(left > right) - Number(left < right);
+}
+
+/**
+ * Stable presentation key for a lineage node.
+ *
+ * Event time is the meaningful primary order for a lineage. The opaque node
+ * id is only the deterministic tie-breaker, so backend array order can never
+ * move a node to a different row or keyboard position.
+ */
+function stableNodeSortKey(node: LineageGraphNode): string {
+  return `${node.occurred_at ?? ""}\u0000${node.id}`;
+}
+
 function childrenByParent(edges: LineageGraphEdge[]): Map<string, string[]> {
   const children = new Map<string, string[]>();
   for (const edge of edges) {
@@ -44,10 +59,13 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   width: number;
   height: number;
 } {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const orderedNodes = [...nodes].sort((left, right) =>
+    stableTextCompare(stableNodeSortKey(left), stableNodeSortKey(right)),
+  );
+  const byId = new Map(orderedNodes.map((node) => [node.id, node]));
   const children = childrenByParent(edges);
   const hasParent = new Set(edges.map((edge) => edge.target));
-  const roots = nodes.filter((node) => !hasParent.has(node.id));
+  const roots = orderedNodes.filter((node) => !hasParent.has(node.id));
   const positions = new Map<string, { x: number; y: number }>();
   const visiting = new Set<string>();
   let nextRow = 0;
@@ -55,9 +73,16 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   const walk = (id: string, depth: number) => {
     if (positions.has(id)) return;
     visiting.add(id);
-    const kids = (children.get(id) ?? []).filter(
-      (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
-    );
+    const kids = (children.get(id) ?? [])
+      .filter(
+        (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
+      )
+      .sort((leftId, rightId) =>
+        stableTextCompare(
+          stableNodeSortKey(byId.get(leftId)!),
+          stableNodeSortKey(byId.get(rightId)!),
+        ),
+      );
     if (kids.length === 0) {
       positions.set(id, { x: PAD + depth * COL_W, y: PAD + nextRow * ROW_H });
       nextRow += 1;
@@ -72,14 +97,14 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   };
 
   for (const root of roots) walk(root.id, 0);
-  for (const node of nodes) {
+  for (const node of orderedNodes) {
     if (!positions.has(node.id)) {
       positions.set(node.id, { x: PAD, y: PAD + nextRow * ROW_H });
       nextRow += 1;
     }
   }
 
-  const positioned = nodes.map((node) => {
+  const positioned = orderedNodes.map((node) => {
     const pos = positions.get(node.id)!;
     return { ...node, ...pos };
   });
@@ -114,6 +139,17 @@ function stableGroupSortKey(group: LaidOutGroup): string {
   return `${ungroupedRank}\u0000${group.heading}\u0000${group.group}`;
 }
 
+function stableEdgeSortKey(
+  edge: LineageGraphEdge,
+  nodesById: Map<string, LineageGraphNode>,
+): string {
+  const source = nodesById.get(edge.source);
+  const target = nodesById.get(edge.target);
+  return `${source ? stableNodeSortKey(source) : edge.source}\u0000${
+    target ? stableNodeSortKey(target) : edge.target
+  }\u0000${edge.source}\u0000${edge.target}`;
+}
+
 /** Lay out only relationships whose two endpoints share one visible group. */
 export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
@@ -135,21 +171,25 @@ export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   }
 
   const groups = [...buckets.entries()].map(([group, { nodes, edges }]) => {
-    const laid = layoutGroup(nodes, edges);
+    const orderedEdges = [...edges].sort((left, right) =>
+      stableTextCompare(
+        stableEdgeSortKey(left, nodesById),
+        stableEdgeSortKey(right, nodesById),
+      ),
+    );
+    const laid = layoutGroup(nodes, orderedEdges);
     return {
       group,
       heading: groupHeading(group),
       nodes: laid.positioned,
-      edges,
+      edges: orderedEdges,
       width: laid.width,
       height: laid.height,
     };
   });
 
-  groups.sort((a, b) => {
-    const aKey = stableGroupSortKey(a);
-    const bKey = stableGroupSortKey(b);
-    return Number(aKey > bKey) - Number(aKey < bKey);
-  });
+  groups.sort((a, b) =>
+    stableTextCompare(stableGroupSortKey(a), stableGroupSortKey(b)),
+  );
   return groups;
 }
