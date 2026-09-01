@@ -104,6 +104,12 @@ export function subgraphForPost(graph: LineageGraph, postId: string): LineageGra
   };
 }
 
+/** Return a locale-independent sort key for one visible reconstruct group. */
+function stableGroupSortKey(group: LaidOutGroup): string {
+  const ungroupedRank = group.heading === "Ungrouped" ? "1" : "0";
+  return `${ungroupedRank}\u0000${group.heading}\u0000${group.group}`;
+}
+
 /** Lay out only relationships whose two endpoints share one visible group. */
 export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
@@ -137,9 +143,9 @@ export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   });
 
   groups.sort((a, b) => {
-    if (a.heading === "Ungrouped" && b.heading !== "Ungrouped") return 1;
-    if (b.heading === "Ungrouped" && a.heading !== "Ungrouped") return -1;
-    return a.heading.localeCompare(b.heading);
+    const aKey = stableGroupSortKey(a);
+    const bKey = stableGroupSortKey(b);
+    return Number(aKey > bKey) - Number(aKey < bKey);
   });
   return groups;
 }
