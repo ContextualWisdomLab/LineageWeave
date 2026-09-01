@@ -112,6 +112,15 @@ def test_dsn_connect_timeout_must_be_finite(timeout_value: str) -> None:
         )
 
 
+def test_explicit_connect_timeout_rejects_boolean_values() -> None:
+    """Boolean values must not become accidental one-second network deadlines."""
+    with pytest.raises(TypeError, match="real number"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive",
+            connect_timeout=True,
+        )
+
+
 def test_dsn_without_user_preserves_libpq_os_user_default(monkeypatch) -> None:
     """Existing admin DSNs without a username still use the local OS account."""
     monkeypatch.setattr("lineageweave.postgres_sync.getpass.getuser", lambda: "ci-runner")
