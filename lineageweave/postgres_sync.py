@@ -144,6 +144,12 @@ def connection_kwargs_from_dsn(
     account. Several repository PostgreSQL test fixtures rely on that default,
     so the adapter resolves it explicitly before entering pg8000's required
     ``user`` argument rather than changing fixture connection semantics.
+
+    A URI without a host is different: libpq interprets it as a local Unix-
+    domain socket connection, while pg8000's omitted ``host`` defaults to
+    localhost TCP. The URI alone does not identify which Unix socket path
+    libpq would have selected, so this adapter rejects that ambiguous transport
+    rather than silently changing peer-authentication and network semantics.
     """
 
     parsed = urlsplit(dsn)
@@ -153,6 +159,8 @@ def connection_kwargs_from_dsn(
         raise ValueError("PostgreSQL DSN must not include a fragment")
     if not parsed.path or parsed.path == "/":
         raise ValueError("PostgreSQL DSN must include a database name")
+    if parsed.hostname is None:
+        raise ValueError("PostgreSQL DSN must include an explicit host")
 
     user = unquote(parsed.username) if parsed.username is not None else getpass.getuser()
     if not user:
@@ -167,7 +175,7 @@ def connection_kwargs_from_dsn(
 
     kwargs: dict[str, Any] = {
         "user": user,
-        "host": parsed.hostname or "localhost",
+        "host": parsed.hostname,
         "port": 5432 if port is None else port,
         "database": unquote(parsed.path.lstrip("/")),
     }
