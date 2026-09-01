@@ -8,6 +8,17 @@ function canonicalPositions(graph: Parameters<typeof layoutLineageDag>[0]) {
     .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
 }
 
+function edgeOrder(graph: Parameters<typeof layoutLineageDag>[0]) {
+  return layoutLineageDag(graph)
+    .flatMap((group) => group.edges)
+    .map(({ source, target, fused_score, interval_relation_code }) => ({
+      source,
+      target,
+      fused_score,
+      interval_relation_code,
+    }));
+}
+
 describe("layoutLineageDag deterministic geometry", () => {
   it("keeps node geometry stable when equivalent graph arrays arrive in a different order", () => {
     const nodes = ["root", "branch-a", "branch-b"].map((id) => ({
@@ -28,6 +39,36 @@ describe("layoutLineageDag deterministic geometry", () => {
       nodes: [...nodes].reverse(),
       edges: [...edges].reverse(),
     });
+
+    expect(reordered).toEqual(forward);
+  });
+
+  it("keeps parallel edge order stable when equivalent edges arrive in a different order", () => {
+    const nodes = ["root", "child"].map((id) => ({
+      id,
+      group: "Project Alpha",
+      label: id,
+      occurred_at: "2026-09-01T00:00:00Z",
+      is_root: id === "root",
+      is_branch_point: id === "root",
+    }));
+    const edges = [
+      {
+        source: "root",
+        target: "child",
+        fused_score: 0.91,
+        interval_relation_code: "before",
+      },
+      {
+        source: "root",
+        target: "child",
+        fused_score: 0.73,
+        interval_relation_code: "overlaps",
+      },
+    ];
+
+    const forward = edgeOrder({ nodes, edges });
+    const reordered = edgeOrder({ nodes, edges: [...edges].reverse() });
 
     expect(reordered).toEqual(forward);
   });
