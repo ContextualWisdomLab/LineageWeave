@@ -156,6 +156,8 @@ def default_dichotomous_model_family(
     """
     if domain is MeasurementDomain.EDUCATIONAL:
         if rasch_requirements_intended:
+            if lower_asymptote_justified or upper_asymptote_justified:
+                return None
             return MeasurementModelFamily.RASCH
         if lower_asymptote_justified and not upper_asymptote_justified:
             return MeasurementModelFamily.IRT_3PLM
@@ -167,6 +169,8 @@ def default_dichotomous_model_family(
         return MeasurementModelFamily.IRT_2PLM
 
     if domain is MeasurementDomain.GAMBLING_GAMING_RISK:
+        if rasch_requirements_intended:
+            return None
         if lower_asymptote_justified and upper_asymptote_justified:
             return MeasurementModelFamily.IRT_4PLM
         return None
