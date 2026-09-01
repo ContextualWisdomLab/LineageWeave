@@ -42,6 +42,22 @@ describe("CustomerMasterRequestGate", () => {
     await expect(newerResult).resolves.toBe("current-account-view");
   });
 
+  it("does not supersede the current request when the next request cannot start", async () => {
+    const gate = new CustomerMasterRequestGate<string>();
+    const current = deferred<string>();
+    const currentResult = gate.run(() => current.promise);
+
+    expect(() =>
+      gate.run(() => {
+        throw new Error("request construction failed");
+      }),
+    ).toThrow("request construction failed");
+
+    current.resolve("still-current-account-view");
+
+    await expect(currentResult).resolves.toBe("still-current-account-view");
+  });
+
   it("still surfaces a failure from the current request", async () => {
     const gate = new CustomerMasterRequestGate<string>();
     const current = deferred<string>();
