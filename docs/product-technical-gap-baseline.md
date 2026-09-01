@@ -1,19 +1,22 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop snapshot: 2026-09-01 15:14 KST. Protected
+> Exact-head development-loop snapshot: 2026-09-01 15:40 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 101 PRs and 12
-> non-PR issues are open. Calendar ownership has an executable but non-durable
-> candidate in CalendarWeave draft PR #3 at
+> non-PR issues are open. Calendar ownership has an executable core candidate
+> in CalendarWeave draft PR #3 at
 > `029c6d38d3a748bac131c93eb38347deda1f6989`, stacked on its proposed
 > ownership ADR. Its Rust application port preserves tenant isolation, strict
 > UTC/all-day RFC 5545 input, standard event status, opaque references, and
-> strong-ETag conditional update with authorization-before-parse ordering;
-> local line and branch coverage remains 100%, while hosted Rust and coverage
-> jobs remain queued.
-> It is not a released service, does not provide durable cross-process
-> concurrency, CalDAV sync, provider parity, or consumer migration evidence,
-> and therefore does not close
-> LineageWeave issue #900 or CalendarWeave issue #2.
+> strong-ETag conditional update with authorization-before-parse ordering.
+> Stacked draft PR #4 at exact head
+> `c98f20a06f3c79d52d9307bb2ff56f45f7c326d9` adds a three-normal-form
+> PostgreSQL store with append-only revisions, restart idempotency, and real
+> concurrent create and conditional-update evidence. Its local line and branch
+> coverage is 100%, while hosted Rust and coverage jobs remain queued.
+> Neither candidate is protected-main or released evidence. They do not yet
+> provide an authenticated operated service, backup/restore acceptance, CalDAV
+> sync, provider parity, or consumer migration evidence, and therefore do not
+> close LineageWeave issue #900 or CalendarWeave issue #2.
 >
 > LineageWeave draft PR #902 is stacked on draft owner-boundary PR #899 at exact
 > head `824425146d356fc7b66b409047bfe449cb0581f3`. Its current candidate removes
