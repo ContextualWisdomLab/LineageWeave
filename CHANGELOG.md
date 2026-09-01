@@ -9,7 +9,7 @@ All notable changes to this project are documented here. Format follows
 - Evidence-rich API responses now use standard HTTP gzip content negotiation,
   and the Dashboard k6 gate requires and verifies that negotiated transfer.
   The exact payload measured 96,415 bytes uncompressed and 10,282 bytes on the
-  wire; its 84.79 ms five-VU maximum keeps the 20 ms release gate open
+  wire; its 130.43 ms five-VU maximum keeps the 20 ms release gate open
   (ADR 0272).
 
 - Global Ask now has a consumer-selective durable worker in the canonical
