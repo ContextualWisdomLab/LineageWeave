@@ -83,4 +83,45 @@ describe("LineageDag parallel edge identity", () => {
       .map((summary) => summary.closest("details"));
     expect(disclosures.filter((details) => details?.hasAttribute("open"))).toHaveLength(1);
   });
+
+  it("preserves selected parallel-edge context when an unrelated earlier edge appears", async () => {
+    const { rerender } = render(<LineageDag graph={parallelEdgeGraph} onSelectPost={vi.fn()} />);
+    const edgeButtons = screen.getAllByRole("button", {
+      name: /Open connection evidence: Initial site visit to Pricing follow-up/,
+    });
+    const selectedLabel = edgeButtons[0].getAttribute("aria-label");
+    expect(selectedLabel).toBeTruthy();
+
+    await userEvent.click(edgeButtons[0]);
+    expect(edgeButtons[0]).toHaveAttribute("aria-pressed", "true");
+
+    const graphWithEarlierEdge: LineageGraph = {
+      nodes: [
+        {
+          id: "rec-000",
+          group: "A-100",
+          label: "Account created",
+          occurred_at: "2025-12-31T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+        ...parallelEdgeGraph.nodes,
+      ],
+      edges: [
+        {
+          source: "rec-000",
+          target: "rec-001",
+          fused_score: 0.9,
+        },
+        ...parallelEdgeGraph.edges,
+      ],
+    };
+
+    rerender(<LineageDag graph={graphWithEarlierEdge} onSelectPost={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: selectedLabel! })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByRole("button", {
+      name: /Open connection evidence: Initial site visit to Pricing follow-up/,
+    }).filter((button) => button.getAttribute("aria-pressed") === "true")).toHaveLength(1);
+  });
 });
