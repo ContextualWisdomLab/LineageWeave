@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LineageGraph } from "./api";
@@ -126,6 +126,36 @@ describe("LineageDag parallel edge identity", () => {
     expect(screen.getAllByRole("button", {
       name: /Open connection evidence: Initial site visit to Pricing follow-up/,
     }).filter((button) => button.getAttribute("aria-pressed") === "true")).toHaveLength(1);
+  });
+
+  it("renders channel evidence by canonical rank regardless of transport array order", () => {
+    const graphWithOutOfOrderEvidence: LineageGraph = {
+      nodes: parallelEdgeGraph.nodes,
+      edges: [
+        {
+          ...parallelEdgeGraph.edges[0],
+          channel_evidence: [
+            {
+              signal_code: "temporal",
+              signal_label: "Temporal proximity",
+              score: 0.7,
+              weight: 0.5,
+              contribution: 0.35,
+              rank: 2,
+            },
+            parallelEdgeGraph.edges[0].channel_evidence![0],
+          ],
+        },
+      ],
+    };
+
+    render(<LineageDag graph={graphWithOutOfOrderEvidence} onSelectPost={vi.fn()} />);
+
+    const disclosure = screen.getByText(/fused score 0\.810000/).closest("details");
+    expect(disclosure).not.toBeNull();
+    const rows = within(disclosure!).getAllByRole("row");
+    expect(rows[1]).toHaveTextContent("Text similarity");
+    expect(rows[2]).toHaveTextContent("Temporal proximity");
   });
 
   it("does not append untranslated English disambiguation to Korean parallel-edge controls", () => {
