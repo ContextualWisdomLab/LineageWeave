@@ -1,5 +1,30 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-01 21:36 KST. Protected
+> `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; 98 PRs and 10
+> non-PR issues were open in the fresh inventory collected before GitHub's API
+> rate limit closed the review-thread query. PR #780 is based directly on that
+> `main` at exact head `1c3b48fa465bb602a5fdacec57d32ef23c5997a9`, is non-draft,
+> and has normal squash auto-merge armed. Its review decision remains
+> `REVIEW_REQUIRED`; review-thread state is unavailable in this snapshot and is
+> not inferred from older evidence. Fourteen exact-head checks are queued, the
+> Strix job is cancelled, and the remaining reported jobs are successful or
+> skipped. Pending work is not acceptance evidence and does not block safe
+> review of another PR. No protected merge or merge SHA is claimed.
+>
+> Fresh local verification on this exact product head passes 184 focused
+> Voice-authority, ontology, SHACL, and API tests with five live-stack skips,
+> plus all 534 frontend tests, lint, type checking, and the production build.
+> The candidate remains the largest buyer-visible gap implementation: exact-
+> value UI and CSV distinguish the carrying Post from derivation evidence;
+> authorized additional Voices retain their evidence Post, truth status,
+> cutoff, and server-created PROV-O derivation; hidden evidence is omitted
+> without substituting the carrying Post; and paged JSON-LD unions properties
+> and multi-Voice relations for the same subject. ADR 0246's twelve atomic
+> Voice codes remain extensible assignments rather than enumerated
+> combinations. Authenticated deployed PostgreSQL/API and rendered-UI
+> acceptance remain unavailable at this revision.
+
 > Exact-head development-loop snapshot: 2026-09-01 13:23 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
 > non-PR issues are open. PR #780's exact evidence parent is
