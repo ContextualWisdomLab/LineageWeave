@@ -37,7 +37,7 @@ import {
   PLOT_PADDING,
   PLOT_WIDTH,
 } from "./leftoverMapPlotLayout";
-import { leftoverMapCompareListCriterionBadge, leftoverMapCompareListPostBadge } from "./leftoverMapCoordinates";
+import { leftoverMapCompareListCriterionBadge, leftoverMapCompareListPostBadge, leftoverMapListPostBadge } from "./leftoverMapCoordinates";
 
 function pair(
   overrides: Partial<LeftoverMapPlottablePair> = {},
@@ -1434,6 +1434,9 @@ describe("leftoverMapComparePlotPostBadge", () => {
     );
     expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
+      leftoverMapListPostBadge("Public post", 0, 0)?.key ?? "",
     );
   });
 

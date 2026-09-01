@@ -61,6 +61,7 @@ describe("i18n", () => {
     "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
     "Open leftover {kind} pair: {title} · {criterion}",
     "leftover pair leftover-map post {title} at ξ {person}",
+    "leftover pair leftover-map post {title} at leftover-map origin ξ {person}",
     "leftover pair leftover-map criterion {label} at ζ {item}",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}",
     "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}",
@@ -177,6 +178,7 @@ describe("i18n", () => {
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
     "Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}",
     "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}",
+    "leftover pair leftover-map post {title} at leftover-map origin ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -505,6 +507,24 @@ describe("i18n", () => {
         tf("leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}", {
           label: "sales-lead",
           item: "(0.00, 0.00)",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 쌍 잔여 지도 원점 글 Public post (ξ (0.00, 0.00))"],
+    ["zh", "残差配对残差图原点帖子 Public post（ξ (0.00, 0.00)）"],
+    ["ja", "残差ペアの残差マップ原点投稿 Public post（ξ (0.00, 0.00)）"],
+    ["vi", "Cặp phần dư bài gốc bản đồ phần dư Public post tại ξ (0.00, 0.00)"],
+  ] as const)(
+    "formats leftover-map pair leftover-map post leftover-map origin ξ in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover pair leftover-map post {title} at leftover-map origin ξ {person}", {
+          title: "Public post",
+          person: "(0.00, 0.00)",
         }),
       ).toBe(expected);
     },
