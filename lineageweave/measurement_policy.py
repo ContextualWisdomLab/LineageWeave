@@ -73,7 +73,9 @@ class InstrumentMeasurementPolicy:
     Draft and pilot instruments may preserve observations without a latent
     model. A published instrument must bind both a governed model family and an
     activation-evidence reference; otherwise operational latent scoring remains
-    unavailable.
+    unavailable. Adapters must parse lifecycle and model-family strings into the
+    governed enums before constructing this domain object; raw strings cannot
+    bypass lifecycle-specific activation rules.
     """
 
     instrument_id: str
@@ -83,6 +85,12 @@ class InstrumentMeasurementPolicy:
     activation_evidence_ref: str | None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.lifecycle, InstrumentLifecycle):
+            raise TypeError("lifecycle must be an InstrumentLifecycle")
+        if self.model_family is not None and not isinstance(
+            self.model_family, MeasurementModelFamily
+        ):
+            raise TypeError("model_family must be a MeasurementModelFamily when supplied")
         if not self.instrument_id.strip():
             raise ValueError("instrument_id must be non-empty")
         if type(self.revision) is not int or self.revision < 1:
@@ -103,12 +111,16 @@ class DichotomousObservation:
     ``response=0`` means the versioned support criterion was not satisfied and
     ``response=1`` means it was satisfied. A response is never used to encode
     missingness, abstention, invalid evidence, or an unresolved adjudication.
+    Adapters must parse the observation-state enum before construction so a raw
+    string cannot silently enter the governed binary-response domain.
     """
 
     state: DichotomousObservationState
     response: int | None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.state, DichotomousObservationState):
+            raise TypeError("state must be a DichotomousObservationState")
         if self.state is DichotomousObservationState.OBSERVED:
             if type(self.response) is not int or self.response not in (0, 1):
                 raise ValueError("observed dichotomous response must be integer 0 or 1")
