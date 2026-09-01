@@ -60,6 +60,8 @@ class DichotomousItemPolicy:
             self.not_supported_criterion,
             self.supported_criterion,
         )
+        if any(not isinstance(value, str) for value in values):
+            raise TypeError("dichotomous item policy fields must be strings")
         if any(not value.strip() for value in values):
             raise ValueError("dichotomous item policy fields must be non-empty")
         if self.not_supported_criterion.strip() == self.supported_criterion.strip():
@@ -75,7 +77,9 @@ class InstrumentMeasurementPolicy:
     activation-evidence reference; otherwise operational latent scoring remains
     unavailable. Adapters must parse lifecycle and model-family strings into the
     governed enums before constructing this domain object; raw strings cannot
-    bypass lifecycle-specific activation rules.
+    bypass lifecycle-specific activation rules. Identity and evidence references
+    likewise must be parsed to text before construction instead of relying on
+    incidental string-method failures.
     """
 
     instrument_id: str
@@ -91,12 +95,17 @@ class InstrumentMeasurementPolicy:
             self.model_family, MeasurementModelFamily
         ):
             raise TypeError("model_family must be a MeasurementModelFamily when supplied")
+        if not isinstance(self.instrument_id, str):
+            raise TypeError("instrument_id must be a string")
         if not self.instrument_id.strip():
             raise ValueError("instrument_id must be non-empty")
         if type(self.revision) is not int or self.revision < 1:
             raise ValueError("instrument revision must be a positive integer")
-        if self.activation_evidence_ref is not None and not self.activation_evidence_ref.strip():
-            raise ValueError("activation evidence reference must be non-empty when supplied")
+        if self.activation_evidence_ref is not None:
+            if not isinstance(self.activation_evidence_ref, str):
+                raise TypeError("activation_evidence_ref must be a string when supplied")
+            if not self.activation_evidence_ref.strip():
+                raise ValueError("activation evidence reference must be non-empty when supplied")
         if self.lifecycle is InstrumentLifecycle.PUBLISHED:
             if self.model_family is None:
                 raise ValueError("published instrument requires a measurement model family")
