@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-01 15:14 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 101 PRs and 12
+> non-PR issues are open. Calendar ownership has an executable but non-durable
+> candidate in CalendarWeave draft PR #3 at
+> `7d9bc6b7bb5e957a4de7e2b10c0376d2cbe51ed6`, stacked on its proposed
+> ownership ADR. Its Rust application port preserves tenant isolation, strict
+> UTC/all-day RFC 5545 input, opaque references, and revision ETags with local
+> line and branch coverage at 100%; hosted Rust and coverage jobs remain queued.
+> It is not a released service, does not provide durable storage, CalDAV sync,
+> provider parity, or consumer migration evidence, and therefore does not close
+> LineageWeave issue #900 or CalendarWeave issue #2.
+>
+> LineageWeave draft PR #902 is stacked on draft owner-boundary PR #899 at exact
+> head `824425146d356fc7b66b409047bfe449cb0581f3`. Its current candidate removes
+> domain-label and boolean-flag model selection, requires explicit intended-use
+> activation evidence and an owning psychometric recovery contract, and retains
+> 100% statement/branch coverage for the owned policy module. Its hosted checks
+> remain queued; neither the policy nor any runtime scoring path is protected-
+> main or deployed evidence.
+
 > Exact-head development-loop snapshot: 2026-09-01 14:46 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 99 PRs and 12
 > non-PR issues are open. This documentation candidate is stacked on PR #780
