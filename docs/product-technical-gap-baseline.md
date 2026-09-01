@@ -1,5 +1,27 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-01 14:46 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 99 PRs and 12
+> non-PR issues are open. This documentation candidate is stacked on PR #780
+> at exact head `0c3044b40ff67e6faae34544fdb751e80cea6040`, so it does not move
+> that product candidate or inherit protected-main status. PR #780 retains
+> normal squash auto-merge and remains blocked on queued current-head checks
+> plus independent approval. PR #897 is locally verified at exact head
+> `8c8112246f70eaf4ac250f957891d8438f34d470` with 52 focused backend tests,
+> 531 frontend tests, lint, and production build passing; normal squash
+> auto-merge is armed, while hosted checks and independent approval remain
+> unavailable. PR #899 remains draft at
+> `2368b9052f33c77c33b72ac87264efd4b7b9cbff` until its #780 migration-fixture
+> dependency and exact-head gates are satisfied. No protected merge, merge SHA,
+> or deployed acceptance is claimed for those candidates.
+>
+> The shared token-backed status notice is no longer an open Gap: PR #643
+> merged through protected `main` as `617937c7c9800438eb907fc3c44599c05a6e081e`.
+> Its success/unavailable named regions and retry alert are the reusable ADR
+> 0220 contract; new flows must reuse that component rather than introduce a
+> second placeholder. This snapshot corrects the stale historical row in
+> section 5 without rewriting its earlier queue evidence.
+
 > Exact-head development-loop snapshot: 2026-09-01 13:23 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
 > non-PR issues are open. PR #780's exact evidence parent is
@@ -1506,7 +1528,7 @@ give this delivery matrix:
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
 | ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
-| ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
+| ADR 0134 token-backed exception messages | Closed on protected `main`: PR #643 merged as `617937c7c9800438eb907fc3c44599c05a6e081e`, delivering the shared ADR 0220 `StatusNotice` contract and success, unavailable, and retry inventory for the first migrated flow | Reuse `StatusNotice` for later migrations; do not create another placeholder or treat a future consumer migration as evidence that this shared-component Gap remains open |
 | ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
 | ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
 | ADR 0137 cross-post customer identity | Partial foundation: protected `main` preserves source customer hints and has corporate-catalog unique/miss/tie safeguards, but it has no normalized cross-post customer-identity judgment, supporting-post binding, or corporate-name-history workflow | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
