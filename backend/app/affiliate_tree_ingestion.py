@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 import asyncpg
 
@@ -15,23 +16,14 @@ from .organization_name_resolution_ingestion import fetch_corroborated_organizat
 
 
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
-    """Ancestor forest of every organization this post's Keymen touch."""
+    """Ancestor forest of only the organizations this post's Keymen touch.
+
+    Resolve Keyman affiliations before loading hierarchy rows.  The hierarchy
+    query starts from the resolved corporate-entity identifiers and walks only
+    their ancestors, so unrelated tenant/catalog organizations are never pulled
+    into application memory merely to render one post's Affiliate Tree.
+    """
     aliases = await fetch_corroborated_organization_aliases(conn)
-    entity_rows = await conn.fetch(
-        """
-        select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
-        from corporate_entity
-        """
-    )
-    entities = tuple(
-        CorporateEntityRow(
-            entity_id=str(row["corporate_entity_id"]),
-            parent_entity_id=str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None,
-            entity_name=row["entity_name"],
-            entity_level_code=row["entity_level_code"],
-        )
-        for row in entity_rows
-    )
     leaves: list[AffiliationLeaf] = []
     for person in await fetch_post_keymen(conn, post_id, organization_aliases=aliases):
         for affiliation in person["affiliations"]:
@@ -44,6 +36,49 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
                     corporate_entity_id=affiliation["corporate_entity_id"],
                 )
             )
+
+    resolved_entity_ids = sorted(
+        {
+            UUID(leaf.corporate_entity_id)
+            for leaf in leaves
+            if leaf.corporate_entity_id is not None
+        },
+        key=str,
+    )
+    entity_rows = []
+    if resolved_entity_ids:
+        entity_rows = await conn.fetch(
+            """
+            with recursive affiliate_entity as (
+                select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
+                from corporate_entity
+                where corporate_entity_id = any($1::uuid[])
+
+                union
+
+                select parent.corporate_entity_id,
+                       parent.parent_entity_id,
+                       parent.entity_name,
+                       parent.entity_level_code
+                from corporate_entity parent
+                join affiliate_entity child
+                  on child.parent_entity_id = parent.corporate_entity_id
+            )
+            select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
+            from affiliate_entity
+            order by entity_name, corporate_entity_id
+            """,
+            resolved_entity_ids,
+        )
+    entities = tuple(
+        CorporateEntityRow(
+            entity_id=str(row["corporate_entity_id"]),
+            parent_entity_id=str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None,
+            entity_name=row["entity_name"],
+            entity_level_code=row["entity_level_code"],
+        )
+        for row in entity_rows
+    )
     forest = [node.to_dict() for node in build_affiliate_forest(entities, tuple(leaves))]
     await _attach_lookup_labels(conn, forest)
     attach_organization_aliases(
