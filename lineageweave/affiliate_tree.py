@@ -51,9 +51,12 @@ class AffiliatePerson:
 class AffiliateNode:
     """One organization in the rendered forest, with people and children.
 
-    ``hierarchy_issue`` is present only when the source parent pointer could
-    not safely become a tree edge. It discloses malformed or unavailable
-    hierarchy evidence without changing entity-resolution truth.
+    ``resolved`` says whether the source entity reference was backed by an
+    available ``corporate_entity`` row. An unresolved node may still retain
+    the source ``entity_id`` so two unavailable references with the same
+    display name are not silently collapsed. ``hierarchy_issue`` is present
+    only when an available entity's parent pointer could not safely become a
+    tree edge.
     """
 
     entity_id: str | None
@@ -186,10 +189,12 @@ def build_affiliate_forest(
     """Build the ancestor forest covering every affiliation on a post.
 
     Resolved leaves pull in their available parents. An entity that is neither
-    a leaf nor an ancestor of one is omitted. Unresolved organization names
-    become extra roots with ``resolved=False``. Malformed parent pointers never
-    make an otherwise authorized affiliation disappear: the unsafe edge is
-    omitted deterministically and the affected root carries ``hierarchy_issue``.
+    a leaf nor an ancestor of one is omitted. Unresolved organization
+    observations become roots with ``resolved=False``; an unavailable source
+    entity reference remains attached to that root instead of being erased.
+    Malformed parent pointers never make an otherwise authorized affiliation
+    disappear: the unsafe edge is omitted deterministically and the affected
+    root carries ``hierarchy_issue``.
     """
     entity_by_id = {row.entity_id: row for row in entities}
     resolved_leaves = [
@@ -231,24 +236,27 @@ def build_affiliate_forest(
 
     resolved_roots = tuple(_build(entity_id) for entity_id in children_of.get(None, ()))
 
-    unresolved_by_name: dict[str, list[AffiliationLeaf]] = {}
+    unresolved_by_reference: dict[tuple[str | None, str], list[AffiliationLeaf]] = {}
     for leaf in affiliations:
         if leaf.corporate_entity_id and leaf.corporate_entity_id in entity_by_id:
             continue
         name = leaf.organization_name.strip()
         if not name:
             continue
-        unresolved_by_name.setdefault(name, []).append(leaf)
+        unresolved_by_reference.setdefault((leaf.corporate_entity_id, name), []).append(leaf)
 
     unresolved_roots = tuple(
         AffiliateNode(
-            entity_id=None,
+            entity_id=entity_id,
             entity_name=name,
             entity_level_code=None,
             resolved=False,
             people=_people_for(tuple(leaves)),
             children=(),
         )
-        for name, leaves in sorted(unresolved_by_name.items())
+        for (entity_id, name), leaves in sorted(
+            unresolved_by_reference.items(),
+            key=lambda item: (item[0][1], item[0][0] or ""),
+        )
     )
     return resolved_roots + unresolved_roots
