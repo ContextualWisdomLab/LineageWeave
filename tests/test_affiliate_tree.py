@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import backend.app.affiliate_tree_ingestion as ingestion
 from lineageweave.affiliate_tree import (
@@ -117,9 +118,8 @@ def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> Non
     aliases = (OrganizationNameAlias("DC", "Demo Corp", "demo-id"),)
 
     class _Connection:
-        async def fetch(self, query: str, *_args: object):
-            assert "from corporate_entity" in query
-            return []
+        async def fetch(self, _query: str, *_args: object):
+            raise AssertionError("no corporate hierarchy query is needed without resolved affiliations")
 
     conn = _Connection()
     fetch_aliases = AsyncMock(return_value=aliases)
@@ -130,6 +130,68 @@ def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> Non
     assert asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1")) == []
     fetch_aliases.assert_awaited_once_with(conn)
     fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=aliases)
+
+
+def test_affiliate_forest_loads_only_resolved_affiliation_ancestor_closure(monkeypatch) -> None:
+    """The request must not materialize unrelated corporate entities in application memory."""
+    group_id = UUID("00000000-0000-0000-0000-000000000001")
+    company_id = UUID("00000000-0000-0000-0000-000000000002")
+    unrelated_id = UUID("00000000-0000-0000-0000-000000000003")
+    observed_calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class _Connection:
+        async def fetch(self, query: str, *args: object):
+            observed_calls.append((query, args))
+            return [
+                {
+                    "corporate_entity_id": group_id,
+                    "parent_entity_id": None,
+                    "entity_name": "Demo Group",
+                    "entity_level_code": "group",
+                },
+                {
+                    "corporate_entity_id": company_id,
+                    "parent_entity_id": group_id,
+                    "entity_name": "Demo Electronics Korea",
+                    "entity_level_code": "company",
+                },
+            ]
+
+    fetch_aliases = AsyncMock(return_value=())
+    fetch_keymen = AsyncMock(
+        return_value=[
+            {
+                "person_id": "ada",
+                "person_name": "Ada West",
+                "person_side_code": "our_side",
+                "affiliations": [
+                    {
+                        "organization_name": "Demo Electronics Korea",
+                        "corporate_entity_id": str(company_id),
+                    },
+                    {
+                        "organization_name": "Unresolved Supplier",
+                        "corporate_entity_id": None,
+                    },
+                ],
+            }
+        ]
+    )
+    attach_labels = AsyncMock()
+    monkeypatch.setattr(ingestion, "fetch_corroborated_organization_aliases", fetch_aliases)
+    monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
+    monkeypatch.setattr(ingestion, "_attach_lookup_labels", attach_labels)
+
+    forest = asyncio.run(ingestion.fetch_affiliate_forest(_Connection(), "post-1"))
+
+    assert len(observed_calls) == 1
+    query, args = observed_calls[0]
+    assert "with recursive affiliate_entity" in query.lower()
+    assert "corporate_entity_id = any($1::uuid[])" in query.lower()
+    assert args == ([company_id],)
+    assert unrelated_id not in args[0]
+    assert [node["entity_name"] for node in forest] == ["Demo Group", "Unresolved Supplier"]
+    attach_labels.assert_awaited_once()
 
 
 def test_voc_evidence_skips_unused_organization_aliases(monkeypatch) -> None:
