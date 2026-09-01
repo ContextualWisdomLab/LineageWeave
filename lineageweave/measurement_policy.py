@@ -32,6 +32,15 @@ class MeasurementDomain(StrEnum):
     GAMBLING_GAMING_RISK = "gambling_gaming_risk"
 
 
+class InstrumentLifecycle(StrEnum):
+    """Governed lifecycle of a versioned measurement instrument."""
+
+    DRAFT = "draft"
+    PILOT = "pilot"
+    PUBLISHED = "published"
+    RETIRED = "retired"
+
+
 class DichotomousObservationState(StrEnum):
     """State of one rubric-governed dichotomous observation."""
 
@@ -41,6 +50,58 @@ class DichotomousObservationState(StrEnum):
     ABSTAIN = "abstain"
     INVALID_EVIDENCE = "invalid_evidence"
     ADJUDICATION_REQUIRED = "adjudication_required"
+
+
+@dataclass(frozen=True, slots=True)
+class DichotomousItemPolicy:
+    """Versioned rubric that gives the binary response an explicit meaning."""
+
+    item_id: str
+    rubric_version: str
+    not_supported_criterion: str
+    supported_criterion: str
+
+    def __post_init__(self) -> None:
+        values = (
+            self.item_id,
+            self.rubric_version,
+            self.not_supported_criterion,
+            self.supported_criterion,
+        )
+        if any(not value.strip() for value in values):
+            raise ValueError("dichotomous item policy fields must be non-empty")
+        if self.not_supported_criterion.strip() == self.supported_criterion.strip():
+            raise ValueError("0 and 1 rubric criteria must be distinct")
+
+
+@dataclass(frozen=True, slots=True)
+class InstrumentMeasurementPolicy:
+    """Scoring activation contract for one immutable instrument revision.
+
+    Draft and pilot instruments may preserve observations without a latent
+    model. A published instrument must bind both a governed model family and an
+    activation-evidence reference; otherwise operational latent scoring remains
+    unavailable.
+    """
+
+    instrument_id: str
+    revision: int
+    lifecycle: InstrumentLifecycle
+    model_family: MeasurementModelFamily | None
+    activation_evidence_ref: str | None
+
+    def __post_init__(self) -> None:
+        if not self.instrument_id.strip():
+            raise ValueError("instrument_id must be non-empty")
+        if type(self.revision) is not int or self.revision < 1:
+            raise ValueError("instrument revision must be a positive integer")
+        if self.activation_evidence_ref is not None and not self.activation_evidence_ref.strip():
+            raise ValueError("activation evidence reference must be non-empty when supplied")
+        if self.lifecycle is InstrumentLifecycle.PUBLISHED:
+            if self.model_family is None:
+                raise ValueError("published instrument requires a measurement model family")
+            if self.activation_evidence_ref is None:
+                raise ValueError("published instrument requires activation evidence")
 
 
 @dataclass(frozen=True, slots=True)
