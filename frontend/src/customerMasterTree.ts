@@ -1,4 +1,4 @@
-import type { CustomerMasterEntity } from "./api";
+import type { CustomerMasterEntity } from "./apiTransport";
 
 export type CustomerHierarchyIssue =
   | "cycle_parent_ignored"
