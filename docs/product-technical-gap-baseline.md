@@ -1,5 +1,33 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-01 12:08 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
+> non-PR issues are open. PR #780's exact evidence parent is
+> `44fb7863eb60cfd4c2ae4b85674346f6cc9be5b6`, based directly on that
+> `main`. Normal squash auto-merge is armed. No independent `APPROVED` review
+> exists, and the active ruleset requires one approval, fresh review after a
+> push, resolved threads, central required workflows, and non-fast-forward
+> protection. Seven exact-parent checks are skipped and thirteen are queued;
+> queued work is not acceptance evidence and did not block safe local review.
+> GitHub GraphQL review-thread evidence is rate-limited in this snapshot, so
+> thread resolution is explicitly unverified rather than inferred from REST
+> comments. No protected merge, merge SHA, or deployed acceptance is claimed.
+>
+> The largest buyer-visible gap remains implemented only on PR #780: the
+> exact-value UI and CSV distinguish the carrying Post from genuine derivation
+> evidence; additional Voices retain authorized Post evidence, server-created
+> PROV-O derivation, truth status, and cutoff; hidden evidence is omitted rather
+> than replaced; and paged JSON-LD unions same-subject multi-Voice properties.
+> The twelve ADR 0246 atomic classifications remain extensible assignments,
+> never enumerated combinations. In this repository ADR 0251 governs the I/O
+> psychology semantic layer; Voice composition is governed by ADR 0256 and
+> temporal imported-primary history by ADR 0252. Issue #807 keeps the duplicated
+> occupational PRD/ADR identities explicitly unresolved. Package metadata is
+> 2.28.0 while `lineageweave.__version__` remains 2.20.0; the v2.29.0 analysis
+> candidate in PR #897 must not be promoted ahead of an owner-approved release
+> identity reconciliation. These conflicts remain unavailable, not repaired by
+> a local guess.
+
 > Exact-head development-loop overlay: 2026-09-01 11:03 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs
 > and ten non-PR issues are open. PR #780's exact product and rendered-evidence
