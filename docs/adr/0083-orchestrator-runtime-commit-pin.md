@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `2ea70dc0386b2f2417da64c07b0151c8a6fc8466` from upstream PR #990.
+commit `c25712646bb25d0d30e4a5146ca9ea54669dfdf6` from upstream PR #990.
 That stack combines the merged endpoint contract from PR #988 with the
 single-copy workflow prompt contract from PR #987.
 The candidate pin supplies endpoint-scoped Chat Completions and Responses
