@@ -2,9 +2,9 @@
 
 > Current exact-head overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through parent head `1788082e5672232118443eda31b5dbe34c4947bf`. The PR is
+> through head `3d003db622d11b16b92e8b4f64c69c442880d093`. The PR is
 > blocked, still requires review, and has required checks queued; auto-merge is
-> armed but is not delivery evidence. The repository has 98 open
+> off. The repository has 98 open
 > PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
 > queue snapshots below; neither branch tests nor the running Compose stack
 > are protected-main delivery evidence.
@@ -13,15 +13,19 @@
 > Dashboard browser tests passed against the canonical Compose stack, including
 > grounded-case evidence opening, responsive navigation, Korean/English
 > switching, and zero browser, request, or HTTP errors on the Dashboard and idle
-> Ask surface. The currently admitted bounded page remains unsettled: the durable
-> ledger had 99 queued and one running row, while the authorized Dashboard reported
-> 71 pending analyses. No later page was admitted. PR #970 in
+> Ask surface. The bounded 100-record page is terminal with no queued or running
+> rows and no later page was admitted; failures remain retryable only after their
+> typed root causes are repaired. PR #970 in
 > contextual-orchestrator is at `8c6787886cf452fc55eeeb19aea44a030dcabe5c`;
 > its unit, contract, security, and supply-chain code checks passed, but the required
 > Noema review failed, coverage remained queued, and review is still required. The
-> authoritative-environment acceptance returned HTTP 401, so this candidate is not
-> eligible for a LineageWeave pin. Canonical Compose therefore retains the accepted
-> `e6329db1b9d0fb59b23cf63b4e4b056743b8a5da` orchestrator. Org workflow PR #1507
+> authoritative-environment acceptance returned HTTP 401, so that base alone was not
+> eligible for promotion. Stacked upstream PR #988 at
+> `cf3c4cdde8f937ae2aab160358a124be9ec15222` adds exact request-scoped endpoint
+> routing and the OpenAI JSON probe contract. Its isolated LineageWeave candidate
+> returned conforming Chat Completions and Responses objects through the configured
+> endpoint; hosted review and canonical promotion remain pending. Canonical Compose
+> therefore still retains `e6329db1b9d0fb59b23cf63b4e4b056743b8a5da`. Org workflow PR #1507
 > is the open fail-closed Noema repair gate; its own required checks are not terminal.
 > Terminal retry and unbounded continuation remain mutually exclusive, so each
 > admitted page must settle before another page is selected.

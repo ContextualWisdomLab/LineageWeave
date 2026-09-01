@@ -15,15 +15,16 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `e6329db1b9d0fb59b23cf63b4e4b056743b8a5da` from upstream PR #970.
+commit `cf3c4cdde8f937ae2aab160358a124be9ec15222` from upstream PR #988,
+stacked on PR #970.
 The candidate pin supplies exact `Retry-After` admission deferral,
 rate-budget-derived readiness polling cadence, and endpoint-scoped structured
 admission. The replacement retains provider-backed embedding batches on the
 current authentication and provider-error taxonomy. Readiness measures both the internal JSON-Schema judge and the
 final JSON-object transport before a synthesizer can serve structured output;
-an explicitly requested non-admitted model fails closed. PR #970 remains open,
-so neither the candidate pin nor local runtime evidence is protected upstream
-release evidence. The pin remains explicit and
+an explicitly requested non-admitted model fails closed. PRs #970 and #988
+remain open, so neither the candidate pin nor local runtime evidence is
+protected upstream release evidence. The pin remains explicit and
 immutable until the reviewed upstream change is superseded; it is not a moving
 `main` reference and it is not a LineageWeave monkey patch.
 The Docker builder verifies that archive against its committed SHA-256 before
