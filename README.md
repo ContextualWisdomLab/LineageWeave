@@ -2,70 +2,48 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ContextualWisdomLab/LineageWeave)
 
-Reconstructs git-branch-style lineage DAGs from scattered short records --
-turns a flat pile of loosely-grouped, timestamped items into a browsable set
-of branching threads, without any explicit "this follows from that" link
-existing in the source data.
+**Turn scattered timestamped records into navigable, evidence-bearing lineage.**
 
-```
+LineageWeave reconstructs git-branch-style lineage DAGs when source records do not contain explicit “this follows from that” links. It helps reviewers and analysts understand how records continue, branch, or remain unrelated while keeping every inferred connection tied to inspectable evidence.
+
+```text
 group A-100
-  rec-001  Initial site visit and project scope discussion
-      └─ rec-002  Pricing renegotiation follow-up
-           ├─ rec-003  Pricing renegotiation: revised quote sent
-           └─ rec-004  Delivery schedule question raised
-                └─ rec-005  Delivery schedule confirmed with logistics
-  rec-006  Unrelated: annual account review   (own root -- no forced match)
+  rec-001  Initial site visit
+      └─ rec-002  Pricing follow-up
+           ├─ rec-003  Revised quote
+           └─ rec-004  Delivery question
+                └─ rec-005  Delivery confirmed
+  rec-006  Annual account review        ← separate root
 ```
 
-LineageWeave now includes an authenticated API/web product stack backed by
-PostgreSQL and Keycloak. Synthetic fixtures and demo accounts remain safe
-example and test evidence; they are not the product boundary.
+The repository provides both a reusable Python reconstruction library and an authenticated API/web product stack. It does not turn inferred lineage into causal truth, replace the source systems that own the original records, or perform psychometric/statistical estimation itself.
 
-The supporting [product requirements](docs/product-requirements.md) define
-the product outcomes, non-goals, ecosystem boundaries, and release evidence;
-ADRs remain normative for architecture and policy.
+## Why LineageWeave
 
-## Why
+Scattered operational records often contain useful continuity without durable parent/child links. Timestamp proximity alone is weak; text similarity alone is weak; a shared grouping key alone is weak. LineageWeave combines independent evidence channels, preserves uncertainty, and keeps unrelated records separate instead of forcing a match.
 
-Given a pile of records with no native cross-record link, no single cheap
-signal reliably tells you which record continues which -- see
-[`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
-the validation numbers and the literature this design follows. LineageWeave
-fuses several independent, individually-weak signals (temporal proximity, a
-shared grouping key, text similarity, and an optional LLM judgment) instead
-of trusting any one of them alone. The normative research-grounding policy is
-[ADR 0084](docs/adr/0084-lineage-research-grounding.md); the linked notes
-retain the supporting bibliography and aggregate evidence.
+| Need | What LineageWeave provides |
+| --- | --- |
+| Follow record history | Branching Event Lineage instead of a flat timestamp list |
+| Inspect why two records connect | Evidence-bearing edge and channel information |
+| Explore related entities | Typed semantic/provenance neighborhoods kept distinct from lineage edges |
+| Keep uncertainty honest | Missing providers and unsupported semantics remain explicit unknowns |
+| Reuse the engine | A standalone Python API with injected external services |
+| Operate a product surface | Authenticated REST/web stack backed by PostgreSQL and Keycloak |
 
-## How it fits with the rest of the ecosystem
+The supporting [product requirements](docs/product-requirements.md) define product outcomes and non-goals. Architecture decisions remain normative for policy and implementation boundaries.
 
-LineageWeave is a thin orchestration/BI layer. It does not do its own
-psychometric or statistical estimation -- that stays inside
-[TEPP](https://github.com/ContextualWisdomLab/TEPP) (Rust), consumed here
-purely through TEPP's own published wire contract
-(`lineageweave/tepp_client.py`, `AnalysisRunRequest` v1), never by reading
-TEPP's tables or reimplementing TEPP's model. See
-[ARCHITECTURE.md](ARCHITECTURE.md) for why the "computation layer must be
-Rust + GPU/CPU multithreaded" rule that applies to TEPP does not apply to
-this repo.
+## Quick start: reconstruction library
 
-The optional LLM-adjudication channel calls
-[contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-(`lineageweave/adjudication_client.py`). Tree assembly reuses
-[ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) (JWZ
-message threading) and channel fusion reuses
-[RankWeave](https://github.com/ContextualWisdomLab/RankWeave) (weighted
-score fusion for reconstruction and the fail-closed Rankings port) -- both real dependencies, not reimplemented here.
-
-## Run it
+LineageWeave requires Python 3.12 or newer in the current source tree.
 
 ```bash
+python -m venv .venv
+. .venv/bin/activate
 pip install -e .
-python -m lineageweave.server
-# -> http://127.0.0.1:8420
 ```
 
-Or use the library directly:
+Map your records into `lineageweave.Record` and call `reconstruct()`:
 
 ```python
 from lineageweave import reconstruct
@@ -76,150 +54,123 @@ for tree in trees:
     print(tree.group_key, "branch points:", tree.branch_points())
 ```
 
-## Bring your own data
+The package does not assume a particular source schema. External channels such as embeddings or LLM adjudication are injected explicitly; the null/default path does not require provider credentials.
 
-Map your records into `lineageweave.Record` (see `lineageweave/models.py`
-for the field docs) and call `reconstruct()` directly -- nothing in this
-package assumes any particular source schema.
+## Run the authenticated product stack
 
-To turn on the embedding or LLM channels, pass a real client instead of the
-`Null*` defaults:
-
-```python
-from lineageweave import reconstruct
-from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
-
-llm = ContextualOrchestratorAdjudicationClient(base_url="http://localhost:8000", api_key="...")
-trees = reconstruct(my_records, llm=llm)
-```
-
-## Test
+For local product evaluation, use the repository Compose workflow:
 
 ```bash
-pip install -e ".[dev]"
+cp .env.example .env
+make up
+make seed
+make smoke
+```
+
+This starts the repository-owned development stack and verifies the local identity round trip. Demo identities and seeded records are synthetic development fixtures, not production customer data or deployment evidence.
+
+For frontend development, follow [`frontend/README.md`](frontend/README.md). Deployment and environment details belong in the operator documentation rather than this product landing page.
+
+## How reconstruction works
+
+A lineage edge is a governed inference, not a hidden heuristic verdict. The engine can combine available signals such as temporal evidence, grouping evidence, text similarity, embeddings, or an optional model adjudication channel. Unavailable channels can be omitted; malformed calibrated inputs fail closed rather than silently receiving guessed weights.
+
+The product keeps two concepts separate:
+
+- **Event Lineage** answers “which record plausibly continues which?” and forms the branching thread.
+- **Semantic/provenance neighborhoods** answer “which typed people, organizations, projects, events, commitments, or governed constructs relate to this evidence?”
+
+An inferred lineage edge is not labeled causal or authoritative without separate evidence. The current research basis and validation notes are documented in [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md), with normative research policy in [ADR 0084](docs/adr/0084-lineage-research-grounding.md).
+
+## Ecosystem integration
+
+LineageWeave owns reconstruction, evidence-bearing lineage presentation, and its semantic neighborhood projection. Adjacent products retain their own authority:
+
+| Product | Boundary |
+| --- | --- |
+| [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) | Standard message/thread assembly reused where its published contract fits |
+| [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) | Retrieval/score fusion used through its owned contract |
+| [TEPP](https://github.com/ContextualWisdomLab/TEPP) | Psychometric and statistical estimation; LineageWeave consumes published results rather than reimplementing the mathematics |
+| [fast-mlsirm](https://github.com/ContextualWisdomLab/fast-mlsirm) | Measurement/calibration capabilities used by supported reporting paths |
+| [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator) | Provider/model routing and LLM orchestration for optional model-backed channels |
+| [Keyverse](https://github.com/ContextualWisdomLab/keyverse) | Ecosystem identity authority; local Keycloak fixtures do not become the production identity source of truth |
+
+These integrations use explicit APIs/contracts. LineageWeave does not read another product's private tables or copy its numerical/model ownership into this repository.
+
+## Architecture at a glance
+
+```text
+Source records / imports
+         │
+         ▼
+┌──────────────────────────────┐
+│        LineageWeave          │
+├──────────────────────────────┤
+│ record normalization         │
+│ evidence channels            │
+│ lineage reconstruction       │
+│ provenance / semantic view   │
+│ authorization-aware API      │
+└──────────────┬───────────────┘
+               │
+       governed integrations
+               │
+     ┌─────────┼──────────┐
+     ▼         ▼          ▼
+ ThreadWeave RankWeave  TEPP /
+                        orchestrator
+```
+
+The full product stack adds PostgreSQL persistence, authenticated application APIs, a browser client, and optional integration services around the same evidence boundary. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for bounded contexts and deployment structure.
+
+## Security and evidence boundary
+
+The authenticated product surface is designed so that source visibility and authorization remain part of the evidence contract:
+
+- API access uses real bearer-token verification in the product stack;
+- private evidence is not made visible merely because another visible record mentions the same person or entity;
+- external model/provider credentials remain outside portable source and are injected at their owning integration boundary;
+- synthetic demo accounts are explicitly local-development fixtures;
+- generated semantic or lineage claims remain evidence-linked and do not become source-system truth by inference.
+
+Threat, authorization, retention, and provenance decisions are documented in [`docs/adr/`](docs/adr/) and [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+## Verification
+
+Install development dependencies and run the repository test suites:
+
+```bash
+pip install -e '.[dev]'
 pytest
 ```
 
-## Local product stack (Docker Compose)
-
-The reconstruction library above is being wrapped in a real product (see
-[ARCHITECTURE.md](ARCHITECTURE.md#product-schema-phase-1-of-a-larger-roadmap)
-and [ADR 0001](docs/adr/0001-demo-identity-and-data-boundary.md)). Phase 1's
-infrastructure -- PostgreSQL, Valkey, and a real Keycloak OIDC realm seeded
-with synthetic demo accounts -- runs via Docker Compose:
-
-```bash
-make up      # docker compose up -d: postgres, valkey, keycloak
-make smoke   # real login as the synthetic demo user + JWT signature
-             # verification against Keycloak's live JWKS -- proves the
-             # OIDC round-trip actually works, not just that containers
-             # started
-make down
-```
-
-Outside GitHub, `make up` reads `~/.env` through Compose's `--env-file`.
-Configure the contextual-orchestrator provider there with
-`LLM_GATEWAY_API_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
-printed. `LLM_GATEWAY_URL`, `LLM_API_GATEWAY`, and `LLM_API_KEY` remain
-compatibility aliases only. `ORCHESTRATOR_BASE_URL` and
-`ORCHESTRATOR_API_KEY` are separate, internal
-LineageWeave-to-orchestrator settings.
-
-Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
-rather than bind-mounted, so the keycloak database's init script and the
-realm seed ship inside the images themselves -- portable to any Docker host
-or CI runner, no assumption about a shared local filesystem layout.
-
-Demo accounts (`docker/keycloak/realm-export.json`) are synthetic:
-`demo.analyst` / `demo.admin`, password `lineageweave-demo-only`, each
-carrying `corp_code` / `pu_code` as token claims -- these are throwaway
-local-dev credentials in a locally-run realm, never the org's real Keyverse
-tenant (see ADR 0001 for why).
-
-Host ports (15432, 16379, 18080, 18001, 18420) deliberately avoid each service's
-own default -- a dev machine commonly already runs its own
-Postgres/Redis/local server on those. Override via `.env` (copy
-`.env.example`) or inline if even those collide, e.g.
-`KEYCLOAK_PORT=28080 make up`.
-
-Postgres's `POSTGRES_DB` (the "app" database) is migrated automatically on
-first boot -- `docker/postgres-init/Dockerfile` bakes in the exact same
-`migrations/0001_initial_schema.sql` file `tests/test_schema.py` applies,
-no re-typed copy.
-
-`backend/` is a FastAPI app talking directly to that database (`asyncpg`,
-no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:
-
-```bash
-make up
-make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post
-            # rows keyed to the *real* Keycloak demo users' subject ids,
-            # plus Valkey ticket_created events so Activity is not empty
-curl http://localhost:18420/healthz
-```
-
-The optional authenticated MCP resource server submits and reads the same
-durable Global Ask jobs as REST. Enable it only with quota values established
-by the deployment's k6 capacity evidence; the service intentionally has no
-guessed request/window defaults:
-
-```bash
-MCP_RATE_LIMIT_REQUESTS=<measured-count> \
-MCP_RATE_LIMIT_WINDOW_SECONDS=<measured-window> \
-docker compose --profile mcp up mcp
-# Streamable HTTP resource: http://localhost:18001/mcp
-```
-
-`GET /api/posts`, `GET /api/posts/{post_id}`,
-`GET /api/posts/{post_id}/keymen`, `GET /api/keymen/{person_id}/related`,
-`GET /api/posts/{post_id}/affiliate-tree`,
-`GET /api/posts/{post_id}/voc-evidence`,
-and `POST /api/posts/{post_id}/extract-keymen`
-require a real bearer token (RBAC: the account's role must grant
-`post_read`; ABAC: a private post is only visible to accounts affiliated
-with its owning corporate entity -- `backend/app/main.py`). A Keyman who
-is only mentioned on a post the account cannot see is 403, same deny
-path. `backend/tests/test_api.py` proves both the allow and the deny
-path against a live Keycloak + throwaway Postgres database, including
-that a private post scoped to a *different* corporate entity is excluded
-from the list and 403s on direct fetch.
-
-`frontend/` (React + Vite + TypeScript, `docker compose`'s fourth service)
-is a real client, not mocked or static: `react-oidc-context` drives an
-actual Authorization Code redirect through Keycloak, the home page
-draws the reconstructed lineage as a git-branch SVG (`GET /api/lineage`;
-`post_admin` can rebuild), and the post list / detail popup call the
-FastAPI backend over real `fetch()` with the token Keycloak issued.
+For the local product stack:
 
 ```bash
 make up
 make seed
-cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
-# Repeated chip/close controls: pnpm run storybook
-# (Node 24 via frontend/mise.toml; pnpm only)
-# Empty a run-bearing registry: insert analysis_run_retention_grant
-# for session_user, GRANT analysis_run_retention_admin, then
-# select purge_analysis_run_registry('approved-retention-purge').
-# The published token is not a grant (ADR 0020).
-# -> http://localhost:5173, click "Log in", redirects through the real
-#    Keycloak login page for demo.analyst / lineageweave-demo-only
+make smoke
+make down
 ```
 
-`docker compose up` also builds and serves the frontend itself (nginx,
-`frontend/Dockerfile`) at `http://localhost:15173` -- the `VITE_*` build
-args are wired from the same `.env` ports as every other service.
-`frontend/src/App.test.tsx` covers the login-redirect and
-fetch-then-render-popup paths (`react-oidc-context`'s `useAuth` mocked --
-the *real* OIDC round-trip is what `scripts/smoke_test_oidc.py` and
-`backend/tests/test_api.py` already prove against a live Keycloak).
+Hosted checks on the unchanged pull-request head remain the authority for integration. A successful local command, synthetic fixture, benchmark, or predecessor-head check is not promoted into release, deployment, customer, or production-readiness evidence.
 
-## Modular / standalone
+## Documentation map
 
-This repo runs standalone (own server, own tests, own CI) and is equally
-usable as a library module (`import lineageweave`) inside a larger service
--- no global state, no required environment variables, every external
-dependency (embeddings, LLM adjudication, TEPP) is injected, not hardcoded.
+| Goal | Start here |
+| --- | --- |
+| Product requirements and non-goals | [`docs/product-requirements.md`](docs/product-requirements.md) |
+| Architecture and responsibility boundaries | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Architecture decisions | [`docs/adr/`](docs/adr/) |
+| Reconstruction research and validation | [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) |
+| Public documentation landing | [`docs/index.html`](docs/index.html) |
+| Frontend development | [`frontend/README.md`](frontend/README.md) |
+| Current package/runtime metadata | [`pyproject.toml`](pyproject.toml) |
+
+## Contributing
+
+Keep Event Lineage distinct from ontology/KG relationships, preserve evidence and authorization boundaries, and do not move statistical/psychometric arithmetic into this repository. Public contract changes should update tests, architecture decisions, and customer/operator documentation together.
 
 ## License
 
-MIT -- see [LICENSE](LICENSE).
+LineageWeave is licensed under the [MIT License](LICENSE). Third-party dependencies and external datasets retain their own licenses and must remain compatible with ContextualWisdomLab's commercial-use policy.
