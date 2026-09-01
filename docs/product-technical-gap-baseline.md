@@ -4,13 +4,15 @@
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 101 PRs and 12
 > non-PR issues are open. Calendar ownership has an executable but non-durable
 > candidate in CalendarWeave draft PR #3 at
-> `572b96944093f90292e06d00a23b3c58b5de561a`, stacked on its proposed
+> `029c6d38d3a748bac131c93eb38347deda1f6989`, stacked on its proposed
 > ownership ADR. Its Rust application port preserves tenant isolation, strict
 > UTC/all-day RFC 5545 input, standard event status, opaque references, and
-> revision ETags with local line and branch coverage at 100%; hosted Rust and
-> coverage jobs remain queued.
-> It is not a released service, does not provide durable storage, CalDAV sync,
-> provider parity, or consumer migration evidence, and therefore does not close
+> strong-ETag conditional update with authorization-before-parse ordering;
+> local line and branch coverage remains 100%, while hosted Rust and coverage
+> jobs remain queued.
+> It is not a released service, does not provide durable cross-process
+> concurrency, CalDAV sync, provider parity, or consumer migration evidence,
+> and therefore does not close
 > LineageWeave issue #900 or CalendarWeave issue #2.
 >
 > LineageWeave draft PR #902 is stacked on draft owner-boundary PR #899 at exact
