@@ -2,6 +2,8 @@
 
 LineageWeave reconstructs evidence-bound lineage, project journeys, and relationship context from scattered enterprise records so people can inspect how events, claims, posts, and decisions relate over time.
 
+[Ask DeepWiki](https://deepwiki.com/ContextualWisdomLab/LineageWeave) · [Repository](https://github.com/ContextualWisdomLab/LineageWeave) · [Releases](https://github.com/ContextualWisdomLab/LineageWeave/releases)
+
 ## Start here
 
 Use LineageWeave when source systems contain related records without reliable explicit cross-record links and you need a browsable, evidence-preserving view of branching histories rather than a flat search result.
@@ -18,8 +20,8 @@ The product combines deterministic lineage assembly with bounded retrieval/fusio
 
 ## Documentation
 
-- [Repository overview and local stack](../README.md)
-- [Architecture](../ARCHITECTURE.md)
+- [Repository overview and local stack](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/README.md)
+- [Architecture](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/ARCHITECTURE.md)
 - [Product requirements](product-requirements.md)
 - [Product/technical gap baseline](product-technical-gap-baseline.md)
 - [Architecture decisions](adr/)
