@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from lineageweave.measurement_policy import (
+    DichotomousItemPolicy,
     DichotomousObservation,
     InstrumentLifecycle,
     InstrumentMeasurementPolicy,
@@ -40,6 +41,41 @@ def test_string_observation_state_cannot_enter_the_binary_policy_domain() -> Non
     """Adapters must parse the governed state before constructing a domain observation."""
     with pytest.raises(TypeError, match="state"):
         DichotomousObservation("missing", None)  # type: ignore[arg-type]
+
+
+def test_item_policy_rejects_non_string_transport_fields_explicitly() -> None:
+    """Malformed transport values must fail at the item-policy boundary, not via ``.strip``."""
+    with pytest.raises(TypeError, match="item policy fields must be strings"):
+        DichotomousItemPolicy(
+            item_id=17,  # type: ignore[arg-type]
+            rubric_version="v1",
+            not_supported_criterion="No supporting evidence",
+            supported_criterion="Supporting evidence present",
+        )
+
+
+def test_instrument_policy_rejects_non_string_identity_explicitly() -> None:
+    """Instrument identity is a governed string and must not rely on incidental ``.strip`` errors."""
+    with pytest.raises(TypeError, match="instrument_id"):
+        InstrumentMeasurementPolicy(
+            instrument_id=17,  # type: ignore[arg-type]
+            revision=1,
+            lifecycle=InstrumentLifecycle.DRAFT,
+            model_family=None,
+            activation_evidence_ref=None,
+        )
+
+
+def test_instrument_policy_rejects_non_string_activation_reference_explicitly() -> None:
+    """Activation evidence references must be parsed to text before entering product policy."""
+    with pytest.raises(TypeError, match="activation_evidence_ref"):
+        InstrumentMeasurementPolicy(
+            instrument_id="importance-evidence",
+            revision=1,
+            lifecycle=InstrumentLifecycle.PUBLISHED,
+            model_family=MeasurementModelFamily.IRT_2PLM,
+            activation_evidence_ref=17,  # type: ignore[arg-type]
+        )
 
 
 def test_governed_enum_instances_still_construct_normally() -> None:
