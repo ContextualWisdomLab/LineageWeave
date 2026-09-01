@@ -51,10 +51,12 @@ describe("LineageDag reconstruct-group identity", () => {
 
     rerender(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
     const rerendered = [...container.querySelectorAll(".lineage-dag-group")];
-    expect(rerendered.map((figure) => within(figure).getByRole("button").textContent)).toEqual([
-      "Alpha recordAlpha record — 2026-01-01",
-      "Named Ungrouped recordNamed Ungrouped record — 2026-01-02",
-      "Truly ungrouped recordTruly ungrouped record — 2026-01-03",
+    expect(
+      rerendered.map((figure) => within(figure).getByRole("button").getAttribute("aria-label")),
+    ).toEqual([
+      "Open post: Alpha record",
+      "Open post: Named Ungrouped record",
+      "Open post: Truly ungrouped record",
     ]);
   });
 });
