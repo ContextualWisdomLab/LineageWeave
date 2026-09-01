@@ -49,7 +49,12 @@ class AffiliatePerson:
 
 @dataclass(frozen=True)
 class AffiliateNode:
-    """One organization in the rendered forest, with people and children."""
+    """One organization in the rendered forest, with people and children.
+
+    ``hierarchy_issue`` is present only when the source parent pointer could
+    not safely become a tree edge. It discloses malformed or unavailable
+    hierarchy evidence without changing entity-resolution truth.
+    """
 
     entity_id: str | None
     entity_name: str
@@ -57,10 +62,11 @@ class AffiliateNode:
     resolved: bool
     people: tuple[AffiliatePerson, ...]
     children: tuple["AffiliateNode", ...]
+    hierarchy_issue: str | None = None
 
     def to_dict(self) -> dict:
-        """JSON shape the product API and React panel consume."""
-        return {
+        """Return the JSON shape consumed by the product API and React panel."""
+        payload = {
             "entity_id": self.entity_id,
             "entity_name": self.entity_name,
             "entity_level_code": self.entity_level_code,
@@ -75,6 +81,9 @@ class AffiliateNode:
             ],
             "children": [child.to_dict() for child in self.children],
         }
+        if self.hierarchy_issue is not None:
+            payload["hierarchy_issue"] = self.hierarchy_issue
+        return payload
 
 
 def _people_for(affiliations: tuple[AffiliationLeaf, ...]) -> tuple[AffiliatePerson, ...]:
@@ -93,11 +102,18 @@ def _needed_entity_ids(
     entities: dict[str, CorporateEntityRow],
     leaf_ids: set[str],
 ) -> set[str]:
-    """Every ancestor of a resolved leaf, walking ``parent_entity_id``."""
+    """Return every available ancestor of a resolved affiliation leaf.
+
+    The local ``seen`` set makes malformed cycles finite without letting one
+    leaf suppress the ancestor walk for another leaf. Missing parents stop the
+    walk; they are disclosed later instead of being invented as entity rows.
+    """
     needed: set[str] = set()
     for leaf_id in leaf_ids:
         current = leaf_id
-        while current and current not in needed:
+        seen: set[str] = set()
+        while current and current not in seen:
+            seen.add(current)
             row = entities.get(current)
             if row is None:
                 break
@@ -106,19 +122,80 @@ def _needed_entity_ids(
     return needed
 
 
+def _entity_sort_key(entities: dict[str, CorporateEntityRow], entity_id: str) -> tuple[str, str]:
+    """Return the stable buyer-visible order used for roots and cycle breaks."""
+    row = entities[entity_id]
+    return (row.entity_name, row.entity_id)
+
+
+def _safe_parent_links(
+    entities: dict[str, CorporateEntityRow],
+    needed: set[str],
+) -> tuple[dict[str, str | None], dict[str, str]]:
+    """Convert parent pointers into an acyclic forest without hiding defects.
+
+    Self-parent pointers and unavailable parents become roots immediately. For
+    a longer directed parent cycle, exactly one edge is ignored: the
+    lexicographically first entity by ``(entity_name, entity_id)`` becomes the
+    disclosed root. This preserves every authorized entity while making the
+    result independent of database or input iteration order.
+    """
+    parent_by_id: dict[str, str | None] = {}
+    issue_by_id: dict[str, str] = {}
+
+    for entity_id in needed:
+        parent_id = entities[entity_id].parent_entity_id
+        if parent_id == entity_id:
+            parent_by_id[entity_id] = None
+            issue_by_id[entity_id] = "self_parent_ignored"
+        elif parent_id and parent_id not in entities:
+            parent_by_id[entity_id] = None
+            issue_by_id[entity_id] = "parent_not_available"
+        elif parent_id and parent_id in needed:
+            parent_by_id[entity_id] = parent_id
+        else:
+            parent_by_id[entity_id] = None
+
+    finalized: set[str] = set()
+    for start_id in sorted(needed, key=lambda entity_id: _entity_sort_key(entities, entity_id)):
+        if start_id in finalized:
+            continue
+        path: list[str] = []
+        path_index: dict[str, int] = {}
+        current: str | None = start_id
+        while current is not None and current not in finalized:
+            cycle_start = path_index.get(current)
+            if cycle_start is not None:
+                cycle = path[cycle_start:]
+                cycle_root = min(cycle, key=lambda entity_id: _entity_sort_key(entities, entity_id))
+                parent_by_id[cycle_root] = None
+                issue_by_id[cycle_root] = "cycle_parent_ignored"
+                break
+            path_index[current] = len(path)
+            path.append(current)
+            current = parent_by_id[current]
+        finalized.update(path)
+
+    return parent_by_id, issue_by_id
+
+
 def build_affiliate_forest(
     entities: tuple[CorporateEntityRow, ...] | list[CorporateEntityRow],
     affiliations: tuple[AffiliationLeaf, ...] | list[AffiliationLeaf],
 ) -> tuple[AffiliateNode, ...]:
-    """Ancestor forest covering every affiliation on a post.
+    """Build the ancestor forest covering every affiliation on a post.
 
-    Resolved leaves pull in their parents. An entity that is neither a
-    leaf nor an ancestor of one is omitted. Unresolved organization
-    names become extra roots with ``resolved=False``.
+    Resolved leaves pull in their available parents. An entity that is neither
+    a leaf nor an ancestor of one is omitted. Unresolved organization names
+    become extra roots with ``resolved=False``. Malformed parent pointers never
+    make an otherwise authorized affiliation disappear: the unsafe edge is
+    omitted deterministically and the affected root carries ``hierarchy_issue``.
     """
     entity_by_id = {row.entity_id: row for row in entities}
     resolved_leaves = [
-        leaf for leaf in affiliations if leaf.corporate_entity_id and leaf.corporate_entity_id in entity_by_id
+        leaf
+        for leaf in affiliations
+        if leaf.corporate_entity_id and leaf.corporate_entity_id in entity_by_id
     ]
     needed = _needed_entity_ids(
         entity_by_id,
@@ -132,16 +209,15 @@ def build_affiliate_forest(
             continue
         people_by_entity.setdefault(entity_id, []).append(leaf)
 
+    parent_by_id, hierarchy_issue_by_id = _safe_parent_links(entity_by_id, needed)
     children_of: dict[str | None, list[str]] = {}
     for entity_id in needed:
-        parent_id = entity_by_id[entity_id].parent_entity_id
-        root_parent = parent_id if parent_id in needed else None
-        children_of.setdefault(root_parent, []).append(entity_id)
+        children_of.setdefault(parent_by_id[entity_id], []).append(entity_id)
     for child_ids in children_of.values():
-        child_ids.sort(key=lambda entity_id: (entity_by_id[entity_id].entity_name, entity_id))
+        child_ids.sort(key=lambda entity_id: _entity_sort_key(entity_by_id, entity_id))
 
     def _build(entity_id: str) -> AffiliateNode:
-        """Implement the _build operation for this channel."""
+        """Materialize one already-cycle-safe hierarchy node recursively."""
         row = entity_by_id[entity_id]
         return AffiliateNode(
             entity_id=row.entity_id,
@@ -150,6 +226,7 @@ def build_affiliate_forest(
             resolved=True,
             people=_people_for(tuple(people_by_entity.get(entity_id, ()))),
             children=tuple(_build(child_id) for child_id in children_of.get(entity_id, ())),
+            hierarchy_issue=hierarchy_issue_by_id.get(entity_id),
         )
 
     resolved_roots = tuple(_build(entity_id) for entity_id in children_of.get(None, ()))
