@@ -21,7 +21,7 @@ export interface LaidOutGroup {
 }
 
 function isUngroupedGroup(group: string): boolean {
-  return !group || UUID_GROUP.test(group);
+  return group.trim().length === 0 || UUID_GROUP.test(group);
 }
 
 export function groupHeading(group: string): string {
