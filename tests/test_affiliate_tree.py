@@ -175,6 +175,7 @@ def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -
                 }
             ]
 
+    conn = _Connection()
     fetch_aliases = AsyncMock(return_value=aliases)
     fetch_keymen = AsyncMock(side_effect=[raw_keymen, resolved_keymen])
     attach_labels = AsyncMock()
@@ -182,15 +183,15 @@ def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -
     monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
     monkeypatch.setattr(ingestion, "_attach_lookup_labels", attach_labels)
 
-    forest = asyncio.run(ingestion.fetch_affiliate_forest(_Connection(), "post-1"))
+    forest = asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1"))
 
     fetch_aliases.assert_awaited_once_with(
-        call.__self__ if False else _Connection(),
+        conn,
         organization_names=("Demo Co",),
     )
     assert fetch_keymen.await_args_list == [
-        call(fetch_keymen.call_args_list[0].args[0], "post-1", organization_aliases=()),
-        call(fetch_keymen.call_args_list[1].args[0], "post-1", organization_aliases=aliases),
+        call(conn, "post-1", organization_aliases=()),
+        call(conn, "post-1", organization_aliases=aliases),
     ]
     assert forest[0]["entity_name"] == "Demo Corp"
 
