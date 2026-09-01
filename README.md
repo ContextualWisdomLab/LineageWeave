@@ -37,19 +37,29 @@ retain the supporting bibliography and aggregate evidence.
 
 ## How it fits with the rest of the ecosystem
 
-LineageWeave is a thin orchestration/BI layer. It does not do its own
-psychometric or statistical estimation -- that stays inside
-[TEPP](https://github.com/ContextualWisdomLab/TEPP) (Rust), consumed here
-purely through TEPP's own published wire contract
-(`lineageweave/tepp_client.py`, `AnalysisRunRequest` v1), never by reading
-TEPP's tables or reimplementing TEPP's model. See
-[ARCHITECTURE.md](ARCHITECTURE.md) for why the "computation layer must be
-Rust + GPU/CPU multithreaded" rule that applies to TEPP does not apply to
-this repo.
+LineageWeave owns lineage product policy, source-evidence binding, instrument
+and rubric administration, pilot lifecycle, interpretation, and audit. It does
+not own reusable model routing or reusable psychometric numerical kernels.
 
-The optional LLM-adjudication channel calls
+Every production LLM-backed capability calls
 [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-(`lineageweave/adjudication_client.py`). Tree assembly reuses
+through its published consumer contract. Provider/model discovery, routing,
+fallback, structured-output compatibility, multi-agent orchestration,
+reasoning-effort allocation, usage/cost provenance, and provider credentials
+stay in contextual-orchestrator. LineageWeave receives versioned observations
+and provenance; it never treats an LLM judgment as truth and never falls back
+to a provider endpoint directly. See [ADR 0300](docs/adr/0300-contextual-orchestrator-owner-boundary.md).
+
+Reusable psychometric numerical/statistical kernels and their recovery
+evidence belong to
+[fast-mlsirm](https://github.com/ContextualWisdomLab/fast-mlsirm). Temporal,
+event, multilevel, cross-classified, and multiple-membership measurement
+semantics belong to [TEPP](https://github.com/ContextualWisdomLab/TEPP),
+consumed through TEPP's published wire contract
+(`lineageweave/tepp_client.py`, `AnalysisRunRequest` v1). LineageWeave does
+not read either owner's tables or copy their model implementations.
+
+Tree assembly reuses
 [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) (JWZ
 message threading) and channel fusion reuses
 [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) (weighted
@@ -80,14 +90,15 @@ Map your records into `lineageweave.Record` (see `lineageweave/models.py`
 for the field docs) and call `reconstruct()` directly -- nothing in this
 package assumes any particular source schema.
 
-To turn on the embedding or LLM channels, pass a real client instead of the
-`Null*` defaults:
+To turn on the embedding or LLM channels, use clients backed by a running
+contextual-orchestrator. A provider endpoint or provider credential is not a
+LineageWeave integration contract:
 
 ```python
 from lineageweave import reconstruct
 from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
 
-llm = ContextualOrchestratorAdjudicationClient(base_url="http://localhost:8000", api_key="...")
+llm = ContextualOrchestratorAdjudicationClient(base_url="https://orchestrator.example", api_key="...")
 trees = reconstruct(my_records, llm=llm)
 ```
 
@@ -107,7 +118,7 @@ infrastructure -- PostgreSQL, Valkey, and a real Keycloak OIDC realm seeded
 with synthetic demo accounts -- runs via Docker Compose:
 
 ```bash
-make up      # docker compose up -d: postgres, valkey, keycloak
+make up      # docker compose up -d: postgres, valkey, keycloak, backend, frontend
 make smoke   # real login as the synthetic demo user + JWT signature
              # verification against Keycloak's live JWKS -- proves the
              # OIDC round-trip actually works, not just that containers
@@ -115,13 +126,12 @@ make smoke   # real login as the synthetic demo user + JWT signature
 make down
 ```
 
-Outside GitHub, `make up` reads `~/.env` through Compose's `--env-file`.
-Configure the contextual-orchestrator provider there with
-`LLM_GATEWAY_API_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
-printed. `LLM_GATEWAY_URL`, `LLM_API_GATEWAY`, and `LLM_API_KEY` remain
-compatibility aliases only. `ORCHESTRATOR_BASE_URL` and
-`ORCHESTRATOR_API_KEY` are separate, internal
-LineageWeave-to-orchestrator settings.
+The local stack does not build or start contextual-orchestrator and does not
+load provider credentials. If model-backed channels are required, deploy or
+reach contextual-orchestrator through its canonical owner path and set only
+`ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` in LineageWeave's local
+`.env`. Leaving either empty keeps model-backed channels unavailable/fail-closed;
+there is no direct-provider fallback.
 
 Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
 rather than bind-mounted, so the keycloak database's init script and the
@@ -182,7 +192,7 @@ path against a live Keycloak + throwaway Postgres database, including
 that a private post scoped to a *different* corporate entity is excluded
 from the list and 403s on direct fetch.
 
-`frontend/` (React + Vite + TypeScript, `docker compose`'s fourth service)
+`frontend/` (React + Vite + TypeScript, `docker compose`'s frontend service)
 is a real client, not mocked or static: `react-oidc-context` drives an
 actual Authorization Code redirect through Keycloak, the home page
 draws the reconstructed lineage as a git-branch SVG (`GET /api/lineage`;
@@ -214,9 +224,10 @@ the *real* OIDC round-trip is what `scripts/smoke_test_oidc.py` and
 ## Modular / standalone
 
 This repo runs standalone (own server, own tests, own CI) and is equally
-usable as a library module (`import lineageweave`) inside a larger service
--- no global state, no required environment variables, every external
-dependency (embeddings, LLM adjudication, TEPP) is injected, not hardcoded.
+usable as a library module (`import lineageweave`) inside a larger service.
+Deterministic reconstruction remains available without any model service;
+model-backed channels are injected through contextual-orchestrator's consumer
+contract and fail closed when that contract is unavailable.
 
 ## License
 
