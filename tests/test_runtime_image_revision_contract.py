@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 _ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -34,7 +33,7 @@ def test_compose_passes_revision_to_all_product_images() -> None:
     compose = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert compose.count(
         "LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}"
-    ) == 4
+    ) == 5
     assert (
         "CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: "
         "c25712646bb25d0d30e4a5146ca9ea54669dfdf6"

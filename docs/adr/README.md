@@ -1,6 +1,7 @@
 # Architecture Decision Records
 
 - [ADR 0278: Selected topic-context Rankings](0278-selected-topic-context-rankings.md)
+- [ADR 0279: Select durable worker ownership by consumer](0279-consumer-selective-durable-worker-ownership.md)
 
 ADRs are the normative source for architecture decisions. Research notes,
 implementation matrices, schema references, runtime evidence, and Storybook

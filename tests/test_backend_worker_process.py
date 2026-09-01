@@ -53,13 +53,28 @@ def test_api_lifespan_opens_clients_without_starting_queue_workers(monkeypatch) 
 
 
 @pytest.mark.parametrize(
-    ("topic_influence_url", "expects_topic_consumer"),
-    [("http://measurement.test", True), ("measurement.test/no-scheme", False)],
+    ("topic_influence_url", "worker_consumers", "expected_consumers"),
+    [
+        (
+            "http://measurement.test",
+            "",
+            ["analysis", "content", "global_ask", "voice_taxonomy", "topic_influence"],
+        ),
+        (
+            "measurement.test/no-scheme",
+            "",
+            ["analysis", "content", "global_ask", "voice_taxonomy"],
+        ),
+        ("http://measurement.test", "global_ask", ["global_ask"]),
+    ],
 )
 def test_worker_process_owns_all_configured_durable_consumers(
-    monkeypatch, topic_influence_url: str, expects_topic_consumer: bool
+    monkeypatch,
+    topic_influence_url: str,
+    worker_consumers: str,
+    expected_consumers: list[str],
 ) -> None:
-    """Analysis, content, Ask, and configured influence work share one owner."""
+    """Each process starts only its explicit consumers; blank preserves all."""
     pool = _Closable()
     valkey = _Closable()
     calls: list[str] = []
@@ -75,6 +90,7 @@ def test_worker_process_owns_all_configured_durable_consumers(
         topic_influence_lease_timeout_seconds=17,
         topic_influence_poll_seconds=13,
         orchestrator_answer_timeout_seconds=570.0,
+        worker_consumers=worker_consumers,
     )
 
     async def called(name: str, *_args, **_kwargs) -> None:
@@ -89,14 +105,24 @@ def test_worker_process_owns_all_configured_durable_consumers(
     monkeypatch.setattr(worker, "create_valkey_client", lambda _url: valkey)
 
     @asynccontextmanager
-    async def lease(_pool):
+    async def lease(_pool, consumers):
+        consumer_names = {
+            "analysis": "analysis_run",
+            "content": "post_content",
+            "global_ask": "global_ask",
+            "voice_taxonomy": "voice_taxonomy",
+            "topic_influence": "topic_influence",
+        }
+        assert consumers == frozenset(
+            consumer_names[name] for name in expected_consumers
+        )
         calls.append("lease_acquired")
         try:
             yield
         finally:
             calls.append("lease_released")
 
-    monkeypatch.setattr(worker, "_single_worker_lease", lease)
+    monkeypatch.setattr(worker, "_consumer_worker_lease", lease)
     monkeypatch.setattr(worker, "configure_telemetry", lambda _name: None)
     monkeypatch.setattr(worker, "shutdown_telemetry", lambda: calls.append("shutdown"))
     monkeypatch.setattr(worker, "configured_tepp_client", lambda *_args: object())
@@ -132,12 +158,11 @@ def test_worker_process_owns_all_configured_durable_consumers(
 
     asyncio.run(worker.run_worker_process())
 
-    assert calls[:5] == [
-        "lease_acquired", "analysis", "content", "global_ask", "voice_taxonomy"
-    ]
-    assert ("topic_influence" in calls) is expects_topic_consumer
-    assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
-    assert global_ask_kwargs["claim_verification_factory"]() is verification_client
+    assert calls[0] == "lease_acquired"
+    assert calls[1:-2] == expected_consumers
+    if "global_ask" in expected_consumers:
+        assert global_ask_kwargs["semantic_query_factory"]() is semantic_client
+        assert global_ask_kwargs["claim_verification_factory"]() is verification_client
     assert calls[-2:] == ["lease_released", "shutdown"]
     assert pool.closed
     assert valkey.closed
@@ -150,7 +175,7 @@ def test_worker_process_lease_fails_closed_for_a_second_replica() -> None:
     class Connection:
         async def fetchval(self, query: str, name: str) -> bool:
             assert "hashtextextended($1, 0)" in query
-            assert name == worker._WORKER_LEASE_NAME
+            assert name == "lineageweave_durable_queue_worker:global_ask"
             calls.append("unlock" if "unlock" in query else "lock")
             return calls == ["lock"]
 
@@ -166,7 +191,7 @@ def test_worker_process_lease_fails_closed_for_a_second_replica() -> None:
             return Acquire()
 
     async def accepted() -> None:
-        async with worker._single_worker_lease(Pool()):
+        async with worker._consumer_worker_lease(Pool(), frozenset({"global_ask"})):
             calls.append("owned")
 
     asyncio.run(accepted())
@@ -177,7 +202,7 @@ def test_worker_process_lease_fails_closed_for_a_second_replica() -> None:
     class RejectedConnection(Connection):
         async def fetchval(self, query: str, name: str) -> bool:
             assert "pg_try_advisory_lock" in query
-            assert name == worker._WORKER_LEASE_NAME
+            assert name == "lineageweave_durable_queue_worker:global_ask"
             calls.append("rejected")
             return False
 
@@ -190,12 +215,28 @@ def test_worker_process_lease_fails_closed_for_a_second_replica() -> None:
             return RejectedAcquire()
 
     async def rejected() -> None:
-        async with worker._single_worker_lease(RejectedPool()):
+        async with worker._consumer_worker_lease(
+            RejectedPool(), frozenset({"global_ask"})
+        ):
             raise AssertionError("a second worker must not start")
 
-    with pytest.raises(RuntimeError, match="already owns the lease"):
+    with pytest.raises(RuntimeError, match="already owns global_ask"):
         asyncio.run(rejected())
     assert calls == ["rejected"]
+
+
+def test_worker_consumer_selection_rejects_unknown_names() -> None:
+    """A typo cannot silently leave a durable queue without an owner."""
+    with pytest.raises(ValueError, match="unknown consumers: typo"):
+        worker._selected_consumers(SimpleNamespace(worker_consumers="global_ask,typo"))
+
+
+def test_explicit_worker_selection_cannot_become_heartbeat_only() -> None:
+    """An unavailable sole optional consumer fails instead of reporting healthy."""
+    with pytest.raises(ValueError, match="no active durable consumers"):
+        worker._active_consumers(
+            frozenset({"topic_influence"}), topic_influence_enabled=False
+        )
 
 
 @pytest.mark.parametrize(

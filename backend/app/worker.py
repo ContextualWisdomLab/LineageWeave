@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from urllib.parse import urlsplit
 
 import asyncpg
@@ -34,8 +34,41 @@ from backend.app.worker_health import run_worker_heartbeat
 from lineageweave.observability import configure_telemetry, shutdown_telemetry
 from lineageweave.topic_influence_client import HttpTopicInfluenceClient
 
-_WORKER_LEASE_NAME = "lineageweave_durable_queue_worker"
+_ALL_CONSUMERS = (
+    "analysis_run",
+    "post_content",
+    "global_ask",
+    "voice_taxonomy",
+    "topic_influence",
+)
 _logger = logging.getLogger(__name__)
+
+
+def _selected_consumers(settings: object) -> frozenset[str]:
+    """Return the declared consumer set, defaulting to the historical full worker."""
+    raw = getattr(settings, "worker_consumers", "")
+    if not isinstance(raw, str):
+        raise TypeError("LINEAGEWEAVE_WORKER_CONSUMERS must be comma-separated text")
+    selected = frozenset(item.strip() for item in raw.split(",") if item.strip())
+    if not selected:
+        return frozenset(_ALL_CONSUMERS)
+    unknown = selected.difference(_ALL_CONSUMERS)
+    if unknown:
+        raise ValueError(
+            "LINEAGEWEAVE_WORKER_CONSUMERS contains unknown consumers: "
+            + ", ".join(sorted(unknown))
+        )
+    return selected
+
+
+def _active_consumers(
+    selected: frozenset[str], *, topic_influence_enabled: bool
+) -> frozenset[str]:
+    """Remove an unavailable optional consumer and reject a no-op worker."""
+    active = selected.difference(() if topic_influence_enabled else {"topic_influence"})
+    if not active:
+        raise ValueError("selected worker has no active durable consumers")
+    return active
 
 
 def _topic_influence_timeouts(settings: object) -> tuple[int, int, int]:
@@ -95,24 +128,33 @@ def _optional_topic_influence_timeouts(
 
 
 @asynccontextmanager
-async def _single_worker_lease(pool: asyncpg.Pool) -> AsyncIterator[None]:
-    """Fail a second worker process before two stream cursors can race."""
+async def _consumer_worker_lease(
+    pool: asyncpg.Pool, consumers: frozenset[str]
+) -> AsyncIterator[None]:
+    """Hold one session-level advisory lease for every selected consumer."""
     async with pool.acquire() as conn:
-        acquired = bool(
-            await conn.fetchval(
-                "select pg_try_advisory_lock(hashtextextended($1, 0))",
-                _WORKER_LEASE_NAME,
-            )
-        )
-        if not acquired:
-            raise RuntimeError("another durable queue worker already owns the lease")
+        acquired: list[str] = []
         try:
+            for consumer in sorted(consumers):
+                lease_name = f"lineageweave_durable_queue_worker:{consumer}"
+                owns_lease = bool(
+                    await conn.fetchval(
+                        "select pg_try_advisory_lock(hashtextextended($1, 0))",
+                        lease_name,
+                    )
+                )
+                if not owns_lease:
+                    raise RuntimeError(
+                        f"another durable queue worker already owns {consumer}"
+                    )
+                acquired.append(lease_name)
             yield
         finally:
-            await conn.fetchval(
-                "select pg_advisory_unlock(hashtextextended($1, 0))",
-                _WORKER_LEASE_NAME,
-            )
+            for lease_name in reversed(acquired):
+                await conn.fetchval(
+                    "select pg_advisory_unlock(hashtextextended($1, 0))",
+                    lease_name,
+                )
 
 
 async def run_worker_process() -> None:
@@ -122,53 +164,69 @@ async def run_worker_process() -> None:
     pool = await create_pool(settings.database_url)
     valkey = create_valkey_client(settings.valkey_url)
     try:
-        async with _single_worker_lease(pool):
-            topic_influence_url = getattr(
-                settings, "topic_influence_transport_url", ""
-            )
-            influence_timeouts = _optional_topic_influence_timeouts(
-                settings, transport_url=topic_influence_url
-            )
-            workers = [
-                asyncio.create_task(run_worker_heartbeat()),
-                asyncio.create_task(
-                    run_analysis_run_worker(
-                        valkey,
-                        pool,
-                        database_url=settings.database_url,
-                        tepp_client=configured_tepp_client(
-                            settings.tepp_transport_url,
-                            settings.tepp_api_key,
-                        ),
-                        adjudication_client=_adjudication_client(),
+        selected = _selected_consumers(settings)
+        topic_influence_url = getattr(settings, "topic_influence_transport_url", "")
+        influence_timeouts = _optional_topic_influence_timeouts(
+            settings, transport_url=topic_influence_url
+        )
+        active_consumers = _active_consumers(
+            selected,
+            topic_influence_enabled=bool(
+                topic_influence_url and influence_timeouts is not None
+            ),
+        )
+        async with _consumer_worker_lease(pool, frozenset(active_consumers)):
+            workers = [asyncio.create_task(run_worker_heartbeat())]
+            if "analysis_run" in active_consumers:
+                workers.append(
+                    asyncio.create_task(
+                        run_analysis_run_worker(
+                            valkey,
+                            pool,
+                            database_url=settings.database_url,
+                            tepp_client=configured_tepp_client(
+                                settings.tepp_transport_url,
+                                settings.tepp_api_key,
+                            ),
+                            adjudication_client=_adjudication_client(),
+                        )
                     )
-                ),
-                asyncio.create_task(
-                    run_post_content_worker(
-                        valkey,
-                        pool,
-                        vision_factory=_vision_client,
-                        embedding_factory=_embedding_client,
-                        structure_factory=_post_structure_client,
+                )
+            if "post_content" in active_consumers:
+                workers.append(
+                    asyncio.create_task(
+                        run_post_content_worker(
+                            valkey,
+                            pool,
+                            vision_factory=_vision_client,
+                            embedding_factory=_embedding_client,
+                            structure_factory=_post_structure_client,
+                        )
                     )
-                ),
-                asyncio.create_task(
-                    run_global_ask_worker(
-                        valkey,
-                        pool,
-                        chat_factory=lambda: _post_chat_client(
-                            timeout=load_settings().orchestrator_answer_timeout_seconds
-                        ),
-                        embedding_factory=_embedding_client,
-                        semantic_query_factory=_semantic_query_client,
-                        claim_verification_factory=_claim_verification_client_factory,
+                )
+            if "global_ask" in active_consumers:
+                workers.append(
+                    asyncio.create_task(
+                        run_global_ask_worker(
+                            valkey,
+                            pool,
+                            chat_factory=lambda: _post_chat_client(
+                                timeout=load_settings().orchestrator_answer_timeout_seconds
+                            ),
+                            embedding_factory=_embedding_client,
+                            semantic_query_factory=_semantic_query_client,
+                            claim_verification_factory=_claim_verification_client_factory,
+                        )
                     )
-                ),
-                asyncio.create_task(
-                    run_voice_taxonomy_transition_worker(settings.database_url)
-                ),
-            ]
-            if topic_influence_url and influence_timeouts is not None:
+                )
+            if "voice_taxonomy" in active_consumers:
+                workers.append(
+                    asyncio.create_task(
+                        run_voice_taxonomy_transition_worker(settings.database_url)
+                    )
+                )
+            if "topic_influence" in active_consumers:
+                assert influence_timeouts is not None
                 request_timeout, lease_timeout, poll_seconds = influence_timeouts
                 workers.append(
                     asyncio.create_task(

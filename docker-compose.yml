@@ -215,10 +215,10 @@ services:
         condition: service_healthy
       searxng:
         condition: service_healthy
-      # The HTTP process deliberately does not consume durable queues. Make
-      # even a targeted `docker compose up backend` start the sole worker
-      # owner and wait for observed event-loop progress before serving jobs.
-      backend-worker:
+      # The HTTP process deliberately does not consume durable queues. A
+      # targeted `docker compose up backend` starts only the Ask owner; the
+      # independent broad worker must never be required to serve or poll Ask.
+      backend-ask-worker:
         condition: service_healthy
 
   backend-worker:
@@ -229,7 +229,38 @@ services:
         LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
     command: ["python", "-m", "backend.app.worker"]
     restart: unless-stopped
-    environment: *backend-environment
+    environment:
+      <<: *backend-environment
+      LINEAGEWEAVE_WORKER_CONSUMERS: analysis_run,post_content,voice_taxonomy,topic_influence
+    depends_on:
+      postgres:
+        condition: service_healthy
+      database_migration:
+        condition: service_completed_successfully
+      orchestrator:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/bin/sh", "/app/backend/worker-healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  backend-ask-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        LINEAGEWEAVE_SOURCE_REVISION: ${LINEAGEWEAVE_SOURCE_REVISION:-unknown}
+    command: ["python", "-m", "backend.app.worker"]
+    restart: unless-stopped
+    environment:
+      <<: *backend-environment
+      LINEAGEWEAVE_WORKER_CONSUMERS: global_ask
     depends_on:
       postgres:
         condition: service_healthy

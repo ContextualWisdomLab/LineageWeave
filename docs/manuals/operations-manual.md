@@ -98,8 +98,21 @@ quota values.
 ## Durable asynchronous work
 
 The API enqueues Ask and content-analysis work; workers perform provider calls
-outside pooled database transactions. Keep workers enabled during backfill.
+outside pooled database transactions. `backend-worker` owns post-content,
+analysis-run, Voice-transition, and configured topic-influence work;
+`backend-ask-worker` owns only Global Ask. Keep `backend-worker` enabled during
+an admitted backfill. If post-content must be stopped, stop only that service;
+the Ask worker must remain enabled and cannot recover or consume post-content.
+Starting `backend` directly starts and health-gates only the Ask worker; it does
+not admit post-content or require the broad worker.
 Stopping a worker does not turn queued work into a completed analysis.
+
+When upgrading from the former single-worker image, stop `backend-worker`
+before recreating either selected worker. The old process-wide advisory lease
+does not overlap the per-consumer lease names, so running old and new worker
+images together is prohibited. Confirm the old container is stopped, then
+start `backend-ask-worker`; start `backend-worker` only when its queues are
+admitted for processing.
 
 For an incident:
 

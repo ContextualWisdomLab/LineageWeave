@@ -6,6 +6,11 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+- Global Ask now has a consumer-selective durable worker in the canonical
+  Compose project. Per-consumer PostgreSQL advisory leases prevent overlapping
+  queue owners, while stopping post-content consumption no longer suspends Ask
+  or starts any post-content recovery from the Ask worker (ADR 0279).
+
 - Post-content recovery now keys every initial attempt, retry, and stale lease
   by its exact eligibility instant, so work that becomes due after the durable
   cursor advances is reached without waiting for a full ledger wrap.

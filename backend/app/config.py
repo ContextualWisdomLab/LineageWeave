@@ -82,6 +82,7 @@ class Settings:
     mcp_max_request_bytes: int = 65_536
     mcp_rate_limit_requests: int | None = None
     mcp_rate_limit_window_seconds: int | None = None
+    worker_consumers: str = ""
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -269,4 +270,5 @@ def load_settings() -> Settings:
         mcp_rate_limit_window_seconds=_optional_positive_int(
             "MCP_RATE_LIMIT_WINDOW_SECONDS"
         ),
+        worker_consumers=os.environ.get("LINEAGEWEAVE_WORKER_CONSUMERS", ""),
     )

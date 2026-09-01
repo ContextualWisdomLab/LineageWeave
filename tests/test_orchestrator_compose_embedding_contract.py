@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
-
+from pathlib import Path
 
 _ROOT = Path(__file__).parents[1]
 
@@ -53,13 +52,30 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     assert config["services"]["orchestrator"]["healthcheck"]["test"][-1].find(
         "/healthz"
     ) >= 0
-    assert backend_dependencies["backend-worker"]["condition"] == "service_healthy"
+    assert "backend-worker" not in backend_dependencies
+    assert backend_dependencies["backend-ask-worker"]["condition"] == "service_healthy"
     assert config["services"]["backend-worker"]["command"] == [
         "python",
         "-m",
         "backend.app.worker",
     ]
     assert config["services"]["backend-worker"]["healthcheck"]["test"] == [
+        "CMD",
+        "/bin/sh",
+        "/app/backend/worker-healthcheck.sh",
+    ]
+    assert config["services"]["backend-worker"]["environment"][
+        "LINEAGEWEAVE_WORKER_CONSUMERS"
+    ] == "analysis_run,post_content,voice_taxonomy,topic_influence"
+    assert config["services"]["backend-ask-worker"]["command"] == [
+        "python",
+        "-m",
+        "backend.app.worker",
+    ]
+    assert config["services"]["backend-ask-worker"]["environment"][
+        "LINEAGEWEAVE_WORKER_CONSUMERS"
+    ] == "global_ask"
+    assert config["services"]["backend-ask-worker"]["healthcheck"]["test"] == [
         "CMD",
         "/bin/sh",
         "/app/backend/worker-healthcheck.sh",
@@ -73,6 +89,7 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     ] == ""
     assert "env_file" not in config["services"]["backend"]
     assert "env_file" not in config["services"]["backend-worker"]
+    assert "env_file" not in config["services"]["backend-ask-worker"]
     assert "env_file" not in config["services"]["mcp"]
 
 
