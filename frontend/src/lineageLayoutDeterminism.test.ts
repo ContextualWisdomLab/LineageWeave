@@ -43,6 +43,35 @@ describe("layoutLineageDag deterministic geometry", () => {
     expect(reordered).toEqual(forward);
   });
 
+  it("orders timezone-offset timestamps by the represented event instant", () => {
+    const nodes = [
+      {
+        id: "earlier-by-instant",
+        group: "Project Alpha",
+        label: "Earlier",
+        occurred_at: "2026-09-01T01:00:00+02:00",
+        is_root: true,
+        is_branch_point: false,
+      },
+      {
+        id: "later-by-instant",
+        group: "Project Alpha",
+        label: "Later",
+        occurred_at: "2026-09-01T00:30:00Z",
+        is_root: true,
+        is_branch_point: false,
+      },
+    ];
+
+    const forward = canonicalPositions({ nodes, edges: [] });
+    const reordered = canonicalPositions({ nodes: [...nodes].reverse(), edges: [] });
+    const earlier = forward.find((node) => node.id === "earlier-by-instant")!;
+    const later = forward.find((node) => node.id === "later-by-instant")!;
+
+    expect(earlier.y).toBeLessThan(later.y);
+    expect(reordered).toEqual(forward);
+  });
+
   it("keeps parallel edge order stable when equivalent edges arrive in a different order", () => {
     const nodes = ["root", "child"].map((id) => ({
       id,
