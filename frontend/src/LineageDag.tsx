@@ -121,6 +121,11 @@ function otherPostId(edge: LineageGraphEdge, currentPostId?: string): string {
 // visible 7px node mark a 24x24px minimum hit area without CSS scale-up.
 const NODE_HIT_RADIUS = 12;
 
+// A 1.5px SVG stroke is too narrow to acquire reliably with a pointer or touch.
+// Keep the semantic/focusable edge on the visible path, but place this transparent
+// pointer corridor underneath it so the visual mark and accessible control stay singular.
+const EDGE_HIT_WIDTH = 24;
+
 /** Render the authorized lineage projection and let the reader open a post. */
 export function LineageDag({
   graph,
@@ -195,11 +200,22 @@ export function LineageDag({
                   const position = (endpointPositions.get(endpoint) ?? 0) + 1;
                   endpointPositions.set(endpoint, position);
                   const parallelCount = endpointCounts.get(endpoint) ?? 1;
+                  const path = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
                   return (
                     <g key={key}>
                       <path
+                        className="lineage-dag-edge-hit"
+                        d={path}
+                        stroke="transparent"
+                        strokeWidth={EDGE_HIT_WIDTH}
+                        fill="none"
+                        pointerEvents="stroke"
+                        aria-hidden="true"
+                        onClick={() => setSelectedEdge(key)}
+                      />
+                      <path
                         className={selected ? "lineage-dag-edge lineage-dag-edge-selected" : "lineage-dag-edge"}
-                        d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                        d={path}
                         role="button"
                         tabIndex={0}
                         aria-pressed={selected}
