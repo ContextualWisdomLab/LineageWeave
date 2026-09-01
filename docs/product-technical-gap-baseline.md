@@ -20,15 +20,16 @@
 > its unit, contract, security, and supply-chain code checks passed, but the required
 > Noema review failed, coverage remained queued, and review is still required. The
 > authoritative-environment acceptance returned HTTP 401, so that base alone was not
-> eligible for promotion. Stacked upstream PR #988 at
-> `c64ee4c0ace5fce224801b9692af4a870adf3929` adds exact request-scoped endpoint
-> routing and the OpenAI JSON probe contract. Its isolated LineageWeave candidate
+> eligible for promotion. Stacked upstream PR #990 at
+> `2ea70dc0386b2f2417da64c07b0151c8a6fc8466` adds exact request-scoped endpoint
+> routing, the OpenAI JSON probe contract, and single-copy caller prompt
+> preservation. Its isolated LineageWeave candidate
 > returned conforming Chat Completions and Responses objects through the configured
 > endpoint. The isolated administrator readiness gate passed and canonical Compose
 > now runs that exact revision; post-scoped Responses correlation also passed through
 > OpenAI-compatible metadata without an unknown top-level field. This is runtime
 > evidence, while hosted review and protected upstream delivery remain pending. Org workflow PR #1507
-> is the open fail-closed Noema repair gate; its own required checks are not terminal.
+> merged normally; central Pingora policy PR #1466 is mergeable and awaits fresh checks/review.
 > Terminal retry and unbounded continuation remain mutually exclusive, so each
 > admitted page must settle before another page is selected.
 >

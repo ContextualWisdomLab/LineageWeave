@@ -4,7 +4,7 @@
 ARG MATURIN_BUILDER_IMAGE=ghcr.io/pyo3/maturin@sha256:b6c8b59a0170b77eb31a35b56034abd39972483ad0ebfff344deaa42a85f3bd3
 FROM ${MATURIN_BUILDER_IMAGE} AS token-builder
 
-ADD --checksum=sha256:145d495faa9b1c59cb6d95338066e8b93d4f8d74bbd269a498bc8905e5c8cd2d https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/c64ee4c0ace5fce224801b9692af4a870adf3929.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD --checksum=sha256:063e92e7e0b5e8997e411d79aac8e25ef7309b29c989f5389cbd624b52086edf https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/2ea70dc0386b2f2417da64c07b0151c8a6fc8466.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir -p /build/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 \
         -C /build/contextual-orchestrator \

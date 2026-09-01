@@ -15,15 +15,16 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `c64ee4c0ace5fce224801b9692af4a870adf3929` from upstream PR #988,
-stacked on PR #970.
+commit `2ea70dc0386b2f2417da64c07b0151c8a6fc8466` from upstream PR #990.
+That stack combines the merged endpoint contract from PR #988 with the
+single-copy workflow prompt contract from PR #987.
 The candidate pin supplies endpoint-scoped Chat Completions and Responses
 routing. It rejects an unavailable requested endpoint instead of silently
 using another provider, and its structured gateway probe satisfies the
 provider's JSON-object request contract. The replacement retains
 provider-backed embedding batches on the current authentication and
-provider-error taxonomy. PRs #970 and #988
-remain open, so neither the candidate pin nor local runtime evidence is
+provider-error taxonomy. PR #990 remains open, so neither the candidate pin
+nor local runtime evidence is
 protected upstream release evidence. The pin remains explicit and
 immutable until the reviewed upstream change is superseded; it is not a moving
 `main` reference and it is not a LineageWeave monkey patch.
