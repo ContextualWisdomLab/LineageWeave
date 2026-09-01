@@ -120,7 +120,9 @@ def connection_kwargs_from_dsn(
     ``connect_timeout`` passed by the caller takes precedence over the URI's
     ``connect_timeout`` query value, matching the old call sites. Query
     options are allow-listed because silently discarding a libpq option could
-    weaken transport security or alter session semantics.
+    weaken transport security or alter session semantics. Duplicate options
+    are rejected because collapsing conflicting values would make the selected
+    connection policy depend on parser ordering rather than explicit intent.
     """
 
     parsed = urlsplit(dsn)
@@ -141,7 +143,13 @@ def connection_kwargs_from_dsn(
         kwargs["password"] = unquote(parsed.password)
 
     startup_params: dict[str, str] = {}
-    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query_items = parse_qsl(parsed.query, keep_blank_values=True)
+    seen_query_options: set[str] = set()
+    for option_name, _ in query_items:
+        if option_name in seen_query_options:
+            raise ValueError(f"duplicate PostgreSQL DSN option: {option_name}")
+        seen_query_options.add(option_name)
+    query = dict(query_items)
     supported = {"connect_timeout", "application_name", "sslmode", "options"}
     unknown = sorted(set(query) - supported)
     if unknown:
