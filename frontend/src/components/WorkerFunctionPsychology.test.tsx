@@ -93,7 +93,7 @@ describe("WorkerFunctionPsychology", () => {
   ] as const)("keeps the loading next action customer-facing in %s", (locale, expected) => {
     setLocale(locale);
     render(<WorkerFunctionPsychology profile={null} catalog={null} loading />);
-    expect(screen.getByText(new RegExp(expected))).toBeVisible();
+    expect(screen.getByText((content) => content.startsWith(expected))).toBeVisible();
     expect(screen.queryByText(/ontology|projection|provider|model/i)).not.toBeInTheDocument();
   });
 
