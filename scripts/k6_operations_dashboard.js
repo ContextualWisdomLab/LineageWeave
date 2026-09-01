@@ -24,12 +24,17 @@ export function setup() {
 
 export default function () {
   const response = http.get(`${backendUrl}/api/dashboard`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Accept-Encoding": "gzip",
+    },
     tags: { endpoint: "operations_dashboard" },
   });
   dashboardDuration.add(response.timings.duration);
   check(response, {
     "authenticated Dashboard read succeeds": (value) => value.status === 200,
+    "Dashboard response uses negotiated compression": (value) =>
+      value.headers["Content-Encoding"] === "gzip",
     "Dashboard response has the required case evidence": (value) => {
       if (value.status !== 200) return false;
       const body = value.json();

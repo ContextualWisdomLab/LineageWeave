@@ -34,3 +34,5 @@ def test_k6_dashboard_harness_enforces_read_latency_contract() -> None:
     source = DASHBOARD_SCRIPT.read_text(encoding="utf-8")
 
     assert 'lineageweave_operations_dashboard_duration: ["max<=20"]' in source
+    assert '"Accept-Encoding": "gzip"' in source
+    assert 'value.headers["Content-Encoding"] === "gzip"' in source
