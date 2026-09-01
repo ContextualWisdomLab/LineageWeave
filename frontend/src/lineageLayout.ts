@@ -34,6 +34,21 @@ function stableTextCompare(left: string, right: string): number {
 }
 
 /**
+ * Normalize a parseable event timestamp to its represented UTC instant.
+ *
+ * ISO-8601 strings with different offsets can represent the same or an earlier
+ * instant while sorting in the opposite lexical order. Invalid or legacy
+ * timestamp strings keep their raw value so presentation remains deterministic
+ * without inventing a time that the source did not provide.
+ */
+function stableOccurredAtSortKey(occurredAt: string | null | undefined): string {
+  const raw = occurredAt ?? "";
+  if (!raw) return raw;
+  const instant = Date.parse(raw);
+  return Number.isFinite(instant) ? new Date(instant).toISOString() : raw;
+}
+
+/**
  * Stable presentation key for a lineage node.
  *
  * Event time is the meaningful primary order for a lineage. The opaque node
@@ -41,7 +56,7 @@ function stableTextCompare(left: string, right: string): number {
  * move a node to a different row or keyboard position.
  */
 function stableNodeSortKey(node: LineageGraphNode): string {
-  return `${node.occurred_at ?? ""}\u0000${node.id}`;
+  return `${stableOccurredAtSortKey(node.occurred_at)}\u0000${node.id}`;
 }
 
 function childrenByParent(edges: LineageGraphEdge[]): Map<string, string[]> {
