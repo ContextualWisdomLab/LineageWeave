@@ -58,6 +58,24 @@ describe("CustomerMasterRequestGate", () => {
     await expect(currentResult).resolves.toBe("still-current-account-view");
   });
 
+  it("keeps a re-entrant newer request as owner when an older start returns afterward", async () => {
+    const gate = new CustomerMasterRequestGate<string>();
+    const outer = deferred<string>();
+    const newest = deferred<string>();
+    let newestResult!: Promise<string>;
+
+    const outerResult = gate.run(() => {
+      newestResult = gate.run(() => newest.promise);
+      return outer.promise;
+    });
+
+    outer.resolve("stale-outer-view");
+    newest.resolve("newest-account-view");
+
+    await expect(newestResult).resolves.toBe("newest-account-view");
+    await expect(outerResult).resolves.toBe("newest-account-view");
+  });
+
   it("still surfaces a failure from the current request", async () => {
     const gate = new CustomerMasterRequestGate<string>();
     const current = deferred<string>();
