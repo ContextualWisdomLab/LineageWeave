@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LineageGraph } from "./api";
 import { LineageDag } from "./LineageDag";
+import { setLocale } from "./i18n";
 
 const parallelEdgeGraph: LineageGraph = {
   nodes: [
@@ -60,6 +61,8 @@ const parallelEdgeGraph: LineageGraph = {
     },
   ],
 };
+
+afterEach(() => setLocale("en"));
 
 describe("LineageDag parallel edge identity", () => {
   it("keeps source/target-identical edge evidence controls independently identifiable and selectable", async () => {
@@ -123,5 +126,16 @@ describe("LineageDag parallel edge identity", () => {
     expect(screen.getAllByRole("button", {
       name: /Open connection evidence: Initial site visit to Pricing follow-up/,
     }).filter((button) => button.getAttribute("aria-pressed") === "true")).toHaveLength(1);
+  });
+
+  it("does not append untranslated English disambiguation to Korean parallel-edge controls", () => {
+    setLocale("ko");
+    render(<LineageDag graph={parallelEdgeGraph} onSelectPost={vi.fn()} />);
+
+    const edgeButtons = screen.getAllByRole("button", { name: /연결 근거 열기/ });
+    expect(edgeButtons).toHaveLength(2);
+    for (const button of edgeButtons) {
+      expect(button.getAttribute("aria-label")).not.toMatch(/relationship|fused score/i);
+    }
   });
 });
