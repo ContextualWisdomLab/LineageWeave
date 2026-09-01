@@ -158,3 +158,24 @@ def test_gambling_risk_requires_both_asymptote_mechanisms_for_4plm() -> None:
         )
         is None
     )
+
+
+def test_conflicting_model_mechanisms_fail_closed() -> None:
+    """Mutually incompatible model rationales never resolve by parameter precedence."""
+    assert (
+        default_dichotomous_model_family(
+            MeasurementDomain.EDUCATIONAL,
+            rasch_requirements_intended=True,
+            lower_asymptote_justified=True,
+        )
+        is None
+    )
+    assert (
+        default_dichotomous_model_family(
+            MeasurementDomain.GAMBLING_GAMING_RISK,
+            rasch_requirements_intended=True,
+            lower_asymptote_justified=True,
+            upper_asymptote_justified=True,
+        )
+        is None
+    )
