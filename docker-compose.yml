@@ -106,8 +106,8 @@ services:
       context: ./docker/contextual-orchestrator
       dockerfile: Dockerfile
       args:
-        CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: cf3c4cdde8f937ae2aab160358a124be9ec15222
-    image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:cf3c4cdde8f937ae2aab160358a124be9ec15222
+        CONTEXTUAL_ORCHESTRATOR_SOURCE_REVISION: c64ee4c0ace5fce224801b9692af4a870adf3929
+    image: ${COMPOSE_PROJECT_NAME:-lineageweave}-orchestrator:c64ee4c0ace5fce224801b9692af4a870adf3929
     env_file:
       - ${HOME}/.env
     environment:

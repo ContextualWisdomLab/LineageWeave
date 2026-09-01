@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `cf3c4cdde8f937ae2aab160358a124be9ec15222` from upstream PR #988,
+commit `c64ee4c0ace5fce224801b9692af4a870adf3929` from upstream PR #988,
 stacked on PR #970.
 The candidate pin supplies endpoint-scoped Chat Completions and Responses
 routing. It rejects an unavailable requested endpoint instead of silently

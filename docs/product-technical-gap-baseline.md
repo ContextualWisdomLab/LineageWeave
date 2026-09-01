@@ -21,7 +21,7 @@
 > Noema review failed, coverage remained queued, and review is still required. The
 > authoritative-environment acceptance returned HTTP 401, so that base alone was not
 > eligible for promotion. Stacked upstream PR #988 at
-> `cf3c4cdde8f937ae2aab160358a124be9ec15222` adds exact request-scoped endpoint
+> `c64ee4c0ace5fce224801b9692af4a870adf3929` adds exact request-scoped endpoint
 > routing and the OpenAI JSON probe contract. Its isolated LineageWeave candidate
 > returned conforming Chat Completions and Responses objects through the configured
 > endpoint. The isolated administrator readiness gate passed and canonical Compose
