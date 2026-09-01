@@ -125,3 +125,10 @@ def test_compose_does_not_own_contextual_orchestrator_or_provider_config() -> No
         assert f"{name}:" not in compose
     assert "ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}" in compose
     assert "ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}" in compose
+
+
+def test_compose_launcher_does_not_load_the_orchestrator_owner_environment() -> None:
+    """LineageWeave launch commands must not import a provider secret bundle."""
+    makefile = (_REPOSITORY_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert '--env-file "$$HOME/.env"' not in makefile
+    assert "COMPOSE := docker compose" in makefile
