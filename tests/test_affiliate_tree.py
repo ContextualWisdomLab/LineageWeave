@@ -132,7 +132,7 @@ def test_affiliate_forest_skips_alias_catalog_when_no_keymen(monkeypatch) -> Non
 
 
 def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -> None:
-    """Alias resolution must not materialize unrelated organization aliases."""
+    """Resolution and display aliases stay bounded to this post's names."""
     demo_id = UUID("00000000-0000-0000-0000-000000000002")
     aliases = (OrganizationNameAlias("Demo Co", "Demo Corp", str(demo_id)),)
     raw_keymen = [
@@ -184,10 +184,10 @@ def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -
 
     forest = asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1"))
 
-    fetch_aliases.assert_awaited_once_with(
-        conn,
-        organization_names=("Demo Co",),
-    )
+    assert fetch_aliases.await_args_list == [
+        call(conn, organization_names=("Demo Co",)),
+        call(conn, organization_names=("Demo Co", "Demo Corp")),
+    ]
     assert fetch_keymen.await_args_list == [
         call(conn, "post-1", organization_aliases=()),
         call(conn, "post-1", organization_aliases=aliases),
@@ -196,7 +196,7 @@ def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -
 
 
 def test_affiliate_forest_loads_only_resolved_affiliation_ancestor_closure(monkeypatch) -> None:
-    """The request must not materialize unrelated corporate entities in application memory."""
+    """Hierarchy and alias reads both stay inside the touched organization closure."""
     group_id = UUID("00000000-0000-0000-0000-000000000001")
     company_id = UUID("00000000-0000-0000-0000-000000000002")
     unrelated_id = UUID("00000000-0000-0000-0000-000000000003")
@@ -248,10 +248,17 @@ def test_affiliate_forest_loads_only_resolved_affiliation_ancestor_closure(monke
     conn = _Connection()
     forest = asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1"))
 
-    fetch_aliases.assert_awaited_once_with(
-        conn,
-        organization_names=("Unresolved Supplier",),
-    )
+    assert fetch_aliases.await_args_list == [
+        call(conn, organization_names=("Unresolved Supplier",)),
+        call(
+            conn,
+            organization_names=(
+                "Demo Electronics Korea",
+                "Demo Group",
+                "Unresolved Supplier",
+            ),
+        ),
+    ]
     assert len(observed_calls) == 1
     query, args = observed_calls[0]
     assert "with recursive affiliate_entity" in query.lower()
