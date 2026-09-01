@@ -55,6 +55,12 @@ def test_generated_identifier_quoting_is_postgresql_safe() -> None:
     assert statement == 'create database "tenant""archive"'
 
 
+def test_generated_sql_rejects_raw_interpolation() -> None:
+    """Dynamic SQL fragments must use an explicit safe composable wrapper."""
+    with pytest.raises(TypeError, match="SQL interpolation requires"):
+        sql.SQL("create database {}").format('tenant"; drop database archive; --')
+
+
 def test_dsn_query_options_are_mapped_without_silent_loss() -> None:
     """Supported libpq-style DSN options survive the pg8000 adapter boundary."""
     kwargs = connection_kwargs_from_dsn(
