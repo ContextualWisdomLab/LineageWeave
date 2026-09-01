@@ -10,9 +10,7 @@ from lineageweave.measurement_policy import (
     DichotomousObservationState,
     InstrumentLifecycle,
     InstrumentMeasurementPolicy,
-    MeasurementDomain,
     MeasurementModelFamily,
-    default_dichotomous_model_family,
 )
 
 
@@ -71,6 +69,9 @@ def test_item_policy_names_both_sides_of_the_binary_rubric() -> None:
             supported_criterion="same",
         )
 
+    with pytest.raises(ValueError, match="non-empty"):
+        DichotomousItemPolicy(" ", "v1", "not supported", "supported")
+
 
 def test_pilot_instrument_may_preserve_observations_without_a_latent_model() -> None:
     """Pilot data are valid evidence even when no scoring model is defensible yet."""
@@ -114,68 +115,33 @@ def test_published_instrument_requires_model_and_activation_evidence() -> None:
     assert policy.lifecycle is InstrumentLifecycle.PUBLISHED
 
 
-def test_education_requires_an_explicit_rasch_or_guessing_mechanism() -> None:
-    """Educational use never falls back silently to generic one-parameter IRT."""
-    assert (
-        default_dichotomous_model_family(
-            MeasurementDomain.EDUCATIONAL,
-            rasch_requirements_intended=True,
+@pytest.mark.parametrize(
+    ("instrument_id", "revision", "activation_evidence_ref", "message"),
+    [
+        (" ", 1, None, "instrument_id"),
+        ("instrument", 0, None, "positive integer"),
+        ("instrument", True, None, "positive integer"),
+        ("instrument", 1, " ", "non-empty"),
+    ],
+)
+def test_instrument_identity_revision_and_evidence_are_bounded(
+    instrument_id: str,
+    revision: int,
+    activation_evidence_ref: str | None,
+    message: str,
+) -> None:
+    """Invalid identity, revision, and evidence values fail before activation."""
+    with pytest.raises(ValueError, match=message):
+        InstrumentMeasurementPolicy(
+            instrument_id=instrument_id,
+            revision=revision,
+            lifecycle=InstrumentLifecycle.PILOT,
+            model_family=None,
+            activation_evidence_ref=activation_evidence_ref,
         )
-        is MeasurementModelFamily.RASCH
-    )
-    assert (
-        default_dichotomous_model_family(
-            MeasurementDomain.EDUCATIONAL,
-            lower_asymptote_justified=True,
-        )
-        is MeasurementModelFamily.IRT_3PLM
-    )
-    assert default_dichotomous_model_family(MeasurementDomain.EDUCATIONAL) is None
 
 
-def test_psychology_defaults_to_2plm_when_discrimination_may_vary() -> None:
-    """Psychology/SEM-lineage policy uses 2PLM as the default logistic family."""
-    assert (
-        default_dichotomous_model_family(MeasurementDomain.PSYCHOLOGY_SEM)
-        is MeasurementModelFamily.IRT_2PLM
-    )
-
-
-def test_gambling_risk_requires_both_asymptote_mechanisms_for_4plm() -> None:
-    """4PLM is selected only when lower and upper asymptotes are both justified."""
-    assert (
-        default_dichotomous_model_family(
-            MeasurementDomain.GAMBLING_GAMING_RISK,
-            lower_asymptote_justified=True,
-            upper_asymptote_justified=True,
-        )
-        is MeasurementModelFamily.IRT_4PLM
-    )
-    assert (
-        default_dichotomous_model_family(
-            MeasurementDomain.GAMBLING_GAMING_RISK,
-            lower_asymptote_justified=True,
-        )
-        is None
-    )
-
-
-def test_conflicting_model_mechanisms_fail_closed() -> None:
-    """Mutually incompatible model rationales never resolve by parameter precedence."""
-    assert (
-        default_dichotomous_model_family(
-            MeasurementDomain.EDUCATIONAL,
-            rasch_requirements_intended=True,
-            lower_asymptote_justified=True,
-        )
-        is None
-    )
-    assert (
-        default_dichotomous_model_family(
-            MeasurementDomain.GAMBLING_GAMING_RISK,
-            rasch_requirements_intended=True,
-            lower_asymptote_justified=True,
-            upper_asymptote_justified=True,
-        )
-        is None
-    )
+def test_unscored_state_rejects_a_binary_payload_at_the_constructor_boundary() -> None:
+    """Direct construction cannot bypass the unscored-state invariant."""
+    with pytest.raises(ValueError, match="must not carry"):
+        DichotomousObservation(DichotomousObservationState.MISSING, 0)

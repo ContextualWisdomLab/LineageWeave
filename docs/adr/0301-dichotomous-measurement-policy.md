@@ -14,11 +14,9 @@ Collapsing missingness or adjudication into a numeric response corrupts the meas
 
 1. New evaluative instruments use dichotomous observations by default. `0` means the versioned not-supported criterion is met; `1` means the versioned supported criterion is met. Missing, not-observable, abstain, invalid-evidence, and adjudication-required states remain outside the binary response.
 2. The normal production model-family identifiers are `rasch`, `irt_2plm`, `irt_3plm`, and `irt_4plm`. Rasch is not an alias for generic 1PL logistic IRT. Generic `irt_1pl_logistic` is not exposed without a future superseding scientific ADR.
-3. Educational measurement selects Rasch only when Rasch requirements are intended. A 3PLM is eligible only when a lower-asymptote/guessing mechanism is substantively justified. If neither is defensible, model selection fails closed.
-4. Psychology/SEM-lineage dichotomous measurement defaults to 2PLM when item discrimination may vary.
-5. Gambling/gaming-risk or analogous use may select 4PLM only when both lower- and upper-asymptote mechanisms are substantively justified and identifiable. Better likelihood alone is insufficient.
-6. Draft and pilot instruments may preserve observations without a latent scoring model. A published instrument must bind a model family and an activation-evidence reference. Insufficient evidence preserves observations without issuing a latent score.
-7. This repository's policy contract performs no numerical estimation. fast-mlsirm owns reusable psychometric kernels and recovery diagnostics; TEPP owns temporal/event/multilevel measurement semantics; contextual-orchestrator owns all LLM model/provider routing and judge orchestration.
+3. LineageWeave does not infer a model family from a product domain, item label, or hand-authored mechanism flags. Model selection remains unavailable until an administrator explicitly binds a family to evidence from the intended use and the owning psychometric runtime validates the corresponding recovery contract.
+4. Draft and pilot instruments may preserve observations without a latent scoring model. A published instrument must bind a model family and an activation-evidence reference. Insufficient evidence preserves observations without issuing a latent score.
+5. This repository's policy contract performs no numerical estimation. fast-mlsirm owns reusable psychometric kernels and recovery diagnostics; TEPP owns temporal/event/multilevel measurement semantics; contextual-orchestrator owns all LLM model/provider routing and judge orchestration.
 
 ## Activation evidence
 
@@ -34,4 +32,18 @@ Operational scoring is fail-closed. The administrator must bind evidence appropr
 
 ## Verification
 
-`tests/test_measurement_policy.py` protects binary response semantics, missing/abstain separation, Rasch/2PLM/3PLM/4PLM identifiers, domain-default rules, and fail-closed publication activation. `tests/test_ddd_architecture_fitness.py` separately rejects Rasch↔1PL shorthand in production runtime vocabulary.
+`tests/test_measurement_policy.py` protects binary response semantics, missing/abstain separation, Rasch/2PLM/3PLM/4PLM identifiers, and fail-closed publication activation. `tests/test_ddd_architecture_fitness.py` separately rejects Rasch↔1PL shorthand in production runtime vocabulary.
+
+## References (APA 7th)
+
+American Educational Research Association, American Psychological
+Association, & National Council on Measurement in Education. (2014).
+*Standards for educational and psychological testing*. American
+Educational Research Association.
+
+Birnbaum, A. (1968). Some latent trait models and their use in inferring an
+examinee's ability. In F. M. Lord & M. R. Novick, *Statistical theories of
+mental test scores* (pp. 397–479). Addison-Wesley.
+
+Lord, F. M. (1980). *Applications of item response theory to practical
+testing problems*. Lawrence Erlbaum Associates.

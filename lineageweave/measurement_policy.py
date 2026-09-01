@@ -24,14 +24,6 @@ class MeasurementModelFamily(StrEnum):
     IRT_4PLM = "irt_4plm"
 
 
-class MeasurementDomain(StrEnum):
-    """Domain contexts that determine the default dichotomous model policy."""
-
-    EDUCATIONAL = "educational"
-    PSYCHOLOGY_SEM = "psychology_sem"
-    GAMBLING_GAMING_RISK = "gambling_gaming_risk"
-
-
 class InstrumentLifecycle(StrEnum):
     """Governed lifecycle of a versioned measurement instrument."""
 
@@ -138,41 +130,3 @@ class DichotomousObservation:
         if state is DichotomousObservationState.OBSERVED:
             raise ValueError("observed state requires an explicit 0 or 1 response")
         return cls(state, None)
-
-
-def default_dichotomous_model_family(
-    domain: MeasurementDomain,
-    *,
-    rasch_requirements_intended: bool = False,
-    lower_asymptote_justified: bool = False,
-    upper_asymptote_justified: bool = False,
-) -> MeasurementModelFamily | None:
-    """Return the governed default family when its mechanism is explicit.
-
-    ``None`` is a deliberate fail-closed result: the observations may be kept,
-    but LineageWeave must not invent a latent score until a scientifically
-    defensible model is selected and activated. This function selects policy;
-    it performs no numerical psychometric computation.
-    """
-    if domain is MeasurementDomain.EDUCATIONAL:
-        if rasch_requirements_intended:
-            if lower_asymptote_justified or upper_asymptote_justified:
-                return None
-            return MeasurementModelFamily.RASCH
-        if lower_asymptote_justified and not upper_asymptote_justified:
-            return MeasurementModelFamily.IRT_3PLM
-        return None
-
-    if domain is MeasurementDomain.PSYCHOLOGY_SEM:
-        if rasch_requirements_intended or lower_asymptote_justified or upper_asymptote_justified:
-            return None
-        return MeasurementModelFamily.IRT_2PLM
-
-    if domain is MeasurementDomain.GAMBLING_GAMING_RISK:
-        if rasch_requirements_intended:
-            return None
-        if lower_asymptote_justified and upper_asymptote_justified:
-            return MeasurementModelFamily.IRT_4PLM
-        return None
-
-    return None
