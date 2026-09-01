@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 from uuid import UUID
 
 import backend.app.affiliate_tree_ingestion as ingestion
@@ -130,6 +130,69 @@ def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> Non
     assert asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1")) == []
     fetch_aliases.assert_awaited_once_with(conn)
     fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=aliases)
+
+
+def test_affiliate_forest_bounds_alias_lookup_to_unresolved_names(monkeypatch) -> None:
+    """Alias resolution must not materialize unrelated organization aliases."""
+    demo_id = UUID("00000000-0000-0000-0000-000000000002")
+    aliases = (OrganizationNameAlias("Demo Co", "Demo Corp", str(demo_id)),)
+    raw_keymen = [
+        {
+            "person_id": "ada",
+            "person_name": "Ada West",
+            "person_side_code": "our_side",
+            "affiliations": [
+                {
+                    "organization_name": "Demo Co",
+                    "corporate_entity_id": None,
+                }
+            ],
+        }
+    ]
+    resolved_keymen = [
+        {
+            "person_id": "ada",
+            "person_name": "Ada West",
+            "person_side_code": "our_side",
+            "affiliations": [
+                {
+                    "organization_name": "Demo Corp",
+                    "corporate_entity_id": str(demo_id),
+                }
+            ],
+        }
+    ]
+
+    class _Connection:
+        async def fetch(self, query: str, *_args: object):
+            assert "with recursive affiliate_entity" in query.lower()
+            return [
+                {
+                    "corporate_entity_id": demo_id,
+                    "parent_entity_id": None,
+                    "entity_name": "Demo Corp",
+                    "entity_level_code": "company",
+                }
+            ]
+
+    fetch_aliases = AsyncMock(return_value=aliases)
+    fetch_keymen = AsyncMock(side_effect=[raw_keymen, resolved_keymen])
+    attach_labels = AsyncMock()
+    monkeypatch.setattr(ingestion, "fetch_corroborated_organization_aliases", fetch_aliases)
+    monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
+    monkeypatch.setattr(ingestion, "_attach_lookup_labels", attach_labels)
+
+    forest = asyncio.run(ingestion.fetch_affiliate_forest(_Connection(), "post-1"))
+
+    fetch_aliases.assert_awaited_once_with(
+        call.__self__ if False else _Connection(),
+        organization_names=("Demo Co",),
+    )
+    assert fetch_keymen.await_args_list == [
+        call(fetch_keymen.call_args_list[0].args[0], "post-1", organization_aliases=()),
+        call(fetch_keymen.call_args_list[1].args[0], "post-1", organization_aliases=aliases),
+    ]
+    assert forest[0]["entity_name"] == "Demo Corp"
 
 
 def test_affiliate_forest_loads_only_resolved_affiliation_ancestor_closure(monkeypatch) -> None:
