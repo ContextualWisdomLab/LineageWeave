@@ -66,4 +66,25 @@ describe("layoutLineageDag locale independence", () => {
       { group: "", heading: "Ungrouped", nodeIds: ["loose"] },
     ]);
   });
+
+  it("renders whitespace-only raw group identities with a visible Ungrouped heading", () => {
+    const graph: LineageGraph = {
+      nodes: [
+        groupNode("spaces", "   "),
+        groupNode("tab", "\t"),
+      ],
+      edges: [],
+    };
+
+    expect(
+      layoutLineageDag(graph).map(({ group, heading, nodes }) => ({
+        group,
+        heading,
+        nodeIds: nodes.map(({ id }) => id),
+      })),
+    ).toEqual([
+      { group: "\t", heading: "Ungrouped", nodeIds: ["tab"] },
+      { group: "   ", heading: "Ungrouped", nodeIds: ["spaces"] },
+    ]);
+  });
 });
