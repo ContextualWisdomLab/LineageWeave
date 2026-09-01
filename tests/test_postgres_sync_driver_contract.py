@@ -1,9 +1,10 @@
 """Commercial-license and compatibility contract for synchronous PostgreSQL tooling.
 
 LineageWeave's runtime uses asyncpg, but seed/admin/schema tooling still needs a
-small synchronous DB-API boundary.  This contract prevents that boundary from
+small synchronous DB-API boundary. This contract prevents that boundary from
 silently reintroducing the former psycopg2-binary dependency and locks the
-behaviour that generated database/role identifiers and PostgreSQL DSNs rely on.
+behaviour that generated database/role identifiers, PostgreSQL DSNs, and
+constraint/security assertions rely on.
 """
 
 from __future__ import annotations
@@ -13,7 +14,13 @@ from pathlib import Path
 
 import pytest
 
-from lineageweave.postgres_sync import connection_kwargs_from_dsn, sql
+from lineageweave.postgres_sync import (
+    DatabaseError,
+    _translated_error,
+    connection_kwargs_from_dsn,
+    errors,
+    sql,
+)
 
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -71,3 +78,23 @@ def test_unknown_dsn_query_option_fails_closed() -> None:
         connection_kwargs_from_dsn(
             "postgresql://alice:secret@db.example/archive?target_session_attrs=read-write"
         )
+
+
+@pytest.mark.parametrize(
+    ("sqlstate", "expected_type"),
+    (
+        ("23502", errors.NotNullViolation),
+        ("23505", errors.UniqueViolation),
+        ("23514", errors.CheckViolation),
+        ("23P01", errors.ExclusionViolation),
+        ("42501", errors.InsufficientPrivilege),
+        ("P0001", errors.RaiseException),
+    ),
+)
+def test_schema_fixture_sqlstates_keep_typed_error_contract(
+    sqlstate: str,
+    expected_type: type[BaseException],
+) -> None:
+    """Migrated tests still distinguish integrity, privilege, and trigger failures."""
+    translated = _translated_error(DatabaseError({"C": sqlstate, "M": "synthetic"}))
+    assert isinstance(translated, expected_type)
