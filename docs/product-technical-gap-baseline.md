@@ -2,7 +2,7 @@
 
 > Current exact-head overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through head `3d003db622d11b16b92e8b4f64c69c442880d093`. The PR is
+> through head `fb897fb243fffc8de9f61df3f05c7601c9c6ac0b`. The PR is
 > blocked, still requires review, and has required checks queued; auto-merge is
 > off. The repository has 98 open
 > PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
@@ -24,8 +24,10 @@
 > `cf3c4cdde8f937ae2aab160358a124be9ec15222` adds exact request-scoped endpoint
 > routing and the OpenAI JSON probe contract. Its isolated LineageWeave candidate
 > returned conforming Chat Completions and Responses objects through the configured
-> endpoint; hosted review and canonical promotion remain pending. Canonical Compose
-> therefore still retains `e6329db1b9d0fb59b23cf63b4e4b056743b8a5da`. Org workflow PR #1507
+> endpoint. The isolated administrator readiness gate passed and canonical Compose
+> now runs that exact revision; post-scoped Responses correlation also passed through
+> OpenAI-compatible metadata without an unknown top-level field. This is runtime
+> evidence, while hosted review and protected upstream delivery remain pending. Org workflow PR #1507
 > is the open fail-closed Noema repair gate; its own required checks are not terminal.
 > Terminal retry and unbounded continuation remain mutually exclusive, so each
 > admitted page must settle before another page is selected.
