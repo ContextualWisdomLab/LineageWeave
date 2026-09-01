@@ -5,6 +5,7 @@ export const ROW_H = 52;
 export const PAD = 28;
 
 const UUID_GROUP = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EXPLICIT_TIME_OFFSET = /(?:[zZ]|[+-]\d{2}:\d{2})$/;
 
 export interface PositionedNode extends LineageGraphNode {
   x: number;
@@ -34,16 +35,16 @@ function stableTextCompare(left: string, right: string): number {
 }
 
 /**
- * Normalize a parseable event timestamp to its represented UTC instant.
+ * Normalize an explicitly offset-bearing event timestamp to its represented UTC instant.
  *
- * ISO-8601 strings with different offsets can represent the same or an earlier
- * instant while sorting in the opposite lexical order. Invalid or legacy
- * timestamp strings keep their raw value so presentation remains deterministic
- * without inventing a time that the source did not provide.
+ * RFC 3339 offsets can make lexical order disagree with event-instant order. Offsetless
+ * source timestamps are intentionally left raw: JavaScript would otherwise interpret
+ * them in the browser's local timezone and make presentation depend on runtime location.
+ * Invalid legacy values also stay raw rather than receiving an invented instant.
  */
 function stableOccurredAtSortKey(occurredAt: string | null | undefined): string {
   const raw = occurredAt ?? "";
-  if (!raw) return raw;
+  if (!raw || !EXPLICIT_TIME_OFFSET.test(raw)) return raw;
   const instant = Date.parse(raw);
   return Number.isFinite(instant) ? new Date(instant).toISOString() : raw;
 }
