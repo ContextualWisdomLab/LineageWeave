@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop snapshot: 2026-09-01 15:40 KST. Protected
+> Exact-head development-loop snapshot: 2026-09-01 15:49 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 101 PRs and 12
 > non-PR issues are open. Calendar ownership has an executable core candidate
 > in CalendarWeave draft PR #3 at
@@ -11,9 +11,13 @@
 > Stacked draft PR #4 at exact head
 > `c98f20a06f3c79d52d9307bb2ff56f45f7c326d9` adds a three-normal-form
 > PostgreSQL store with append-only revisions, restart idempotency, and real
-> concurrent create and conditional-update evidence. Its local line and branch
-> coverage is 100%, while hosted Rust and coverage jobs remain queued.
-> Neither candidate is protected-main or released evidence. They do not yet
+> concurrent create and conditional-update evidence. Stacked draft PR #5 at
+> exact head `1817f8d3a39d0559b66c4c4d49e03b9fa03aed99` adds bounded IANA
+> TZID interval validation, including ambiguous and nonexistent local-time
+> rejection, through the shared parser and durable adapter. Local line and
+> branch coverage remains 100%, while hosted Rust and coverage jobs remain
+> queued. None of these candidates is protected-main or released evidence.
+> They do not yet
 > provide an authenticated operated service, backup/restore acceptance, CalDAV
 > sync, provider parity, or consumer migration evidence, and therefore do not
 > close LineageWeave issue #900 or CalendarWeave issue #2.
