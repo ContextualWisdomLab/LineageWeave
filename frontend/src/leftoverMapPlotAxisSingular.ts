@@ -49,6 +49,9 @@
  *  ADR 0349 names leftover-map origin on leftover-map comparison graphic leftover-map post leftover-map
  *  person coordinates as leftoverMapComparePlotPostBadge independently of leftover-map graphic leftover-map post leftover-map
  *  origin leftover-map person coordinates, not leftoverMapPlotTickAxisBadge.
+ *  ADR 0350 names leftover-map origin on leftover-map comparison graphic leftover-map criterion leftover-map
+ *  item coordinates as leftoverMapComparePlotCriterionBadge independently of leftover-map comparison graphic leftover-map post leftover-map
+ *  origin leftover-map person coordinates, not leftoverMapPlotTickAxisBadge.
  */
 
 import type { LeftoverMapAxis } from "./api";

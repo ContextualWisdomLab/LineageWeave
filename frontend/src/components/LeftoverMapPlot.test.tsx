@@ -1000,8 +1000,13 @@ describe("LeftoverMapPlot", () => {
       />,
     );
     expect(
-      screen.getByLabelText("leftover map comparison graphic leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
+      screen.getByLabelText(
+        "leftover map comparison graphic leftover-map criterion sales-lead at leftover-map origin ζ (0.00, 0.00)",
+      ),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover map comparison graphic leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "Open leftover map comparison graphic leftover-map post Public post at leftover-map origin ξ (0.00, 0.00)",

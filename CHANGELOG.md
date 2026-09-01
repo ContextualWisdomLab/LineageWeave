@@ -8,8 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Period leftover pairs now caption leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates
-  through leftoverMapComparePlotPostBadge independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates (ADR 0349 / v2.106.0). After `make seed`, leftover-map comparison graphic leftover-map
+- Period leftover pairs now caption leftover-map comparison graphic leftover-map criterion leftover-map origin leftover-map item coordinates
+  through leftoverMapComparePlotCriterionBadge independently of leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates (ADR 0350 / v2.107.0). After `make seed`, leftover-map comparison graphic leftover-map
+  criterion leftover-map origin leftover-map item coordinates name leftover-map origin when leftoverMapPlotCoordinatePairIsOrigin returns true. Distinct accessible name
+  `leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+  Non-origin leftover-map comparison graphic leftover-map criterion leftover-map item coordinates stay
+  `leftover map comparison graphic leftover-map criterion {label} at ζ {item}`. leftoverMapPlotCriterionBadge stays leftover-map graphic leftover-map
+  criterion leftover-map origin leftover-map item coordinate keys. leftoverMapComparePlotPostBadge stays leftover-map comparison graphic leftover-map
+  post leftover-map origin leftover-map person coordinate keys this increment. Do not invent leftover-map origin from leftover-map person coordinates `ξ`.
+  Do not mix #877. A finite negative leftover is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
+
   post leftover-map origin leftover-map person coordinates name leftover-map origin when leftoverMapPlotCoordinatePairIsOrigin returns true. Distinct accessible name
   `Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
   Non-origin leftover-map comparison graphic leftover-map post leftover-map person coordinates stay
