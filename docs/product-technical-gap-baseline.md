@@ -2,7 +2,7 @@
 
 > Current exact-head overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; PR #640 evidence is current
-> through head `fb897fb243fffc8de9f61df3f05c7601c9c6ac0b`. The PR is
+> through head `006efe7c9165954d7b0d133a0b7f951895e840d9`. The PR is
 > blocked, still requires review, and has required checks queued; auto-merge is
 > off. The repository has 98 open
 > PRs, including 6 drafts, and 10 open issues. This current overlay supersedes the older dated
@@ -15,21 +15,21 @@
 > switching, and zero browser, request, or HTTP errors on the Dashboard and idle
 > Ask surface. The bounded 100-record page is terminal with no queued or running
 > rows and no later page was admitted; failures remain retryable only after their
-> typed root causes are repaired. PR #970 in
-> contextual-orchestrator is at `8c6787886cf452fc55eeeb19aea44a030dcabe5c`;
-> its unit, contract, security, and supply-chain code checks passed, but the required
-> Noema review failed, coverage remained queued, and review is still required. The
-> authoritative-environment acceptance returned HTTP 401, so that base alone was not
-> eligible for promotion. Stacked upstream PR #990 at
-> `2ea70dc0386b2f2417da64c07b0151c8a6fc8466` adds exact request-scoped endpoint
+> typed root causes are repaired. contextual-orchestrator PR #970 is at
+> `3f6fce20ec1a0475f36f775786979b9b7d808ecf`; required checks and
+> independent review remain pending. Stacked upstream PR #990 merged normally
+> into that base; its exact source head
+> `c25712646bb25d0d30e4a5146ca9ea54669dfdf6` adds exact request-scoped endpoint
 > routing, the OpenAI JSON probe contract, and single-copy caller prompt
 > preservation. Its isolated LineageWeave candidate
 > returned conforming Chat Completions and Responses objects through the configured
 > endpoint. The isolated administrator readiness gate passed and canonical Compose
 > now runs that exact revision; post-scoped Responses correlation also passed through
 > OpenAI-compatible metadata without an unknown top-level field. This is runtime
-> evidence, while hosted review and protected upstream delivery remain pending. Org workflow PR #1507
-> merged normally; central Pingora policy PR #1466 is mergeable and awaits fresh checks/review.
+> and stacked-base evidence, while protected-main upstream delivery remains pending.
+> Org workflow PR #1507 merged normally; central Pingora policy PR #1466 is at
+> `7ffc89d7f76f26535602ffd29dcb19f4af00a50f`, mergeable, and awaits fresh
+> checks plus replacement of its stale changes-requested review.
 > Terminal retry and unbounded continuation remain mutually exclusive, so each
 > admitted page must settle before another page is selected.
 >
@@ -44,6 +44,12 @@
 > implementation terminology. After applying the shared 44-pixel touch-target
 > token, every visible Dashboard/global control met that minimum; desktop and
 > mobile authenticated browser flows and the production frontend build passed.
+> The populated Dashboard Storybook scene now exposes cited actions for all eight
+> required claim and rebid/handover questions; its missing-fact scene independently
+> proves fail-closed Sales-pool guidance. The frontend suite passed 605 tests and the
+> Storybook production build completed. Authenticated non-empty Ask citations,
+> grounded runtime detail cards, authoritative journey reconciliation, and a manual
+> screen-reader audit remain open acceptance evidence.
 >
 > PostgreSQL's measured state retains `read committed` isolation with `fsync`,
 > full-page writes, and synchronous commit enabled. The evidence-bound tuning
@@ -692,14 +698,16 @@ requires the ADR 0001 incident process and security/privacy-owner coordination;
 never force-push or delete evidence ad hoc.
 
 The former central caller PRs ContextualWisdomLab/.github#1259 and #1288 both
-closed without merge and therefore are not scheduler evidence. Open
-ContextualWisdomLab/.github#1380 is a bounded hourly PR review-and-repair caller;
-it does not discover or implement product gaps. LineageWeave still has no
-local, manual opt-in entrypoint for commercial product-development work. The
-central commercial coordinator's maintainer mutation credential was
-unavailable or unverified at the last bounded runtime and failed before
-repository inventory, so autonomous hourly product development remains an
-explicit unverified gap; no credential is inferred or added here.
+closed without merge and therefore are not scheduler evidence. PR #1380 merged
+normally at head `9ffd7bec`: its `4 * * * *` caller performs one bounded
+OpenCode/contextual-orchestrator PR review-and-repair dispatch without
+`COPILOT_GITHUB_TOKEN`, and the two-hour unchanged-head retry prevents overlap
+with multi-hour workers. It does not discover or implement product gaps.
+LineageWeave still lacks the explicit commercial-development entrypoint marker,
+and the latest central coordinator failed closed before repository inventory
+because `PR_REVIEW_MERGE_TOKEN` was absent. Autonomous hourly product
+development therefore remains unavailable; no credential or repository opt-in
+is inferred or added here.
 ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
 repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
 still prove the runtime behavior because merged workflow source alone is not
@@ -936,7 +944,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **DiskSage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and bounded hourly PR review/repair (#1380 candidate). This does not replace a commercial product-gap coordinator. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and merged bounded hourly PR review/repair (#1380). This does not replace a commercial product-gap coordinator. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
 
