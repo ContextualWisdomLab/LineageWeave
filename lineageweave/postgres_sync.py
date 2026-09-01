@@ -284,10 +284,16 @@ class Connection:
 
 
 def connect(dsn: str, *, connect_timeout: float | int | None = None) -> Connection:
-    """Open the repository's synchronous pg8000 connection boundary."""
+    """Open the repository's synchronous pg8000 connection boundary.
+
+    pg8000 reports transport failures as ``InterfaceError`` and PostgreSQL
+    startup refusals such as authentication/database errors as ``DatabaseError``.
+    Both occur before a connection exists and therefore preserve the historical
+    ``OperationalError`` contract used by reachability probes.
+    """
 
     kwargs = connection_kwargs_from_dsn(dsn, connect_timeout=connect_timeout)
     try:
         return Connection(_dbapi.connect(**kwargs))
-    except _dbapi.InterfaceError as exc:
+    except (_dbapi.InterfaceError, _dbapi.DatabaseError) as exc:
         raise OperationalError(*getattr(exc, "args", ())) from exc
