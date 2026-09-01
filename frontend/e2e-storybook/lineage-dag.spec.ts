@@ -89,6 +89,42 @@ test("operates lineage edge evidence from the keyboard", async ({ page }) => {
   await expect(page.locator("details").first()).toHaveAttribute("open", "");
 });
 
+test("keeps a 24px lineage-edge pointer corridor without duplicating the accessible control", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openStory(page, "lineage-lineagedag--connection-evidence");
+
+  const edge = page.getByRole("button", {
+    name: "Open connection evidence: Initial site visit and project scope discussion to Pricing renegotiation follow-up",
+  });
+  await expect(edge).toHaveCount(1);
+
+  const hit = page.locator(".lineage-dag-edge-hit").first();
+  await expect(hit).toHaveAttribute("aria-hidden", "true");
+  await expect(hit).toHaveAttribute("pointer-events", "stroke");
+  await expect(hit).toHaveAttribute("stroke-width", "24");
+
+  const point = await hit.evaluate((element) => {
+    const path = element as SVGPathElement;
+    const midpoint = path.getPointAtLength(path.getTotalLength() / 2);
+    const matrix = path.getScreenCTM();
+    if (!matrix) throw new Error("lineage edge has no screen transform");
+    return {
+      x: matrix.a * midpoint.x + matrix.c * midpoint.y + matrix.e,
+      y: matrix.b * midpoint.x + matrix.d * midpoint.y + matrix.f,
+    };
+  });
+
+  const targetClass = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y + 8)?.getAttribute("class") ?? "",
+    point,
+  );
+  expect(targetClass).toContain("lineage-dag-edge-hit");
+
+  await page.mouse.click(point.x, point.y + 8);
+  await expect(edge).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("details").first()).toHaveAttribute("open", "");
+});
+
 test("keeps parallel lineage edge evidence independently keyboard-selectable", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openStory(page, "lineage-lineagedag-parallel-edges--parallel-relationships");
