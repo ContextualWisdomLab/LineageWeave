@@ -107,6 +107,14 @@ def test_unknown_dsn_query_option_fails_closed() -> None:
         )
 
 
+def test_dsn_fragment_fails_closed_instead_of_being_silently_discarded() -> None:
+    """URI fragments are outside libpq's connection grammar and must not disappear."""
+    with pytest.raises(ValueError, match="must not include a fragment"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive#sslmode=require"
+        )
+
+
 def test_duplicate_dsn_query_option_fails_closed() -> None:
     """Conflicting duplicate options must not be collapsed by query parsing."""
     with pytest.raises(ValueError, match="duplicate PostgreSQL DSN option: sslmode"):
