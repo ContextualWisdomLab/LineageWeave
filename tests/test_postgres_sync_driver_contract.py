@@ -103,6 +103,15 @@ def test_dsn_query_options_are_mapped_without_silent_loss() -> None:
     assert kwargs["ssl_context"] is False
 
 
+@pytest.mark.parametrize("timeout_value", ("nan", "inf", "-inf"))
+def test_dsn_connect_timeout_must_be_finite(timeout_value: str) -> None:
+    """Non-finite timeouts must not disable or destabilize the network deadline."""
+    with pytest.raises(ValueError, match="finite positive"):
+        connection_kwargs_from_dsn(
+            f"postgresql://alice:secret@db.example/archive?connect_timeout={timeout_value}"
+        )
+
+
 def test_dsn_without_user_preserves_libpq_os_user_default(monkeypatch) -> None:
     """Existing admin DSNs without a username still use the local OS account."""
     monkeypatch.setattr("lineageweave.postgres_sync.getpass.getuser", lambda: "ci-runner")
