@@ -16,7 +16,9 @@ import pytest
 
 from lineageweave.postgres_sync import (
     DatabaseError,
+    OperationalError,
     _translated_error,
+    connect,
     connection_kwargs_from_dsn,
     errors,
     sql,
@@ -100,6 +102,22 @@ def test_duplicate_dsn_query_option_fails_closed() -> None:
         connection_kwargs_from_dsn(
             "postgresql://alice:secret@db.example/archive?sslmode=require&sslmode=disable"
         )
+
+
+def test_connect_translates_server_startup_failure_to_operational_error(monkeypatch) -> None:
+    """Server-side startup refusal must preserve the old reachability-probe contract."""
+    failure = DatabaseError({"C": "28P01", "M": "password authentication failed"})
+
+    def fail_connect(**_: object) -> None:
+        raise failure
+
+    monkeypatch.setattr("lineageweave.postgres_sync._dbapi.connect", fail_connect)
+
+    with pytest.raises(OperationalError) as raised:
+        connect("postgresql://alice:secret@db.example/archive")
+
+    assert raised.value.args == failure.args
+    assert raised.value.__cause__ is failure
 
 
 @pytest.mark.parametrize(
