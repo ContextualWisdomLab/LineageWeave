@@ -1,10 +1,14 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-02 KST. Protected `main` is
+> Exact-head observation overlay: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. PR #897 is
+> implemented through behavior-changing head
 > `419d099af60df2f275fd058bf42149700709f628`, mergeable, and protected by
 > normal squash auto-merge; exact-head Checks are queued and no qualifying
-> independent APPROVE exists. All review threads are resolved on this head.
+> independent APPROVE exists. The following documentation-only commit records
+> that observation; it does not claim its own recursively unknowable commit
+> identifier as the observed implementation head. All implementation review
+> threads were resolved at the observation.
 > Its accepted-receipt seed now also fails closed
 > when a reseed encounters an existing Running history and a conflicting
 > receipt: it appends `analysis_status_failed` /
