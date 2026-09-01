@@ -964,12 +964,17 @@ async def run_global_ask_worker(
         prepared = False
         if not identity_changed:
             model_identity, vector_dimension = current_identity
-            async with pool.acquire() as conn:
-                prepared = await exact_semantic_index.is_prepared_for(
-                    conn,
-                    model_identity=model_identity,
-                    vector_dimension=vector_dimension,
-                )
+            try:
+                async with pool.acquire() as conn:
+                    prepared = await exact_semantic_index.is_prepared_for(
+                        conn,
+                        model_identity=model_identity,
+                        vector_dimension=vector_dimension,
+                    )
+            except Exception:
+                if readiness is not None:
+                    invalidate_worker_readiness(readiness)
+                raise
         if identity_changed or not prepared:
             if readiness is not None and (
                 prepared_identity is not None or readiness.is_set()
