@@ -250,6 +250,16 @@ _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     / "migrations"
     / "0218_global_ask_public_verification.sql"
 )
+_ANALYSIS_RUN_TEPP_RECEIPT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0217_analysis_run_tepp_receipt.sql"
+)
+_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0233_source_conversation_turn_evidence.sql"
+)
 _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -449,6 +459,7 @@ def seeded_db(demo_analyst_token):
             )
             conn.autocommit = False
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
+            cur.execute(_ANALYSIS_RUN_TEPP_RECEIPT_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
@@ -460,6 +471,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_SOURCE_POST_VOICE_MIGRATION.read_text())
+            cur.execute(_SOURCE_CONVERSATION_TURN_EVIDENCE_MIGRATION.read_text())
             cur.execute(_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION.read_text())
             cur.execute(_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION.read_text())
             cur.execute(_SOURCE_POST_VOICE_HISTORY_MIGRATION.read_text())
