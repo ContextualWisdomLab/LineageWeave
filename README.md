@@ -58,14 +58,19 @@ The package does not assume a particular source schema. External channels such a
 
 ## Run the authenticated product stack
 
-For local product evaluation, use the repository Compose workflow:
+For local product evaluation, the Makefile deliberately uses `$HOME/.env` as the Compose environment boundary so provider credentials stay outside the repository. Do not replace or overwrite an existing home credential file. A clean local run needs only an empty owner-readable file because the default development profile already supplies throwaway local-only service defaults:
 
 ```bash
-cp .env.example .env
+if [ ! -e "$HOME/.env" ]; then
+  install -m 600 /dev/null "$HOME/.env"
+fi
+
 make up
-make seed
+KEYCLOAK_ADMIN_PASSWORD=admin_dev_only make seed
 make smoke
 ```
+
+If your existing `$HOME/.env` overrides `KEYCLOAK_ADMIN_PASSWORD`, export that same value in the shell before `make seed` instead of using the shown development default. Optional contextual-orchestrator/provider settings also belong in the existing home environment boundary; add only the values you intend to manage and preserve unrelated existing entries.
 
 This starts the repository-owned development stack and verifies the local identity round trip. Demo identities and seeded records are synthetic development fixtures, not production customer data or deployment evidence.
 
@@ -144,14 +149,7 @@ pip install -e '.[dev]'
 pytest
 ```
 
-For the local product stack:
-
-```bash
-make up
-make seed
-make smoke
-make down
-```
+For the local product stack, use the same `$HOME/.env` boundary described above. After `make up`, make the effective local Keycloak administrator password available to the seed process, then run `make seed`, `make smoke`, and `make down`.
 
 Hosted checks on the unchanged pull-request head remain the authority for integration. A successful local command, synthetic fixture, benchmark, or predecessor-head check is not promoted into release, deployment, customer, or production-readiness evidence.
 
