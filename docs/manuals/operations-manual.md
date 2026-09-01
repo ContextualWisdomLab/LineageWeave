@@ -59,7 +59,8 @@ revision. Declare `ALLOW_PROVIDER_CALLS=1`, the full
 `EXPECTED_ORCHESTRATOR_REVISION`, and bounded startup, per-agent probe, and
 readiness observation times. The script builds and starts an isolated
 candidate with the current `~/.env`, verifies its revision label, and requires
-authenticated structured readiness before recreating the canonical service.
+at least one authenticated configured-gateway model from the upstream
+administrator readiness report before recreating the canonical service.
 The existing canonical service remains untouched when preflight fails.
 
 If preflight reports HTTP 401 or that the configured gateway did not
@@ -71,16 +72,12 @@ change the expected revision, or recreate the canonical service to bypass the
 failure.
 
 For authenticated runtime acceptance, start the exact-revision stack with the
-MCP profile and declare separate provider-probe and readiness-observation
-budgets. `ORCHESTRATOR_PROBE_TIMEOUT_SECONDS` accepts 0.1 through 30 seconds;
-`ORCHESTRATOR_READINESS_TIMEOUT_SECONDS` is the positive-integer wall-clock
-budget for the asynchronous job. The acceptance runner reads the cached agent
-catalog inside the orchestrator container, probes only active agents belonging
-to the configured gateway for the structured workflow used by content
-analysis, and fails closed if no such agent becomes ready. While the job is
-pending, the runner accepts only the positive integer polling cadence declared
-by contextual-orchestrator (upstream PR #907) and never substitutes a local
-polling interval.
+MCP profile and declare the bounded readiness observation budget. The
+promotion runner asks contextual-orchestrator's administrator readiness
+endpoint to refresh its own provider probes and fails closed unless at least
+one configured-gateway model authenticates. It never calls the configured
+provider directly, persists the ephemeral administrator credential, or
+recreates the canonical service before the isolated candidate passes.
 
 Declare `OPERATIONS_CASE_ACCEPTANCE_TIMEOUT_SECONDS` and
 `OPERATIONS_CASE_POLL_SECONDS` as separate positive-integer observation inputs.

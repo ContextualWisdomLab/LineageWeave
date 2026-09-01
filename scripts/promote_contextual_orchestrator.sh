@@ -32,7 +32,12 @@ image_revision="$(docker image inspect "$image_ref" --format '{{index .Config.La
   exit 1
 }
 
-docker compose run -d --no-deps --name "$preflight_container" orchestrator >/dev/null
+CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN
+docker compose run -d --no-deps \
+  -e CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN \
+  --name "$preflight_container" orchestrator >/dev/null
+unset CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN
 startup_deadline=$((SECONDS + ORCHESTRATOR_STARTUP_TIMEOUT_SECONDS))
 until [[ "$(docker inspect "$preflight_container" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}')" == "healthy" ]]; do
   (( SECONDS < startup_deadline )) || { echo "candidate orchestrator did not become healthy" >&2; exit 1; }

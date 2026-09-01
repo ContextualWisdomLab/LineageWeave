@@ -23,18 +23,18 @@ def test_promotion_probes_current_compose_env_before_recreate() -> None:
     assert "docker run" not in script
     assert "LLM_GATEWAY_API_KEY" not in script
     assert "LLM_GATEWAY_API_URL" not in script
+    assert "-e CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN" in script
     assert "docker rm -f \"$preflight_container\"" in script
 
 
-def test_readiness_uses_orchestrator_admin_boundary_and_server_cadence() -> None:
-    """Preflight must not call a provider directly or invent polling cadence."""
+def test_readiness_uses_orchestrator_admin_refresh_boundary() -> None:
+    """Preflight must use the orchestrator's authenticated refresh contract."""
     verifier = (_ROOT / "scripts" / "verify_orchestrator_provider_readiness.py").read_text()
-    assert "/api/v1/provider_readiness/latest" in verifier
-    assert "/api/v1/provider_readiness_refreshes" in verifier
+    assert "/api/v1/provider_readiness/latest?refresh=true" in verifier
+    assert "/api/v1/provider_readiness_refreshes" not in verifier
     assert '"provider") == "configured_gateway"' in verifier
-    assert '"capability_code": "structured"' in verifier
-    assert "time.sleep(poll_after_ms / 1000)" in verifier
-    assert "CONTEXTUAL_ORCHESTRATOR_TOKEN" in verifier
+    assert 'item.get("status") == "ready"' in verifier
+    assert "CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN" in verifier
     assert "LLM_GATEWAY_API_KEY" not in verifier
     assert "LLM_GATEWAY_API_URL" not in verifier
 
@@ -53,12 +53,18 @@ def test_auth_failed_configured_gateway_blocks_promotion(monkeypatch: pytest.Mon
 
 
 def test_ready_configured_gateway_allows_promotion(monkeypatch: pytest.MonkeyPatch) -> None:
-    """One authoritative structured-ready result satisfies preflight."""
-    responses = iter(
-        [
-            {"items": [{"provider": "configured_gateway", "status": "unknown", "agent_id": "synthetic-agent"}]},
-            {"job_id": "synthetic-job", "status": "completed", "ready_count": 1},
-        ]
+    """One authoritative ready result satisfies preflight."""
+    monkeypatch.setattr(
+        readiness,
+        "_request",
+        lambda *_args, **_kwargs: {
+            "items": [
+                {
+                    "provider": "configured_gateway",
+                    "status": "ready",
+                    "agent_id": "synthetic-agent",
+                }
+            ]
+        },
     )
-    monkeypatch.setattr(readiness, "_request", lambda *_args, **_kwargs: next(responses))
     readiness.verify("synthetic-container", 1.0, 5)

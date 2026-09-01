@@ -61,7 +61,10 @@ def main() -> None:
     auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")
-    admin_token = secrets.token_urlsafe(48)
+    admin_token = (
+        os.environ.pop("CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN", "").strip()
+        or secrets.token_urlsafe(48)
+    )
 
     provider_url = _pop_first_env("LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL", "LLM_API_GATEWAY")
     if not provider_url:

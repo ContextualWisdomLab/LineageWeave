@@ -17,12 +17,12 @@ multi-agent.
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
 commit `cf3c4cdde8f937ae2aab160358a124be9ec15222` from upstream PR #988,
 stacked on PR #970.
-The candidate pin supplies exact `Retry-After` admission deferral,
-rate-budget-derived readiness polling cadence, and endpoint-scoped structured
-admission. The replacement retains provider-backed embedding batches on the
-current authentication and provider-error taxonomy. Readiness measures both the internal JSON-Schema judge and the
-final JSON-object transport before a synthesizer can serve structured output;
-an explicitly requested non-admitted model fails closed. PRs #970 and #988
+The candidate pin supplies endpoint-scoped Chat Completions and Responses
+routing. It rejects an unavailable requested endpoint instead of silently
+using another provider, and its structured gateway probe satisfies the
+provider's JSON-object request contract. The replacement retains
+provider-backed embedding batches on the current authentication and
+provider-error taxonomy. PRs #970 and #988
 remain open, so neither the candidate pin nor local runtime evidence is
 protected upstream release evidence. The pin remains explicit and
 immutable until the reviewed upstream change is superseded; it is not a moving
