@@ -153,6 +153,7 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
 
 /** Reconstruct group that contains `postId` -- the popup DAG must not mix A-100 with B-200. */
 export function subgraphForPost(graph: LineageGraph, postId: string): LineageGraph {
+  indexNodesById(graph.nodes);
   const focus = graph.nodes.find((node) => node.id === postId);
   if (!focus) {
     return { nodes: [], edges: [] };
