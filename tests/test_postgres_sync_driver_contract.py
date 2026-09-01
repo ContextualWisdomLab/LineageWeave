@@ -112,6 +112,12 @@ def test_explicit_zero_dsn_port_fails_closed() -> None:
         )
 
 
+def test_hostless_dsn_fails_closed_instead_of_switching_to_tcp() -> None:
+    """A libpq Unix-socket DSN must not silently become localhost TCP."""
+    with pytest.raises(ValueError, match="host"):
+        connection_kwargs_from_dsn("postgresql:///archive")
+
+
 @pytest.mark.parametrize("timeout_value", ("nan", "inf", "-inf"))
 def test_dsn_connect_timeout_must_be_finite(timeout_value: str) -> None:
     """Non-finite timeouts must not disable or destabilize the network deadline."""
