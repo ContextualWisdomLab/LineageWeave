@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { CustomerMasterEntity } from "./api";
-import { buildCustomerEntityTree } from "./customerEntityTree";
+import {
+  buildCustomerEntityTree,
+  customerHierarchyIssueMessage,
+} from "./customerEntityTree";
 
 function entity(
   id: string,
@@ -66,5 +69,25 @@ describe("buildCustomerEntityTree", () => {
     expect(
       buildCustomerEntityTree(rows)[0].children.map((child) => child.entity.corporate_entity_id),
     ).toEqual(["corp-a", "corp-z"]);
+  });
+});
+
+describe("customerHierarchyIssueMessage", () => {
+  it("does not disclose the unavailable parent identifier", () => {
+    const message = customerHierarchyIssueMessage("parent_not_available");
+
+    expect(message).toBe(
+      "The parent is not available in this authorized view. This entity remains visible at the top level.",
+    );
+    expect(message).not.toContain("corp-hidden-parent");
+  });
+
+  it("explains why unsafe self and cycle edges were omitted", () => {
+    expect(customerHierarchyIssueMessage("self_parent_ignored")).toContain(
+      "self-parent relationship was ignored",
+    );
+    expect(customerHierarchyIssueMessage("cycle_parent_ignored")).toContain(
+      "parent cycle was ignored",
+    );
   });
 });
