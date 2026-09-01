@@ -83,10 +83,24 @@ class _Identifier:
         return _quote_identifier(self.value)
 
 
+def _render_sql_composable(value: object) -> str:
+    """Render only the adapter's explicitly safe dynamic SQL fragment types.
+
+    Raw strings are rejected because accepting them would turn ``SQL.format``
+    into an injection-capable text interpolation API. Callers must wrap dynamic
+    database and role names with ``Identifier``; static SQL fragments may use
+    ``SQL`` explicitly.
+    """
+
+    if isinstance(value, (_Identifier, _SQL)):
+        return str(value)
+    raise TypeError("SQL interpolation requires sql.Identifier or sql.SQL")
+
+
 class _SQL(str):
     def format(self, *args: object, **kwargs: object) -> str:
-        positional = tuple(str(value) for value in args)
-        named = {key: str(value) for key, value in kwargs.items()}
+        positional = tuple(_render_sql_composable(value) for value in args)
+        named = {key: _render_sql_composable(value) for key, value in kwargs.items()}
         return str(self).format(*positional, **named)
 
 
