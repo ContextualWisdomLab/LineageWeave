@@ -19,11 +19,10 @@ _ROLE_CATALOG_COLUMNS = (
 )
 _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
 _PRD_REQUIREMENT_HEADING = re.compile(r"^### (?P<identifier>PRD-FR-[0-9A-Z-]+)\b", re.MULTILINE)
-_PRD_ADR_CLAUSE = re.compile(r"\bADRs?\s+(?P<references>[^.;)]*)")
-_ADR_NUMBER_OR_RANGE = re.compile(
-    r"(?<![0-9])(?P<start>[0-9]{4})(?![0-9])"
-    r"(?:\s*[\u2013-]\s*(?P<end>[0-9]{4})(?![0-9]))?"
-)
+_PRD_ADR_MARKER = re.compile(r"\bADRs?\s+")
+_ADR_NUMBER = re.compile(r"(?P<number>[0-9]{4})(?!\w)")
+_ADR_RANGE_SEPARATOR = re.compile(r"\s*[\u2013-]\s*")
+_ADR_LIST_SEPARATOR = re.compile(r"\s*(?:,\s*(?:and\s+)?|/\s*|and\s+)")
 _PRIVATE_POST_IDENTIFIER = re.compile(
     r"(?i)"
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
@@ -50,20 +49,54 @@ def _adr_is_current(content: str) -> bool:
     return not status.startswith(("retired", "superseded by"))
 
 
+def _adr_number_at(content: str, cursor: int) -> tuple[str, int] | None:
+    """Read one standalone four-digit ADR number at an expected list position."""
+    match = _ADR_NUMBER.match(content, cursor)
+    if match is not None:
+        return match.group("number"), match.end()
+    malformed = re.match(r"[0-9]\w*", content[cursor:])
+    if malformed is not None:
+        raise ValueError(f"malformed ADR reference: {malformed.group(0)}")
+    return None
+
+
 def _referenced_adr_numbers(content: str) -> set[str]:
-    """Return complete direct ADR references, rejecting malformed numbers."""
+    """Return direct ADR reference lists without treating later prose as citations."""
     referenced_numbers: set[str] = set()
-    for clause in _PRD_ADR_CLAUSE.finditer(content):
-        references = clause.group("references")
-        malformed = [token for token in re.findall(r"[0-9]+", references) if len(token) != 4]
-        if malformed:
-            raise ValueError(f"malformed ADR reference: {malformed[0]}")
-        for reference in _ADR_NUMBER_OR_RANGE.finditer(references):
-            start = int(reference.group("start"))
-            end = int(reference.group("end") or start)
-            if start > end:
-                raise ValueError(f"descending ADR range: {start:04d}-{end:04d}")
+    for marker in _PRD_ADR_MARKER.finditer(content):
+        cursor = marker.end()
+        first = _adr_number_at(content, cursor)
+        if first is None:
+            continue
+        while True:
+            start_text, cursor = first
+            start = int(start_text)
+            end = start
+
+            range_separator = _ADR_RANGE_SEPARATOR.match(content, cursor)
+            if (
+                range_separator is not None
+                and range_separator.end() < len(content)
+                and content[range_separator.end()].isdigit()
+            ):
+                endpoint = _adr_number_at(content, range_separator.end())
+                if endpoint is None:
+                    raise ValueError("malformed ADR range endpoint")
+                end_text, cursor = endpoint
+                end = int(end_text)
+                if start > end:
+                    raise ValueError(f"descending ADR range: {start:04d}-{end:04d}")
+
             referenced_numbers.update(f"{number:04d}" for number in range(start, end + 1))
+
+            list_separator = _ADR_LIST_SEPARATOR.match(content, cursor)
+            if list_separator is None or list_separator.end() >= len(content):
+                break
+            if not content[list_separator.end()].isdigit():
+                break
+            first = _adr_number_at(content, list_separator.end())
+            if first is None:
+                break
     return referenced_numbers
 
 
@@ -154,10 +187,33 @@ def test_product_requirement_adr_references_exist() -> None:
 
 
 def test_product_requirement_adr_references_reject_partial_numbers() -> None:
-    """A valid sibling reference cannot hide a malformed direct ADR number."""
-    for malformed in ("ADR 02490, ADR 0250", "ADR 249, ADR 0250"):
+    """A valid sibling reference cannot hide a malformed direct ADR token."""
+    for malformed in (
+        "ADR 02490, ADR 0250",
+        "ADR 249, ADR 0250",
+        "ADR 0249a, ADR 0250",
+        "ADR 0249_foo, ADR 0250",
+    ):
         with pytest.raises(ValueError, match="malformed ADR reference"):
             _referenced_adr_numbers(malformed)
+
+
+def test_product_requirement_adr_references_stop_before_prose_numbers() -> None:
+    """Quantities after a complete ADR citation are prose, not malformed references."""
+    assert _referenced_adr_numbers("ADR 0249 governs 23 groups") == {"0249"}
+    assert _referenced_adr_numbers("ADR 0249 supports version 2 for 23 groups") == {"0249"}
+
+
+def test_product_requirement_adr_reference_lists_expand_ranges() -> None:
+    """Grouped ADR lists retain every standalone number and inclusive range member."""
+    assert _referenced_adr_numbers("ADRs 0249, 0250, and 0253\u20130255") == {
+        "0249",
+        "0250",
+        "0253",
+        "0254",
+        "0255",
+    }
+    assert _referenced_adr_numbers("ADRs 0249/0250") == {"0249", "0250"}
 
 
 def test_adr_product_requirement_references_exist() -> None:
