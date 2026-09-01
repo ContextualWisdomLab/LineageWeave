@@ -2,7 +2,7 @@
 
 OpenCode coverage-evidence runs in a networkless sandbox that supplies
 pytest and coverage but not LineageWeave's optional backend extras
-(``asyncpg``, ``psycopg2``, ``redis``, ``fast_mlsirm``, ``numpy``). Hosted CI
+(``asyncpg``, ``pg8000``, ``redis``, ``fast_mlsirm``, ``numpy``). Hosted CI
 installs those extras and collects every suite. This helper keeps
 collection from failing with ``ModuleNotFoundError`` when extras are
 absent, without skipping anything when they are present.
@@ -17,7 +17,7 @@ from pathlib import Path
 
 OPTIONAL_EXTRA_MODULES: tuple[str, ...] = (
     "asyncpg",
-    "psycopg2",
+    "pg8000",
     "redis",
     "fast_mlsirm",
     "numpy",
