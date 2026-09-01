@@ -352,6 +352,7 @@ def post_json(
                 request_payload,
                 include_orchestrator_session=(
                     service_peer_name == "contextual-orchestrator"
+                    and parsed_url.path != "/v1/responses"
                 ),
             ),
             headers=request_headers,

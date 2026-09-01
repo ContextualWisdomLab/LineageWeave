@@ -97,6 +97,39 @@ def test_orchestrator_session_is_stable_across_modalities_and_retries(monkeypatc
     assert requests[4][1]["session_id"] != first_session
 
 
+def test_responses_session_uses_openai_metadata_contract(monkeypatch) -> None:
+    """Responses keeps post correlation in metadata and the transport header."""
+    captured: dict[str, object] = {}
+
+    def fake_request(method, url, *, body, headers, timeout, **kwargs):
+        del method, url, timeout, kwargs
+        captured["body"] = json.loads(body)
+        captured["headers"] = headers
+        return 200, b'{"object":"response"}'
+
+    monkeypatch.setattr(http_client, "_request", fake_request)
+    metadata = build_post_llm_metadata("synthetic-post-responses", {})
+    with use_llm_metadata(metadata):
+        http_client.post_json(
+            "https://orchestrator.example/v1/responses",
+            {"input": "synthetic"},
+            headers={},
+            timeout=1,
+        )
+
+    body = captured["body"]
+    assert isinstance(body, dict)
+    assert "session_id" not in body
+    assert body["metadata"]["lineageweave_post_session_id"] == metadata[
+        "lineageweave_post_session_id"
+    ]
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert headers["x-lineageweave-session-id"] == metadata[
+        "lineageweave_post_session_id"
+    ]
+
+
 def test_orchestrator_session_is_not_invented_or_sent_to_other_peers(monkeypatch) -> None:
     """Missing post context and non-orchestrator calls retain their payloads."""
     bodies: list[dict[str, object]] = []
