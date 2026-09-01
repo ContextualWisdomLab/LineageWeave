@@ -233,9 +233,14 @@ describe("LeftoverPairList", () => {
 
     expect(
       screen.getByRole("button", {
-        name: "leftover pair leftover-map post Public post at ξ (0.00, 0.00)",
+        name: "leftover pair leftover-map post Public post at leftover-map origin ξ (0.00, 0.00)",
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "leftover pair leftover-map post Public post at ξ (0.00, 0.00)",
+      }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
     ).toBeInTheDocument();

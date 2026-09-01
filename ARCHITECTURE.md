@@ -825,6 +825,8 @@ ADR 0349 captions leftover-map comparison graphic leftover-map post leftover-map
 returns a leftover-map origin leftover-map person coordinate caption independently of leftover-map graphic leftover-map post leftover-map origin leftover-map person coordinates.
 ADR 0350 captions leftover-map comparison graphic leftover-map criterion leftover-map origin leftover-map item coordinates when leftoverMapComparePlotCriterionBadge
 returns a leftover-map origin leftover-map item coordinate caption independently of leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates.
+ADR 0351 captions leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates when leftoverMapListPostBadge
+returns a leftover-map origin leftover-map person coordinate caption independently of leftover-map comparison graphic leftover-map post leftover-map origin leftover-map person coordinates.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
