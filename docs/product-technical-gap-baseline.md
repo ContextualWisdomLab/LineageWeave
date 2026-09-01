@@ -32,6 +32,23 @@
 > Terminal retry and unbounded continuation remain mutually exclusive, so each
 > admitted page must settle before another page is selected.
 >
+> Current Dashboard performance evidence separates the stable read path from
+> startup tail latency. The exact bundled statement executed in 4.980 ms;
+> authenticated direct fetch and projection measured 12.248–13.480 ms, and an
+> immediate 40-request k6 run measured 5.39 ms maximum. One first request
+> measured 36.90 ms and was not reproduced or localized. Therefore the warm
+> Dashboard path meets the 20 ms target, while all-read cold-tail acceptance
+> remains open and must not be claimed from the warm run.
+>
+> PostgreSQL's measured state retains `read committed` isolation with `fsync`,
+> full-page writes, and synchronous commit enabled. The evidence-bound tuning
+> planner observed no WAL writes, requested checkpoints, waiting locks, or
+> active transactions during its bounded sample. Its validated plan retained
+> the 1 GiB WAL ceiling and proposed only the measured 4 MiB-to-16 MiB WAL
+> buffer change. That plan was not applied because a zero-write sample is not
+> sufficient deployment evidence; controlled apply remains plan-ID-gated and
+> revalidates live isolation, durability, space, locks, and transaction state.
+>
 > PR #640 declares and SHACL-validates the operations-case JSON-LD
 > vocabulary that its Dashboard emits, keeps the packaged fallback graph-isomorphic
 > with the authoritative Turtle, and includes that fallback in built wheels. This is
