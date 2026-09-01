@@ -158,10 +158,17 @@ def connection_kwargs_from_dsn(
     if not user:
         raise ValueError("PostgreSQL user could not be resolved")
 
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("PostgreSQL port must be between 1 and 65535") from exc
+    if port is not None and not 1 <= port <= 65535:
+        raise ValueError("PostgreSQL port must be between 1 and 65535")
+
     kwargs: dict[str, Any] = {
         "user": user,
         "host": parsed.hostname or "localhost",
-        "port": parsed.port or 5432,
+        "port": 5432 if port is None else port,
         "database": unquote(parsed.path.lstrip("/")),
     }
     if parsed.password is not None:
