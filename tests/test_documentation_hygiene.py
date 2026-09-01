@@ -101,6 +101,13 @@ def test_product_requirement_identifiers_are_unique() -> None:
     assert duplicates == [], f"duplicate PRD requirement identifiers: {duplicates}"
 
 
+def test_product_authority_register_uses_canonical_repository_names() -> None:
+    """Keep ecosystem repository identities aligned with their remote names."""
+    content = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    assert "`ContextualWisdomLab/disksage`" in content
+    assert "ContextualWisdomLab/DiskSage" not in content
+
+
 def test_retired_adr_status_is_excluded_without_hiding_partial_amendments() -> None:
     """Only a fully retired or superseded ADR leaves current PRD traceability."""
     assert not _adr_is_current("# ADR\n\n- Status: Superseded by ADR 0002\n")
