@@ -134,6 +134,17 @@ def test_collection_path_skips_known_transitive_optional_importers(
     assert collection_path_requires_missing_extras(sync_postgres, ("pg8000",)) is True
 
 
+def test_collection_path_tracks_submodule_imported_from_package(tmp_path: Path) -> None:
+    """Package-style submodule imports still expose their transitive optional driver."""
+    sync_postgres = tmp_path / "test_sync_postgres_package_import.py"
+    sync_postgres.write_text(
+        "from lineageweave import postgres_sync as sync_postgres\n",
+        encoding="utf-8",
+    )
+
+    assert collection_path_requires_missing_extras(sync_postgres, ("pg8000",)) is True
+
+
 def test_helper_test_module_is_never_ignored(tmp_path: Path) -> None:
     """The collection-helper tests must run in the sandbox that lacks extras."""
     path = tmp_path / "test_optional_extra_collection.py"
