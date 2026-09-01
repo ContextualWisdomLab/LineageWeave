@@ -104,6 +104,14 @@ def test_dsn_query_options_are_mapped_without_silent_loss() -> None:
     assert kwargs["ssl_context"] is False
 
 
+def test_explicit_zero_dsn_port_fails_closed() -> None:
+    """An explicit port zero must not silently become PostgreSQL's default port."""
+    with pytest.raises(ValueError, match="port"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example:0/archive"
+        )
+
+
 @pytest.mark.parametrize("timeout_value", ("nan", "inf", "-inf"))
 def test_dsn_connect_timeout_must_be_finite(timeout_value: str) -> None:
     """Non-finite timeouts must not disable or destabilize the network deadline."""
