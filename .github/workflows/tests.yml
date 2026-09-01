@@ -56,7 +56,7 @@ jobs:
         id: lock
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           if uv lock --check; then
             echo "stale=false" >> "$GITHUB_OUTPUT"
             exit 0
