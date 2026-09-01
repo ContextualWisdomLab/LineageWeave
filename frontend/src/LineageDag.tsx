@@ -8,8 +8,54 @@ function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
-function edgeKey(edge: LineageGraphEdge): string {
-  return `${edge.source}:${edge.target}`;
+function stableTextCompare(left: string, right: string): number {
+  return Number(left > right) - Number(left < right);
+}
+
+function edgeEvidenceIdentity(edge: LineageGraphEdge): string {
+  const evidence = (edge.channel_evidence ?? [])
+    .map((item) => [
+      item.signal_code,
+      item.signal_label,
+      item.score,
+      item.weight,
+      item.contribution,
+      item.rank,
+    ])
+    .sort((left, right) => stableTextCompare(JSON.stringify(left), JSON.stringify(right)));
+  return JSON.stringify(evidence);
+}
+
+/**
+ * Build a stable presentation identity for an edge without inventing domain identity.
+ *
+ * The API may return multiple relationships with the same source and target. Their
+ * relation, score, and evidence distinguish the visible relationship; the deterministic
+ * index distinguishes exact duplicate observations after layout has already stabilized
+ * their order. This key is UI state only and is never persisted as lineage truth.
+ */
+function edgeKey(edge: LineageGraphEdge, index: number): string {
+  return `${JSON.stringify([
+    edge.source,
+    edge.target,
+    edge.interval_relation_code ?? "",
+    edge.interval_relation_label ?? "",
+    edge.fused_score,
+    edgeEvidenceIdentity(edge),
+  ])}\u0000${index}`;
+}
+
+function endpointKey(edge: LineageGraphEdge): string {
+  return `${edge.source}\u0000${edge.target}`;
+}
+
+function parallelEdgeCounts(edges: LineageGraphEdge[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const edge of edges) {
+    const key = endpointKey(edge);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
 }
 
 function formatExact(value: number): string {
@@ -23,6 +69,34 @@ function llmParticipated(evidence: LineageChannelEvidence[]): boolean {
 function intervalLabel(edge: LineageGraphEdge): string | undefined {
   const label = edge.interval_relation_label?.trim();
   return label || undefined;
+}
+
+function edgeControlLabel(
+  edge: LineageGraphEdge,
+  fromLabel: string,
+  toLabel: string,
+  position: number,
+  parallelCount: number,
+): string {
+  const base = tf("Open connection evidence: {from} to {to}", {
+    from: fromLabel,
+    to: toLabel,
+  });
+  if (parallelCount <= 1) return base;
+
+  const relation = intervalLabel(edge);
+  return relation
+    ? `${base} — ${tf("relationship {position} of {count}, {relation}, fused score {score}", {
+        position,
+        count: parallelCount,
+        relation: t(relation),
+        score: formatExact(edge.fused_score),
+      })}`
+    : `${base} — ${tf("relationship {position} of {count}, fused score {score}", {
+        position,
+        count: parallelCount,
+        score: formatExact(edge.fused_score),
+      })}`;
 }
 
 function otherPostId(edge: LineageGraphEdge, currentPostId?: string): string {
@@ -63,6 +137,8 @@ export function LineageDag({
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
         const labeledEdges = group.edges.filter((edge) => intervalLabel(edge) && byId[edge.source] && byId[edge.target]);
         const hasBranchPoint = group.nodes.some((node) => node.is_branch_point);
+        const endpointCounts = parallelEdgeCounts(group.edges);
+        const endpointPositions = new Map<string, number>();
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption>
@@ -95,13 +171,17 @@ export function LineageDag({
                 role="group"
                 aria-label={tf("{group} lineage", { group: group.heading })}
               >
-                {group.edges.map((edge) => {
+                {group.edges.map((edge, edgeIndex) => {
                   const from = byId[edge.source];
                   const to = byId[edge.target];
                   const midX = (from.x + to.x) / 2;
-                  const key = edgeKey(edge);
+                  const key = edgeKey(edge, edgeIndex);
                   const selected = selectedEdge === key;
                   const relation = intervalLabel(edge);
+                  const endpoint = endpointKey(edge);
+                  const position = (endpointPositions.get(endpoint) ?? 0) + 1;
+                  endpointPositions.set(endpoint, position);
+                  const parallelCount = endpointCounts.get(endpoint) ?? 1;
                   return (
                     <g key={key}>
                       <path
@@ -110,10 +190,7 @@ export function LineageDag({
                         role="button"
                         tabIndex={0}
                         aria-pressed={selected}
-                        aria-label={tf("Open connection evidence: {from} to {to}", {
-                          from: from.label,
-                          to: to.label,
-                        })}
+                        aria-label={edgeControlLabel(edge, from.label, to.label, position, parallelCount)}
                         onClick={() => setSelectedEdge(key)}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
@@ -183,7 +260,7 @@ export function LineageDag({
             </div>
             {labeledEdges.length > 0 ? (
               <ul className="lineage-interval-list" aria-label={t("Interval relations")}>
-                {labeledEdges.map((edge) => {
+                {labeledEdges.map((edge, edgeIndex) => {
                   const from = byId[edge.source];
                   const to = byId[edge.target];
                   const openId = otherPostId(edge, currentPostId);
@@ -191,7 +268,7 @@ export function LineageDag({
                   const relation = intervalLabel(edge);
                   if (!from || !to || !openNode || !relation) return null;
                   return (
-                    <li key={`${edge.source}-${edge.target}`}>
+                    <li key={edgeKey(edge, edgeIndex)}>
                       <button
                         type="button"
                         className="lineage-interval-button"
@@ -242,8 +319,8 @@ export function LineageDag({
         {groups.map((group) => (
           <section key={group.group} aria-label={group.heading}>
             <h4>{group.heading}</h4>
-            {group.edges.map((edge) => {
-              const key = edgeKey(edge);
+            {group.edges.map((edge, edgeIndex) => {
+              const key = edgeKey(edge, edgeIndex);
               const evidence = edge.channel_evidence ?? [];
               const fromLabel = labelById[edge.source] ?? edge.source;
               const toLabel = labelById[edge.target] ?? edge.target;
