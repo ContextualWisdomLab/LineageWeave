@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-02 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. PR #897 is
+> `ec139215a96242e8e26f49c28ee42dead68d8c37`, mergeable, and protected by
+> normal squash auto-merge; exact-head Checks are queued and no qualifying
+> independent APPROVE exists. Its accepted-receipt seed now also fails closed
+> when a reseed encounters an existing Running history and a conflicting
+> receipt: it appends `analysis_status_failed` /
+> `tepp_result_not_persisted` unless a terminal event already exists. Focused
+> regression evidence is 51 passing tests. This remains candidate evidence,
+> not a protected-main release or authenticated PostgreSQL/UI runtime claim.
+> The queue currently contains 106 open PRs and 14 open Issues; stacked PRs
+> retain their declared bases until each parent is protected-merged. Canonical
+> remote names are `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+> `ThreadWeave`, lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and
+> `fast-mlsirm`. The largest buyer increment in this slice remains an honest
+> visible Running state after a persisted accepted receipt; producer status
+> polling stays unavailable under issue #277 until TEPP publishes that route.
+
 > Exact-head loop overlay: 2026-09-01 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` (v2.24.0 leftover-map
 > coordinates, #782). Package/pyproject versions on that head are 2.28.0.
