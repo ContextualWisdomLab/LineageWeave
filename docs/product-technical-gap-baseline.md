@@ -1,5 +1,33 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-01 13:23 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
+> non-PR issues are open. PR #780's exact evidence parent is
+> `39ee1ee39b3667cc1adc8337f5c8a183f22aaeb1`, based directly on that
+> `main`. Normal squash auto-merge remains armed. Fresh GraphQL evidence shows
+> all 24 review threads resolved, but no independent `APPROVED` review exists.
+> Two exact-parent checks succeed, seven are skipped, and thirteen are queued;
+> queued work is not acceptance evidence and did not block safe local review.
+> The active ruleset still requires an independent approval, resolved threads,
+> central required workflows, and non-fast-forward protection. No protected
+> merge, merge SHA, or deployed acceptance is claimed.
+>
+> Fresh focused verification passes 54 Voice-authority, ontology, SHACL, and
+> authenticated synthetic PostgreSQL/API tests. The wider selected API file
+> also exposed three schema-drift failures outside this Voice slice: its fresh
+> test databases lack `analysis_run_tepp_receipt` and
+> `semantic_unit.source_evidence_reference`. Those failures remain explicit
+> unavailable integration evidence and are not hidden by narrowing the accepted
+> regression claim. Direct inspection of the committed desktop and mobile
+> renders confirms separate carrying-Post and derivation-evidence actions; the
+> narrow table preserves them through horizontal scrolling. The candidate keeps
+> ADR 0246's twelve atomic Voices extensible, preserves authorized additional-
+> Voice evidence, server-created PROV-O derivation, truth status, and cutoff,
+> omits hidden evidence instead of substituting the carrying Post, and unions
+> same-subject multi-Voice relations in paged JSON-LD. Voice composition remains
+> governed by ADR 0256, not this repository's unrelated ADR 0251. Protected-main
+> and authenticated deployed UI acceptance remain unavailable.
+
 > Exact-head development-loop snapshot: 2026-09-01 12:08 KST. Protected
 > `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
 > non-PR issues are open. PR #780's exact evidence parent is
