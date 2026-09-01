@@ -18,14 +18,40 @@ from .organization_name_resolution_ingestion import fetch_corroborated_organizat
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Ancestor forest of only the organizations this post's Keymen touch.
 
-    Resolve Keyman affiliations before loading hierarchy rows.  The hierarchy
-    query starts from the resolved corporate-entity identifiers and walks only
-    their ancestors, so unrelated catalog organizations are never pulled into
-    application memory merely to render one post's Affiliate Tree.
+    Read the post's stored affiliations without alias decoration first. Only
+    unresolved organization names from that post are allowed to select alias
+    rows; if a corroborated alias resolves one of them, Keymen are reloaded
+    against that bounded alias snapshot. The hierarchy query then starts from
+    the resolved corporate-entity identifiers and walks only their ancestors.
     """
-    aliases = await fetch_corroborated_organization_aliases(conn)
+    raw_keymen = await fetch_post_keymen(conn, post_id, organization_aliases=())
+    unresolved_names = tuple(
+        sorted(
+            {
+                affiliation["organization_name"].strip()
+                for person in raw_keymen
+                for affiliation in person["affiliations"]
+                if affiliation["corporate_entity_id"] is None
+                and affiliation["organization_name"].strip()
+            }
+        )
+    )
+    aliases = (
+        await fetch_corroborated_organization_aliases(
+            conn,
+            organization_names=unresolved_names,
+        )
+        if unresolved_names
+        else ()
+    )
+    keymen = (
+        await fetch_post_keymen(conn, post_id, organization_aliases=aliases)
+        if aliases
+        else raw_keymen
+    )
+
     leaves: list[AffiliationLeaf] = []
-    for person in await fetch_post_keymen(conn, post_id, organization_aliases=aliases):
+    for person in keymen:
         for affiliation in person["affiliations"]:
             leaves.append(
                 AffiliationLeaf(
