@@ -26,23 +26,37 @@ function edgeEvidenceIdentity(edge: LineageGraphEdge): string {
   return JSON.stringify(evidence);
 }
 
-/**
- * Build a stable presentation identity for an edge without inventing domain identity.
- *
- * The API may return multiple relationships with the same source and target. Their
- * relation, score, and evidence distinguish the visible relationship; the deterministic
- * index distinguishes exact duplicate observations after layout has already stabilized
- * their order. This key is UI state only and is never persisted as lineage truth.
- */
-function edgeKey(edge: LineageGraphEdge, index: number): string {
-  return `${JSON.stringify([
+function edgePresentationIdentity(edge: LineageGraphEdge): string {
+  return JSON.stringify([
     edge.source,
     edge.target,
     edge.interval_relation_code ?? "",
     edge.interval_relation_label ?? "",
     edge.fused_score,
     edgeEvidenceIdentity(edge),
-  ])}\u0000${index}`;
+  ]);
+}
+
+/**
+ * Build a stable UI key for an edge without inventing domain identity.
+ *
+ * Relation, score, and canonical evidence distinguish semantically different parallel
+ * relationships. The occurrence number is only for exact duplicate observations with the
+ * same presentation identity, so adding an unrelated edge cannot move the buyer's current
+ * selection to a different key. This key is never persisted or emitted as lineage truth.
+ */
+function edgeKey(edge: LineageGraphEdge, occurrence: number): string {
+  return `${edgePresentationIdentity(edge)}\u0000${occurrence}`;
+}
+
+function edgeOccurrences(edges: LineageGraphEdge[]): number[] {
+  const counts = new Map<string, number>();
+  return edges.map((edge) => {
+    const identity = edgePresentationIdentity(edge);
+    const occurrence = counts.get(identity) ?? 0;
+    counts.set(identity, occurrence + 1);
+    return occurrence;
+  });
 }
 
 function endpointKey(edge: LineageGraphEdge): string {
@@ -139,6 +153,8 @@ export function LineageDag({
         const hasBranchPoint = group.nodes.some((node) => node.is_branch_point);
         const endpointCounts = parallelEdgeCounts(group.edges);
         const endpointPositions = new Map<string, number>();
+        const groupEdgeOccurrences = edgeOccurrences(group.edges);
+        const labeledEdgeOccurrences = edgeOccurrences(labeledEdges);
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption>
@@ -175,7 +191,7 @@ export function LineageDag({
                   const from = byId[edge.source];
                   const to = byId[edge.target];
                   const midX = (from.x + to.x) / 2;
-                  const key = edgeKey(edge, edgeIndex);
+                  const key = edgeKey(edge, groupEdgeOccurrences[edgeIndex]);
                   const selected = selectedEdge === key;
                   const relation = intervalLabel(edge);
                   const endpoint = endpointKey(edge);
@@ -268,7 +284,7 @@ export function LineageDag({
                   const relation = intervalLabel(edge);
                   if (!from || !to || !openNode || !relation) return null;
                   return (
-                    <li key={edgeKey(edge, edgeIndex)}>
+                    <li key={edgeKey(edge, labeledEdgeOccurrences[edgeIndex])}>
                       <button
                         type="button"
                         className="lineage-interval-button"
@@ -316,68 +332,71 @@ export function LineageDag({
             </div>
           </dl>
         ) : null}
-        {groups.map((group) => (
-          <section key={group.group} aria-label={group.heading}>
-            <h4>{group.heading}</h4>
-            {group.edges.map((edge, edgeIndex) => {
-              const key = edgeKey(edge, edgeIndex);
-              const evidence = edge.channel_evidence ?? [];
-              const fromLabel = labelById[edge.source] ?? edge.source;
-              const toLabel = labelById[edge.target] ?? edge.target;
-              return (
-            <details
-              key={key}
-              className="lineage-edge-evidence-item"
-              open={selectedEdge === key}
-              onToggle={(event) => {
-                const details = event.currentTarget;
-                if (details.open) {
-                  setSelectedEdge(key);
-                } else if (selectedEdge === key) {
-                  setSelectedEdge(null);
-                }
-              }}
-            >
-              <summary>
-                {tf("{from} follows {to}, fused score {score}", {
-                  from: toLabel,
-                  to: fromLabel,
-                  score: formatExact(edge.fused_score),
-                })}
-              </summary>
-              {evidence.length > 0 && !llmParticipated(evidence) ? (
-                <p>{t("No LLM adjudication participated in this connection.")}</p>
-              ) : null}
-              {evidence.length > 0 ? (
-                <table>
-                  <caption>{t("Connection evidence")}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">{t("Rank")}</th>
-                      <th scope="col">{t("Signal")}</th>
-                      <th scope="col">{t("Score")}</th>
-                      <th scope="col">{t("Weight")}</th>
-                      <th scope="col">{t("Contribution")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {evidence.map((item) => (
-                      <tr key={item.signal_code}>
-                        <td>{item.rank}</td>
-                        <td>{t(item.signal_label)}</td>
-                        <td>{formatExact(item.score)}</td>
-                        <td>{formatExact(item.weight)}</td>
-                        <td>{formatExact(item.contribution)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : null}
-              </details>
-              );
-            })}
-          </section>
-        ))}
+        {groups.map((group) => {
+          const groupEdgeOccurrences = edgeOccurrences(group.edges);
+          return (
+            <section key={group.group} aria-label={group.heading}>
+              <h4>{group.heading}</h4>
+              {group.edges.map((edge, edgeIndex) => {
+                const key = edgeKey(edge, groupEdgeOccurrences[edgeIndex]);
+                const evidence = edge.channel_evidence ?? [];
+                const fromLabel = labelById[edge.source] ?? edge.source;
+                const toLabel = labelById[edge.target] ?? edge.target;
+                return (
+                  <details
+                    key={key}
+                    className="lineage-edge-evidence-item"
+                    open={selectedEdge === key}
+                    onToggle={(event) => {
+                      const details = event.currentTarget;
+                      if (details.open) {
+                        setSelectedEdge(key);
+                      } else if (selectedEdge === key) {
+                        setSelectedEdge(null);
+                      }
+                    }}
+                  >
+                    <summary>
+                      {tf("{from} follows {to}, fused score {score}", {
+                        from: toLabel,
+                        to: fromLabel,
+                        score: formatExact(edge.fused_score),
+                      })}
+                    </summary>
+                    {evidence.length > 0 && !llmParticipated(evidence) ? (
+                      <p>{t("No LLM adjudication participated in this connection.")}</p>
+                    ) : null}
+                    {evidence.length > 0 ? (
+                      <table>
+                        <caption>{t("Connection evidence")}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">{t("Rank")}</th>
+                            <th scope="col">{t("Signal")}</th>
+                            <th scope="col">{t("Score")}</th>
+                            <th scope="col">{t("Weight")}</th>
+                            <th scope="col">{t("Contribution")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {evidence.map((item) => (
+                            <tr key={item.signal_code}>
+                              <td>{item.rank}</td>
+                              <td>{t(item.signal_label)}</td>
+                              <td>{formatExact(item.score)}</td>
+                              <td>{formatExact(item.weight)}</td>
+                              <td>{formatExact(item.contribution)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : null}
+                  </details>
+                );
+              })}
+            </section>
+          );
+        })}
       </section>
     </div>
   );
