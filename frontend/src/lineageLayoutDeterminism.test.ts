@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { layoutLineageDag } from "./lineageLayout";
+import { layoutLineageDag, subgraphForPost } from "./lineageLayout";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -71,6 +71,34 @@ describe("layoutLineageDag deterministic geometry", () => {
     };
 
     expect(() => layoutLineageDag(duplicateIdGraph)).toThrow(/duplicate lineage node id: same-node/);
+  });
+
+  it("rejects duplicate canonical node identity before focus-group isolation can hide it", () => {
+    const duplicateIdGraph = {
+      nodes: [
+        {
+          id: "same-node",
+          group: "Project Alpha",
+          label: "First visible record",
+          occurred_at: "2026-09-01T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+        {
+          id: "same-node",
+          group: "Project Beta",
+          label: "Conflicting visible record",
+          occurred_at: "2026-09-02T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+      ],
+      edges: [],
+    };
+
+    expect(() => subgraphForPost(duplicateIdGraph, "same-node")).toThrow(
+      /duplicate lineage node id: same-node/,
+    );
   });
 
   it("orders timezone-offset timestamps by the represented event instant", () => {
