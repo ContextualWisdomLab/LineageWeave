@@ -92,8 +92,18 @@ export const EvidenceReady: Story = {
       },
       failed_analysis_count: 0,
       cases: [
-        { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "SYNTHETIC-TR-100", project_name: "Synthetic Transformer Renewal", key_provenance: "source_post.source_project_code", evidence_post_id: "synthetic-post-1" }], summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100 · SP-20", evidence_text: "order SO-100 from pool SP-20", evidence_post_id: "synthetic-post-1" }], missing_facts: [{ fact_type_code: "order", fact_type_label: "발생 수주" }, { fact_type_code: "specification_change", fact_type_label: "사양 변경" }, { fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }], milestones: [], lifecycles: [] },
-        { post_id: "synthetic-post-2", case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "synthetic-transformer-renewal", project_name: "Synthetic Transformer Renewal", key_provenance: "post_project_mention.project_key", evidence_post_id: "synthetic-post-2" }], summary_text: "담당자 교체 전 협의와 후속 결정을 연결", evidence_text: "The account owner and design lead agreed to submit the revised proposal.", evidence_post_id: "synthetic-post-2", occurred_at: "2026-08-11T00:00:00Z", facts: [{ fact_type_code: "decision", fact_type_label: "이어진 결정", value_text: "수정 제안 제출", evidence_text: "submit the revised proposal", evidence_post_id: "synthetic-post-2" }], missing_facts: [{ fact_type_code: "discussion", fact_type_label: "협의 내용" }, { fact_type_code: "counterparty", fact_type_label: "협의 상대" }, { fact_type_code: "our_owner", fact_type_label: "우리측 담당자" }], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "SYNTHETIC-TR-100", project_name: "Synthetic Transformer Renewal", key_provenance: "source_post.source_project_code", evidence_post_id: "synthetic-post-1" }], summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [
+          { fact_type_code: "order", fact_type_label: "발생 수주", value_text: "SO-104", evidence_text: "claim recorded against order SO-104", evidence_post_id: "synthetic-post-1" },
+          { fact_type_code: "specification_change", fact_type_label: "사양 변경", value_text: "Revision B", evidence_text: "Revision B changed the enclosure specification", evidence_post_id: "synthetic-post-1" },
+          { fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100", evidence_text: "originated in order SO-100", evidence_post_id: "synthetic-post-1" },
+          { fact_type_code: "sales_pool", fact_type_label: "수주 Pool", value_text: "SP-20", evidence_text: "from pool SP-20", evidence_post_id: "synthetic-post-1" },
+        ], missing_facts: [], milestones: [], lifecycles: [] },
+        { post_id: "synthetic-post-2", case_kind_code: "rebid_handover", case_kind_label: "재입찰 · 인수인계", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "synthetic-transformer-renewal", project_name: "Synthetic Transformer Renewal", key_provenance: "post_project_mention.project_key", evidence_post_id: "synthetic-post-2" }], summary_text: "담당자 교체 전 협의와 후속 결정을 연결", evidence_text: "The account owner and design lead agreed to submit the revised proposal.", evidence_post_id: "synthetic-post-2", occurred_at: "2026-08-11T00:00:00Z", facts: [
+          { fact_type_code: "discussion", fact_type_label: "협의 내용", value_text: "Revised delivery and pricing", evidence_text: "reviewed revised delivery and pricing", evidence_post_id: "synthetic-post-2" },
+          { fact_type_code: "counterparty", fact_type_label: "협의 상대", value_text: "Synthetic Procurement Team", evidence_text: "with the synthetic procurement team", evidence_post_id: "synthetic-post-2" },
+          { fact_type_code: "our_owner", fact_type_label: "우리측 담당자", value_text: "Synthetic Account Owner", evidence_text: "The account owner", evidence_post_id: "synthetic-post-2" },
+          { fact_type_code: "decision", fact_type_label: "이어진 결정", value_text: "Submit revised proposal", evidence_text: "submit the revised proposal", evidence_post_id: "synthetic-post-2" },
+        ], missing_facts: [], milestones: [], lifecycles: [] },
         { post_id: "synthetic-post-3", case_kind_code: "external_information", case_kind_label: "외부 정보", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [{ project_key: "SYNTHETIC-TR-100", project_name: "Synthetic Transformer Renewal", key_provenance: "source_post.source_project_code", evidence_post_id: "synthetic-post-3" }], summary_text: "시장 공고를 영업 기회와 연결", evidence_text: "The public procurement notice opened on August 15.", evidence_post_id: "synthetic-post-3", occurred_at: "2026-08-15T00:00:00Z", facts: [{ fact_type_code: "external_relation", fact_type_label: "업무 관계", value_text: "갱신 제안 준비", evidence_text: "procurement notice", evidence_post_id: "synthetic-post-3", relation_target_kind_code: "project", relation_target_kind_label: "프로젝트" }], missing_facts: [], milestones: [], lifecycles: [] },
         { post_id: "synthetic-post-4", case_kind_code: "repeat_issue", case_kind_label: "반복 이슈 반영", project_name: "Synthetic Transformer Renewal", project_names: ["Synthetic Transformer Renewal"], projects: [], summary_text: "동일 유형 이슈를 설계 개선으로 환류", evidence_text: "The same enclosure issue recurred after Revision B.", evidence_post_id: "synthetic-post-4", occurred_at: "2026-08-18T00:00:00Z", facts: [{ fact_type_code: "improvement_action", fact_type_label: "개선 과제", value_text: "표준 사양 개정", evidence_text: "Update the standard enclosure specification.", evidence_post_id: "synthetic-post-4" }], missing_facts: [{ fact_type_code: "issue_pattern", fact_type_label: "반복 유형" }], milestones: [], lifecycles: [] },
       ],
@@ -107,6 +117,9 @@ export const EvidenceReady: Story = {
     await expect(canvas.getAllByRole("button", { name: "Open project history: Synthetic Transformer Renewal" })[0]).toBeVisible();
     await expect(canvas.getByRole("region", { name: /Unavailable/ })).toHaveTextContent("no explicit project key");
     await expect(canvas.getAllByRole("button", { name: "Open classification evidence" })[0]).toBeVisible();
+    for (const label of ["Affected order", "Specification change", "Originating order", "Sales pool", "Discussion", "Counterparty", "Our owner", "Decision"]) {
+      await expect(canvas.getByRole("button", { name: `Open ${label} evidence` })).toBeVisible();
+    }
   },
 };
 
@@ -249,7 +262,14 @@ export const ExternalInformationEmpty: Story = {
 
 export const RequiredFactMissing: Story = {
   args: {
-    data: { ...EvidenceReady.args!.data!, cases: [EvidenceReady.args!.data!.cases[0]] },
+    data: {
+      ...EvidenceReady.args!.data!,
+      cases: [{
+        ...EvidenceReady.args!.data!.cases[0],
+        facts: EvidenceReady.args!.data!.cases[0].facts.filter((fact) => fact.fact_type_code !== "sales_pool"),
+        missing_facts: [{ fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }],
+      }],
+    },
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {

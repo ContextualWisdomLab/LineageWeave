@@ -91,6 +91,10 @@ continues to pass unchanged.
   (ADR 0248). FJA worker functions remain separate.
 - Reuse official external identifiers and source-published relationships;
   never infer a DPT-to-psychology crosswalk or relabel work style as affect.
+- Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
+  and Work Style link tables to Work Activities and Work Context as 1,417
+  directed, assertion-level provenance-bearing relations (ADR 0256). Treat
+  relevance as neither a causal effect nor a numeric weight.
 - Bind a construct to record content only through a provenance-bearing,
   evidence-cited assertion. Do not promote record evidence to a person trait,
   score, causal effect, or job requirement.
@@ -111,7 +115,8 @@ projects assertion-backed constructs into the existing ABAC-filtered ontology
 neighborhood without duplicating graph storage or promoting truth. ADR 0257
 adds authorized catalog-label search: reviewers type an official O*NET label
 and open the earliest visible supporting Post. Constructs without visible
-evidence stay undisclosed. Occupation ratings remain unavailable.
+evidence stay undisclosed. Ontology tests reproduce every pinned O*NET linkage
+with its exact source table. Occupation ratings remain unavailable.
 
 ### PRD-FR-2C — FJA I/O-Psychology cognitive, affective & behavioral semantic layer
 
@@ -136,52 +141,7 @@ literature-anchored metadata, fail-closed lookups, per-function profile
 completeness, and composite-job aggregation; `tests/test_ontology_shapes.py`
 validates the disjoint SHACL shapes.
 
-
-
-### PRD-FR-2B-2 — Occupational classification and worker-characteristic taxonomy
-
-- Publish the 23 major groups of the 2018 Standard Occupational
-  Classification (the O*NET job-family grouping) with official titles
-  and codes verbatim, plus the four O*NET 31.0 job-zone categories with
-  published names and source values 2 through 5 (ADR 0245).
-- Publish the worker-characteristic families that work-related
-  cognition, affect, and behavior resolve into: Fleishman's four ability
-  domains, Holland's six RIASEC interest types with the published
-  hexagonal adjacency relation, the six explicitly legacy O*NET work-value
-  clusters, and
-  the seven higher-order dimensions of the revised O*NET Work Styles
-  structure.
-- Declare typed derivation properties from classifications to
-  characteristics but assert no instance binding; binding requires a
-  versioned released source profile imported with provenance in its own
-  decision.
-- Expose everything through a deterministic application read model with
-  fail-closed lookups; carry no numeric importance or level rating from
-  any occupational profile.
-
-Acceptance: completeness counts, verbatim titles, closed RIASEC
-vocabulary, exact published adjacency pairs, deterministic ordering,
-canonical namespace, and lookup round-trip isolation are enforced by
-`tests/test_io_taxonomy.py`; `tests/test_ontology.py` continues to pass
-unchanged.
-
-### PRD-FR-2A — Worker-function taxonomy
-
-- Publish the DOT/FJA Data/People/Things worker functions (24 concepts,
-  official definitions verbatim) in the canonical ontology namespace
-  (ADR 0232), each with its definitional ordinal rank. Do not infer a
-  DOT-to-O*NET or Fleishman crosswalk that the authorities do not publish.
-- Expose the taxonomy through a deterministic application read model with
-  fail-closed lookups; an absent function is an honest unknown.
-- Carry no numeric weight from the taxonomy: ranks are scale positions,
-  never calibrated weights.
-
-Acceptance: completeness, full verbatim definitions, deterministic ordering,
-and lookup round-trip isolation are enforced by
-`tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
-continues to pass unchanged.
-
-### PRD-FR-2B — Occupational classification and worker-characteristic taxonomy
+### PRD-FR-2D — Occupational classification and worker-characteristic taxonomy
 
 - Publish all four levels of the 2018 Standard Occupational Classification:
   23 major groups, 98 minor groups, 459 broad occupations, and 867 detailed
@@ -213,27 +173,8 @@ canonical namespace, and lookup round-trip isolation are enforced by
 `tests/test_io_taxonomy.py`, `tests/test_soc_2018_hierarchy.py`, and
 `tests/test_onet_content_model.py`;
 `tests/test_ontology.py` continues to pass unchanged.
-### PRD-FR-2C — Evidence-bound occupational constructs
 
-- Keep cognitive abilities, work styles, work activities, affective
-  reactions, and performance behaviors as non-equivalent construct classes
-  (ADR 0248). FJA worker functions remain separate.
-- Reuse official external identifiers and source-published relationships;
-  never infer a DPT-to-psychology crosswalk or relabel work style as affect.
-- Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
-  and Work Style link tables to Work Activities and Work Context as 1,417
-  directed, assertion-level provenance-bearing relations (ADR 0256). Treat
-  relevance as neither a causal effect nor a numeric weight.
-- Bind a construct to record content only through a provenance-bearing,
-  evidence-cited assertion. Do not promote record evidence to a person trait,
-  score, causal effect, or job requirement.
-
-Acceptance: SHACL rejects incomplete record assertions; ontology tests
-prohibit FJA equivalence, require exact Post/evidence/PROV statement structure,
-and reproduce every pinned O*NET linkage with its exact source table. Runtime
-persistence and UI remain unavailable until their separate ADR acceptance.
-
-### PRD-FR-2D — Occupation-rating source observations
+### PRD-FR-2E — Occupation-rating source observations
 
 - Persist released occupation-to-element ratings as source observations, not
   ontology weights: release, source table, occupation, element, scale,
@@ -257,7 +198,7 @@ repeated null-category UPSERT is idempotent.
 API, UI, and derived modeling remain unavailable until separate accepted
 delivery records.
 
-### PRD-FR-2E — Occupation-rating evidence read
+### PRD-FR-2F — Occupation-rating evidence read
 
 - Let an authenticated user open one exact release/source/occupation profile
   with both rating and scale artifact provenance (ADR 0258).
@@ -270,7 +211,7 @@ Acceptance: invalid identifiers and unbounded pages are rejected; an unavailable
 source never appears as a negative profile; pagination is deterministic; and a
 suppressed observation retains its value and warning flag together.
 
-### PRD-FR-2F — Occupation-rating evidence view
+### PRD-FR-2G — Occupation-rating evidence view
 
 - Let an authenticated user submit an exact O*NET-SOC code, release, and source
   from the existing Dashboard without changing the governed GNB (ADR 0259).
@@ -284,7 +225,7 @@ scrollable table; narrow layouts retain complete values; suppression remains
 visible beside its value; and Storybook covers populated, narrow, unavailable,
 and empty states using synthetic data.
 
-### PRD-FR-2G — Imported rating-source catalog
+### PRD-FR-2H — Imported rating-source catalog
 
 - Populate the occupation evidence selector only from imported artifacts that
   contain observations, preserving release and artifact provenance (ADR 0260).
@@ -297,7 +238,7 @@ order follows persisted import time rather than parsed version heuristics; and
 the real PostgreSQL integration test proves an imported synthetic artifact is
 listed while its supporting scale artifact is not.
 
-### PRD-FR-2H — Occupations represented in a rating source
+### PRD-FR-2I — Occupations represented in a rating source
 
 - Populate the occupation selector with exact stored code/title pairs that
   have observations in the selected imported source (ADR 0261).
@@ -312,7 +253,7 @@ the PostgreSQL integration test proves the source membership predicate; and
 component tests prove selector changes clear prior evidence and pagination
 stays bound to the loaded profile identifiers.
 
-### PRD-FR-2I — Occupation catalog title filter
+### PRD-FR-2J — Occupation catalog title filter
 
 - Let an authenticated user filter the imported occupation catalog by
   published title or retained code without ranking or typed-code fallback
@@ -324,7 +265,7 @@ stays bound to the loaded profile identifiers.
 Acceptance: submitting still sends only a catalog identity; a non-matching
 filter never creates a request; and Storybook covers a no-match state.
 
-### PRD-FR-2J — Authorized job-family and job-series snapshots
+### PRD-FR-2K — Authorized job-family and job-series snapshots
 
 - Import one authorized, pinned organization-specific source snapshot without
   committing runtime rows or creating an organization (ADR 0263).

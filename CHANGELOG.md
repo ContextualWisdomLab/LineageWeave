@@ -321,6 +321,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Product requirement identifiers are now unique and authoritative; duplicated
+  occupational-taxonomy sections were consolidated without changing their
+  evidence, measurement, or provider boundaries.
 - Public-claim provenance validation now selects its sole UUID binding without
   calling PostgreSQL's unavailable `min(uuid)` aggregate, so fresh schema
   replays accept valid provenance-bound public claims.
