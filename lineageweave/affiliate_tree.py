@@ -101,6 +101,24 @@ def _people_for(affiliations: tuple[AffiliationLeaf, ...]) -> tuple[AffiliatePer
     return tuple(sorted(unique.values(), key=lambda person: (person.person_name, person.person_id)))
 
 
+def _index_entities(
+    entities: tuple[CorporateEntityRow, ...] | list[CorporateEntityRow],
+) -> dict[str, CorporateEntityRow]:
+    """Index canonical entity rows without letting input order select truth.
+
+    Duplicate ``entity_id`` rows make parent pointers and display attributes
+    ambiguous. Silently retaining the last row would make database/input order
+    choose which corporate entity representation is rendered, so the boundary
+    fails closed before any hierarchy is materialized.
+    """
+    indexed: dict[str, CorporateEntityRow] = {}
+    for row in entities:
+        if row.entity_id in indexed:
+            raise ValueError(f"duplicate corporate entity id: {row.entity_id}")
+        indexed[row.entity_id] = row
+    return indexed
+
+
 def _needed_entity_ids(
     entities: dict[str, CorporateEntityRow],
     leaf_ids: set[str],
@@ -194,9 +212,10 @@ def build_affiliate_forest(
     entity reference remains attached to that root instead of being erased.
     Malformed parent pointers never make an otherwise authorized affiliation
     disappear: the unsafe edge is omitted deterministically and the affected
-    root carries ``hierarchy_issue``.
+    root carries ``hierarchy_issue``. Conflicting duplicate canonical entity
+    identities fail closed rather than allowing input order to select a row.
     """
-    entity_by_id = {row.entity_id: row for row in entities}
+    entity_by_id = _index_entities(entities)
     resolved_leaves = [
         leaf
         for leaf in affiliations
