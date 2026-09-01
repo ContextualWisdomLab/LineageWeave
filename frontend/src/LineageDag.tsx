@@ -80,6 +80,28 @@ function llmParticipated(evidence: LineageChannelEvidence[]): boolean {
   return evidence.some((item) => item.signal_code === "llm");
 }
 
+function orderedEvidence(evidence: LineageChannelEvidence[]): LineageChannelEvidence[] {
+  return [...evidence].sort((left, right) => {
+    const rankDelta = left.rank - right.rank;
+    if (rankDelta !== 0) return rankDelta;
+    const leftIdentity = JSON.stringify([
+      left.signal_code,
+      left.signal_label,
+      left.score,
+      left.weight,
+      left.contribution,
+    ]);
+    const rightIdentity = JSON.stringify([
+      right.signal_code,
+      right.signal_label,
+      right.score,
+      right.weight,
+      right.contribution,
+    ]);
+    return stableTextCompare(leftIdentity, rightIdentity);
+  });
+}
+
 function intervalLabel(edge: LineageGraphEdge): string | undefined {
   const label = edge.interval_relation_label?.trim();
   return label || undefined;
@@ -350,7 +372,7 @@ export function LineageDag({
               <h4>{group.heading}</h4>
               {group.edges.map((edge, edgeIndex) => {
                 const key = edgeKey(edge, groupEdgeOccurrences[edgeIndex]);
-                const evidence = edge.channel_evidence ?? [];
+                const evidence = orderedEvidence(edge.channel_evidence ?? []);
                 const fromLabel = labelById[edge.source] ?? edge.source;
                 const toLabel = labelById[edge.target] ?? edge.target;
                 return (
