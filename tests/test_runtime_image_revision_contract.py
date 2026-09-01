@@ -45,7 +45,10 @@ def test_runtime_acceptance_checks_every_product_image_revision() -> None:
     runner = (_ROOT / "scripts" / "accept_operations_dashboard_runtime.sh").read_text(
         encoding="utf-8"
     )
-    assert "for service_name in backend backend-worker mcp frontend; do" in runner
+    assert (
+        "for service_name in backend backend-worker backend-ask-worker mcp frontend; do"
+        in runner
+    )
     assert "lineageweave-${service_name}-1" in runner
     assert '[[ ",${COMPOSE_PROFILES:-}," == *,mcp,* ]]' in runner
     assert "docker inspect lineageweave-mcp-1 >/dev/null 2>&1" in runner
@@ -64,6 +67,8 @@ def test_synthetic_acceptance_never_enables_provider_calls() -> None:
     assert 'PRODUCT_CONTAINER_PREFIX="${PRODUCT_CONTAINER_PREFIX:-lineageweave}"' in runner
     assert 'SYNTHETIC_USERNAME="${SYNTHETIC_USERNAME:-demo.admin}"' in runner
     assert "OIDC_READINESS_TIMEOUT_SECONDS" in runner
+    assert "for service_name in backend backend-ask-worker frontend; do" in runner
+    assert "backend-worker" not in runner
 
 
 def test_provider_acceptance_reuses_shared_post_eligibility_sql() -> None:

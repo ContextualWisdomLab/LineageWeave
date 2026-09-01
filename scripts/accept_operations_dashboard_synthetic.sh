@@ -51,7 +51,7 @@ for command_name in curl docker jq corepack k6; do
   command -v "$command_name" >/dev/null || { echo "$command_name is required" >&2; exit 2; }
 done
 
-for service_name in backend backend-worker frontend; do
+for service_name in backend backend-ask-worker frontend; do
   container_name="${PRODUCT_CONTAINER_PREFIX}-${service_name}-1"
   actual_revision="$(docker inspect "$container_name" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
   [[ "$actual_revision" == "$EXPECTED_LINEAGEWEAVE_REVISION" ]] || {

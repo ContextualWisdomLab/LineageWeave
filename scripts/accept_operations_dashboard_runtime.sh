@@ -109,7 +109,7 @@ docker inspect lineageweave-mcp-1 >/dev/null 2>&1 || {
   echo "start the accepted stack with COMPOSE_PROFILES=mcp before running acceptance" >&2
   exit 2
 }
-for service_name in backend backend-worker mcp frontend; do
+for service_name in backend backend-worker backend-ask-worker mcp frontend; do
   product_revision="$(docker inspect "lineageweave-${service_name}-1" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
   [[ "$product_revision" == "$EXPECTED_LINEAGEWEAVE_REVISION" ]] || {
     echo "lineageweave-${service_name}-1 image revision does not match the accepted revision" >&2

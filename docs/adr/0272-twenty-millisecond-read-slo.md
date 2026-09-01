@@ -140,6 +140,14 @@ derived from either standard or from a rule of thumb.
     Projection triggers fire only for authoritative columns that contribute to
     that search text. In particular, a member locale preference write does not
     rebuild every Post authored by that member.
+17. Evidence-rich JSON responses use HTTP gzip content negotiation through the
+    framework middleware. This changes transport encoding, not the authorized
+    evidence or response schema. Before activation, the exact Dashboard response
+    measured 96,415 bytes uncompressed and 10,364 bytes through gzip; the
+    uncompressed payload therefore spent network bandwidth unrelated to query
+    correctness. Clients without gzip support continue to receive the same
+    uncompressed bytes, and acceptance still measures the complete negotiated
+    response against the unchanged 20 ms maximum.
 
 ## Consequences
 

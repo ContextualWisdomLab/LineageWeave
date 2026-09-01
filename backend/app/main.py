@@ -35,6 +35,7 @@ from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, statu
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
+from starlette.middleware.gzip import GZipMiddleware
 
 from lineageweave.claim_verification import (
     NullClaimVerificationClient,
@@ -339,6 +340,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "PUT"],
     allow_headers=["Authorization"],
 )
+app.add_middleware(GZipMiddleware)
 
 
 def _require_post_read(account: CurrentAccount) -> None:

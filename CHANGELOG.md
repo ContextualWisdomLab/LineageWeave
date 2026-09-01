@@ -6,6 +6,11 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+- Evidence-rich API responses now use standard HTTP gzip content negotiation.
+  The exact Dashboard payload measured 96,415 bytes uncompressed and 10,364
+  bytes with gzip before activation; authenticated k6 remains the release gate
+  for the unchanged 20 ms maximum (ADR 0272).
+
 - Global Ask now has a consumer-selective durable worker in the canonical
   Compose project. Per-consumer PostgreSQL advisory leases prevent overlapping
   queue owners, while stopping post-content consumption no longer suspends Ask
