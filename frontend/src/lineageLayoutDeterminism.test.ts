@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { layoutLineageDag } from "./lineageLayout";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function canonicalPositions(graph: Parameters<typeof layoutLineageDag>[0]) {
   return layoutLineageDag(graph)
@@ -70,6 +74,41 @@ describe("layoutLineageDag deterministic geometry", () => {
 
     expect(earlier.y).toBeLessThan(later.y);
     expect(reordered).toEqual(forward);
+  });
+
+  it("does not assign browser-local timezone semantics to offsetless source timestamps", () => {
+    const parse = Date.parse.bind(Date);
+    vi.spyOn(Date, "parse").mockImplementation((value) => {
+      if (!/(?:[zZ]|[+-]\d{2}:\d{2})$/.test(value)) {
+        throw new Error("offsetless source time must not be parsed as browser-local time");
+      }
+      return parse(value);
+    });
+
+    const nodes = [
+      {
+        id: "early-naive",
+        group: "Project Alpha",
+        label: "Early naive",
+        occurred_at: "2026-09-01T00:00:00",
+        is_root: true,
+        is_branch_point: false,
+      },
+      {
+        id: "late-naive",
+        group: "Project Alpha",
+        label: "Late naive",
+        occurred_at: "2026-09-01T01:00:00",
+        is_root: true,
+        is_branch_point: false,
+      },
+    ];
+
+    const positions = canonicalPositions({ nodes, edges: [] });
+    const early = positions.find((node) => node.id === "early-naive")!;
+    const late = positions.find((node) => node.id === "late-naive")!;
+
+    expect(early.y).toBeLessThan(late.y);
   });
 
   it("keeps parallel edge order stable when equivalent edges arrive in a different order", () => {
