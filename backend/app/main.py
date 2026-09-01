@@ -340,7 +340,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "PUT"],
     allow_headers=["Authorization"],
 )
-app.add_middleware(GZipMiddleware, compresslevel=1)
+app.add_middleware(GZipMiddleware)
 
 
 def _require_post_read(account: CurrentAccount) -> None:

@@ -7,5 +7,4 @@ from backend.app.main import app
 
 def test_backend_compresses_large_api_responses() -> None:
     """The API middleware must compress evidence-rich Dashboard payloads."""
-    middleware = next(item for item in app.user_middleware if item.cls is GZipMiddleware)
-    assert middleware.kwargs == {"compresslevel": 1}
+    assert any(middleware.cls is GZipMiddleware for middleware in app.user_middleware)
