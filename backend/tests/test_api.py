@@ -35,7 +35,7 @@ _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
 )
 _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://localhost:18080")
-_VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
+_VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/15")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
@@ -389,6 +389,21 @@ pytestmark = pytest.mark.skipif(
     not (_postgres_available() and _keycloak_available() and _valkey_available()),
     reason="requires a reachable local PostgreSQL, Keycloak, and Valkey -- run `make up` first",
 )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def isolated_valkey_database():
+    """Keep integration-test streams outside the canonical runtime database."""
+    if not _valkey_available():
+        yield
+        return
+    client = redis.from_url(_VALKEY_URL)
+    client.flushdb()
+    try:
+        yield
+    finally:
+        client.flushdb()
+        client.close()
 
 
 def _fetch_demo_analyst_token() -> str:
@@ -959,6 +974,7 @@ def seeded_db(demo_analyst_token):
 @pytest.fixture
 def client(seeded_db):
     os.environ["DATABASE_URL"] = seeded_db["dsn"]
+    os.environ["VALKEY_URL"] = _VALKEY_URL
     os.environ["KEYCLOAK_BASE_URL"] = _KEYCLOAK_BASE_URL
     os.environ["KEYCLOAK_ISSUER"] = f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}"
 
