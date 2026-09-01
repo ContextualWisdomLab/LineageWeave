@@ -2030,26 +2030,10 @@ async def _fetch_search_post_page(
                     and (cardinality($3::text[]) = 0
                          or source.process_unit_id::text = any($3::text[]))))
                and {source_post_eligibility_sql('source', source_context_required=source_context_required)}
-        ), selected as (
+        ), filtered as (
             select authorized.post_id, authorized.body_match,
-                   count(*) over() as total_count,
-                   row_number() over (
-                       order by
-                           case
-                               when lower(coalesce(source.post_title, ''))
-                                    like '%' || lower($1) || '%' then 0
-                               when authorized.body_match then 1
-                               else 2
-                           end,
-                           case when authorized.body_match then authorized.body_priority end,
-                           case when authorized.body_match then authorized.body_rank end desc,
-                           case when $8::text = 'title'
-                                then lower(coalesce(source.post_title, '')) end,
-                           case when $8::text = 'oldest' then source.created_at end,
-                           case when $8::text in ('newest', 'title')
-                                then source.created_at end desc,
-                           source.post_id desc
-                   ) as candidate_position
+                   authorized.body_priority, authorized.body_rank,
+                   source.post_title, source.created_at
               from authorized
               join source_post source on source.post_id = authorized.post_id
              where ($4::text[] is null or exists (
@@ -2059,19 +2043,49 @@ async def _fetch_search_post_page(
                           and voice_filter.voice_type_code = any($4::text[])
                    ))
                and ($5::text is null or source.visibility_code = $5)
+        ), selected as (
+            select filtered.post_id, filtered.body_match,
+                   count(*) over() as total_count,
+                   row_number() over (
+                       order by
+                           case
+                               when lower(coalesce(filtered.post_title, ''))
+                                    like '%' || lower($1) || '%' then 0
+                               when filtered.body_match then 1
+                               else 2
+                           end,
+                           case when filtered.body_match then filtered.body_priority end,
+                           case when filtered.body_match then filtered.body_rank end desc,
+                           case when $8::text = 'title'
+                                then lower(coalesce(filtered.post_title, '')) end,
+                           case when $8::text = 'oldest' then filtered.created_at end,
+                           case when $8::text in ('newest', 'title')
+                                then filtered.created_at end desc,
+                           filtered.post_id desc
+                   ) as candidate_position
+              from filtered
              order by candidate_position
              offset $6 limit $7
+        ), selected_or_total as (
+            select selected.post_id, selected.body_match,
+                   selected.total_count, selected.candidate_position
+              from selected
+            union all
+            select null::uuid, false, count(*)::bigint, null::bigint
+              from filtered
+             having not exists (select 1 from selected)
         ), page as (
             select post.post_id, post.post_title, post.created_at,
                    case
                        when lower(coalesce(post.post_title, ''))
                             like '%' || lower($1) || '%' then 0
-                       when selected.body_match then 1
+                       when selected_or_total.body_match then 1
                        else 2
                    end as search_priority,
-                   selected.total_count, selected.candidate_position
-              from selected
-              join source_post post on post.post_id = selected.post_id
+                   selected_or_total.total_count,
+                   selected_or_total.candidate_position
+              from selected_or_total
+              left join source_post post on post.post_id = selected_or_total.post_id
         )
         select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
                post.source_stage_code, post.source_detail_state_code,
@@ -2100,8 +2114,8 @@ async def _fetch_search_post_page(
                coalesce(projects.project_evidence, '[]'::json) as project_evidence,
                coalesce(voices.voice_types, '[]'::json) as voice_types
           from page
-          join source_post post on post.post_id = page.post_id
-          join post_list_read_projection projection on projection.post_id = page.post_id
+          left join source_post post on post.post_id = page.post_id
+          left join post_list_read_projection projection on projection.post_id = page.post_id
           left join (
               select project.post_id, json_agg(
                          json_build_object(
@@ -2209,7 +2223,11 @@ async def list_posts(
                 sort=sort,
                 source_context_required=source_context_required,
             )
-            visible = [row for row in rows if _can_see_post(account, row)]
+            visible = [
+                row
+                for row in rows
+                if row["post_id"] is not None and _can_see_post(account, row)
+            ]
             total_count = int(rows[0]["total_count"]) if rows else 0
             return JSONResponse({
                 "posts": [_serialize_post(row, labels) for row in visible],
