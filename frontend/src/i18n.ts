@@ -698,6 +698,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 지도 원점 기준 {label} (ζ {item})",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "잔여 지도 비교 그림 기준 {label} (ζ {item})",
+    "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "잔여 지도 비교 그림 원점 기준 {label} (ζ {item})",
     "Open leftover-map post {title}": "잔여 지도 글 {title} 열기",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
       "잔여 지도 비교 그림 글 {title} 열기 (ξ {person})",
@@ -1422,6 +1424,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差图原点准则 {label}（ζ {item}）",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "残差地图比较图形准则 {label}（ζ {item}）",
+    "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "残差地图比较图形原点准则 {label}（ζ {item}）",
     "Open leftover-map post {title}": "打开残差图帖子 {title}",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
       "打开残差地图比较图形帖子 {title}（ξ {person}）",
@@ -2150,6 +2154,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップの原点基準 {label}（ζ {item}）",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "残差マップの比較図基準 {label}（ζ {item}）",
+    "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "残差マップの比較図原点基準 {label}（ζ {item}）",
     "Open leftover-map post {title}": "残差マップの投稿 {title} を開く",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
       "残差マップの比較図の投稿 {title} を開く（ξ {person}）",
@@ -2882,6 +2888,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "tiêu chí gốc bản đồ phần dư {label} tại ζ {item}",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}":
       "tiêu chí đồ họa so sánh bản đồ phần dư {label} tại ζ {item}",
+    "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "tiêu chí gốc đồ họa so sánh bản đồ phần dư {label} tại ζ {item}",
     "Open leftover-map post {title}": "Mở bài viết bản đồ phần dư {title}",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}":
       "Mở bài đồ họa so sánh bản đồ phần dư {title} tại ξ {person}",

@@ -79,6 +79,7 @@ describe("i18n", () => {
     "leftover-map criterion {label} at ζ {item}",
     "leftover-map criterion {label} at leftover-map origin ζ {item}",
     "leftover map comparison graphic leftover-map criterion {label} at ζ {item}",
+    "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}",
     "leftover-map axis 1",
     "leftover-map axis 2",
     "leftover-map axis {axis} ({share}%)",
@@ -175,6 +176,7 @@ describe("i18n", () => {
     "Open leftover-map post {title}",
     "Open leftover map comparison graphic leftover-map post {title} at ξ {person}",
     "Open leftover map comparison graphic leftover-map post {title} at leftover-map origin ξ {person}",
+    "leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -483,6 +485,24 @@ describe("i18n", () => {
       setLocale(locale);
       expect(
         tf("leftover-map criterion {label} at leftover-map origin ζ {item}", {
+          label: "sales-lead",
+          item: "(0.00, 0.00)",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 그림 원점 기준 sales-lead (ζ (0.00, 0.00))"],
+    ["zh", "残差地图比较图形原点准则 sales-lead（ζ (0.00, 0.00)）"],
+    ["ja", "残差マップの比較図原点基準 sales-lead（ζ (0.00, 0.00)）"],
+    ["vi", "tiêu chí gốc đồ họa so sánh bản đồ phần dư sales-lead tại ζ (0.00, 0.00)"],
+  ] as const)(
+    "formats leftover map comparison graphic leftover-map criterion leftover-map origin ζ in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover map comparison graphic leftover-map criterion {label} at leftover-map origin ζ {item}", {
           label: "sales-lead",
           item: "(0.00, 0.00)",
         }),

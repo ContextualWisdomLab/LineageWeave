@@ -11,6 +11,10 @@
  *  post leftover-map person coordinates as leftoverMapComparePlotPostBadge independently of leftover-map
  *  graphic leftover-map post leftover-map origin leftover-map person coordinates. leftoverMapListPostBadge stays leftover-map pair leftover-map
  *  post leftover-map person coordinate keys.
+ *  ADR 0350 names leftover-map origin on leftover-map comparison graphic leftover-map
+ *  criterion leftover-map item coordinates as leftoverMapComparePlotCriterionBadge independently of leftover-map
+ *  comparison graphic leftover-map post leftover-map origin leftover-map person coordinates. leftoverMapListCriterionBadge stays leftover-map pair leftover-map
+ *  criterion leftover-map item coordinate keys.
  */
 
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
@@ -106,6 +110,8 @@ export function leftoverMapListPostBadge(
 /** ADR 0340 leftover-map pair leftover-map criterion leftover-map item coordinates ζ.
  *  ADR 0347 names leftover-map origin on leftover-map graphic leftover-map criterion
  *  leftover-map item coordinates as leftoverMapPlotCriterionBadge, not this helper.
+ *  ADR 0350 names leftover-map origin on leftover-map comparison graphic leftover-map criterion
+ *  leftover-map item coordinates as leftoverMapComparePlotCriterionBadge, not this helper.
  */
 export function leftoverMapListCriterionBadge(
   label: string,
@@ -132,7 +138,10 @@ export function leftoverMapCompareListPostBadge(
   return { key: LEFTOVER_MAP_COMPARE_LIST_POST_ACTION, values: { title, person } };
 }
 
-/** ADR 0342 leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates ζ. */
+/** ADR 0342 leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates ζ.
+ *  ADR 0350 names leftover-map origin on leftover-map comparison graphic leftover-map criterion
+ *  leftover-map item coordinates as leftoverMapComparePlotCriterionBadge, not this helper.
+ */
 export function leftoverMapCompareListCriterionBadge(
   label: string,
   axis1: number | null | undefined,
