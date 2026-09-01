@@ -205,6 +205,20 @@ class _TeppSeedCursor:
         return None
 
 
+class _ExistingRunningTeppSeedCursor(_TeppSeedCursor):
+    """Model a reseed whose accepted receipt conflicts after Running."""
+
+    def fetchone(self):
+        last = self.statements[-1]
+        if "max(status_ordinal)" in last:
+            return (2, False)
+        if "from analysis_run_tepp_receipt" in last:
+            return ("different-run", "different-request", "different-receipt")
+        if last.lstrip().startswith("select") and "from analysis_run where" in last:
+            return ("run-demo-tepp",)
+        return super().fetchone()
+
+
 def test_seed_demo_tepp_run_inserts_failed_tepp_not_available() -> None:
     cursor = _TeppSeedCursor()
     _seed_demo_tepp_run(cursor, "account-1", "corp-1")
@@ -271,6 +285,26 @@ def test_seed_demo_tepp_accepted_run_stays_running_with_receipt() -> None:
         params is not None and "analysis_outbox_delivered" in params
         for params in delivery_params
     )
+    assert not any("theta" in str(params).casefold() for params in cursor.params)
+
+
+def test_seed_demo_tepp_accepted_run_appends_failed_after_receipt_conflict() -> None:
+    cursor = _ExistingRunningTeppSeedCursor()
+    _seed_demo_tepp_accepted_run(cursor, "account-1", "corp-1")
+    status_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_status_event" in sql
+    ]
+    assert status_params == [
+        (
+            "run-demo-tepp",
+            3,
+            "analysis_status_failed",
+            "2026-01-12T12:37:00Z",
+            "tepp_result_not_persisted",
+        )
+    ]
     assert not any("theta" in str(params).casefold() for params in cursor.params)
 
 

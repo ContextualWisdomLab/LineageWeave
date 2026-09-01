@@ -2108,10 +2108,19 @@ def _seed_demo_tepp_accepted_run(cur, requested_by_account_id, corporate_entity_
             (3, status, "2026-01-12T12:37:00Z", failure),
         ]
     cur.execute(
-        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        """
+        select coalesce(max(status_ordinal), 0),
+               coalesce(bool_or(status_code in
+                   ('analysis_status_succeeded', 'analysis_status_failed',
+                    'analysis_status_cancelled')), false)
+        from analysis_run_status_event
+        where analysis_run_id = %s
+        """,
         (run_id,),
     )
-    if cur.fetchone() is None:
+    status_row = cur.fetchone()
+    max_ordinal, has_terminal = status_row or (0, False)
+    if max_ordinal == 0:
         for ordinal, event_status, occurred, fail in events:
             cur.execute(
                 """
@@ -2121,6 +2130,15 @@ def _seed_demo_tepp_accepted_run(cur, requested_by_account_id, corporate_entity_
                 """,
                 (run_id, ordinal, event_status, occurred, fail),
             )
+    elif not persist_receipt and not has_terminal:
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
+            """,
+            (run_id, max_ordinal + 1, status, "2026-01-12T12:37:00Z", failure),
+        )
     _seed_demo_run_outbox(cur, run_id, delivered=not persist_receipt)
 
 
