@@ -214,6 +214,10 @@ class _ExistingRunningTeppSeedCursor(_TeppSeedCursor):
             return (2, False)
         if "from analysis_run_tepp_receipt" in last:
             return ("different-run", "different-request", "different-receipt")
+        if "max(delivery_ordinal)" in last:
+            return (1, False)
+        if last.lstrip().startswith("select") and "from analysis_run_outbox" in last:
+            return (1,)
         if last.lstrip().startswith("select") and "from analysis_run where" in last:
             return ("run-demo-tepp",)
         return super().fetchone()
@@ -303,6 +307,18 @@ def test_seed_demo_tepp_accepted_run_appends_failed_after_receipt_conflict() -> 
             "analysis_status_failed",
             "2026-01-12T12:37:00Z",
             "tepp_result_not_persisted",
+        )
+    ]
+    delivery_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_outbox_delivery" in sql
+    ]
+    assert delivery_params == [
+        (
+            "run-demo-tepp",
+            2,
+            datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc),
         )
     ]
     assert not any("theta" in str(params).casefold() for params in cursor.params)

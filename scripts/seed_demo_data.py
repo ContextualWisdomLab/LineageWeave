@@ -2341,6 +2341,34 @@ def _seed_demo_run_outbox(cur, analysis_run_id, *, delivered: bool = True) -> No
         (analysis_run_id,),
     )
     if cur.fetchone() is not None:
+        if delivered:
+            cur.execute(
+                """
+                select coalesce(max(delivery_ordinal), 0),
+                       coalesce(bool_or(delivery_status_code =
+                           'analysis_outbox_delivered'), false)
+                from analysis_run_outbox_delivery
+                where analysis_run_id = %s
+                """,
+                (analysis_run_id,),
+            )
+            delivery_row = cur.fetchone()
+            max_ordinal, already_delivered = delivery_row or (0, False)
+            if not already_delivered:
+                cur.execute(
+                    """
+                    insert into analysis_run_outbox_delivery
+                        (analysis_run_id, delivery_ordinal,
+                         delivery_status_code, occurred_at)
+                    values (%s, %s, 'analysis_outbox_delivered', %s)
+                    on conflict do nothing
+                    """,
+                    (
+                        analysis_run_id,
+                        max_ordinal + 1,
+                        datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc),
+                    ),
+                )
         return
     cur.execute(
         """
