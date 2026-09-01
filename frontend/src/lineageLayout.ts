@@ -20,8 +20,12 @@ export interface LaidOutGroup {
   height: number;
 }
 
+function isUngroupedGroup(group: string): boolean {
+  return !group || UUID_GROUP.test(group);
+}
+
 export function groupHeading(group: string): string {
-  if (!group || UUID_GROUP.test(group)) return "Ungrouped";
+  if (isUngroupedGroup(group)) return "Ungrouped";
   return group;
 }
 
@@ -104,9 +108,9 @@ export function subgraphForPost(graph: LineageGraph, postId: string): LineageGra
   };
 }
 
-/** Return a locale-independent sort key for one visible reconstruct group. */
+/** Return a locale-independent key without collapsing raw reconstruct-group identity. */
 function stableGroupSortKey(group: LaidOutGroup): string {
-  const ungroupedRank = group.heading === "Ungrouped" ? "1" : "0";
+  const ungroupedRank = isUngroupedGroup(group.group) ? "1" : "0";
   return `${ungroupedRank}\u0000${group.heading}\u0000${group.group}`;
 }
 
@@ -115,7 +119,7 @@ export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
   const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
   for (const node of graph.nodes) {
-    const group = node.group || "Ungrouped";
+    const group = node.group || "";
     const bucket = buckets.get(group) ?? { nodes: [], edges: [] };
     bucket.nodes.push(node);
     buckets.set(group, bucket);
@@ -124,8 +128,8 @@ export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
     const source = nodesById.get(edge.source);
     const target = nodesById.get(edge.target);
     if (!source || !target) continue;
-    const sourceGroup = source.group || "Ungrouped";
-    const targetGroup = target.group || "Ungrouped";
+    const sourceGroup = source.group || "";
+    const targetGroup = target.group || "";
     if (sourceGroup !== targetGroup) continue;
     buckets.get(sourceGroup)!.edges.push(edge);
   }
