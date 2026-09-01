@@ -43,6 +43,9 @@ publishes the first heartbeat of a process. Those files may survive a process
 or VM restart in the container writable layer while the operating system's
 monotonic clock restarts from a smaller value; monotonic samples are therefore
 compared only within one worker-process epoch and never across boots.
+When a runtime prerequisite closes readiness, the worker removes both files
+again. A successful validation, including an unchanged prepared identity,
+opens a new readiness epoch and resumes the heartbeat.
 Each heartbeat and probe baseline carries the same random process-epoch
 identifier beside the monotonic value. A probe compares counters only inside
 one identifier and atomically adopts a changed identifier. Consequently, a

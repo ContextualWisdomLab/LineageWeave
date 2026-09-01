@@ -53,6 +53,7 @@ from lineageweave.rankweave_client import RankWeaveNotAvailable, build_rankweave
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import load_settings
+from .global_ask_semantic_index import GlobalAskExactSemanticIndex
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from .source_post_revision import fetch_known_at_revisions
@@ -147,10 +148,7 @@ async def _graph_facts_for_posts(
     hydrated = await hydrate_related_nodes(
         conn, [(key, 1.0) for key in sorted(endpoint_keys)]
     )
-    labels = {
-        (item["node_type_code"], item["node_id"]): item
-        for item in hydrated
-    }
+    labels = {(item["node_type_code"], item["node_id"]): item for item in hydrated}
 
     facts_by_post: dict[str, list[str]] = {}
     fact_count = 0
@@ -217,6 +215,7 @@ def _seoul_today() -> date:
 
 
 _POST_CHAT_CANDIDATE_LIMIT = 32
+
 
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
     """Render raw source fields as explicitly weak, column-level evidence."""
@@ -298,7 +297,8 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
     # Discover them here first: every post that mentions any person this
     # post itself mentions, then load the subgraph over that expanded set.
     person_rows = await conn.fetch(
-        "select distinct person_id from combined_post_person_mention where post_id = $1", post_id
+        "select distinct person_id from combined_post_person_mention where post_id = $1",
+        post_id,
     )
     person_ids = [row["person_id"] for row in person_rows]
     sibling_post_ids = [post_id]
@@ -308,7 +308,9 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
             "where person_id = any($1::uuid[])",
             person_ids,
         )
-        sibling_post_ids = list({str(row["post_id"]) for row in sibling_rows} | {post_id})
+        sibling_post_ids = list(
+            {str(row["post_id"]) for row in sibling_rows} | {post_id}
+        )
 
     edges = await load_visible_subgraph(conn, sibling_post_ids)
     start = node_key(NODE_POST, post_id)
@@ -320,7 +322,9 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
         if (node_id := parse_node_key(key)[1]) and parse_node_key(key)[0] == NODE_POST
     ) - {post_id}
 
-    return LinkedPostIds(direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids)
+    return LinkedPostIds(
+        direct=direct_ids - {post_id}, indirect=indirect_ids - direct_ids
+    )
 
 
 async def find_project_sibling_post_ids(
@@ -437,11 +441,14 @@ async def gather_chat_sources(
             this_post["post_title"],
             normalized_body,
             graph_facts=graph_facts.get(source_id, ()),
-            evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
+            evidence_facts=_source_hint_facts(this_post)
+            + semantic_facts.get(source_id, ()),
         )
     ]
     for row in visible_rows:
-        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
+        normalized_body = await _normalize_post_body_text(
+            row["post_body"], vision_client
+        )
         sources.append(
             ChatSourceDocument(
                 str(row["post_id"]),
@@ -509,8 +516,7 @@ def _fuse_global_candidate_ids(
         return embedding_ids[:limit]
     channels = {"embedding": embedding_ids, "evidence": evidence_ids}
     titles_by_id = {
-        post_id: post_id
-        for post_id in dict.fromkeys([*embedding_ids, *evidence_ids])
+        post_id: post_id for post_id in dict.fromkeys([*embedding_ids, *evidence_ids])
     }
     try:
         fused = build_rankweave_client(
@@ -528,10 +534,12 @@ async def gather_global_chat_sources(
     authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     embedding_client: EmbeddingClient | None = None,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
     *,
     question: str | None = None,
     search_phrases: tuple[str, ...] | None = None,
     question_embedding: tuple[list[float], str, float] | None = None,
+    process_scope_limited: bool | None = None,
     limit: int = 4,
     today: date | None = None,
     knowledge_cutoff: datetime | None = None,
@@ -561,6 +569,16 @@ async def gather_global_chat_sources(
     """
     if limit <= 0:
         return []
+    authorized_entity_ids = list(authorized_corporate_entity_ids)
+    authorized_process_ids = list(authorized_process_unit_ids)
+    if process_scope_limited is None:
+        process_scope_limited = bool(authorized_process_ids)
+    if process_scope_limited and not authorized_process_ids:
+        # A queued job that captured a process scope stays process-limited even
+        # after every captured grant is revoked. Clear the entity admission
+        # list before any retrieval query so private candidate identifiers and
+        # relationships cannot enter ranking ahead of the final ABAC check.
+        authorized_entity_ids = []
     if vision_client is None:
         vision_client = NullImageContentClient()
     if embedding_client is None:
@@ -592,6 +610,29 @@ async def gather_global_chat_sources(
         "",
         1.0,
     )
+    exact_embedding_rows: list[dict[str, object]] = []
+    if exact_semantic_index is not None and embedding_enabled:
+        exact_candidates = await exact_semantic_index.rank_authorized(
+            conn,
+            model_identity=embedding_model_code,
+            query_vector=question_vector,
+            authorized_corporate_entity_ids=authorized_entity_ids,
+            authorized_process_unit_ids=authorized_process_ids,
+            process_scope_limited=process_scope_limited,
+            start_date=resolved_time_range[0] if resolved_time_range else None,
+            end_date=resolved_time_range[1] if resolved_time_range else None,
+            limit=limit,
+        )
+        exact_embedding_rows = [
+            {
+                "candidate_channel": "embedding",
+                "post_id": candidate.post_id,
+                "unit_index": candidate.unit_index,
+                "evidence_open_available": candidate.evidence_open_available,
+                "channel_rank": candidate.channel_rank,
+            }
+            for candidate in exact_candidates
+        ]
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
     if knowledge_cutoff is not None:
@@ -642,7 +683,7 @@ async def gather_global_chat_sources(
                     or (post.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or post.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              order by channel_rank
@@ -651,15 +692,15 @@ async def gather_global_chat_sources(
             list(retrieval_phrases),
             knowledge_cutoff,
             _ontology_lookup_codes_in_question(question),
-            list(authorized_corporate_entity_ids),
-            list(authorized_process_unit_ids),
+            authorized_entity_ids,
+            authorized_process_ids,
             resolved_time_range[0] if resolved_time_range else None,
             resolved_time_range[1] if resolved_time_range else None,
             limit,
         )
     else:
         candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        f"""
+            f"""
         with question_vector as (
             select ordinality - 1 as dimension_index, dimension_value
               from unnest($1::double precision[]) with ordinality
@@ -688,7 +729,7 @@ async def gather_global_chat_sources(
                     or (post.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or post.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              group by unit.post_id, unit.unit_index, unit.source_evidence_reference,
@@ -747,7 +788,7 @@ async def gather_global_chat_sources(
                     or (endpoint.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or endpoint.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='endpoint')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="endpoint")}
         ), matching_edges as (
             select edge.knowledge_graph_edge_id
               from knowledge_graph_edge edge
@@ -828,7 +869,7 @@ async def gather_global_chat_sources(
                     or (post.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or post.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              group by candidate.post_id
@@ -845,18 +886,20 @@ async def gather_global_chat_sources(
           from authorized_evidence_candidates
          order by candidate_channel, channel_rank
         """,
-        question_vector,
-        question_norm,
-        embedding_model_code,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
-        resolved_time_range[0] if resolved_time_range else None,
-        resolved_time_range[1] if resolved_time_range else None,
-        limit,
-        list(retrieval_phrases),
-        _ontology_lookup_codes_in_question(question),
-        embedding_enabled,
-    )
+            question_vector,
+            question_norm,
+            embedding_model_code,
+            authorized_entity_ids,
+            authorized_process_ids,
+            resolved_time_range[0] if resolved_time_range else None,
+            resolved_time_range[1] if resolved_time_range else None,
+            limit,
+            list(retrieval_phrases),
+            _ontology_lookup_codes_in_question(question),
+            embedding_enabled and exact_semantic_index is None,
+        )
+    if exact_embedding_rows:
+        candidate_rows = [*exact_embedding_rows, *candidate_rows]
     embedding_candidate_ids: list[str] = []
     evidence_candidate_ids: list[str] = []
     evidence_open_actions: dict[str, EvidenceOpenAction] = {}
@@ -906,7 +949,9 @@ async def gather_global_chat_sources(
             }
         )
         candidate_ids = list(
-            dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
+            dict.fromkeys(
+                [lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]]
+            )
         )[:limit]
     elif not lineage_anchor_id:
         candidate_ids = []
@@ -929,7 +974,7 @@ async def gather_global_chat_sources(
                 and (cardinality($2::text[]) = 0
                      or process_unit_id::text = any($2::text[]))))
            and source_post.post_id = any($3::uuid[])
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
            and ($7::timestamptz is null or source_post.created_at <= $7)
            and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
            and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
@@ -937,8 +982,8 @@ async def gather_global_chat_sources(
                   coalesce(event_occurred_at, created_at) desc, post_id desc
          limit $4
         """,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
+        authorized_entity_ids,
+        authorized_process_ids,
         candidate_ids,
         limit,
         resolved_time_range[0] if resolved_time_range else None,
@@ -952,8 +997,14 @@ async def gather_global_chat_sources(
     ][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
-    revisions = await fetch_known_at_revisions(conn, visible_ids, knowledge_cutoff) if knowledge_cutoff else {}
-    semantic_facts = await _semantic_facts_for_posts(conn, visible_ids, knowledge_cutoff)
+    revisions = (
+        await fetch_known_at_revisions(conn, visible_ids, knowledge_cutoff)
+        if knowledge_cutoff
+        else {}
+    )
+    semantic_facts = await _semantic_facts_for_posts(
+        conn, visible_ids, knowledge_cutoff
+    )
     graph_facts = await _graph_facts_for_posts(conn, visible_ids, knowledge_cutoff)
     remaining_graph_facts = 16
     time_filter_active = resolved_time_range is not None
@@ -965,10 +1016,16 @@ async def gather_global_chat_sources(
         source_title = (
             revision["post_title"]
             if revision is not None
-            else ("Historical body unavailable" if historical_body_unavailable else row["post_title"])
+            else (
+                "Historical body unavailable"
+                if historical_body_unavailable
+                else row["post_title"]
+            )
         )
-        source_body = revision["post_body"] if revision is not None else (
-            "" if historical_body_unavailable else row["post_body"]
+        source_body = (
+            revision["post_body"]
+            if revision is not None
+            else ("" if historical_body_unavailable else row["post_body"])
         )
         normalized_body = await _normalize_post_body_text(source_body, vision_client)
         if len(normalized_body) > 4000:
@@ -977,7 +1034,9 @@ async def gather_global_chat_sources(
                 + "\n[Source body truncated for Global Ask; open the cited post for the full body.]"
             )
         lineage_fact = (
-            (f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",)
+            (
+                f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",
+            )
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
@@ -1009,18 +1068,42 @@ async def gather_global_chat_sources(
                 + lineage_fact
                 + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
                 source_post_revision_id=(
-                    revision["source_post_revision_id"] if revision is not None else None
+                    revision["source_post_revision_id"]
+                    if revision is not None
+                    else None
                 ),
-                evidence_available_at=(revision["written_at"] if revision is not None else None),
-                knowledge_cutoff=(knowledge_cutoff.isoformat() if knowledge_cutoff else None),
+                evidence_available_at=(
+                    revision["written_at"] if revision is not None else None
+                ),
+                knowledge_cutoff=(
+                    knowledge_cutoff.isoformat() if knowledge_cutoff else None
+                ),
                 live_changed_after_cutoff=(
-                    knowledge_cutoff is not None and row["updated_at"] > knowledge_cutoff
+                    knowledge_cutoff is not None
+                    and row["updated_at"] > knowledge_cutoff
                 ),
                 historical_body_unavailable=historical_body_unavailable,
                 unavailable_channels=(
-                    ("historical_body", "semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image")
+                    (
+                        "historical_body",
+                        "semantic_role",
+                        "semantic_keyman",
+                        "knowledge_graph",
+                        "lineage",
+                        "image",
+                    )
                     if historical_body_unavailable
-                    else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
+                    else (
+                        (
+                            "semantic_role",
+                            "semantic_keyman",
+                            "knowledge_graph",
+                            "lineage",
+                            "image",
+                        )
+                        if knowledge_cutoff
+                        else ()
+                    )
                 ),
                 observed_at=observed_at.isoformat() if observed_at else None,
                 time_axis_code=(
@@ -1148,7 +1231,9 @@ async def fetch_persisted_chat(
     return await _serialize_chat(conn, post_id, norm)
 
 
-async def fetch_persisted_chats(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+async def fetch_persisted_chats(
+    conn: asyncpg.Connection, post_id: str
+) -> list[dict[str, Any]]:
     """Every stored exchange for ``post_id``, oldest first."""
     rows = await conn.fetch(
         "select question_norm from post_chat_result where post_id = $1 order by computed_at, question_norm",

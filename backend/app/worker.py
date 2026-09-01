@@ -40,9 +40,7 @@ _logger = logging.getLogger(__name__)
 
 def _topic_influence_timeouts(settings: object) -> tuple[int, int, int]:
     """Return a declared request/lease pair with persistence time remaining."""
-    request_timeout = getattr(
-        settings, "topic_influence_request_timeout_seconds", None
-    )
+    request_timeout = getattr(settings, "topic_influence_request_timeout_seconds", None)
     lease_timeout = getattr(settings, "topic_influence_lease_timeout_seconds", None)
     poll_seconds = getattr(settings, "topic_influence_poll_seconds", None)
     if (
@@ -123,14 +121,13 @@ async def run_worker_process() -> None:
     valkey = create_valkey_client(settings.valkey_url)
     try:
         async with _single_worker_lease(pool):
-            topic_influence_url = getattr(
-                settings, "topic_influence_transport_url", ""
-            )
+            readiness = asyncio.Event()
+            topic_influence_url = getattr(settings, "topic_influence_transport_url", "")
             influence_timeouts = _optional_topic_influence_timeouts(
                 settings, transport_url=topic_influence_url
             )
             workers = [
-                asyncio.create_task(run_worker_heartbeat()),
+                asyncio.create_task(run_worker_heartbeat(ready=readiness)),
                 asyncio.create_task(
                     run_analysis_run_worker(
                         valkey,
@@ -162,6 +159,7 @@ async def run_worker_process() -> None:
                         embedding_factory=_embedding_client,
                         semantic_query_factory=_semantic_query_client,
                         claim_verification_factory=_claim_verification_client_factory,
+                        readiness=readiness,
                     )
                 ),
                 asyncio.create_task(

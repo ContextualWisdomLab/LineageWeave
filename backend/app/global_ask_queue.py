@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from typing import Any
 
@@ -55,10 +55,15 @@ from lineageweave.public_claim_envelope import (
     PersistedPublicClaimEnvelope,
     envelope_from_authorized_row,
 )
+from lineageweave.rankweave_client import RankWeaveNotAvailable
 from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
+from .global_ask_semantic_index import (
+    GlobalAskExactSemanticIndex,
+    build_global_ask_exact_semantic_index,
+)
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
 from .post_chat_ingestion import (
@@ -68,6 +73,7 @@ from .post_chat_ingestion import (
     prepare_global_question_embedding,
 )
 from .source_research_ingestion import list_ask_source_references
+from .worker_health import invalidate_worker_readiness
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -106,6 +112,13 @@ _WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
 
+_RETRYABLE_EXACT_STATE_ERRORS = frozenset(
+    {
+        "rankweave_not_available: exact authorization scope is not prepared",
+        "rankweave_not_available: exact semantic snapshot is not prepared",
+    }
+)
+
 _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
     select envelope.public_claim_envelope_id,
            envelope.source_post_id,
@@ -136,6 +149,25 @@ _AUTHORIZED_PUBLIC_CLAIM_ENVELOPES_SQL = """
 
 class _SafeJobError(Exception):
     """Failure whose bounded message is safe to persist for the requester."""
+
+
+def _is_retryable_exact_state_error(exc: BaseException) -> bool:
+    """Return whether exact state changed after the worker's dispatch check."""
+
+    return isinstance(exc, RankWeaveNotAvailable) and str(exc) in (
+        _RETRYABLE_EXACT_STATE_ERRORS
+    )
+
+
+async def _publish_global_ask_wakeup(client: redis.Redis, job_id: str) -> None:
+    """Publish one lossy wake-up for a durable queued Ask row."""
+
+    await client.xadd(
+        GLOBAL_ASK_STREAM_KEY,
+        {"global_ask_job_id": str(job_id)},
+        maxlen=_STREAM_MAX_LENGTH,
+        approximate=True,
+    )
 
 
 async def enqueue_global_ask_job(
@@ -185,12 +217,7 @@ async def enqueue_global_ask_job(
             [(job_id, process_unit_id) for process_unit_id in sorted(process_unit_ids)],
         )
     try:
-        await client.xadd(
-            GLOBAL_ASK_STREAM_KEY,
-            {"global_ask_job_id": str(job_id)},
-            maxlen=_STREAM_MAX_LENGTH,
-            approximate=True,
-        )
+        await _publish_global_ask_wakeup(client, str(job_id))
     except redis.RedisError:
         # The committed row is the source of truth; the recovery sweep
         # republishes it within a minute, so the caller still gets a
@@ -208,7 +235,9 @@ def _verification_next_action(status_code: str) -> str:
         VERIFICATION_NO_PUBLIC_CLAIMS: "Ask about a specific claim or narrow the time range, then retry.",
         VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
         CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
-    }.get(status_code, "Ask about a specific claim or narrow the time range, then retry.")
+    }.get(
+        status_code, "Ask about a specific claim or narrow the time range, then retry."
+    )
 
 
 async def _verify_public_claims(
@@ -229,7 +258,9 @@ async def _verify_public_claims(
     if not verify_external:
         return VERIFICATION_SKIPPED, ()
     cited_ids = frozenset(cited_post_ids)
-    claims = tuple(envelope.verification_candidate() for envelope in persisted_envelopes)
+    claims = tuple(
+        envelope.verification_candidate() for envelope in persisted_envelopes
+    )
     claims = tuple(
         claim for claim in claims if set(claim.source_post_ids).issubset(cited_ids)
     )
@@ -247,9 +278,7 @@ async def _verify_public_claims(
         _logger.exception("public claim verification is unavailable")
         return VERIFICATION_UNAVAILABLE, ()
     return VERIFICATION_COMPLETED, tuple(
-        result
-        for result in results
-        if set(result.source_post_ids).issubset(cited_ids)
+        result for result in results if set(result.source_post_ids).issubset(cited_ids)
     )
 
 
@@ -350,6 +379,7 @@ async def compute_global_ask_answer(
     chat_client: PostChatClient,
     embedding_client: EmbeddingClient | None = None,
     semantic_query_client: SemanticQueryClient | None = None,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
     verify_external: bool = False,
     claim_verification_client: ClaimVerificationClient | None = None,
     knowledge_cutoff: datetime | None = None,
@@ -365,12 +395,8 @@ async def compute_global_ask_answer(
         """Apply the requester's ABAC rule: public, or an affiliated entity's post."""
         if row["visibility_code"] == "public":
             return True
-        return (
-            str(row["corporate_entity_id"]) in corporate_entity_ids
-            and (
-                not process_scope_limited
-                or str(row["process_unit_id"]) in process_unit_ids
-            )
+        return str(row["corporate_entity_id"]) in corporate_entity_ids and (
+            not process_scope_limited or str(row["process_unit_id"]) in process_unit_ids
         )
 
     today = _seoul_today()
@@ -379,7 +405,9 @@ async def compute_global_ask_answer(
         rewriter = semantic_query_client or NullSemanticQueryClient()
         if rewriter.available:
             try:
-                search_phrases = await asyncio.to_thread(rewriter.rewrite, question_text)
+                search_phrases = await asyncio.to_thread(
+                    rewriter.rewrite, question_text
+                )
             except Exception as exc:
                 # Query rewriting is an optional recall channel. Any provider
                 # or envelope defect retains the original authorized query;
@@ -403,8 +431,19 @@ async def compute_global_ask_answer(
                 question_embedding=question_embedding,
                 today=today,
                 embedding_client=NullEmbeddingClient(),
+                exact_semantic_index=exact_semantic_index,
+                process_scope_limited=process_scope_limited,
                 knowledge_cutoff=knowledge_cutoff,
             )
+    except RankWeaveNotAvailable as exc:
+        if _is_retryable_exact_state_error(exc):
+            raise
+        log_internal_fault("global_ask", exc)
+        record_server_failure("global_ask", exc, outcome="internal_error")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            _ASK_RETRY_MESSAGE,
+        ) from exc
     except Exception as exc:
         log_internal_fault("global_ask", exc)
         record_server_failure("global_ask", exc, outcome="internal_error")
@@ -603,13 +642,16 @@ async def process_global_ask_job(
     claim_verification_factory: Callable[
         [], ClaimVerificationClient
     ] = NullClaimVerificationClient,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
+    wake_client: redis.Redis | None = None,
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
     Claiming flips ``queued`` → ``running`` atomically so a duplicate
     stream wake-up (recovery republish racing the original entry) is a
-    no-op. Every failure path settles the row as ``failed`` with a
-    bounded detail string rather than leaving it stuck ``running``.
+    no-op. A snapshot/version rollover returns the durable row to
+    ``queued`` for exact re-preparation; every other failure settles it
+    as ``failed`` with a bounded detail rather than leaving it stuck.
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -639,9 +681,7 @@ async def process_global_ask_job(
             raise _SafeJobError("account lacks the post_read permission")
         chat_client = chat_factory()
         if not chat_client.available:
-            raise _SafeJobError(
-                _ASK_RETRY_MESSAGE
-            )
+            raise _SafeJobError(_ASK_RETRY_MESSAGE)
         payload = await asyncio.wait_for(
             compute_global_ask_answer(
                 pool,
@@ -652,6 +692,7 @@ async def process_global_ask_job(
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
                 semantic_query_client=semantic_query_factory(),
+                exact_semantic_index=exact_semantic_index,
                 verify_external=bool(row["verify_external_requested"]),
                 claim_verification_client=claim_verification_factory(),
                 knowledge_cutoff=row["knowledge_cutoff"],
@@ -670,6 +711,33 @@ async def process_global_ask_job(
         # only ever sees a generic, bounded message, never the raw
         # exception text (issue #361 -- a leaked orchestrator/provider
         # exception once exposed internals straight to a client).
+        if _is_retryable_exact_state_error(exc):
+            _logger.info(
+                "global ask exact state changed after dispatch; re-queuing job_id=%s",
+                job_id,
+            )
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """
+                    update global_ask_job set job_status_code = $2,
+                        failure_detail = null, updated_at = now()
+                    where global_ask_job_id = $1 and job_status_code = $3
+                    """,
+                    job_id,
+                    QUEUED,
+                    RUNNING,
+                )
+            if wake_client is not None:
+                try:
+                    await _publish_global_ask_wakeup(wake_client, job_id)
+                except redis.RedisError:
+                    # The queued row remains authoritative. The existing recovery
+                    # sweep republishes it if this best-effort wake-up is lost.
+                    _logger.exception(
+                        "global ask exact-state retry wake-up failed for job_id=%s",
+                        job_id,
+                    )
+            return
         _logger.exception("global ask job failed for job_id=%s", job_id)
         if isinstance(exc, _SafeJobError):
             # Raised locally with a pre-authored, safe message (permission
@@ -767,7 +835,11 @@ async def consume_global_ask_stream_once(
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
-    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
+    claim_verification_factory: Callable[
+        [], ClaimVerificationClient
+    ] = NullClaimVerificationClient,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
+    before_dispatch: Callable[[], Awaitable[None]] | None = None,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -782,6 +854,11 @@ async def consume_global_ask_stream_once(
     ``limiter`` (direct test calls), jobs are processed inline.
     """
     batches = await client.xread({GLOBAL_ASK_STREAM_KEY: last_id}, count=10, block=1000)
+    if batches and before_dispatch is not None:
+        # Enqueue writes authorization scope rows before publishing this wake-up.
+        # Revalidate after XREAD so neither authorization nor projection changes
+        # observed while blocked can reach the queued -> running claim.
+        await before_dispatch()
     for _stream_name, entries in batches:
         for entry_id, fields in entries:
             job_id = str(fields.get("global_ask_job_id", "")).strip()
@@ -794,6 +871,8 @@ async def consume_global_ask_stream_once(
                         embedding_factory=embedding_factory,
                         semantic_query_factory=semantic_query_factory,
                         claim_verification_factory=claim_verification_factory,
+                        exact_semantic_index=exact_semantic_index,
+                        wake_client=client,
                     )
                 else:
                     await limiter.acquire()
@@ -805,6 +884,8 @@ async def consume_global_ask_stream_once(
                             embedding_factory=embedding_factory,
                             semantic_query_factory=semantic_query_factory,
                             claim_verification_factory=claim_verification_factory,
+                            exact_semantic_index=exact_semantic_index,
+                            wake_client=client,
                             limiter=limiter,
                         )
                     )
@@ -823,6 +904,8 @@ async def _process_and_release(
     embedding_factory: Callable[[], EmbeddingClient],
     semantic_query_factory: Callable[[], SemanticQueryClient],
     claim_verification_factory: Callable[[], ClaimVerificationClient],
+    exact_semantic_index: GlobalAskExactSemanticIndex | None,
+    wake_client: redis.Redis,
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
@@ -834,6 +917,8 @@ async def _process_and_release(
             embedding_factory=embedding_factory,
             semantic_query_factory=semantic_query_factory,
             claim_verification_factory=claim_verification_factory,
+            exact_semantic_index=exact_semantic_index,
+            wake_client=wake_client,
         )
     finally:
         limiter.release()
@@ -841,12 +926,67 @@ async def _process_and_release(
 
 async def _stream_tail(client: redis.Redis) -> str:
     """Start consuming after any pre-existing entries; recovery republishes them."""
-    info = await client.xinfo_stream(GLOBAL_ASK_STREAM_KEY) if await client.exists(
-        GLOBAL_ASK_STREAM_KEY
-    ) else None
+    info = (
+        await client.xinfo_stream(GLOBAL_ASK_STREAM_KEY)
+        if await client.exists(GLOBAL_ASK_STREAM_KEY)
+        else None
+    )
     if info and info.get("last-generated-id"):
         return str(info["last-generated-id"])
     return "0-0"
+
+
+async def _discover_global_ask_exact_identity(
+    pool: asyncpg.Pool,
+    embedding_factory: Callable[[], EmbeddingClient],
+) -> tuple[str, int]:
+    embedding_client = embedding_factory()
+    capabilities = getattr(embedding_client, "batch_capabilities", None)
+    if not embedding_client.available or not callable(capabilities):
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: embedding model discovery is unavailable"
+        )
+    await asyncio.to_thread(capabilities)
+    model_identity = getattr(embedding_client, "resolved_model", None)
+    if not isinstance(model_identity, str) or not model_identity.strip():
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: embedding model identity is unavailable"
+        )
+    async with pool.acquire() as conn:
+        dimension_rows = await conn.fetch(
+            """
+            select distinct embedding_dimension_count
+              from post_content_embedding_exact_projection
+             where embedding_model_code = $1
+             order by embedding_dimension_count
+            """,
+            model_identity,
+        )
+    if not dimension_rows:
+        return model_identity, 0
+    if len(dimension_rows) != 1:
+        raise RankWeaveNotAvailable(
+            "rankweave_not_available: exact semantic model dimension is ambiguous"
+        )
+    return model_identity, int(dimension_rows[0]["embedding_dimension_count"])
+
+
+async def _prepare_global_ask_exact_identity(
+    exact_semantic_index: GlobalAskExactSemanticIndex,
+    pool: asyncpg.Pool,
+    embedding_factory: Callable[[], EmbeddingClient],
+    identity: tuple[str, int] | None = None,
+) -> tuple[str, int]:
+    model_identity, vector_dimension = identity or (
+        await _discover_global_ask_exact_identity(pool, embedding_factory)
+    )
+    async with pool.acquire() as conn:
+        await exact_semantic_index.prepare(
+            conn,
+            model_identity=model_identity,
+            vector_dimension=vector_dimension,
+        )
+    return model_identity, vector_dimension
 
 
 async def run_global_ask_worker(
@@ -856,9 +996,72 @@ async def run_global_ask_worker(
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
     semantic_query_factory: Callable[[], SemanticQueryClient] = NullSemanticQueryClient,
-    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
+    claim_verification_factory: Callable[
+        [], ClaimVerificationClient
+    ] = NullClaimVerificationClient,
+    exact_semantic_index: GlobalAskExactSemanticIndex | None = None,
+    readiness: asyncio.Event | None = None,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
+    exact_semantic_index = exact_semantic_index or build_global_ask_exact_semantic_index(
+        pool
+    )
+    if exact_semantic_index is not None:
+        exact_semantic_index._bind_pool(pool)
+    prepared_identity: tuple[str, int] | None = None
+
+    async def refresh_exact_state() -> None:
+        """Prepare the current exact identity and database versions before dispatch."""
+        nonlocal prepared_identity
+        if exact_semantic_index is None:
+            return
+        try:
+            current_identity = await _discover_global_ask_exact_identity(
+                pool, embedding_factory
+            )
+        except Exception:
+            if readiness is not None:
+                invalidate_worker_readiness(readiness)
+            raise
+        identity_changed = current_identity != prepared_identity
+        prepared = False
+        if not identity_changed:
+            model_identity, vector_dimension = current_identity
+            try:
+                async with pool.acquire() as conn:
+                    prepared = await exact_semantic_index.is_prepared_for(
+                        conn,
+                        model_identity=model_identity,
+                        vector_dimension=vector_dimension,
+                    )
+            except Exception:
+                if readiness is not None:
+                    invalidate_worker_readiness(readiness)
+                raise
+        if identity_changed or not prepared:
+            if readiness is not None and (
+                prepared_identity is not None or readiness.is_set()
+            ):
+                invalidate_worker_readiness(readiness)
+            prepared_identity = await _prepare_global_ask_exact_identity(
+                exact_semantic_index,
+                pool,
+                embedding_factory,
+                current_identity,
+            )
+        if readiness is not None:
+            readiness.set()
+
+    while exact_semantic_index is not None and prepared_identity is None:
+        try:
+            await refresh_exact_state()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _logger.exception("global ask exact snapshot preparation failed; retrying")
+            await asyncio.sleep(5)
+    if readiness is not None:
+        readiness.set()
     last_id = await _stream_tail(client)
     last_recovery = 0.0
     limiter = asyncio.Semaphore(_WORKER_CONCURRENCY)
@@ -866,6 +1069,7 @@ async def run_global_ask_worker(
     try:
         while True:
             try:
+                await refresh_exact_state()
                 now = time.monotonic()
                 if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
                     await republish_queued_global_ask_jobs(client, pool)
@@ -878,6 +1082,8 @@ async def run_global_ask_worker(
                     embedding_factory=embedding_factory,
                     semantic_query_factory=semantic_query_factory,
                     claim_verification_factory=claim_verification_factory,
+                    exact_semantic_index=exact_semantic_index,
+                    before_dispatch=refresh_exact_state,
                     limiter=limiter,
                     tasks=tasks,
                 )

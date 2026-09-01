@@ -5,7 +5,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from backend.app.main import _post_filter_options, _post_list_query_plan
+from backend.app.main import (
+    _fetch_search_post_page,
+    _post_filter_options,
+    _post_list_query_plan,
+)
 
 
 class _RecordingConnection:
@@ -152,3 +156,51 @@ def test_filter_projection_returns_exact_single_category_count_only() -> None:
         )
     )
     assert result[2] is None
+
+
+def test_search_page_uses_one_exact_authorized_statement() -> None:
+    """Search ranking and page evidence share one bound ABAC statement."""
+
+    class _SearchConnection:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, tuple[Any, ...]]] = []
+
+        async def fetch(self, query: str, *args: Any) -> list[dict[str, object]]:
+            self.calls.append((query, args))
+            return []
+
+    conn = _SearchConnection()
+    rows = asyncio.run(
+        _fetch_search_post_page(
+            conn,
+            search_term="synthetic",
+            corporate_entity_ids=frozenset({"00000000-0000-0000-0000-000000000001"}),
+            process_unit_ids=frozenset({"00000000-0000-0000-0000-000000000002"}),
+            voice_filters=["voc"],
+            visibility_filter="private",
+            offset=3,
+            limit=7,
+            sort="oldest",
+            source_context_required=True,
+        )
+    )
+
+    assert rows == []
+    assert len(conn.calls) == 1
+    query, args = conn.calls[0]
+    assert "with matched as" in query
+    assert "candidate_position" in query
+    assert "source.visibility_code = 'public'" in query
+    assert "source.corporate_entity_id::text = any($2::text[])" in query
+    assert "source.process_unit_id::text = any($3::text[])" in query
+    assert "voice_filter.voice_type_code = any($4::text[])" in query
+    assert args == (
+        "synthetic",
+        ["00000000-0000-0000-0000-000000000001"],
+        ["00000000-0000-0000-0000-000000000002"],
+        ["voc"],
+        "private",
+        3,
+        7,
+        "oldest",
+    )

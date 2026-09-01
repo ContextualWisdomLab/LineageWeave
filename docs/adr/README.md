@@ -1,5 +1,6 @@
 # Architecture Decision Records
 
+- [ADR 0279: Global Ask exact semantic index projection](0279-global-ask-exact-semantic-index.md)
 - [ADR 0278: Selected topic-context Rankings](0278-selected-topic-context-rankings.md)
 
 ADRs are the normative source for architecture decisions. Research notes,

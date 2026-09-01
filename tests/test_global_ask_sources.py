@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import math
 from datetime import date, datetime, timezone
+from types import SimpleNamespace
 
 from backend.app.post_chat_ingestion import (
     _fuse_global_candidate_ids,
@@ -208,6 +209,60 @@ def test_embedding_match_issues_authorized_unit_action_without_opaque_reference(
     }
     assert "source_evidence_reference" not in citation
     assert "message-part:" not in repr(citation)
+
+
+def test_exact_index_replaces_scalar_embedding_scan_and_preserves_open_action() -> None:
+    """The accepted owner path supplies exact candidates without scalar cosine SQL."""
+    source_row = {
+        "post_id": "matched-post",
+        "post_title": "Matched source",
+        "post_body": "Synthetic source body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "process_unit_id": None,
+        "created_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 8, 25, tzinfo=timezone.utc),
+        "event_occurred_at": None,
+    }
+
+    class ExactIndex:
+        async def rank_authorized(self, _conn, **parameters):
+            assert parameters["model_identity"] == "test-embedding"
+            assert parameters["query_vector"] == [1.0, 0.0]
+            return [
+                SimpleNamespace(
+                    post_id="matched-post",
+                    unit_index=3,
+                    evidence_open_available=True,
+                    channel_rank=1,
+                )
+            ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "unit_similarity" in query:
+                assert args[10] is False
+                return []
+            if "from post_lineage_edge" in query:
+                return []
+            if "array_position($3::uuid[], post_id)" in query:
+                return [source_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            question="Open the matching evidence",
+            exact_semantic_index=ExactIndex(),
+            limit=1,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["matched-post"]
+    assert sources[0].evidence_open_action == EvidenceOpenAction(
+        post_id="matched-post", unit_index=3
+    )
 
 
 def test_hidden_embedding_match_cannot_leak_unit_action() -> None:
@@ -868,6 +923,37 @@ def test_global_sources_keep_body_and_title_lexical_fallback_disabled() -> None:
     assert "source_post_search_text" not in candidate_queries[0]
     assert "websearch_to_tsquery('simple', phrase)" in candidate_queries[0]
     assert "unnest($9::text[])" in candidate_queries[0]
+
+
+def test_revoked_captured_process_scope_excludes_private_candidates_before_ranking() -> None:
+    """An empty retained process scope cannot admit private candidate identities."""
+    candidate_scope_arguments: list[tuple[object, object]] = []
+    final_scope_arguments: list[tuple[object, object]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "evidence_post_candidates" in query:
+                candidate_scope_arguments.append((args[3], args[4]))
+            if "array_position($3::uuid[], post_id)" in query:
+                final_scope_arguments.append((args[0], args[1]))
+            return []
+
+    for knowledge_cutoff in (None, datetime(2026, 8, 25, tzinfo=timezone.utc)):
+        sources = asyncio.run(
+            gather_global_chat_sources(
+                FakeConnection(),
+                lambda _row: True,
+                authorized_corporate_entity_ids=("retained-entity",),
+                authorized_process_unit_ids=(),
+                process_scope_limited=True,
+                question="Synthetic governed evidence question",
+                knowledge_cutoff=knowledge_cutoff,
+            )
+        )
+        assert sources == []
+
+    assert candidate_scope_arguments == [([], []), ([], [])]
+    assert final_scope_arguments == [([], []), ([], [])]
 
 
 def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(

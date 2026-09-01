@@ -164,10 +164,62 @@ def test_heartbeat_records_before_first_sleep(
     )
 
 
+def test_heartbeat_waits_for_required_startup_readiness(tmp_path: Path) -> None:
+    """Cold snapshot preparation cannot publish a healthy worker heartbeat."""
+    heartbeat = tmp_path / "heartbeat"
+
+    async def exercise() -> None:
+        ready = asyncio.Event()
+        task = asyncio.create_task(
+            worker_health.run_worker_heartbeat(heartbeat, ready=ready)
+        )
+        await asyncio.sleep(0)
+        assert not heartbeat.exists()
+        ready.set()
+        await asyncio.sleep(0)
+        assert heartbeat.read_text(encoding="ascii").startswith("v1 ")
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+
+
+def test_heartbeat_invalidates_and_resumes_with_readiness(tmp_path: Path) -> None:
+    """A stale snapshot removes health evidence until replacement is ready."""
+    heartbeat = tmp_path / "heartbeat"
+    state = tmp_path / "state"
+
+    async def exercise() -> None:
+        ready = asyncio.Event()
+        ready.set()
+        task = asyncio.create_task(
+            worker_health.run_worker_heartbeat(heartbeat, ready=ready)
+        )
+        await asyncio.sleep(0)
+        assert heartbeat.exists()
+
+        state.write_text("1", encoding="ascii")
+        worker_health.invalidate_worker_readiness(ready, heartbeat, state)
+        assert not heartbeat.exists()
+        assert not state.exists()
+        await asyncio.sleep(1.05)
+        assert not heartbeat.exists()
+
+        ready.set()
+        await asyncio.sleep(0)
+        assert heartbeat.exists()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+
+
 def test_reboot_discards_prior_monotonic_probe_baseline(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A lower monotonic value after reboot starts a new worker epoch."""
+    """A lower monotonic value after reboot starts a new readiness epoch."""
     heartbeat = tmp_path / "heartbeat"
     state = tmp_path / "state"
     old_sample = _sample(_OLD_EPOCH, 9_000_000_000)
@@ -176,9 +228,14 @@ def test_reboot_discards_prior_monotonic_probe_baseline(
     monkeypatch.setattr(worker_health.time, "monotonic_ns", lambda: 1)
 
     async def exercise() -> None:
+        ready = asyncio.Event()
+        ready.set()
         task = asyncio.create_task(
             worker_health.run_worker_heartbeat(
-                heartbeat, state_path=state, epoch=_NEW_EPOCH
+                heartbeat,
+                ready=ready,
+                state_path=state,
+                epoch=_NEW_EPOCH,
             )
         )
         await asyncio.sleep(0)
@@ -245,7 +302,9 @@ def test_shell_probe_rejects_malformed_or_regressed_heartbeat(tmp_path: Path) ->
         _sample(_NEW_EPOCH, 1),
     ):
         heartbeat.write_text(value, encoding="ascii")
-        result = subprocess.run(["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False)
+        result = subprocess.run(
+            ["/bin/sh", _SHELL_PROBE, heartbeat, state], check=False
+        )
         assert result.returncode != 0
 
 
