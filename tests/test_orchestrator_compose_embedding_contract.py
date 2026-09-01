@@ -23,6 +23,8 @@ def test_rendered_compose_keeps_embedding_selection_upstream(tmp_path: Path) -> 
     rendered = subprocess.run(
         [
             *compose_command,
+            "--env-file",
+            str(tmp_path / ".env"),
             "-f",
             str(_ROOT / "docker-compose.yml"),
             "--profile",
