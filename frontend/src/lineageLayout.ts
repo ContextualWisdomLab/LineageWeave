@@ -139,15 +139,43 @@ function stableGroupSortKey(group: LaidOutGroup): string {
   return `${ungroupedRank}\u0000${group.heading}\u0000${group.group}`;
 }
 
+function stableChannelEvidenceKey(edge: LineageGraphEdge): string {
+  const evidence = (edge.channel_evidence ?? [])
+    .map((item) => [
+      item.signal_code,
+      item.signal_label,
+      item.score,
+      item.weight,
+      item.contribution,
+      item.rank,
+    ])
+    .sort((left, right) => stableTextCompare(JSON.stringify(left), JSON.stringify(right)));
+  return JSON.stringify(evidence);
+}
+
+/**
+ * Stable edge key that also distinguishes parallel relationships.
+ *
+ * Source and target identity alone is insufficient because the API permits more than one
+ * relationship between the same posts. Relation, score, and evidence fields complete the
+ * presentation tie-breaker without mutating the edge or assigning synthetic identity.
+ */
 function stableEdgeSortKey(
   edge: LineageGraphEdge,
   nodesById: Map<string, LineageGraphNode>,
 ): string {
   const source = nodesById.get(edge.source);
   const target = nodesById.get(edge.target);
-  return `${source ? stableNodeSortKey(source) : edge.source}\u0000${
-    target ? stableNodeSortKey(target) : edge.target
-  }\u0000${edge.source}\u0000${edge.target}`;
+  return JSON.stringify([
+    source ? stableNodeSortKey(source) : edge.source,
+    target ? stableNodeSortKey(target) : edge.target,
+    edge.source,
+    edge.target,
+    edge.interval_relation_code ?? "",
+    edge.interval_relation_label ?? "",
+    edge.fused_score,
+    stableChannelEvidenceKey(edge),
+  ]);
 }
 
 /** Lay out only relationships whose two endpoints share one visible group. */
