@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from lineageweave.affiliate_tree import AffiliationLeaf, CorporateEntityRow, build_affiliate_forest
 
 
@@ -54,6 +56,16 @@ def test_missing_parent_is_kept_and_disclosed_without_inventing_an_edge() -> Non
     assert forest[0].entity_id == "child-id"
     assert forest[0].hierarchy_issue == "parent_not_available"
     assert forest[0].children == ()
+
+
+def test_duplicate_entity_identity_fails_closed_instead_of_using_input_order() -> None:
+    entities = (
+        CorporateEntityRow("shared-id", None, "Original Corp", "company"),
+        CorporateEntityRow("shared-id", None, "Conflicting Corp", "company"),
+    )
+
+    with pytest.raises(ValueError, match="duplicate corporate entity id: shared-id"):
+        build_affiliate_forest(entities, (_leaf("shared-id", "Original Corp"),))
 
 
 def test_unavailable_entity_references_do_not_collapse_by_display_name() -> None:
