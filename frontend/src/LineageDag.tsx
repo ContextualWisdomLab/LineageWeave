@@ -99,18 +99,15 @@ function edgeControlLabel(
   if (parallelCount <= 1) return base;
 
   const relation = intervalLabel(edge);
+  const exactSummary = tf("{from} follows {to}, fused score {score}", {
+    from: toLabel,
+    to: fromLabel,
+    score: formatExact(edge.fused_score),
+  });
+  const disambiguator = `(${position}/${parallelCount})`;
   return relation
-    ? `${base} — ${tf("relationship {position} of {count}, {relation}, fused score {score}", {
-        position,
-        count: parallelCount,
-        relation: t(relation),
-        score: formatExact(edge.fused_score),
-      })}`
-    : `${base} — ${tf("relationship {position} of {count}, fused score {score}", {
-        position,
-        count: parallelCount,
-        score: formatExact(edge.fused_score),
-      })}`;
+    ? `${base} — ${t(relation)}; ${exactSummary} ${disambiguator}`
+    : `${base} — ${exactSummary} ${disambiguator}`;
 }
 
 function otherPostId(edge: LineageGraphEdge, currentPostId?: string): string {
@@ -309,9 +306,7 @@ export function LineageDag({
       })}
       <section className="lineage-edge-evidence" aria-label={t("Connection evidence")}>
         <h3>{t("Connection evidence")}</h3>
-        <p>
-          {t("Each connection is inferred from independent signals. It is not a causal claim.")}
-        </p>
+        <p>{t("Each connection is inferred from independent signals. It is not a causal claim.")}</p>
         {graph.reconstruction ? (
           <dl className="lineage-rebuild-profile">
             <div>
