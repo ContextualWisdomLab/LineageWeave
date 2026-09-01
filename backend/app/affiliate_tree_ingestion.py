@@ -20,8 +20,8 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
 
     Resolve Keyman affiliations before loading hierarchy rows.  The hierarchy
     query starts from the resolved corporate-entity identifiers and walks only
-    their ancestors, so unrelated tenant/catalog organizations are never pulled
-    into application memory merely to render one post's Affiliate Tree.
+    their ancestors, so unrelated catalog organizations are never pulled into
+    application memory merely to render one post's Affiliate Tree.
     """
     aliases = await fetch_corroborated_organization_aliases(conn)
     leaves: list[AffiliationLeaf] = []
