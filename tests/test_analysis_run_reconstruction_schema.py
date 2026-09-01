@@ -10,6 +10,9 @@ from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 
+from lineageweave import postgres_sync as sync_postgres
+from lineageweave.postgres_sync import sql
+
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
@@ -80,11 +83,9 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
 def _postgres_available() -> bool:
     """Return whether the configured administrator DSN is reachable."""
     try:
-        import psycopg2
-
-        psycopg2.connect(_ADMIN_DSN, connect_timeout=2).close()
+        sync_postgres.connect(_ADMIN_DSN, connect_timeout=2).close()
         return True
-    except Exception:
+    except sync_postgres.OperationalError:
         return False
 
 
@@ -99,17 +100,18 @@ def reconstruction_db():
     """Yield a throwaway registry+reconstruction database."""
     if not _postgres_available():
         pytest.skip("a reachable PostgreSQL administrator DSN is required")
-    import psycopg2
 
     database_name = f"lineageweave_recon_{uuid.uuid4().hex[:12]}"
-    admin = psycopg2.connect(_ADMIN_DSN)
+    admin = sync_postgres.connect(_ADMIN_DSN)
     admin.autocommit = True
     try:
         with admin.cursor() as cursor:
-            cursor.execute(f'create database "{database_name}"')
+            cursor.execute(
+                sql.SQL("create database {}").format(sql.Identifier(database_name))
+            )
     finally:
         admin.close()
-    conn = psycopg2.connect(_database_dsn(database_name))
+    conn = sync_postgres.connect(_database_dsn(database_name))
     conn.autocommit = True
     try:
         with conn.cursor() as cursor:
@@ -120,7 +122,7 @@ def reconstruction_db():
         yield conn
     finally:
         conn.close()
-        admin = psycopg2.connect(_ADMIN_DSN)
+        admin = sync_postgres.connect(_ADMIN_DSN)
         admin.autocommit = True
         try:
             with admin.cursor() as cursor:
@@ -129,7 +131,9 @@ def reconstruction_db():
                     "where datname = %s and pid <> pg_backend_pid()",
                     (database_name,),
                 )
-                cursor.execute(f'drop database "{database_name}"')
+                cursor.execute(
+                    sql.SQL("drop database {}").format(sql.Identifier(database_name))
+                )
         finally:
             admin.close()
 
