@@ -368,6 +368,11 @@ class DynamicEvaluationRunLineage:
         raw_items = payload["items"]
         if not isinstance(raw_items, (tuple, list)):
             raise TypeError("items must be a tuple or list")
+        if len(raw_items) > MAX_LINEAGE_ITEMS:
+            raise DynamicEvaluationLineageError(
+                "item_set_budget_exceeded",
+                f"run lineage may contain at most {MAX_LINEAGE_ITEMS} items",
+            )
         return build_dynamic_evaluation_run_lineage(
             run_snapshot_ref=payload["run_snapshot_ref"],
             blueprint_revision_ref=payload["blueprint_revision_ref"],
