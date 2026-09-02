@@ -159,8 +159,11 @@ async def _select_posts(
     )
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
-    if args.post_id and args.all:
+async def _run_post_keymen_backfill(
+    backfill_arguments: argparse.Namespace,
+) -> dict[str, object]:
+    """Execute one bounded post-Keyman backfill operation."""
+    if backfill_arguments.post_id and backfill_arguments.all:
         raise ValueError("--post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
     settings = load_settings()
@@ -171,19 +174,25 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
     resolution_client = _organization_name_resolution_client()
     verification_client = _relation_verification_client()
     hierarchy_client = _corporate_hierarchy_inference_client()
-    limit = 1 if args.post_id or not args.all else args.limit
+    limit = (
+        1
+        if backfill_arguments.post_id or not backfill_arguments.all
+        else backfill_arguments.limit
+    )
 
     pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
     try:
         async with pool.acquire() as conn:
-            rows = await _select_posts(conn, limit=limit, post_id=args.post_id)
+            rows = await _select_posts(
+                conn, limit=limit, post_id=backfill_arguments.post_id
+            )
             failures: Counter[str] = Counter()
             processed = 0
             mention_count = 0
             for row in rows:
                 post_id = str(row["post_id"])
                 try:
-                    async with asyncio.timeout(args.post_timeout):
+                    async with asyncio.timeout(backfill_arguments.post_timeout):
                         with use_llm_metadata(build_post_llm_metadata(post_id, dict(row))):
                             normalized = normalize_post_body(row["post_body"] or "", vision_client)
                             context_hints = await _load_post_semantic_hints(conn, post_id)
@@ -227,12 +236,18 @@ def main() -> None:
         default=240.0,
         help="Maximum seconds per post including provider calls (default: 240)",
     )
-    args = parser.parse_args()
-    if args.limit < 1:
+    backfill_arguments = parser.parse_args()
+    if backfill_arguments.limit < 1:
         parser.error("--limit must be positive")
-    if args.post_timeout <= 0:
+    if backfill_arguments.post_timeout <= 0:
         parser.error("--post-timeout must be positive")
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            asyncio.run(_run_post_keymen_backfill(backfill_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
