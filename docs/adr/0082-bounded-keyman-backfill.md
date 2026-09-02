@@ -47,6 +47,11 @@ It will:
 - require the programmatic batch-mode selector to be an exact boolean before
   using its truth value, so strings or integer-like transport values cannot
   silently switch a direct call into or out of batch mode;
+- admit the per-post administrative timeout only when validation itself is
+  total: malformed direct-call values, including an integer too large for the
+  runtime finite-number check, fail closed instead of escaping admission with
+  an arithmetic exception before the operator can return its normal validation
+  error;
 - enforce one admitted per-post timeout across the operator and its Keyman and
   Vision contextual-orchestrator transports. Neither synchronous Vision work
   nor Keyman extraction may impose an unrelated shorter fixed timeout that can
@@ -77,3 +82,6 @@ route. No analysis-run registry tables are modified.
   unavailable for that attempt; it is not converted into an empty Keyman
   result, and unrelated client-local fixed timeouts do not pre-empt that
   budget.
+- Programmatic timeout admission remains fail-closed even for numeric values
+  whose magnitude cannot be represented by the runtime finite-number helper;
+  validation does not leak an `OverflowError` as an alternate control path.
