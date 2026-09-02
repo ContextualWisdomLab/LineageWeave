@@ -123,6 +123,15 @@ def _reject_unknown_fields(
         )
 
 
+def _is_unicode_noncharacter(character: str) -> bool:
+    """Return whether one Unicode scalar is permanently reserved as a noncharacter."""
+    codepoint = ord(character)
+    return 0xFDD0 <= codepoint <= 0xFDEF or (codepoint & 0xFFFF) in {
+        0xFFFE,
+        0xFFFF,
+    }
+
+
 def _reference(value: Any, field_name: str) -> str:
     """Validate one exact bounded opaque reference without normalization."""
     if type(value) is not str:
@@ -138,6 +147,7 @@ def _reference(value: Any, field_name: str) -> str:
             or 127 <= ord(character) <= 159
             or 0xD800 <= ord(character) <= 0xDFFF
             or unicodedata.category(character) in {"Cf", "Zl", "Zp"}
+            or _is_unicode_noncharacter(character)
             for character in value
         )
     ):
