@@ -32,6 +32,9 @@ It will:
   same check to direct programmatic runner calls before gateway or database
   work, so booleans and other transport-shaped values cannot silently become
   a batch size;
+- require the programmatic batch-mode selector to be an exact boolean before
+  using its truth value, so strings or integer-like transport values cannot
+  silently switch a direct call into or out of batch mode;
 - enforce a per-post timeout, returning a typed failure count instead of
   allowing a provider workflow to hold an operator process indefinitely.
 
