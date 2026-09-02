@@ -58,12 +58,14 @@ class _ConflictPipeline:
         """Raise WATCH conflicts, then fail if production retries past the bound."""
         self.stream.execute_attempts += 1
         if self.stream.execute_attempts <= self.stream.conflict_attempts:
-            raise WatchError("synthetic persistent activity-stream conflict")
+            raise WatchError(
+                "synthetic conflict while watching activity:post-1 for post-1"
+            )
         raise AssertionError("activity reseed retried beyond the expected bound")
 
 
 def test_publish_activity_event_sync_fails_after_bounded_watch_conflicts() -> None:
-    """Contention fails clearly without disclosing the post-scoped stream key."""
+    """Contention failure must not retain the raw key through exception chaining."""
     client = _ConflictStream(conflict_attempts=8)
 
     with pytest.raises(RuntimeError) as error_info:
@@ -80,4 +82,6 @@ def test_publish_activity_event_sync_fails_after_bounded_watch_conflicts() -> No
     assert "8" in error_message
     assert "post-1" not in error_message
     assert "activity:post-1" not in error_message
+    assert error_info.value.__cause__ is None
+    assert error_info.value.__context__ is None
     assert client.execute_attempts == 8
