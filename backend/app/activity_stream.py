@@ -18,6 +18,7 @@ from redis.exceptions import WatchError
 from lineageweave.observability import traced
 
 _SYNC_ACTIVITY_WATCH_RETRY_LIMIT = 8
+_MAX_ACTIVITY_READ_COUNT = 1000
 
 
 def create_valkey_client(valkey_url: str) -> redis.Redis:
@@ -81,6 +82,23 @@ def _activity_text(value: Any, field_name: str) -> str:
     """
     if type(value) is not str:
         raise TypeError(f"{field_name} must be a string")
+    return value
+
+
+def _activity_event_count(value: Any) -> int:
+    """Validate one bounded buyer-facing activity-stream read count.
+
+    Redis accepts integer-like values at a lower protocol layer, but the product
+    read contract must not coerce booleans, floats, or strings into a request
+    budget. The upper bound matches the retained stream window so callers cannot
+    request work beyond the product's own retention contract.
+    """
+    if type(value) is not int:
+        raise TypeError("event_count must be an integer")
+    if not 1 <= value <= _MAX_ACTIVITY_READ_COUNT:
+        raise ValueError(
+            f"event_count must be between 1 and {_MAX_ACTIVITY_READ_COUNT}"
+        )
     return value
 
 
@@ -250,17 +268,20 @@ async def read_activity_events(
 ) -> list[dict[str, Any]]:
     """Read the newest retained activity events for one post.
 
-    ``event_count`` bounds the buyer-facing read; this function does not broaden
-    the query to other posts or reconstruct missing facts. Returned dictionaries
-    preserve the established event id/type/actor/summary wire fields.
+    ``event_count`` is an exact 1..1000 buyer-facing read budget matching the
+    retained stream window. Invalid values fail before Valkey access; this
+    function does not broaden the query to other posts or reconstruct missing
+    facts. Returned dictionaries preserve the established
+    event-id/type/actor/summary wire fields.
     """
+    bounded_event_count = _activity_event_count(event_count)
     with traced(
         "lineageweave.valkey.activity_xrevrange",
         {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
     ):
         stream_entries = await valkey_client.xrevrange(
             _stream_key(post_id),
-            count=event_count,
+            count=bounded_event_count,
         )
     return [
         {
