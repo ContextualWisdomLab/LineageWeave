@@ -31,9 +31,14 @@ def _load_limit_validator():
     return namespace["_post_limit_is_valid"]
 
 
-@pytest.mark.parametrize("invalid_limit", [0, -1, True, False, 1.0, "1", None])
-def test_post_keymen_backfill_rejects_malformed_batch_limit(invalid_limit: object) -> None:
-    """Reject malformed direct-call limits instead of relying on argparse coercion."""
+@pytest.mark.parametrize(
+    "invalid_limit",
+    [0, -1, True, False, 1.0, "1", None, 101, 1_000_000],
+)
+def test_post_keymen_backfill_rejects_malformed_or_unbounded_batch_limit(
+    invalid_limit: object,
+) -> None:
+    """Reject malformed or operationally unbounded direct-call batch limits."""
     validator = _load_limit_validator()
 
     assert validator(invalid_limit) is False
@@ -67,7 +72,7 @@ def test_programmatic_runner_revalidates_limit_before_external_work() -> None:
     syntax_tree = ast.parse(BACKFILL_SCRIPT.read_text(encoding="utf-8"))
     runner = next(
         node
-        for node in syntax_tree.body
+        for node in ast.walk(syntax_tree)
         if isinstance(node, ast.AsyncFunctionDef)
         and node.name == "_run_post_keymen_backfill"
     )
