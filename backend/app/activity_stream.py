@@ -10,6 +10,7 @@ if a second reader ever needs at-least-once delivery).
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import Request
@@ -42,16 +43,23 @@ def get_valkey(request: Request) -> redis.Redis:
 
 
 def _stream_key(post_id: str) -> str:
-    """Map one canonical post id to its stable activity-stream wire key.
+    """Map one source-post identity to its stable activity-stream wire key.
 
-    The prefix is part of the persisted Valkey contract. Keep key construction
-    centralized so producers and readers cannot silently diverge on namespace.
-    Exact string admission prevents a malformed scalar such as integer ``7``
-    from aliasing the distinct canonical string identity ``"7"``.
+    ``source_post.post_id`` is PostgreSQL ``uuid``. PostgreSQL accepts more than
+    one textual spelling for the same UUID, so using raw request text as the
+    Valkey suffix can fork one database identity into case- or format-variant
+    streams. Syntactically valid UUID strings therefore converge on Python's
+    canonical lowercase hyphenated representation before key construction.
+    Non-UUID fixture/legacy strings retain exact spelling, and non-string values
+    are still rejected rather than being stringified onto another identity.
     """
     if type(post_id) is not str:
         raise TypeError("post_id must be a string")
-    return f"activity:{post_id}"
+    try:
+        canonical_post_id = str(UUID(post_id))
+    except ValueError:
+        canonical_post_id = post_id
+    return f"activity:{canonical_post_id}"
 
 
 def ticket_created_summary(ticket_title: str) -> str:
