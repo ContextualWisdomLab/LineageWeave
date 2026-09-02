@@ -166,7 +166,7 @@ def test_activity_read_preserves_precanonical_uppercase_uuid_alias_events() -> N
         )
     )
 
-    assert [event["event_id"] for event in events] == ["200-0", "100-0"]
+    assert [event["event_id"] for event in events] == ["200-0", "legacy-1:100-0"]
     assert client.reads == [(canonical_key, 10), (legacy_key, 10)]
 
 
