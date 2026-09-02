@@ -119,6 +119,21 @@ def _activity_compatibility_merge_order(
     return milliseconds, -stream_index, sequence
 
 
+def _activity_public_event_id(entry_id: str, stream_index: int) -> str:
+    """Return an opaque event identity unique across bounded compatibility streams.
+
+    Valkey stream IDs are unique only inside one stream, so a canonical stream and
+    a historical alias can legitimately both contain ``600-0``. Canonical events
+    keep their established public ID. Alias events receive a bounded stream-index
+    namespace that contains no post identifier or raw stream key, preventing
+    duplicate React/API identities without inventing event chronology or mutating
+    persisted records.
+    """
+    if stream_index == 0:
+        return entry_id
+    return f"legacy-{stream_index}:{entry_id}"
+
+
 def ticket_created_summary(ticket_title: str) -> str:
     """Build the stable human-readable summary for a ticket-created event.
 
@@ -342,7 +357,9 @@ async def read_activity_events(
     precision only; equal-millisecond historical ties use deterministic
     canonical-first stream precedence rather than pretending stream-local
     sequence counters form a global clock. The final buyer limit is applied
-    only after this bounded merge.
+    only after this bounded merge. Canonical entries retain their historical
+    public ``event_id``; alias entries are namespaced by bounded stream ordinal
+    because Valkey stream IDs are not globally unique across independent keys.
     """
     bounded_event_count = _activity_event_count(event_count)
     stream_keys = _activity_read_stream_keys(post_id)
@@ -373,10 +390,10 @@ async def read_activity_events(
     )[:bounded_event_count]
     return [
         {
-            "event_id": entry_id,
+            "event_id": _activity_public_event_id(entry_id, stream_index),
             "event_type": activity_fields["event_type"],
             "actor_account_id": activity_fields["actor_account_id"],
             "summary": activity_fields["summary"],
         }
-        for (entry_id, activity_fields), _stream_index in stream_entries
+        for (entry_id, activity_fields), stream_index in stream_entries
     ]
