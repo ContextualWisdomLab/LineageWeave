@@ -1,5 +1,14 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-02 20:20 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. Writes work (MCP comment + git push). Do not
+> self-approve. #917 leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map
+> person coordinates independently of leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates (v2.110.0 / ADR 0353) is
+> `8192b485`, stacked on #916 @ `7978e925`. Independent APPROVE is missing. This increment: leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
+> item coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates as leftoverMapCompareListCriterionBadge (ADR 0354 / v2.111.0) on
+> `feat/leftover-map-compare-list-criterion-origin-badge-v21110`. Distinct accessible name
+> `leftover map comparison leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapCompareListPostBadge stays leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinate keys. leftoverMapListCriterionBadge stays leftover-map pair leftover-map criterion leftover-map origin leftover-map item coordinate keys. leftoverMapComparePlotCriterionBadge stays leftover-map comparison graphic leftover-map criterion leftover-map origin leftover-map item coordinate keys. Do not invent leftover-map origin from leftover-map person coordinates `ξ`. Do not mix #877. Do not mix #890 leftoverMapPlotOriginBadge reconstruction into this increment. Stack onto #917. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE. #96 already closed as weaker duplicate of #91. Next buyer increment after this stack: leftoverMapPlotOriginBadge reconstruction independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates (ADR 0355 / v2.112.0).
+
 > Exact-head loop overlay: 2026-09-02 17:35 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. Writes work (MCP comment + git push). Do not
 > self-approve. #916 leftover-map pair leftover-map criterion leftover-map origin leftover-map
