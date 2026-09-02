@@ -551,6 +551,24 @@ def _validate_criterion_binding(
         )
 
 
+def _validate_supersession_graph(
+    items: tuple[DynamicEvaluationItemLineage, ...],
+) -> None:
+    """Reject cycles among supersession edges whose endpoints are in this run."""
+    item_by_ref = {item.item_snapshot_ref: item for item in items}
+    for start_ref in item_by_ref:
+        seen: set[str] = set()
+        current_ref: str | None = start_ref
+        while current_ref in item_by_ref:
+            if current_ref in seen:
+                raise DynamicEvaluationLineageError(
+                    "supersession_cycle",
+                    "item supersession lineage must be acyclic within a run",
+                )
+            seen.add(current_ref)
+            current_ref = item_by_ref[current_ref].supersedes_item_snapshot_ref
+
+
 def build_dynamic_evaluation_run_lineage(
     *,
     run_snapshot_ref: str,
@@ -597,6 +615,7 @@ def build_dynamic_evaluation_run_lineage(
         raise DynamicEvaluationLineageError(
             "duplicate_item_snapshot", "run lineage item snapshots must be unique"
         )
+    _validate_supersession_graph(normalized_items)
 
     normalized_anchor_refs = _reference_tuple(
         anchor_item_snapshot_refs,
