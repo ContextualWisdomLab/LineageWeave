@@ -3,12 +3,14 @@
 LineageWeave owns the product meaning and evidence provenance of evaluation
 criteria. This module retains source-text-free references and exact digests for
 criterion definitions, evidence admission and exclusion rules, response and
-missingness semantics, and every admissible response category. It does not call
-providers, score observations, adjudicate cases, or calibrate items.
+missingness semantics, and every admissible response-category definition. It
+does not call providers, score observations, adjudicate cases, or calibrate
+items.
 """
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import InitVar, dataclass
 from typing import Any
@@ -35,7 +37,6 @@ _CRITERION_FIELDS = frozenset(
         "abstention_rule_sha256",
         "not_observable_rule_ref",
         "not_observable_rule_sha256",
-        "category_refs",
         "category_definition_refs",
         "category_definition_sha256s",
     }
@@ -104,6 +105,7 @@ def _reference(value: Any, field_name: str) -> str:
             ord(character) < 32
             or 127 <= ord(character) <= 159
             or 0xD800 <= ord(character) <= 0xDFFF
+            or unicodedata.category(character) == "Cf"
             for character in value
         )
     ):
@@ -117,7 +119,9 @@ def _sha256(value: Any, field_name: str) -> str:
     """Validate one complete lowercase SHA-256 digest."""
     if type(value) is not str:
         raise TypeError(f"{field_name} must be a string")
-    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+    if len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
         raise EvaluationCriterionLineageError(
             "invalid_sha256",
             f"{field_name} must be 64 lowercase hexadecimal characters",
@@ -190,7 +194,6 @@ class EvaluationCriterionLineage:
     abstention_rule_sha256: str
     not_observable_rule_ref: str
     not_observable_rule_sha256: str
-    category_refs: tuple[str, ...]
     category_definition_refs: tuple[str, ...]
     category_definition_sha256s: tuple[str, ...]
     _admission_token: InitVar[object | None] = None
@@ -233,7 +236,6 @@ class EvaluationCriterionLineage:
             "abstention_rule_sha256": self.abstention_rule_sha256,
             "not_observable_rule_ref": self.not_observable_rule_ref,
             "not_observable_rule_sha256": self.not_observable_rule_sha256,
-            "category_refs": list(self.category_refs),
             "category_definition_refs": list(self.category_definition_refs),
             "category_definition_sha256s": list(self.category_definition_sha256s),
         }
@@ -255,17 +257,10 @@ def build_evaluation_criterion_lineage(
     abstention_rule_sha256: str,
     not_observable_rule_ref: str,
     not_observable_rule_sha256: str,
-    category_refs: Sequence[str],
     category_definition_refs: Sequence[str],
     category_definition_sha256s: Sequence[str],
 ) -> EvaluationCriterionLineage:
     """Build one criterion whose evaluative meaning is complete and auditable."""
-    normalized_category_refs = _reference_tuple(
-        category_refs,
-        "category_refs",
-        minimum=2,
-        maximum=MAX_CRITERION_CATEGORIES,
-    )
     normalized_definition_refs = _reference_tuple(
         category_definition_refs,
         "category_definition_refs",
@@ -278,15 +273,10 @@ def build_evaluation_criterion_lineage(
         minimum=2,
         maximum=MAX_CRITERION_CATEGORIES,
     )
-    lengths = {
-        len(normalized_category_refs),
-        len(normalized_definition_refs),
-        len(normalized_definition_digests),
-    }
-    if len(lengths) != 1:
+    if len(normalized_definition_refs) != len(normalized_definition_digests):
         raise EvaluationCriterionLineageError(
             "category_definition_mismatch",
-            "category identities, definitions, and digests must have equal length",
+            "category definitions and digests must have equal length",
         )
     return EvaluationCriterionLineage(
         criterion_ref=_reference(criterion_ref, "criterion_ref"),
@@ -322,7 +312,6 @@ def build_evaluation_criterion_lineage(
         not_observable_rule_sha256=_sha256(
             not_observable_rule_sha256, "not_observable_rule_sha256"
         ),
-        category_refs=normalized_category_refs,
         category_definition_refs=normalized_definition_refs,
         category_definition_sha256s=normalized_definition_digests,
         _admission_token=_CRITERION_TOKEN,
@@ -414,7 +403,9 @@ def build_evaluation_criterion_set_lineage(
         else EvaluationCriterionLineage.from_mapping(criterion)
         for criterion in criteria
     )
-    if any(type(criterion) is not EvaluationCriterionLineage for criterion in normalized):
+    if any(
+        type(criterion) is not EvaluationCriterionLineage for criterion in normalized
+    ):
         raise TypeError("criteria must contain criterion lineage values or mappings")
     refs = tuple(criterion.criterion_ref for criterion in normalized)
     if len(set(refs)) != len(refs):
