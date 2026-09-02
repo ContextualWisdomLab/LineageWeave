@@ -45,7 +45,11 @@ def _stream_key(post_id: str) -> str:
 
     The prefix is part of the persisted Valkey contract. Keep key construction
     centralized so producers and readers cannot silently diverge on namespace.
+    Exact string admission prevents a malformed scalar such as integer ``7``
+    from aliasing the distinct canonical string identity ``"7"``.
     """
+    if type(post_id) is not str:
+        raise TypeError("post_id must be a string")
     return f"activity:{post_id}"
 
 
