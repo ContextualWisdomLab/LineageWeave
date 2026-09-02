@@ -19,6 +19,15 @@ permit later review to rewrite history. It could also allow LineageWeave to abso
 provider credentials, model routing, psychometric calculation, hosted
 adjudication, or source-system authority that belongs to other bounded contexts.
 
+Opaque provenance references also cross service and rendering boundaries. Unicode
+format controls can be machine-distinct while remaining visually absent or
+changing bidirectional presentation, creating an avoidable alias/spoofing surface
+for identifiers used in equality and provenance joins. Unicode Technical Standard
+#39 treats identifier ambiguity and default-ignorable characters as security
+concerns. LineageWeave therefore rejects Unicode `Cf` format controls in these
+opaque references rather than normalizing them into a guessed identity. This is a
+product-specific restrictive profile, not a claim of full UTS #39 conformance.
+
 ## Decision
 
 LineageWeave publishes the source-text-free
@@ -89,8 +98,8 @@ The projection rejects:
   latent traits, pass/fail, certification, employment decisions, or embedded
   adjudication decisions;
 - unknown fields and non-string mapping keys;
-- empty, padded, control-bearing, surrogate-bearing, or overlong opaque
-  references;
+- empty, padded, Unicode-format-control-bearing, control-bearing,
+  surrogate-bearing, or overlong opaque references;
 - malformed or non-lowercase contract digests;
 - duplicate item/rater/calibration/anchor references;
 - item sets beyond the bounded allocation ceiling;
@@ -112,6 +121,7 @@ or synthetic lineage edge.
   blueprint or regenerated approximation;
 - adjudication remains review evidence instead of overwriting observations;
 - anchor promotion, calibration, and linking remain separately auditable;
+- opaque references cannot differ only through invisible Unicode format controls;
 - LineageWeave can display an explicit no-anchor/no-linking limitation without
   inventing comparability;
 - provider and psychometric authorities remain in their canonical owners.
@@ -123,6 +133,9 @@ or synthetic lineage edge.
 - downstream projections require released contract versions and digests;
 - source content remains separately permissioned and cannot be recovered from
   this metadata-only envelope;
+- external adapters must map any legitimate foreign identifier containing a
+  rejected format control to a separate canonical released reference instead of
+  passing it through unchanged;
 - user interfaces must distinguish provisional, adjudicated, calibrated,
   promoted-anchor, and linked states rather than displaying one generic
   “evaluated” badge.
@@ -141,6 +154,9 @@ or synthetic lineage edge.
 4. **Block all evaluation until anchors exist.** Rejected because governed pilot
    and diagnostic evidence is necessary to create and validate the first anchor
    corpus.
+5. **Silently strip or normalize format controls.** Rejected because mutation
+   could collapse two foreign references into an identity that the owning system
+   never published. Admission fails closed instead.
 
 ## Verification
 
@@ -148,7 +164,8 @@ Focused tests cover zero-anchor runs, adjudication/source-observation separation
 anchor-promotion requirements, linked-evidence requirements, immutable collection
 copying, strict mapping admission, reference and digest hygiene, blueprint
 consistency, duplicate and resource limits, public exports, and direct-construction
-seals. The new projection module must retain complete statement and branch
+seals. Reference hygiene includes zero-width and bidirectional Unicode format
+controls. The new projection module must retain complete statement and branch
 coverage on the unchanged exact head.
 
 No fixed production item example, provider call, score, database migration, or
@@ -168,3 +185,6 @@ Moreau, L., Missier, P., Belhajjame, K., B’Far, R., Cheney, J., Coppens, S.,
 Cresswell, S., Gil, Y., Groth, P., Klyne, G., Lebo, T., McCusker, J., Miles, S.,
 Myers, J., Sahoo, S., & Tilmes, C. (2013). PROV-DM: The PROV data model. World
 Wide Web Consortium.
+
+Unicode Consortium. (2025). *Unicode security mechanisms* (Unicode Technical
+Standard #39, Version 17.0.0, Revision 32). https://www.unicode.org/reports/tr39/
