@@ -107,9 +107,15 @@ Cold-start runs with zero fixed anchors are valid for pilot, diagnostic, and
 within-run evidence collection. They cannot claim cross-version linked scores.
 
 An item can appear in `anchor_item_snapshot_refs` only when its lineage includes
-both separate calibration evidence and an anchor-promotion decision. An
-adjudication resolution alone is insufficient. `linked` additionally requires at
-least one such promoted anchor and independent linking evidence.
+both calibration evidence and an anchor-promotion decision. Within this v1
+projection those evidence roles must also retain distinct opaque identities: the
+promotion decision cannot reuse a calibration-artifact reference. An adjudication
+resolution alone is insufficient. `linked` additionally requires at least one such
+promoted anchor and independent linking evidence; the linking-evidence identity
+cannot reuse that promoted anchor's promotion or calibration reference. This
+identity-separation rule is a LineageWeave auditability invariant, not a claim
+that a psychometric standard universally requires physically separate files or
+storage objects.
 
 In-run `supersedes_item_snapshot_ref` edges form a finite functional graph. A
 directed cycle fails closed. Validation records completed predecessor paths so an
@@ -137,7 +143,9 @@ It does not create the foreign artifacts it references.
 
 Cross-repository integration must consume immutable released/versioned artifacts
 with exact digests. Mutable sibling PR heads, foreign service databases, and
-cross-service SQL are not production contracts.
+cross-service SQL are not production contracts. Synthetic tests use synthetic
+source-contract identities; they must not imply that an owner repository has
+published a media type or schema that does not exist in an immutable release.
 
 ## Fail-closed behavior
 
@@ -161,8 +169,11 @@ The projection rejects:
 - mixed blueprint revisions in one run snapshot;
 - a resolution without a case or self-supersession;
 - directed cycles among supersession edges whose endpoints are in the run;
-- anchor claims without separate calibration and promotion evidence;
-- linked comparability without promoted anchors and linking evidence;
+- anchor claims without calibration and promotion evidence, or with one opaque
+  identity reused for both roles;
+- linked comparability without promoted anchors and linking evidence, or with
+  linking evidence whose identity reuses the promoted anchor's calibration or
+  promotion evidence;
 - linking evidence on an unavailable or within-run-only projection.
 
 No missing criterion, reference, or evidence artifact is converted into a score,
@@ -179,6 +190,8 @@ default anchor, provider guess, or synthetic lineage edge.
   mutable rubric label, blueprint, or regenerated approximation;
 - adjudication remains review evidence instead of overwriting observations;
 - anchor promotion, calibration, and linking remain separately auditable;
+- synthetic fixtures cannot masquerade as a released owner contract merely by
+  using an owner-like identifier;
 - opaque references cannot differ only through invisible Unicode format controls;
 - large acyclic supersession chains stay bounded to linear graph-validation work;
 - LineageWeave can display explicit criterion, no-anchor, and no-linking
@@ -223,17 +236,22 @@ default anchor, provider guess, or synthetic lineage edge.
    the 10,000-item admission budget would permit quadratic validation work even
    for a valid acyclic chain. Completed-path memoization preserves the same local
    graph semantics without that amplification.
+8. **Name a synthetic test fixture after an unreleased owner contract.** Rejected
+   because it makes a test value look like versioned cross-repository evidence.
+   Synthetic fixtures use an explicitly synthetic identity; production adapters
+   must provide the real released owner identity and digest.
 
 ## Verification
 
 Focused tests cover substantive criterion completeness, criterion-set/item
 binding, administered-criterion coverage, set/digest/rubric substitution,
 zero-anchor runs, adjudication/source-observation separation, anchor-promotion
-requirements, linked-evidence requirements, immutable collection copying, strict
-mapping admission, reference and digest hygiene, blueprint consistency, duplicate
-and resource limits, public exports, direct-construction seals, in-run
-supersession cycles, and long acyclic supersession chains. Reference hygiene
-includes zero-width and bidirectional Unicode format controls.
+requirements, anchor/promotion/linking identity separation, linked-evidence
+requirements, immutable collection copying, strict mapping admission, reference
+and digest hygiene, blueprint consistency, duplicate and resource limits, public
+exports, direct-construction seals, in-run supersession cycles, and long acyclic
+supersession chains. Reference hygiene includes zero-width and bidirectional
+Unicode format controls.
 
 The supersession admission regression counts set membership/add work rather than
 asserting a runner-specific elapsed-time threshold. That makes the complexity
