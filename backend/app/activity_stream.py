@@ -92,13 +92,13 @@ def publish_activity_event_sync(
     actor_account_id: str,
     activity_summary: str,
 ) -> str | None:
-    """Sync ``XADD`` for ``make seed``; skip an existing activity summary."""
+    """Sync ``XADD`` for ``make seed``; skip an existing retained summary."""
     stream_key = _stream_key(post_id)
     with traced(
         "lineageweave.valkey.activity_xrevrange",
         {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
     ):
-        existing_entries = valkey_client.xrevrange(stream_key, count=50)
+        existing_entries = valkey_client.xrevrange(stream_key)
     if any(
         activity_fields.get("summary") == activity_summary
         for _entry_id, activity_fields in existing_entries
