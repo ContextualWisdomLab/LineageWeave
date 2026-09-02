@@ -18,31 +18,49 @@ from lineageweave.observability import traced
 
 
 def create_valkey_client(valkey_url: str) -> redis.Redis:
-    """Create the shared async Valkey client for the process."""
+    """Create the process-wide async client for the configured Valkey endpoint.
+
+    ``valkey_url`` is deployment configuration, not a per-request destination.
+    Connection establishment stays lazy in redis-py; startup therefore owns the
+    client lifecycle while request handlers only consume the stored client.
+    """
     return redis.from_url(valkey_url, decode_responses=True)
 
 
 def get_valkey(request: Request) -> redis.Redis:
-    """FastAPI dependency: the client stored on ``app.state`` at startup."""
+    """Return the Valkey client installed on FastAPI application state.
+
+    Startup is responsible for creating ``app.state.valkey``. This dependency
+    deliberately does not construct a fallback client from request data or
+    environment state because that would create a second connection authority.
+    """
     return request.app.state.valkey
 
 
 def _stream_key(post_id: str) -> str:
+    """Map one canonical post id to its stable activity-stream wire key.
+
+    The prefix is part of the persisted Valkey contract. Keep key construction
+    centralized so producers and readers cannot silently diverge on namespace.
+    """
     return f"activity:{post_id}"
 
 
 def ticket_created_summary(ticket_title: str) -> str:
-    """The ``summary`` field ``ticket_created`` producers must share."""
+    """Build the stable human-readable summary for a ticket-created event.
+
+    The summary is display text and only one field of reseed identity; callers
+    must not use it alone to decide whether two activity facts are the same.
+    """
     return f"Ticket created: {ticket_title}"
 
 
 def ticket_status_changed_summary(status_label: str) -> str:
-    """The ``summary`` field ``ticket_status_changed`` producers must share.
+    """Build the stable summary for a ticket-status transition.
 
-    ``status_label`` is the ``common_lookup_value`` label (Open, In
-    progress, Closed), never the raw code. A missing lookup already
-    fell back to the code in ``_attach_status_labels``; this helper
-    does not invent a name.
+    ``status_label`` is the ``common_lookup_value`` label (Open, In progress,
+    Closed), never the raw code. A missing lookup already fell back to the code
+    in ``_attach_status_labels``; this helper does not invent a replacement.
     """
     return f"Ticket status changed to {status_label}"
 
@@ -52,7 +70,12 @@ def _activity_fields(
     actor_account_id: str,
     activity_summary: str,
 ) -> dict[str, str]:
-    """Translate semantic activity values to the established Valkey wire fields."""
+    """Translate semantic activity values to the established Valkey wire shape.
+
+    Internal names may become more specific, but the persisted ``summary`` key
+    is compatibility-sensitive. This adapter is the only intentional mapping
+    between the bounded-context name and that historical field name.
+    """
     return {
         "event_type": event_type,
         "actor_account_id": actor_account_id,
@@ -67,11 +90,12 @@ async def publish_activity_event(
     actor_account_id: str,
     activity_summary: str,
 ) -> str:
-    """``XADD`` one event onto the post's stream. Returns the entry id.
+    """Append one activity fact to the post stream and return its entry id.
 
-    Approximately trimmed to the most recent 1000 entries (``maxlen``,
-    ``approximate=True``) so one very active post's stream can't grow
-    without bound -- the panel only ever shows the most recent 50 anyway.
+    The ordinary runtime path never performs reseed deduplication: each accepted
+    application event is appended once by its caller. Approximate trimming keeps
+    one very active post from growing without bound while preserving the recent
+    activity window consumed by the UI.
     """
     with traced(
         "lineageweave.valkey.activity_xadd",
@@ -92,7 +116,14 @@ def publish_activity_event_sync(
     actor_account_id: str,
     activity_summary: str,
 ) -> str | None:
-    """Sync ``XADD`` for ``make seed``; skip the same retained activity fact."""
+    """Append a seed/admin activity unless the same retained fact already exists.
+
+    This synchronous path scans the retained stream because ``make seed`` must
+    be replay-safe even after more than fifty newer events. Identity is the
+    established tuple ``event_type`` + ``actor_account_id`` + ``summary``;
+    summary text alone is insufficient because distinct facts can share text.
+    Returns ``None`` only when that exact retained wire identity already exists.
+    """
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
         event_type,
@@ -129,7 +160,12 @@ async def read_activity_events(
     post_id: str,
     event_count: int = 50,
 ) -> list[dict[str, Any]]:
-    """Read the post's most recent activity events, newest first."""
+    """Read the newest retained activity events for one post.
+
+    ``event_count`` bounds the buyer-facing read; this function does not broaden
+    the query to other posts or reconstruct missing facts. Returned dictionaries
+    preserve the established event id/type/actor/summary wire fields.
+    """
     with traced(
         "lineageweave.valkey.activity_xrevrange",
         {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
