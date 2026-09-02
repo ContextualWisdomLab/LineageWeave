@@ -63,10 +63,10 @@ class _ConflictPipeline:
 
 
 def test_publish_activity_event_sync_fails_after_bounded_watch_conflicts() -> None:
-    """Persistent contention must fail clearly instead of spinning forever."""
+    """Contention fails clearly without disclosing the post-scoped stream key."""
     client = _ConflictStream(conflict_attempts=8)
 
-    with pytest.raises(RuntimeError, match=r"activity:post-1.*8"):
+    with pytest.raises(RuntimeError) as error_info:
         publish_activity_event_sync(
             client,
             "post-1",
@@ -75,4 +75,9 @@ def test_publish_activity_event_sync_fails_after_bounded_watch_conflicts() -> No
             "Ticket created: bounded retry",
         )
 
+    error_message = str(error_info.value)
+    assert "activity reseed" in error_message.lower()
+    assert "8" in error_message
+    assert "post-1" not in error_message
+    assert "activity:post-1" not in error_message
     assert client.execute_attempts == 8
