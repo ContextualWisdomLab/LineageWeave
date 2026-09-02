@@ -7,7 +7,11 @@ to prove the shared field shape and the idempotent re-seed skip.
 
 from __future__ import annotations
 
+from inspect import signature
+
 from backend.app.activity_stream import (
+    create_valkey_client,
+    publish_activity_event,
     publish_activity_event_sync,
     ticket_created_summary,
     ticket_status_changed_summary,
@@ -29,6 +33,20 @@ class _FakeStream:
         entry_id = f"1-{len(self.entries)}"
         self.entries.append((entry_id, dict(fields)))
         return entry_id
+
+
+def test_activity_stream_owned_parameters_use_semantic_names() -> None:
+    """Organization-owned activity helpers expose bounded-context vocabulary."""
+    assert list(signature(create_valkey_client).parameters) == ["valkey_url"]
+    expected_event_parameters = [
+        "valkey_client",
+        "post_id",
+        "event_type",
+        "actor_account_id",
+        "activity_summary",
+    ]
+    assert list(signature(publish_activity_event).parameters) == expected_event_parameters
+    assert list(signature(publish_activity_event_sync).parameters) == expected_event_parameters
 
 
 def test_ticket_created_summary_matches_the_live_api_wording() -> None:
