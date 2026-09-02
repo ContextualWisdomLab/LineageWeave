@@ -13,6 +13,7 @@ from backend.app.activity_stream import (
     create_valkey_client,
     publish_activity_event,
     publish_activity_event_sync,
+    read_activity_events,
     ticket_created_summary,
     ticket_status_changed_summary,
 )
@@ -47,6 +48,11 @@ def test_activity_stream_owned_parameters_use_semantic_names() -> None:
     ]
     assert list(signature(publish_activity_event).parameters) == expected_event_parameters
     assert list(signature(publish_activity_event_sync).parameters) == expected_event_parameters
+    assert list(signature(read_activity_events).parameters) == [
+        "valkey_client",
+        "post_id",
+        "event_count",
+    ]
 
 
 def test_ticket_created_summary_matches_the_live_api_wording() -> None:
