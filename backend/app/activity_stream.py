@@ -91,7 +91,7 @@ def _activity_read_stream_keys(post_id: str) -> tuple[str, ...]:
 
 
 def _activity_stream_entry_order(entry_id: str) -> tuple[int, int]:
-    """Parse a Valkey stream entry id into its chronological numeric order."""
+    """Parse one Valkey stream entry id into its stream-local numeric order."""
     milliseconds, separator, sequence = entry_id.partition("-")
     if separator != "-":
         raise ValueError("Valkey activity event id is malformed")
@@ -99,6 +99,24 @@ def _activity_stream_entry_order(entry_id: str) -> tuple[int, int]:
         return int(milliseconds), int(sequence)
     except ValueError as exc:
         raise ValueError("Valkey activity event id is malformed") from exc
+
+
+def _activity_compatibility_merge_order(
+    entry_id: str,
+    stream_index: int,
+) -> tuple[int, int, int]:
+    """Order compatibility reads without inventing cross-stream sequence chronology.
+
+    Redis stream sequence numbers are ordered only inside one stream. Historical
+    alias streams can therefore contain the same millisecond with unrelated
+    sequence counters. The millisecond remains comparable; an equal-millisecond
+    tie uses the declared stream precedence (canonical first, then bounded legacy
+    aliases), and the sequence number only orders entries that came from that
+    same stream. This fallback is deterministic but deliberately does not claim
+    to reconstruct unknowable sub-millisecond chronology across old streams.
+    """
+    milliseconds, sequence = _activity_stream_entry_order(entry_id)
+    return milliseconds, -stream_index, sequence
 
 
 def ticket_created_summary(ticket_title: str) -> str:
@@ -320,8 +338,11 @@ async def read_activity_events(
     function does not broaden the query to other posts or reconstruct missing
     facts. UUID reads include a bounded compatibility bridge for historical
     uppercase/exact-route alias streams while all current writers remain
-    canonical-only. Results from those streams are merged by the native Valkey
-    stream-entry chronology before the buyer-facing limit is applied.
+    canonical-only. Cross-stream chronology is comparable at millisecond
+    precision only; equal-millisecond historical ties use deterministic
+    canonical-first stream precedence rather than pretending stream-local
+    sequence counters form a global clock. The final buyer limit is applied
+    only after this bounded merge.
     """
     bounded_event_count = _activity_event_count(event_count)
     stream_keys = _activity_read_stream_keys(post_id)
@@ -339,8 +360,15 @@ async def read_activity_events(
             )
         )
     stream_entries = sorted(
-        (entry for stream_result in stream_results for entry in stream_result),
-        key=lambda entry: _activity_stream_entry_order(entry[0]),
+        (
+            (entry, stream_index)
+            for stream_index, stream_result in enumerate(stream_results)
+            for entry in stream_result
+        ),
+        key=lambda item: _activity_compatibility_merge_order(
+            item[0][0],
+            item[1],
+        ),
         reverse=True,
     )[:bounded_event_count]
     return [
@@ -350,5 +378,5 @@ async def read_activity_events(
             "actor_account_id": activity_fields["actor_account_id"],
             "summary": activity_fields["summary"],
         }
-        for entry_id, activity_fields in stream_entries
+        for (entry_id, activity_fields), _stream_index in stream_entries
     ]
