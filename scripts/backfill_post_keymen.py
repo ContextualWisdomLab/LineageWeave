@@ -54,6 +54,11 @@ def _post_timeout_is_valid(post_timeout: float) -> bool:
     return math.isfinite(post_timeout) and post_timeout > 0
 
 
+def _post_id_is_valid(post_id: str | None) -> bool:
+    """Return whether an optional explicit post identity is nonblank and unpadded."""
+    return post_id is None or bool(post_id) and post_id == post_id.strip()
+
+
 async def _select_posts(
     conn: asyncpg.Connection, *, limit: int, post_id: str | None
 ) -> list[asyncpg.Record]:
@@ -169,6 +174,8 @@ async def _run_post_keymen_backfill(
     backfill_arguments: argparse.Namespace,
 ) -> dict[str, object]:
     """Execute one bounded post-Keyman backfill operation."""
+    if not _post_id_is_valid(backfill_arguments.post_id):
+        raise ValueError("--post-id must be nonblank and unpadded")
     if backfill_arguments.post_id and backfill_arguments.all:
         raise ValueError("--post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
@@ -247,6 +254,8 @@ def main() -> None:
         parser.error("--limit must be positive")
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
         parser.error("--post-timeout must be finite and positive")
+    if not _post_id_is_valid(backfill_arguments.post_id):
+        parser.error("--post-id must be nonblank and unpadded")
     print(
         json.dumps(
             asyncio.run(_run_post_keymen_backfill(backfill_arguments)),
