@@ -1,5 +1,33 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-02 18:24 KST. Protected
+> `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; a fresh REST inventory
+> contains 112 open PRs and 15 open non-PR issues. The largest buyer-visible
+> candidate remains PR #780 at
+> `df6aac995176f64b184aaa2f6e34a064af20cc64`, based directly on `main`.
+> It distinguishes the carrying Post from genuine derivation evidence in the
+> exact-value UI and CSV, preserves authorized evidence, PROV-O derivation,
+> truth status, and cutoff for every additional atomic Voice, omits hidden
+> evidence without substitution, and unions same-subject properties and
+> multi-Voice relations in paged JSON-LD. ADR 0246's twelve classifications
+> remain extensible atomic assignments; ADR 0256, not the unrelated ADR 0251,
+> governs their evidence-bearing composition. Its 19 exact-head checks are
+> currently three skipped and sixteen queued. No independent `APPROVED`
+> review, protected merge, merge SHA, or freshly authenticated deployed
+> PostgreSQL/API/rendered-UI acceptance is claimed.
+>
+> PR #897 moved to `12caa9264b394c3b2ebd995943f3c8e42d01c0bd`
+> after a review-rooted test-contract repair; its focused TEPP receipt/start/
+> release suite passes 51 tests. One exact-head check is cancelled, four are
+> skipped, and sixteen are queued. Normal auto-merge could not be armed because
+> GitHub's GraphQL rate limit is exhausted; no bypass or self-approval was
+> attempted. This documentation child, PR #901, is still stacked on #780 at
+> pre-update head `5560958c9f70acaa4f0c6711ea0d132dbec45f6a` and must not be
+> retargeted to `main` until #780 is protected-merged. Canonical remote names
+> were rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+> `ThreadWeave`, lowercase `disksage`, `TEPP`, and
+> `contextual-orchestrator`.
+>
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
