@@ -127,8 +127,8 @@ def test_activity_stream_key_collapses_equivalent_source_post_uuid_spellings() -
     ]
 
 
-def test_activity_read_preserves_precanonical_uuid_alias_events() -> None:
-    """A legacy alternate UUID stream remains visible while new writes converge."""
+def test_activity_read_preserves_precanonical_uppercase_uuid_alias_events() -> None:
+    """Canonical reads retain events written to the historical uppercase UUID key."""
     canonical_post_id = "550e8400-e29b-41d4-a716-446655440000"
     uppercase_post_id = canonical_post_id.upper()
     canonical_key = f"activity:{canonical_post_id}"
@@ -161,7 +161,7 @@ def test_activity_read_preserves_precanonical_uuid_alias_events() -> None:
     events = asyncio.run(
         read_activity_events(
             client,  # type: ignore[arg-type]
-            uppercase_post_id,
+            canonical_post_id,
             event_count=10,
         )
     )
