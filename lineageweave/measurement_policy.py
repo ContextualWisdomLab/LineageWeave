@@ -64,6 +64,12 @@ class DichotomousItemPolicy:
             raise TypeError("dichotomous item policy fields must be strings")
         if any(not value.strip() for value in values):
             raise ValueError("dichotomous item policy fields must be non-empty")
+        for field_name, value in (
+            ("item_id", self.item_id),
+            ("rubric_version", self.rubric_version),
+        ):
+            if value != value.strip():
+                raise ValueError(f"{field_name} must not contain surrounding whitespace")
         if self.not_supported_criterion.strip() == self.supported_criterion.strip():
             raise ValueError("0 and 1 rubric criteria must be distinct")
 
@@ -99,6 +105,8 @@ class InstrumentMeasurementPolicy:
             raise TypeError("instrument_id must be a string")
         if not self.instrument_id.strip():
             raise ValueError("instrument_id must be non-empty")
+        if self.instrument_id != self.instrument_id.strip():
+            raise ValueError("instrument_id must not contain surrounding whitespace")
         if type(self.revision) is not int:
             raise TypeError("instrument revision must be an integer")
         if self.revision < 1:
@@ -108,6 +116,10 @@ class InstrumentMeasurementPolicy:
                 raise TypeError("activation_evidence_ref must be a string when supplied")
             if not self.activation_evidence_ref.strip():
                 raise ValueError("activation evidence reference must be non-empty when supplied")
+            if self.activation_evidence_ref != self.activation_evidence_ref.strip():
+                raise ValueError(
+                    "activation_evidence_ref must not contain surrounding whitespace"
+                )
         if self.lifecycle is InstrumentLifecycle.PUBLISHED:
             if self.model_family is None:
                 raise ValueError("published instrument requires a measurement model family")
