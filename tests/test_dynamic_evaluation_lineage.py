@@ -128,6 +128,25 @@ def test_adjudication_alone_cannot_promote_an_anchor() -> None:
     assert run.anchor_item_snapshot_refs == (promoted.item_snapshot_ref,)
 
 
+def test_anchor_promotion_and_calibration_evidence_keep_distinct_identities() -> None:
+    """One opaque artifact cannot satisfy both anchor promotion and calibration evidence."""
+    shared_evidence_ref = "anchor_evidence_1"
+    ambiguous_anchor = _item(
+        calibration_artifact_refs=(shared_evidence_ref,),
+        anchor_promotion_decision_ref=shared_evidence_ref,
+    )
+
+    with pytest.raises(DynamicEvaluationLineageError) as caught:
+        build_dynamic_evaluation_run_lineage(
+            run_snapshot_ref="evaluation_run_snapshot_anchor_collision",
+            blueprint_revision_ref="evaluation_blueprint_revision_1",
+            items=(ambiguous_anchor,),
+            anchor_item_snapshot_refs=(ambiguous_anchor.item_snapshot_ref,),
+            comparability_status=RunComparabilityStatus.UNAVAILABLE,
+        )
+    assert caught.value.code == "anchor_evidence_collision"
+
+
 def test_lineage_rejects_provider_configuration_and_decision_payload_fields() -> None:
     """Lineage projection cannot absorb provider credentials, endpoints, scores, or decisions."""
     payload = {
