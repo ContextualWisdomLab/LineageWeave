@@ -22,15 +22,20 @@ from tests.test_observability import attach_inmemory_tracer
 
 
 class _FakeStream:
+    """Small in-memory stand-in for the Valkey stream methods under contract."""
+
     def __init__(self) -> None:
+        """Start with no retained activity entries."""
         self.entries: list[tuple[str, dict[str, str]]] = []
 
     def xrevrange(self, key: str, count: int | None = None):
+        """Return newest-first entries with the same optional count boundary."""
         del key
         entries = list(reversed(self.entries))
         return entries if count is None else entries[:count]
 
     def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
+        """Append a copied wire record and return a deterministic fake entry id."""
         del key, maxlen, approximate
         entry_id = f"1-{len(self.entries)}"
         self.entries.append((entry_id, dict(fields)))
@@ -57,19 +62,22 @@ def test_activity_stream_owned_parameters_use_semantic_names() -> None:
 
 
 def test_ticket_created_summary_matches_the_live_api_wording() -> None:
+    """Ticket creation retains the wording consumed by the live Activity UI."""
     assert ticket_created_summary("Send Northridge Grid the revised quote") == (
         "Ticket created: Send Northridge Grid the revised quote"
     )
 
 
 def test_ticket_status_changed_summary_uses_the_lookup_label() -> None:
+    """Status activity uses the resolved label rather than leaking its raw code."""
     assert ticket_status_changed_summary("In progress") == (
         "Ticket status changed to In progress"
     )
     assert "in_progress" not in ticket_status_changed_summary("In progress")
 
 
-def test_publish_activity_event_sync_skips_a_matching_summary() -> None:
+def test_publish_activity_event_sync_skips_a_matching_activity_fact() -> None:
+    """An exact retained event-type, actor, and summary tuple is replay-idempotent."""
     client = _FakeStream()
     first = publish_activity_event_sync(
         client,
@@ -122,6 +130,56 @@ def test_publish_activity_event_sync_keeps_distinct_events_with_same_summary() -
     }
 
 
+def test_publish_activity_event_sync_keeps_same_event_type_for_different_actor() -> None:
+    """Actor identity independently distinguishes otherwise equal reseed facts."""
+    client = _FakeStream()
+    shared_summary = "Assignment updated"
+    client.xadd(
+        "activity:post-1",
+        {
+            "event_type": "ticket_status_changed",
+            "actor_account_id": "acct-2",
+            "summary": shared_summary,
+        },
+    )
+
+    created = publish_activity_event_sync(
+        client,
+        "post-1",
+        "ticket_status_changed",
+        "acct-1",
+        shared_summary,
+    )
+
+    assert created == "1-1"
+    assert client.entries[-1][1]["actor_account_id"] == "acct-1"
+
+
+def test_publish_activity_event_sync_keeps_same_actor_for_different_event_type() -> None:
+    """Event type independently distinguishes otherwise equal reseed facts."""
+    client = _FakeStream()
+    shared_summary = "Assignment updated"
+    client.xadd(
+        "activity:post-1",
+        {
+            "event_type": "ticket_status_changed",
+            "actor_account_id": "acct-1",
+            "summary": shared_summary,
+        },
+    )
+
+    created = publish_activity_event_sync(
+        client,
+        "post-1",
+        "ticket_created",
+        "acct-1",
+        shared_summary,
+    )
+
+    assert created == "1-1"
+    assert client.entries[-1][1]["event_type"] == "ticket_created"
+
+
 def test_publish_activity_event_sync_scans_the_retained_stream_for_reseed_idempotency() -> None:
     """A retained seed event stays idempotent after more than 50 newer events."""
     client = _FakeStream()
@@ -163,7 +221,10 @@ def test_valkey_child_span_shares_parent_trace_id(monkeypatch) -> None:
     captured: dict[str, str] = {}
 
     class _Client(_FakeStream):
+        """Capture tracing identity at the fake Valkey append boundary."""
+
         def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
+            """Record the current child span before delegating to the fake stream."""
             span = trace.get_current_span()
             captured["trace_id"] = format(span.get_span_context().trace_id, "032x")
             captured["span_id"] = format(span.get_span_context().span_id, "016x")
