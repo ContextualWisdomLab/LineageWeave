@@ -10,6 +10,7 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 BACKFILL_SCRIPT = REPOSITORY_ROOT / "scripts" / "backfill_post_keymen.py"
+VALID_POST_ID = "123e4567-e89b-42d3-a456-426614174000"
 
 
 def _load_post_id_validator():
@@ -25,7 +26,7 @@ def _load_post_id_validator():
         None,
     )
     assert validator is not None, "operator must expose a pure post-id admission check"
-    namespace: dict[str, object] = {}
+    namespace: dict[str, object] = {"__builtins__": __builtins__}
     module = ast.fix_missing_locations(ast.Module(body=[validator], type_ignores=[]))
     exec(compile(module, str(BACKFILL_SCRIPT), "exec"), namespace)
     return namespace["_post_id_is_valid"]
@@ -33,7 +34,7 @@ def _load_post_id_validator():
 
 @pytest.mark.parametrize(
     "invalid_post_id",
-    ["", " ", "\t", "post-123 ", " post-123", "post-123\n"],
+    ["", " ", "\t", f"{VALID_POST_ID} ", f" {VALID_POST_ID}", f"{VALID_POST_ID}\n"],
 )
 def test_post_keymen_backfill_rejects_blank_or_padded_explicit_post_id(
     invalid_post_id: str,
@@ -43,7 +44,27 @@ def test_post_keymen_backfill_rejects_blank_or_padded_explicit_post_id(
     assert validator(invalid_post_id) is False
 
 
-@pytest.mark.parametrize("invalid_post_id", [7, True, ["post-123"], {"id": "post-123"}])
+@pytest.mark.parametrize(
+    "invalid_post_id",
+    [
+        "post-123",
+        "123E4567-E89B-42D3-A456-426614174000",
+        "{123e4567-e89b-42d3-a456-426614174000}",
+        "123e4567e89b42d3a456426614174000",
+    ],
+)
+def test_post_keymen_backfill_rejects_noncanonical_uuid_aliases(
+    invalid_post_id: str,
+) -> None:
+    """Keep the internal source-post UUID one exact identity across logs and metadata."""
+    validator = _load_post_id_validator()
+
+    assert validator(invalid_post_id) is False
+
+
+@pytest.mark.parametrize(
+    "invalid_post_id", [7, True, [VALID_POST_ID], {"id": VALID_POST_ID}]
+)
 def test_post_keymen_backfill_rejects_non_string_explicit_post_id(
     invalid_post_id: object,
 ) -> None:
@@ -57,7 +78,7 @@ def test_post_keymen_backfill_accepts_absent_or_exact_post_id() -> None:
     validator = _load_post_id_validator()
 
     assert validator(None) is True
-    assert validator("post-123") is True
+    assert validator(VALID_POST_ID) is True
 
 
 def test_main_routes_post_id_through_the_admission_check() -> None:
