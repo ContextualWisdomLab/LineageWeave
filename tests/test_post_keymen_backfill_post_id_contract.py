@@ -43,6 +43,16 @@ def test_post_keymen_backfill_rejects_blank_or_padded_explicit_post_id(
     assert validator(invalid_post_id) is False
 
 
+@pytest.mark.parametrize("invalid_post_id", [7, True, ["post-123"], {"id": "post-123"}])
+def test_post_keymen_backfill_rejects_non_string_explicit_post_id(
+    invalid_post_id: object,
+) -> None:
+    """Do not let truthy transport values reach string operations or identity lookup."""
+    validator = _load_post_id_validator()
+
+    assert validator(invalid_post_id) is False
+
+
 def test_post_keymen_backfill_accepts_absent_or_exact_post_id() -> None:
     validator = _load_post_id_validator()
 
