@@ -1,56 +1,55 @@
 # Product & Technical Gap Baseline
 
-> Exact-head development-loop snapshot: 2026-09-01 15:49 KST. Protected
-> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 101 PRs and 12
-> non-PR issues are open. Calendar ownership has an executable core candidate
-> in CalendarWeave draft PR #3 at
-> `029c6d38d3a748bac131c93eb38347deda1f6989`, stacked on its proposed
-> ownership ADR. Its Rust application port preserves tenant isolation, strict
-> UTC/all-day RFC 5545 input, standard event status, opaque references, and
-> strong-ETag conditional update with authorization-before-parse ordering.
-> Stacked draft PR #4 at exact head
-> `c98f20a06f3c79d52d9307bb2ff56f45f7c326d9` adds a three-normal-form
-> PostgreSQL store with append-only revisions, restart idempotency, and real
-> concurrent create and conditional-update evidence. Stacked draft PR #5 at
-> exact head `1817f8d3a39d0559b66c4c4d49e03b9fa03aed99` adds bounded IANA
-> TZID interval validation, including ambiguous and nonexistent local-time
-> rejection, through the shared parser and durable adapter. Local line and
-> branch coverage remains 100%, while hosted Rust and coverage jobs remain
-> queued. None of these candidates is protected-main or released evidence.
-> They do not yet
-> provide an authenticated operated service, backup/restore acceptance, CalDAV
-> sync, provider parity, or consumer migration evidence, and therefore do not
-> close LineageWeave issue #900 or CalendarWeave issue #2.
+> Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
+> 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
+> parent is `9928fd65e75d8d5e53d9a25f33df8d05acddf4c1`, based directly on that
+> `main`, non-draft, mechanically mergeable, and policy-blocked. The active
+> organization ruleset still requires one independent approval, resolved
+> review threads, and the central required workflows. No qualifying
+> independent approval exists. Exact-parent product and frontend checks pass;
+> dependency review and Noema fail closed in their central workflows, while
+> Strix is cancelled. Those hosted states are not converted into product
+> acceptance, and no protected merge or merge SHA is claimed.
 >
-> LineageWeave draft PR #902 is stacked on draft owner-boundary PR #899 at exact
-> head `824425146d356fc7b66b409047bfe449cb0581f3`. Its current candidate removes
-> domain-label and boolean-flag model selection, requires explicit intended-use
-> activation evidence and an owning psychometric recovery contract, and retains
-> 100% statement/branch coverage for the owned policy module. Its hosted checks
-> remain queued; neither the policy nor any runtime scoring path is protected-
-> main or deployed evidence.
-
-> Exact-head development-loop snapshot: 2026-09-01 14:46 KST. Protected
-> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 99 PRs and 12
-> non-PR issues are open. This documentation candidate is stacked on PR #780
-> at exact head `0c3044b40ff67e6faae34544fdb751e80cea6040`, so it does not move
-> that product candidate or inherit protected-main status. PR #780 retains
-> normal squash auto-merge and remains blocked on queued current-head checks
-> plus independent approval. PR #897 is locally verified at exact head
-> `8c8112246f70eaf4ac250f957891d8438f34d470` with 52 focused backend tests,
-> 531 frontend tests, lint, and production build passing; normal squash
-> auto-merge is armed, while hosted checks and independent approval remain
-> unavailable. PR #899 remains draft at
-> `2368b9052f33c77c33b72ac87264efd4b7b9cbff` until its #780 migration-fixture
-> dependency and exact-head gates are satisfied. No protected merge, merge SHA,
-> or deployed acceptance is claimed for those candidates.
+> Fresh local verification on that evidence parent passes 53 Voice-authority,
+> ontology-neighborhood, and SHACL tests plus all 534 frontend tests, lint,
+> type checking, and the production build. The synthetic desktop and mobile
+> Storybook screenshots were visually audited: the exact-value view keeps the
+> carrying Post in Source and shows an evidence action only for genuine
+> derivation evidence; the narrow view retains the horizontally scrollable
+> exact-value table. Paged JSON-LD regressions continue to union properties and
+> multi-Voice relations for one subject. ADR 0246's twelve atomic Voices stay
+> extensible assignments rather than fixed combination codes, and every
+> additional Voice retains its authorized evidence Post, PROV-O derivation,
+> truth status, and cutoff. Authenticated deployed PostgreSQL/API evidence was
+> not rerun in this snapshot, so that acceptance remains unavailable rather
+> than inherited from an older revision.
 >
-> The shared token-backed status notice is no longer an open Gap: PR #643
-> merged through protected `main` as `617937c7c9800438eb907fc3c44599c05a6e081e`.
-> Its success/unavailable named regions and retry alert are the reusable ADR
-> 0220 contract; new flows must reuse that component rather than introduce a
-> second placeholder. This snapshot corrects the stale historical row in
-> section 5 without rewriting its earlier queue evidence.
+> Exact-head development-loop snapshot: 2026-09-01 21:36 KST. Protected
+> `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; 98 PRs and 10
+> non-PR issues were open in the fresh inventory collected before GitHub's API
+> rate limit closed the review-thread query. PR #780 is based directly on that
+> `main` at exact head `1c3b48fa465bb602a5fdacec57d32ef23c5997a9`, is non-draft,
+> and has normal squash auto-merge armed. Its review decision remains
+> `REVIEW_REQUIRED`; review-thread state is unavailable in this snapshot and is
+> not inferred from older evidence. Fourteen exact-head checks are queued, the
+> Strix job is cancelled, and the remaining reported jobs are successful or
+> skipped. Pending work is not acceptance evidence and does not block safe
+> review of another PR. No protected merge or merge SHA is claimed.
+>
+> Fresh local verification on this exact product head passes 184 focused
+> Voice-authority, ontology, SHACL, and API tests with five live-stack skips,
+> plus all 534 frontend tests, lint, type checking, and the production build.
+> The candidate remains the largest buyer-visible gap implementation: exact-
+> value UI and CSV distinguish the carrying Post from derivation evidence;
+> authorized additional Voices retain their evidence Post, truth status,
+> cutoff, and server-created PROV-O derivation; hidden evidence is omitted
+> without substituting the carrying Post; and paged JSON-LD unions properties
+> and multi-Voice relations for the same subject. ADR 0246's twelve atomic
+> Voice codes remain extensible assignments rather than enumerated
+> combinations. Authenticated deployed PostgreSQL/API and rendered-UI
+> acceptance remain unavailable at this revision.
 
 > Exact-head development-loop snapshot: 2026-09-01 13:23 KST. Protected
 > `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
@@ -1558,7 +1557,7 @@ give this delivery matrix:
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
 | ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
-| ADR 0134 token-backed exception messages | Closed on protected `main`: PR #643 merged as `617937c7c9800438eb907fc3c44599c05a6e081e`, delivering the shared ADR 0220 `StatusNotice` contract and success, unavailable, and retry inventory for the first migrated flow | Reuse `StatusNotice` for later migrations; do not create another placeholder or treat a future consumer migration as evidence that this shared-component Gap remains open |
+| ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
 | ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
 | ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
 | ADR 0137 cross-post customer identity | Partial foundation: protected `main` preserves source customer hints and has corporate-catalog unique/miss/tie safeguards, but it has no normalized cross-post customer-identity judgment, supporting-post binding, or corporate-name-history workflow | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
