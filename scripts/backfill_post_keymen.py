@@ -210,7 +210,11 @@ async def _run_post_keymen_backfill(
         api_key=api_key,
         timeout=backfill_arguments.post_timeout,
     )
-    vision_client = orchestrator_vision_client(base_url, api_key)
+    vision_client = orchestrator_vision_client(
+        base_url,
+        api_key,
+        timeout=backfill_arguments.post_timeout,
+    )
     resolution_client = _organization_name_resolution_client()
     verification_client = _relation_verification_client()
     hierarchy_client = _corporate_hierarchy_inference_client()
