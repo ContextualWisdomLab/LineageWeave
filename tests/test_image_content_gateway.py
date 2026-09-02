@@ -52,6 +52,34 @@ def test_vision_gateway_normalizes_image_and_preserves_structured_response(monke
     assert normalized.convert("RGB").getpixel((0, 0)) == (255, 255, 255)
 
 
+def test_vision_factory_forwards_bounded_transport_timeout(monkeypatch) -> None:
+    """Carry a caller-selected budget through the factory to synchronous HTTP work."""
+    captured: dict[str, object] = {}
+
+    def post_json(url, payload, *, headers, timeout):
+        captured["timeout"] = timeout
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "TEXT: NONE\nCAPTION: synthetic timeout probe\nTAGS: probe"
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(image_content, "post_json", post_json)
+    client = image_content.orchestrator_vision_client(
+        "http://orchestrator",
+        "gateway-key",
+        timeout=420.0,
+    )
+
+    client.describe(_transparent_png(), "image/png")
+
+    assert captured["timeout"] == 420.0
+
+
 def test_vision_factory_fails_closed_for_unsupported_url_scheme() -> None:
     client = image_content.orchestrator_vision_client("ftp://orchestrator", "gateway-key", "vision-model")
     assert isinstance(client, image_content.NullImageContentClient)
