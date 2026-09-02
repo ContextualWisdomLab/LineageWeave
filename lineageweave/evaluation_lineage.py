@@ -137,7 +137,7 @@ def _reference(value: Any, field_name: str) -> str:
             ord(character) < 32
             or 127 <= ord(character) <= 159
             or 0xD800 <= ord(character) <= 0xDFFF
-            or unicodedata.category(character) == "Cf"
+            or unicodedata.category(character) in {"Cf", "Zl", "Zp"}
             for character in value
         )
     ):
