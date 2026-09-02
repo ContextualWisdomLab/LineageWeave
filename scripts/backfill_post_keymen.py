@@ -49,14 +49,23 @@ def _orchestrator_config() -> tuple[str, str]:
     return base_url, api_key
 
 
-def _post_timeout_is_valid(post_timeout: float) -> bool:
-    """Return whether an operator timeout is finite and strictly positive."""
-    return math.isfinite(post_timeout) and post_timeout > 0
+def _post_timeout_is_valid(post_timeout: object) -> bool:
+    """Return whether an operator timeout is a finite, strictly positive number."""
+    return (
+        type(post_timeout) in (int, float)
+        and math.isfinite(post_timeout)
+        and post_timeout > 0
+    )
 
 
-def _post_id_is_valid(post_id: str | None) -> bool:
-    """Return whether an optional explicit post identity is nonblank and unpadded."""
-    return post_id is None or bool(post_id) and post_id == post_id.strip()
+def _post_id_is_valid(post_id: object) -> bool:
+    """Return whether an optional explicit post identity is exact canonical text."""
+    return (
+        post_id is None
+        or type(post_id) is str
+        and bool(post_id)
+        and post_id == post_id.strip()
+    )
 
 
 async def _select_posts(
@@ -174,6 +183,8 @@ async def _run_post_keymen_backfill(
     backfill_arguments: argparse.Namespace,
 ) -> dict[str, object]:
     """Execute one bounded post-Keyman backfill operation."""
+    if not _post_timeout_is_valid(backfill_arguments.post_timeout):
+        raise ValueError("--post-timeout must be finite and positive")
     if not _post_id_is_valid(backfill_arguments.post_id):
         raise ValueError("--post-id must be nonblank and unpadded")
     if backfill_arguments.post_id and backfill_arguments.all:
