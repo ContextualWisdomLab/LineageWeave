@@ -139,7 +139,9 @@ def publish_activity_event_sync(
     A concurrent mutation invalidates the watched snapshot and retries against
     fresh stream state, but persistent contention fails after a bounded number
     of attempts rather than leaving an operator command spinning indefinitely.
-    Ordinary async event publication remains append-only.
+    Ordinary async event publication remains append-only. Contention failures
+    identify the operation and retry limit without embedding the post-scoped
+    Valkey key in exception text that may be exported by logging or telemetry.
     """
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
@@ -188,11 +190,13 @@ def publish_activity_event_sync(
             except WatchError as watch_error:
                 if watch_attempt == _SYNC_ACTIVITY_WATCH_RETRY_LIMIT:
                     raise RuntimeError(
-                        f"Activity reseed for {stream_key} exceeded "
+                        "Activity reseed exceeded "
                         f"{_SYNC_ACTIVITY_WATCH_RETRY_LIMIT} WATCH retries"
                     ) from watch_error
 
-    raise RuntimeError(f"Activity reseed for {stream_key} exhausted its retry loop")
+    raise RuntimeError(
+        "Activity reseed exhausted its bounded WATCH retry loop"
+    )
 
 
 async def read_activity_events(
