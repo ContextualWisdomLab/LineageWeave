@@ -58,6 +58,11 @@ def _post_timeout_is_valid(post_timeout: object) -> bool:
     )
 
 
+def _post_limit_is_valid(post_limit: object) -> bool:
+    """Return whether a batch limit is an exact, strictly positive integer."""
+    return type(post_limit) is int and post_limit > 0
+
+
 def _post_id_is_valid(post_id: object) -> bool:
     """Return whether an optional explicit post identity is exact canonical text."""
     return (
@@ -185,6 +190,8 @@ async def _run_post_keymen_backfill(
     """Execute one bounded post-Keyman backfill operation."""
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
         raise ValueError("--post-timeout must be finite and positive")
+    if not _post_limit_is_valid(backfill_arguments.limit):
+        raise ValueError("--limit must be a positive integer")
     if not _post_id_is_valid(backfill_arguments.post_id):
         raise ValueError("--post-id must be nonblank and unpadded")
     if backfill_arguments.post_id and backfill_arguments.all:
@@ -261,8 +268,8 @@ def main() -> None:
         help="Maximum seconds per post including provider calls (default: 240)",
     )
     backfill_arguments = parser.parse_args()
-    if backfill_arguments.limit < 1:
-        parser.error("--limit must be positive")
+    if not _post_limit_is_valid(backfill_arguments.limit):
+        parser.error("--limit must be a positive integer")
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
         parser.error("--post-timeout must be finite and positive")
     if not _post_id_is_valid(backfill_arguments.post_id):
