@@ -99,12 +99,14 @@ def test_adjudication_case_and_resolution_keep_distinct_identities() -> None:
         "item_ref ",
         "\ufeffitem_ref",
         "item_ref\ufeff",
+        "item\u200bref",
+        "item\u202eref",
         "line\nbreak",
         "\ud800",
         "x" * 257,
     ),
 )
-def test_references_are_exact_bounded_unicode_scalars(invalid: str) -> None:
+def test_references_are_exact_bounded_and_free_of_format_controls(invalid: str) -> None:
     with pytest.raises(DynamicEvaluationLineageError) as caught:
         _item(item_snapshot_ref=invalid)
     assert caught.value.code == "invalid_reference"
