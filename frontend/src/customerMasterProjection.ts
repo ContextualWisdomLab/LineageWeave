@@ -16,14 +16,27 @@ function flattenDisplayTree(
   parentEntityId: string | null,
   output: CustomerMasterEntity[],
 ): void {
-  for (const node of nodes) {
-    const suffix = node.hierarchyIssue ? ` · ${HIERARCHY_ISSUE_DISPLAY[node.hierarchyIssue]}` : "";
+  const pending = [...nodes]
+    .reverse()
+    .map((node) => ({ node, parentEntityId }));
+
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    const suffix = current.node.hierarchyIssue
+      ? ` · ${HIERARCHY_ISSUE_DISPLAY[current.node.hierarchyIssue]}`
+      : "";
     output.push({
-      ...node.entity,
-      parent_entity_id: parentEntityId,
-      entity_level_label: `${node.entity.entity_level_label}${suffix}`,
+      ...current.node.entity,
+      parent_entity_id: current.parentEntityId,
+      entity_level_label: `${current.node.entity.entity_level_label}${suffix}`,
     });
-    flattenDisplayTree(node.children, node.entity.corporate_entity_id, output);
+
+    for (let index = current.node.children.length - 1; index >= 0; index -= 1) {
+      pending.push({
+        node: current.node.children[index],
+        parentEntityId: current.node.entity.corporate_entity_id,
+      });
+    }
   }
 }
 
@@ -33,7 +46,9 @@ function flattenDisplayTree(
  * The API response remains immutable. Only the frontend projection rewrites malformed
  * parent pointers to the deterministic visible forest and composes disclosure into the
  * existing display label. `entity_level_code` and every other authoritative source fact
- * are preserved exactly; no corrected parent is invented or persisted.
+ * are preserved exactly; no corrected parent is invented or persisted. Traversal is
+ * iterative so a valid deep hierarchy cannot fail solely because of JavaScript call-stack
+ * depth.
  */
 export function projectCustomerMasterResponse(
   response: CustomerMasterResponse,
