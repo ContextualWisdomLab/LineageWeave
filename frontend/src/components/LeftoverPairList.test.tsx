@@ -242,8 +242,11 @@ describe("LeftoverPairList", () => {
       }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
+      screen.getByLabelText("leftover pair leftover-map criterion sales-lead at leftover-map origin ζ (0.00, 0.00)"),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("leftover pair leftover-map criterion sales-lead at ζ (0.00, 0.00)"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps leftover-map pair leftover-map post leftover-map person coordinates omitted when ξ is missing", () => {

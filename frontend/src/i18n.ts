@@ -671,6 +671,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 쌍 잔여 지도 원점 글 {title} (ξ {person})",
     "leftover pair leftover-map criterion {label} at ζ {item}":
       "잔여 쌍 잔여 지도 기준 {label} (ζ {item})",
+    "leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "잔여 쌍 잔여 지도 원점 기준 {label} (ζ {item})",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "잔여 지도 비교 잔여 쌍 잔여 지도 글 {title} (ξ {person})",
     "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
@@ -1399,6 +1401,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差配对残差图原点帖子 {title}（ξ {person}）",
     "leftover pair leftover-map criterion {label} at ζ {item}":
       "残差配对残差图准则 {label}（ζ {item}）",
+    "leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "残差配对残差图原点准则 {label}（ζ {item}）",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "残差图比较残差配对残差图帖子 {title}（ξ {person}）",
     "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
@@ -2131,6 +2135,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差ペアの残差マップ原点投稿 {title}（ξ {person}）",
     "leftover pair leftover-map criterion {label} at ζ {item}":
       "残差ペアの残差マップ基準 {label}（ζ {item}）",
+    "leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "残差ペアの残差マップ原点基準 {label}（ζ {item}）",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "残差マップ比較の残差ペアの残差マップ投稿 {title}（ξ {person}）",
     "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
@@ -2867,6 +2873,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Cặp phần dư bài gốc bản đồ phần dư {title} tại ξ {person}",
     "leftover pair leftover-map criterion {label} at ζ {item}":
       "Cặp phần dư tiêu chí bản đồ phần dư {label} tại ζ {item}",
+    "leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}":
+      "Cặp phần dư tiêu chí gốc bản đồ phần dư {label} tại ζ {item}",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}":
       "Cặp phần dư so sánh bản đồ phần dư bài viết {title} tại ξ {person}",
     "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}":
