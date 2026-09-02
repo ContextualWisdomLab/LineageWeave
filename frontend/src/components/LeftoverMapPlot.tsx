@@ -319,6 +319,9 @@ function leftoverMapPlotPostText(
  * ADR 0352 fail-closes leftover-map pair leftover-map criterion leftover-map origin leftover-map
  * item coordinates through leftoverMapListCriterionBadge independently of leftover-map
  * pair leftover-map post leftover-map origin leftover-map person coordinates, not this graphic.
+ * ADR 0353 fail-closes leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map
+ * person coordinates through leftoverMapCompareListPostBadge independently of leftover-map
+ * pair leftover-map post leftover-map origin leftover-map person coordinates, not this graphic.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({

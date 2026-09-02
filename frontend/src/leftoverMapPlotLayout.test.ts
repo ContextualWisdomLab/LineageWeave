@@ -1438,6 +1438,9 @@ describe("leftoverMapComparePlotPostBadge", () => {
     expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
       leftoverMapListPostBadge("Public post", 0, 0)?.key ?? "",
     );
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      leftoverMapListPostBadge("Public post", 0, 0)?.key ?? "",
+    );
     expect(leftoverMapListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       leftoverMapListPostBadge("Public post", 0, 0)?.key ?? "",
     );
@@ -1476,6 +1479,9 @@ describe("leftoverMapComparePlotPostBadge", () => {
     );
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       leftoverMapCompareListPostBadge("Public post", 0.5, 0.1)?.key ?? "",
+    );
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key ?? "",
     );
     expect(leftoverMapComparePlotPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_CRITERION,

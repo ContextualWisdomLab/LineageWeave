@@ -183,6 +183,10 @@
  *  item coordinates through leftoverMapListCriterionBadge independently of leftover-map
  *  pair leftover-map post leftover-map origin leftover-map person coordinates ξ, not leftover-map comparison leftover-pair leftover-map criterion leftover-map
  *  item coordinates.
+ *  ADR 0353 fail-closes leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map
+ *  person coordinates through leftoverMapCompareListPostBadge independently of leftover-map
+ *  pair leftover-map post leftover-map origin leftover-map person coordinates ξ, not leftover-map pair leftover-map post leftover-map
+ *  person coordinates.
  */
 
 import { formatLeftoverMapCoordinatePair, leftoverMapPlotCoordinatePairIsOrigin } from "./leftoverMapCoordinates";
