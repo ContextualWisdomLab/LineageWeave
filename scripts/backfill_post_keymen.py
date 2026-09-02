@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import os
 import sys
 from collections import Counter
@@ -46,6 +47,11 @@ def _orchestrator_config() -> tuple[str, str]:
     if not base_url or not api_key:
         raise RuntimeError("contextual-orchestrator gateway configuration is unavailable")
     return base_url, api_key
+
+
+def _post_timeout_is_valid(post_timeout: float) -> bool:
+    """Return whether an operator timeout is finite and strictly positive."""
+    return math.isfinite(post_timeout) and post_timeout > 0
 
 
 async def _select_posts(
@@ -239,8 +245,8 @@ def main() -> None:
     backfill_arguments = parser.parse_args()
     if backfill_arguments.limit < 1:
         parser.error("--limit must be positive")
-    if backfill_arguments.post_timeout <= 0:
-        parser.error("--post-timeout must be positive")
+    if not _post_timeout_is_valid(backfill_arguments.post_timeout):
+        parser.error("--post-timeout must be finite and positive")
     print(
         json.dumps(
             asyncio.run(_run_post_keymen_backfill(backfill_arguments)),
