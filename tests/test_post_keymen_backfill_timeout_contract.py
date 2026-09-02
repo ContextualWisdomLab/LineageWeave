@@ -94,8 +94,21 @@ def test_programmatic_runner_revalidates_timeout_before_external_work() -> None:
     assert calls, "programmatic runner must revalidate timeout before provider/database work"
 
 
+def _assert_timeout_keyword_uses_operator_budget(client_call: ast.Call) -> None:
+    """Require one transport call to consume the already-admitted operator budget."""
+    timeout_keyword = next(
+        (keyword for keyword in client_call.keywords if keyword.arg == "timeout"),
+        None,
+    )
+    assert timeout_keyword is not None, "transport must receive the admitted operator timeout"
+    assert isinstance(timeout_keyword.value, ast.Attribute)
+    assert isinstance(timeout_keyword.value.value, ast.Name)
+    assert timeout_keyword.value.value.id == "backfill_arguments"
+    assert timeout_keyword.value.attr == "post_timeout"
+
+
 def test_keyman_transport_uses_the_admitted_operator_timeout() -> None:
-    """Do not impose an unrelated shorter model-transport timeout inside the batch budget."""
+    """Do not impose an unrelated shorter Keyman transport cap inside the batch budget."""
     syntax_tree = ast.parse(BACKFILL_SCRIPT.read_text(encoding="utf-8"))
     runner = next(
         node
@@ -110,11 +123,25 @@ def test_keyman_transport_uses_the_admitted_operator_timeout() -> None:
         and isinstance(node.func, ast.Name)
         and node.func.id == "ContextualOrchestratorKeymanExtractionClient"
     )
-    timeout_keyword = next(
-        keyword for keyword in client_call.keywords if keyword.arg == "timeout"
+
+    _assert_timeout_keyword_uses_operator_budget(client_call)
+
+
+def test_vision_transport_uses_the_admitted_operator_timeout() -> None:
+    """Keep synchronous Vision work inside the same per-post administrative budget."""
+    syntax_tree = ast.parse(BACKFILL_SCRIPT.read_text(encoding="utf-8"))
+    runner = next(
+        node
+        for node in syntax_tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name == "_run_post_keymen_backfill"
+    )
+    client_call = next(
+        node
+        for node in ast.walk(runner)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "orchestrator_vision_client"
     )
 
-    assert isinstance(timeout_keyword.value, ast.Attribute)
-    assert isinstance(timeout_keyword.value.value, ast.Name)
-    assert timeout_keyword.value.value.id == "backfill_arguments"
-    assert timeout_keyword.value.attr == "post_timeout"
+    _assert_timeout_keyword_uses_operator_budget(client_call)
