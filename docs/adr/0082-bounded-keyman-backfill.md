@@ -37,10 +37,11 @@ It will:
 - require the programmatic batch-mode selector to be an exact boolean before
   using its truth value, so strings or integer-like transport values cannot
   silently switch a direct call into or out of batch mode;
-- enforce one admitted per-post timeout across the operator and its Keyman
-  contextual-orchestrator transport. The transport must not impose an
-  unrelated shorter fixed timeout that can terminate a valid long-running
-  model workflow before the operator's explicit administrative budget;
+- enforce one admitted per-post timeout across the operator and its Keyman and
+  Vision contextual-orchestrator transports. Neither synchronous Vision work
+  nor Keyman extraction may impose an unrelated shorter fixed timeout that can
+  terminate a valid long-running workflow before the operator's explicit
+  administrative budget;
 - return a typed timeout failure count instead of allowing a provider workflow
   to hold an operator process indefinitely.
 
@@ -61,5 +62,5 @@ route. No analysis-run registry tables are modified.
   extraction because no evidence row exists.
 - A provider workflow that exceeds the operator-selected timeout is recorded as
   unavailable for that attempt; it is not converted into an empty Keyman
-  result, and an unrelated client-local fixed timeout does not pre-empt that
+  result, and unrelated client-local fixed timeouts do not pre-empt that
   budget.
