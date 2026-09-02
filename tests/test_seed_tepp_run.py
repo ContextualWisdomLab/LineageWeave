@@ -210,16 +210,25 @@ class _ExistingRunningTeppSeedCursor(_TeppSeedCursor):
 
     def fetchone(self):
         last = self.statements[-1]
+        row = (
+            2,
+            False,
+            "different-run",
+            "different-request",
+            "different-receipt",
+            1,
+            "run-demo-tepp",
+        )
         if "max(status_ordinal)" in last:
-            return (2, False)
+            return row[:2]
         if "from analysis_run_tepp_receipt" in last:
-            return ("different-run", "different-request", "different-receipt")
+            return row[2:5]
         if "max(delivery_ordinal)" in last:
-            return (1, False)
+            return row[5:6] + row[1:2]
         if last.lstrip().startswith("select") and "from analysis_run_outbox" in last:
-            return (1,)
+            return row[5:6]
         if last.lstrip().startswith("select") and "from analysis_run where" in last:
-            return ("run-demo-tepp",)
+            return row[6:7]
         return super().fetchone()
 
 
