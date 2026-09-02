@@ -15,6 +15,7 @@ from lineageweave.evaluation_lineage import (
 )
 
 _CONTRACT_DIGEST = "a" * 64
+_SOURCE_CONTRACT_REF = "synthetic_source_contract/v1"
 
 
 def _item(
@@ -30,7 +31,7 @@ def _item(
     return build_dynamic_evaluation_item_lineage(
         item_snapshot_ref=item_snapshot_ref,
         blueprint_revision_ref="evaluation_blueprint_revision_1",
-        source_contract_ref="fast_mlsirm_dynamic_evaluation_item/v1",
+        source_contract_ref=_SOURCE_CONTRACT_REF,
         source_contract_sha256=_CONTRACT_DIGEST,
         generation_invocation_ref="generation_invocation_1",
         rater_invocation_refs=("rater_invocation_1", "rater_invocation_2"),
@@ -182,7 +183,7 @@ def test_lineage_rejects_provider_configuration_and_decision_payload_fields() ->
             {
                 "item_snapshot_ref": "evaluation_item_snapshot_alpha",
                 "blueprint_revision_ref": "evaluation_blueprint_revision_1",
-                "source_contract_ref": "fast_mlsirm_dynamic_evaluation_item/v1",
+                "source_contract_ref": _SOURCE_CONTRACT_REF,
                 "source_contract_sha256": _CONTRACT_DIGEST,
                 "generation_invocation_ref": "generation_invocation_1",
                 "rater_invocation_refs": ["rater_invocation_1"],
@@ -258,7 +259,7 @@ def test_direct_aggregate_construction_is_sealed() -> None:
         DynamicEvaluationItemLineage(  # type: ignore[call-arg]
             item_snapshot_ref="evaluation_item_snapshot_alpha",
             blueprint_revision_ref="evaluation_blueprint_revision_1",
-            source_contract_ref="fast_mlsirm_dynamic_evaluation_item/v1",
+            source_contract_ref=_SOURCE_CONTRACT_REF,
             source_contract_sha256=_CONTRACT_DIGEST,
             generation_invocation_ref="generation_invocation_1",
             rater_invocation_refs=("rater_invocation_1",),
