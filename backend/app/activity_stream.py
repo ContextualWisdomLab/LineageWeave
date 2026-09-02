@@ -13,6 +13,7 @@ from typing import Any
 
 import redis.asyncio as redis
 from fastapi import Request
+from redis.exceptions import WatchError
 
 from lineageweave.observability import traced
 
@@ -83,6 +84,17 @@ def _activity_fields(
     }
 
 
+def _matches_activity_fields(
+    activity_fields: dict[str, str],
+    expected_fields: dict[str, str],
+) -> bool:
+    """Return whether a retained wire record has the legacy reseed identity."""
+    return all(
+        activity_fields.get(field_name) == expected_value
+        for field_name, expected_value in expected_fields.items()
+    )
+
+
 async def publish_activity_event(
     valkey_client: redis.Redis,
     post_id: str,
@@ -116,13 +128,15 @@ def publish_activity_event_sync(
     actor_account_id: str,
     activity_summary: str,
 ) -> str | None:
-    """Append a seed/admin activity unless the same retained fact already exists.
+    """Append one replay-safe seed/admin activity with optimistic concurrency.
 
-    This synchronous path scans the retained stream because ``make seed`` must
-    be replay-safe even after more than fifty newer events. Identity is the
-    established tuple ``event_type`` + ``actor_account_id`` + ``summary``;
-    summary text alone is insufficient because distinct facts can share text.
-    Returns ``None`` only when that exact retained wire identity already exists.
+    ``make seed`` can run in more than one process. A plain ``XREVRANGE`` then
+    ``XADD`` check is racy because two callers can read the same old snapshot
+    and both append. The synchronous seed path therefore WATCHes the post stream,
+    reads the retained identity tuple, and commits the append with MULTI/EXEC.
+    A concurrent mutation invalidates the watched snapshot and the operation
+    retries against the new stream state. Ordinary async event publication is
+    intentionally unchanged and remains append-only.
     """
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
@@ -130,29 +144,46 @@ def publish_activity_event_sync(
         str(actor_account_id),
         activity_summary,
     )
-    with traced(
-        "lineageweave.valkey.activity_xrevrange",
-        {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
-    ):
-        existing_entries = valkey_client.xrevrange(stream_key)
-    if any(
-        all(
-            activity_fields.get(field_name) == expected_value
-            for field_name, expected_value in expected_fields.items()
-        )
-        for _entry_id, activity_fields in existing_entries
-    ):
-        return None
-    with traced(
-        "lineageweave.valkey.activity_xadd",
-        {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "activity"},
-    ):
-        return valkey_client.xadd(
-            stream_key,
-            expected_fields,
-            maxlen=1000,
-            approximate=True,
-        )
+
+    while True:
+        with valkey_client.pipeline() as transaction:
+            try:
+                transaction.watch(stream_key)
+                with traced(
+                    "lineageweave.valkey.activity_xrevrange",
+                    {
+                        "db.system": "redis",
+                        "db.operation.name": "xrevrange",
+                        "lineageweave.stream.kind": "activity",
+                    },
+                ):
+                    existing_entries = transaction.xrevrange(stream_key)
+
+                if any(
+                    _matches_activity_fields(activity_fields, expected_fields)
+                    for _entry_id, activity_fields in existing_entries
+                ):
+                    transaction.unwatch()
+                    return None
+
+                transaction.multi()
+                transaction.xadd(
+                    stream_key,
+                    expected_fields,
+                    maxlen=1000,
+                    approximate=True,
+                )
+                with traced(
+                    "lineageweave.valkey.activity_xadd",
+                    {
+                        "db.system": "redis",
+                        "db.operation.name": "xadd",
+                        "lineageweave.stream.kind": "activity",
+                    },
+                ):
+                    return transaction.execute()[0]
+            except WatchError:
+                continue
 
 
 async def read_activity_events(
