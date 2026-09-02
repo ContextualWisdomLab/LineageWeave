@@ -63,6 +63,7 @@ describe("i18n", () => {
     "leftover pair leftover-map post {title} at ξ {person}",
     "leftover pair leftover-map post {title} at leftover-map origin ξ {person}",
     "leftover pair leftover-map criterion {label} at ζ {item}",
+    "leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}",
     "leftover map comparison leftover pair leftover-map post {title} at ξ {person}",
     "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}",
     "Open this post to read the criterion it sat closest to after main effects.",

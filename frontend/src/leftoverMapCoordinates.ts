@@ -19,6 +19,10 @@
  *  person coordinates as leftoverMapListPostBadge independently of leftover-map comparison graphic leftover-map post leftover-map
  *  origin leftover-map person coordinates. leftoverMapCompareListPostBadge stays leftover-map comparison leftover-pair leftover-map
  *  post leftover-map person coordinate keys.
+ *  ADR 0352 names leftover-map origin on leftover-map pair leftover-map criterion leftover-map
+ *  item coordinates as leftoverMapListCriterionBadge independently of leftover-map pair leftover-map post leftover-map
+ *  origin leftover-map person coordinates. leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map
+ *  criterion leftover-map item coordinate keys.
  */
 
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
@@ -37,6 +41,9 @@ export const LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN =
 
 export const LEFTOVER_MAP_LIST_CRITERION =
   "leftover pair leftover-map criterion {label} at ζ {item}";
+
+export const LEFTOVER_MAP_LIST_CRITERION_ORIGIN =
+  "leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}";
 
 export const LEFTOVER_MAP_COMPARE_LIST_POST_ACTION =
   "leftover map comparison leftover pair leftover-map post {title} at ξ {person}";
@@ -104,6 +111,8 @@ export function formatLeftoverMapCoordinates(
  *  ADR 0351 names leftover-map origin on leftover-map pair leftover-map post leftover-map
  *  person coordinates as leftoverMapListPostBadge independently of leftover-map comparison graphic leftover-map post leftover-map
  *  origin leftover-map person coordinates.
+ *  ADR 0352 names leftover-map origin on leftover-map pair leftover-map criterion leftover-map
+ *  item coordinates as leftoverMapListCriterionBadge, not this helper.
  */
 export function leftoverMapListPostBadge(
   title: string,
@@ -126,6 +135,9 @@ export function leftoverMapListPostBadge(
  *  leftover-map item coordinates as leftoverMapPlotCriterionBadge, not this helper.
  *  ADR 0350 names leftover-map origin on leftover-map comparison graphic leftover-map criterion
  *  leftover-map item coordinates as leftoverMapComparePlotCriterionBadge, not this helper.
+ *  ADR 0352 names leftover-map origin on leftover-map pair leftover-map criterion leftover-map
+ *  item coordinates as leftoverMapListCriterionBadge independently of leftover-map pair leftover-map post leftover-map
+ *  origin leftover-map person coordinates.
  */
 export function leftoverMapListCriterionBadge(
   label: string,
@@ -136,7 +148,11 @@ export function leftoverMapListCriterionBadge(
   if (item === null) {
     return null;
   }
-  return { key: LEFTOVER_MAP_LIST_CRITERION, values: { label, item } };
+  const origin = leftoverMapPlotCoordinatePairIsOrigin(item);
+  return {
+    key: origin ? LEFTOVER_MAP_LIST_CRITERION_ORIGIN : LEFTOVER_MAP_LIST_CRITERION,
+    values: { label, item },
+  };
 }
 
 /** ADR 0341 leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates ξ.
@@ -158,6 +174,8 @@ export function leftoverMapCompareListPostBadge(
 /** ADR 0342 leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates ζ.
  *  ADR 0350 names leftover-map origin on leftover-map comparison graphic leftover-map criterion
  *  leftover-map item coordinates as leftoverMapComparePlotCriterionBadge, not this helper.
+ *  ADR 0352 names leftover-map origin on leftover-map pair leftover-map criterion leftover-map
+ *  item coordinates as leftoverMapListCriterionBadge, not this helper.
  */
 export function leftoverMapCompareListCriterionBadge(
   label: string,
