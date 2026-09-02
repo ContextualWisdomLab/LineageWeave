@@ -210,3 +210,49 @@ def test_activity_read_does_not_compare_cross_stream_sequence_numbers() -> None:
     )
 
     assert [event["summary"] for event in events] == ["Canonical current stream"]
+
+
+def test_activity_read_namespaces_colliding_legacy_stream_entry_ids() -> None:
+    """Independent Valkey streams must not emit duplicate buyer event identities."""
+    canonical_post_id = "550e8400-e29b-41d4-a716-446655440000"
+    uppercase_post_id = canonical_post_id.upper()
+    canonical_key = f"activity:{canonical_post_id}"
+    legacy_key = f"activity:{uppercase_post_id}"
+    client = _LegacyAliasReadValkey(
+        {
+            canonical_key: [
+                (
+                    "600-0",
+                    {
+                        "event_type": "ticket_status_changed",
+                        "actor_account_id": "acct-1",
+                        "summary": "Canonical current stream",
+                    },
+                )
+            ],
+            legacy_key: [
+                (
+                    "600-0",
+                    {
+                        "event_type": "ticket_created",
+                        "actor_account_id": "acct-1",
+                        "summary": "Historical alias stream",
+                    },
+                )
+            ],
+        }
+    )
+
+    events = asyncio.run(
+        read_activity_events(
+            client,  # type: ignore[arg-type]
+            canonical_post_id,
+            event_count=2,
+        )
+    )
+
+    assert [event["event_id"] for event in events] == [
+        "600-0",
+        "legacy-1:600-0",
+    ]
+    assert len({event["event_id"] for event in events}) == 2
