@@ -37,6 +37,18 @@ in these opaque references rather than normalizing them into a guessed identity.
 This is a product-specific restrictive profile, not a claim of full UTS #39
 conformance.
 
+Unicode 17.0 also defines exactly 66 noncharacters: U+FDD0..U+FDEF and the final
+two code points of every plane, U+nFFFE and U+nFFFF. They are valid Unicode scalar
+values and can occur in well-formed Unicode strings, but the Unicode Standard
+permanently reserves them for internal use and does not intend them for open
+interchange. They share General_Category `Cn` with ordinary unassigned code points,
+so rejecting every `Cn` value would conflate stable noncharacters with code points
+that may receive future assignments. Because LineageWeave provenance references
+are cross-service interchange identifiers, the ACL rejects exactly the stable
+noncharacter set while continuing to admit other `Cn` values unless another
+independent rule rejects them. The boundary does not delete, replace, or normalize
+a foreign reference into a different identity.
+
 The run contract admits as many as 10,000 item snapshots. A supersession-cycle
 check that restarts a full predecessor walk from every item can therefore turn an
 otherwise linear lineage admission into quadratic work. Admission cost is part of
@@ -159,7 +171,8 @@ The projection rejects:
   adjudication decisions;
 - unknown fields and non-string mapping keys;
 - empty, padded, Unicode-format-control-bearing, Unicode-line/paragraph-separator-
-  bearing, control-bearing, surrogate-bearing, or overlong opaque references;
+  bearing, Unicode-noncharacter-bearing, control-bearing, surrogate-bearing, or
+  overlong opaque references;
 - malformed or non-lowercase contract digests;
 - empty criterion sets, duplicate criterion identities, malformed category
   definition/digest cardinality, and incomplete substantive criterion meaning;
@@ -195,8 +208,9 @@ default anchor, provider guess, or synthetic lineage edge.
 - anchor promotion, calibration, and linking remain separately auditable;
 - synthetic fixtures cannot masquerade as a released owner contract merely by
   using an owner-like identifier;
-- opaque references cannot hide format controls or embedded line/paragraph
-  separators inside an otherwise machine-distinct identity;
+- opaque references cannot hide format controls, embedded line/paragraph
+  separators, or Unicode noncharacters inside an otherwise machine-distinct
+  interchange identity;
 - large acyclic supersession chains stay bounded to linear graph-validation work;
 - LineageWeave can display explicit criterion, no-anchor, and no-linking
   limitations without inventing comparability;
@@ -210,8 +224,8 @@ default anchor, provider guess, or synthetic lineage edge.
 - source content remains separately permissioned and cannot be recovered from
   this metadata-only envelope;
 - external adapters must map any legitimate foreign identifier containing a
-  rejected format control or line/paragraph separator to a separate canonical
-  released reference instead of passing it through unchanged;
+  rejected format control, line/paragraph separator, or Unicode noncharacter to a
+  separate canonical released reference instead of passing it through unchanged;
 - user interfaces must distinguish criterion meaning, provisional observation,
   adjudicated, calibrated, promoted-anchor, and linked states rather than
   displaying one generic “evaluated” badge.
@@ -233,14 +247,19 @@ default anchor, provider guess, or synthetic lineage edge.
 5. **Block all evaluation until anchors exist.** Rejected because governed pilot
    and diagnostic evidence is necessary to create and validate the first anchor
    corpus.
-6. **Silently strip or normalize format controls or separators.** Rejected because
-   mutation could collapse two foreign references into an identity that the
-   owning system never published. Admission fails closed instead.
-7. **Re-walk the complete supersession prefix from every item.** Rejected because
+6. **Silently strip or normalize format controls, separators, or noncharacters.**
+   Rejected because mutation could collapse two foreign references into an
+   identity that the owning system never published. Admission fails closed
+   instead.
+7. **Reject every Unicode `Cn` code point.** Rejected because noncharacters share
+   `Cn` with ordinary unassigned/reserved values. The stable noncharacter set can
+   be recognized exactly without making reference validity depend on which future
+   Unicode version has assigned the remaining `Cn` code points.
+8. **Re-walk the complete supersession prefix from every item.** Rejected because
    the 10,000-item admission budget would permit quadratic validation work even
    for a valid acyclic chain. Completed-path memoization preserves the same local
    graph semantics without that amplification.
-8. **Name a synthetic test fixture after an unreleased owner contract.** Rejected
+9. **Name a synthetic test fixture after an unreleased owner contract.** Rejected
    because it makes a test value look like versioned cross-repository evidence.
    Synthetic fixtures use an explicitly synthetic identity; production adapters
    must provide the real released owner identity and digest.
@@ -255,7 +274,9 @@ requirements, immutable collection copying, strict mapping admission, reference
 and digest hygiene, blueprint consistency, duplicate and resource limits, public
 exports, direct-construction seals, in-run supersession cycles, and long acyclic
 supersession chains. Reference hygiene includes zero-width and bidirectional
-Unicode format controls plus U+2028 LINE SEPARATOR and U+2029 PARAGRAPH SEPARATOR.
+Unicode format controls, U+2028 LINE SEPARATOR, U+2029 PARAGRAPH SEPARATOR, and
+representatives of both Unicode noncharacter classes: U+FDD0, U+FFFE, and
+U+10FFFF.
 
 The supersession admission regression counts set membership/add work rather than
 asserting a runner-specific elapsed-time threshold. That makes the complexity
@@ -280,6 +301,9 @@ Moreau, L., Missier, P., Belhajjame, K., B’Far, R., Cheney, J., Coppens, S.,
 Cresswell, S., Gil, Y., Groth, P., Klyne, G., Lebo, T., McCusker, J., Miles, S.,
 Myers, J., Sahoo, S., & Tilmes, C. (2013). PROV-DM: The PROV data model. World
 Wide Web Consortium.
+
+Unicode Consortium. (2025). *The Unicode standard, version 17.0: Core
+specification*. https://www.unicode.org/versions/Unicode17.0.0/UnicodeStandard-17.0.pdf
 
 Unicode Consortium. (2025). *Unicode character database* (Unicode Standard Annex
 #44, Unicode 17.0.0, Revision 36). https://www.unicode.org/reports/tr44/
