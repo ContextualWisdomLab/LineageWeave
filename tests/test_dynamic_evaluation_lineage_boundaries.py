@@ -101,6 +101,8 @@ def test_adjudication_case_and_resolution_keep_distinct_identities() -> None:
         "item_ref\ufeff",
         "item\u200bref",
         "item\u202eref",
+        "item\u2028ref",
+        "item\u2029ref",
         "line\nbreak",
         "\ud800",
         "x" * 257,
