@@ -23,7 +23,7 @@ def _item(**overrides: Any) -> DynamicEvaluationItemLineage:
     payload: dict[str, Any] = {
         "item_snapshot_ref": "evaluation_item_snapshot_alpha",
         "blueprint_revision_ref": "evaluation_blueprint_revision_1",
-        "source_contract_ref": "fast_mlsirm_dynamic_evaluation_item/v1",
+        "source_contract_ref": "synthetic_source_contract/v1",
         "source_contract_sha256": _DIGEST,
         "generation_invocation_ref": "generation_invocation_1",
         "rater_invocation_refs": ("rater_invocation_1",),
