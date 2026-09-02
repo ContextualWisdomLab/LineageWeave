@@ -7,6 +7,7 @@ provider configuration, score, psychometric parameter, or adjudication decision.
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from enum import StrEnum
@@ -120,6 +121,7 @@ def _reference(value: Any, field_name: str) -> str:
             ord(character) < 32
             or 127 <= ord(character) <= 159
             or 0xD800 <= ord(character) <= 0xDFFF
+            or unicodedata.category(character) == "Cf"
             for character in value
         )
     ):
