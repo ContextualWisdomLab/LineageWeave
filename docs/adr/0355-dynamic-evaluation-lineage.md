@@ -27,12 +27,15 @@ adjudication, or source-system authority that belongs to other bounded contexts.
 
 Opaque provenance references also cross service and rendering boundaries. Unicode
 format controls can be machine-distinct while remaining visually absent or
-changing bidirectional presentation, creating an avoidable alias/spoofing surface
-for identifiers used in equality and provenance joins. Unicode Technical Standard
-#39 treats identifier ambiguity and default-ignorable characters as security
-concerns. LineageWeave therefore rejects Unicode `Cf` format controls in these
-opaque references rather than normalizing them into a guessed identity. This is a
-product-specific restrictive profile, not a claim of full UTS #39 conformance.
+changing bidirectional presentation. U+2028 LINE SEPARATOR and U+2029 PARAGRAPH
+SEPARATOR can likewise alter line-oriented rendering or log framing while remaining
+embedded in one machine identity. Unicode Technical Standard #39 treats identifier
+ambiguity and restricted-character profiles as security concerns, while Unicode
+Standard Annex #44 classifies U+2028 and U+2029 as the `Zl` and `Zp` general
+categories. LineageWeave therefore rejects Unicode `Cf`, `Zl`, and `Zp` characters
+in these opaque references rather than normalizing them into a guessed identity.
+This is a product-specific restrictive profile, not a claim of full UTS #39
+conformance.
 
 The run contract admits as many as 10,000 item snapshots. A supersession-cycle
 check that restarts a full predecessor walk from every item can therefore turn an
@@ -155,8 +158,8 @@ The projection rejects:
   latent traits, pass/fail, certification, employment decisions, or embedded
   adjudication decisions;
 - unknown fields and non-string mapping keys;
-- empty, padded, Unicode-format-control-bearing, control-bearing,
-  surrogate-bearing, or overlong opaque references;
+- empty, padded, Unicode-format-control-bearing, Unicode-line/paragraph-separator-
+  bearing, control-bearing, surrogate-bearing, or overlong opaque references;
 - malformed or non-lowercase contract digests;
 - empty criterion sets, duplicate criterion identities, malformed category
   definition/digest cardinality, and incomplete substantive criterion meaning;
@@ -192,7 +195,8 @@ default anchor, provider guess, or synthetic lineage edge.
 - anchor promotion, calibration, and linking remain separately auditable;
 - synthetic fixtures cannot masquerade as a released owner contract merely by
   using an owner-like identifier;
-- opaque references cannot differ only through invisible Unicode format controls;
+- opaque references cannot hide format controls or embedded line/paragraph
+  separators inside an otherwise machine-distinct identity;
 - large acyclic supersession chains stay bounded to linear graph-validation work;
 - LineageWeave can display explicit criterion, no-anchor, and no-linking
   limitations without inventing comparability;
@@ -206,8 +210,8 @@ default anchor, provider guess, or synthetic lineage edge.
 - source content remains separately permissioned and cannot be recovered from
   this metadata-only envelope;
 - external adapters must map any legitimate foreign identifier containing a
-  rejected format control to a separate canonical released reference instead of
-  passing it through unchanged;
+  rejected format control or line/paragraph separator to a separate canonical
+  released reference instead of passing it through unchanged;
 - user interfaces must distinguish criterion meaning, provisional observation,
   adjudicated, calibrated, promoted-anchor, and linked states rather than
   displaying one generic “evaluated” badge.
@@ -229,9 +233,9 @@ default anchor, provider guess, or synthetic lineage edge.
 5. **Block all evaluation until anchors exist.** Rejected because governed pilot
    and diagnostic evidence is necessary to create and validate the first anchor
    corpus.
-6. **Silently strip or normalize format controls.** Rejected because mutation
-   could collapse two foreign references into an identity that the owning system
-   never published. Admission fails closed instead.
+6. **Silently strip or normalize format controls or separators.** Rejected because
+   mutation could collapse two foreign references into an identity that the
+   owning system never published. Admission fails closed instead.
 7. **Re-walk the complete supersession prefix from every item.** Rejected because
    the 10,000-item admission budget would permit quadratic validation work even
    for a valid acyclic chain. Completed-path memoization preserves the same local
@@ -251,7 +255,7 @@ requirements, immutable collection copying, strict mapping admission, reference
 and digest hygiene, blueprint consistency, duplicate and resource limits, public
 exports, direct-construction seals, in-run supersession cycles, and long acyclic
 supersession chains. Reference hygiene includes zero-width and bidirectional
-Unicode format controls.
+Unicode format controls plus U+2028 LINE SEPARATOR and U+2029 PARAGRAPH SEPARATOR.
 
 The supersession admission regression counts set membership/add work rather than
 asserting a runner-specific elapsed-time threshold. That makes the complexity
@@ -276,6 +280,9 @@ Moreau, L., Missier, P., Belhajjame, K., B’Far, R., Cheney, J., Coppens, S.,
 Cresswell, S., Gil, Y., Groth, P., Klyne, G., Lebo, T., McCusker, J., Miles, S.,
 Myers, J., Sahoo, S., & Tilmes, C. (2013). PROV-DM: The PROV data model. World
 Wide Web Consortium.
+
+Unicode Consortium. (2025). *Unicode character database* (Unicode Standard Annex
+#44, Unicode 17.0.0, Revision 36). https://www.unicode.org/reports/tr44/
 
 Unicode Consortium. (2025). *Unicode security mechanisms* (Unicode Technical
 Standard #39, Version 17.0.0, Revision 32). https://www.unicode.org/reports/tr39/
