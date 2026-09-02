@@ -22,14 +22,21 @@ function compareEntity(left: CustomerMasterEntity, right: CustomerMasterEntity):
 /**
  * Indexes one authorized entity row per canonical corporate entity identity.
  *
- * A duplicated identity makes parent and child references ambiguous: silently taking
- * either row would convert response ordering into business truth. The Customer Master
- * therefore fails closed so the existing request error state can disclose a data-integrity
- * failure instead of rendering a fabricated hierarchy.
+ * A missing/blank canonical identity cannot safely participate in hierarchy joins, and a
+ * duplicated identity makes parent and child references ambiguous. Rendering either case
+ * would convert malformed transport data or response ordering into business truth. The
+ * Customer Master therefore fails closed so the existing request error state can disclose
+ * a data-integrity failure instead of rendering a fabricated hierarchy.
  */
 function indexEntitiesById(entities: CustomerMasterEntity[]): Map<string, CustomerMasterEntity> {
   const byId = new Map<string, CustomerMasterEntity>();
   for (const entity of entities) {
+    if (
+      typeof entity.corporate_entity_id !== "string" ||
+      entity.corporate_entity_id.trim().length === 0
+    ) {
+      throw new Error("corporate_entity_id must be a non-blank string");
+    }
     if (byId.has(entity.corporate_entity_id)) {
       throw new Error(`duplicate corporate_entity_id: ${entity.corporate_entity_id}`);
     }
@@ -44,11 +51,11 @@ function indexEntitiesById(entities: CustomerMasterEntity[]): Map<string, Custom
  * Parent pointers are presentation evidence, not permission to discard an otherwise
  * authorized entity. Missing parents, self-parent edges, and one deterministic edge
  * per pure cycle are therefore omitted from the rendered forest and disclosed on the
- * promoted root. Conflicting duplicate entity identities fail closed because there is no
- * safe presentation-only rule for choosing one source row. No replacement parent or
- * organization is invented. Ordering uses code-point comparison rather than runtime locale
- * so repeated renders are stable. Node materialization is iterative so a valid, unusually
- * deep hierarchy cannot exhaust the JavaScript call stack.
+ * promoted root. Missing/blank or conflicting duplicate canonical entity identities fail
+ * closed because there is no safe presentation-only rule for inventing or choosing source
+ * identity. No replacement parent or organization is invented. Ordering uses code-point
+ * comparison rather than runtime locale so repeated renders are stable. Node materialization
+ * is iterative so a valid, unusually deep hierarchy cannot exhaust the JavaScript call stack.
  */
 export function buildCustomerEntityTree(
   entities: CustomerMasterEntity[],
