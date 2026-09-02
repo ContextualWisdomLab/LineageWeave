@@ -51,6 +51,13 @@ def test_post_keymen_backfill_rejects_non_numeric_or_boolean_timeout(
     assert validator(invalid_timeout) is False
 
 
+def test_post_keymen_backfill_rejects_unrepresentable_integer_timeout() -> None:
+    """Fail closed instead of raising while checking an enormous direct-call integer."""
+    validator = _load_timeout_validator()
+
+    assert validator(10**10000) is False
+
+
 def test_post_keymen_backfill_accepts_positive_finite_timeout() -> None:
     validator = _load_timeout_validator()
 
