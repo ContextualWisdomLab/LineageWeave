@@ -232,3 +232,24 @@ def test_linking_evidence_is_admitted_only_with_promoted_anchors() -> None:
             linking_evidence_ref="linking_evidence_1",
         )
     assert caught.value.code == "unexpected_linking_evidence"
+
+
+def test_run_rejects_cycles_in_item_supersession_lineage() -> None:
+    first = _item(
+        item_snapshot_ref="evaluation_item_snapshot_alpha",
+        supersedes_item_snapshot_ref="evaluation_item_snapshot_beta",
+    )
+    second = _item(
+        item_snapshot_ref="evaluation_item_snapshot_beta",
+        supersedes_item_snapshot_ref="evaluation_item_snapshot_alpha",
+    )
+
+    with pytest.raises(DynamicEvaluationLineageError) as caught:
+        build_dynamic_evaluation_run_lineage(
+            run_snapshot_ref="evaluation_run_snapshot_supersession_cycle",
+            blueprint_revision_ref="evaluation_blueprint_revision_1",
+            items=(first, second),
+            anchor_item_snapshot_refs=(),
+            comparability_status=RunComparabilityStatus.UNAVAILABLE,
+        )
+    assert caught.value.code == "supersession_cycle"
