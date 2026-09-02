@@ -92,7 +92,7 @@ function indexNodesById(nodes: LineageGraphNode[]): Map<string, LineageGraphNode
  * Reject a visible edge whose source and target are the same canonical post.
  *
  * Both live and run-scoped persistence define lineage as a relation between distinct posts.
- * Rendering a self-loop would collapse the SVG path to a zero-length control and present an
+ * Rendering a self-loop would collapse the SVG predecessor path to a zero-length control and present an
  * impossible predecessor relationship as ordinary lineage evidence. Hidden-endpoint edges
  * remain omittable for ABAC; only a self-loop whose endpoint is actually visible fails closed.
  */
@@ -105,6 +105,47 @@ function assertNoVisibleSelfLoops(
       throw new Error(`self-loop lineage edge: ${edge.source}`);
     }
   }
+}
+
+/**
+ * Reject directed cycles that would otherwise be flattened into plausible DAG rows.
+ *
+ * Edges with hidden endpoints and cross-group relationships are not rendered by this
+ * presentation boundary, so they remain outside this check. Within one visible group,
+ * however, a predecessor cycle has no valid root and cannot be represented truthfully by
+ * the DAG. Failing closed prevents the fallback placement path from disguising the cycle as
+ * disconnected lineage.
+ */
+function assertNoVisibleCycles(
+  edges: LineageGraphEdge[],
+  nodesById: Map<string, LineageGraphNode>,
+): void {
+  const children = new Map<string, string[]>();
+  for (const edge of edges) {
+    const source = nodesById.get(edge.source);
+    const target = nodesById.get(edge.target);
+    if (!source || !target) continue;
+    if ((source.group || "") !== (target.group || "")) continue;
+    const list = children.get(edge.source) ?? [];
+    list.push(edge.target);
+    children.set(edge.source, list);
+  }
+
+  const state = new Map<string, "visiting" | "visited">();
+  const visit = (id: string): void => {
+    const current = state.get(id);
+    if (current === "visiting") {
+      throw new Error(`cyclic visible lineage edges at: ${id}`);
+    }
+    if (current === "visited") return;
+
+    state.set(id, "visiting");
+    const childIds = [...(children.get(id) ?? [])].sort(stableTextCompare);
+    for (const childId of childIds) visit(childId);
+    state.set(id, "visited");
+  };
+
+  for (const id of [...nodesById.keys()].sort(stableTextCompare)) visit(id);
 }
 
 function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
@@ -237,6 +278,7 @@ export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
   const nodesById = indexNodesById(graph.nodes);
   assertNoVisibleSelfLoops(graph.edges, nodesById);
+  assertNoVisibleCycles(graph.edges, nodesById);
   for (const node of graph.nodes) {
     const group = node.group || "";
     const bucket = buckets.get(group) ?? { nodes: [], edges: [] };
