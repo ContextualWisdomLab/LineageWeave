@@ -63,6 +63,11 @@ def _post_limit_is_valid(post_limit: object) -> bool:
     return type(post_limit) is int and post_limit > 0
 
 
+def _post_all_is_valid(post_all: object) -> bool:
+    """Return whether the batch-mode selector is an exact boolean."""
+    return type(post_all) is bool
+
+
 def _post_id_is_valid(post_id: object) -> bool:
     """Return whether an optional explicit post identity is exact canonical text."""
     return (
@@ -192,6 +197,8 @@ async def _run_post_keymen_backfill(
         raise ValueError("--post-timeout must be finite and positive")
     if not _post_limit_is_valid(backfill_arguments.limit):
         raise ValueError("--limit must be a positive integer")
+    if not _post_all_is_valid(backfill_arguments.all):
+        raise ValueError("--all must be a boolean selector")
     if not _post_id_is_valid(backfill_arguments.post_id):
         raise ValueError("--post-id must be nonblank and unpadded")
     if backfill_arguments.post_id and backfill_arguments.all:
@@ -270,6 +277,8 @@ def main() -> None:
     backfill_arguments = parser.parse_args()
     if not _post_limit_is_valid(backfill_arguments.limit):
         parser.error("--limit must be a positive integer")
+    if not _post_all_is_valid(backfill_arguments.all):
+        parser.error("--all must be a boolean selector")
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
         parser.error("--post-timeout must be finite and positive")
     if not _post_id_is_valid(backfill_arguments.post_id):
