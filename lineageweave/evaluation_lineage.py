@@ -634,21 +634,22 @@ def build_dynamic_evaluation_run_lineage(
             "unknown_anchor_item", "every anchor must identify an item in this run"
         )
     item_by_ref = {item.item_snapshot_ref: item for item in normalized_items}
+    anchor_evidence_refs: set[str] = set()
     for anchor_ref in normalized_anchor_refs:
         anchor = item_by_ref[anchor_ref]
-        if (
-            anchor.anchor_promotion_decision_ref is None
-            or not anchor.calibration_artifact_refs
-        ):
+        promotion_ref = anchor.anchor_promotion_decision_ref
+        if promotion_ref is None or not anchor.calibration_artifact_refs:
             raise DynamicEvaluationLineageError(
                 "anchor_requires_promotion_evidence",
                 "an anchor requires separate promotion and calibration evidence",
             )
-        if anchor.anchor_promotion_decision_ref in anchor.calibration_artifact_refs:
+        if promotion_ref in anchor.calibration_artifact_refs:
             raise DynamicEvaluationLineageError(
                 "anchor_evidence_collision",
                 "anchor promotion and calibration evidence must retain distinct identities",
             )
+        anchor_evidence_refs.add(promotion_ref)
+        anchor_evidence_refs.update(anchor.calibration_artifact_refs)
 
     normalized_status = _comparability_status(comparability_status)
     normalized_linking_ref = _optional_reference(
@@ -664,6 +665,11 @@ def build_dynamic_evaluation_run_lineage(
             raise DynamicEvaluationLineageError(
                 "linked_run_requires_evidence",
                 "linked comparability requires immutable linking evidence",
+            )
+        if normalized_linking_ref in anchor_evidence_refs:
+            raise DynamicEvaluationLineageError(
+                "linking_evidence_collision",
+                "linking evidence must retain an identity distinct from anchor evidence",
             )
     elif normalized_linking_ref is not None:
         raise DynamicEvaluationLineageError(
