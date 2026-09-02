@@ -59,7 +59,7 @@ export function buildCustomerEntityTree(
 
   for (const entity of entities) {
     const parentId = entity.parent_entity_id;
-    if (!parentId) {
+    if (parentId === null) {
       parentById.set(entity.corporate_entity_id, null);
     } else if (parentId === entity.corporate_entity_id) {
       parentById.set(entity.corporate_entity_id, null);
