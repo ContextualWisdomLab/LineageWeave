@@ -92,3 +92,29 @@ def test_programmatic_runner_revalidates_timeout_before_external_work() -> None:
         and node.func.id == "_post_timeout_is_valid"
     ]
     assert calls, "programmatic runner must revalidate timeout before provider/database work"
+
+
+def test_keyman_transport_uses_the_admitted_operator_timeout() -> None:
+    """Do not impose an unrelated shorter model-transport timeout inside the batch budget."""
+    syntax_tree = ast.parse(BACKFILL_SCRIPT.read_text(encoding="utf-8"))
+    runner = next(
+        node
+        for node in syntax_tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name == "_run_post_keymen_backfill"
+    )
+    client_call = next(
+        node
+        for node in ast.walk(runner)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "ContextualOrchestratorKeymanExtractionClient"
+    )
+    timeout_keyword = next(
+        keyword for keyword in client_call.keywords if keyword.arg == "timeout"
+    )
+
+    assert isinstance(timeout_keyword.value, ast.Attribute)
+    assert isinstance(timeout_keyword.value.value, ast.Name)
+    assert timeout_keyword.value.value.id == "backfill_arguments"
+    assert timeout_keyword.value.attr == "post_timeout"
