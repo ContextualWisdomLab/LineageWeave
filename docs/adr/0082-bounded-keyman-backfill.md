@@ -35,8 +35,12 @@ It will:
 - require the programmatic batch-mode selector to be an exact boolean before
   using its truth value, so strings or integer-like transport values cannot
   silently switch a direct call into or out of batch mode;
-- enforce a per-post timeout, returning a typed failure count instead of
-  allowing a provider workflow to hold an operator process indefinitely.
+- enforce one admitted per-post timeout across the operator and its Keyman
+  contextual-orchestrator transport. The transport must not impose an
+  unrelated shorter fixed timeout that can terminate a valid long-running
+  model workflow before the operator's explicit administrative budget;
+- return a typed timeout failure count instead of allowing a provider workflow
+  to hold an operator process indefinitely.
 
 Gateway credentials are read from runtime-injected environment variables. The
 script never reads or copies `~/.env`, and it is not exposed as a buyer HTTP
@@ -51,5 +55,7 @@ route. No analysis-run registry tables are modified.
 - Re-running a selected post is idempotent through `ingest_post_keymen`'s
   replacement semantics, while the default selector may revisit an empty
   extraction because no evidence row exists.
-- A provider workflow that exceeds the timeout is recorded as unavailable for
-  that attempt; it is not converted into an empty Keyman result.
+- A provider workflow that exceeds the operator-selected timeout is recorded as
+  unavailable for that attempt; it is not converted into an empty Keyman
+  result, and an unrelated client-local fixed timeout does not pre-empt that
+  budget.
