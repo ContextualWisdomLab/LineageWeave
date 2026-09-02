@@ -51,11 +51,12 @@ def _orchestrator_config() -> tuple[str, str]:
 
 def _post_timeout_is_valid(post_timeout: object) -> bool:
     """Return whether an operator timeout is a finite, strictly positive number."""
-    return (
-        type(post_timeout) in (int, float)
-        and math.isfinite(post_timeout)
-        and post_timeout > 0
-    )
+    if type(post_timeout) not in (int, float) or post_timeout <= 0:
+        return False
+    try:
+        return math.isfinite(post_timeout)
+    except OverflowError:
+        return False
 
 
 def _post_limit_is_valid(post_limit: object) -> bool:
