@@ -99,7 +99,9 @@ class InstrumentMeasurementPolicy:
             raise TypeError("instrument_id must be a string")
         if not self.instrument_id.strip():
             raise ValueError("instrument_id must be non-empty")
-        if type(self.revision) is not int or self.revision < 1:
+        if type(self.revision) is not int:
+            raise TypeError("instrument revision must be an integer")
+        if self.revision < 1:
             raise ValueError("instrument revision must be a positive integer")
         if self.activation_evidence_ref is not None:
             if not isinstance(self.activation_evidence_ref, str):
@@ -130,8 +132,10 @@ class DichotomousObservation:
     def __post_init__(self) -> None:
         if not isinstance(self.state, DichotomousObservationState):
             raise TypeError("state must be a DichotomousObservationState")
+        if self.response is not None and type(self.response) is not int:
+            raise TypeError("response must be an integer or None")
         if self.state is DichotomousObservationState.OBSERVED:
-            if type(self.response) is not int or self.response not in (0, 1):
+            if self.response not in (0, 1):
                 raise ValueError("observed dichotomous response must be integer 0 or 1")
             return
         if self.response is not None:
