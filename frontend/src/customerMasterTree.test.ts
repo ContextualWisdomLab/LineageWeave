@@ -64,6 +64,16 @@ describe("buildCustomerEntityTree", () => {
     ).toThrow("duplicate corporate_entity_id: duplicate");
   });
 
+  it("rejects blank canonical entity identities instead of rendering anonymous roots", () => {
+    for (const malformedId of ["", "   "]) {
+      expect(() =>
+        buildCustomerEntityTree([
+          entity(malformedId, "Missing canonical identity", null),
+        ]),
+      ).toThrow("corporate_entity_id must be a non-blank string");
+    }
+  });
+
   it("keeps ordinary parent-child structure deterministic", () => {
     const parent = entity("parent", "Parent", null);
     const childB = entity("child-b", "Child B", "parent");
