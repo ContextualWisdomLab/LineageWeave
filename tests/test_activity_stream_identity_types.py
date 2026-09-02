@@ -28,3 +28,15 @@ def test_sync_activity_rejects_numeric_actor_identity_before_valkey_access() -> 
             7,  # type: ignore[arg-type]
             ticket_created_summary("Send Northridge Grid the revised quote"),
         )
+
+
+def test_sync_activity_rejects_numeric_post_identity_before_valkey_access() -> None:
+    """A numeric post id must not alias the canonical string stream identity ``\"7\"``."""
+    with pytest.raises(TypeError, match="post_id must be a string"):
+        publish_activity_event_sync(
+            _UnexpectedValkeyAccess(),
+            7,  # type: ignore[arg-type]
+            "ticket_created",
+            "acct-1",
+            ticket_created_summary("Send Northridge Grid the revised quote"),
+        )
