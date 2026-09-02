@@ -279,6 +279,11 @@ def build_dynamic_evaluation_item_lineage(
             "resolution_requires_case",
             "an adjudication resolution must reference its separate case",
         )
+    if normalized_resolution_ref is not None and normalized_resolution_ref == normalized_case_ref:
+        raise DynamicEvaluationLineageError(
+            "adjudication_reference_collision",
+            "adjudication case and resolution must retain distinct identities",
+        )
 
     normalized_supersedes_ref = _optional_reference(
         supersedes_item_snapshot_ref, "supersedes_item_snapshot_ref"
