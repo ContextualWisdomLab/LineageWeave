@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from inspect import signature
 
+from redis.exceptions import WatchError
+
 from backend.app.activity_stream import (
     create_valkey_client,
     publish_activity_event,
@@ -25,8 +27,9 @@ class _FakeStream:
     """Small in-memory stand-in for the Valkey stream methods under contract."""
 
     def __init__(self) -> None:
-        """Start with no retained activity entries."""
+        """Start with no retained activity entries or key mutations."""
         self.entries: list[tuple[str, dict[str, str]]] = []
+        self.version = 0
 
     def xrevrange(self, key: str, count: int | None = None):
         """Return newest-first entries with the same optional count boundary."""
@@ -35,11 +38,69 @@ class _FakeStream:
         return entries if count is None else entries[:count]
 
     def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
-        """Append a copied wire record and return a deterministic fake entry id."""
+        """Append a copied wire record and advance the watched key version."""
         del key, maxlen, approximate
         entry_id = f"1-{len(self.entries)}"
         self.entries.append((entry_id, dict(fields)))
+        self.version += 1
         return entry_id
+
+    def pipeline(self):
+        """Create the WATCH/MULTI pipeline used by synchronous reseeding."""
+        return _FakePipeline(self)
+
+
+class _FakePipeline:
+    """Model the redis-py WATCH/MULTI behavior needed by the reseed contract."""
+
+    def __init__(self, stream: _FakeStream) -> None:
+        """Bind the transaction to one fake stream client."""
+        self.stream = stream
+        self.watched_version: int | None = None
+        self.pending_xadd: tuple[str, dict[str, str], object, object] | None = None
+        self.in_multi = False
+
+    def __enter__(self):
+        """Return this transaction context."""
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> bool:
+        """Never suppress transaction exceptions."""
+        del exc_type, exc, traceback
+        return False
+
+    def watch(self, key: str) -> None:
+        """Remember the stream version at the optimistic-lock boundary."""
+        del key
+        self.watched_version = self.stream.version
+
+    def unwatch(self) -> None:
+        """Release the optimistic lock after finding an existing fact."""
+        self.watched_version = None
+
+    def xrevrange(self, key: str, count: int | None = None):
+        """Read immediately while the key is watched, as redis-py does."""
+        return self.stream.xrevrange(key, count=count)
+
+    def multi(self) -> None:
+        """Begin queuing the append for optimistic execution."""
+        self.in_multi = True
+
+    def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
+        """Queue one append after MULTI rather than mutating immediately."""
+        if not self.in_multi:
+            return self.stream.xadd(key, fields, maxlen=maxlen, approximate=approximate)
+        self.pending_xadd = (key, dict(fields), maxlen, approximate)
+        return self
+
+    def execute(self):
+        """Reject a stale watched snapshot or atomically apply the queued append."""
+        if self.watched_version != self.stream.version:
+            raise WatchError("synthetic concurrent stream mutation")
+        if self.pending_xadd is None:
+            return []
+        key, fields, maxlen, approximate = self.pending_xadd
+        return [self.stream.xadd(key, fields, maxlen=maxlen, approximate=approximate)]
 
 
 class _RaceInjectingStream(_FakeStream):
