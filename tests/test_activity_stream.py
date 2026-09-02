@@ -25,9 +25,10 @@ class _FakeStream:
     def __init__(self) -> None:
         self.entries: list[tuple[str, dict[str, str]]] = []
 
-    def xrevrange(self, key: str, count: int = 50):
+    def xrevrange(self, key: str, count: int | None = None):
         del key
-        return list(reversed(self.entries[-count:]))
+        entries = list(reversed(self.entries))
+        return entries if count is None else entries[:count]
 
     def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
         del key, maxlen, approximate
@@ -89,6 +90,39 @@ def test_publish_activity_event_sync_skips_a_matching_summary() -> None:
     assert len(client.entries) == 1
     assert client.entries[0][1]["event_type"] == "ticket_created"
     assert "Send Northridge Grid the revised quote" in client.entries[0][1]["summary"]
+
+
+def test_publish_activity_event_sync_scans_the_retained_stream_for_reseed_idempotency() -> None:
+    """A retained seed event stays idempotent after more than 50 newer events."""
+    client = _FakeStream()
+    seed_summary = ticket_created_summary("Send Northridge Grid the revised quote")
+    assert publish_activity_event_sync(
+        client,
+        "post-1",
+        "ticket_created",
+        "acct-1",
+        seed_summary,
+    ) == "1-0"
+
+    for index in range(51):
+        client.xadd(
+            "activity:post-1",
+            {
+                "event_type": "ticket_status_changed",
+                "actor_account_id": "acct-1",
+                "summary": f"newer activity {index}",
+            },
+        )
+
+    entry_count = len(client.entries)
+    assert publish_activity_event_sync(
+        client,
+        "post-1",
+        "ticket_created",
+        "acct-1",
+        seed_summary,
+    ) is None
+    assert len(client.entries) == entry_count
 
 
 def test_valkey_child_span_shares_parent_trace_id(monkeypatch) -> None:
