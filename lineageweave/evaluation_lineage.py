@@ -644,6 +644,11 @@ def build_dynamic_evaluation_run_lineage(
                 "anchor_requires_promotion_evidence",
                 "an anchor requires separate promotion and calibration evidence",
             )
+        if anchor.anchor_promotion_decision_ref in anchor.calibration_artifact_refs:
+            raise DynamicEvaluationLineageError(
+                "anchor_evidence_collision",
+                "anchor promotion and calibration evidence must retain distinct identities",
+            )
 
     normalized_status = _comparability_status(comparability_status)
     normalized_linking_ref = _optional_reference(
