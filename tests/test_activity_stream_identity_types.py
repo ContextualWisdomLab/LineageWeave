@@ -168,3 +168,45 @@ def test_activity_read_preserves_precanonical_uppercase_uuid_alias_events() -> N
 
     assert [event["event_id"] for event in events] == ["200-0", "100-0"]
     assert client.reads == [(canonical_key, 10), (legacy_key, 10)]
+
+
+def test_activity_read_does_not_compare_cross_stream_sequence_numbers() -> None:
+    """Same-millisecond alias ties use deterministic stream precedence, not local sequence."""
+    canonical_post_id = "550e8400-e29b-41d4-a716-446655440000"
+    uppercase_post_id = canonical_post_id.upper()
+    canonical_key = f"activity:{canonical_post_id}"
+    legacy_key = f"activity:{uppercase_post_id}"
+    client = _LegacyAliasReadValkey(
+        {
+            canonical_key: [
+                (
+                    "500-0",
+                    {
+                        "event_type": "ticket_status_changed",
+                        "actor_account_id": "acct-1",
+                        "summary": "Canonical current stream",
+                    },
+                )
+            ],
+            legacy_key: [
+                (
+                    "500-99",
+                    {
+                        "event_type": "ticket_created",
+                        "actor_account_id": "acct-1",
+                        "summary": "Historical alias stream",
+                    },
+                )
+            ],
+        }
+    )
+
+    events = asyncio.run(
+        read_activity_events(
+            client,  # type: ignore[arg-type]
+            canonical_post_id,
+            event_count=1,
+        )
+    )
+
+    assert [event["summary"] for event in events] == ["Canonical current stream"]
