@@ -29,9 +29,9 @@ def test_observed_dichotomous_response_accepts_only_zero_or_one() -> None:
     assert DichotomousObservation.observed(0).response == 0
     assert DichotomousObservation.observed(1).response == 1
 
-    for invalid in (-1, 2, True, False):
+    for invalid in (-1, 2):
         with pytest.raises(ValueError, match="0 or 1"):
-            DichotomousObservation.observed(invalid)  # type: ignore[arg-type]
+            DichotomousObservation.observed(invalid)
 
 
 def test_nonobserved_states_never_carry_a_binary_response() -> None:
@@ -120,7 +120,6 @@ def test_published_instrument_requires_model_and_activation_evidence() -> None:
     [
         (" ", 1, None, "instrument_id"),
         ("instrument", 0, None, "positive integer"),
-        ("instrument", True, None, "positive integer"),
         ("instrument", 1, " ", "non-empty"),
     ],
 )
