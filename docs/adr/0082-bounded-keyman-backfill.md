@@ -28,10 +28,12 @@ It will:
 - carry `build_post_llm_metadata` and `use_llm_metadata` across all LLM/VISION
   calls for one post, yielding the same deterministic post session id;
 - default to one post and require explicit `--all --limit N` for a batch;
-- admit a batch limit only as an exact, strictly positive integer and apply the
-  same check to direct programmatic runner calls before gateway or database
-  work, so booleans and other transport-shaped values cannot silently become
-  a batch size;
+- admit a batch limit only as an exact integer in the inclusive `1..100`
+  range, applying the same check to direct programmatic runner calls before
+  gateway or database work. The upper bound keeps one invocation genuinely
+  bounded even when a caller bypasses the CLI; larger work is split into
+  repeated observable invocations instead of turning one process into an
+  effectively unbounded serial crawl;
 - require the programmatic batch-mode selector to be an exact boolean before
   using its truth value, so strings or integer-like transport values cannot
   silently switch a direct call into or out of batch mode;
@@ -49,7 +51,9 @@ route. No analysis-run registry tables are modified.
 ## Consequences
 
 - Keyman coverage can be increased incrementally with a bounded cost and
-  auditable operator output.
+  auditable operator output. One invocation processes at most 100 posts; larger
+  backfills require repeated invocations whose result summaries remain
+  independently attributable.
 - Empty extraction remains a real empty result; the script does not create a
   placeholder person or retry indefinitely through an implicit attempt table.
 - Re-running a selected post is idempotent through `ingest_post_keymen`'s
