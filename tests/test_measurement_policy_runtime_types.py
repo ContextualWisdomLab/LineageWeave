@@ -7,6 +7,7 @@ import pytest
 from lineageweave.measurement_policy import (
     DichotomousItemPolicy,
     DichotomousObservation,
+    DichotomousObservationState,
     InstrumentLifecycle,
     InstrumentMeasurementPolicy,
     MeasurementModelFamily,
@@ -76,6 +77,30 @@ def test_instrument_policy_rejects_non_string_activation_reference_explicitly() 
             model_family=MeasurementModelFamily.IRT_2PLM,
             activation_evidence_ref=17,  # type: ignore[arg-type]
         )
+
+
+def test_instrument_revision_rejects_boolean_transport_value_as_wrong_type() -> None:
+    """JSON booleans are Python integers; they must not become instrument revisions."""
+    with pytest.raises(TypeError, match="revision"):
+        InstrumentMeasurementPolicy(
+            instrument_id="importance-evidence",
+            revision=True,  # type: ignore[arg-type]
+            lifecycle=InstrumentLifecycle.DRAFT,
+            model_family=None,
+            activation_evidence_ref=None,
+        )
+
+
+def test_observed_response_rejects_boolean_transport_value_as_wrong_type() -> None:
+    """A JSON boolean must not be accepted or classified as an ordinary invalid 0/1 score."""
+    with pytest.raises(TypeError, match="response"):
+        DichotomousObservation(DichotomousObservationState.OBSERVED, True)  # type: ignore[arg-type]
+
+
+def test_unscored_response_rejects_non_integer_transport_value_as_wrong_type() -> None:
+    """Malformed non-null response payloads fail at the type boundary before state semantics."""
+    with pytest.raises(TypeError, match="response"):
+        DichotomousObservation(DichotomousObservationState.MISSING, "0")  # type: ignore[arg-type]
 
 
 def test_governed_enum_instances_still_construct_normally() -> None:
