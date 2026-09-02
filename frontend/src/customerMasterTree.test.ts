@@ -30,6 +30,16 @@ describe("buildCustomerEntityTree", () => {
     ]);
   });
 
+  it("discloses an empty malformed parent identity instead of treating it as a root", () => {
+    const forest = buildCustomerEntityTree([
+      entity("malformed-parent", "Malformed parent", ""),
+    ]);
+
+    expect(forest).toHaveLength(1);
+    expect(forest[0].entity.corporate_entity_id).toBe("malformed-parent");
+    expect(forest[0].hierarchyIssue).toBe("parent_not_available");
+  });
+
   it("breaks a pure cycle deterministically without dropping either entity", () => {
     const alpha = entity("alpha", "Alpha", "beta");
     const beta = entity("beta", "Beta", "alpha");
