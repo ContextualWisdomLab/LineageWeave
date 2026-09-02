@@ -206,7 +206,9 @@ async def _run_post_keymen_backfill(
     base_url, api_key = _orchestrator_config()
     settings = load_settings()
     keyman_client = ContextualOrchestratorKeymanExtractionClient(
-        base_url=base_url, api_key=api_key, timeout=180.0
+        base_url=base_url,
+        api_key=api_key,
+        timeout=backfill_arguments.post_timeout,
     )
     vision_client = orchestrator_vision_client(base_url, api_key)
     resolution_client = _organization_name_resolution_client()
