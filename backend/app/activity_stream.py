@@ -68,6 +68,18 @@ def ticket_status_changed_summary(status_label: str) -> str:
     return f"Ticket status changed to {status_label}"
 
 
+def _activity_text(value: Any, field_name: str) -> str:
+    """Require one exact string before it participates in activity identity.
+
+    Valkey accepts several scalar types, so implicit coercion can collapse a
+    malformed numeric identity such as ``7`` onto the distinct canonical string
+    identity ``"7"``. Reject that alias before any stream read or mutation.
+    """
+    if type(value) is not str:
+        raise TypeError(f"{field_name} must be a string")
+    return value
+
+
 def _activity_fields(
     event_type: str,
     actor_account_id: str,
@@ -77,12 +89,14 @@ def _activity_fields(
 
     Internal names may become more specific, but the persisted ``summary`` key
     is compatibility-sensitive. This adapter is the only intentional mapping
-    between the bounded-context name and that historical field name.
+    between the bounded-context name and that historical field name. Identity
+    and display fields cross the Valkey boundary as exact strings rather than
+    being coerced from other scalar types.
     """
     return {
-        "event_type": event_type,
-        "actor_account_id": actor_account_id,
-        "summary": activity_summary,
+        "event_type": _activity_text(event_type, "event_type"),
+        "actor_account_id": _activity_text(actor_account_id, "actor_account_id"),
+        "summary": _activity_text(activity_summary, "activity_summary"),
     }
 
 
@@ -150,7 +164,7 @@ def publish_activity_event_sync(
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
         event_type,
-        str(actor_account_id),
+        actor_account_id,
         activity_summary,
     )
     watch_retry_exhausted = False
