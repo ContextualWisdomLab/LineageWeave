@@ -69,13 +69,7 @@ def test_long_acyclic_supersession_chain_uses_linear_set_work(monkeypatch) -> No
             type(self).operations += 1
             super().add(value)
 
-        def update(self, *others: object) -> None:
-            for other in others:
-                values = tuple(other)
-                type(self).operations += len(values)
-                super().update(values)
-
     monkeypatch.setattr(evaluation_lineage, "set", CountingSet, raising=False)
     evaluation_lineage._validate_supersession_graph(items)
 
-    assert CountingSet.operations <= item_count * 6
+    assert CountingSet.operations <= item_count * 5
