@@ -1,8 +1,9 @@
 """Dynamic-evaluation provenance projections owned by LineageWeave.
 
-The module projects immutable item-generation, rater-observation, adjudication,
-calibration, anchor-promotion, and supersession references without creating any
-provider configuration, score, psychometric parameter, or adjudication decision.
+The module projects immutable item-generation, criterion, rater-observation,
+adjudication, calibration, anchor-promotion, and supersession references without
+creating provider configuration, scores, psychometric parameters, or adjudication
+decisions.
 """
 
 from __future__ import annotations
@@ -12,6 +13,8 @@ from collections.abc import Mapping
 from dataclasses import InitVar, dataclass
 from enum import StrEnum
 from typing import Any
+
+from .evaluation_criteria import EvaluationCriterionSetLineage
 
 DYNAMIC_EVALUATION_LINEAGE_CONTRACT_ID = "lineageweave_dynamic_evaluation_lineage/v1"
 MAX_LINEAGE_REFERENCE_LENGTH = 256
@@ -35,7 +38,7 @@ _PROHIBITED_AUTHORITY_FIELDS = frozenset(
         "adjudication_decision",
     }
 )
-_ITEM_FIELDS = frozenset(
+_ITEM_REQUIRED_FIELDS = frozenset(
     {
         "item_snapshot_ref",
         "blueprint_revision_ref",
@@ -50,7 +53,16 @@ _ITEM_FIELDS = frozenset(
         "supersedes_item_snapshot_ref",
     }
 )
-_RUN_FIELDS = frozenset(
+_ITEM_CRITERION_FIELDS = frozenset(
+    {
+        "criterion_set_snapshot_ref",
+        "criterion_set_sha256",
+        "rubric_revision_ref",
+        "criterion_refs",
+    }
+)
+_ITEM_FIELDS = _ITEM_REQUIRED_FIELDS | _ITEM_CRITERION_FIELDS
+_RUN_REQUIRED_FIELDS = frozenset(
     {
         "contract_id",
         "run_snapshot_ref",
@@ -61,6 +73,7 @@ _RUN_FIELDS = frozenset(
         "linking_evidence_ref",
     }
 )
+_RUN_FIELDS = _RUN_REQUIRED_FIELDS | {"criterion_set"}
 
 
 class RunComparabilityStatus(StrEnum):
@@ -81,6 +94,7 @@ class DynamicEvaluationLineageError(ValueError):
 
 
 def _mapping(value: Any, field_name: str) -> Mapping[str, Any]:
+    """Require a string-keyed mapping at an untrusted projection boundary."""
     if not isinstance(value, Mapping):
         raise DynamicEvaluationLineageError(
             "invalid_object", f"{field_name} must be an object"
@@ -95,6 +109,7 @@ def _mapping(value: Any, field_name: str) -> Mapping[str, Any]:
 def _reject_unknown_fields(
     payload: Mapping[str, Any], allowed: frozenset[str], field_name: str
 ) -> None:
+    """Reject foreign authority and unsupported projection fields."""
     unknown = set(payload) - allowed
     if unknown.intersection(_PROHIBITED_AUTHORITY_FIELDS):
         raise DynamicEvaluationLineageError(
@@ -109,6 +124,7 @@ def _reject_unknown_fields(
 
 
 def _reference(value: Any, field_name: str) -> str:
+    """Validate one exact bounded opaque reference without normalization."""
     if type(value) is not str:
         raise TypeError(f"{field_name} must be a string")
     if (
@@ -126,12 +142,14 @@ def _reference(value: Any, field_name: str) -> str:
         )
     ):
         raise DynamicEvaluationLineageError(
-            "invalid_reference", f"{field_name} must be an exact bounded opaque reference"
+            "invalid_reference",
+            f"{field_name} must be an exact bounded opaque reference",
         )
     return value
 
 
 def _optional_reference(value: Any, field_name: str) -> str | None:
+    """Validate an optional opaque reference."""
     if value is None:
         return None
     return _reference(value, field_name)
@@ -143,6 +161,7 @@ def _reference_tuple(
     *,
     allow_empty: bool,
 ) -> tuple[str, ...]:
+    """Copy and validate a bounded ordered set of opaque references."""
     if not isinstance(value, (tuple, list)):
         raise TypeError(f"{field_name} must be a tuple or list")
     if (not allow_empty and not value) or len(value) > MAX_LINEAGE_REFERENCES:
@@ -163,9 +182,12 @@ def _reference_tuple(
 
 
 def _sha256(value: Any, field_name: str) -> str:
+    """Validate one complete lowercase SHA-256 digest."""
     if type(value) is not str:
         raise TypeError(f"{field_name} must be a string")
-    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+    if len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
         raise DynamicEvaluationLineageError(
             "invalid_sha256",
             f"{field_name} must be a complete lowercase SHA-256 digest",
@@ -174,6 +196,7 @@ def _sha256(value: Any, field_name: str) -> str:
 
 
 def _comparability_status(value: Any) -> RunComparabilityStatus:
+    """Translate an exact enum/string value to the governed comparability state."""
     if type(value) is RunComparabilityStatus:
         return value
     if type(value) is not str:
@@ -203,6 +226,10 @@ class DynamicEvaluationItemLineage:
     calibration_artifact_refs: tuple[str, ...]
     anchor_promotion_decision_ref: str | None
     supersedes_item_snapshot_ref: str | None
+    criterion_set_snapshot_ref: str | None = None
+    criterion_set_sha256: str | None = None
+    rubric_revision_ref: str | None = None
+    criterion_refs: tuple[str, ...] = ()
     _admission_token: InitVar[object | None] = None
 
     def __post_init__(self, _admission_token: object | None) -> None:
@@ -213,9 +240,14 @@ class DynamicEvaluationItemLineage:
                 "build_dynamic_evaluation_item_lineage"
             )
 
+    @property
+    def criterion_bound(self) -> bool:
+        """Return whether the item is bound to one substantive criterion snapshot."""
+        return self.criterion_set_snapshot_ref is not None
+
     def to_mapping(self) -> dict[str, Any]:
         """Return the source-text-free projection payload."""
-        return {
+        payload: dict[str, Any] = {
             "item_snapshot_ref": self.item_snapshot_ref,
             "blueprint_revision_ref": self.blueprint_revision_ref,
             "source_contract_ref": self.source_contract_ref,
@@ -228,16 +260,32 @@ class DynamicEvaluationItemLineage:
             "anchor_promotion_decision_ref": self.anchor_promotion_decision_ref,
             "supersedes_item_snapshot_ref": self.supersedes_item_snapshot_ref,
         }
+        if self.criterion_bound:
+            payload.update(
+                {
+                    "criterion_set_snapshot_ref": self.criterion_set_snapshot_ref,
+                    "criterion_set_sha256": self.criterion_set_sha256,
+                    "rubric_revision_ref": self.rubric_revision_ref,
+                    "criterion_refs": list(self.criterion_refs),
+                }
+            )
+        return payload
 
     @classmethod
     def from_mapping(cls, value: Any) -> "DynamicEvaluationItemLineage":
         """Translate an untrusted item-lineage projection through the ACL."""
         payload = _mapping(value, "item lineage")
         _reject_unknown_fields(payload, _ITEM_FIELDS, "item lineage")
-        missing = _ITEM_FIELDS - set(payload)
+        missing = _ITEM_REQUIRED_FIELDS - set(payload)
         if missing:
             raise DynamicEvaluationLineageError(
                 "missing_field", f"item lineage is missing fields: {sorted(missing)}"
+            )
+        present_criterion_fields = _ITEM_CRITERION_FIELDS.intersection(payload)
+        if present_criterion_fields and present_criterion_fields != _ITEM_CRITERION_FIELDS:
+            raise DynamicEvaluationLineageError(
+                "incomplete_criterion_binding",
+                "criterion-bound item lineage must carry the complete criterion binding",
             )
         return build_dynamic_evaluation_item_lineage(
             item_snapshot_ref=payload["item_snapshot_ref"],
@@ -251,6 +299,10 @@ class DynamicEvaluationItemLineage:
             calibration_artifact_refs=payload["calibration_artifact_refs"],
             anchor_promotion_decision_ref=payload["anchor_promotion_decision_ref"],
             supersedes_item_snapshot_ref=payload["supersedes_item_snapshot_ref"],
+            criterion_set_snapshot_ref=payload.get("criterion_set_snapshot_ref"),
+            criterion_set_sha256=payload.get("criterion_set_sha256"),
+            rubric_revision_ref=payload.get("rubric_revision_ref"),
+            criterion_refs=payload.get("criterion_refs", ()),
         )
 
 
@@ -267,6 +319,10 @@ def build_dynamic_evaluation_item_lineage(
     calibration_artifact_refs: tuple[str, ...] | list[str],
     anchor_promotion_decision_ref: str | None,
     supersedes_item_snapshot_ref: str | None,
+    criterion_set_snapshot_ref: str | None = None,
+    criterion_set_sha256: str | None = None,
+    rubric_revision_ref: str | None = None,
+    criterion_refs: tuple[str, ...] | list[str] = (),
 ) -> DynamicEvaluationItemLineage:
     """Build one lineage projection without transferring foreign authority."""
     normalized_item_ref = _reference(item_snapshot_ref, "item_snapshot_ref")
@@ -281,7 +337,10 @@ def build_dynamic_evaluation_item_lineage(
             "resolution_requires_case",
             "an adjudication resolution must reference its separate case",
         )
-    if normalized_resolution_ref is not None and normalized_resolution_ref == normalized_case_ref:
+    if (
+        normalized_resolution_ref is not None
+        and normalized_resolution_ref == normalized_case_ref
+    ):
         raise DynamicEvaluationLineageError(
             "adjudication_reference_collision",
             "adjudication case and resolution must retain distinct identities",
@@ -293,6 +352,39 @@ def build_dynamic_evaluation_item_lineage(
     if normalized_supersedes_ref == normalized_item_ref:
         raise DynamicEvaluationLineageError(
             "self_supersession", "an item snapshot cannot supersede itself"
+        )
+
+    criterion_binding_values = (
+        criterion_set_snapshot_ref,
+        criterion_set_sha256,
+        rubric_revision_ref,
+    )
+    has_any_binding = any(value is not None for value in criterion_binding_values) or bool(
+        criterion_refs
+    )
+    has_complete_binding = all(value is not None for value in criterion_binding_values) and bool(
+        criterion_refs
+    )
+    if has_any_binding and not has_complete_binding:
+        raise DynamicEvaluationLineageError(
+            "incomplete_criterion_binding",
+            "criterion-bound items require set identity, digest, rubric, and criteria",
+        )
+
+    normalized_criterion_set_ref: str | None = None
+    normalized_criterion_set_sha256: str | None = None
+    normalized_rubric_ref: str | None = None
+    normalized_criterion_refs: tuple[str, ...] = ()
+    if has_complete_binding:
+        normalized_criterion_set_ref = _reference(
+            criterion_set_snapshot_ref, "criterion_set_snapshot_ref"
+        )
+        normalized_criterion_set_sha256 = _sha256(
+            criterion_set_sha256, "criterion_set_sha256"
+        )
+        normalized_rubric_ref = _reference(rubric_revision_ref, "rubric_revision_ref")
+        normalized_criterion_refs = _reference_tuple(
+            criterion_refs, "criterion_refs", allow_empty=False
         )
 
     return DynamicEvaluationItemLineage(
@@ -321,6 +413,10 @@ def build_dynamic_evaluation_item_lineage(
             anchor_promotion_decision_ref, "anchor_promotion_decision_ref"
         ),
         supersedes_item_snapshot_ref=normalized_supersedes_ref,
+        criterion_set_snapshot_ref=normalized_criterion_set_ref,
+        criterion_set_sha256=normalized_criterion_set_sha256,
+        rubric_revision_ref=normalized_rubric_ref,
+        criterion_refs=normalized_criterion_refs,
         _admission_token=_ITEM_TOKEN,
     )
 
@@ -335,6 +431,7 @@ class DynamicEvaluationRunLineage:
     anchor_item_snapshot_refs: tuple[str, ...]
     comparability_status: RunComparabilityStatus
     linking_evidence_ref: str | None
+    criterion_set: EvaluationCriterionSetLineage | None = None
     contract_id: str = DYNAMIC_EVALUATION_LINEAGE_CONTRACT_ID
     _admission_token: InitVar[object | None] = None
 
@@ -348,7 +445,7 @@ class DynamicEvaluationRunLineage:
 
     def to_mapping(self) -> dict[str, Any]:
         """Return the versioned source-text-free run projection."""
-        return {
+        payload: dict[str, Any] = {
             "contract_id": self.contract_id,
             "run_snapshot_ref": self.run_snapshot_ref,
             "blueprint_revision_ref": self.blueprint_revision_ref,
@@ -357,13 +454,16 @@ class DynamicEvaluationRunLineage:
             "comparability_status": self.comparability_status.value,
             "linking_evidence_ref": self.linking_evidence_ref,
         }
+        if self.criterion_set is not None:
+            payload["criterion_set"] = self.criterion_set.to_mapping()
+        return payload
 
     @classmethod
     def from_mapping(cls, value: Any) -> "DynamicEvaluationRunLineage":
         """Translate an untrusted run-lineage projection through the ACL."""
         payload = _mapping(value, "run lineage")
         _reject_unknown_fields(payload, _RUN_FIELDS, "run lineage")
-        missing = _RUN_FIELDS - set(payload)
+        missing = _RUN_REQUIRED_FIELDS - set(payload)
         if missing:
             raise DynamicEvaluationLineageError(
                 "missing_field", f"run lineage is missing fields: {sorted(missing)}"
@@ -380,15 +480,74 @@ class DynamicEvaluationRunLineage:
                 "item_set_budget_exceeded",
                 f"run lineage may contain at most {MAX_LINEAGE_ITEMS} items",
             )
+        raw_criterion_set = payload.get("criterion_set")
+        criterion_set = (
+            None
+            if raw_criterion_set is None
+            else EvaluationCriterionSetLineage.from_mapping(raw_criterion_set)
+        )
         return build_dynamic_evaluation_run_lineage(
             run_snapshot_ref=payload["run_snapshot_ref"],
             blueprint_revision_ref=payload["blueprint_revision_ref"],
+            criterion_set=criterion_set,
             items=tuple(
                 DynamicEvaluationItemLineage.from_mapping(item) for item in raw_items
             ),
             anchor_item_snapshot_refs=payload["anchor_item_snapshot_refs"],
             comparability_status=payload["comparability_status"],
             linking_evidence_ref=payload["linking_evidence_ref"],
+        )
+
+
+def _validate_criterion_binding(
+    criterion_set: EvaluationCriterionSetLineage | None,
+    items: tuple[DynamicEvaluationItemLineage, ...],
+    blueprint_revision_ref: str,
+) -> None:
+    """Keep administered criteria, rubric, and item bindings on one immutable snapshot."""
+    if criterion_set is None:
+        if any(item.criterion_bound for item in items):
+            raise DynamicEvaluationLineageError(
+                "criterion_set_required",
+                "criterion-bound items require their administered criterion set",
+            )
+        return
+    if type(criterion_set) is not EvaluationCriterionSetLineage:
+        raise TypeError("criterion_set must be an exact EvaluationCriterionSetLineage")
+    if criterion_set.blueprint_revision_ref != blueprint_revision_ref:
+        raise DynamicEvaluationLineageError(
+            "criterion_blueprint_mismatch",
+            "criterion set must use the run blueprint revision",
+        )
+
+    governed_refs = set(criterion_set.criterion_refs)
+    covered_refs: set[str] = set()
+    for item in items:
+        if (
+            item.criterion_set_snapshot_ref != criterion_set.criterion_set_snapshot_ref
+            or item.criterion_set_sha256 != criterion_set.criterion_set_sha256
+        ):
+            raise DynamicEvaluationLineageError(
+                "item_criterion_set_mismatch",
+                "every item must retain the administered criterion-set snapshot and digest",
+            )
+        if item.rubric_revision_ref != criterion_set.rubric_revision_ref:
+            raise DynamicEvaluationLineageError(
+                "item_rubric_mismatch",
+                "every item must retain the administered rubric revision",
+            )
+        unknown_refs = set(item.criterion_refs) - governed_refs
+        if unknown_refs:
+            raise DynamicEvaluationLineageError(
+                "unknown_item_criterion",
+                "item lineage references a criterion outside the administered set",
+            )
+        covered_refs.update(item.criterion_refs)
+
+    if covered_refs != governed_refs:
+        raise DynamicEvaluationLineageError(
+            "criterion_coverage_mismatch",
+            "run items must operationalize every criterion in the administered set",
         )
 
 
@@ -400,6 +559,7 @@ def build_dynamic_evaluation_run_lineage(
     anchor_item_snapshot_refs: tuple[str, ...] | list[str],
     comparability_status: RunComparabilityStatus | str,
     linking_evidence_ref: str | None = None,
+    criterion_set: EvaluationCriterionSetLineage | None = None,
 ) -> DynamicEvaluationRunLineage:
     """Build a run projection that may explicitly contain zero fixed anchors."""
     if not isinstance(items, (tuple, list)) or not items:
@@ -412,7 +572,9 @@ def build_dynamic_evaluation_run_lineage(
             f"run lineage may contain at most {MAX_LINEAGE_ITEMS} items",
         )
     normalized_items = tuple(items)
-    if any(type(item) is not DynamicEvaluationItemLineage for item in normalized_items):
+    if any(
+        type(item) is not DynamicEvaluationItemLineage for item in normalized_items
+    ):
         raise TypeError("items must contain exact DynamicEvaluationItemLineage values")
 
     normalized_blueprint_ref = _reference(
@@ -426,6 +588,10 @@ def build_dynamic_evaluation_run_lineage(
             "item_blueprint_mismatch",
             "every item projection must use the run blueprint revision",
         )
+    _validate_criterion_binding(
+        criterion_set, normalized_items, normalized_blueprint_ref
+    )
+
     item_refs = tuple(item.item_snapshot_ref for item in normalized_items)
     if len(set(item_refs)) != len(item_refs):
         raise DynamicEvaluationLineageError(
@@ -482,5 +648,6 @@ def build_dynamic_evaluation_run_lineage(
         anchor_item_snapshot_refs=normalized_anchor_refs,
         comparability_status=normalized_status,
         linking_evidence_ref=normalized_linking_ref,
+        criterion_set=criterion_set,
         _admission_token=_RUN_TOKEN,
     )
