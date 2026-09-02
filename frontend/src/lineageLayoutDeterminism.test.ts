@@ -101,6 +101,24 @@ describe("layoutLineageDag deterministic geometry", () => {
     );
   });
 
+  it("fails closed when a visible lineage edge points a post to itself", () => {
+    const selfLoopGraph = {
+      nodes: [
+        {
+          id: "post-1",
+          group: "Project Alpha",
+          label: "Self-looped post",
+          occurred_at: "2026-09-01T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+      ],
+      edges: [{ source: "post-1", target: "post-1", fused_score: 0.91 }],
+    };
+
+    expect(() => layoutLineageDag(selfLoopGraph)).toThrow(/self-loop lineage edge: post-1/);
+  });
+
   it("orders timezone-offset timestamps by the represented event instant", () => {
     const nodes = [
       {
