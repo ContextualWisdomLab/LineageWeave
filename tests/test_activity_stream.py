@@ -42,6 +42,24 @@ class _FakeStream:
         return entry_id
 
 
+class _RaceInjectingStream(_FakeStream):
+    """Inject one concurrent seed after the caller reads its stale snapshot."""
+
+    def __init__(self, concurrent_fields: dict[str, str]) -> None:
+        """Remember the fact another seed execution will publish once."""
+        super().__init__()
+        self.concurrent_fields = dict(concurrent_fields)
+        self.injected = False
+
+    def xrevrange(self, key: str, count: int | None = None):
+        """Return the old snapshot, then simulate another process appending it."""
+        entries = super().xrevrange(key, count=count)
+        if not self.injected:
+            self.injected = True
+            super().xadd(key, self.concurrent_fields)
+        return entries
+
+
 def test_activity_stream_owned_parameters_use_semantic_names() -> None:
     """Organization-owned activity helpers expose bounded-context vocabulary."""
     assert list(signature(create_valkey_client).parameters) == ["valkey_url"]
@@ -211,6 +229,27 @@ def test_publish_activity_event_sync_scans_the_retained_stream_for_reseed_idempo
         seed_summary,
     ) is None
     assert len(client.entries) == entry_count
+
+
+def test_publish_activity_event_sync_retries_when_another_seed_wins_the_race() -> None:
+    """Concurrent make-seed executions must not append the same activity twice."""
+    expected_fields = {
+        "event_type": "ticket_created",
+        "actor_account_id": "acct-1",
+        "summary": ticket_created_summary("Send Northridge Grid the revised quote"),
+    }
+    client = _RaceInjectingStream(expected_fields)
+
+    created = publish_activity_event_sync(
+        client,
+        "post-1",
+        expected_fields["event_type"],
+        expected_fields["actor_account_id"],
+        expected_fields["summary"],
+    )
+
+    assert created is None
+    assert client.entries == [("1-0", expected_fields)]
 
 
 def test_valkey_child_span_shares_parent_trace_id(monkeypatch) -> None:
