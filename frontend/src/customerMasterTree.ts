@@ -47,7 +47,8 @@ function indexEntitiesById(entities: CustomerMasterEntity[]): Map<string, Custom
  * promoted root. Conflicting duplicate entity identities fail closed because there is no
  * safe presentation-only rule for choosing one source row. No replacement parent or
  * organization is invented. Ordering uses code-point comparison rather than runtime locale
- * so repeated renders are stable.
+ * so repeated renders are stable. Node materialization is iterative so a valid, unusually
+ * deep hierarchy cannot exhaust the JavaScript call stack.
  */
 export function buildCustomerEntityTree(
   entities: CustomerMasterEntity[],
@@ -102,26 +103,29 @@ export function buildCustomerEntityTree(
     for (const id of path) fullyVisited.add(id);
   }
 
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
+  const nodeById = new Map<string, CustomerEntityTreeNode>();
   for (const entity of entities) {
-    const parentId = parentById.get(entity.corporate_entity_id) ?? null;
-    if (!parentId) {
-      roots.push(entity);
-      continue;
-    }
-    const children = childrenByParent.get(parentId) ?? [];
-    children.push(entity);
-    childrenByParent.set(parentId, children);
+    nodeById.set(entity.corporate_entity_id, {
+      entity,
+      hierarchyIssue: issueById.get(entity.corporate_entity_id) ?? null,
+      children: [],
+    });
   }
 
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    hierarchyIssue: issueById.get(entity.corporate_entity_id) ?? null,
-    children: [...(childrenByParent.get(entity.corporate_entity_id) ?? [])]
-      .sort(compareEntity)
-      .map(toNode),
-  });
+  const roots: CustomerEntityTreeNode[] = [];
+  for (const entity of entities) {
+    const node = nodeById.get(entity.corporate_entity_id)!;
+    const parentId = parentById.get(entity.corporate_entity_id) ?? null;
+    if (!parentId) {
+      roots.push(node);
+      continue;
+    }
+    nodeById.get(parentId)!.children.push(node);
+  }
 
-  return roots.sort(compareEntity).map(toNode);
+  for (const node of nodeById.values()) {
+    node.children.sort((left, right) => compareEntity(left.entity, right.entity));
+  }
+
+  return roots.sort((left, right) => compareEntity(left.entity, right.entity));
 }
