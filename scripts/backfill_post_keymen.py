@@ -69,13 +69,17 @@ def _post_all_is_valid(post_all: object) -> bool:
 
 
 def _post_id_is_valid(post_id: object) -> bool:
-    """Return whether an optional explicit post identity is exact canonical text."""
-    return (
-        post_id is None
-        or type(post_id) is str
-        and bool(post_id)
-        and post_id == post_id.strip()
-    )
+    """Return whether an optional post identity is one canonical UUID string."""
+    if post_id is None:
+        return True
+    if type(post_id) is not str or not post_id or post_id != post_id.strip():
+        return False
+    from uuid import UUID
+
+    try:
+        return str(UUID(post_id)) == post_id
+    except ValueError:
+        return False
 
 
 async def _select_posts(
@@ -200,7 +204,7 @@ async def _run_post_keymen_backfill(
     if not _post_all_is_valid(backfill_arguments.all):
         raise ValueError("--all must be a boolean selector")
     if not _post_id_is_valid(backfill_arguments.post_id):
-        raise ValueError("--post-id must be nonblank and unpadded")
+        raise ValueError("--post-id must be a canonical UUID")
     if backfill_arguments.post_id and backfill_arguments.all:
         raise ValueError("--post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
@@ -271,7 +275,7 @@ async def _run_post_keymen_backfill(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     selector = parser.add_mutually_exclusive_group()
-    selector.add_argument("--post-id", help="Re-extract one eligible post")
+    selector.add_argument("--post-id", help="Re-extract one eligible post UUID")
     selector.add_argument("--all", action="store_true", help="Process the explicit --limit batch")
     parser.add_argument(
         "--limit",
@@ -293,7 +297,7 @@ def main() -> None:
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
         parser.error("--post-timeout must be finite and positive")
     if not _post_id_is_valid(backfill_arguments.post_id):
-        parser.error("--post-id must be nonblank and unpadded")
+        parser.error("--post-id must be a canonical UUID")
     print(
         json.dumps(
             asyncio.run(_run_post_keymen_backfill(backfill_arguments)),
