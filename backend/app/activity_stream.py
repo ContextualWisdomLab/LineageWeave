@@ -9,6 +9,7 @@ if a second reader ever needs at-least-once delivery).
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -60,6 +61,44 @@ def _stream_key(post_id: str) -> str:
     except ValueError:
         canonical_post_id = post_id
     return f"activity:{canonical_post_id}"
+
+
+def _activity_read_stream_keys(post_id: str) -> tuple[str, ...]:
+    """Return the canonical stream plus bounded pre-canonical compatibility aliases.
+
+    New writes converge on the canonical UUID key. Before that invariant existed,
+    an uppercase UUID route spelling could create an independent raw stream. The
+    read model therefore probes the canonical key and the historical uppercase
+    spelling concurrently; if the caller supplies another non-canonical spelling,
+    that exact legacy key is included as well. The set is de-duplicated and capped
+    at three keys so compatibility cannot turn one post read into an unbounded key
+    scan. This is a read-only bridge: it does not create new alias streams.
+    """
+    canonical_key = _stream_key(post_id)
+    if type(post_id) is not str:
+        raise TypeError("post_id must be a string")
+    try:
+        canonical_post_id = str(UUID(post_id))
+    except ValueError:
+        return (canonical_key,)
+
+    candidate_keys = (
+        canonical_key,
+        f"activity:{canonical_post_id.upper()}",
+        f"activity:{post_id}",
+    )
+    return tuple(dict.fromkeys(candidate_keys))
+
+
+def _activity_stream_entry_order(entry_id: str) -> tuple[int, int]:
+    """Parse a Valkey stream entry id into its chronological numeric order."""
+    milliseconds, separator, sequence = entry_id.partition("-")
+    if separator != "-":
+        raise ValueError("Valkey activity event id is malformed")
+    try:
+        return int(milliseconds), int(sequence)
+    except ValueError as exc:
+        raise ValueError("Valkey activity event id is malformed") from exc
 
 
 def ticket_created_summary(ticket_title: str) -> str:
@@ -279,18 +318,31 @@ async def read_activity_events(
     ``event_count`` is an exact 1..1000 buyer-facing read budget matching the
     retained stream window. Invalid values fail before Valkey access; this
     function does not broaden the query to other posts or reconstruct missing
-    facts. Returned dictionaries preserve the established
-    event-id/type/actor/summary wire fields.
+    facts. UUID reads include a bounded compatibility bridge for historical
+    uppercase/exact-route alias streams while all current writers remain
+    canonical-only. Results from those streams are merged by the native Valkey
+    stream-entry chronology before the buyer-facing limit is applied.
     """
     bounded_event_count = _activity_event_count(event_count)
+    stream_keys = _activity_read_stream_keys(post_id)
     with traced(
         "lineageweave.valkey.activity_xrevrange",
         {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
     ):
-        stream_entries = await valkey_client.xrevrange(
-            _stream_key(post_id),
-            count=bounded_event_count,
+        stream_results = await asyncio.gather(
+            *(
+                valkey_client.xrevrange(
+                    stream_key,
+                    count=bounded_event_count,
+                )
+                for stream_key in stream_keys
+            )
         )
+    stream_entries = sorted(
+        (entry for stream_result in stream_results for entry in stream_result),
+        key=lambda entry: _activity_stream_entry_order(entry[0]),
+        reverse=True,
+    )[:bounded_event_count]
     return [
         {
             "event_id": entry_id,
