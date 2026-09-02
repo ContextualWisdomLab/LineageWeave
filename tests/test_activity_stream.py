@@ -92,6 +92,36 @@ def test_publish_activity_event_sync_skips_a_matching_summary() -> None:
     assert "Send Northridge Grid the revised quote" in client.entries[0][1]["summary"]
 
 
+def test_publish_activity_event_sync_keeps_distinct_events_with_same_summary() -> None:
+    """Reseeding must not collapse different activity facts onto summary text."""
+    client = _FakeStream()
+    shared_summary = "Assignment updated"
+    client.xadd(
+        "activity:post-1",
+        {
+            "event_type": "ticket_status_changed",
+            "actor_account_id": "acct-2",
+            "summary": shared_summary,
+        },
+    )
+
+    created = publish_activity_event_sync(
+        client,
+        "post-1",
+        "ticket_created",
+        "acct-1",
+        shared_summary,
+    )
+
+    assert created == "1-1"
+    assert len(client.entries) == 2
+    assert client.entries[-1][1] == {
+        "event_type": "ticket_created",
+        "actor_account_id": "acct-1",
+        "summary": shared_summary,
+    }
+
+
 def test_publish_activity_event_sync_scans_the_retained_stream_for_reseed_idempotency() -> None:
     """A retained seed event stays idempotent after more than 50 newer events."""
     client = _FakeStream()
