@@ -59,8 +59,8 @@ def _post_timeout_is_valid(post_timeout: object) -> bool:
 
 
 def _post_limit_is_valid(post_limit: object) -> bool:
-    """Return whether a batch limit is an exact, strictly positive integer."""
-    return type(post_limit) is int and post_limit > 0
+    """Return whether a batch limit is an exact integer in the bounded 1..100 range."""
+    return type(post_limit) is int and 1 <= post_limit <= 100
 
 
 def _post_all_is_valid(post_all: object) -> bool:
@@ -196,7 +196,7 @@ async def _run_post_keymen_backfill(
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
         raise ValueError("--post-timeout must be finite and positive")
     if not _post_limit_is_valid(backfill_arguments.limit):
-        raise ValueError("--limit must be a positive integer")
+        raise ValueError("--limit must be an integer between 1 and 100")
     if not _post_all_is_valid(backfill_arguments.all):
         raise ValueError("--all must be a boolean selector")
     if not _post_id_is_valid(backfill_arguments.post_id):
@@ -269,7 +269,12 @@ def main() -> None:
     selector = parser.add_mutually_exclusive_group()
     selector.add_argument("--post-id", help="Re-extract one eligible post")
     selector.add_argument("--all", action="store_true", help="Process the explicit --limit batch")
-    parser.add_argument("--limit", type=int, default=1, help="Maximum posts for --all (default: 1)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1,
+        help="Maximum posts for --all, 1..100 (default: 1)",
+    )
     parser.add_argument(
         "--post-timeout",
         type=float,
@@ -278,7 +283,7 @@ def main() -> None:
     )
     backfill_arguments = parser.parse_args()
     if not _post_limit_is_valid(backfill_arguments.limit):
-        parser.error("--limit must be a positive integer")
+        parser.error("--limit must be an integer between 1 and 100")
     if not _post_all_is_valid(backfill_arguments.all):
         parser.error("--all must be a boolean selector")
     if not _post_timeout_is_valid(backfill_arguments.post_timeout):
