@@ -82,6 +82,15 @@ def test_item_authority_fields_are_rejected() -> None:
     assert caught.value.code == "authority_leakage"
 
 
+def test_adjudication_case_and_resolution_keep_distinct_identities() -> None:
+    with pytest.raises(DynamicEvaluationLineageError) as caught:
+        _item(
+            adjudication_case_ref="adjudication_record_1",
+            adjudication_resolution_ref="adjudication_record_1",
+        )
+    assert caught.value.code == "adjudication_reference_collision"
+
+
 @pytest.mark.parametrize(
     "invalid",
     (
