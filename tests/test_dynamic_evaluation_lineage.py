@@ -147,6 +147,31 @@ def test_anchor_promotion_and_calibration_evidence_keep_distinct_identities() ->
     assert caught.value.code == "anchor_evidence_collision"
 
 
+@pytest.mark.parametrize(
+    "linking_evidence_ref",
+    ("anchor_promotion_decision_1", "calibration_artifact_1"),
+)
+def test_linking_evidence_is_distinct_from_anchor_evidence(
+    linking_evidence_ref: str,
+) -> None:
+    """Cross-version linking evidence cannot reuse an anchor evidence identity."""
+    promoted = _item(
+        calibration_artifact_refs=("calibration_artifact_1",),
+        anchor_promotion_decision_ref="anchor_promotion_decision_1",
+    )
+
+    with pytest.raises(DynamicEvaluationLineageError) as caught:
+        build_dynamic_evaluation_run_lineage(
+            run_snapshot_ref="evaluation_run_snapshot_link_collision",
+            blueprint_revision_ref="evaluation_blueprint_revision_1",
+            items=(promoted,),
+            anchor_item_snapshot_refs=(promoted.item_snapshot_ref,),
+            comparability_status=RunComparabilityStatus.LINKED,
+            linking_evidence_ref=linking_evidence_ref,
+        )
+    assert caught.value.code == "linking_evidence_collision"
+
+
 def test_lineage_rejects_provider_configuration_and_decision_payload_fields() -> None:
     """Lineage projection cannot absorb provider credentials, endpoints, scores, or decisions."""
     payload = {
