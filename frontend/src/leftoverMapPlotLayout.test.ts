@@ -1303,6 +1303,12 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
     expect(leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_CRITERION_ORIGIN,
     );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key ?? "",
+    );
   });
 
   it("omits leftover-map item coordinates when ζ is missing or non-finite", () => {
@@ -1340,6 +1346,9 @@ describe("leftoverMapComparePlotCriterionBadge", () => {
     );
     expect(leftoverMapComparePlotCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
       leftoverMapCompareListCriterionBadge("sales-lead", 0.5, -0.02)?.key ?? "",
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key ?? "",
     );
   });
 });

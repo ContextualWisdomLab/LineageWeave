@@ -25,6 +25,7 @@ import {
   LEFTOVER_MAP_COMPARE_LIST_POST_ACTION,
   LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
   LEFTOVER_MAP_COMPARE_LIST_CRITERION,
+  LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
   LEFTOVER_MAP_LIST_CRITERION,
   LEFTOVER_MAP_LIST_CRITERION_ORIGIN,
   LEFTOVER_MAP_LIST_POST_ACTION,
@@ -134,6 +135,21 @@ describe("leftoverMapPlotCoordinatePairIsOrigin", () => {
     );
     expect(leftoverMapComparePlotPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION,
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_LIST_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
     );
   });
 });
@@ -329,6 +345,9 @@ describe("leftoverMapCompareListPostBadge", () => {
     expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
     );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
+    );
   });
 
   it("omits leftover-map person coordinates when ξ is missing or non-finite", () => {
@@ -391,11 +410,14 @@ describe("leftoverMapCompareListCriterionBadge", () => {
     });
   });
 
-  it("names rank-0 origin leftover-map item coordinates as ζ (0.00, 0.00)", () => {
+  it("names rank-0 leftover-map origin leftover-map item coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates", () => {
     expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)).toEqual({
-      key: LEFTOVER_MAP_COMPARE_LIST_CRITERION,
+      key: LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
       values: { label: "sales-lead", item: "(0.00, 0.00)" },
     });
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION,
+    );
     expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_CRITERION_ORIGIN,
     );
@@ -407,6 +429,12 @@ describe("leftoverMapCompareListCriterionBadge", () => {
     );
     expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
     );
   });
 
@@ -428,6 +456,14 @@ describe("leftoverMapCompareListCriterionBadge", () => {
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).toBe(
       "leftover map comparison leftover pair leftover-map criterion {label} at ζ {item}",
     );
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN).toBe(
+      "leftover map comparison leftover pair leftover-map criterion {label} at leftover-map origin ζ {item}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_LIST_CRITERION);
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_LIST_CRITERION_ORIGIN);
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_CRITERION_ORIGIN);
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_CRITERION_ORIGIN);
+    expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_LIST_CRITERION);
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_LIST_CRITERION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_LIST_CRITERION).not.toBe(LEFTOVER_MAP_PLOT_CRITERION);
@@ -449,6 +485,9 @@ describe("leftoverMapCompareListCriterionBadge", () => {
     );
     expect(leftoverMapCompareListCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
       LEFTOVER_MAP_LIST_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0.5, -0.02)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_CRITERION_ORIGIN,
     );
   });
 });

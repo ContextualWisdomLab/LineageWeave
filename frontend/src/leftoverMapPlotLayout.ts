@@ -187,6 +187,10 @@
  *  person coordinates through leftoverMapCompareListPostBadge independently of leftover-map
  *  pair leftover-map post leftover-map origin leftover-map person coordinates ξ, not leftover-map pair leftover-map post leftover-map
  *  person coordinates.
+ *  ADR 0354 fail-closes leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
+ *  item coordinates through leftoverMapCompareListCriterionBadge independently of leftover-map
+ *  comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates ξ, not leftover-map pair leftover-map criterion leftover-map
+ *  item coordinates.
  */
 
 import { formatLeftoverMapCoordinatePair, leftoverMapPlotCoordinatePairIsOrigin } from "./leftoverMapCoordinates";
