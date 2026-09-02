@@ -141,7 +141,8 @@ def publish_activity_event_sync(
     of attempts rather than leaving an operator command spinning indefinitely.
     Ordinary async event publication remains append-only. Contention failures
     identify the operation and retry limit without embedding the post-scoped
-    Valkey key in exception text that may be exported by logging or telemetry.
+    Valkey key in exception text or an exception cause that may be exported by
+    logging or telemetry.
     """
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
@@ -149,6 +150,7 @@ def publish_activity_event_sync(
         str(actor_account_id),
         activity_summary,
     )
+    watch_retry_exhausted = False
 
     for watch_attempt in range(1, _SYNC_ACTIVITY_WATCH_RETRY_LIMIT + 1):
         with valkey_client.pipeline() as transaction:
@@ -187,12 +189,16 @@ def publish_activity_event_sync(
                     },
                 ):
                     return transaction.execute()[0]
-            except WatchError as watch_error:
+            except WatchError:
                 if watch_attempt == _SYNC_ACTIVITY_WATCH_RETRY_LIMIT:
-                    raise RuntimeError(
-                        "Activity reseed exceeded "
-                        f"{_SYNC_ACTIVITY_WATCH_RETRY_LIMIT} WATCH retries"
-                    ) from watch_error
+                    watch_retry_exhausted = True
+                    break
+
+    if watch_retry_exhausted:
+        raise RuntimeError(
+            "Activity reseed exceeded "
+            f"{_SYNC_ACTIVITY_WATCH_RETRY_LIMIT} WATCH retries"
+        )
 
     raise RuntimeError(
         "Activity reseed exhausted its bounded WATCH retry loop"
