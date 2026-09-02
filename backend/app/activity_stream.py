@@ -17,6 +17,8 @@ from redis.exceptions import WatchError
 
 from lineageweave.observability import traced
 
+_SYNC_ACTIVITY_WATCH_RETRY_LIMIT = 8
+
 
 def create_valkey_client(valkey_url: str) -> redis.Redis:
     """Create the process-wide async client for the configured Valkey endpoint.
@@ -134,9 +136,10 @@ def publish_activity_event_sync(
     ``XADD`` check is racy because two callers can read the same old snapshot
     and both append. The synchronous seed path therefore WATCHes the post stream,
     reads the retained identity tuple, and commits the append with MULTI/EXEC.
-    A concurrent mutation invalidates the watched snapshot and the operation
-    retries against the new stream state. Ordinary async event publication is
-    intentionally unchanged and remains append-only.
+    A concurrent mutation invalidates the watched snapshot and retries against
+    fresh stream state, but persistent contention fails after a bounded number
+    of attempts rather than leaving an operator command spinning indefinitely.
+    Ordinary async event publication remains append-only.
     """
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
@@ -145,7 +148,7 @@ def publish_activity_event_sync(
         activity_summary,
     )
 
-    while True:
+    for watch_attempt in range(1, _SYNC_ACTIVITY_WATCH_RETRY_LIMIT + 1):
         with valkey_client.pipeline() as transaction:
             try:
                 transaction.watch(stream_key)
@@ -182,8 +185,14 @@ def publish_activity_event_sync(
                     },
                 ):
                     return transaction.execute()[0]
-            except WatchError:
-                continue
+            except WatchError as watch_error:
+                if watch_attempt == _SYNC_ACTIVITY_WATCH_RETRY_LIMIT:
+                    raise RuntimeError(
+                        f"Activity reseed for {stream_key} exceeded "
+                        f"{_SYNC_ACTIVITY_WATCH_RETRY_LIMIT} WATCH retries"
+                    ) from watch_error
+
+    raise RuntimeError(f"Activity reseed for {stream_key} exhausted its retry loop")
 
 
 async def read_activity_events(
