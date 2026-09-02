@@ -354,6 +354,8 @@ def build_dynamic_evaluation_item_lineage(
             "self_supersession", "an item snapshot cannot supersede itself"
         )
 
+    if not isinstance(criterion_refs, (tuple, list)):
+        raise TypeError("criterion_refs must be a tuple or list")
     criterion_binding_values = (
         criterion_set_snapshot_ref,
         criterion_set_sha256,
