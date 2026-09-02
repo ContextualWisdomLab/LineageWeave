@@ -27,7 +27,11 @@ It will:
   reconciliation;
 - carry `build_post_llm_metadata` and `use_llm_metadata` across all LLM/VISION
   calls for one post, yielding the same deterministic post session id;
-- default to one post and require explicit `--all --limit N` for a batch.
+- default to one post and require explicit `--all --limit N` for a batch;
+- admit a batch limit only as an exact, strictly positive integer and apply the
+  same check to direct programmatic runner calls before gateway or database
+  work, so booleans and other transport-shaped values cannot silently become
+  a batch size;
 - enforce a per-post timeout, returning a typed failure count instead of
   allowing a provider workflow to hold an operator process indefinitely.
 
