@@ -141,10 +141,11 @@ def publish_activity_event_sync(
     of attempts rather than leaving an operator command spinning indefinitely.
     A recovered WATCH conflict is expected concurrency control, not a failed
     Valkey operation, so it does not leave the bounded XADD span in an error
-    state. Ordinary async event publication remains append-only. Contention
-    failures identify the operation and retry limit without embedding the
-    post-scoped Valkey key in exception text or an exception cause that may be
-    exported by logging or telemetry.
+    state. Exhausting the retry budget marks only the terminal XADD attempt as a
+    safe RuntimeError failure span. Ordinary async event publication remains
+    append-only. Contention failures identify the operation and retry limit
+    without embedding the post-scoped Valkey key in exception text or an
+    exception cause that may be exported by logging or telemetry.
     """
     stream_key = _stream_key(post_id)
     expected_fields = _activity_fields(
@@ -196,11 +197,16 @@ def publish_activity_event_sync(
                         committed_entries = transaction.execute()
                     except WatchError:
                         watch_conflicted = True
+                    if (
+                        watch_conflicted
+                        and watch_attempt == _SYNC_ACTIVITY_WATCH_RETRY_LIMIT
+                    ):
+                        raise RuntimeError(
+                            "Activity reseed exceeded "
+                            f"{_SYNC_ACTIVITY_WATCH_RETRY_LIMIT} WATCH retries"
+                        )
 
                 if watch_conflicted:
-                    if watch_attempt == _SYNC_ACTIVITY_WATCH_RETRY_LIMIT:
-                        watch_retry_exhausted = True
-                        break
                     continue
                 return committed_entries[0]
             except WatchError:
