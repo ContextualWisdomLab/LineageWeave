@@ -150,6 +150,8 @@ export type LeftoverPairListProps = {
  * independently of leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates.
  * ADR 0341 captions leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates through leftoverMapCompareListPostBadge,
  * not this pair list.
+ * ADR 0353 captions leftover-map origin on leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates through leftoverMapCompareListPostBadge,
+ * not this pair list.
  * ADR 0342 captions leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates through leftoverMapCompareListCriterionBadge,
  * not this pair list.
  * Every badge still

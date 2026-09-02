@@ -23,6 +23,7 @@ import {
   leftoverMapPlotCoordinatePairIsOrigin,
   LEFTOVER_MAP_COMPARE_COORDINATES_LABEL,
   LEFTOVER_MAP_COMPARE_LIST_POST_ACTION,
+  LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
   LEFTOVER_MAP_COMPARE_LIST_CRITERION,
   LEFTOVER_MAP_LIST_CRITERION,
   LEFTOVER_MAP_LIST_CRITERION_ORIGIN,
@@ -125,6 +126,9 @@ describe("leftoverMapPlotCoordinatePairIsOrigin", () => {
       LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
     );
     expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(LEFTOVER_MAP_LIST_POST_ACTION);
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).toBe(
+      LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
+    );
     expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN,
     );
@@ -191,6 +195,7 @@ describe("leftoverMapListPostBadge", () => {
     expect(LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_LIST_CRITERION_ORIGIN);
+    expect(LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN);
@@ -307,16 +312,22 @@ describe("leftoverMapCompareListPostBadge", () => {
     });
   });
 
-  it("names rank-0 origin leftover-map person coordinates as ξ (0.00, 0.00)", () => {
+  it("names rank-0 leftover-map origin leftover-map person coordinates independently of leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates", () => {
     expect(leftoverMapCompareListPostBadge("Public post", 0, 0)).toEqual({
-      key: LEFTOVER_MAP_COMPARE_LIST_POST_ACTION,
+      key: LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
       values: { title: "Public post", person: "(0.00, 0.00)" },
     });
+    expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_POST_ACTION,
+    );
     expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN,
     );
     expect(leftoverMapCompareListPostBadge("Public post", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN,
+    );
+    expect(leftoverMapListPostBadge("Public post", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
     );
   });
 
@@ -339,6 +350,12 @@ describe("leftoverMapCompareListPostBadge", () => {
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).toBe(
       "leftover map comparison leftover pair leftover-map post {title} at ξ {person}",
     );
+    expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN).toBe(
+      "leftover map comparison leftover pair leftover-map post {title} at leftover-map origin ξ {person}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION);
+    expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_LIST_POST_ACTION_ORIGIN);
+    expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION_ORIGIN);
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_LIST_POST_ACTION);
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_PLOT_POST_ACTION);
     expect(LEFTOVER_MAP_COMPARE_LIST_POST_ACTION).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION);
@@ -355,6 +372,9 @@ describe("leftoverMapCompareListPostBadge", () => {
     );
     expect(leftoverMapCompareListPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
       leftoverMapCompareListCriterionBadge("sales-lead", 0.5, -0.02)?.key ?? "",
+    );
+    expect(leftoverMapCompareListPostBadge("Public post", 0.5, 0.1)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
     );
   });
 });
@@ -384,6 +404,9 @@ describe("leftoverMapCompareListCriterionBadge", () => {
     );
     expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
       LEFTOVER_MAP_LIST_CRITERION_ORIGIN,
+    );
+    expect(leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key).not.toBe(
+      LEFTOVER_MAP_COMPARE_LIST_POST_ACTION_ORIGIN,
     );
   });
 

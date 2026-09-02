@@ -4,7 +4,9 @@
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0342](0342-leftover-map-compare-list-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map comparison leftover pair leftover-map criterion independently of leftover-map comparison leftover pair leftover-map post leftover-map person coordinates)
+(leftover-map item coordinates on leftover-map comparison leftover pair leftover-map criterion independently of leftover-map comparison leftover pair leftover-map post leftover-map person coordinates);
+[ADR 0353](0353-leftover-map-compare-list-post-origin-badge.md)
+(leftover-map origin on leftover-map comparison leftover-pair leftover-map post leftover-map person coordinates independently of leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates)
 
 Amends leftover-map coordinates
 ([ADR 0267](0267-leftover-map-coordinates.md)) and leftover-map coordinates on grouping comparison strip pair rows
