@@ -11,6 +11,11 @@ come from the existing Keyman extraction and persistence projection. Imported
 real data has many posts without a `post_person_mention` row, so relying only
 on the per-post operator button leaves the author-group view mostly empty.
 
+ADR 0046 defines `source_post.post_id` as the internal UUID identity and keeps
+that UUID distinct from an opaque source-system record key. An operator selector
+therefore must not accept arbitrary opaque text or alternate UUID spellings as
+though they were the internal post identity.
+
 ## Decision
 
 Provide `scripts/backfill_post_keymen.py` as an operator-only, bounded runner.
@@ -18,6 +23,11 @@ It will:
 
 - select eligible, non-deleted, non-draft posts that have no existing
   `post_person_mention`, or one explicit `--post-id`;
+- admit an explicit `--post-id` only when it is the canonical lowercase,
+  hyphenated UUID text for the ADR 0046 internal post identity. Blank, padded,
+  malformed, uppercase, braced, and hyphenless aliases fail before gateway or
+  database work rather than being normalized into a different textual
+  identity;
 - normalize HTML, OOXML-derived text, embedded images, and image regions with
   the existing VISION normalization path before extraction;
 - pass source author, account, PU, sales-pool, customer, company, and project
@@ -55,6 +65,9 @@ route. No analysis-run registry tables are modified.
   auditable operator output. One invocation processes at most 100 posts; larger
   backfills require repeated invocations whose result summaries remain
   independently attributable.
+- Explicit reruns use one stable textual form for the internal UUID in operator
+  logs and LLM metadata; source-system record keys remain separate ADR 0046
+  evidence and are never accepted as `--post-id`.
 - Empty extraction remains a real empty result; the script does not create a
   placeholder person or retry indefinitely through an implicit attempt table.
 - Re-running a selected post is idempotent through `ingest_post_keymen`'s
