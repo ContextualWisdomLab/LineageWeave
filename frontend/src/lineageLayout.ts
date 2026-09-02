@@ -88,6 +88,25 @@ function indexNodesById(nodes: LineageGraphNode[]): Map<string, LineageGraphNode
   return byId;
 }
 
+/**
+ * Reject a visible edge whose source and target are the same canonical post.
+ *
+ * Both live and run-scoped persistence define lineage as a relation between distinct posts.
+ * Rendering a self-loop would collapse the SVG path to a zero-length control and present an
+ * impossible predecessor relationship as ordinary lineage evidence. Hidden-endpoint edges
+ * remain omittable for ABAC; only a self-loop whose endpoint is actually visible fails closed.
+ */
+function assertNoVisibleSelfLoops(
+  edges: LineageGraphEdge[],
+  nodesById: Map<string, LineageGraphNode>,
+): void {
+  for (const edge of edges) {
+    if (edge.source === edge.target && nodesById.has(edge.source)) {
+      throw new Error(`self-loop lineage edge: ${edge.source}`);
+    }
+  }
+}
+
 function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   positioned: PositionedNode[];
   width: number;
@@ -217,6 +236,7 @@ function stableEdgeSortKey(
 export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
   const nodesById = indexNodesById(graph.nodes);
+  assertNoVisibleSelfLoops(graph.edges, nodesById);
   for (const node of graph.nodes) {
     const group = node.group || "";
     const bucket = buckets.get(group) ?? { nodes: [], edges: [] };
