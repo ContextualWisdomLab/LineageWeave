@@ -74,6 +74,16 @@ describe("buildCustomerEntityTree", () => {
     }
   });
 
+  it("rejects surrounding whitespace in canonical entity identities instead of creating aliases", () => {
+    for (const malformedId of [" entity-id", "entity-id ", "\tentity-id", "entity-id\n"]) {
+      expect(() =>
+        buildCustomerEntityTree([
+          entity(malformedId, "Aliased canonical identity", null),
+        ]),
+      ).toThrow("corporate_entity_id must not contain surrounding whitespace");
+    }
+  });
+
   it("keeps ordinary parent-child structure deterministic", () => {
     const parent = entity("parent", "Parent", null);
     const childB = entity("child-b", "Child B", "parent");
