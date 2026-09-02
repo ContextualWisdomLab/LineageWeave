@@ -1,5 +1,31 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
+> 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
+> parent is `9928fd65e75d8d5e53d9a25f33df8d05acddf4c1`, based directly on that
+> `main`, non-draft, mechanically mergeable, and policy-blocked. The active
+> organization ruleset still requires one independent approval, resolved
+> review threads, and the central required workflows. No qualifying
+> independent approval exists. Exact-parent product and frontend checks pass;
+> dependency review and Noema fail closed in their central workflows, while
+> Strix is cancelled. Those hosted states are not converted into product
+> acceptance, and no protected merge or merge SHA is claimed.
+>
+> Fresh local verification on that evidence parent passes 53 Voice-authority,
+> ontology-neighborhood, and SHACL tests plus all 534 frontend tests, lint,
+> type checking, and the production build. The synthetic desktop and mobile
+> Storybook screenshots were visually audited: the exact-value view keeps the
+> carrying Post in Source and shows an evidence action only for genuine
+> derivation evidence; the narrow view retains the horizontally scrollable
+> exact-value table. Paged JSON-LD regressions continue to union properties and
+> multi-Voice relations for one subject. ADR 0246's twelve atomic Voices stay
+> extensible assignments rather than fixed combination codes, and every
+> additional Voice retains its authorized evidence Post, PROV-O derivation,
+> truth status, and cutoff. Authenticated deployed PostgreSQL/API evidence was
+> not rerun in this snapshot, so that acceptance remains unavailable rather
+> than inherited from an older revision.
+>
 > Exact-head development-loop snapshot: 2026-09-01 21:36 KST. Protected
 > `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; 98 PRs and 10
 > non-PR issues were open in the fresh inventory collected before GitHub's API
