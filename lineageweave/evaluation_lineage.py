@@ -554,19 +554,25 @@ def _validate_criterion_binding(
 def _validate_supersession_graph(
     items: tuple[DynamicEvaluationItemLineage, ...],
 ) -> None:
-    """Reject cycles among supersession edges whose endpoints are in this run."""
-    item_by_ref = {item.item_snapshot_ref: item for item in items}
-    for start_ref in item_by_ref:
-        seen: set[str] = set()
+    """Reject in-run supersession cycles with one bounded traversal per item."""
+    predecessor_by_ref = {
+        item.item_snapshot_ref: item.supersedes_item_snapshot_ref for item in items
+    }
+    finished: set[str] = set()
+    for start_ref in predecessor_by_ref:
+        if start_ref in finished:
+            continue
+        path: set[str] = set()
         current_ref: str | None = start_ref
-        while current_ref in item_by_ref:
-            if current_ref in seen:
+        while current_ref in predecessor_by_ref and current_ref not in finished:
+            if current_ref in path:
                 raise DynamicEvaluationLineageError(
                     "supersession_cycle",
                     "item supersession lineage must be acyclic within a run",
                 )
-            seen.add(current_ref)
-            current_ref = item_by_ref[current_ref].supersedes_item_snapshot_ref
+            path.add(current_ref)
+            current_ref = predecessor_by_ref[current_ref]
+        finished.update(path)
 
 
 def build_dynamic_evaluation_run_lineage(
