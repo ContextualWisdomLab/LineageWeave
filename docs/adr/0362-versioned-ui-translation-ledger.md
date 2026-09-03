@@ -21,6 +21,7 @@ This ledger is strictly for LineageWeave-owned product UI copy. Ontology labels,
 - `(product_key, screen_key, resource_version)` is the aggregate identity and is immutable after resource creation; a reviewed draft cannot be retargeted to another product, screen, or version during editing or publication.
 - `product_key` and `screen_key` are canonical identity segments: blank, colon-bearing, or leading/trailing-whitespace forms are rejected consistently by PostgreSQL and the application boundary.
 - Each required `translation_key` is also a canonical identifier: blank or leading/trailing-whitespace forms are rejected by PostgreSQL rather than becoming visually ambiguous distinct keys inside one immutable screen version.
+- PostgreSQL's one-argument `btrim` removes a plain space by default; it is not sufficient to implement the application boundary's broader edge-whitespace rejection. The migration therefore retains the trimmed-space check and separately rejects leading/trailing PostgreSQL regular-expression whitespace.
 - Cache identity must include product, screen, immutable resource version, and locale.
 - An explicit-version cache hit is admissible only after PostgreSQL confirms the published resource and its exact required screen-key set; structurally valid partial cache payloads are misses.
 - PostgreSQL pool leases must not be held while awaiting optional Valkey I/O. Published resource/key identity is immutable, so cache admission can occur after releasing the key-set query connection and PostgreSQL can be reacquired only on a cache miss or failure.
@@ -50,6 +51,10 @@ Rejected. The domain identity is the product/screen/version tuple, not the surro
 
 Rejected. Raw PostgreSQL uniqueness would then distinguish identities that the application/cache boundary collapses, permitting unreachable resources and violating the aggregate identity invariant. Caller-provided padded identities are rejected rather than silently rewritten to another canonical identity.
 
+### Use default `btrim` as the complete whitespace predicate
+
+Rejected. PostgreSQL 18 documents that the omitted `characters` argument defaults to a space. Python `str.strip()` rejects tab/newline edge padding as well, so a default-`btrim`-only constraint lets PostgreSQL persist identities the reader refuses. The schema uses an explicit edge-whitespace regular-expression guard in addition to its existing space/canonicality checks.
+
 ### Allow padded required translation keys
 
 Rejected. Required screen-copy keys are identifier values, not presentation text. Treating `title` and ` title` as distinct database keys would permit visually ambiguous requirements inside a published immutable resource and make consumer/evidence matching dependent on invisible whitespace. PostgreSQL rejects padded key spellings before publication instead of normalizing them into another identifier.
@@ -78,7 +83,7 @@ Selected. It gives the read model a stable aggregate identity, keeps copy owners
 
 `ui_translation_resource` is the aggregate root identified by `(product_key, screen_key, resource_version)`. A resource starts as `draft`; publication is a one-way transition. The aggregate identity is fixed at INSERT and cannot be changed while draft or as part of publication. `ui_translation_key` declares the screen's required keys. `ui_translation_text` supplies one nonblank value for each `(resource_id, translation_key, locale)`.
 
-The schema remains in 3NF: resource version metadata, required keys, and localized values are separate relations. The database enforces unique resource versions and unique localized values. `product_key`, `screen_key`, and each required `translation_key` must already equal their `btrim(...)` values; identifier whitespace is rejected, not normalized. Publication rejects an empty key set or any missing member of the required key × eight-locale matrix. On the draft-to-published transition the trigger assigns `published_at := statement_timestamp()` unconditionally, so the immutable receipt is produced by the publication statement rather than caller input or transaction-start time. Once published, the root and all child rows are immutable.
+The schema remains in 3NF: resource version metadata, required keys, and localized values are separate relations. The database enforces unique resource versions and unique localized values. `product_key`, `screen_key`, and each required `translation_key` must already equal their `btrim(...)` values and must not match leading/trailing `\s` in PostgreSQL's regular-expression engine; identifier edge whitespace is rejected, not normalized. This explicit regex guard is required because default `btrim` removes only plain spaces. Publication rejects an empty key set or any missing member of the required key × eight-locale matrix. On the draft-to-published transition the trigger assigns `published_at := statement_timestamp()` unconditionally, so the immutable receipt is produced by the publication statement rather than caller input or transaction-start time. Once published, the root and all child rows are immutable.
 
 Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. Publication already locks the resource row through its update. Therefore publication and child mutation are serialized: either the child change commits before the completeness scan, or it observes the published state and is rejected. Child rows may not be re-parented between resources.
 
@@ -93,7 +98,7 @@ The existing `user_account.preferred_locale` constraint expands to the same eigh
 - Aggregate: versioned UI translation resource.
 - Entity/value identity: immutable canonical product/screen/version aggregate identity; canonical required translation key; locale-tagged translated text.
 - Repository boundary: PostgreSQL query in `backend.app.translation_ledger`; Valkey is a cache adapter, not a repository of record.
-- Invariants: immutable aggregate identity after creation, canonical unpadded product/screen/required-key identity, exact eight-locale completeness at publication, database-owned statement-time publication receipt, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance, and no PostgreSQL lease held across optional cache I/O.
+- Invariants: immutable aggregate identity after creation, canonical unpadded product/screen/required-key identity across space/tab/newline edge padding, exact eight-locale completeness at publication, database-owned statement-time publication receipt, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance, and no PostgreSQL lease held across optional cache I/O.
 - ACL: ontology labels remain external semantic truth and are not stored in these tables.
 
 ## Recovery and migration
@@ -125,12 +130,19 @@ Published translation data is not destructively down-migrated. A bad published r
 - Pool-lease RED `e32539220638faaedc53e508e9d71c9df37615fa`: the read-model test observes the asyncpg lease state at Valkey read time and fails if optional cache I/O occurs while PostgreSQL remains acquired.
 - Pool-lease repair `024154938f1dedd1ed51a4f4406465c116418267`: explicit-version reads release the key-set query lease before cache I/O and reacquire PostgreSQL only after a cache miss/failure.
 - Verification alignment `f077d19cc77c8d6a11ee5545c80e1c0d309213ee`: miss/failure-path tests require the two bounded acquisitions while cache-hit paths retain a single short PostgreSQL acquisition.
-- Required-key identity RED `e2b5b5fde6fd884a4735ac95af49afc6e2765dfb`: real PostgreSQL verification requires leading/trailing-whitespace required translation keys to fail instead of becoming distinct immutable identifiers.
+- Required-key identity RED `e2b5b5fde6fd884a4735ac95af49afc6e2765dfb`: real PostgreSQL verification requires leading/trailing-space required translation keys to fail instead of becoming distinct immutable identifiers.
 - Required-key identity repair `413ea3ba785e82949b92d2e51fcef000129d9ee8`: `ui_translation_key` now requires `translation_key = btrim(translation_key)` in addition to nonblank content.
 - Hosted verification alignment `913e3d1ea5e2e1ddb6f52a1c01fb66e5b03df340`: static migration evidence preserves the canonical required-key guard when a hosted runner has no PostgreSQL server.
+- Non-space whitespace RED `da3b9c5c97c1775d6a1bd489012ed9031093b4c4`: real PostgreSQL verification extends resource and required-key identity cases to tab/newline edge padding that default `btrim` does not remove.
+- Non-space whitespace repair `f74b7e23bce92d1ab310a13a6dbdc23f79122035`: migration 0246 adds PostgreSQL `\s` edge guards for product, screen, and required translation keys.
+- Hosted verification alignment `d8c386433417e66b6c4350f3740d17f2d77f64d1`: the static contract preserves the regex guards and application tab/newline rejection on runners without PostgreSQL.
 
 These commits are branch evidence only. This ADR remains Proposed until the exact protected-line implementation and dependent API/frontend cutover are verified.
 
 ## References
 
 Internet Engineering Task Force. (2009). *Tags for identifying languages (BCP 47 / RFC 5646)*. RFC Editor. https://www.rfc-editor.org/rfc/rfc5646.html
+
+PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 9.4. String functions and operators*. https://www.postgresql.org/docs/18/functions-string.html
+
+PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 9.7. Pattern matching*. https://www.postgresql.org/docs/18/functions-matching.html
