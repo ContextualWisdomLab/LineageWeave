@@ -243,7 +243,8 @@ async def read_translation_screen(
     """Read one published screen version and reject incomplete requested-locale copy.
 
     Explicit-version cache reads first verify the published screen-key set in
-    PostgreSQL, so a partial cache payload cannot become copy authority. Latest
+    PostgreSQL, release that connection, and only then perform Valkey I/O. A
+    cache miss reacquires PostgreSQL for the authoritative projection. Latest
     reads resolve the complete projection from PostgreSQL before populating cache.
     """
     product = _validate_identity_segment(product_key, field_name="product_key")
@@ -256,30 +257,31 @@ async def read_translation_screen(
     ):
         raise ValueError("resource_version must be a positive integer")
 
-    async with pool.acquire() as connection:
-        if resource_version is not None:
+    if resource_version is not None:
+        async with pool.acquire() as connection:
             key_rows = await connection.fetch(
                 _SELECT_REQUIRED_KEYS_SQL,
                 product,
                 screen,
                 resource_version,
             )
-            if not key_rows:
-                raise TranslationResourceNotFound(
-                    f"no published translation resource for {product}/{screen} version {resource_version!r}"
-                )
-            required_keys = [str(row["translation_key"]) for row in key_rows]
-            cached = await _read_exact_cache(
-                cache,
-                product_key=product,
-                screen_key=screen,
-                resource_version=resource_version,
-                locale=language,
-                required_keys=required_keys,
+        if not key_rows:
+            raise TranslationResourceNotFound(
+                f"no published translation resource for {product}/{screen} version {resource_version!r}"
             )
-            if cached is not None:
-                return cached
+        required_keys = [str(row["translation_key"]) for row in key_rows]
+        cached = await _read_exact_cache(
+            cache,
+            product_key=product,
+            screen_key=screen,
+            resource_version=resource_version,
+            locale=language,
+            required_keys=required_keys,
+        )
+        if cached is not None:
+            return cached
 
+    async with pool.acquire() as connection:
         rows = await connection.fetch(
             _SELECT_SCREEN_SQL,
             product,
