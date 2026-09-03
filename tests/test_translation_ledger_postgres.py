@@ -122,17 +122,18 @@ def test_postgres_rejects_padded_translation_resource_identity(translation_db) -
         translation_db.rollback()
 
 
-def test_postgres_publication_timestamp_is_database_owned(translation_db) -> None:
-    """Caller input cannot forge the immutable publication-time receipt."""
+def test_postgres_publication_timestamp_is_database_owned_and_transition_scoped(translation_db) -> None:
+    """Caller input and transaction age cannot forge the immutable publication receipt."""
     resource_id = _seed_complete_draft(translation_db)
     with translation_db.cursor() as cursor:
+        cursor.execute("select pg_sleep(0.01)")
         cursor.execute(
             """
             update ui_translation_resource
                set publication_state = 'published',
                    published_at = timestamptz '2000-01-01 00:00:00+00'
              where resource_id = %s
-         returning published_at = transaction_timestamp()
+         returning published_at > transaction_timestamp()
             """,
             (resource_id,),
         )
@@ -141,7 +142,7 @@ def test_postgres_publication_timestamp_is_database_owned(translation_db) -> Non
     with pytest.raises(psycopg2.errors.RaiseException, match="immutable"):
         with translation_db.cursor() as cursor:
             cursor.execute(
-                "update ui_translation_resource set published_at = now() where resource_id = %s",
+                "update ui_translation_resource set published_at = statement_timestamp() where resource_id = %s",
                 (resource_id,),
             )
     translation_db.rollback()
