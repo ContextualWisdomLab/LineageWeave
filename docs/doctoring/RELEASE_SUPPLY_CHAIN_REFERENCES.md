@@ -69,6 +69,21 @@ before tag creation and rechecks both repository immutability and exact tag to
 source-SHA identity immediately before publish rather than treating an earlier
 preflight as durable evidence.
 
+The same publication boundary creates an abort obligation. GitHub's immutable
+protections apply after publication, while its release REST API separately
+supports creating, retrieving, modifying, and deleting releases and exposes
+drafts only to authorized callers. A final admission failure after draft/tag
+creation can therefore leave a real unpublished candidate identity. ADR 0361
+does not infer that deletion is safe from a version string alone: the caller
+must retain the exact draft Release ID and tag-object receipt, re-prove that the
+release remains draft/unpublished and that the candidate ref still names the
+recorded tag object, and fail closed if those proofs are ambiguous. Only that
+exact unpublished draft and candidate tag may be removed before a same-version
+retry. GitHub also states that once a tag has been associated with a published
+immutable release, the tag name cannot be reused even after that immutable
+release is deleted; possible publication therefore changes recovery to a new
+version rather than cleanup/reuse.
+
 GitHub. (n.d.). *Immutable releases*. GitHub Docs. Retrieved September 3, 2026,
 from
 https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
@@ -80,6 +95,9 @@ https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establ
 GitHub. (n.d.). *REST API endpoints for repositories: Check if immutable
 releases are enabled for a repository*. GitHub Docs. Retrieved September 3,
 2026, from https://docs.github.com/en/rest/repos/repos
+
+GitHub. (n.d.). *REST API endpoints for releases*. GitHub Docs. Retrieved
+September 3, 2026, from https://docs.github.com/en/rest/releases/releases
 
 ### GitHub annotated tag identity
 
@@ -120,8 +138,10 @@ https://doi.org/10.17487/RFC8259
 - source/build provenance threat model → SLSA 1.2;
 - credential separation and artifact-attestation verification → GitHub artifact
   attestation documentation;
-- immutable tag/asset admission, publish-boundary revalidation, and draft-first
-  publication → GitHub immutable release documentation and repository REST API;
+- immutable tag/asset admission, publish-boundary revalidation, draft-first
+  publication, identity-safe pre-publication abort, and published-tag non-reuse
+  → GitHub immutable release and release REST documentation plus repository
+  immutability REST API;
 - annotated-tag ref/object separation and exact source-commit peeling → GitHub
   Git references and Git tags REST documentation;
 - strict machine-readable evidence intake → RFC 8259 plus the stricter
