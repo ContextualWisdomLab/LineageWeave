@@ -83,6 +83,21 @@ def _post_id_is_valid(post_id: object) -> bool:
         return False
 
 
+def _post_selection_is_valid(post_all: object, post_id: object, post_limit: object) -> bool:
+    """Return whether selector and limit fields form one unambiguous bounded request."""
+    if (
+        not _post_all_is_valid(post_all)
+        or not _post_id_is_valid(post_id)
+        or not _post_limit_is_valid(post_limit)
+    ):
+        return False
+    if post_all and post_id is not None:
+        return False
+    if not post_all and post_limit != 1:
+        return False
+    return True
+
+
 async def _select_posts(
     conn: asyncpg.Connection, *, limit: int, post_id: str | None
 ) -> list[asyncpg.Record]:
@@ -206,8 +221,12 @@ async def _run_post_keymen_backfill(
         raise ValueError("--all must be a boolean selector")
     if not _post_id_is_valid(backfill_arguments.post_id):
         raise ValueError("--post-id must be a canonical UUID")
-    if backfill_arguments.post_id and backfill_arguments.all:
-        raise ValueError("--post-id and --all cannot be combined")
+    if not _post_selection_is_valid(
+        backfill_arguments.all,
+        backfill_arguments.post_id,
+        backfill_arguments.limit,
+    ):
+        raise ValueError("non-default --limit requires --all; --post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
     settings = load_settings()
     keyman_client = ContextualOrchestratorKeymanExtractionClient(
@@ -299,6 +318,12 @@ def main() -> None:
         parser.error("--post-timeout must be finite and positive")
     if not _post_id_is_valid(backfill_arguments.post_id):
         parser.error("--post-id must be a canonical UUID")
+    if not _post_selection_is_valid(
+        backfill_arguments.all,
+        backfill_arguments.post_id,
+        backfill_arguments.limit,
+    ):
+        parser.error("non-default --limit requires --all; --post-id and --all cannot be combined")
     print(
         json.dumps(
             asyncio.run(_run_post_keymen_backfill(backfill_arguments)),
