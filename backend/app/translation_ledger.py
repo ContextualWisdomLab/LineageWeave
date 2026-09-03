@@ -19,6 +19,18 @@ from redis.exceptions import RedisError
 SUPPORTED_UI_LOCALES: tuple[str, ...] = ("ko", "en", "ja", "zh", "vi", "es", "de", "fr")
 _CACHE_TTL_SECONDS = 300
 
+_SELECT_REQUIRED_KEYS_SQL = """
+select translation_key.translation_key
+  from ui_translation_resource as resource
+  join ui_translation_key as translation_key
+    on translation_key.resource_id = resource.resource_id
+ where resource.product_key = $1
+   and resource.screen_key = $2
+   and resource.resource_version = $3
+   and resource.publication_state = 'published'
+ order by translation_key.translation_key
+"""
+
 _SELECT_SCREEN_SQL = """
 with selected_resource as (
     select resource_id, resource_version
@@ -135,8 +147,9 @@ def _decode_cached_screen(
     screen_key: str,
     resource_version: int,
     locale: str,
+    required_keys: Sequence[str],
 ) -> TranslationScreen | None:
-    """Accept a cache hit only when every identity field and copy value is valid."""
+    """Accept a cache hit only when identity, values, and the authoritative key set match."""
     try:
         decoded = json.loads(raw_payload)
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
@@ -151,6 +164,8 @@ def _decode_cached_screen(
     if not isinstance(translations, dict) or not translations:
         return None
     if any(not isinstance(key, str) or not isinstance(value, str) or not value.strip() for key, value in translations.items()):
+        return None
+    if set(translations) != set(required_keys):
         return None
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
     return TranslationScreen(
@@ -170,8 +185,9 @@ async def _read_exact_cache(
     screen_key: str,
     resource_version: int,
     locale: str,
+    required_keys: Sequence[str],
 ) -> TranslationScreen | None:
-    """Read an exact-version cache entry, treating cache failure as a DB miss."""
+    """Read an exact-version cache entry after PostgreSQL establishes its required keys."""
     if cache is None:
         return None
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
@@ -187,6 +203,7 @@ async def _read_exact_cache(
         screen_key=screen_key,
         resource_version=resource_version,
         locale=locale,
+        required_keys=required_keys,
     )
 
 
@@ -223,27 +240,44 @@ async def read_translation_screen(
 ) -> TranslationScreen:
     """Read one published screen version and reject incomplete requested-locale copy.
 
-    Explicit versions may be served from Valkey because their identity is immutable.
-    A latest-version read first resolves PostgreSQL so a stale cache alias can never
-    hide a newly published resource.
+    Explicit-version cache reads first verify the published screen-key set in
+    PostgreSQL, so a partial cache payload cannot become copy authority. Latest
+    reads resolve the complete projection from PostgreSQL before populating cache.
     """
     product = _validate_identity_segment(product_key, field_name="product_key")
     screen = _validate_identity_segment(screen_key, field_name="screen_key")
     language = validate_ui_locale(locale)
-    if resource_version is not None:
-        cached = await _read_exact_cache(
-            cache,
-            product_key=product,
-            screen_key=screen,
-            resource_version=resource_version,
-            locale=language,
-        )
-        if cached is not None:
-            return cached
-        if isinstance(resource_version, bool) or not isinstance(resource_version, int) or resource_version <= 0:
-            raise ValueError("resource_version must be a positive integer")
+    if resource_version is not None and (
+        isinstance(resource_version, bool)
+        or not isinstance(resource_version, int)
+        or resource_version <= 0
+    ):
+        raise ValueError("resource_version must be a positive integer")
 
     async with pool.acquire() as connection:
+        if resource_version is not None:
+            key_rows = await connection.fetch(
+                _SELECT_REQUIRED_KEYS_SQL,
+                product,
+                screen,
+                resource_version,
+            )
+            if not key_rows:
+                raise TranslationResourceNotFound(
+                    f"no published translation resource for {product}/{screen} version {resource_version!r}"
+                )
+            required_keys = [str(row["translation_key"]) for row in key_rows]
+            cached = await _read_exact_cache(
+                cache,
+                product_key=product,
+                screen_key=screen,
+                resource_version=resource_version,
+                locale=language,
+                required_keys=required_keys,
+            )
+            if cached is not None:
+                return cached
+
         rows = await connection.fetch(
             _SELECT_SCREEN_SQL,
             product,
