@@ -89,12 +89,19 @@ release-admission failure, not a reason to publish a mutable release.
    build jobs.
 8. After that preflight, the release job creates the release-specific tag
    against the already-verified protected source SHA, creates a draft GitHub
-   Release, attaches the complete verified asset set, and publishes the draft
-   as the immutable non-prerelease release. This follows GitHub's documented
-   immutable-release publication sequence so all assets are present before
-   publication locks the release. It must not overwrite an existing tag, asset
-   or version. A failed or partial publication is an incident, not permission
-   to mutate previously published bytes under the same identity.
+   Release, and attaches the complete verified asset set. Immediately before
+   publish, the trusted release boundary must recheck
+   `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve that tag. The
+   repository must still report `enabled: true`, and the tag must still resolve
+   to the exact protected source SHA admitted for the release. Any setting
+   change, lookup/API failure, malformed response, missing tag, or tag/source
+   SHA mismatch must fail closed while the draft remains unpublished. Only
+   after this second admission may the draft be published as the immutable
+   non-prerelease release. This closes the time-of-check/time-of-use interval
+   between the initial immutability admission and publication. It must not
+   overwrite an existing tag, asset or version. A failed or partial publication
+   is an incident, not permission to mutate previously published bytes under
+   the same identity.
 9. Reproducibility is tested by rebuilding the wheel and source distribution
    from the same protected source under the reviewed toolchain and comparing
    the release contract's declared deterministic subjects. Any known
@@ -130,8 +137,11 @@ GREEN requires all of the following on one unchanged protected source SHA:
   before tag creation and confirms `enabled: true`; missing administrative-read
   capability or any non-confirming result must fail closed;
 - a clean rebuild proves the declared reproducibility contract;
-- the complete verified asset set is attached to a draft GitHub Release before
-  that draft is published as the immutable release;
+- the complete verified asset set is attached to a draft GitHub Release;
+- immediately before publish, the trusted boundary must recheck repository
+  immutability and prove the release tag still resolves to the same protected
+  source SHA; any non-confirming result must fail closed with the draft
+  unpublished;
 - release notes, version, protected source SHA, tag, distributions, SBOMs,
   attestations and immutable GitHub Release are mutually consistent; and
 - rollback/incident instructions are exercised against synthetic release
@@ -183,6 +193,10 @@ publication can be added later behind its own protected decision.
   only; it must not expand permissions for tests, builds, pull requests or the
   canonical attestation reusable. If it cannot be provisioned, publication
   remains RED.
+- The repository immutability setting and release tag are mutable until the
+  immutable release is published. A single early preflight therefore has a
+  time-of-check/time-of-use window; both are revalidated immediately before
+  publish and any drift leaves the draft unpublished.
 - Reproducible Python distributions may expose timestamps, archive ordering or
   backend metadata that require causal build-system repair. A mismatch remains
   RED until explained and removed at the source.
@@ -208,7 +222,7 @@ https://docs.github.com/en/rest/repos/repos
 
 GitHub. (2026). *Using artifact attestations to establish provenance for
 builds*. GitHub Docs.
-https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations
+https://docs.github.com/en/actions/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes
 
 Open Source Security Foundation. (2025). *SLSA specification version 1.2*.
 https://slsa.dev/spec/v1.2/
