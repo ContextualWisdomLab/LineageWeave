@@ -136,6 +136,15 @@ def test_explicit_connect_timeout_rejects_boolean_values() -> None:
         )
 
 
+def test_explicit_connect_timeout_rejects_unrepresentable_integer() -> None:
+    """An integer too large for float conversion must fail through the validation contract."""
+    with pytest.raises(ValueError, match="finite positive"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive",
+            connect_timeout=10**10000,
+        )
+
+
 def test_dsn_without_user_preserves_libpq_os_user_default(monkeypatch) -> None:
     """Existing admin DSNs without a username still use the local OS account."""
     monkeypatch.setattr("lineageweave.postgres_sync.getpass.getuser", lambda: "ci-runner")
