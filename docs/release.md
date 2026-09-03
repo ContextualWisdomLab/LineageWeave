@@ -1,6 +1,6 @@
 # LineageWeave release contract
 
-This document is the operator projection of Proposed ADR 0358. It describes
+This document is the operator projection of Proposed ADR 0361. It describes
 what must be true before LineageWeave publishes an immutable release; it is not
 evidence that a release already exists.
 
@@ -44,7 +44,7 @@ release does not satisfy this contract.
    differing subject merely to make the comparison pass.
 7. Generate one CycloneDX 1.7 SBOM for each exact distribution and bind its root
    component to the distribution filename and SHA-256 digest. Prepare the
-   six-file handoff defined by ADR 0358: wheel, wheel SBOM, source distribution,
+   six-file handoff defined by ADR 0361: wheel, wheel SBOM, source distribution,
    source-distribution SBOM, `source-identity.json`, and
    `checksums.sha256`.
 8. Upload that handoff once and retain GitHub's returned artifact ID, name and
