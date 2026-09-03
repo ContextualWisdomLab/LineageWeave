@@ -3,6 +3,10 @@
 -- rather than a destructive schema down-migration.
 begin;
 
+-- Serialize the emptiness decision with writers through transaction end. Without
+-- this lock, a resource can be inserted after the guard and then erased by DROP.
+lock table ui_translation_resource in access exclusive mode;
+
 do $$
 begin
     if exists (
