@@ -36,3 +36,15 @@ def test_annotated_release_tag_is_peeled_to_the_exact_source_commit() -> None:
         assert "peel" in text, path
         assert "type `commit`" in text, path
         assert "exact protected source sha" in text, path
+
+
+def test_prepublication_abort_has_identity_safe_cleanup_before_same_version_retry() -> None:
+    """Do not orphan or unsafely reuse a draft release identity after an aborted publish."""
+    for path in (_ADR, _RELEASE_GUIDE):
+        text = path.read_text(encoding="utf-8").lower()
+        assert "pre-publication abort" in text, path
+        assert "draft" in text and "unpublished" in text, path
+        assert "delete" in text and "candidate tag" in text, path
+        assert "re-resolve" in text and "absent" in text, path
+        assert "quarantine" in text and "version" in text, path
+        assert "never reuse" in text and "published immutable release" in text, path
