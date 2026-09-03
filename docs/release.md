@@ -61,21 +61,20 @@ release does not satisfy this contract.
     non-confirming result must fail closed. This credential is not exposed to
     pull-request or unprivileged build execution.
 11. After trusted verification and the immutability preflight both succeed,
-    create an annotated release-specific tag object whose target has
-    `type `commit`` and whose target SHA is the exact protected source SHA from
-    step 1, then create `refs/tags/<version>` pointing to that tag object.
-    Refuse lightweight tags, tree/blob targets, an existing ref, or any tag
-    object whose target differs from the admitted source. Create a draft GitHub
-    Release and attach the complete verified distributions, SBOM/provenance
-    evidence, checksum material and release notes. Do not publish an incomplete
-    asset set.
+    create an annotated release-specific tag object whose target type is
+    `commit` and whose target SHA is the exact protected source SHA from step 1,
+    then create `refs/tags/<version>` pointing to that tag object. Refuse
+    lightweight tags, tree/blob targets, an existing ref, or any tag object
+    whose target differs from the admitted source. Create a draft GitHub Release
+    and attach the complete verified distributions, SBOM/provenance evidence,
+    checksum material and release notes. Do not publish an incomplete asset set.
 12. Immediately before publish, recheck repository release immutability through
     `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve the release
     tag. Because an annotated tag ref points to the Git tag object SHA rather
     than directly to its source commit, fetch that tag object and peel it to its
-    target. The target must have `type `commit`` and its SHA must equal the
-    exact protected source SHA admitted in step 1. Never compare the tag-object
-    SHA itself with the source commit SHA. Any setting change, lookup failure,
+    target. The target type must be `commit` and its SHA must equal the exact
+    protected source SHA admitted in step 1. Never compare the tag-object SHA
+    itself with the source commit SHA. Any setting change, lookup failure,
     malformed response, missing ref/tag object, unexpected object type, or
     peeled commit/source SHA mismatch must fail closed without publishing the
     draft. This second check closes the time-of-check/time-of-use window between
