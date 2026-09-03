@@ -90,6 +90,16 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
         assert f"'{locale}'" in sql
 
 
+def test_translation_resource_aggregate_identity_is_immutable_after_insert() -> None:
+    """Hosted contract preserves product/screen/version identity even when PostgreSQL is unavailable."""
+    sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
+    resource_guard = sql.split("create or replace function guard_ui_translation_resource_mutation()", 1)[1]
+    resource_guard = resource_guard.split("$$;", 1)[0]
+    for field in ("product_key", "screen_key", "resource_version"):
+        assert f"old.{field} is distinct from new.{field}" in resource_guard
+    assert "identity is immutable after creation" in resource_guard
+
+
 def test_child_mutations_serialize_with_publication() -> None:
     """Child writes lock the parent so completeness cannot race publication."""
     sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
