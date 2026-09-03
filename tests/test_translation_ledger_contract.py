@@ -79,10 +79,11 @@ def test_child_mutations_serialize_with_publication() -> None:
     assert "for update" in child_guard
 
 
-def test_publication_timestamp_is_database_owned() -> None:
-    """A caller cannot forge the audit timestamp of the one-way publication transition."""
+def test_publication_timestamp_is_database_owned_and_transition_scoped() -> None:
+    """Publication receipt uses statement time, never caller or transaction-start time."""
     sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
     resource_guard = sql.split("create or replace function guard_ui_translation_resource_mutation()", 1)[1]
     resource_guard = resource_guard.split("$$;", 1)[0]
-    assert "new.published_at := now();" in resource_guard
+    assert "new.published_at := statement_timestamp();" in resource_guard
     assert "coalesce(new.published_at" not in resource_guard
+    assert "new.published_at := now();" not in resource_guard
