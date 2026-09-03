@@ -143,6 +143,7 @@ import {
 } from "./leftoverMapAxisBadge";
 import {
   leftoverMapCompareAxisBadge,
+  leftoverMapCompareAxisOriginBadge,
   leftoverMapCompareAxisTickBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
@@ -4145,6 +4146,23 @@ function ReportsPanel({
                   </span>
                 );
               })}
+              {(() => {
+                const originBadge = leftoverMapCompareAxisOriginBadge();
+                const leftoverAxisTicks =
+                  layoutLeftoverMapPlot(row.leftover_pairs ?? [], criterionShortLabel)?.ticks ?? [];
+                const leftoverAxisSurface =
+                  (row.leftover_map_axes != null && row.leftover_map_axes.length > 0) ||
+                  leftoverAxisTicks.length > 0;
+                if (originBadge === null || !leftoverAxisSurface) {
+                  return null;
+                }
+                const originText = tf(originBadge.key, originBadge.values);
+                return (
+                  <span className="post-badge" aria-label={originText}>
+                    {originText}
+                  </span>
+                );
+              })()}
               {row.leftover_map_axes?.some(
                 (axis) =>
                   leftoverMapCompareAxisBadge(

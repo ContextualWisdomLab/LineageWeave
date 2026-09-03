@@ -8,6 +8,18 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption leftover-map comparison leftover-axis leftover-map origin
+  through leftoverMapCompareAxisOriginBadge independently of leftover-map comparison graphic leftover-map origin, leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values (ADR 0357 / v2.114.0). After `make seed`, leftover-map comparison leftover-axis leftover-map
+  origin names leftover-map origin when leftoverMapCompareAxisOriginBadge returns a usable leftover-map origin caption. Distinct accessible name
+  `leftover map comparison leftover axis leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapComparePlotOriginBadge stays leftover-map comparison graphic leftover-map origin keys. leftoverMapPlotOriginBadge stays leftover-map graphic leftover-map origin keys. leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map
+  criterion leftover-map origin leftover-map item coordinate keys. leftoverMapListCriterionBadge stays leftover-map pair leftover-map
+  criterion leftover-map origin leftover-map item coordinate keys. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map
+  axis origin tick keys. leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map
+  axis origin tick keys. leftoverMapCompareAxisTickBadge stays leftover-map comparison leftover-axis origin tick keys.
+  leftoverMapAxisTickBadge stays leftover-map leftover-axis origin tick keys this increment.
+  Do not invent leftover-map origin from leftover-map item coordinates `ζ`, leftover-map axis share, or leftover-map singular values `σ_k`.
+  Do not mix #877. Do not mix #890 stale ADR 0347 / v2.104.0 identity. A finite negative leftover is shown, never clamped. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now caption leftover-map comparison graphic leftover-map origin
   through leftoverMapComparePlotOriginBadge independently of leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values (ADR 0356 / v2.113.0). After `make seed`, leftover-map comparison graphic leftover-map
   origin names leftover-map origin when leftoverMapComparePlotOriginBadge returns a usable leftover-map origin caption. Distinct accessible name
