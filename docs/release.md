@@ -61,23 +61,33 @@ release does not satisfy this contract.
     non-confirming result must fail closed. This credential is not exposed to
     pull-request or unprivileged build execution.
 11. After trusted verification and the immutability preflight both succeed,
-    create the annotated release-specific tag against the verified source SHA,
-    create a draft GitHub Release, and attach the complete verified
-    distributions, SBOM/provenance evidence, checksum material and release
-    notes. Do not publish an incomplete asset set.
+    create an annotated release-specific tag object whose target has
+    `type `commit`` and whose target SHA is the exact protected source SHA from
+    step 1, then create `refs/tags/<version>` pointing to that tag object.
+    Refuse lightweight tags, tree/blob targets, an existing ref, or any tag
+    object whose target differs from the admitted source. Create a draft GitHub
+    Release and attach the complete verified distributions, SBOM/provenance
+    evidence, checksum material and release notes. Do not publish an incomplete
+    asset set.
 12. Immediately before publish, recheck repository release immutability through
     `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve the release
-    tag. The response must still confirm `enabled: true`, and the tag must still
-    resolve to the exact protected source SHA admitted in step 1. Any setting
-    change, lookup failure, malformed response, missing tag, or tag/source SHA
-    mismatch must fail closed without publishing the draft. This second check
-    closes the time-of-check/time-of-use window between admission and publish.
+    tag. Because an annotated tag ref points to the Git tag object SHA rather
+    than directly to its source commit, fetch that tag object and peel it to its
+    target. The target must have `type `commit`` and its SHA must equal the
+    exact protected source SHA admitted in step 1. Never compare the tag-object
+    SHA itself with the source commit SHA. Any setting change, lookup failure,
+    malformed response, missing ref/tag object, unexpected object type, or
+    peeled commit/source SHA mismatch must fail closed without publishing the
+    draft. This second check closes the time-of-check/time-of-use window between
+    admission and publish.
 13. Publish that fully populated draft as the non-prerelease immutable GitHub
     Release. Never move an existing release tag or overwrite published bytes
     under an existing version.
-14. Fetch the published release back through GitHub's API, verify tag/source
-    identity, immutable-release state and asset digests against the sealed
-    evidence, and retain this post-publication receipt as release evidence.
+14. Fetch the published release back through GitHub's API, verify immutable
+    state and repeat the same annotated-tag peel to prove the release tag still
+    reaches the exact protected source commit; verify asset digests against the
+    sealed evidence and retain this post-publication receipt as release
+    evidence.
 
 ## Failure and rollback
 
