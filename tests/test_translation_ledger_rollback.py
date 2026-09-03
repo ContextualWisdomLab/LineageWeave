@@ -61,6 +61,31 @@ def _postgres_available() -> bool:
     return asyncio.run(_postgres_available_async())
 
 
+async def _wait_for_user_account_ddl_waiter(connection: asyncpg.Connection) -> None:
+    """Wait until rollback has passed its guard and is blocked on user_account DDL."""
+    for _ in range(100):
+        waiting = await connection.fetchval(
+            """
+            select exists (
+                select 1
+                  from pg_locks as lock_state
+                  join pg_class as relation
+                    on relation.oid = lock_state.relation
+                  join pg_namespace as namespace
+                    on namespace.oid = relation.relnamespace
+                 where namespace.nspname = 'public'
+                   and relation.relname = 'user_account'
+                   and lock_state.mode = 'AccessExclusiveLock'
+                   and not lock_state.granted
+            )
+            """
+        )
+        if waiting:
+            return
+        await asyncio.sleep(0.02)
+    raise AssertionError("rollback never reached the user_account DDL wait point")
+
+
 @pytest.mark.skipif(
     not _postgres_available(),
     reason=(
@@ -165,6 +190,91 @@ def test_translation_ledger_rollback_refuses_existing_translation_data() -> None
             finally:
                 await connection.close()
         finally:
+            await admin_connection.execute(f'drop database "{database_name}"')
+            await admin_connection.close()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
+def test_translation_ledger_rollback_serializes_empty_guard_against_concurrent_insert() -> None:
+    """A resource created after the empty check must never be dropped by rollback."""
+
+    async def scenario() -> None:
+        database_name = f"lineageweave_translation_rollback_race_{uuid.uuid4().hex[:12]}"
+        admin_connection = await asyncpg.connect(_ADMIN_DSN)
+        await admin_connection.execute(f'create database "{database_name}"')
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+
+        blocker: asyncpg.Connection | None = None
+        rollback_connection: asyncpg.Connection | None = None
+        insert_connection: asyncpg.Connection | None = None
+        observer: asyncpg.Connection | None = None
+        rollback_task: asyncio.Task[str] | None = None
+        insert_task: asyncio.Task[str] | None = None
+
+        try:
+            setup_connection = await asyncpg.connect(database_dsn)
+            try:
+                await setup_connection.execute(_INITIAL_SCHEMA.read_text(encoding="utf-8"))
+                await setup_connection.execute(_MEMBER_LOCALE_MIGRATION.read_text(encoding="utf-8"))
+                await setup_connection.execute(_TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8"))
+            finally:
+                await setup_connection.close()
+
+            blocker = await asyncpg.connect(database_dsn)
+            rollback_connection = await asyncpg.connect(database_dsn)
+            insert_connection = await asyncpg.connect(database_dsn)
+            observer = await asyncpg.connect(database_dsn)
+
+            await blocker.execute("begin")
+            await blocker.execute("lock table user_account in access share mode")
+
+            rollback_task = asyncio.create_task(
+                rollback_connection.execute(_TRANSLATION_LEDGER_ROLLBACK.read_text(encoding="utf-8"))
+            )
+            await _wait_for_user_account_ddl_waiter(observer)
+
+            insert_task = asyncio.create_task(
+                insert_connection.execute(
+                    """
+                    insert into ui_translation_resource(product_key, screen_key, resource_version)
+                    values ('lineageweave', 'customer-master', 1)
+                    """
+                )
+            )
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(asyncio.shield(insert_task), timeout=0.2)
+
+            await blocker.execute("commit")
+            await rollback_task
+            with pytest.raises(asyncpg.PostgresError):
+                await insert_task
+
+            assert await observer.fetchval("select to_regclass('ui_translation_resource')") is None
+        finally:
+            if blocker is not None and not blocker.is_closed():
+                try:
+                    await blocker.execute("rollback")
+                except asyncpg.PostgresError:
+                    pass
+            for task in (rollback_task, insert_task):
+                if task is not None and not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except (asyncio.CancelledError, asyncpg.PostgresError):
+                        pass
+            for connection in (observer, insert_connection, rollback_connection, blocker):
+                if connection is not None and not connection.is_closed():
+                    await connection.close()
             await admin_connection.execute(f'drop database "{database_name}"')
             await admin_connection.close()
 
