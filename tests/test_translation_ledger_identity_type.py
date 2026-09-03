@@ -47,3 +47,34 @@ def test_translation_identity_rejects_non_string_segments_before_io(
                 resource_version=17,
             )
         )
+
+
+@pytest.mark.parametrize(
+    ("product_key", "screen_key", "field_name"),
+    (
+        ("lineage\x00weave", "customer-master", "product_key"),
+        ("lineage\ud800weave", "customer-master", "product_key"),
+        ("lineageweave", "customer\x00-master", "screen_key"),
+        ("lineageweave", "customer\ud800-master", "screen_key"),
+    ),
+)
+def test_translation_identity_rejects_values_postgres_text_cannot_represent_before_io(
+    product_key: str,
+    screen_key: str,
+    field_name: str,
+) -> None:
+    """Cache and database identity admit only values representable as PostgreSQL UTF-8 text."""
+    with pytest.raises(ValueError, match=field_name):
+        build_translation_cache_key(product_key, screen_key, 17, "en")
+
+    with pytest.raises(ValueError, match=field_name):
+        asyncio.run(
+            read_translation_screen(
+                NoAcquirePool(),  # type: ignore[arg-type]
+                None,
+                product_key=product_key,
+                screen_key=screen_key,
+                locale="en",
+                resource_version=17,
+            )
+        )
