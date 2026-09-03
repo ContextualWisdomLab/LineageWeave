@@ -1,5 +1,13 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-03 17:20 KST. Protected `main` is
+> `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. Writes work (git push + REST Draft #926/#927; git X-OAuth-Scopes still empty). Do not
+> self-approve. #927 leftover-map leftover-axis leftover-map origin independently of leftover-map comparison leftover-axis leftover-map origin (v2.115.0 / ADR 0358) is
+> `34595e41ee65b89a468efeebf64fee86eff881d9`, stacked on #926 @ `ede308929b20f24a56c5ff3ae2211dd84d20f3ae`. Independent APPROVE is missing.
+> This increment: leftover-map pair leftover-map origin independently of leftover-map leftover-axis leftover-map origin as leftoverMapListOriginBadge (ADR 0359 / v2.116.0) on
+> `feat/leftover-map-list-origin-badge-v21160`. Distinct accessible name
+> `leftover pair leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapAxisOriginBadge stays leftover-map leftover-axis leftover-map origin keys. leftoverMapCompareAxisOriginBadge stays leftover-map comparison leftover-axis leftover-map origin keys. leftoverMapListCriterionBadge stays leftover-map pair leftover-map criterion leftover-map origin leftover-map item coordinate keys. leftoverMapCompareListOriginBadge stays unnamed this increment. Do not invent leftover-map origin from leftover-map item coordinates `ζ`. Do not mix #877. Do not mix #890. Do not mix `feat/leftover-map-list-origin-badge-v21140`. Stack onto #927. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. #96 already closed as weaker duplicate of #91. Next buyer increment after this stack: leftoverMapCompareListOriginBadge independently of leftover-map pair leftover-map origin (ADR 0360 / v2.117.0).
+
 > Exact-head loop overlay: 2026-09-03 17:15 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. Writes work (git push of v2.114.0 + REST Draft #926; git X-OAuth-Scopes still empty). Do not
 > self-approve. #926 leftover-map comparison leftover-axis leftover-map origin independently of leftover-map comparison graphic leftover-map origin (v2.114.0 / ADR 0357) is

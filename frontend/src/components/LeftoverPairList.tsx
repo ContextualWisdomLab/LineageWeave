@@ -35,6 +35,7 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
 } from "../leftoverMapUnexplainedShare";
+import { leftoverMapListOriginBadge } from "../leftoverMapPlotAxisSingular";
 import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 export type LeftoverPairListProps = {
@@ -164,6 +165,12 @@ export type LeftoverPairListProps = {
  * not this pair list.
  * ADR 0358 captions leftover-map leftover-axis leftover-map origin through leftoverMapAxisOriginBadge,
  * not this pair list.
+ * ADR 0359 captions leftover-map pair leftover-map origin through leftoverMapListOriginBadge
+ * independently of leftover-map leftover-axis leftover-map origin, leftover-map comparison leftover-axis leftover-map origin,
+ * leftover-map comparison graphic leftover-map origin, leftover-map graphic leftover-map origin, leftover-map pair leftover-map
+ * criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map
+ * singular values.
+ * leftoverMapCompareListOriginBadge stays unnamed this increment.
  * Every badge still
  * renders together before opening the named post.
  */
@@ -186,6 +193,18 @@ export function LeftoverPairList({
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />
+      {(() => {
+        const originBadge = leftoverMapListOriginBadge();
+        if (originBadge === null) {
+          return null;
+        }
+        const originText = tf(originBadge.key, originBadge.values);
+        return (
+          <span className="post-badge" aria-label={originText}>
+            {originText}
+          </span>
+        );
+      })()}
       <ul className="ticket-list" aria-label={t("Leftover pairs")}>
         {pairs.map((pair) => {
         const kindLabel =

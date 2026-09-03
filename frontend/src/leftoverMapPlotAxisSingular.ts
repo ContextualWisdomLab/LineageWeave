@@ -80,6 +80,11 @@
  *  independently of leftover-map comparison leftover-axis leftover-map origin, leftover-map comparison graphic leftover-map origin,
  *  leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
  *  item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values.
+ *  ADR 0359 names leftover-map pair leftover-map origin as leftoverMapListOriginBadge
+ *  independently of leftover-map leftover-axis leftover-map origin, leftover-map comparison leftover-axis leftover-map origin,
+ *  leftover-map comparison graphic leftover-map origin, leftover-map graphic leftover-map origin, leftover-map pair leftover-map
+ *  criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map
+ *  singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";
@@ -159,6 +164,9 @@ export const LEFTOVER_MAP_COMPARE_AXIS_ORIGIN =
 export const LEFTOVER_MAP_AXIS_ORIGIN =
   "leftover axis leftover-map origin {origin}";
 
+export const LEFTOVER_MAP_LIST_ORIGIN =
+  "leftover pair leftover-map origin {origin}";
+
 export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR =
   "leftover map comparison leftover axis {axis} σ {value}";
 
@@ -227,6 +235,11 @@ export type LeftoverMapAxisOriginBadge = {
   values: { origin: string };
 };
 
+export type LeftoverMapListOriginBadge = {
+  key: string;
+  values: { origin: string };
+};
+
 export function leftoverSingularForAxis(
   axes: ReadonlyArray<LeftoverMapPlotAxisSingular> | null | undefined,
   axisIndex: number,
@@ -288,7 +301,7 @@ export function leftoverMapCompareAxisOriginBadge(): LeftoverMapCompareAxisOrigi
 
 /** Caption leftover-map leftover-axis leftover-map origin independently of leftover-map comparison leftover-axis leftover-map origin.
  *  Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
- *  leftoverMapListOriginBadge stays unnamed this increment.
+ *  leftoverMapListOriginBadge stays leftover-map pair leftover-map origin keys from ADR 0359.
  *  Do not invent leftover-map origin from leftover-map item coordinates, leftover-map axis share, or leftover-map singular values.
  */
 export function leftoverMapAxisOriginBadge(): LeftoverMapAxisOriginBadge | null {
@@ -297,6 +310,19 @@ export function leftoverMapAxisOriginBadge(): LeftoverMapAxisOriginBadge | null 
     return null;
   }
   return { key: LEFTOVER_MAP_AXIS_ORIGIN, values: { origin } };
+}
+
+/** Caption leftover-map pair leftover-map origin independently of leftover-map leftover-axis leftover-map origin.
+ *  Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+ *  leftoverMapCompareListOriginBadge stays unnamed this increment.
+ *  Do not invent leftover-map origin from leftover-map item coordinates, leftover-map axis share, or leftover-map singular values.
+ */
+export function leftoverMapListOriginBadge(): LeftoverMapListOriginBadge | null {
+  const origin = formatLeftoverMapCoordinatePair(0, 0);
+  if (origin === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_LIST_ORIGIN, values: { origin } };
 }
 
 export function leftoverMapPlotAxisBadge(
