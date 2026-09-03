@@ -96,6 +96,14 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
         assert f"'{locale}'" in sql
 
 
+def test_database_rejects_whitespace_only_translation_copy() -> None:
+    """A published immutable version cannot contain copy the read model treats as blank."""
+    sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
+    text_table = sql.split("create table if not exists ui_translation_text", 1)[1]
+    text_table = text_table.split("create index if not exists", 1)[0]
+    assert r"translated_text !~ e'^\\s*$'" in text_table
+
+
 def test_translation_resource_aggregate_identity_is_immutable_after_insert() -> None:
     """Hosted contract preserves product/screen/version identity even when PostgreSQL is unavailable."""
     sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
