@@ -191,6 +191,9 @@
  *  item coordinates through leftoverMapCompareListCriterionBadge independently of leftover-map
  *  comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates ξ, not leftover-map pair leftover-map criterion leftover-map
  *  item coordinates.
+ *  ADR 0355 fail-closes leftover-map graphic leftover-map origin through leftoverMapPlotOriginBadge independently of leftover-map
+ *  comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map
+ *  axis share, and leftover-map singular values, not leftover-map comparison graphic leftover-map origin.
  */
 
 import { formatLeftoverMapCoordinatePair, leftoverMapPlotCoordinatePairIsOrigin } from "./leftoverMapCoordinates";

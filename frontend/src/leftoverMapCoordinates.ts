@@ -30,6 +30,9 @@
  *  ADR 0354 names leftover-map origin on leftover-map comparison leftover-pair leftover-map criterion leftover-map
  *  item coordinates as leftoverMapCompareListCriterionBadge independently of leftover-map comparison leftover-pair leftover-map post leftover-map
  *  origin leftover-map person coordinates.
+ *  ADR 0355 names leftover-map graphic leftover-map origin as leftoverMapPlotOriginBadge independently of leftover-map
+ *  comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates. Do not invent leftover-map
+ *  origin from leftover-map item coordinates ζ.
  */
 
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
@@ -130,6 +133,7 @@ export function formatLeftoverMapCoordinates(
  *  person coordinates as leftoverMapCompareListPostBadge, not this helper.
  *  ADR 0354 names leftover-map origin on leftover-map comparison leftover-pair leftover-map criterion leftover-map
  *  item coordinates as leftoverMapCompareListCriterionBadge, not this helper.
+ *  ADR 0355 names leftover-map graphic leftover-map origin as leftoverMapPlotOriginBadge, not this helper.
  */
 export function leftoverMapListPostBadge(
   title: string,

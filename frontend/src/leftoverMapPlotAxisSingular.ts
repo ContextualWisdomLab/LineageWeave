@@ -64,9 +64,14 @@
  *  ADR 0354 names leftover-map origin on leftover-map comparison leftover-pair leftover-map criterion leftover-map
  *  item coordinates as leftoverMapCompareListCriterionBadge independently of leftover-map comparison leftover-pair leftover-map post leftover-map
  *  origin leftover-map person coordinates, not leftoverMapPlotTickAxisBadge.
+ *  ADR 0355 names leftover-map graphic leftover-map origin as leftoverMapPlotOriginBadge
+ *  independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
+ *  item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map
+ *  singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";
+import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
 import {
   formatLeftoverMapPlotAxisShare,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
@@ -131,6 +136,8 @@ export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE =
 export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE =
   "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%";
 
+export const LEFTOVER_MAP_PLOT_ORIGIN = "leftover-map origin {origin}";
+
 export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR =
   "leftover map comparison leftover axis {axis} σ {value}";
 
@@ -179,6 +186,11 @@ export type LeftoverMapCompareAxisBadge = {
   values: { axis: number; value?: string; share?: string; singular?: string };
 };
 
+export type LeftoverMapPlotOriginBadge = {
+  key: string;
+  values: { origin: string };
+};
+
 export function leftoverSingularForAxis(
   axes: ReadonlyArray<LeftoverMapPlotAxisSingular> | null | undefined,
   axisIndex: number,
@@ -207,6 +219,14 @@ export function formatLeftoverMapPlotAxisSingular(
 export function leftoverMapPlotTickIsOrigin(tickLabel: string): boolean {
   const originLabel = formatSignedLeftoverValue(0);
   return originLabel !== null && tickLabel === originLabel;
+}
+
+export function leftoverMapPlotOriginBadge(): LeftoverMapPlotOriginBadge | null {
+  const origin = formatLeftoverMapCoordinatePair(0, 0);
+  if (origin === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_PLOT_ORIGIN, values: { origin } };
 }
 
 export function leftoverMapPlotAxisBadge(

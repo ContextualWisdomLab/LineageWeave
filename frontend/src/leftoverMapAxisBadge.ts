@@ -46,6 +46,8 @@
  *  person coordinates as leftoverMapCompareListPostBadge, not this helper.
  *  ADR 0354 names leftover-map origin on leftover-map comparison leftover-pair leftover-map criterion leftover-map
  *  item coordinates as leftoverMapCompareListCriterionBadge, not this helper.
+ *  ADR 0355 names leftover-map graphic leftover-map origin as leftoverMapPlotOriginBadge,
+ *  not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";
