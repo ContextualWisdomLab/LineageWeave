@@ -39,6 +39,8 @@ def test_cache_identity_rejects_padded_product_and_screen_segments() -> None:
         (" lineageweave", "customer-master"),
         ("lineageweave", "customer-master "),
         ("lineageweave", " customer-master"),
+        ("lineageweave\t", "customer-master"),
+        ("lineageweave", "\ncustomer-master"),
     ):
         with pytest.raises(ValueError, match="leading or trailing whitespace"):
             build_translation_cache_key(product_key, screen_key, 17, "en")
@@ -86,6 +88,9 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
     assert "btrim(product_key) = product_key" in sql
     assert "btrim(screen_key) = screen_key" in sql
     assert "btrim(translation_key) = translation_key" in sql
+    assert r"product_key !~ e'^\\s|\\s$'" in sql
+    assert r"screen_key !~ e'^\\s|\\s$'" in sql
+    assert r"translation_key !~ e'^\\s|\\s$'" in sql
     assert "drop constraint if exists user_account_preferred_locale_ck" in sql
     for locale in EXPECTED_LOCALES:
         assert f"'{locale}'" in sql
