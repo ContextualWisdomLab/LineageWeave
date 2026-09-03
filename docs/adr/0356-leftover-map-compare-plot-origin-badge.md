@@ -1,6 +1,6 @@
 # ADR 0356 — Name leftover-map origin on leftover-map comparison graphic independently of leftover-map graphic leftover-map origin
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-09-03
 
 Amends leftover-map origin on leftover-map graphic independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates

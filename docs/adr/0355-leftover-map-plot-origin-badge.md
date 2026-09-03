@@ -1,12 +1,9 @@
 # ADR 0355 — Name leftover-map origin on leftover-map graphic independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-09-03
 
-**Amended by:** [ADR 0356](0356-leftover-map-compare-plot-origin-badge.md)
-(leftover-map origin on leftover-map comparison graphic independently of leftover-map graphic leftover-map origin)
-
-Amends leftover-map origin on leftover-map comparison leftover-pair leftover-map criterion leftover-map item coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates
+Amends leftover-map origin on leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates
 ([ADR 0354](0354-leftover-map-compare-list-criterion-origin-badge.md)). Independent of leftover-map graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
 ([ADR 0343](0343-leftover-map-plot-tick-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
 ([ADR 0346](0346-leftover-map-axis-tick-origin-badge.md)). Independent of leftover-map
