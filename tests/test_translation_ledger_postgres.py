@@ -135,6 +135,8 @@ def test_postgres_rejects_padded_translation_resource_identity() -> None:
         for product_key, screen_key in (
             ("lineageweave ", "customer-master"),
             ("lineageweave", " customer-master"),
+            ("lineageweave\t", "customer-master"),
+            ("lineageweave", "\ncustomer-master"),
         ):
             await _assert_postgres_error(
                 connection.execute(
@@ -163,7 +165,7 @@ def test_postgres_rejects_padded_required_translation_key_identity() -> None:
             """
         )
         assert isinstance(resource_id, int)
-        for translation_key in (" title", "title "):
+        for translation_key in (" title", "title ", "\ttitle", "title\n"):
             await _assert_postgres_error(
                 connection.execute(
                     """
