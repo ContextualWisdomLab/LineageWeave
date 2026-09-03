@@ -151,6 +151,34 @@ def test_postgres_rejects_padded_translation_resource_identity() -> None:
     asyncio.run(_run_with_translation_db(scenario))
 
 
+def test_postgres_rejects_padded_required_translation_key_identity() -> None:
+    """Required screen-copy identifiers cannot differ only by edge whitespace."""
+
+    async def scenario(connection: asyncpg.Connection) -> None:
+        resource_id = await connection.fetchval(
+            """
+            insert into ui_translation_resource(product_key, screen_key, resource_version)
+            values ('lineageweave', 'customer-master', 1)
+            returning resource_id
+            """
+        )
+        assert isinstance(resource_id, int)
+        for translation_key in (" title", "title "):
+            await _assert_postgres_error(
+                connection.execute(
+                    """
+                    insert into ui_translation_key(resource_id, translation_key)
+                    values ($1, $2)
+                    """,
+                    resource_id,
+                    translation_key,
+                ),
+                sqlstate="23514",
+            )
+
+    asyncio.run(_run_with_translation_db(scenario))
+
+
 def test_postgres_translation_resource_identity_is_immutable_after_creation() -> None:
     """A reviewed draft cannot be retargeted to another product, screen, or version."""
 
