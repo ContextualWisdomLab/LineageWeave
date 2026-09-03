@@ -244,7 +244,6 @@ def test_postgres_publication_fails_closed_when_one_locale_is_missing() -> None:
                 message_fragment="incomplete",
             )
         finally:
-            if transaction.is_active:
-                await transaction.rollback()
+            await transaction.rollback()
 
     asyncio.run(_run_with_translation_db(scenario))
