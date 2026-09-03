@@ -23,6 +23,7 @@ class FakeConnection:
     def __init__(self, rows: list[dict[str, object]]) -> None:
         self.rows = rows
         self.calls: list[tuple[object, ...]] = []
+        self.is_acquired = False
 
     async def fetch(self, *args: object) -> list[dict[str, object]]:
         """Record one SQL call and return the configured rows."""
@@ -37,11 +38,13 @@ class FakeAcquire:
         self.connection = connection
 
     async def __aenter__(self) -> FakeConnection:
-        """Return the configured connection."""
+        """Return the configured connection and expose its lease state."""
+        self.connection.is_acquired = True
         return self.connection
 
     async def __aexit__(self, *_args: object) -> None:
-        """Leave the fake acquisition without suppressing exceptions."""
+        """Release the fake lease without suppressing exceptions."""
+        self.connection.is_acquired = False
         return None
 
 
@@ -80,6 +83,19 @@ class FakeCache:
         if self.fail_set:
             raise RedisError("cache write unavailable")
         self.set_calls.append((key, value, ex))
+
+
+class LeaseCheckingCache(FakeCache):
+    """Reject cache reads that pin a PostgreSQL connection across Valkey I/O."""
+
+    def __init__(self, pool: FakePool, payload: str | bytes | None) -> None:
+        super().__init__(payload)
+        self.pool = pool
+
+    async def get(self, key: str) -> str | bytes | None:
+        """Require the database lease to be released before external cache I/O."""
+        assert not self.pool.connection.is_acquired, "Valkey read must not hold a PostgreSQL pool lease"
+        return await super().get(key)
 
 
 def _rows(*, body: str | None = "No customers", version: int = 7) -> list[dict[str, object]]:
@@ -132,6 +148,35 @@ def test_explicit_immutable_version_cache_hit_requires_authoritative_keyset() ->
     assert result.translations["title"] == "Customer master"
     assert pool.acquire_count == 1
     assert len(pool.connection.calls) == 1
+
+
+def test_explicit_cache_read_releases_postgres_pool_lease_before_valkey_io() -> None:
+    """Slow cache I/O cannot pin scarce PostgreSQL pool capacity."""
+    payload = json.dumps(
+        {
+            "product_key": "lineageweave",
+            "screen_key": "customer-master",
+            "resource_version": 7,
+            "locale": "en",
+            "translations": {"title": "Customer master", "body": "No customers"},
+        }
+    )
+    pool = FakePool(_rows())
+    cache = LeaseCheckingCache(pool, payload)
+
+    result = asyncio.run(
+        read_translation_screen(
+            pool,  # type: ignore[arg-type]
+            cache,
+            product_key="lineageweave",
+            screen_key="customer-master",
+            locale="en",
+            resource_version=7,
+        )
+    )
+
+    assert result.translations["body"] == "No customers"
+    assert pool.acquire_count == 1
 
 
 def test_malformed_or_mismatched_cache_falls_back_to_postgres() -> None:
