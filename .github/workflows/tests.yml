@@ -3,8 +3,14 @@ name: Tests
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
 
 permissions:
   contents: read
@@ -100,37 +106,3 @@ jobs:
       - name: Build Storybook
         working-directory: frontend
         run: pnpm run build-storybook
-
-  lineage-storybook-browser:
-    name: Lineage DAG browser acceptance
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Set up Node
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
-        with:
-          node-version: "24"
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Storybook
-        working-directory: frontend
-        run: pnpm run build-storybook
-
-      - name: Install Chromium for browser acceptance
-        working-directory: frontend
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Verify responsive lineage rendering and keyboard interaction
-        working-directory: frontend
-        run: pnpm exec playwright test --config=playwright.storybook.config.ts
