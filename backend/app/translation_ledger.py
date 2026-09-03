@@ -139,9 +139,15 @@ def validate_ui_locale(locale: str) -> str:
 
 
 def _validate_identity_segment(value: str, *, field_name: str) -> str:
-    """Reject non-string, blank, padded, or delimiter-bearing identity segments."""
+    """Reject identity segments that cannot map exactly to PostgreSQL UTF-8 text."""
     if not isinstance(value, str):
         raise ValueError(f"{field_name} must be a string")
+    if "\x00" in value:
+        raise ValueError(f"{field_name} must be representable as PostgreSQL UTF-8 text")
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise ValueError(f"{field_name} must be representable as PostgreSQL UTF-8 text") from exc
     normalized = value.strip(_UI_WHITESPACE)
     if normalized != value:
         raise ValueError(f"{field_name} must not contain leading or trailing whitespace")
