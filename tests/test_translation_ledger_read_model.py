@@ -240,6 +240,36 @@ def test_incomplete_exact_cache_falls_back_to_authoritative_postgres() -> None:
     assert len(pool.connection.calls) == 2
 
 
+def test_complete_but_poisoned_exact_cache_falls_back_to_authoritative_postgres() -> None:
+    """Matching cache identity and key coverage cannot make altered copy authoritative."""
+    payload = json.dumps(
+        {
+            "product_key": "lineageweave",
+            "screen_key": "customer-master",
+            "resource_version": 7,
+            "locale": "en",
+            "translations": {"title": "Tampered customer master", "body": "No customers"},
+        }
+    )
+    pool = FakePool(_rows())
+    cache = FakeCache(payload)
+
+    result = asyncio.run(
+        read_translation_screen(
+            pool,  # type: ignore[arg-type]
+            cache,
+            product_key="lineageweave",
+            screen_key="customer-master",
+            locale="en",
+            resource_version=7,
+        )
+    )
+
+    assert result.translations == {"body": "No customers", "title": "Customer master"}
+    assert pool.acquire_count == 2
+    assert len(pool.connection.calls) == 2
+
+
 def test_cache_read_or_write_failure_does_not_replace_postgres_authority() -> None:
     """Valkey failure degrades to a PostgreSQL read rather than a user-visible failure."""
     for cache in (FakeCache(fail_get=True), FakeCache(fail_set=True)):
