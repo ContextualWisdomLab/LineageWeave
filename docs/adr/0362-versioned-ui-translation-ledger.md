@@ -41,7 +41,7 @@ Rejected. In-place mutation destroys the evidence needed to reproduce what a buy
 
 ### Allow padded resource identifiers and normalize only in the reader
 
-Rejected. Raw PostgreSQL uniqueness would then distinguish identities that the application/cache boundary collapses with `strip()`, permitting unreachable resources and violating the aggregate identity invariant.
+Rejected. Raw PostgreSQL uniqueness would then distinguish identities that the application/cache boundary collapses, permitting unreachable resources and violating the aggregate identity invariant. Caller-provided padded identities are rejected rather than silently rewritten to another canonical identity.
 
 ### Preserve a caller-supplied publication timestamp
 
@@ -63,7 +63,7 @@ Selected. It gives the read model a stable aggregate identity, keeps copy owners
 
 `ui_translation_resource` is the aggregate root identified by `(product_key, screen_key, resource_version)`. A resource starts as `draft`; publication is a one-way transition. `ui_translation_key` declares the screen's required keys. `ui_translation_text` supplies one nonblank value for each `(resource_id, translation_key, locale)`.
 
-The schema remains in 3NF: resource version metadata, required keys, and localized values are separate relations. The database enforces unique resource versions and unique localized values. `product_key` and `screen_key` must already equal their `btrim(...)` values, matching the application boundary that canonicalizes caller input before lookup/cache identity construction. Publication rejects an empty key set or any missing member of the required key × eight-locale matrix. On the draft-to-published transition the trigger assigns `published_at := statement_timestamp()` unconditionally, so the immutable receipt is produced by the publication statement rather than caller input or transaction-start time. Once published, the root and all child rows are immutable.
+The schema remains in 3NF: resource version metadata, required keys, and localized values are separate relations. The database enforces unique resource versions and unique localized values. `product_key` and `screen_key` must already equal their `btrim(...)` values, matching the application boundary that rejects noncanonical caller spellings before lookup/cache identity construction. Publication rejects an empty key set or any missing member of the required key × eight-locale matrix. On the draft-to-published transition the trigger assigns `published_at := statement_timestamp()` unconditionally, so the immutable receipt is produced by the publication statement rather than caller input or transaction-start time. Once published, the root and all child rows are immutable.
 
 Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. Publication already locks the resource row through its update. Therefore publication and child mutation are serialized: either the child change commits before the completeness scan, or it observes the published state and is rejected. Child rows may not be re-parented between resources.
 
@@ -97,6 +97,8 @@ Published translation data is not destructively down-migrated. A bad published r
 - Verification-contract alignment `f666a5b12b9ddd0bbef040c238ef541ec1fa1af1`: cache-hit and fallback tests assert one authoritative key-set query and reject partial cached projections.
 - RED `d75d0a963319ca1b353346092f44095010f5756a`: the migration contract requires PostgreSQL `product_key` and `screen_key` to equal their trimmed canonical forms.
 - Repair `d4d03da3835cf0722d707738c095386d5ed258b8`: migration 0246 rejects padded aggregate identities so database uniqueness and application/cache identity semantics cannot diverge.
+- Application-boundary RED `527abd6dd2527ebc932583bd17c10019c12aaa4c`: padded `product_key` / `screen_key` inputs must fail instead of being normalized to a different persisted/cache identity.
+- Application-boundary repair `66ff153246443a686f53706dd165fc9795c6f197`: `_validate_identity_segment()` now rejects leading/trailing whitespace before lookup or cache-key construction, matching the database invariant.
 - RED `c60693dd8bdea620b029c16c127d214f98eacdaf`: the migration contract requires a database-owned publication timestamp rather than a caller-preserved value.
 - Repair `5973bbb8b029e962793a68f127dfcc96584dbbcd`: publication stopped preserving caller-supplied timestamps.
 - PostgreSQL verification `d982d2658792087f107d81f28becf37af557e2d4`: the repository's real PostgreSQL path now exercises canonical identity, immutable database-owned publication receipts, and eight-locale completeness against the actual migrations.
