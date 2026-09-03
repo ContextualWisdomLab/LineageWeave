@@ -25,3 +25,14 @@ def test_release_publication_rechecks_immutability_and_tag_identity_at_publish_b
         assert "immediately before publish" in text, path
         assert "recheck" in text, path
         assert "tag" in text and "source sha" in text, path
+
+
+def test_annotated_release_tag_is_peeled_to_the_exact_source_commit() -> None:
+    """Do not compare an annotated tag-object SHA directly with the source commit SHA."""
+    for path in (_ADR, _RELEASE_GUIDE):
+        text = path.read_text(encoding="utf-8").lower()
+        assert "annotated tag" in text, path
+        assert "tag object" in text, path
+        assert "peel" in text, path
+        assert "type `commit`" in text, path
+        assert "exact protected source sha" in text, path
