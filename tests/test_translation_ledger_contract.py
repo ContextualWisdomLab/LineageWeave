@@ -78,6 +78,15 @@ def test_translation_completeness_returns_only_requested_screen_keys() -> None:
     ) == {"title": "Customer master", "empty-state": "No customers"}
 
 
+def test_exact_cache_admission_is_bound_to_postgres_text_digests() -> None:
+    """Hosted tests preserve PostgreSQL value authority even without a local database."""
+    source = (ROOT / "backend" / "app" / "translation_ledger.py").read_text(encoding="utf-8")
+    assert "sha256(convert_to(translation_text.translated_text, 'UTF8'))" in source
+    assert "translated_text_sha256" in source
+    assert "_matches_authoritative_text_digests" in source
+    assert 'hashlib.sha256(value.encode("utf-8")).hexdigest()' in source
+
+
 def test_migration_normalizes_versioned_resources_and_expands_member_locale() -> None:
     """PostgreSQL owns versioned resources while member locale accepts all eight values."""
     sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
