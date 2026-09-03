@@ -35,6 +35,16 @@ LGPL-family `psycopg2-binary` dependency. PR #911 owns its replacement and the
 reproducible lockfile migration. Release work must consume that merged,
 license-clean protected result; it must not waive or suppress the inventory.
 
+GitHub's immutable-release setting is a separate repository/organization
+control from artifact attestation. GitHub documents that a published immutable
+release locks the associated tag and assets, and automatically creates a
+release attestation. It also exposes an authenticated repository endpoint,
+`GET /repos/{owner}/{repo}/immutable-releases`, that returns success only when
+release immutability is enabled. The release caller therefore needs an
+administrative read-only preflight credential isolated from pull-request and
+build execution; absence of that credential or an unsuccessful preflight is a
+release-admission failure, not a reason to publish a mutable release.
+
 ## Decision
 
 1. LineageWeave owns the product-local release caller: release readiness,
@@ -68,20 +78,32 @@ license-clean protected result; it must not waive or suppress the inventory.
    inert handoff before any OIDC token or attestation permission becomes
    available.
 7. Immutable publication occurs only after the exact artifact set has passed
-   canonical attestation verification. The release job creates the tag against
-   the already-verified protected source SHA and creates a non-draft,
-   non-prerelease GitHub Release without overwriting an existing tag, asset or
-   version. A failed or partial publication is an incident, not permission to
-   mutate previously published bytes under the same identity.
-8. Reproducibility is tested by rebuilding the wheel and source distribution
+   canonical attestation verification and repository release immutability has
+   been independently admitted. Before tag creation or Release publication, a
+   trusted preflight calls `GET /repos/{owner}/{repo}/immutable-releases` with
+   the minimum GitHub Administration (read) permission. Only an authenticated
+   success response that confirms `enabled: true` is admissible. A 404,
+   permission failure, transport/API failure, malformed response, or any result
+   that does not confirm `enabled: true` must fail closed before tag creation.
+   The preflight credential is unavailable to pull-request and unprivileged
+   build jobs.
+8. After that preflight, the release job creates the release-specific tag
+   against the already-verified protected source SHA, creates a draft GitHub
+   Release, attaches the complete verified asset set, and publishes the draft
+   as the immutable non-prerelease release. This follows GitHub's documented
+   immutable-release publication sequence so all assets are present before
+   publication locks the release. It must not overwrite an existing tag, asset
+   or version. A failed or partial publication is an incident, not permission
+   to mutate previously published bytes under the same identity.
+9. Reproducibility is tested by rebuilding the wheel and source distribution
    from the same protected source under the reviewed toolchain and comparing
    the release contract's declared deterministic subjects. Any known
    nondeterministic field must be removed or normalized by source/tooling
    repair; it is not excluded from comparison merely to obtain GREEN.
-9. Rollback restores a previously reviewed workflow revision and produces new
-   artifacts from a new protected commit/version. It does not move an existing
-   release tag or reuse an old attestation for different bytes.
-10. Package-registry publication is not inferred from a GitHub Release. If a
+10. Rollback restores a previously reviewed workflow revision and produces new
+    artifacts from a new protected commit/version. It does not move an existing
+    release tag or reuse an old attestation for different bytes.
+11. Package-registry publication is not inferred from a GitHub Release. If a
     registry such as PyPI is adopted, its protected environment, trusted
     publishing identity, independent review policy and immutable-version
     behavior require a separate accepted decision before credentials or
@@ -104,7 +126,12 @@ GREEN requires all of the following on one unchanged protected source SHA:
   evidence handoff without credentialed execution of pull-request source;
 - the canonical reusable verifies and attests the exact returned artifact
   receipt and exact wheel/sdist subjects;
+- a trusted preflight calls `GET /repos/{owner}/{repo}/immutable-releases`
+  before tag creation and confirms `enabled: true`; missing administrative-read
+  capability or any non-confirming result must fail closed;
 - a clean rebuild proves the declared reproducibility contract;
+- the complete verified asset set is attached to a draft GitHub Release before
+  that draft is published as the immutable release;
 - release notes, version, protected source SHA, tag, distributions, SBOMs,
   attestations and immutable GitHub Release are mutually consistent; and
 - rollback/incident instructions are exercised against synthetic release
@@ -126,11 +153,19 @@ Rejected. The outer receipt protects the exact same-run transport handoff.
 The circularity is an owner-contract modeling defect; weakening digest binding
 in a consumer is not a causal repair.
 
+### Publish without proving GitHub release immutability is enabled
+
+Rejected. A release whose tag or assets remain mutable does not meet this
+ADR's buyer-visible integrity claim. Failure to read the setting is also not
+proof that the setting is enabled, so the publication path fails closed rather
+than assuming repository configuration.
+
 ### Publish a GitHub Release first and attach evidence later
 
 Rejected. Buyers would observe a release identity before its exact artifact,
-SBOM and provenance evidence was complete. Partial evidence cannot be promoted
-as immutable release readiness.
+SBOM and provenance evidence was complete. GitHub's immutable-release guidance
+also recommends attaching assets to a draft and publishing only after the
+asset set is complete.
 
 ### Wait for a package registry before creating any release boundary
 
@@ -143,6 +178,11 @@ publication can be added later behind its own protected decision.
 - The central reusable contract can change while `.github#1782` is repaired.
   LineageWeave must inspect the protected implementation and pin its exact SHA;
   no branch-name or mutable `main` reference is acceptable in release code.
+- The immutable-release status endpoint requires administrative read access.
+  That capability must be provisioned to the trusted release admission step
+  only; it must not expand permissions for tests, builds, pull requests or the
+  canonical attestation reusable. If it cannot be provisioned, publication
+  remains RED.
 - Reproducible Python distributions may expose timestamps, archive ordering or
   backend metadata that require causal build-system repair. A mismatch remains
   RED until explained and removed at the source.
@@ -158,6 +198,13 @@ https://doi.org/10.17487/RFC8259
 
 CycloneDX Core Working Group. (2025). *CycloneDX specification 1.7*.
 OWASP Foundation. https://cyclonedx.org/specification/overview/
+
+GitHub. (2026). *Immutable releases*. GitHub Docs.
+https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
+
+GitHub. (2026). *REST API endpoints for repositories: Check if immutable
+releases are enabled for a repository*. GitHub Docs.
+https://docs.github.com/en/rest/repos/repos
 
 GitHub. (2026). *Using artifact attestations to establish provenance for
 builds*. GitHub Docs.
