@@ -2851,8 +2851,8 @@ describe("LeftoverMapPlot", () => {
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
     expect(
-      screen.queryByLabelText("leftover map comparison graphic leftover-map origin (0.00, 0.00)"),
-    ).not.toBeInTheDocument();
+      screen.getByLabelText("leftover map comparison graphic leftover-map origin (0.00, 0.00)"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByLabelText("leftover map comparison graphic leftover-map axis 1 tick +0.50"),
     ).not.toBeInTheDocument();

@@ -48,6 +48,8 @@
  *  item coordinates as leftoverMapCompareListCriterionBadge, not this helper.
  *  ADR 0355 names leftover-map graphic leftover-map origin as leftoverMapPlotOriginBadge,
  *  not this helper.
+ *  ADR 0356 names leftover-map comparison graphic leftover-map origin as leftoverMapComparePlotOriginBadge,
+ *  not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";

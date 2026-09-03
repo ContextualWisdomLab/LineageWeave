@@ -1,5 +1,14 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-03 09:55 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. Writes work (git push + REST PR create as seonghobae; GitHub MCP unauthenticated this cycle). Do not
+> self-approve. #920 leftover-map graphic leftover-map origin independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
+> item coordinates (v2.112.0 / ADR 0355) is
+> `3504007`, stacked on #918 @ `a91d2ec`. Independent APPROVE is missing (Devin COMMENT is
+> not APPROVE). This increment: leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin as leftoverMapComparePlotOriginBadge (ADR 0356 / v2.113.0) on
+> `feat/leftover-map-compare-plot-origin-badge-v21130`. Distinct accessible name
+> `leftover map comparison graphic leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapPlotOriginBadge stays leftover-map graphic leftover-map origin keys. leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinate keys. leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map axis origin tick keys. Do not invent leftover-map origin from leftover-map item coordinates `ζ`. Do not mix #877. Do not mix #890 stale ADR 0347 / v2.104.0 identity. Stack onto #920. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE. #96 already closed as weaker duplicate of #91. Next buyer increment after this stack: leftoverMapCompareAxisOriginBadge independently of leftover-map comparison graphic leftover-map origin (ADR 0357 / v2.114.0).
+
 > Exact-head loop overlay: 2026-09-03 09:15 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. Writes work (MCP comment + git push). Do not
 > self-approve. #918 leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map

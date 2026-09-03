@@ -194,6 +194,9 @@
  *  ADR 0355 fail-closes leftover-map graphic leftover-map origin through leftoverMapPlotOriginBadge independently of leftover-map
  *  comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map
  *  axis share, and leftover-map singular values, not leftover-map comparison graphic leftover-map origin.
+ *  ADR 0356 fail-closes leftover-map comparison graphic leftover-map origin through leftoverMapComparePlotOriginBadge independently of leftover-map
+ *  graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates,
+ *  leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values.
  */
 
 import { formatLeftoverMapCoordinatePair, leftoverMapPlotCoordinatePairIsOrigin } from "./leftoverMapCoordinates";

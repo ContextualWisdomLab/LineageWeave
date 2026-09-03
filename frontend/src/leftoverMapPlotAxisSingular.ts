@@ -68,6 +68,10 @@
  *  independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
  *  item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map
  *  singular values.
+ *  ADR 0356 names leftover-map comparison graphic leftover-map origin as leftoverMapComparePlotOriginBadge
+ *  independently of leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map
+ *  criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map
+ *  axis share, and leftover-map singular values.
  */
 
 import type { LeftoverMapAxis } from "./api";
@@ -138,6 +142,9 @@ export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE =
 
 export const LEFTOVER_MAP_PLOT_ORIGIN = "leftover-map origin {origin}";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN =
+  "leftover map comparison graphic leftover-map origin {origin}";
+
 export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR =
   "leftover map comparison leftover axis {axis} σ {value}";
 
@@ -191,6 +198,11 @@ export type LeftoverMapPlotOriginBadge = {
   values: { origin: string };
 };
 
+export type LeftoverMapComparePlotOriginBadge = {
+  key: string;
+  values: { origin: string };
+};
+
 export function leftoverSingularForAxis(
   axes: ReadonlyArray<LeftoverMapPlotAxisSingular> | null | undefined,
   axisIndex: number,
@@ -227,6 +239,14 @@ export function leftoverMapPlotOriginBadge(): LeftoverMapPlotOriginBadge | null 
     return null;
   }
   return { key: LEFTOVER_MAP_PLOT_ORIGIN, values: { origin } };
+}
+
+export function leftoverMapComparePlotOriginBadge(): LeftoverMapComparePlotOriginBadge | null {
+  const origin = formatLeftoverMapCoordinatePair(0, 0);
+  if (origin === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_COMPARE_PLOT_ORIGIN, values: { origin } };
 }
 
 export function leftoverMapPlotAxisBadge(
