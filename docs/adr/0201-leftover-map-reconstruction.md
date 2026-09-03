@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-25
 
+**Amended by:** [ADR 0267](0267-leftover-map-coordinates.md)
+(leftover-map coordinates ξ, ζ)
+
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and
 [ADR 0182](0182-leftover-map-unexplained.md). Independent of landed

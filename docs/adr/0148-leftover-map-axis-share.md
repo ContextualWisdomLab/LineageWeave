@@ -2,6 +2,8 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
+**Amended by:** [ADR 0269](0269-leftover-map-axis-share-plot.md)
+(leftover-map axis share on the graphic display)
 
 ## Context
 
@@ -45,7 +47,9 @@ Rebuild and seed write leftover-map axes in the same transaction as
 leftover pairs. `GET /api/reports/{grouping}/{period}` returns
 `leftover_map_axes` next to `leftover_pairs`. The Period reports panel
 shows leftover-axis share badges and a caption that tells the buyer to
-open a leftover pair. Migration `0169_report_leftover_map_axis.sql`
+open a leftover pair. The leftover-map graphic display captions those
+same leftover-map axes with the persisted share when finite (ADR 0269).
+Migration `0169_report_leftover_map_axis.sql`
 upgrades volumes that already applied `0001`.
 
 ## References
