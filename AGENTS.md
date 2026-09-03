@@ -890,7 +890,11 @@ ADR 0355 captions leftover-map graphic leftover-map origin with leftover-map ori
 returns a leftover-map origin caption independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values. Distinct accessible name
 `leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
 Do not invent leftover-map origin from leftover-map item coordinates `ζ`. leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map
-criterion leftover-map origin leftover-map item coordinate keys. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map axis origin tick keys this increment. leftover-map comparison graphic leftover-map origin stays unnamed this increment.
+criterion leftover-map origin leftover-map item coordinate keys. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map axis origin tick keys this increment.
+ADR 0356 captions leftover-map comparison graphic leftover-map origin with leftover-map origin when leftoverMapComparePlotOriginBadge
+returns a leftover-map origin caption independently of leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values. Distinct accessible name
+`leftover map comparison graphic leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+Do not invent leftover-map origin from leftover-map item coordinates `ζ`. leftoverMapPlotOriginBadge stays leftover-map graphic leftover-map origin keys. leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map axis origin tick keys this increment.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -1090,6 +1094,8 @@ Leftover-map comparison leftover-pair leftover-map criterion leftover-map origin
 (ADR 0354) captions leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates when leftoverMapCompareListCriterionBadge returns a leftover-map origin leftover-map item coordinate caption.
 Leftover-map graphic leftover-map origin independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates
 (ADR 0355) captions leftover-map graphic leftover-map origin when leftoverMapPlotOriginBadge returns a leftover-map origin caption.
+Leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin
+(ADR 0356) captions leftover-map comparison graphic leftover-map origin when leftoverMapComparePlotOriginBadge returns a leftover-map origin caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

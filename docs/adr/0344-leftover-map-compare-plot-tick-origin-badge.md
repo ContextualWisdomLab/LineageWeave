@@ -3,7 +3,7 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
-**Amended by:** [ADR 0345](0345-leftover-map-compare-axis-tick-origin-badge.md)
+**Amended by:** [ADR 0345](0345-leftover-map-compare-axis-tick-origin-badge.md), [ADR 0356](0356-leftover-map-compare-plot-origin-badge.md)
 
 Amends leftover-map coordinate ticks on the grouping comparison leftover-map graphic
 ([ADR 0320](0320-leftover-map-compare-plot-ticks.md)), leftover-map comparison graphic leftover-map axis ticks leftover-map singular values

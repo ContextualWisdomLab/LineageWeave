@@ -158,6 +158,8 @@ export type LeftoverPairListProps = {
  * not this pair list.
  * ADR 0355 captions leftover-map graphic leftover-map origin through leftoverMapPlotOriginBadge,
  * not this pair list.
+ * ADR 0356 captions leftover-map comparison graphic leftover-map origin through leftoverMapComparePlotOriginBadge,
+ * not this pair list.
  * Every badge still
  * renders together before opening the named post.
  */
