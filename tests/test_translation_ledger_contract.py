@@ -41,6 +41,8 @@ def test_cache_identity_rejects_padded_product_and_screen_segments() -> None:
         ("lineageweave", " customer-master"),
         ("lineageweave\t", "customer-master"),
         ("lineageweave", "\ncustomer-master"),
+        ("\u00a0lineageweave", "customer-master"),
+        ("lineageweave", "customer-master\u3000"),
     ):
         with pytest.raises(ValueError, match="leading or trailing whitespace"):
             build_translation_cache_key(product_key, screen_key, 17, "en")
@@ -61,12 +63,13 @@ def test_translation_completeness_fails_closed() -> None:
             {"title": "고객 마스터"},
             locale="ko",
         )
-    with pytest.raises(TranslationCoverageError, match="body"):
-        require_complete_translation_map(
-            ("title", "body"),
-            {"title": "Customer master", "body": "  "},
-            locale="en",
-        )
+    for blank_copy in ("  ", "\u00a0", "\u3000", "\u00a0\u3000"):
+        with pytest.raises(TranslationCoverageError, match="body"):
+            require_complete_translation_map(
+                ("title", "body"),
+                {"title": "Customer master", "body": blank_copy},
+                locale="en",
+            )
 
 
 def test_translation_completeness_returns_only_requested_screen_keys() -> None:
@@ -94,12 +97,12 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
         assert f"create table {table}" in sql or f"create table if not exists {table}" in sql
     assert "unique (product_key, screen_key, resource_version)" in sql
     assert "unique (resource_id, translation_key, locale)" in sql
-    assert "btrim(product_key) = product_key" in sql
-    assert "btrim(screen_key) = screen_key" in sql
-    assert "btrim(translation_key) = translation_key" in sql
-    assert r"product_key !~ e'^\\s|\\s$'" in sql
-    assert r"screen_key !~ e'^\\s|\\s$'" in sql
-    assert r"translation_key !~ e'^\\s|\\s$'" in sql
+    assert "product_key <> ''" in sql
+    assert "screen_key <> ''" in sql
+    assert "translation_key <> ''" in sql
+    assert "chr(160)" in sql
+    assert "chr(12288)" in sql
+    assert r"!~ e'^\\s|\\s$'" not in sql
     assert "drop constraint if exists user_account_preferred_locale_ck" in sql
     for locale in EXPECTED_LOCALES:
         assert f"'{locale}'" in sql
@@ -110,7 +113,11 @@ def test_database_rejects_whitespace_only_translation_copy() -> None:
     sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
     text_table = sql.split("create table if not exists ui_translation_text", 1)[1]
     text_table = text_table.split("create index if not exists", 1)[0]
-    assert r"translated_text !~ e'^\\s*$'" in text_table
+    assert "btrim(" in text_table
+    assert "translated_text" in text_table
+    assert "chr(160)" in text_table
+    assert "chr(12288)" in text_table
+    assert r"!~ e'^\\s*$'" not in text_table
 
 
 def test_translation_resource_aggregate_identity_is_immutable_after_insert() -> None:
