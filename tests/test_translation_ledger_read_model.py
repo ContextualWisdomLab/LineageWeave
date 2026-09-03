@@ -163,6 +163,35 @@ def test_malformed_or_mismatched_cache_falls_back_to_postgres() -> None:
         assert pool.acquire_count == 1
 
 
+def test_incomplete_exact_cache_falls_back_to_authoritative_postgres() -> None:
+    """A correct cache identity cannot hide a missing published screen key."""
+    payload = json.dumps(
+        {
+            "product_key": "lineageweave",
+            "screen_key": "customer-master",
+            "resource_version": 7,
+            "locale": "en",
+            "translations": {"title": "Customer master"},
+        }
+    )
+    pool = FakePool(_rows())
+    cache = FakeCache(payload)
+
+    result = asyncio.run(
+        read_translation_screen(
+            pool,  # type: ignore[arg-type]
+            cache,
+            product_key="lineageweave",
+            screen_key="customer-master",
+            locale="en",
+            resource_version=7,
+        )
+    )
+
+    assert result.translations == {"body": "No customers", "title": "Customer master"}
+    assert pool.acquire_count == 1
+
+
 def test_cache_read_or_write_failure_does_not_replace_postgres_authority() -> None:
     """Valkey failure degrades to a PostgreSQL read rather than a user-visible failure."""
     for cache in (FakeCache(fail_get=True), FakeCache(fail_set=True)):
