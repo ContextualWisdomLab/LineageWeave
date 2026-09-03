@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-_ADR = _REPOSITORY_ROOT / "docs" / "adr" / "0358-immutable-release-supply-chain-boundary.md"
+_ADR = _REPOSITORY_ROOT / "docs" / "adr" / "0361-immutable-release-supply-chain-boundary.md"
 _RELEASE_GUIDE = _REPOSITORY_ROOT / "docs" / "release.md"
 _IMMUTABILITY_ENDPOINT = "GET /repos/{owner}/{repo}/immutable-releases"
 
