@@ -19,7 +19,8 @@ this document's implementation scope:
   not copy or weaken that trust boundary locally.
 
 A queued workflow, a predecessor-head success, a locally built wheel, a tag
-without exact evidence, or a draft release does not satisfy this contract.
+without exact evidence, a mutable GitHub release, or an unpublished draft
+release does not satisfy this contract.
 
 ## Release sequence
 
@@ -52,21 +53,32 @@ without exact evidence, or a draft release does not satisfy this contract.
    an immutable reviewed commit SHA. The central verifier must independently
    bind the same run, source SHA, outer receipt, inner checksums and exact
    wheel/sdist subjects before its credentialed attestation job runs.
-10. Only after trusted verification succeeds, create the annotated release tag
-    against the verified source SHA and publish a non-draft, non-prerelease
-    GitHub Release with the verified distributions, SBOM/provenance evidence,
-    checksum material and release notes. Never move an existing release tag or
-    overwrite published bytes under an existing version.
-11. Fetch the published release back through GitHub's API, verify tag/source
-    identity and asset digests against the sealed evidence, and retain this
-    post-publication receipt as release evidence.
+10. Before tag creation or Release publication, use a trusted admission step to
+    call `GET /repos/{owner}/{repo}/immutable-releases` with only the GitHub
+    Administration (read) capability required by that endpoint. Continue only
+    when the authenticated response confirms `enabled: true`. A 404,
+    permission error, transport/API error, malformed response, or any other
+    non-confirming result must fail closed. This credential is not exposed to
+    pull-request or unprivileged build execution.
+11. After trusted verification and the immutability preflight both succeed,
+    create the annotated release-specific tag against the verified source SHA,
+    create a draft GitHub Release, and attach the complete verified
+    distributions, SBOM/provenance evidence, checksum material and release
+    notes. Do not publish an incomplete asset set.
+12. Publish that fully populated draft as the non-prerelease immutable GitHub
+    Release. Never move an existing release tag or overwrite published bytes
+    under an existing version.
+13. Fetch the published release back through GitHub's API, verify tag/source
+    identity, immutable-release state and asset digests against the sealed
+    evidence, and retain this post-publication receipt as release evidence.
 
 ## Failure and rollback
 
-A failure before publication leaves no release identity to repair in place.
-Preserve the run ID, exact source SHA, logs and any sealed evidence needed for
-RCA, fix source/configuration through a normal protected PR, and start again
-from a new exact candidate.
+A failure before publication leaves no valid release identity to repair in
+place. In particular, an immutability preflight failure stops before tag
+creation. Preserve the run ID, exact source SHA, logs and any sealed evidence
+needed for RCA, fix source/configuration through a normal protected PR, and
+start again from a new exact candidate.
 
 If an already-published artifact or attestation is found invalid, preserve the
 forensic evidence and identify affected subjects before any revocation or
@@ -80,14 +92,18 @@ attestation for new bytes.
 
 Checks, reviews, package builds, SBOMs, attestations, browser evidence and
 release receipts belong to the exact head/artifact they evaluated. A source
-commit, dependency lock, release workflow, reusable-workflow pin or artifact
-byte change invalidates predecessor evidence and requires fresh verification.
+commit, dependency lock, release workflow, reusable-workflow pin, repository
+immutability setting or artifact byte change invalidates predecessor evidence
+and requires fresh verification.
 
 ## Owner boundaries
 
 LineageWeave owns release orchestration for its own package and buyer-visible
 release receipt. `ContextualWisdomLab/.github` owns the credentialed reusable
-attestation policy. Provider/model execution remains owned by
-`contextual-orchestrator`; statistical/psychometric engines and their release
-truth remain with their canonical owners. No release step copies those owners'
-source or treats a mutable sibling branch as a production dependency.
+attestation policy. The trusted release-admission step may receive only the
+administrative read capability needed to prove repository release immutability;
+that capability is not a build, pull-request, attestation-policy or provider
+credential. Provider/model execution remains owned by `contextual-orchestrator`;
+statistical/psychometric engines and their release truth remain with their
+canonical owners. No release step copies those owners' source or treats a
+mutable sibling branch as a production dependency.
