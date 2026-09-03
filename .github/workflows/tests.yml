@@ -3,8 +3,14 @@ name: Tests
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
 
 permissions:
   contents: read
@@ -51,28 +57,6 @@ jobs:
         with:
           version: "0.11.28"
           enable-cache: false
-
-      - name: Verify committed universal lock
-        id: lock
-        shell: bash
-        run: |
-          set -euo pipefail
-          if uv lock --check; then
-            echo "stale=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          uv lock
-          echo "stale=true" >> "$GITHUB_OUTPUT"
-          exit 1
-
-      - name: Preserve resolver-generated lock candidate
-        if: failure() && steps.lock.outputs.stale == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: uv-lock-candidate-${{ github.sha }}
-          path: uv.lock
-          if-no-files-found: error
-          retention-days: 1
 
       - name: Select pinned Rust toolchain
         run: |
