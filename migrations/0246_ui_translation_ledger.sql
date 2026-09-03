@@ -37,7 +37,10 @@ create table if not exists ui_translation_resource (
 
 create table if not exists ui_translation_key (
     resource_id bigint not null references ui_translation_resource(resource_id) on delete cascade,
-    translation_key text not null check (btrim(translation_key) <> ''),
+    translation_key text not null check (
+        btrim(translation_key) <> ''
+        and btrim(translation_key) = translation_key
+    ),
     primary key (resource_id, translation_key)
 );
 
