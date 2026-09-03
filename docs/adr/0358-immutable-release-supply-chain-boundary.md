@@ -45,6 +45,15 @@ administrative read-only preflight credential isolated from pull-request and
 build execution; absence of that credential or an unsuccessful preflight is a
 release-admission failure, not a reason to publish a mutable release.
 
+GitHub's Git data model also distinguishes an annotated tag reference from the
+commit that the tag names. `refs/tags/<version>` points to a Git tag object;
+that tag object in turn names its target object and target type. A release
+contract that compares the ref's tag-object SHA directly with the protected
+source commit SHA would therefore reject a valid annotated tag or, worse,
+encode the wrong identity rule. The release boundary must peel the annotated
+tag object and admit only a target with type `commit` and the exact protected
+source SHA.
+
 ## Decision
 
 1. LineageWeave owns the product-local release caller: release readiness,
@@ -87,21 +96,27 @@ release-admission failure, not a reason to publish a mutable release.
    that does not confirm `enabled: true` must fail closed before tag creation.
    The preflight credential is unavailable to pull-request and unprivileged
    build jobs.
-8. After that preflight, the release job creates the release-specific tag
-   against the already-verified protected source SHA, creates a draft GitHub
-   Release, and attaches the complete verified asset set. Immediately before
-   publish, the trusted release boundary must recheck
-   `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve that tag. The
-   repository must still report `enabled: true`, and the tag must still resolve
-   to the exact protected source SHA admitted for the release. Any setting
-   change, lookup/API failure, malformed response, missing tag, or tag/source
-   SHA mismatch must fail closed while the draft remains unpublished. Only
-   after this second admission may the draft be published as the immutable
-   non-prerelease release. This closes the time-of-check/time-of-use interval
-   between the initial immutability admission and publication. It must not
-   overwrite an existing tag, asset or version. A failed or partial publication
-   is an incident, not permission to mutate previously published bytes under
-   the same identity.
+8. After that preflight, the release job creates an annotated tag object whose
+   target type is `commit` and whose target SHA is the exact protected source
+   SHA admitted for the release, then creates `refs/tags/<version>` pointing to
+   that tag object. Lightweight tags, tree/blob targets, existing refs, or a
+   tag object targeting any other commit are inadmissible. The job then creates
+   a draft GitHub Release and attaches the complete verified asset set.
+   Immediately before publish, the trusted release boundary must recheck
+   `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve the tag. For
+   the annotated tag, the ref's object SHA is the tag-object SHA, not the source
+   commit SHA; the boundary must fetch that tag object and peel its target,
+   require target type `commit`, and compare the peeled commit SHA with the
+   exact protected source SHA. It must never compare the tag-object SHA itself
+   with the source commit SHA. Any setting change, lookup/API failure,
+   malformed response, missing ref/tag object, unexpected target type, or
+   peeled commit/source SHA mismatch must fail closed while the draft remains
+   unpublished. Only after this second admission may the draft be published as
+   the immutable non-prerelease release. This closes the
+   time-of-check/time-of-use interval between the initial immutability admission
+   and publication. It must not overwrite an existing tag, asset or version. A
+   failed or partial publication is an incident, not permission to mutate
+   previously published bytes under the same identity.
 9. Reproducibility is tested by rebuilding the wheel and source distribution
    from the same protected source under the reviewed toolchain and comparing
    the release contract's declared deterministic subjects. Any known
@@ -136,12 +151,15 @@ GREEN requires all of the following on one unchanged protected source SHA:
 - a trusted preflight calls `GET /repos/{owner}/{repo}/immutable-releases`
   before tag creation and confirms `enabled: true`; missing administrative-read
   capability or any non-confirming result must fail closed;
+- the release-specific ref points to an annotated tag object whose target type
+  is `commit` and whose peeled target is the exact protected source SHA; direct
+  comparison of the tag-object SHA with the source commit SHA is forbidden;
 - a clean rebuild proves the declared reproducibility contract;
 - the complete verified asset set is attached to a draft GitHub Release;
 - immediately before publish, the trusted boundary must recheck repository
-  immutability and prove the release tag still resolves to the same protected
-  source SHA; any non-confirming result must fail closed with the draft
-  unpublished;
+  immutability and repeat the annotated-tag peel to prove the release tag still
+  reaches the same exact protected source SHA; any non-confirming result must
+  fail closed with the draft unpublished;
 - release notes, version, protected source SHA, tag, distributions, SBOMs,
   attestations and immutable GitHub Release are mutually consistent; and
 - rollback/incident instructions are exercised against synthetic release
@@ -170,6 +188,12 @@ ADR's buyer-visible integrity claim. Failure to read the setting is also not
 proof that the setting is enabled, so the publication path fails closed rather
 than assuming repository configuration.
 
+### Compare an annotated tag ref SHA directly with the source commit SHA
+
+Rejected. For an annotated tag, the ref names a Git tag object rather than the
+source commit. The trusted boundary must peel the tag object, require target
+type `commit`, and compare that target SHA with the admitted source SHA.
+
 ### Publish a GitHub Release first and attach evidence later
 
 Rejected. Buyers would observe a release identity before its exact artifact,
@@ -197,6 +221,10 @@ publication can be added later behind its own protected decision.
   immutable release is published. A single early preflight therefore has a
   time-of-check/time-of-use window; both are revalidated immediately before
   publish and any drift leaves the draft unpublished.
+- An annotated tag ref exposes a tag-object SHA. Implementations that skip the
+  tag-object lookup can either produce a false mismatch or validate the wrong
+  identity. Current-head tests must exercise annotated-tag success plus missing,
+  non-commit-target and wrong-commit failures before release code can be GREEN.
 - Reproducible Python distributions may expose timestamps, archive ordering or
   backend metadata that require causal build-system repair. A mismatch remains
   RED until explained and removed at the source.
@@ -219,6 +247,12 @@ https://docs.github.com/en/code-security/concepts/supply-chain-security/immutabl
 GitHub. (2026). *REST API endpoints for repositories: Check if immutable
 releases are enabled for a repository*. GitHub Docs.
 https://docs.github.com/en/rest/repos/repos
+
+GitHub. (2026). *REST API endpoints for Git references*. GitHub Docs.
+https://docs.github.com/en/rest/git/refs
+
+GitHub. (2026). *REST API endpoints for Git tags*. GitHub Docs.
+https://docs.github.com/en/rest/git/tags
 
 GitHub. (2026). *Using artifact attestations to establish provenance for
 builds*. GitHub Docs.
