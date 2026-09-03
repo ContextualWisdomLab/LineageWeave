@@ -25,8 +25,8 @@ This ledger is strictly for LineageWeave-owned product UI copy. Ontology labels,
 - Each required `translation_key` is also a canonical identifier: blank or leading/trailing-whitespace forms are rejected by PostgreSQL rather than becoming visually ambiguous distinct keys inside one immutable screen version.
 - PostgreSQL's one-argument `btrim` removes a plain space by default; it is not sufficient to implement the application boundary's broader edge-whitespace rejection. The migration therefore retains the trimmed-space check and separately rejects leading/trailing PostgreSQL regular-expression whitespace for identifiers, and rejects all-whitespace translated copy without trimming valid copy.
 - Cache identity must include product, screen, immutable resource version, and locale.
-- An explicit-version cache hit is admissible only after PostgreSQL confirms the published resource and its exact required screen-key set; structurally valid partial cache payloads are misses.
-- PostgreSQL pool leases must not be held while awaiting optional Valkey I/O. Published resource/key identity is immutable, so cache admission can occur after releasing the key-set query connection and PostgreSQL can be reacquired only on a cache miss or failure.
+- An explicit-version cache hit is admissible only after PostgreSQL confirms the published resource, its exact required screen-key set, and SHA-256 evidence for each requested-locale value. A structurally complete cache payload whose copy does not match that evidence is a miss.
+- PostgreSQL pool leases must not be held while awaiting optional Valkey I/O. Published resource/key/value identity is immutable, so cache admission can occur after releasing the integrity-evidence query connection and PostgreSQL can be reacquired only on a cache miss or failure.
 - Publication must serialize with child key/text mutation so a complete resource cannot become incomplete after the publication check.
 - `published_at` is database-owned evidence of the one-way publication transition. Caller-supplied timestamps are never retained, and a long-lived transaction must not backdate the receipt to its transaction start.
 - The design must stay independent from ontology-label persistence and from another CWL product's domain tables.
@@ -81,9 +81,13 @@ Rejected. PostgreSQL defines `now()` as the transaction-start timestamp. A resou
 
 Rejected. Version identity proves which projection was requested but does not prove that a syntactically valid cache payload still contains every key declared by the published screen resource. A partial cache object could otherwise become product-copy authority.
 
+### Trust a complete cache key set without value evidence
+
+Rejected. Key completeness proves only the shape of the projection. A correctly keyed Valkey entry can still contain altered copy and would then become a second source of truth. The admission query therefore returns PostgreSQL-owned SHA-256 evidence for each requested-locale value; cached UTF-8 copy must reproduce every digest before it can be returned.
+
 ### Hold the PostgreSQL lease while consulting Valkey
 
-Rejected. The key-set query has already established immutable publication identity. Keeping that connection leased across an optional cache network wait adds no consistency guarantee and allows slow Valkey I/O to consume scarce PostgreSQL pool capacity. Explicit-version reads therefore release the first lease before cache I/O and reacquire only for the authoritative text projection on a miss.
+Rejected. The integrity-evidence query has already established immutable publication identity and per-key value evidence. Keeping that connection leased across an optional cache network wait adds no consistency guarantee and allows slow Valkey I/O to consume scarce PostgreSQL pool capacity. Explicit-version reads therefore release the first lease before cache I/O and reacquire only for the authoritative text projection on a miss.
 
 ### Version product-owned screen resources in PostgreSQL
 
@@ -97,7 +101,7 @@ The schema remains in 3NF: resource version metadata, required keys, and localiz
 
 Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. Publication already locks the resource row through its update. Therefore publication and child mutation are serialized: either the child change commits before the completeness scan, or it observes the published state and is rejected. Child rows may not be re-parented between resources.
 
-`read_translation_screen` returns a complete `TranslationScreen` projection whose translation mapping is detached and read-only, so application code cannot mutate product copy while retaining the same immutable published identity. Latest-version reads resolve the complete projection from PostgreSQL so a stale cache alias cannot hide a newer publication. For an explicit immutable version, PostgreSQL first resolves the published resource's ordered required-key set and releases that pool lease. Valkey may then serve `ui-translation:{product}:{screen}:v{resource_version}:{locale}` only when the cached translation-key set exactly equals that authoritative set and all values are nonblank. Malformed, unavailable, identity-mismatched, partial, or extra-key cache entries are misses. On a miss, the reader reacquires PostgreSQL for the localized text projection. This keeps cache reads useful for avoiding localized text-row work without pinning PostgreSQL capacity across cache network I/O or allowing Valkey to decide screen completeness. An unavailable cache never makes a valid PostgreSQL translation unavailable. Cache serialization converts the read-only mapping to a plain JSON object only inside the cache adapter.
+`read_translation_screen` returns a complete `TranslationScreen` projection whose translation mapping is detached and read-only, so application code cannot mutate product copy while retaining the same immutable published identity. Latest-version reads resolve the complete projection from PostgreSQL so a stale cache alias cannot hide a newer publication. For an explicit immutable version, PostgreSQL first resolves the published resource's ordered required-key set plus `encode(sha256(convert_to(translated_text, 'UTF8')), 'hex')` evidence for the requested locale and then releases that pool lease. Valkey may serve `ui-translation:{product}:{screen}:v{resource_version}:{locale}` only when the cached key set exactly equals the authoritative set, all values are nonblank, and every cached UTF-8 value reproduces its PostgreSQL SHA-256 digest. Missing/malformed digest evidence or malformed, unavailable, identity-mismatched, partial, extra-key, or value-mismatched cache entries are misses. On a miss, the reader reacquires PostgreSQL for the localized text projection. This avoids transferring full localized copy on a valid cache hit while keeping PostgreSQL, rather than Valkey, authoritative for both shape and value integrity. PostgreSQL's built-in SHA-256/`convert_to` functions make the evidence independent of `pgcrypto`. An unavailable cache never makes a valid PostgreSQL translation unavailable. Cache serialization converts the read-only mapping to a plain JSON object only inside the cache adapter.
 
 The existing `user_account.preferred_locale` constraint expands to the same eight language tags. API request validation and frontend consumption must be cut over to the same contract before #922 can close; the database/read-model foundation alone is not buyer-visible completion.
 
@@ -108,7 +112,7 @@ The existing `user_account.preferred_locale` constraint expands to the same eigh
 - Aggregate: versioned UI translation resource.
 - Entity/value identity: immutable canonical product/screen/version aggregate identity; canonical required translation key; locale-tagged translated text.
 - Repository boundary: PostgreSQL query in `backend.app.translation_ledger`; Valkey is a cache adapter, not a repository of record.
-- Invariants: immutable aggregate identity after creation, canonical unpadded product/screen/required-key identity across space/tab/newline edge padding, non-whitespace translated copy at database admission, exact eight-locale completeness at publication, database-owned statement-time publication receipt, immutable published versions, read-only `TranslationScreen` value projections, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance, and no PostgreSQL lease held across optional cache I/O.
+- Invariants: immutable aggregate identity after creation, canonical unpadded product/screen/required-key identity across space/tab/newline edge padding, non-whitespace translated copy at database admission, exact eight-locale completeness at publication, database-owned statement-time publication receipt, immutable published versions, read-only `TranslationScreen` value projections, no cross-resource child move, no locale fallback, exact cache identity, PostgreSQL-owned per-key SHA-256 value evidence before cache acceptance, and no PostgreSQL lease held across optional cache I/O.
 - ACL: ontology labels remain external semantic truth and are not stored in these tables.
 
 ## Recovery and migration
@@ -151,6 +155,10 @@ Published translation data is not destructively down-migrated. A bad published r
 - Whitespace-only copy repair `9b42748e9b296a88ed4bc01664945c23c65a720a`: `ui_translation_text` now rejects all-whitespace values while preserving nonblank presentation text exactly.
 - Value-object RED `9f04f097fab7a9da0d9086b29776b01b42f082eb`: both PostgreSQL and exact-version cache-hit paths must reject mutation of the returned translation mapping.
 - Value-object repair `035fbc862caccbd74428021314f534f1b4bce35d`: both construction paths detach translations behind `MappingProxyType`; cache serialization materializes a plain dictionary only at the adapter boundary.
+- Cache-authority RED `ea95121a3bf93c606e2214161941d23bbed53794`: a complete exact-version cache payload with correct identity and key coverage but altered copy must fall back to PostgreSQL.
+- Cache-authority repair `34955985965bef045614cb445b65853760991fb6`: the explicit-version admission query now returns PostgreSQL SHA-256 evidence for each requested-locale value and cached copy must reproduce every digest before return.
+- Read-model verification alignment `1e9d6f984e108f1505e33eb94c56a0b123ace693`: cache-hit fixtures carry the same authoritative digests, while the poisoned complete payload requires a second PostgreSQL acquisition and authoritative copy.
+- Real-PostgreSQL verification `dc5e374bb2e309bd45086b4d928c7cc9a4a0aa22`: migration-backed PostgreSQL executes the exact admission query and proves its built-in UTF-8 SHA-256 output matches the application digest.
 
 These commits are branch evidence only. This ADR remains Proposed until the exact protected-line implementation and dependent API/frontend cutover are verified.
 
@@ -159,5 +167,7 @@ These commits are branch evidence only. This ADR remains Proposed until the exac
 Internet Engineering Task Force. (2009). *Tags for identifying languages (BCP 47 / RFC 5646)*. RFC Editor. https://www.rfc-editor.org/rfc/rfc5646.html
 
 PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 9.4. String functions and operators*. https://www.postgresql.org/docs/18/functions-string.html
+
+PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 9.5. Binary string functions and operators*. https://www.postgresql.org/docs/18/functions-binarystring.html
 
 PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 9.7. Pattern matching*. https://www.postgresql.org/docs/18/functions-matching.html
