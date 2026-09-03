@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 
 import pytest
@@ -98,11 +99,29 @@ class LeaseCheckingCache(FakeCache):
         return await super().get(key)
 
 
+def _text_sha256(value: str | None) -> str | None:
+    """Mirror PostgreSQL SHA-256 evidence for fake asyncpg rows."""
+    if value is None:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def _rows(*, body: str | None = "No customers", version: int = 7) -> list[dict[str, object]]:
     """Build asyncpg-shaped rows for one two-key screen resource."""
+    title = "Customer master"
     return [
-        {"resource_version": version, "translation_key": "body", "translated_text": body},
-        {"resource_version": version, "translation_key": "title", "translated_text": "Customer master"},
+        {
+            "resource_version": version,
+            "translation_key": "body",
+            "translated_text": body,
+            "translated_text_sha256": _text_sha256(body),
+        },
+        {
+            "resource_version": version,
+            "translation_key": "title",
+            "translated_text": title,
+            "translated_text_sha256": _text_sha256(title),
+        },
     ]
 
 
