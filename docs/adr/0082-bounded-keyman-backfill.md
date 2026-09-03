@@ -44,6 +44,10 @@ It will:
   bounded even when a caller bypasses the CLI; larger work is split into
   repeated observable invocations instead of turning one process into an
   effectively unbounded serial crawl;
+- reject a non-default `--limit` unless batch mode is explicitly selected with
+  `--all`. The same cross-field admission applies to direct programmatic calls,
+  so a requested limit cannot be silently ignored by falling back to the
+  default one-post mode. `--post-id` and `--all` remain mutually exclusive;
 - require the programmatic batch-mode selector to be an exact boolean before
   using its truth value, so strings or integer-like transport values cannot
   silently switch a direct call into or out of batch mode;
@@ -70,6 +74,9 @@ route. No analysis-run registry tables are modified.
   auditable operator output. One invocation processes at most 100 posts; larger
   backfills require repeated invocations whose result summaries remain
   independently attributable.
+- An explicit non-default batch size is either honored under `--all` or rejected
+  before external work; it is never accepted and then silently collapsed to a
+  one-post execution.
 - Explicit reruns use one stable textual form for the internal UUID in operator
   logs and LLM metadata; source-system record keys remain separate ADR 0046
   evidence and are never accepted as `--post-id`.
