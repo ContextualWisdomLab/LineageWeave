@@ -81,6 +81,26 @@ GitHub. (n.d.). *REST API endpoints for repositories: Check if immutable
 releases are enabled for a repository*. GitHub Docs. Retrieved September 3,
 2026, from https://docs.github.com/en/rest/repos/repos
 
+### GitHub annotated tag identity
+
+GitHub's Git data APIs distinguish the tag reference from an annotated tag
+object. Creating an annotated tag requires creating a Git tag object and then a
+`refs/tags/<tag>` reference that points to that object. The tag object separately
+records its target object type and target SHA; GitHub documents `commit`,
+`tree`, and `blob` as possible target types for tag-object creation. Therefore a
+trusted release verifier cannot compare the tag ref's object SHA directly with
+the protected source commit SHA. For ADR 0358 the release tag is valid only when
+the ref resolves to the expected annotated tag object, that object has target
+type `commit`, and the peeled target SHA equals the exact protected source SHA.
+Missing refs/tag objects, non-commit targets, and mismatched target SHAs fail
+closed before publication and again during post-publication verification.
+
+GitHub. (n.d.). *REST API endpoints for Git references*. GitHub Docs. Retrieved
+September 3, 2026, from https://docs.github.com/en/rest/git/refs
+
+GitHub. (n.d.). *REST API endpoints for Git tags*. GitHub Docs. Retrieved
+September 3, 2026, from https://docs.github.com/en/rest/git/tags
+
 ### JSON strictness
 
 The canonical `.github` verifier rejects duplicate JSON properties, non-finite
@@ -102,6 +122,8 @@ https://doi.org/10.17487/RFC8259
   attestation documentation;
 - immutable tag/asset admission, publish-boundary revalidation, and draft-first
   publication → GitHub immutable release documentation and repository REST API;
+- annotated-tag ref/object separation and exact source-commit peeling → GitHub
+  Git references and Git tags REST documentation;
 - strict machine-readable evidence intake → RFC 8259 plus the stricter
   canonical `.github` verifier contract;
 - current circular transport-receipt defect → `ContextualWisdomLab/.github#1782`.
