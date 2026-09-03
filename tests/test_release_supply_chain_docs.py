@@ -16,3 +16,12 @@ def test_release_publication_requires_enabled_github_release_immutability() -> N
         assert _IMMUTABILITY_ENDPOINT in text, path
         assert "fail closed" in text.lower(), path
         assert "before tag" in text.lower(), path
+
+
+def test_release_publication_rechecks_immutability_and_tag_identity_at_publish_boundary() -> None:
+    """Close the preflight-to-publish TOCTOU window for immutable release identity."""
+    for path in (_ADR, _RELEASE_GUIDE):
+        text = path.read_text(encoding="utf-8").lower()
+        assert "immediately before publish" in text, path
+        assert "recheck" in text, path
+        assert "tag" in text and "source sha" in text, path
