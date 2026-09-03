@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import uuid
 from collections.abc import Awaitable, Callable
@@ -11,6 +12,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
 import pytest
+
+from backend.app.translation_ledger import _SELECT_REQUIRED_KEYS_SQL
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -333,5 +336,32 @@ def test_postgres_publication_fails_closed_when_one_locale_is_missing() -> None:
             )
         finally:
             await transaction.rollback()
+
+    asyncio.run(_run_with_translation_db(scenario))
+
+
+def test_postgres_required_key_query_returns_authoritative_text_sha256() -> None:
+    """Cache admission evidence uses PostgreSQL's built-in SHA-256 over exact UTF-8 copy."""
+
+    async def scenario(connection: asyncpg.Connection) -> None:
+        resource_id = await _seed_complete_draft(connection, version=5)
+        await connection.execute(
+            """
+            update ui_translation_resource
+               set publication_state = 'published'
+             where resource_id = $1
+            """,
+            resource_id,
+        )
+        rows = await connection.fetch(
+            _SELECT_REQUIRED_KEYS_SQL,
+            "lineageweave",
+            "customer-master",
+            5,
+            "en",
+        )
+        assert len(rows) == 1
+        assert rows[0]["translation_key"] == "title"
+        assert rows[0]["translated_text_sha256"] == hashlib.sha256(b"title-en").hexdigest()
 
     asyncio.run(_run_with_translation_db(scenario))
