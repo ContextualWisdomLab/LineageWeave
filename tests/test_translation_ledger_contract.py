@@ -44,6 +44,13 @@ def test_cache_identity_rejects_padded_product_and_screen_segments() -> None:
             build_translation_cache_key(product_key, screen_key, 17, "en")
 
 
+def test_translation_postgres_verification_does_not_add_psycopg2_reachability() -> None:
+    """New ledger verification uses the existing asyncpg runtime boundary."""
+    source = (ROOT / "tests" / "test_translation_ledger_postgres.py").read_text(encoding="utf-8")
+    assert "import psycopg2" not in source
+    assert "import asyncpg" in source
+
+
 def test_translation_completeness_fails_closed() -> None:
     """Missing or blank UI copy must not silently fall back to another locale."""
     with pytest.raises(TranslationCoverageError, match="body"):
