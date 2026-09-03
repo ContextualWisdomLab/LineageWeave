@@ -32,6 +32,18 @@ def test_cache_identity_binds_product_screen_version_and_locale() -> None:
     assert baseline != build_translation_cache_key("lineageweave", "lineage-dag", 17, "ko")
 
 
+def test_cache_identity_rejects_padded_product_and_screen_segments() -> None:
+    """Application identity must reject spellings that PostgreSQL cannot persist."""
+    for product_key, screen_key in (
+        ("lineageweave ", "customer-master"),
+        (" lineageweave", "customer-master"),
+        ("lineageweave", "customer-master "),
+        ("lineageweave", " customer-master"),
+    ):
+        with pytest.raises(ValueError, match="leading or trailing whitespace"):
+            build_translation_cache_key(product_key, screen_key, 17, "en")
+
+
 def test_translation_completeness_fails_closed() -> None:
     """Missing or blank UI copy must not silently fall back to another locale."""
     with pytest.raises(TranslationCoverageError, match="body"):
