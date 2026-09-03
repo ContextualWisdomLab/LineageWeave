@@ -15,15 +15,29 @@ alter table user_account
 create table if not exists ui_translation_resource (
     resource_id bigint generated always as identity primary key,
     product_key text not null check (
-        btrim(product_key) <> ''
-        and btrim(product_key) = product_key
-        and product_key !~ E'^\\s|\\s$'
+        product_key <> ''
+        and btrim(
+            product_key,
+            chr(9) || chr(10) || chr(11) || chr(12) || chr(13)
+            || chr(28) || chr(29) || chr(30) || chr(31) || chr(32)
+            || chr(133) || chr(160) || chr(5760)
+            || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196)
+            || chr(8197) || chr(8198) || chr(8199) || chr(8200) || chr(8201) || chr(8202)
+            || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
+        ) = product_key
         and position(':' in product_key) = 0
     ),
     screen_key text not null check (
-        btrim(screen_key) <> ''
-        and btrim(screen_key) = screen_key
-        and screen_key !~ E'^\\s|\\s$'
+        screen_key <> ''
+        and btrim(
+            screen_key,
+            chr(9) || chr(10) || chr(11) || chr(12) || chr(13)
+            || chr(28) || chr(29) || chr(30) || chr(31) || chr(32)
+            || chr(133) || chr(160) || chr(5760)
+            || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196)
+            || chr(8197) || chr(8198) || chr(8199) || chr(8200) || chr(8201) || chr(8202)
+            || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
+        ) = screen_key
         and position(':' in screen_key) = 0
     ),
     resource_version bigint not null check (resource_version > 0),
@@ -40,9 +54,16 @@ create table if not exists ui_translation_resource (
 create table if not exists ui_translation_key (
     resource_id bigint not null references ui_translation_resource(resource_id) on delete cascade,
     translation_key text not null check (
-        btrim(translation_key) <> ''
-        and btrim(translation_key) = translation_key
-        and translation_key !~ E'^\\s|\\s$'
+        translation_key <> ''
+        and btrim(
+            translation_key,
+            chr(9) || chr(10) || chr(11) || chr(12) || chr(13)
+            || chr(28) || chr(29) || chr(30) || chr(31) || chr(32)
+            || chr(133) || chr(160) || chr(5760)
+            || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196)
+            || chr(8197) || chr(8198) || chr(8199) || chr(8200) || chr(8201) || chr(8202)
+            || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
+        ) = translation_key
     ),
     primary key (resource_id, translation_key)
 );
@@ -53,8 +74,15 @@ create table if not exists ui_translation_text (
     translation_key text not null,
     locale text not null check (locale in ('ko', 'en', 'ja', 'zh', 'vi', 'es', 'de', 'fr')),
     translated_text text not null check (
-        btrim(translated_text) <> ''
-        and translated_text !~ E'^\\s*$'
+        btrim(
+            translated_text,
+            chr(9) || chr(10) || chr(11) || chr(12) || chr(13)
+            || chr(28) || chr(29) || chr(30) || chr(31) || chr(32)
+            || chr(133) || chr(160) || chr(5760)
+            || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196)
+            || chr(8197) || chr(8198) || chr(8199) || chr(8200) || chr(8201) || chr(8202)
+            || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
+        ) <> ''
     ),
     unique (resource_id, translation_key, locale),
     foreign key (resource_id, translation_key)
