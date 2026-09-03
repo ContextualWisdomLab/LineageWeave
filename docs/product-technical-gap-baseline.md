@@ -1,5 +1,13 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-03 17:15 KST. Protected `main` is
+> `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. Writes work (git push of v2.114.0 + REST Draft #926; git X-OAuth-Scopes still empty). Do not
+> self-approve. #926 leftover-map comparison leftover-axis leftover-map origin independently of leftover-map comparison graphic leftover-map origin (v2.114.0 / ADR 0357) is
+> `ede308929b20f24a56c5ff3ae2211dd84d20f3ae`, stacked on #921 @ `76ebcb10a72955a68c616c02e6e0732db0800f93`. Independent APPROVE is missing.
+> This increment: leftover-map leftover-axis leftover-map origin independently of leftover-map comparison leftover-axis leftover-map origin as leftoverMapAxisOriginBadge (ADR 0358 / v2.115.0) on
+> `feat/leftover-map-axis-origin-badge-v21150`. Distinct accessible name
+> `leftover axis leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapCompareAxisOriginBadge stays leftover-map comparison leftover-axis leftover-map origin keys. leftoverMapComparePlotOriginBadge stays leftover-map comparison graphic leftover-map origin keys. leftoverMapPlotOriginBadge stays leftover-map graphic leftover-map origin keys. leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinate keys. leftoverMapAxisTickBadge stays leftover-map leftover-axis origin tick keys. leftoverMapListOriginBadge stays unnamed this increment. Do not invent leftover-map origin from leftover-map item coordinates `ζ`. Do not mix #877. Do not mix #890 stale ADR 0347 / v2.104.0 identity. Stack onto #926. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE. #96 already closed as weaker duplicate of #91. Next buyer increment after this stack: leftoverMapListOriginBadge independently of leftover-map leftover-axis leftover-map origin (ADR 0359 / v2.116.0).
+
 > Exact-head loop overlay: 2026-09-03 17:08 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. Writes work (MCP comment on #921 + REST close of #96; git X-OAuth-Scopes still empty). Do not
 > self-approve. #921 leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin (v2.113.0 / ADR 0356) is

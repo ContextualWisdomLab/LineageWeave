@@ -1,26 +1,23 @@
-# ADR 0357 — Name leftover-map origin on leftover-map comparison leftover-axis independently of leftover-map comparison graphic leftover-map origin
+# ADR 0358 — Name leftover-map origin on leftover-map leftover-axis independently of leftover-map comparison leftover-axis leftover-map origin
 
 **Decision status:** Proposed
 **Date:** 2026-09-03
 
-**Amended by:** [ADR 0358](0358-leftover-map-axis-origin-badge.md)
-
-Amends leftover-map origin on leftover-map comparison graphic independently of leftover-map graphic leftover-map origin
-([ADR 0356](0356-leftover-map-compare-plot-origin-badge.md)). Independent of leftover-map comparison leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0345](0345-leftover-map-compare-axis-tick-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0346](0346-leftover-map-axis-tick-origin-badge.md)). Independent of leftover-map comparison graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0344](0344-leftover-map-compare-plot-tick-origin-badge.md)). Independent of leftover-map graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0343](0343-leftover-map-plot-tick-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks on the competing origin-tick stack (do not mix #877). Independent of dirty draft leftoverMapPlotOriginBadge reconstruction (do not mix #890 stale ADR 0347 / v2.104.0 identity).
+Amends leftover-map origin on leftover-map comparison leftover-axis independently of leftover-map comparison graphic leftover-map origin
+([ADR 0357](0357-leftover-map-compare-axis-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
+([ADR 0346](0346-leftover-map-axis-tick-origin-badge.md)). Independent of leftover-map comparison leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
+([ADR 0345](0345-leftover-map-compare-axis-tick-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks on the competing origin-tick stack (do not mix #877). Independent of dirty draft leftoverMapPlotOriginBadge reconstruction (do not mix #890 stale ADR 0347 / v2.104.0 identity).
 
 ## Context
 
-ADR 0356 already names leftover-map comparison graphic leftover-map origin
-`leftover map comparison graphic leftover-map origin {origin}` when leftoverMapComparePlotOriginBadge returns a usable leftover-map origin caption.
+ADR 0357 already names leftover-map comparison leftover-axis leftover-map origin
+`leftover map comparison leftover axis leftover-map origin {origin}` when leftoverMapCompareAxisOriginBadge returns a usable leftover-map origin caption.
 Rank-0 unused axes still persist leftover-map origin `(0.00, 0.00)`
-(`formatLeftoverMapCoordinatePair(0, 0)`). Leftover-map comparison leftover-axis leftover-map origin stayed unnamed
-that increment (`leftoverMapCompareAxisOriginBadge` was not exported).
+(`formatLeftoverMapCoordinatePair(0, 0)`). Leftover-map leftover-axis leftover-map origin stayed unnamed
+that increment (`leftoverMapAxisOriginBadge` was not exported).
 Do not invent leftover-map origin from leftover-map comparison leftover-pair leftover-map
-criterion leftover-map origin leftover-map item coordinates `ζ`. leftoverMapComparePlotOriginBadge stays leftover-map comparison graphic leftover-map origin keys from ADR 0356.
+criterion leftover-map origin leftover-map item coordinates `ζ`. leftoverMapCompareAxisOriginBadge stays leftover-map comparison leftover-axis leftover-map origin keys from ADR 0357.
+leftoverMapComparePlotOriginBadge stays leftover-map comparison graphic leftover-map origin keys from ADR 0356.
 leftoverMapPlotOriginBadge stays leftover-map graphic leftover-map origin keys from ADR 0355.
 leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map
 criterion leftover-map origin leftover-map item coordinate keys from ADR 0354.
@@ -32,11 +29,13 @@ leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftov
 leftoverMapCompareAxisTickBadge stays leftover-map comparison leftover-axis origin tick keys from ADR 0345.
 leftoverMapAxisTickBadge stays leftover-map leftover-axis origin tick keys from ADR 0346.
 
-This increment names leftover-map comparison leftover-axis leftover-map origin as leftoverMapCompareAxisOriginBadge.
-Leftover-map comparison leftover-axis leftover-map origin stays
-`leftover map comparison leftover axis leftover-map origin {origin}`
-when leftoverMapCompareAxisOriginBadge returns a usable leftover-map origin caption, so it stays distinct from leftover-map
-comparison graphic leftover-map origin
+This increment names leftover-map leftover-axis leftover-map origin as leftoverMapAxisOriginBadge.
+Leftover-map leftover-axis leftover-map origin stays
+`leftover axis leftover-map origin {origin}`
+when leftoverMapAxisOriginBadge returns a usable leftover-map origin caption, so it stays distinct from leftover-map
+comparison leftover-axis leftover-map origin
+`leftover map comparison leftover axis leftover-map origin {origin}`,
+leftover-map comparison graphic leftover-map origin
 `leftover map comparison graphic leftover-map origin {origin}`,
 leftover-map graphic leftover-map origin
 `leftover-map origin {origin}`,
@@ -57,21 +56,20 @@ leftover-map comparison graphic leftover-map criterion leftover-map origin lefto
 and leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinates
 `leftover-map criterion {label} at leftover-map origin ζ {item}`.
 Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`
-(`formatLeftoverMapCoordinatePair(0, 0)`). leftoverMapAxisOriginBadge stays unnamed
+(`formatLeftoverMapCoordinatePair(0, 0)`). leftoverMapListOriginBadge stays unnamed
 this increment. It does not add columns. Do not invent a leftover score. Do not invent a theta.
 
-This protected increment uses **0357** / **v2.114.0** so it does not collide with leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin
+This protected increment uses **0358** / **v2.115.0** so it does not collide with leftover-map comparison leftover-axis leftover-map origin independently of leftover-map comparison graphic leftover-map origin
+(0357 / v2.114.0), leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin
 (0356 / v2.113.0), leftover-map graphic leftover-map origin independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates
-(0355 / v2.112.0), leftover-map comparison leftover-pair leftover-map
-criterion leftover-map origin leftover-map item coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates
-(0354 / v2.111.0), leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinates (0347 / v2.104.0), leftover-map leftover-axis origin ticks (#877), or dirty draft #890.
+(0355 / v2.112.0), leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinates (0347 / v2.104.0), leftover-map leftover-axis origin ticks (#877), or dirty draft #890.
 
 ## Decision
 
-On leftover-map comparison leftover-axis, caption leftover-map origin
-when leftoverMapCompareAxisOriginBadge returns a usable leftover-map origin caption. Rank-0 unused axes still name leftover-map
+On leftover-map leftover-axis, caption leftover-map origin
+when leftoverMapAxisOriginBadge returns a usable leftover-map origin caption. Rank-0 unused axes still name leftover-map
 origin `(0.00, 0.00)`. Do not invent leftover-map origin from leftover-map item coordinates `ζ`, leftover-map axis share, or leftover-map singular values `σ_k`.
-leftoverMapComparePlotOriginBadge, leftoverMapPlotOriginBadge, leftoverMapCompareListCriterionBadge, leftoverMapListCriterionBadge, leftoverMapComparePlotCriterionBadge, leftoverMapPlotCriterionBadge,
+leftoverMapCompareAxisOriginBadge, leftoverMapComparePlotOriginBadge, leftoverMapPlotOriginBadge, leftoverMapCompareListCriterionBadge, leftoverMapListCriterionBadge, leftoverMapComparePlotCriterionBadge, leftoverMapPlotCriterionBadge,
 leftoverMapPlotTickAxisBadge, leftoverMapComparePlotTickAxisBadge, leftoverMapCompareAxisTickBadge, and leftoverMapAxisTickBadge
 do not change leftover-map origin naming this increment.
 
@@ -80,9 +78,10 @@ score. Do not invent a theta.
 
 ## Consequences
 
-After `make seed`, leftover-map comparison leftover-axis leftover-map origin names
-leftover-map origin independently of leftover-map comparison graphic leftover-map origin, leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map
+After `make seed`, leftover-map leftover-axis leftover-map origin names
+leftover-map origin independently of leftover-map comparison leftover-axis leftover-map origin, leftover-map comparison graphic leftover-map origin, leftover-map graphic leftover-map origin, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map axis share, and leftover-map
 singular values. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`.
+leftoverMapCompareAxisOriginBadge stays leftover-map comparison leftover-axis leftover-map origin keys.
 leftoverMapComparePlotOriginBadge stays leftover-map comparison graphic leftover-map origin keys.
 leftoverMapPlotOriginBadge stays leftover-map graphic leftover-map origin keys.
 leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinate keys.
@@ -91,24 +90,23 @@ leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map axis origin
 leftoverMapComparePlotTickAxisBadge stays leftover-map comparison graphic leftover-map axis origin tick keys.
 leftoverMapCompareAxisTickBadge stays leftover-map comparison leftover-axis origin tick keys.
 leftoverMapAxisTickBadge stays leftover-map leftover-axis origin tick keys.
-leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin
-(ADR 0356) remain.
+leftover-map comparison leftover-axis leftover-map origin independently of leftover-map comparison graphic leftover-map origin
+(ADR 0357) remain.
 
 ## Related
 
-Independent of leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin
+Independent of leftover-map comparison leftover-axis leftover-map origin independently of leftover-map comparison graphic leftover-map origin
+([ADR 0357](0357-leftover-map-compare-axis-origin-badge.md)). Independent of leftover-map comparison graphic leftover-map origin independently of leftover-map graphic leftover-map origin
 ([ADR 0356](0356-leftover-map-compare-plot-origin-badge.md)). Independent of leftover-map graphic leftover-map origin independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates
-([ADR 0355](0355-leftover-map-plot-origin-badge.md)). Independent of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item
-coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates
-([ADR 0354](0354-leftover-map-compare-list-criterion-origin-badge.md)). Independent of leftover-map
-graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0343](0343-leftover-map-plot-tick-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks independently of leftover-map
+([ADR 0355](0355-leftover-map-plot-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks independently of leftover-map
 axis share and leftover-map singular values
 ([ADR 0346](0346-leftover-map-axis-tick-origin-badge.md)). Independent of leftover-map
 comparison leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
 ([ADR 0345](0345-leftover-map-compare-axis-tick-origin-badge.md)). Independent of leftover-map
 comparison graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
-([ADR 0344](0344-leftover-map-compare-plot-tick-origin-badge.md)).
+([ADR 0344](0344-leftover-map-compare-plot-tick-origin-badge.md)). Independent of leftover-map
+graphic leftover-map axis origin ticks independently of leftover-map axis share and leftover-map singular values
+([ADR 0343](0343-leftover-map-plot-tick-origin-badge.md)).
 
 ## References
 
