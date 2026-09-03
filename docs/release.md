@@ -65,20 +65,28 @@ release does not satisfy this contract.
     create a draft GitHub Release, and attach the complete verified
     distributions, SBOM/provenance evidence, checksum material and release
     notes. Do not publish an incomplete asset set.
-12. Publish that fully populated draft as the non-prerelease immutable GitHub
+12. Immediately before publish, recheck repository release immutability through
+    `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve the release
+    tag. The response must still confirm `enabled: true`, and the tag must still
+    resolve to the exact protected source SHA admitted in step 1. Any setting
+    change, lookup failure, malformed response, missing tag, or tag/source SHA
+    mismatch must fail closed without publishing the draft. This second check
+    closes the time-of-check/time-of-use window between admission and publish.
+13. Publish that fully populated draft as the non-prerelease immutable GitHub
     Release. Never move an existing release tag or overwrite published bytes
     under an existing version.
-13. Fetch the published release back through GitHub's API, verify tag/source
+14. Fetch the published release back through GitHub's API, verify tag/source
     identity, immutable-release state and asset digests against the sealed
     evidence, and retain this post-publication receipt as release evidence.
 
 ## Failure and rollback
 
 A failure before publication leaves no valid release identity to repair in
-place. In particular, an immutability preflight failure stops before tag
-creation. Preserve the run ID, exact source SHA, logs and any sealed evidence
-needed for RCA, fix source/configuration through a normal protected PR, and
-start again from a new exact candidate.
+place. In particular, either immutability admission check or the publish-boundary
+tag/source identity recheck failing leaves the draft unpublished. Preserve the
+run ID, exact source SHA, logs and any sealed evidence needed for RCA, fix
+source/configuration through a normal protected PR, and start again from a new
+exact candidate.
 
 If an already-published artifact or attestation is found invalid, preserve the
 forensic evidence and identify affected subjects before any revocation or
