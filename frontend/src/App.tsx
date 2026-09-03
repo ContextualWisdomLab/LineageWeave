@@ -144,6 +144,7 @@ import {
 import {
   leftoverMapCompareAxisBadge,
   leftoverMapCompareAxisOriginBadge,
+  leftoverMapAxisOriginBadge,
   leftoverMapCompareAxisTickBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
@@ -3954,6 +3955,23 @@ function ReportsPanel({
                 </span>
               );
             })}
+            {(() => {
+              const originBadge = leftoverMapAxisOriginBadge();
+              const leftoverAxisTicks =
+                layoutLeftoverMapPlot(report.leftover_pairs ?? [], criterionShortLabel)?.ticks ?? [];
+              const leftoverAxisSurface =
+                (report.leftover_map_axes != null && report.leftover_map_axes.length > 0) ||
+                leftoverAxisTicks.length > 0;
+              if (originBadge === null || !leftoverAxisSurface) {
+                return null;
+              }
+              const originText = tf(originBadge.key, originBadge.values);
+              return (
+                <span className="post-badge" aria-label={originText}>
+                  {originText}
+                </span>
+              );
+            })()}
             {report.leftover_map_axes?.some(
               (axis) =>
                 leftoverMapAxisBadge(
