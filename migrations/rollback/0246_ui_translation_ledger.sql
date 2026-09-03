@@ -1,7 +1,17 @@
--- Reverse 0246. This rollback is for the translation-ledger foundation before
--- the buyer-visible locale cutover: remove the ledger schema and restore the
--- member-locale constraint owned by ADR 0069 / migration 0044.
+-- Reverse 0246 only while the translation-ledger foundation is still empty.
+-- Once product copy exists, ADR 0362 requires application/read-routing recovery
+-- rather than a destructive schema down-migration.
 begin;
+
+do $$
+begin
+    if exists (
+        select 1
+          from ui_translation_resource
+    ) then
+        raise exception 'refusing 0246 rollback because translation resources exist; use application/read-routing recovery';
+    end if;
+end $$;
 
 alter table user_account
     drop constraint if exists user_account_preferred_locale_ck;
