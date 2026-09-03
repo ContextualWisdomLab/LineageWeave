@@ -103,8 +103,8 @@ def test_locale_and_cache_identity_validation_rejects_ambiguous_inputs() -> None
             build_translation_cache_key("lineageweave", "customer-master", version, "en")  # type: ignore[arg-type]
 
 
-def test_explicit_immutable_version_can_be_served_from_exact_cache() -> None:
-    """An identity-matched immutable cache hit avoids PostgreSQL."""
+def test_explicit_immutable_version_cache_hit_requires_authoritative_keyset() -> None:
+    """A cache hit avoids text-row work only after PostgreSQL confirms the published key set."""
     payload = json.dumps(
         {
             "product_key": "lineageweave",
@@ -114,7 +114,7 @@ def test_explicit_immutable_version_can_be_served_from_exact_cache() -> None:
             "translations": {"title": "Customer master", "body": "No customers"},
         }
     )
-    pool = FakePool([])
+    pool = FakePool(_rows())
     cache = FakeCache(payload)
 
     result = asyncio.run(
@@ -130,7 +130,8 @@ def test_explicit_immutable_version_can_be_served_from_exact_cache() -> None:
 
     assert result.resource_version == 7
     assert result.translations["title"] == "Customer master"
-    assert pool.acquire_count == 0
+    assert pool.acquire_count == 1
+    assert len(pool.connection.calls) == 1
 
 
 def test_malformed_or_mismatched_cache_falls_back_to_postgres() -> None:
@@ -161,6 +162,7 @@ def test_malformed_or_mismatched_cache_falls_back_to_postgres() -> None:
         )
         assert result.translations["body"] == "No customers"
         assert pool.acquire_count == 1
+        assert len(pool.connection.calls) == 2
 
 
 def test_incomplete_exact_cache_falls_back_to_authoritative_postgres() -> None:
@@ -190,6 +192,7 @@ def test_incomplete_exact_cache_falls_back_to_authoritative_postgres() -> None:
 
     assert result.translations == {"body": "No customers", "title": "Customer master"}
     assert pool.acquire_count == 1
+    assert len(pool.connection.calls) == 2
 
 
 def test_cache_read_or_write_failure_does_not_replace_postgres_authority() -> None:
