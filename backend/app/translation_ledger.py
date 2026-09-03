@@ -7,6 +7,7 @@ supply ontology labels or cross-locale fallback copy.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -21,10 +22,18 @@ SUPPORTED_UI_LOCALES: tuple[str, ...] = ("ko", "en", "ja", "zh", "vi", "es", "de
 _CACHE_TTL_SECONDS = 300
 
 _SELECT_REQUIRED_KEYS_SQL = """
-select translation_key.translation_key
+select translation_key.translation_key,
+       case
+           when translation_text.translated_text is null then null
+           else encode(sha256(convert_to(translation_text.translated_text, 'UTF8')), 'hex')
+       end as translated_text_sha256
   from ui_translation_resource as resource
   join ui_translation_key as translation_key
     on translation_key.resource_id = resource.resource_id
+  left join ui_translation_text as translation_text
+    on translation_text.resource_id = translation_key.resource_id
+   and translation_text.translation_key = translation_key.translation_key
+   and translation_text.locale = $4
  where resource.product_key = $1
    and resource.screen_key = $2
    and resource.resource_version = $3
@@ -148,6 +157,22 @@ def _freeze_translations(translations: Mapping[str, str]) -> Mapping[str, str]:
     return MappingProxyType(dict(translations))
 
 
+def _matches_authoritative_text_digests(
+    translations: Mapping[str, str],
+    expected_text_digests: Mapping[str, str | None],
+) -> bool:
+    """Verify cached copy against PostgreSQL-owned SHA-256 evidence for every screen key."""
+    if set(translations) != set(expected_text_digests):
+        return False
+    for key, value in translations.items():
+        expected_digest = expected_text_digests.get(key)
+        if not isinstance(expected_digest, str) or len(expected_digest) != 64:
+            return False
+        if hashlib.sha256(value.encode("utf-8")).hexdigest() != expected_digest:
+            return False
+    return True
+
+
 def _decode_cached_screen(
     raw_payload: str | bytes,
     *,
@@ -155,9 +180,9 @@ def _decode_cached_screen(
     screen_key: str,
     resource_version: int,
     locale: str,
-    required_keys: Sequence[str],
+    expected_text_digests: Mapping[str, str | None],
 ) -> TranslationScreen | None:
-    """Accept a cache hit only when identity, values, and the authoritative key set match."""
+    """Accept a cache hit only when identity and copy match PostgreSQL evidence."""
     try:
         decoded = json.loads(raw_payload)
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
@@ -166,14 +191,18 @@ def _decode_cached_screen(
         return None
     if decoded.get("product_key") != product_key or decoded.get("screen_key") != screen_key:
         return None
-    if decoded.get("resource_version") != resource_version or decoded.get("locale") != locale:
+    if (
+        isinstance(decoded.get("resource_version"), bool)
+        or decoded.get("resource_version") != resource_version
+        or decoded.get("locale") != locale
+    ):
         return None
     translations = decoded.get("translations")
     if not isinstance(translations, dict) or not translations:
         return None
     if any(not isinstance(key, str) or not isinstance(value, str) or not value.strip() for key, value in translations.items()):
         return None
-    if set(translations) != set(required_keys):
+    if not _matches_authoritative_text_digests(translations, expected_text_digests):
         return None
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
     return TranslationScreen(
@@ -193,9 +222,9 @@ async def _read_exact_cache(
     screen_key: str,
     resource_version: int,
     locale: str,
-    required_keys: Sequence[str],
+    expected_text_digests: Mapping[str, str | None],
 ) -> TranslationScreen | None:
-    """Read an exact-version cache entry after PostgreSQL establishes its required keys."""
+    """Read an exact-version cache entry after PostgreSQL establishes copy digests."""
     if cache is None:
         return None
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
@@ -211,7 +240,7 @@ async def _read_exact_cache(
         screen_key=screen_key,
         resource_version=resource_version,
         locale=locale,
-        required_keys=required_keys,
+        expected_text_digests=expected_text_digests,
     )
 
 
@@ -248,10 +277,11 @@ async def read_translation_screen(
 ) -> TranslationScreen:
     """Read one published screen version and reject incomplete requested-locale copy.
 
-    Explicit-version cache reads first verify the published screen-key set in
-    PostgreSQL, release that connection, and only then perform Valkey I/O. A
-    cache miss reacquires PostgreSQL for the authoritative projection. Latest
-    reads resolve the complete projection from PostgreSQL before populating cache.
+    Explicit-version cache reads first verify PostgreSQL-owned SHA-256 evidence
+    for every published screen key, release that connection, and only then
+    perform Valkey I/O. A cache miss reacquires PostgreSQL for the authoritative
+    projection. Latest reads resolve the complete projection from PostgreSQL
+    before populating cache.
     """
     product = _validate_identity_segment(product_key, field_name="product_key")
     screen = _validate_identity_segment(screen_key, field_name="screen_key")
@@ -270,19 +300,24 @@ async def read_translation_screen(
                 product,
                 screen,
                 resource_version,
+                language,
             )
         if not key_rows:
             raise TranslationResourceNotFound(
                 f"no published translation resource for {product}/{screen} version {resource_version!r}"
             )
-        required_keys = [str(row["translation_key"]) for row in key_rows]
+        expected_text_digests: dict[str, str | None] = {}
+        for row in key_rows:
+            translation_key = str(row["translation_key"])
+            digest = row["translated_text_sha256"]
+            expected_text_digests[translation_key] = digest if isinstance(digest, str) else None
         cached = await _read_exact_cache(
             cache,
             product_key=product,
             screen_key=screen,
             resource_version=resource_version,
             locale=language,
-            required_keys=required_keys,
+            expected_text_digests=expected_text_digests,
         )
         if cached is not None:
             return cached
