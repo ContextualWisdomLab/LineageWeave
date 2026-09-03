@@ -96,8 +96,10 @@ def validate_ui_locale(locale: str) -> str:
 
 
 def _validate_identity_segment(value: str, *, field_name: str) -> str:
-    """Reject blank or delimiter-bearing cache identity segments."""
+    """Reject blank, padded, or delimiter-bearing cache identity segments."""
     normalized = value.strip()
+    if normalized != value:
+        raise ValueError(f"{field_name} must not contain leading or trailing whitespace")
     if not normalized or ":" in normalized:
         raise ValueError(f"{field_name} must be nonblank and must not contain ':'")
     return normalized
