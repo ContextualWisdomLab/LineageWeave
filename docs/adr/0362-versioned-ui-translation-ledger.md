@@ -22,6 +22,7 @@ This ledger is strictly for LineageWeave-owned product UI copy. Ontology labels,
 - Cache identity must include product, screen, immutable resource version, and locale.
 - An explicit-version cache hit is admissible only after PostgreSQL confirms the published resource and its exact required screen-key set; structurally valid partial cache payloads are misses.
 - Publication must serialize with child key/text mutation so a complete resource cannot become incomplete after the publication check.
+- `published_at` is database-owned evidence of the one-way publication transition; caller-supplied timestamps are never retained as publication receipts.
 - The design must stay independent from ontology-label persistence and from another CWL product's domain tables.
 
 ## Alternatives considered
@@ -42,6 +43,10 @@ Rejected. In-place mutation destroys the evidence needed to reproduce what a buy
 
 Rejected. Raw PostgreSQL uniqueness would then distinguish identities that the application/cache boundary collapses with `strip()`, permitting unreachable resources and violating the aggregate identity invariant.
 
+### Preserve a caller-supplied publication timestamp
+
+Rejected. The row becomes immutable immediately after publication, so preserving arbitrary input would permanently admit a forged audit timestamp. The database transition itself must stamp the receipt.
+
 ### Trust an exact-version cache payload without database admission
 
 Rejected. Version identity proves which projection was requested but does not prove that a syntactically valid cache payload still contains every key declared by the published screen resource. A partial cache object could otherwise become product-copy authority.
@@ -54,7 +59,7 @@ Selected. It gives the read model a stable aggregate identity, keeps copy owners
 
 `ui_translation_resource` is the aggregate root identified by `(product_key, screen_key, resource_version)`. A resource starts as `draft`; publication is a one-way transition. `ui_translation_key` declares the screen's required keys. `ui_translation_text` supplies one nonblank value for each `(resource_id, translation_key, locale)`.
 
-The schema remains in 3NF: resource version metadata, required keys, and localized values are separate relations. The database enforces unique resource versions and unique localized values. `product_key` and `screen_key` must already equal their `btrim(...)` values, matching the application boundary that canonicalizes caller input before lookup/cache identity construction. Publication rejects an empty key set or any missing member of the required key × eight-locale matrix. Once published, the root and all child rows are immutable.
+The schema remains in 3NF: resource version metadata, required keys, and localized values are separate relations. The database enforces unique resource versions and unique localized values. `product_key` and `screen_key` must already equal their `btrim(...)` values, matching the application boundary that canonicalizes caller input before lookup/cache identity construction. Publication rejects an empty key set or any missing member of the required key × eight-locale matrix. On the draft-to-published transition the trigger assigns `published_at := now()` unconditionally, so the immutable publication receipt comes from PostgreSQL rather than caller input. Once published, the root and all child rows are immutable.
 
 Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. Publication already locks the resource row through its update. Therefore publication and child mutation are serialized: either the child change commits before the completeness scan, or it observes the published state and is rejected. Child rows may not be re-parented between resources.
 
@@ -69,7 +74,7 @@ The existing `user_account.preferred_locale` constraint expands to the same eigh
 - Aggregate: versioned UI translation resource.
 - Entity/value identity: canonical product/screen/version aggregate identity; required screen key; locale-tagged translated text.
 - Repository boundary: PostgreSQL query in `backend.app.translation_ledger`; Valkey is a cache adapter, not a repository of record.
-- Invariants: canonical unpadded product/screen identity, exact eight-locale completeness at publication, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance.
+- Invariants: canonical unpadded product/screen identity, exact eight-locale completeness at publication, database-owned publication receipt, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance.
 - ACL: ontology labels remain external semantic truth and are not stored in these tables.
 
 ## Recovery and migration
@@ -88,6 +93,8 @@ Published translation data is not destructively down-migrated. A bad published r
 - Verification-contract alignment `f666a5b12b9ddd0bbef040c238ef541ec1fa1af1`: cache-hit and fallback tests now assert one authoritative key-set query and reject partial cached projections.
 - RED `d75d0a963319ca1b353346092f44095010f5756a`: the migration contract requires PostgreSQL `product_key` and `screen_key` to equal their trimmed canonical forms.
 - Repair `d4d03da3835cf0722d707738c095386d5ed258b8`: migration 0246 rejects padded aggregate identities so database uniqueness and application/cache identity semantics cannot diverge.
+- RED `c60693dd8bdea620b029c16c127d214f98eacdaf`: the migration contract requires a database-owned publication timestamp rather than a caller-preserved value.
+- Repair `5973bbb8b029e962793a68f127dfcc96584dbbcd`: publication now assigns PostgreSQL `now()` unconditionally before the resource becomes immutable.
 
 These commits are branch evidence only. This ADR remains Proposed until the exact protected-line implementation and dependent API/frontend cutover are verified.
 
