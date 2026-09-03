@@ -12,6 +12,8 @@ from urllib.parse import urlsplit, urlunsplit
 import asyncpg
 import pytest
 
+from backend.app.translation_ledger import _UI_WHITESPACE_CODEPOINTS
+
 
 ROOT = Path(__file__).resolve().parents[1]
 _ADMIN_DSN = os.environ.get(
@@ -105,11 +107,11 @@ async def _assert_check_violation(operation: Awaitable[object]) -> None:
 
 
 def test_whitespace_contract_is_explicit_and_not_posix_locale_dependent() -> None:
-    """Database and Python admission share one explicit Unicode whitespace repertoire."""
+    """Database and application admission share one explicit whitespace repertoire."""
     migration = _TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8")
     source = (ROOT / "backend" / "app" / "translation_ledger.py").read_text(encoding="utf-8")
 
-    assert "_UI_WHITESPACE_CODEPOINTS" in source
+    assert set(_UI_WHITESPACE_CODEPOINTS) == _EXPECTED_WHITESPACE_CODEPOINTS
     assert "strip(_UI_WHITESPACE)" in source
     for codepoint in _EXPECTED_WHITESPACE_CODEPOINTS:
         assert f"chr({codepoint})" in migration
@@ -125,7 +127,7 @@ def test_whitespace_contract_is_explicit_and_not_posix_locale_dependent() -> Non
     ),
 )
 def test_c_locale_rejects_unicode_edge_whitespace_and_blank_copy() -> None:
-    """A valid C-locale deployment cannot publish values Python treats as whitespace."""
+    """A valid C-locale deployment cannot publish values the app treats as whitespace."""
 
     async def scenario(connection: asyncpg.Connection) -> None:
         for product_key, screen_key in (
