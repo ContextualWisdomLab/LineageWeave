@@ -14,8 +14,16 @@ alter table user_account
 
 create table if not exists ui_translation_resource (
     resource_id bigint generated always as identity primary key,
-    product_key text not null check (btrim(product_key) <> '' and position(':' in product_key) = 0),
-    screen_key text not null check (btrim(screen_key) <> '' and position(':' in screen_key) = 0),
+    product_key text not null check (
+        btrim(product_key) <> ''
+        and btrim(product_key) = product_key
+        and position(':' in product_key) = 0
+    ),
+    screen_key text not null check (
+        btrim(screen_key) <> ''
+        and btrim(screen_key) = screen_key
+        and position(':' in screen_key) = 0
+    ),
     resource_version bigint not null check (resource_version > 0),
     publication_state text not null default 'draft' check (publication_state in ('draft', 'published')),
     created_at timestamptz not null default now(),
