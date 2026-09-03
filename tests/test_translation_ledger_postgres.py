@@ -151,6 +151,40 @@ def test_postgres_rejects_padded_translation_resource_identity() -> None:
     asyncio.run(_run_with_translation_db(scenario))
 
 
+def test_postgres_translation_resource_identity_is_immutable_after_creation() -> None:
+    """A reviewed draft cannot be retargeted to another product, screen, or version."""
+
+    async def scenario(connection: asyncpg.Connection) -> None:
+        resource_id = await _seed_complete_draft(connection, version=3)
+        for column, value in (
+            ("product_key", "other-product"),
+            ("screen_key", "other-screen"),
+            ("resource_version", "4"),
+        ):
+            await _assert_postgres_error(
+                connection.execute(
+                    f"update ui_translation_resource set {column} = $1 where resource_id = $2",
+                    value if column != "resource_version" else int(value),
+                    resource_id,
+                ),
+                sqlstate="P0001",
+                message_fragment="identity is immutable",
+            )
+
+        identity = await connection.fetchrow(
+            """
+            select product_key, screen_key, resource_version
+              from ui_translation_resource
+             where resource_id = $1
+            """,
+            resource_id,
+        )
+        assert identity is not None
+        assert tuple(identity.values()) == ("lineageweave", "customer-master", 3)
+
+    asyncio.run(_run_with_translation_db(scenario))
+
+
 def test_postgres_publication_timestamp_is_database_owned_and_transition_scoped() -> None:
     """Caller input and transaction age cannot forge the immutable publication receipt."""
 
