@@ -17,11 +17,13 @@ create table if not exists ui_translation_resource (
     product_key text not null check (
         btrim(product_key) <> ''
         and btrim(product_key) = product_key
+        and product_key !~ E'^\\s|\\s$'
         and position(':' in product_key) = 0
     ),
     screen_key text not null check (
         btrim(screen_key) <> ''
         and btrim(screen_key) = screen_key
+        and screen_key !~ E'^\\s|\\s$'
         and position(':' in screen_key) = 0
     ),
     resource_version bigint not null check (resource_version > 0),
@@ -40,6 +42,7 @@ create table if not exists ui_translation_key (
     translation_key text not null check (
         btrim(translation_key) <> ''
         and btrim(translation_key) = translation_key
+        and translation_key !~ E'^\\s|\\s$'
     ),
     primary key (resource_id, translation_key)
 );
