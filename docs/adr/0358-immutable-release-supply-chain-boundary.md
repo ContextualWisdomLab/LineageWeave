@@ -222,7 +222,7 @@ https://docs.github.com/en/rest/repos/repos
 
 GitHub. (2026). *Using artifact attestations to establish provenance for
 builds*. GitHub Docs.
-https://docs.github.com/en/actions/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes
+https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations
 
 Open Source Security Foundation. (2025). *SLSA specification version 1.2*.
 https://slsa.dev/spec/v1.2/
