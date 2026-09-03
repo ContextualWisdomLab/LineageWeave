@@ -1,8 +1,8 @@
 # Release supply-chain references
 
-**Supporting evidence for:** ADR 0358
+**Supporting evidence for:** ADR 0361
 **Reviewed:** 2026-09-03
-**Status:** Non-normative doctoring evidence. ADR 0358 remains the decision authority.
+**Status:** Non-normative doctoring evidence. ADR 0361 remains the decision authority.
 
 This note records the authoritative external standards and platform contracts
 used while defining LineageWeave's immutable release boundary. It does not
@@ -13,7 +13,7 @@ promote an unimplemented workflow or queued check to release evidence.
 ### CycloneDX 1.7
 
 The CycloneDX specification overview identifies **1.7** as the current
-specification version and gives its release date as 2025-10-21. ADR 0358 uses
+specification version and gives its release date as 2025-10-21. ADR 0361 uses
 CycloneDX 1.7 only for the per-distribution SBOM representation; LineageWeave
 does not claim that a generic repository-directory SBOM is an attestation of
 one exact wheel or source distribution.
@@ -24,7 +24,7 @@ Foundation. https://cyclonedx.org/specification/overview/
 ### SLSA 1.2
 
 The SLSA project announced Version **1.2** as the approved release on
-2025-11-24. ADR 0358 uses SLSA as supply-chain threat/provenance grounding; it
+2025-11-24. ADR 0361 uses SLSA as supply-chain threat/provenance grounding; it
 does not claim a SLSA level merely because a workflow uses provenance or a
 reusable workflow.
 
@@ -35,7 +35,7 @@ https://slsa.dev/blog/2025/11/announce-slsa-v1.2
 
 GitHub's current documentation requires explicit attestation/OIDC permissions
 for credentialed provenance generation and documents verification of artifact
-attestations. ADR 0358 therefore keeps pull-request-controlled build work in an
+attestations. ADR 0361 therefore keeps pull-request-controlled build work in an
 unprivileged job and delegates credentialed attestation to the canonical
 organization reusable only after inert exact-artifact verification.
 
@@ -59,7 +59,7 @@ The current repository REST API exposes
 `GET /repos/{owner}/{repo}/immutable-releases` to check whether the control is
 enabled. GitHub documents an authenticated `200` response when enabled and a
 `404` when it is not enabled, and requires repository Administration (read)
-permission for the check. ADR 0358 therefore treats an authenticated
+permission for the check. ADR 0361 therefore treats an authenticated
 `enabled: true` result as release admission and fails closed when the status
 cannot be established. That administrative read capability belongs only to the
 trusted admission step; it is not granted to pull-request or build execution.
@@ -89,7 +89,7 @@ object. Creating an annotated tag requires creating a Git tag object and then a
 records its target object type and target SHA; GitHub documents `commit`,
 `tree`, and `blob` as possible target types for tag-object creation. Therefore a
 trusted release verifier cannot compare the tag ref's object SHA directly with
-the protected source commit SHA. For ADR 0358 the release tag is valid only when
+the protected source commit SHA. For ADR 0361 the release tag is valid only when
 the ref resolves to the expected annotated tag object, that object has target
 type `commit`, and the peeled target SHA equals the exact protected source SHA.
 Missing refs/tag objects, non-commit targets, and mismatched target SHAs fail
@@ -114,7 +114,7 @@ Bray, T. (2017). *The JavaScript Object Notation (JSON) data interchange
 format* (RFC 8259). Internet Engineering Task Force.
 https://doi.org/10.17487/RFC8259
 
-## Traceability to ADR 0358
+## Traceability to ADR 0361
 
 - exact wheel/sdist SBOM representation → CycloneDX 1.7;
 - source/build provenance threat model → SLSA 1.2;
