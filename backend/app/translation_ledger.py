@@ -212,7 +212,11 @@ def _matches_authoritative_text_digests(
         expected_digest = expected_text_digests.get(key)
         if not isinstance(expected_digest, str) or len(expected_digest) != 64:
             return False
-        if hashlib.sha256(value.encode("utf-8")).hexdigest() != expected_digest:
+        try:
+            actual_digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+        except UnicodeEncodeError:
+            return False
+        if actual_digest != expected_digest:
             return False
     return True
 
