@@ -54,6 +54,15 @@ encode the wrong identity rule. The release boundary must peel the annotated
 tag object and admit only a target with type `commit` and the exact protected
 source SHA.
 
+The immutable protections begin at publication, not at draft creation. GitHub
+recommends creating a draft, attaching all assets, and only then publishing it.
+That creates a deliberate pre-publication interval in which the release caller
+has already created a candidate tag and draft release but publication may still
+abort. Without an identity-safe abort contract, a failed final admission can
+leave an occupied tag/draft that blocks a retry or encourages unsafe retargeting.
+The abort path therefore needs the same exact-identity discipline as the
+publication path.
+
 ## Decision
 
 1. LineageWeave owns the product-local release caller: release readiness,
@@ -99,37 +108,56 @@ source SHA.
 8. After that preflight, the release job creates an annotated tag object whose
    target type is `commit` and whose target SHA is the exact protected source
    SHA admitted for the release, then creates `refs/tags/<version>` pointing to
-   that tag object. Lightweight tags, tree/blob targets, existing refs, or a
-   tag object targeting any other commit are inadmissible. The job then creates
-   a draft GitHub Release and attaches the complete verified asset set.
-   Immediately before publish, the trusted release boundary must recheck
-   `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve the tag. For
-   the annotated tag, the ref's object SHA is the tag-object SHA, not the source
-   commit SHA; the boundary must fetch that tag object and peel its target,
-   require target type `commit`, and compare the peeled commit SHA with the
-   exact protected source SHA. It must never compare the tag-object SHA itself
-   with the source commit SHA. Any setting change, lookup/API failure,
-   malformed response, missing ref/tag object, unexpected target type, or
-   peeled commit/source SHA mismatch must fail closed while the draft remains
-   unpublished. Only after this second admission may the draft be published as
-   the immutable non-prerelease release. This closes the
+   that tag object. It records the pre-create absence proof, exact tag-object
+   SHA/ref, and the exact draft Release ID returned by GitHub. Lightweight tags,
+   tree/blob targets, existing refs, or a tag object targeting any other commit
+   are inadmissible. The job then creates a draft GitHub Release and attaches
+   the complete verified asset set. Immediately before publish, the trusted
+   release boundary must recheck `GET /repos/{owner}/{repo}/immutable-releases`
+   and re-resolve the tag. For the annotated tag, the ref's object SHA is the
+   tag-object SHA, not the source commit SHA; the boundary must fetch that tag
+   object and peel its target, require target type `commit`, and compare the
+   peeled commit SHA with the exact protected source SHA. It must never compare
+   the tag-object SHA itself with the source commit SHA. Any setting change,
+   lookup/API failure, malformed response, missing ref/tag object, unexpected
+   target type, or peeled commit/source SHA mismatch must fail closed while the
+   draft remains unpublished. Only after this second admission may the draft be
+   published as the immutable non-prerelease release. This closes the
    time-of-check/time-of-use interval between the initial immutability admission
    and publication. It must not overwrite an existing tag, asset or version. A
    failed or partial publication is an incident, not permission to mutate
    previously published bytes under the same identity.
-9. Reproducibility is tested by rebuilding the wheel and source distribution
+9. A failure after the candidate tag/draft are created but before publication is
+   a **pre-publication abort**. Same-version retry is admissible only after the
+   trusted release boundary proves from recorded receipts that the exact Release
+   ID created by this run is still `draft: true` and unpublished, its `tag_name`
+   matches the admitted version, the candidate tag ref still points to the exact
+   tag object created by this run, that tag object still peels to the admitted
+   protected source commit, and no published release resolves for that tag. If
+   any identity, ownership, or publication-state proof is missing or ambiguous,
+   no deletion or retarget is allowed: quarantine the version and require a new
+   version/source candidate. After all proofs succeed, delete only that exact
+   unpublished draft, re-resolve the draft as absent, recheck that no published
+   release resolves for the tag and that the ref still names the recorded tag
+   object, then delete only that exact candidate tag ref. Re-resolve both as
+   absent before same-version retry. Never reuse a tag name that has been
+   associated with a published immutable release.
+10. Reproducibility is tested by rebuilding the wheel and source distribution
    from the same protected source under the reviewed toolchain and comparing
    the release contract's declared deterministic subjects. Any known
    nondeterministic field must be removed or normalized by source/tooling
    repair; it is not excluded from comparison merely to obtain GREEN.
-10. Rollback restores a previously reviewed workflow revision and produces new
-    artifacts from a new protected commit/version. It does not move an existing
-    release tag or reuse an old attestation for different bytes.
-11. Package-registry publication is not inferred from a GitHub Release. If a
-    registry such as PyPI is adopted, its protected environment, trusted
-    publishing identity, independent review policy and immutable-version
-    behavior require a separate accepted decision before credentials or
-    publishing steps are added.
+11. Rollback restores a previously reviewed workflow revision and produces new
+   artifacts from a new protected commit/version. It does not move an existing
+   release tag or reuse an old attestation for different bytes. Once publication
+   may have happened, remediation is forward-only; a tag name associated with a
+   published immutable release is never reused even if that release is later
+   deleted.
+12. Package-registry publication is not inferred from a GitHub Release. If a
+   registry such as PyPI is adopted, its protected environment, trusted
+   publishing identity, independent review policy and immutable-version
+   behavior require a separate accepted decision before credentials or
+   publishing steps are added.
 
 ## RED / GREEN acceptance
 
@@ -160,6 +188,11 @@ GREEN requires all of the following on one unchanged protected source SHA:
   immutability and repeat the annotated-tag peel to prove the release tag still
   reaches the same exact protected source SHA; any non-confirming result must
   fail closed with the draft unpublished;
+- synthetic release fixtures exercise the pre-publication abort path, including
+  exact draft/tag ownership proofs, safe deletion only while unpublished,
+  re-resolve-as-absent before same-version retry, quarantine on ambiguous
+  cleanup, and never reuse of a tag associated with a published immutable
+  release;
 - release notes, version, protected source SHA, tag, distributions, SBOMs,
   attestations and immutable GitHub Release are mutually consistent; and
 - rollback/incident instructions are exercised against synthetic release
@@ -194,6 +227,14 @@ Rejected. For an annotated tag, the ref names a Git tag object rather than the
 source commit. The trusted boundary must peel the tag object, require target
 type `commit`, and compare that target SHA with the admitted source SHA.
 
+### Leave an aborted draft/tag in place and retry around it
+
+Rejected. An unpublished draft and occupied tag are real candidate identities.
+Ignoring them either blocks same-version retry or creates pressure to force or
+retarget the tag. Cleanup is allowed only for the exact unpublished identities
+created by the same run after their state and ownership are re-proved; otherwise
+the version is quarantined and remediation moves forward.
+
 ### Publish a GitHub Release first and attach evidence later
 
 Rejected. Buyers would observe a release identity before its exact artifact,
@@ -221,6 +262,15 @@ publication can be added later behind its own protected decision.
   immutable release is published. A single early preflight therefore has a
   time-of-check/time-of-use window; both are revalidated immediately before
   publish and any drift leaves the draft unpublished.
+- An unpublished draft/tag can survive a failed final admission. The release
+  workflow must retain exact creation receipts and must not assume cleanup is
+  safe from version text alone. If the draft is no longer provably unpublished
+  or the tag no longer exactly matches the recorded candidate object, cleanup
+  fails closed and the version is quarantined.
+- GitHub documents that a tag name associated with a published immutable release
+  cannot be reused even if that immutable release is later deleted. Recovery
+  after possible publication therefore uses a new version rather than trying to
+  reclaim the old name.
 - An annotated tag ref exposes a tag-object SHA. Implementations that skip the
   tag-object lookup can either produce a false mismatch or validate the wrong
   identity. Current-head tests must exercise annotated-tag success plus missing,
@@ -243,6 +293,9 @@ OWASP Foundation. https://cyclonedx.org/specification/overview/
 
 GitHub. (2026). *Immutable releases*. GitHub Docs.
 https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
+
+GitHub. (2026). *REST API endpoints for releases*. GitHub Docs.
+https://docs.github.com/en/rest/releases/releases
 
 GitHub. (2026). *REST API endpoints for repositories: Check if immutable
 releases are enabled for a repository*. GitHub Docs.
