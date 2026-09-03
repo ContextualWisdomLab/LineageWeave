@@ -85,6 +85,7 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
     assert "unique (resource_id, translation_key, locale)" in sql
     assert "btrim(product_key) = product_key" in sql
     assert "btrim(screen_key) = screen_key" in sql
+    assert "btrim(translation_key) = translation_key" in sql
     assert "drop constraint if exists user_account_preferred_locale_ck" in sql
     for locale in EXPECTED_LOCALES:
         assert f"'{locale}'" in sql
