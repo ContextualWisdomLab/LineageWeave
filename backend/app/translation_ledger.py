@@ -19,6 +19,38 @@ from redis.exceptions import RedisError
 
 
 SUPPORTED_UI_LOCALES: tuple[str, ...] = ("ko", "en", "ja", "zh", "vi", "es", "de", "fr")
+_UI_WHITESPACE_CODEPOINTS: tuple[int, ...] = (
+    9,
+    10,
+    11,
+    12,
+    13,
+    28,
+    29,
+    30,
+    31,
+    32,
+    133,
+    160,
+    5760,
+    8192,
+    8193,
+    8194,
+    8195,
+    8196,
+    8197,
+    8198,
+    8199,
+    8200,
+    8201,
+    8202,
+    8232,
+    8233,
+    8239,
+    8287,
+    12288,
+)
+_UI_WHITESPACE = "".join(chr(codepoint) for codepoint in _UI_WHITESPACE_CODEPOINTS)
 _CACHE_TTL_SECONDS = 300
 
 _SELECT_REQUIRED_KEYS_SQL = """
@@ -107,7 +139,7 @@ def validate_ui_locale(locale: str) -> str:
 
 def _validate_identity_segment(value: str, *, field_name: str) -> str:
     """Reject blank, padded, or delimiter-bearing cache identity segments."""
-    normalized = value.strip()
+    normalized = value.strip(_UI_WHITESPACE)
     if normalized != value:
         raise ValueError(f"{field_name} must not contain leading or trailing whitespace")
     if not normalized or ":" in normalized:
@@ -142,7 +174,7 @@ def require_complete_translation_map(
     missing: list[str] = []
     for key in required_keys:
         value = translations.get(key)
-        if not isinstance(value, str) or not value.strip():
+        if not isinstance(value, str) or not value.strip(_UI_WHITESPACE):
             missing.append(key)
             continue
         projection[key] = value
@@ -200,7 +232,12 @@ def _decode_cached_screen(
     translations = decoded.get("translations")
     if not isinstance(translations, dict) or not translations:
         return None
-    if any(not isinstance(key, str) or not isinstance(value, str) or not value.strip() for key, value in translations.items()):
+    if any(
+        not isinstance(key, str)
+        or not isinstance(value, str)
+        or not value.strip(_UI_WHITESPACE)
+        for key, value in translations.items()
+    ):
         return None
     if not _matches_authoritative_text_digests(translations, expected_text_digests):
         return None
