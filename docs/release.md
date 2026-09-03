@@ -63,11 +63,14 @@ release does not satisfy this contract.
 11. After trusted verification and the immutability preflight both succeed,
     create an annotated release-specific tag object whose target type is
     `commit` and whose target SHA is the exact protected source SHA from step 1,
-    then create `refs/tags/<version>` pointing to that tag object. Refuse
-    lightweight tags, tree/blob targets, an existing ref, or any tag object
-    whose target differs from the admitted source. Create a draft GitHub Release
-    and attach the complete verified distributions, SBOM/provenance evidence,
-    checksum material and release notes. Do not publish an incomplete asset set.
+    then create `refs/tags/<version>` pointing to that tag object. Record the
+    newly created tag-object SHA/ref and the pre-create proof that the ref was
+    absent. Refuse lightweight tags, tree/blob targets, an existing ref, or any
+    tag object whose target differs from the admitted source. Create a draft
+    GitHub Release, retain its exact release ID and `draft: true` creation
+    receipt, and attach the complete verified distributions, SBOM/provenance
+    evidence, checksum material and release notes. Do not publish an incomplete
+    asset set.
 12. Immediately before publish, recheck repository release immutability through
     `GET /repos/{owner}/{repo}/immutable-releases` and re-resolve the release
     tag. Because an annotated tag ref points to the Git tag object SHA rather
@@ -78,7 +81,10 @@ release does not satisfy this contract.
     malformed response, missing ref/tag object, unexpected object type, or
     peeled commit/source SHA mismatch must fail closed without publishing the
     draft. This second check closes the time-of-check/time-of-use window between
-    admission and publish.
+    admission and publish. If it fails after step 11 created the candidate tag
+    and draft, execute the pre-publication abort procedure below before any
+    same-version retry; an unpublished draft and occupied tag ref are not
+    silently treated as if no release identity had been created.
 13. Publish that fully populated draft as the non-prerelease immutable GitHub
     Release. Never move an existing release tag or overwrite published bytes
     under an existing version.
@@ -90,12 +96,40 @@ release does not satisfy this contract.
 
 ## Failure and rollback
 
-A failure before publication leaves no valid release identity to repair in
-place. In particular, either immutability admission check or the publish-boundary
-tag/source identity recheck failing leaves the draft unpublished. Preserve the
-run ID, exact source SHA, logs and any sealed evidence needed for RCA, fix
-source/configuration through a normal protected PR, and start again from a new
-exact candidate.
+A failure before step 11 creates no candidate release identity. Preserve the
+run ID, exact source SHA, logs and any sealed evidence needed for RCA, fix the
+source/configuration through a normal protected PR, and start again from a
+fresh exact candidate.
+
+A failure after step 11 but before publication is a **pre-publication abort**,
+not proof that no identity exists. The run may already own an unpublished draft
+release and a candidate tag ref. Before retrying the same version, the trusted
+release boundary must use the recorded creation receipts to prove all of the
+following: the exact release ID created by this run still resolves as
+`draft: true` and unpublished; its `tag_name` is the admitted version; the
+candidate tag ref still points to the exact annotated tag object created by
+this run; that tag object still peels to the admitted protected source commit;
+and no published release resolves for the candidate tag. If any lookup,
+identity, ownership, or publication-state proof is missing or ambiguous, do not
+delete or retarget anything. Quarantine that version and require a new
+version/source candidate.
+
+Only after those unpublished-only proofs succeed may the abort cleanup delete
+the exact draft release ID created by this run. Re-resolve that release ID as
+absent, then recheck that no published release resolves for the candidate tag
+and that the ref still points to the recorded candidate tag object. Only then
+may the cleanup delete that exact candidate tag ref. Re-resolve both the draft
+release identity and candidate tag ref as absent before a same-version retry is
+admissible. A cleanup failure remains RED and quarantines the version; it is
+not permission to force, retarget, or reuse the identity.
+
+Never reuse a tag name that has been associated with a published immutable
+release. GitHub's immutable-release contract locks the associated tag after
+publication and reserves that tag name even if the immutable release is later
+deleted. Once publication may have occurred, rollback is forward-only: preserve
+the forensic evidence, identify affected subjects, correct source/workflow
+through normal governance, and publish replacement artifacts under a new
+version and protected source SHA.
 
 If an already-published artifact or attestation is found invalid, preserve the
 forensic evidence and identify affected subjects before any revocation or
