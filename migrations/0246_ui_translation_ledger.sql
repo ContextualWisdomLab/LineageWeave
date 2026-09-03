@@ -52,7 +52,10 @@ create table if not exists ui_translation_text (
     resource_id bigint not null,
     translation_key text not null,
     locale text not null check (locale in ('ko', 'en', 'ja', 'zh', 'vi', 'es', 'de', 'fr')),
-    translated_text text not null check (btrim(translated_text) <> ''),
+    translated_text text not null check (
+        btrim(translated_text) <> ''
+        and translated_text !~ E'^\\s*$'
+    ),
     unique (resource_id, translation_key, locale),
     foreign key (resource_id, translation_key)
         references ui_translation_key(resource_id, translation_key)
