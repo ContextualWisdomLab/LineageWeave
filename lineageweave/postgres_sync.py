@@ -204,7 +204,10 @@ def connection_kwargs_from_dsn(
     if timeout_value is not None:
         if isinstance(timeout_value, bool):
             raise TypeError("PostgreSQL connect_timeout must be a real number")
-        timeout = float(timeout_value)
+        try:
+            timeout = float(timeout_value)
+        except OverflowError as exc:
+            raise ValueError("PostgreSQL connect_timeout must be finite positive") from exc
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("PostgreSQL connect_timeout must be finite positive")
         kwargs["timeout"] = timeout
