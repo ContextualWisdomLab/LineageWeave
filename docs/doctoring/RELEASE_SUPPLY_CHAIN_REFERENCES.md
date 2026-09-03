@@ -63,6 +63,11 @@ permission for the check. ADR 0358 therefore treats an authenticated
 `enabled: true` result as release admission and fails closed when the status
 cannot be established. That administrative read capability belongs only to the
 trusted admission step; it is not granted to pull-request or build execution.
+Because the setting and a newly created release tag remain mutable until the
+release is actually published, the release contract performs the status check
+before tag creation and rechecks both repository immutability and exact tag to
+source-SHA identity immediately before publish rather than treating an earlier
+preflight as durable evidence.
 
 GitHub. (n.d.). *Immutable releases*. GitHub Docs. Retrieved September 3, 2026,
 from
@@ -95,8 +100,8 @@ https://doi.org/10.17487/RFC8259
 - source/build provenance threat model → SLSA 1.2;
 - credential separation and artifact-attestation verification → GitHub artifact
   attestation documentation;
-- immutable tag/asset admission and draft-first publication → GitHub immutable
-  release documentation and repository REST API;
+- immutable tag/asset admission, publish-boundary revalidation, and draft-first
+  publication → GitHub immutable release documentation and repository REST API;
 - strict machine-readable evidence intake → RFC 8259 plus the stricter
   canonical `.github` verifier contract;
 - current circular transport-receipt defect → `ContextualWisdomLab/.github#1782`.
