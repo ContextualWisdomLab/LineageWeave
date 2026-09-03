@@ -19,6 +19,7 @@ This ledger is strictly for LineageWeave-owned product UI copy. Ontology labels,
 - A published screen version is immutable and complete for every required screen key in all eight locales.
 - Reads do not silently fall back to another locale. Missing or blank requested-locale copy is an error.
 - Cache identity must include product, screen, immutable resource version, and locale.
+- An explicit-version cache hit is admissible only after PostgreSQL confirms the published resource and its exact required screen-key set; structurally valid partial cache payloads are misses.
 - Publication must serialize with child key/text mutation so a complete resource cannot become incomplete after the publication check.
 - The design must stay independent from ontology-label persistence and from another CWL product's domain tables.
 
@@ -36,6 +37,10 @@ Rejected. Product UI copy and semantic concept labels have different ownership, 
 
 Rejected. In-place mutation destroys the evidence needed to reproduce what a buyer saw and makes cache invalidation dependent on timing rather than identity.
 
+### Trust an exact-version cache payload without database admission
+
+Rejected. Version identity proves which projection was requested but does not prove that a syntactically valid cache payload still contains every key declared by the published screen resource. A partial cache object could otherwise become product-copy authority.
+
 ### Version product-owned screen resources in PostgreSQL
 
 Selected. It gives the read model a stable aggregate identity, keeps copy ownership local to LineageWeave, and permits exact-version caching without duplicating semantic truth.
@@ -48,7 +53,7 @@ The schema remains in 3NF: resource version metadata, required keys, and localiz
 
 Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. Publication already locks the resource row through its update. Therefore publication and child mutation are serialized: either the child change commits before the completeness scan, or it observes the published state and is rejected. Child rows may not be re-parented between resources.
 
-`read_translation_screen` returns a complete `TranslationScreen` projection. Latest-version reads resolve PostgreSQL first so a stale cache alias cannot hide a newer publication. Explicit immutable versions may be served by Valkey under `ui-translation:{product}:{screen}:v{resource_version}:{locale}`. Malformed, unavailable, or identity-mismatched cache entries are misses and fall back to PostgreSQL. An unavailable cache never makes a valid PostgreSQL translation unavailable.
+`read_translation_screen` returns a complete `TranslationScreen` projection. Latest-version reads resolve the complete projection from PostgreSQL so a stale cache alias cannot hide a newer publication. For an explicit immutable version, PostgreSQL first resolves the published resource's ordered required-key set. Valkey may then serve `ui-translation:{product}:{screen}:v{resource_version}:{locale}` only when the cached translation-key set exactly equals that authoritative set and all values are nonblank. Malformed, unavailable, identity-mismatched, partial, or extra-key cache entries are misses and fall back to the PostgreSQL text projection. This keeps cache reads useful for avoiding localized text-row work while preventing Valkey from deciding screen completeness. An unavailable cache never makes a valid PostgreSQL translation unavailable.
 
 The existing `user_account.preferred_locale` constraint expands to the same eight language tags. API request validation and frontend consumption must be cut over to the same contract before #922 can close; the database/read-model foundation alone is not buyer-visible completion.
 
@@ -59,7 +64,7 @@ The existing `user_account.preferred_locale` constraint expands to the same eigh
 - Aggregate: versioned UI translation resource.
 - Entity/value identity: required screen key; locale-tagged translated text.
 - Repository boundary: PostgreSQL query in `backend.app.translation_ledger`; Valkey is a cache adapter, not a repository of record.
-- Invariants: exact eight-locale completeness at publication, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity.
+- Invariants: exact eight-locale completeness at publication, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance.
 - ACL: ontology labels remain external semantic truth and are not stored in these tables.
 
 ## Recovery and migration
@@ -73,6 +78,9 @@ Published translation data is not destructively down-migrated. A bad published r
 - RED `092d32137fd6764a4f1fc7a53125a15318814292`: executable contract required the eight locales, normalized schema, exact cache identity, and fail-closed completeness before implementation existed.
 - RED `370f83a28f4a0fdeb000ea5a259d66c415c1a746`: review found that child mutation could race publication; the contract required parent-row serialization.
 - Repair `bb61753db7a483c766690e830700637694135208`: child mutation now locks the parent resource with `FOR UPDATE`, preserving completeness across concurrent publication.
+- RED `3b68e4ed16731e97e8743748ab5775fa78240064`: a correct-identity cache payload containing only a subset of the published screen keys was required to fall back to PostgreSQL instead of returning incomplete product copy.
+- Repair `249b6cfba21c37899cae10ee7519d4e77132269d`: explicit-version reads now establish the published required-key set in PostgreSQL before accepting a cache hit; cache key sets must match exactly.
+- Verification-contract alignment `f666a5b12b9ddd0bbef040c238ef541ec1fa1af1`: cache-hit and fallback tests now assert one authoritative key-set query and reject partial cached projections.
 
 These commits are branch evidence only. This ADR remains Proposed until the exact protected-line implementation and dependent API/frontend cutover are verified.
 
