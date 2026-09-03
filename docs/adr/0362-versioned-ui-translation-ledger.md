@@ -21,6 +21,7 @@ This ledger is strictly for LineageWeave-owned product UI copy. Ontology labels,
 - `product_key` and `screen_key` are canonical identity segments: blank, colon-bearing, or leading/trailing-whitespace forms are rejected consistently by PostgreSQL and the application boundary.
 - Cache identity must include product, screen, immutable resource version, and locale.
 - An explicit-version cache hit is admissible only after PostgreSQL confirms the published resource and its exact required screen-key set; structurally valid partial cache payloads are misses.
+- PostgreSQL pool leases must not be held while awaiting optional Valkey I/O. Published resource/key identity is immutable, so cache admission can occur after releasing the key-set query connection and PostgreSQL can be reacquired only on a cache miss or failure.
 - Publication must serialize with child key/text mutation so a complete resource cannot become incomplete after the publication check.
 - `published_at` is database-owned evidence of the one-way publication transition. Caller-supplied timestamps are never retained, and a long-lived transaction must not backdate the receipt to its transaction start.
 - The design must stay independent from ontology-label persistence and from another CWL product's domain tables.
@@ -55,6 +56,10 @@ Rejected. PostgreSQL defines `now()` as the transaction-start timestamp. A resou
 
 Rejected. Version identity proves which projection was requested but does not prove that a syntactically valid cache payload still contains every key declared by the published screen resource. A partial cache object could otherwise become product-copy authority.
 
+### Hold the PostgreSQL lease while consulting Valkey
+
+Rejected. The key-set query has already established immutable publication identity. Keeping that connection leased across an optional cache network wait adds no consistency guarantee and allows slow Valkey I/O to consume scarce PostgreSQL pool capacity. Explicit-version reads therefore release the first lease before cache I/O and reacquire only for the authoritative text projection on a miss.
+
 ### Version product-owned screen resources in PostgreSQL
 
 Selected. It gives the read model a stable aggregate identity, keeps copy ownership local to LineageWeave, and permits exact-version caching without duplicating semantic truth.
@@ -67,7 +72,7 @@ The schema remains in 3NF: resource version metadata, required keys, and localiz
 
 Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. Publication already locks the resource row through its update. Therefore publication and child mutation are serialized: either the child change commits before the completeness scan, or it observes the published state and is rejected. Child rows may not be re-parented between resources.
 
-`read_translation_screen` returns a complete `TranslationScreen` projection. Latest-version reads resolve the complete projection from PostgreSQL so a stale cache alias cannot hide a newer publication. For an explicit immutable version, PostgreSQL first resolves the published resource's ordered required-key set. Valkey may then serve `ui-translation:{product}:{screen}:v{resource_version}:{locale}` only when the cached translation-key set exactly equals that authoritative set and all values are nonblank. Malformed, unavailable, identity-mismatched, partial, or extra-key cache entries are misses and fall back to the PostgreSQL text projection. This keeps cache reads useful for avoiding localized text-row work while preventing Valkey from deciding screen completeness. An unavailable cache never makes a valid PostgreSQL translation unavailable.
+`read_translation_screen` returns a complete `TranslationScreen` projection. Latest-version reads resolve the complete projection from PostgreSQL so a stale cache alias cannot hide a newer publication. For an explicit immutable version, PostgreSQL first resolves the published resource's ordered required-key set and releases that pool lease. Valkey may then serve `ui-translation:{product}:{screen}:v{resource_version}:{locale}` only when the cached translation-key set exactly equals that authoritative set and all values are nonblank. Malformed, unavailable, identity-mismatched, partial, or extra-key cache entries are misses. On a miss, the reader reacquires PostgreSQL for the localized text projection. This keeps cache reads useful for avoiding localized text-row work without pinning PostgreSQL capacity across cache network I/O or allowing Valkey to decide screen completeness. An unavailable cache never makes a valid PostgreSQL translation unavailable.
 
 The existing `user_account.preferred_locale` constraint expands to the same eight language tags. API request validation and frontend consumption must be cut over to the same contract before #922 can close; the database/read-model foundation alone is not buyer-visible completion.
 
@@ -78,7 +83,7 @@ The existing `user_account.preferred_locale` constraint expands to the same eigh
 - Aggregate: versioned UI translation resource.
 - Entity/value identity: canonical product/screen/version aggregate identity; required screen key; locale-tagged translated text.
 - Repository boundary: PostgreSQL query in `backend.app.translation_ledger`; Valkey is a cache adapter, not a repository of record.
-- Invariants: canonical unpadded product/screen identity, exact eight-locale completeness at publication, database-owned statement-time publication receipt, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance.
+- Invariants: canonical unpadded product/screen identity, exact eight-locale completeness at publication, database-owned statement-time publication receipt, immutable published versions, no cross-resource child move, no locale fallback, exact cache identity, authoritative screen-key admission before cache acceptance, and no PostgreSQL lease held across optional cache I/O.
 - ACL: ontology labels remain external semantic truth and are not stored in these tables.
 
 ## Recovery and migration
@@ -105,6 +110,9 @@ Published translation data is not destructively down-migrated. A bad published r
 - RED `74f0521bc3d297128f583ebb6c84ca58d0343678`: a real PostgreSQL transaction is deliberately aged before publication and requires the receipt to be later than `transaction_timestamp()`.
 - Repair `e2429b144eaf20254d22a6e26d421915f8c1a9e7`: publication now uses `statement_timestamp()` so a long transaction cannot backdate the receipt.
 - Verification-contract alignment `3a3f80980d9e5848bf611135edaa9e2f20cd7bb5`: static contract and real-PostgreSQL evidence agree on statement-scoped publication time.
+- Pool-lease RED `e32539220638faaedc53e508e9d71c9df37615fa`: the read-model test observes the asyncpg lease state at Valkey read time and fails if optional cache I/O occurs while PostgreSQL remains acquired.
+- Pool-lease repair `024154938f1dedd1ed51a4f4406465c116418267`: explicit-version reads release the key-set query lease before cache I/O and reacquire PostgreSQL only after a cache miss/failure.
+- Verification alignment `f077d19cc77c8d6a11ee5545c80e1c0d309213ee`: miss/failure-path tests require the two bounded acquisitions while cache-hit paths retain a single short PostgreSQL acquisition.
 
 These commits are branch evidence only. This ADR remains Proposed until the exact protected-line implementation and dependent API/frontend cutover are verified.
 
