@@ -73,6 +73,10 @@
   stroke-width: 1;
 }
 
+.leftover-map-plot-origin circle {
+  fill: var(--color-text);
+}
+
 .leftover-map-plot-tick line {
   stroke: var(--color-text);
   stroke-width: 1;

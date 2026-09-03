@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-09-02
 
+**Amended by:** [ADR 0355](0355-leftover-map-plot-origin-badge.md)
+(leftover-map origin on leftover-map graphic independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates)
+
 Amends leftover-map item coordinates on leftover-map comparison leftover pair leftover-map criterion independently of leftover-map comparison leftover pair leftover-map post leftover-map person coordinates
 ([ADR 0342](0342-leftover-map-compare-list-criterion-coordinates.md)). Independent of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates independently of leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates
 ([ADR 0353](0353-leftover-map-compare-list-post-origin-badge.md)). Independent of leftover-map pair leftover-map criterion leftover-map origin leftover-map item coordinates independently of leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates

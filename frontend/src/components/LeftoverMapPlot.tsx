@@ -27,6 +27,7 @@ import {
   leftoverMapComparePlotAxisBadge,
   leftoverMapComparePlotTickAxisBadge,
   leftoverMapPlotAxisBadge,
+  leftoverMapPlotOriginBadge,
   leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
 } from "../leftoverMapPlotAxisSingular";
@@ -97,6 +98,17 @@ function leftoverMapPlotAxisText(
   const badge = leftoverMapPlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
   if (badge === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+  }
+  return tf(badge.key, badge.values);
+}
+
+function leftoverMapPlotOriginText(variant: LeftoverMapPlotVariant): string | null {
+  if (variant === "comparison") {
+    return null;
+  }
+  const badge = leftoverMapPlotOriginBadge();
+  if (badge === null) {
+    return null;
   }
   return tf(badge.key, badge.values);
 }
@@ -325,6 +337,10 @@ function leftoverMapPlotPostText(
  * ADR 0354 fail-closes leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
  * item coordinates through leftoverMapCompareListCriterionBadge independently of leftover-map
  * comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates, not this graphic.
+ * ADR 0355 fail-closes leftover-map graphic leftover-map origin through
+ * leftoverMapPlotOriginBadge independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map
+ * origin leftover-map item coordinates, leftover-map axis origin ticks, leftover-map
+ * axis share, and leftover-map singular values.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -343,6 +359,7 @@ export function LeftoverMapPlot({
   const itemCoverageCounts = leftoverMapItemCoverageCounts(leftoverMapCoverage);
   const incompletePostCount = leftoverMapIncompletePostCount(leftoverMapCoverage);
   const incompleteItemCount = leftoverMapIncompleteItemCount(leftoverMapCoverage);
+  const originLabel = leftoverMapPlotOriginText(variant);
 
   const openPost = (postId: string) => {
     const pair = firstPlottablePairForPost(pairs, postId);
@@ -448,6 +465,11 @@ export function LeftoverMapPlot({
           <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
             {leftoverMapPlotAxisText(2, leftoverMapAxes, variant)}
           </text>
+          {originLabel !== null ? (
+            <g className="leftover-map-plot-origin" aria-label={originLabel}>
+              <circle cx={layout.originX} cy={layout.originY} r={3} />
+            </g>
+          ) : null}
           {layout.ticks.map((tick) => (
             <g
               key={`tick:${tick.axis}:${tick.label}`}

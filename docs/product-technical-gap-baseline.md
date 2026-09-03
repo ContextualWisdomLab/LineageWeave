@@ -1,5 +1,15 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-03 09:15 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. Writes work (MCP comment + git push). Do not
+> self-approve. #918 leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
+> item coordinates independently of leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map person coordinates (v2.111.0 / ADR 0354) is
+> `a91d2ec`, stacked on #917 @ `8192b485`. Independent APPROVE is missing (Devin COMMENT is
+> not APPROVE). This increment: leftover-map graphic leftover-map origin independently of leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map
+> item coordinates as leftoverMapPlotOriginBadge (ADR 0355 / v2.112.0) on
+> `feat/leftover-map-plot-origin-badge-v21120`. Distinct accessible name
+> `leftover-map origin {origin}`. Rank-0 unused axes still name leftover-map origin `(0.00, 0.00)`. leftoverMapCompareListCriterionBadge stays leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinate keys. leftoverMapListCriterionBadge stays leftover-map pair leftover-map criterion leftover-map origin leftover-map item coordinate keys. leftoverMapPlotTickAxisBadge stays leftover-map graphic leftover-map axis origin tick keys. leftover-map comparison graphic leftover-map origin stays unnamed this increment. Do not invent leftover-map origin from leftover-map item coordinates `ζ`. Do not mix #877. Do not mix #890 stale ADR 0347 / v2.104.0 identity. Stack onto #918. Leave open for independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE. #96 already closed as weaker duplicate of #91. Next buyer increment after this stack: leftoverMapComparePlotOriginBadge reconstruction independently of leftover-map graphic leftover-map origin (ADR 0356 / v2.113.0).
+
 > Exact-head loop overlay: 2026-09-02 20:20 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. Writes work (MCP comment + git push). Do not
 > self-approve. #917 leftover-map comparison leftover-pair leftover-map post leftover-map origin leftover-map
