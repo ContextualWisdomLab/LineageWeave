@@ -50,6 +50,8 @@
  *  not this helper.
  *  ADR 0356 names leftover-map comparison graphic leftover-map origin as leftoverMapComparePlotOriginBadge,
  *  not this helper.
+ *  ADR 0357 names leftover-map comparison leftover-axis leftover-map origin as leftoverMapCompareAxisOriginBadge,
+ *  not this helper.
  */
 
 import type { LeftoverMapAxis } from "./api";

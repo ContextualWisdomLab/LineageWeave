@@ -4183,6 +4183,12 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("leftover axis 2 σ 0.86")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 σ 1.84 82%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 2 σ 0.86 18%")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison leftover axis leftover-map origin (0.00, 0.00)")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("leftover map comparison leftover axis leftover-map origin (0.00, 0.00)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("leftover axis leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover axis leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 2 tick −0.02 σ 0.86 18%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 origin tick 0.00 σ 1.84 82%")).toBeInTheDocument();
