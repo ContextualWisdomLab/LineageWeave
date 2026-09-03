@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Protocol
 
 import asyncpg
@@ -85,7 +86,7 @@ class TranslationScreen:
     resource_version: int
     locale: str
     cache_key: str
-    translations: dict[str, str]
+    translations: Mapping[str, str]
 
 
 def validate_ui_locale(locale: str) -> str:
@@ -142,6 +143,11 @@ def require_complete_translation_map(
     return projection
 
 
+def _freeze_translations(translations: Mapping[str, str]) -> Mapping[str, str]:
+    """Return a detached read-only mapping for one published screen value object."""
+    return MappingProxyType(dict(translations))
+
+
 def _decode_cached_screen(
     raw_payload: str | bytes,
     *,
@@ -176,7 +182,7 @@ def _decode_cached_screen(
         resource_version=resource_version,
         locale=locale,
         cache_key=cache_key,
-        translations=dict(translations),
+        translations=_freeze_translations(translations),
     )
 
 
@@ -219,7 +225,7 @@ async def _write_exact_cache(cache: AsyncTranslationCache | None, screen: Transl
             "screen_key": screen.screen_key,
             "resource_version": screen.resource_version,
             "locale": screen.locale,
-            "translations": screen.translations,
+            "translations": dict(screen.translations),
         },
         ensure_ascii=False,
         separators=(",", ":"),
@@ -308,7 +314,7 @@ async def read_translation_screen(
         resource_version=resolved_version,
         locale=language,
         cache_key=cache_key,
-        translations=projection,
+        translations=_freeze_translations(projection),
     )
     await _write_exact_cache(cache, result)
     return result
