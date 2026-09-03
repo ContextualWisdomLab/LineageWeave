@@ -241,9 +241,11 @@ def _decode_cached_screen(
         return None
     if decoded.get("product_key") != product_key or decoded.get("screen_key") != screen_key:
         return None
+    cached_version = decoded.get("resource_version")
     if (
-        isinstance(decoded.get("resource_version"), bool)
-        or decoded.get("resource_version") != resource_version
+        isinstance(cached_version, bool)
+        or not isinstance(cached_version, int)
+        or cached_version != resource_version
         or decoded.get("locale") != locale
     ):
         return None
