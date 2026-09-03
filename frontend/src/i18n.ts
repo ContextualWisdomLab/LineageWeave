@@ -670,6 +670,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 {kind} 쌍 열기: {title} · {criterion}",
     "leftover pair leftover-map post {title} at ξ {person}":
       "잔여 쌍 잔여 지도 글 {title} (ξ {person})",
+    "leftover pair leftover-map origin {origin}": "잔여 쌍 잔여 지도 원점 {origin}",
     "leftover pair leftover-map post {title} at leftover-map origin ξ {person}":
       "잔여 쌍 잔여 지도 원점 글 {title} (ξ {person})",
     "leftover pair leftover-map criterion {label} at ζ {item}":
@@ -1409,6 +1410,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "打开残余 {kind} 配对：{title} · {criterion}",
     "leftover pair leftover-map post {title} at ξ {person}":
       "残差配对残差图帖子 {title}（ξ {person}）",
+    "leftover pair leftover-map origin {origin}": "残差配对残差图原点 {origin}",
     "leftover pair leftover-map post {title} at leftover-map origin ξ {person}":
       "残差配对残差图原点帖子 {title}（ξ {person}）",
     "leftover pair leftover-map criterion {label} at ζ {item}":
@@ -2152,6 +2154,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差 {kind} ペアを開く: {title} · {criterion}",
     "leftover pair leftover-map post {title} at ξ {person}":
       "残差ペアの残差マップ投稿 {title}（ξ {person}）",
+    "leftover pair leftover-map origin {origin}": "残差ペアの残差マップ原点 {origin}",
     "leftover pair leftover-map post {title} at leftover-map origin ξ {person}":
       "残差ペアの残差マップ原点投稿 {title}（ξ {person}）",
     "leftover pair leftover-map criterion {label} at ζ {item}":
@@ -2899,6 +2902,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Mở cặp phần dư {kind}: {title} · {criterion}",
     "leftover pair leftover-map post {title} at ξ {person}":
       "Cặp phần dư bài viết bản đồ phần dư {title} tại ξ {person}",
+    "leftover pair leftover-map origin {origin}": "gốc cặp phần dư bản đồ phần dư {origin}",
     "leftover pair leftover-map post {title} at leftover-map origin ξ {person}":
       "Cặp phần dư bài gốc bản đồ phần dư {title} tại ξ {person}",
     "leftover pair leftover-map criterion {label} at ζ {item}":

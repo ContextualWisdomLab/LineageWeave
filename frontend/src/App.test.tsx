@@ -4189,8 +4189,10 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText("leftover axis leftover-map origin (0.00, 0.00)").length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("leftover axis leftover-map origin (0.00, 0.00)").length).toBeGreaterThan(0);
-    expect(screen.queryByText("leftover pair leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("leftover pair leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
+    expect(screen.getAllByText("leftover pair leftover-map origin (0.00, 0.00)").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("leftover pair leftover-map origin (0.00, 0.00)").length).toBeGreaterThan(0);
+    expect(screen.queryByText("leftover map comparison leftover pair leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("leftover map comparison leftover pair leftover-map origin (0.00, 0.00)")).not.toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 tick +0.50 σ 1.84 82%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 2 tick −0.02 σ 0.86 18%")).toBeInTheDocument();
     expect(screen.getByText("leftover map comparison leftover axis 1 origin tick 0.00 σ 1.84 82%")).toBeInTheDocument();

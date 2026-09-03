@@ -10,6 +10,7 @@ import {
   leftoverMapComparePlotOriginBadge,
   leftoverMapCompareAxisOriginBadge,
   leftoverMapAxisOriginBadge,
+  leftoverMapListOriginBadge,
   leftoverMapPlotTickAxisBadge,
   leftoverMapPlotTickIsOrigin,
   leftoverSingularForAxis,
@@ -41,6 +42,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_ORIGIN,
   LEFTOVER_MAP_COMPARE_AXIS_ORIGIN,
   LEFTOVER_MAP_AXIS_ORIGIN,
+  LEFTOVER_MAP_LIST_ORIGIN,
   LEFTOVER_MAP_PLOT_ORIGIN_TICK,
   LEFTOVER_MAP_PLOT_ORIGIN_TICK_SHARE,
   LEFTOVER_MAP_PLOT_ORIGIN_TICK_SINGULAR,
@@ -54,7 +56,7 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
 import { LEFTOVER_MAP_COMPARE_PLOT_TICK, LEFTOVER_MAP_PLOT_TICK, leftoverMapComparePlotCriterionBadge, leftoverMapPlotCriterionBadge } from "./leftoverMapPlotLayout";
-import { leftoverMapCompareListCriterionBadge, leftoverMapListCriterionBadge } from "./leftoverMapCoordinates";
+import { leftoverMapCompareListCriterionBadge, leftoverMapListCriterionBadge, leftoverMapListPostBadge } from "./leftoverMapCoordinates";
 import { LEFTOVER_MAP_AXIS_BADGE_SINGULAR, LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY, leftoverMapAxisTickBadge } from "./leftoverMapAxisBadge";
 
 describe("leftoverSingularForAxis", () => {
@@ -1278,6 +1280,67 @@ describe("leftover-map leftover-axis leftover-map origin independently of leftov
       leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key ?? "",
     );
     expect(leftoverMapAxisOriginBadge()?.key).not.toBe(
+      leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key ?? "",
+    );
+    expect(leftoverMapAxisOriginBadge()?.key).not.toBe(leftoverMapListOriginBadge()?.key);
+  });
+});
+
+describe("leftover-map pair leftover-map origin independently of leftover-map leftover-axis leftover-map origin", () => {
+  it("names leftover-map pair leftover-map origin independently of leftover-map leftover-axis leftover-map origin, leftover-map axis origin ticks, leftover-map axis share, and leftover-map singular values", () => {
+    expect(leftoverMapListOriginBadge()).toEqual({
+      key: LEFTOVER_MAP_LIST_ORIGIN,
+      values: { origin: "(0.00, 0.00)" },
+    });
+  });
+
+  it("names rank-0 leftover-map pair leftover-map origin (0.00, 0.00)", () => {
+    expect(leftoverMapListOriginBadge()?.values.origin).toBe("(0.00, 0.00)");
+  });
+
+  it("does not invent leftover-map pair leftover-map origin from leftover-map item coordinates, leftover-map axis share, or leftover-map singular values", () => {
+    expect(leftoverMapListOriginBadge()?.values).toEqual({ origin: "(0.00, 0.00)" });
+    expect(leftoverMapListOriginBadge()?.key).toBe(LEFTOVER_MAP_LIST_ORIGIN);
+  });
+
+  it("stays distinct from leftover-map leftover-axis leftover-map origin, leftover-map comparison leftover-axis leftover-map origin, leftover-map comparison graphic leftover-map origin, leftover-map graphic leftover-map origin, leftover-map graphic leftover-map axis origin ticks, leftover-map comparison graphic leftover-map axis origin ticks, leftover-map comparison leftover-axis origin ticks, leftover-axis origin ticks, leftover-map pair leftover-map post leftover-map origin leftover-map person coordinates, leftover-map pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map comparison leftover-pair leftover-map criterion leftover-map origin leftover-map item coordinates, leftover-map comparison graphic leftover-map criterion leftover-map origin leftover-map item coordinates, and leftover-map graphic leftover-map criterion leftover-map origin leftover-map item coordinates", () => {
+    expect(LEFTOVER_MAP_LIST_ORIGIN).toBe("leftover pair leftover-map origin {origin}");
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_AXIS_ORIGIN);
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_AXIS_ORIGIN);
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_ORIGIN);
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_ORIGIN);
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_PLOT_ORIGIN_TICK);
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK);
+    expect(LEFTOVER_MAP_LIST_ORIGIN).not.toBe(LEFTOVER_MAP_COMPARE_AXIS_ORIGIN_TICK);
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(leftoverMapAxisOriginBadge()?.key);
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(leftoverMapCompareAxisOriginBadge()?.key);
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(leftoverMapComparePlotOriginBadge()?.key);
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(leftoverMapPlotOriginBadge()?.key);
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapPlotTickAxisBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapComparePlotTickAxisBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapCompareAxisTickBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapAxisTickBadge(1, "0.00", null).key,
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapListPostBadge("Public post", 0, 0)?.key ?? "",
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapListCriterionBadge("sales-lead", 0, 0)?.key ?? "",
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapCompareListCriterionBadge("sales-lead", 0, 0)?.key ?? "",
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
+      leftoverMapComparePlotCriterionBadge("sales-lead", 0, 0)?.key ?? "",
+    );
+    expect(leftoverMapListOriginBadge()?.key).not.toBe(
       leftoverMapPlotCriterionBadge("sales-lead", 0, 0)?.key ?? "",
     );
   });

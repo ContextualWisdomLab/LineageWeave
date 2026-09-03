@@ -3,6 +3,8 @@
 **Decision status:** Proposed
 **Date:** 2026-09-03
 
+**Amended by:** [ADR 0359](0359-leftover-map-list-origin-badge.md)
+
 Amends leftover-map origin on leftover-map comparison leftover-axis independently of leftover-map comparison graphic leftover-map origin
 ([ADR 0357](0357-leftover-map-compare-axis-origin-badge.md)). Independent of leftover-map leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values
 ([ADR 0346](0346-leftover-map-axis-tick-origin-badge.md)). Independent of leftover-map comparison leftover-axis origin ticks independently of leftover-map axis share and leftover-map singular values

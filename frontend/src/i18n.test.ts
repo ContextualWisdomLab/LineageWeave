@@ -161,6 +161,7 @@ describe("i18n", () => {
     "leftover map comparison leftover axis {axis} origin tick {value} σ {singular} {share}%",
     "leftover map comparison leftover axis leftover-map origin {origin}",
     "leftover axis leftover-map origin {origin}",
+    "leftover pair leftover-map origin {origin}",
     "Leftover map comparison leftover axis",
     "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
     "Leftover map comparison coordinates",
@@ -1645,6 +1646,23 @@ describe("i18n", () => {
       setLocale(locale);
       expect(
         tf("leftover axis leftover-map origin {origin}", {
+          origin: "(0.00, 0.00)",
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 쌍 잔여 지도 원점 (0.00, 0.00)"],
+    ["zh", "残差配对残差图原点 (0.00, 0.00)"],
+    ["ja", "残差ペアの残差マップ原点 (0.00, 0.00)"],
+    ["vi", "gốc cặp phần dư bản đồ phần dư (0.00, 0.00)"],
+  ] as const)(
+    "formats leftover-map pair leftover-map origin in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(
+        tf("leftover pair leftover-map origin {origin}", {
           origin: "(0.00, 0.00)",
         }),
       ).toBe(expected);
