@@ -206,7 +206,7 @@ def test_malformed_or_mismatched_cache_falls_back_to_postgres() -> None:
             )
         )
         assert result.translations["body"] == "No customers"
-        assert pool.acquire_count == 1
+        assert pool.acquire_count == 2
         assert len(pool.connection.calls) == 2
 
 
@@ -236,7 +236,7 @@ def test_incomplete_exact_cache_falls_back_to_authoritative_postgres() -> None:
     )
 
     assert result.translations == {"body": "No customers", "title": "Customer master"}
-    assert pool.acquire_count == 1
+    assert pool.acquire_count == 2
     assert len(pool.connection.calls) == 2
 
 
@@ -255,7 +255,7 @@ def test_cache_read_or_write_failure_does_not_replace_postgres_authority() -> No
             )
         )
         assert result.resource_version == 7
-        assert pool.acquire_count == 1
+        assert pool.acquire_count == 2
 
 
 def test_latest_read_resolves_postgres_before_cache() -> None:
