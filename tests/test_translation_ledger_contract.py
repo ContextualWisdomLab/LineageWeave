@@ -67,3 +67,11 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
     assert "drop constraint if exists user_account_preferred_locale_ck" in sql
     for locale in EXPECTED_LOCALES:
         assert f"'{locale}'" in sql
+
+
+def test_child_mutations_serialize_with_publication() -> None:
+    """Child writes lock the parent so completeness cannot race publication."""
+    sql = (ROOT / "migrations" / "0246_ui_translation_ledger.sql").read_text(encoding="utf-8").lower()
+    child_guard = sql.split("create or replace function guard_ui_translation_child_mutation()", 1)[1]
+    child_guard = child_guard.split("$$;", 1)[0]
+    assert "for update" in child_guard
