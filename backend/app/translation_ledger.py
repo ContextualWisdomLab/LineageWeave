@@ -52,6 +52,7 @@ _UI_WHITESPACE_CODEPOINTS: tuple[int, ...] = (
 )
 _UI_WHITESPACE = "".join(chr(codepoint) for codepoint in _UI_WHITESPACE_CODEPOINTS)
 _CACHE_TTL_SECONDS = 300
+_POSTGRES_BIGINT_MAX = 9_223_372_036_854_775_807
 
 _SELECT_REQUIRED_KEYS_SQL = """
 select translation_key.translation_key,
@@ -147,6 +148,18 @@ def _validate_identity_segment(value: str, *, field_name: str) -> str:
     return normalized
 
 
+def _validate_resource_version(resource_version: int) -> int:
+    """Return a resource version representable by the PostgreSQL BIGINT column."""
+    if (
+        isinstance(resource_version, bool)
+        or not isinstance(resource_version, int)
+        or resource_version <= 0
+        or resource_version > _POSTGRES_BIGINT_MAX
+    ):
+        raise ValueError("resource_version must be a positive integer within PostgreSQL bigint range")
+    return resource_version
+
+
 def build_translation_cache_key(
     product_key: str,
     screen_key: str,
@@ -156,10 +169,9 @@ def build_translation_cache_key(
     """Bind one cache entry to product, screen, immutable version, and locale."""
     product = _validate_identity_segment(product_key, field_name="product_key")
     screen = _validate_identity_segment(screen_key, field_name="screen_key")
-    if isinstance(resource_version, bool) or not isinstance(resource_version, int) or resource_version <= 0:
-        raise ValueError("resource_version must be a positive integer")
+    version = _validate_resource_version(resource_version)
     language = validate_ui_locale(locale)
-    return f"ui-translation:{product}:{screen}:v{resource_version}:{language}"
+    return f"ui-translation:{product}:{screen}:v{version}:{language}"
 
 
 def require_complete_translation_map(
@@ -323,25 +335,20 @@ async def read_translation_screen(
     product = _validate_identity_segment(product_key, field_name="product_key")
     screen = _validate_identity_segment(screen_key, field_name="screen_key")
     language = validate_ui_locale(locale)
-    if resource_version is not None and (
-        isinstance(resource_version, bool)
-        or not isinstance(resource_version, int)
-        or resource_version <= 0
-    ):
-        raise ValueError("resource_version must be a positive integer")
+    version = None if resource_version is None else _validate_resource_version(resource_version)
 
-    if resource_version is not None:
+    if version is not None:
         async with pool.acquire() as connection:
             key_rows = await connection.fetch(
                 _SELECT_REQUIRED_KEYS_SQL,
                 product,
                 screen,
-                resource_version,
+                version,
                 language,
             )
         if not key_rows:
             raise TranslationResourceNotFound(
-                f"no published translation resource for {product}/{screen} version {resource_version!r}"
+                f"no published translation resource for {product}/{screen} version {version!r}"
             )
         expected_text_digests: dict[str, str | None] = {}
         for row in key_rows:
@@ -352,7 +359,7 @@ async def read_translation_screen(
             cache,
             product_key=product,
             screen_key=screen,
-            resource_version=resource_version,
+            resource_version=version,
             locale=language,
             expected_text_digests=expected_text_digests,
         )
@@ -365,11 +372,11 @@ async def read_translation_screen(
             product,
             screen,
             language,
-            resource_version,
+            version,
         )
     if not rows:
         raise TranslationResourceNotFound(
-            f"no published translation resource for {product}/{screen} version {resource_version!r}"
+            f"no published translation resource for {product}/{screen} version {version!r}"
         )
 
     resolved_version = int(rows[0]["resource_version"])
