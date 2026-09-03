@@ -37,6 +37,8 @@ def test_translation_ledger_migration_has_executable_rollback_contract() -> None
         "drop function if exists guard_ui_translation_resource_mutation()",
         "add constraint user_account_preferred_locale_ck",
         "'en', 'ko', 'zh', 'ja', 'vi'",
+        "from ui_translation_resource",
+        "refusing 0246 rollback because translation resources exist",
     ):
         assert fragment in sql
 
@@ -103,6 +105,63 @@ def test_translation_ledger_rollback_restores_pre0246_schema_projection() -> Non
                     assert f"'{locale}'" in constraint_definition
                 for locale in ("es", "de", "fr"):
                     assert f"'{locale}'" not in constraint_definition
+            finally:
+                await connection.close()
+        finally:
+            await admin_connection.execute(f'drop database "{database_name}"')
+            await admin_connection.close()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
+def test_translation_ledger_rollback_refuses_existing_translation_data() -> None:
+    """Recovery must not erase draft or published customer copy contrary to ADR 0362."""
+
+    async def scenario() -> None:
+        database_name = f"lineageweave_translation_rollback_guard_{uuid.uuid4().hex[:12]}"
+        admin_connection = await asyncpg.connect(_ADMIN_DSN)
+        await admin_connection.execute(f'create database "{database_name}"')
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+
+        try:
+            connection = await asyncpg.connect(database_dsn)
+            try:
+                await connection.execute(_INITIAL_SCHEMA.read_text(encoding="utf-8"))
+                await connection.execute(_MEMBER_LOCALE_MIGRATION.read_text(encoding="utf-8"))
+                await connection.execute(_TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8"))
+                await connection.execute(
+                    """
+                    insert into ui_translation_resource(product_key, screen_key, resource_version)
+                    values ('lineageweave', 'customer-master', 1)
+                    """
+                )
+
+                with pytest.raises(
+                    asyncpg.PostgresError,
+                    match="refusing 0246 rollback because translation resources exist",
+                ):
+                    await connection.execute(
+                        _TRANSLATION_LEDGER_ROLLBACK.read_text(encoding="utf-8")
+                    )
+                await connection.execute("rollback")
+
+                assert (
+                    await connection.fetchval(
+                        "select to_regclass('ui_translation_resource')::text"
+                    )
+                    == "ui_translation_resource"
+                )
+                assert await connection.fetchval(
+                    "select count(*) from ui_translation_resource"
+                ) == 1
             finally:
                 await connection.close()
         finally:
