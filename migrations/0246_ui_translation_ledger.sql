@@ -101,7 +101,7 @@ begin
         ) then
             raise exception 'UI translation resource % is incomplete for the eight-locale contract', old.resource_id;
         end if;
-        new.published_at := now();
+        new.published_at := statement_timestamp();
     end if;
 
     return new;
