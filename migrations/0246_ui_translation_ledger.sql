@@ -108,6 +108,10 @@ declare
     target_resource_id bigint;
     target_state text;
 begin
+    if tg_op = 'UPDATE' and old.resource_id <> new.resource_id then
+        raise exception 'UI translation child rows cannot move between resources';
+    end if;
+
     if tg_op = 'DELETE' then
         target_resource_id := old.resource_id;
     else
@@ -117,7 +121,8 @@ begin
     select publication_state
       into target_state
       from ui_translation_resource
-     where resource_id = target_resource_id;
+     where resource_id = target_resource_id
+     for update;
 
     if target_state = 'published' then
         raise exception 'published UI translation resource % is immutable', target_resource_id;
