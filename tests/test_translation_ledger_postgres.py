@@ -181,6 +181,30 @@ def test_postgres_rejects_padded_required_translation_key_identity() -> None:
     asyncio.run(_run_with_translation_db(scenario))
 
 
+def test_postgres_rejects_whitespace_only_translation_copy() -> None:
+    """Immutable publication cannot admit copy the application treats as blank."""
+
+    async def scenario(connection: asyncpg.Connection) -> None:
+        resource_id = await _seed_complete_draft(connection, version=4)
+        for blank_copy in ("\t", "\n", "\t\n"):
+            await _assert_postgres_error(
+                connection.execute(
+                    """
+                    update ui_translation_text
+                       set translated_text = $1
+                     where resource_id = $2
+                       and translation_key = 'title'
+                       and locale = 'en'
+                    """,
+                    blank_copy,
+                    resource_id,
+                ),
+                sqlstate="23514",
+            )
+
+    asyncio.run(_run_with_translation_db(scenario))
+
+
 def test_postgres_translation_resource_identity_is_immutable_after_creation() -> None:
     """A reviewed draft cannot be retargeted to another product, screen, or version."""
 
