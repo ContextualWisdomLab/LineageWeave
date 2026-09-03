@@ -47,6 +47,35 @@ GitHub. (n.d.). *Using artifact attestations*. GitHub Docs. Retrieved September
 3, 2026, from
 https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations
 
+### GitHub immutable releases
+
+GitHub documents immutable releases as a repository/organization control that
+locks a published release's associated tag and assets. Publication also creates
+a release attestation. GitHub recommends creating a draft release, attaching
+all assets, and publishing the populated draft so immutability does not leave a
+partially populated release.
+
+The current repository REST API exposes
+`GET /repos/{owner}/{repo}/immutable-releases` to check whether the control is
+enabled. GitHub documents an authenticated `200` response when enabled and a
+`404` when it is not enabled, and requires repository Administration (read)
+permission for the check. ADR 0358 therefore treats an authenticated
+`enabled: true` result as release admission and fails closed when the status
+cannot be established. That administrative read capability belongs only to the
+trusted admission step; it is not granted to pull-request or build execution.
+
+GitHub. (n.d.). *Immutable releases*. GitHub Docs. Retrieved September 3, 2026,
+from
+https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
+
+GitHub. (n.d.). *Preventing changes to your releases*. GitHub Docs. Retrieved
+September 3, 2026, from
+https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes
+
+GitHub. (n.d.). *REST API endpoints for repositories: Check if immutable
+releases are enabled for a repository*. GitHub Docs. Retrieved September 3,
+2026, from https://docs.github.com/en/rest/repos/repos
+
 ### JSON strictness
 
 The canonical `.github` verifier rejects duplicate JSON properties, non-finite
@@ -66,6 +95,8 @@ https://doi.org/10.17487/RFC8259
 - source/build provenance threat model → SLSA 1.2;
 - credential separation and artifact-attestation verification → GitHub artifact
   attestation documentation;
+- immutable tag/asset admission and draft-first publication → GitHub immutable
+  release documentation and repository REST API;
 - strict machine-readable evidence intake → RFC 8259 plus the stricter
   canonical `.github` verifier contract;
 - current circular transport-receipt defect → `ContextualWisdomLab/.github#1782`.
