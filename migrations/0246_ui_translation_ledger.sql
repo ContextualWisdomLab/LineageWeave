@@ -77,6 +77,12 @@ begin
         return old;
     end if;
 
+    if old.product_key is distinct from new.product_key
+       or old.screen_key is distinct from new.screen_key
+       or old.resource_version is distinct from new.resource_version then
+        raise exception 'UI translation resource % identity is immutable after creation', old.resource_id;
+    end if;
+
     if new.publication_state = 'published' then
         if not exists (
             select 1
