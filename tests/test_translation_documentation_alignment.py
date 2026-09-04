@@ -89,7 +89,9 @@ def test_translation_gap_baseline_scopes_current_929_review_boundary() -> None:
         "# Product & Technical Gap Baseline\n\n",
         "> Two adjacent candidates remain outside protected `main`:",
     )
-    normalized = " ".join(current_snapshot.split())
+    normalized = " ".join(
+        line.removeprefix("> ").strip() for line in current_snapshot.splitlines()
+    )
 
     assert "PR #929" in normalized
     assert "open / Ready with normal squash auto-merge armed" in normalized
