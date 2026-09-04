@@ -19,6 +19,7 @@ _ADMIN_DSN = os.environ.get(
 _INITIAL_SCHEMA = ROOT / "migrations" / "0001_initial_schema.sql"
 _MEMBER_LOCALE_MIGRATION = ROOT / "migrations" / "0044_member_locale_preference.sql"
 _TRANSLATION_LEDGER_MIGRATION = ROOT / "migrations" / "0246_ui_translation_ledger.sql"
+_TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_guard.sql"
 _LOCALES = ("ko", "en", "ja", "zh", "vi", "es", "de", "fr")
 
 
@@ -50,6 +51,7 @@ async def _run_published_resource_scenario() -> None:
             await connection.execute(_INITIAL_SCHEMA.read_text(encoding="utf-8"))
             await connection.execute(_MEMBER_LOCALE_MIGRATION.read_text(encoding="utf-8"))
             await connection.execute(_TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8"))
+            await connection.execute(_TRUNCATE_GUARD_MIGRATION.read_text(encoding="utf-8"))
             resource_id = await connection.fetchval(
                 """
                 insert into ui_translation_resource(product_key, screen_key, resource_version)
@@ -100,7 +102,7 @@ async def _run_published_resource_scenario() -> None:
 
 def test_migration_installs_statement_level_truncate_guards() -> None:
     """Hosted verification must bind every ledger relation to a TRUNCATE guard."""
-    sql = _TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8").lower()
+    sql = _TRUNCATE_GUARD_MIGRATION.read_text(encoding="utf-8").lower()
     assert "create or replace function guard_ui_translation_truncate()" in sql
     assert "publication_state = 'published'" in sql
     for table in ("ui_translation_resource", "ui_translation_key", "ui_translation_text"):
