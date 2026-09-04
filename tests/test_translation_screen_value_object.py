@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 
 import pytest
@@ -16,8 +17,18 @@ class _Connection:
     async def fetch(self, *_args: object) -> list[dict[str, object]]:
         """Return asyncpg-shaped rows for the requested screen."""
         return [
-            {"resource_version": 7, "translation_key": "body", "translated_text": "No customers"},
-            {"resource_version": 7, "translation_key": "title", "translated_text": "Customer master"},
+            {
+                "resource_version": 7,
+                "translation_key": "body",
+                "translated_text": "No customers",
+                "translated_text_sha256": hashlib.sha256(b"No customers").hexdigest(),
+            },
+            {
+                "resource_version": 7,
+                "translation_key": "title",
+                "translated_text": "Customer master",
+                "translated_text_sha256": hashlib.sha256(b"Customer master").hexdigest(),
+            },
         ]
 
 
