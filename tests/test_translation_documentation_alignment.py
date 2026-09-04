@@ -99,8 +99,8 @@ def test_translation_gap_baseline_scopes_current_929_review_boundary() -> None:
     normalized = _normalized_blockquote(current_snapshot)
 
     assert "PR #929 is the active ADR 0362 candidate for issue #922" in normalized
-    assert "open / Draft" in normalized
-    assert "open / Ready" not in normalized
+    assert "open / Ready" in normalized
+    assert "open / Draft" not in normalized
     assert (
         "Required current-head checks are not yet accepted as terminal GREEN"
         in normalized
