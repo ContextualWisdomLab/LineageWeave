@@ -10,6 +10,15 @@
 > branch. That is candidate implementation evidence, not protected-main,
 > deployed, or release evidence.
 >
+> Two adjacent Ready candidates remain outside protected `main`: PR #911 at
+> `307c29e96cf85ee61d690b852a115983e2985d27` replaces the synchronous
+> PostgreSQL driver and defaults omitted TLS policy to identity verification;
+> PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
+> Master records visible when imported hierarchy edges are malformed and adds
+> synthetic desktop/mobile Storybook evidence. Both retain normal squash
+> auto-merge, have no qualifying independent current-head approval, and have
+> non-terminal hosted checks. Neither is protected-main or deployed evidence.
+>
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
 > `docs/product-technical-gap-baseline-history-2026-09-04.md`. Historical
@@ -105,6 +114,28 @@
    authoritative.
 5. Keep #929 on normal auto-merge; do not bypass or release until exact-head
    gates and independent review are complete.
+
+## Adjacent delivery and collision audit
+
+- The active decisions are sequential and non-overlapping: ADR 0362 belongs to
+  the translation ledger, ADR 0363 to synchronous PostgreSQL TLS, ADR 0364 to
+  authenticated browser requests, and ADR 0365 to malformed Customer Master
+  hierarchy presentation. PR #911 alone adds the `2.28.0` changelog fragment;
+  #909 and #929 do not claim that release number.
+- The wider open queue still contains dependent report branches with serialized
+  release numbers and overlapping historical ADR-number ranges. Those branches
+  require ancestor-order convergence and a fresh exact-head ADR/API/schema/
+  release audit before merge. A clean local merge calculation or predecessor
+  check cannot transfer acceptance to a changed head.
+- PR #909 closes only the synthetic rendering gap: lint, focused regressions,
+  Storybook build, and 320 x 568 plus desktop visual audits passed on its exact
+  head. Authenticated PostgreSQL/API and deployed UI evidence are absent, so the
+  product acceptance condition remains explicitly unavailable.
+- Voice-of-X remains governed by ADR 0246/0251: the twelve atomic Voice classes
+  stay extensible through evidence-backed combinations. Carrying Posts and
+  derivation evidence remain distinct; hidden evidence is never substituted;
+  truth status, cutoff, PROV-O derivation, exact-value UI/CSV, and paged JSON-LD
+  subject merging are unchanged by these three candidates.
 
 ## Traceability
 
