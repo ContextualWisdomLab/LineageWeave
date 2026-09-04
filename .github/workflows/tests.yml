@@ -13,8 +13,8 @@ concurrency:
   # A merged pull request can report the base ref on ``closed``. Keying PR
   # events by number lets that close run cancel an older queued synchronize
   # run for the same PR instead of consuming runners after the PR is closed.
-  group: tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pytest:
