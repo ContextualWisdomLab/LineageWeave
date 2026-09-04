@@ -31,7 +31,7 @@ def test_release_publication_rechecks_immutability_and_tag_identity_at_publish_b
 
 def test_annotated_release_tag_is_peeled_to_the_exact_source_commit() -> None:
     """Do not compare an annotated tag-object SHA directly with the source commit SHA."""
-    for path in (_ADR, _REQUIRED_RELEASE_GUIDE := _RELEASE_GUIDE):
+    for path in (_ADR, _RELEASE_GUIDE):
         text = path.read_text(encoding="utf-8").lower()
         assert "annotated tag" in text, path
         assert "tag object" in text, path
@@ -41,7 +41,7 @@ def test_annotated_release_tag_is_peeled_to_the_exact_source_commit() -> None:
 
 
 def test_prepublication_abort_has_identity_safe_cleanup_before_same_version_retry() -> None:
-    """Do not orphan or unsafe-reuse a draft release identity after an aborted publish."""
+    """Do not orphan or unsafely reuse a draft release identity after an aborted publish."""
     for path in (_ADR, _RELEASE_GUIDE):
         text = path.read_text(encoding="utf-8").lower()
         assert "pre-publication abort" in text, path
