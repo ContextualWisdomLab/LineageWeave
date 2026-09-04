@@ -51,6 +51,35 @@ def test_translation_screen_requires_authentication(monkeypatch) -> None:
     assert called is False
 
 
+def test_translation_screen_reports_invalid_screen_identity_without_blame_on_locale() -> None:
+    """A malformed screen identity must not tell a valid-locale caller to change language."""
+    client = _client(authenticated=True)
+    try:
+        response = client.get("/api/translations/%20customer-master", params={"locale": "en"})
+    finally:
+        _close(client)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "The translation screen identifier is invalid."
+
+
+def test_translation_screen_reports_unrepresentable_version_without_blame_on_locale() -> None:
+    """A version beyond PostgreSQL BIGINT must identify the version contract, not the locale."""
+    client = _client(authenticated=True)
+    try:
+        response = client.get(
+            "/api/translations/customer-master",
+            params={"locale": "en", "resource_version": 9_223_372_036_854_775_808},
+        )
+    finally:
+        _close(client)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "Choose a translation resource version within the supported range."
+    )
+
+
 def test_translation_screen_reads_authenticated_exact_version(monkeypatch) -> None:
     """The HTTP route must preserve exact screen/version/locale identity."""
     seen: dict[str, object] = {}
