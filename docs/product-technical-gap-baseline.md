@@ -5,7 +5,9 @@
 > ADR 0362 candidate for issue #922 and is open / Ready with normal squash
 > auto-merge armed. Required current-head checks are not yet accepted as
 > terminal GREEN and the delivery boundary still requires qualifying independent
-> review. The authenticated
+> review. The live non-identifying queue snapshot contains 121 open PRs and 16
+> open issues; those counts describe coordination load, not product maturity or
+> release readiness. The authenticated
 > `GET /api/translations/{screen_key}` API is implemented on the candidate
 > branch. That is candidate implementation evidence, not protected-main,
 > deployed, or release evidence.
