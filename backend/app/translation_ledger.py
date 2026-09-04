@@ -264,6 +264,16 @@ def _matches_authoritative_text_digests(
     return True
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject duplicate JSON member names instead of normalizing ambiguous cache evidence."""
+    decoded: dict[str, object] = {}
+    for key, value in pairs:
+        if key in decoded:
+            raise ValueError(f"duplicate JSON object member: {key}")
+        decoded[key] = value
+    return decoded
+
+
 def _decode_cached_screen(
     raw_payload: str | bytes,
     *,
@@ -275,8 +285,8 @@ def _decode_cached_screen(
 ) -> TranslationScreen | None:
     """Accept a cache hit only when identity and copy match PostgreSQL evidence."""
     try:
-        decoded = json.loads(raw_payload)
-    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        decoded = json.loads(raw_payload, object_pairs_hook=_unique_json_object)
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError):
         return None
     if not isinstance(decoded, dict):
         return None
