@@ -15,10 +15,12 @@
 > PostgreSQL driver and defaults omitted TLS policy to identity verification;
 > PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
 > Master records visible when imported hierarchy edges are malformed and adds
-> synthetic desktop/mobile Storybook evidence. Both are Ready with normal
-> squash auto-merge after #911 moved its colliding ADR number to 0366. Neither
-> has qualifying independent current-head approval or terminal hosted checks,
-> and neither is protected-main or deployed evidence.
+> synthetic desktop/mobile Storybook evidence. #911 is Ready for exact-head
+> validation after moving its colliding TLS ADR to Proposed ADR 0366. #909 is
+> Draft because #922's eight-locale published-resource cutover and the required
+> current-head material-UI/runtime evidence are still absent. Neither has
+> qualifying independent current-head approval or terminal hosted checks, and
+> neither is protected-main or deployed evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -132,7 +134,8 @@
 - PR #909 closes only the synthetic rendering gap: lint, focused regressions,
   Storybook build, and 320 x 568 plus desktop visual audits passed on its exact
   head. Authenticated PostgreSQL/API and deployed UI evidence are absent, so the
-  product acceptance condition remains explicitly unavailable.
+  product acceptance condition remains explicitly unavailable and the PR stays
+  Draft behind #922.
 - Voice-of-X remains governed by ADR 0246/0251: the twelve atomic Voice classes
   stay extensible through evidence-backed combinations. Carrying Posts and
   derivation evidence remain distinct; hidden evidence is never substituted;
