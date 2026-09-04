@@ -47,6 +47,10 @@ drop table if exists ui_translation_text;
 drop table if exists ui_translation_key;
 drop table if exists ui_translation_resource;
 
+-- 0247 may already have been applied. Dropping the ledger relations removes its
+-- triggers, while this function cleanup keeps a direct 0246 rollback converged
+-- even when the caller did not run the optional 0247 rollback artifact first.
+drop function if exists guard_ui_translation_truncate();
 drop function if exists guard_ui_translation_child_mutation();
 drop function if exists guard_ui_translation_resource_mutation();
 
