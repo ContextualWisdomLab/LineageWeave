@@ -109,6 +109,22 @@ class TranslationResourceNotFound(LookupError):
     """Raised when no published resource exists for the requested identity."""
 
 
+class TranslationRequestValidationError(ValueError):
+    """Base class for caller-controlled translation request validation failures."""
+
+
+class UnsupportedTranslationLocale(TranslationRequestValidationError):
+    """Raised when a request names a locale outside the product contract."""
+
+
+class TranslationIdentityError(TranslationRequestValidationError):
+    """Raised when product or screen identity cannot map exactly to PostgreSQL text."""
+
+
+class TranslationResourceVersionError(TranslationRequestValidationError):
+    """Raised when a requested version cannot be represented by PostgreSQL BIGINT."""
+
+
 class AsyncTranslationCache(Protocol):
     """Minimal Valkey-compatible contract used by the translation read model."""
 
@@ -176,25 +192,33 @@ class TranslationScreen:
 def validate_ui_locale(locale: str) -> str:
     """Return a supported locale or reject it without fallback substitution."""
     if locale not in SUPPORTED_UI_LOCALES:
-        raise ValueError(f"unsupported UI locale: {locale!r}")
+        raise UnsupportedTranslationLocale(f"unsupported UI locale: {locale!r}")
     return locale
 
 
 def _validate_identity_segment(value: str, *, field_name: str) -> str:
     """Reject identity segments that cannot map exactly to PostgreSQL UTF-8 text."""
     if not isinstance(value, str):
-        raise ValueError(f"{field_name} must be a string")
+        raise TranslationIdentityError(f"{field_name} must be a string")
     if "\x00" in value:
-        raise ValueError(f"{field_name} must be representable as PostgreSQL UTF-8 text")
+        raise TranslationIdentityError(
+            f"{field_name} must be representable as PostgreSQL UTF-8 text"
+        )
     try:
         value.encode("utf-8")
     except UnicodeEncodeError as exc:
-        raise ValueError(f"{field_name} must be representable as PostgreSQL UTF-8 text") from exc
+        raise TranslationIdentityError(
+            f"{field_name} must be representable as PostgreSQL UTF-8 text"
+        ) from exc
     normalized = value.strip(_UI_WHITESPACE)
     if normalized != value:
-        raise ValueError(f"{field_name} must not contain leading or trailing whitespace")
+        raise TranslationIdentityError(
+            f"{field_name} must not contain leading or trailing whitespace"
+        )
     if not normalized or ":" in normalized:
-        raise ValueError(f"{field_name} must be nonblank and must not contain ':'")
+        raise TranslationIdentityError(
+            f"{field_name} must be nonblank and must not contain ':'"
+        )
     return normalized
 
 
@@ -206,7 +230,9 @@ def _validate_resource_version(resource_version: int) -> int:
         or resource_version <= 0
         or resource_version > _POSTGRES_BIGINT_MAX
     ):
-        raise ValueError("resource_version must be a positive integer within PostgreSQL bigint range")
+        raise TranslationResourceVersionError(
+            "resource_version must be a positive integer within PostgreSQL bigint range"
+        )
     return resource_version
 
 
