@@ -1,4 +1,4 @@
-"""Hosted contract for rollback serialization of the UI translation ledger."""
+"""Hosted contracts for safe UI translation-ledger rollback."""
 
 from pathlib import Path
 
@@ -16,3 +16,10 @@ def test_translation_ledger_rollback_locks_resource_before_empty_guard() -> None
     assert lock in sql
     assert guard in sql
     assert sql.index(lock) < sql.index(guard)
+
+
+def test_translation_ledger_rollback_tolerates_already_absent_resource_relation() -> None:
+    """Retry after a completed rollback must not fail on its already-dropped root table."""
+    sql = ROLLBACK.read_text(encoding="utf-8").lower()
+
+    assert "undefined_table" in sql or "to_regclass(" in sql
