@@ -43,6 +43,10 @@ class UniqueViolation(DatabaseError):
     """PostgreSQL SQLSTATE 23505: a uniqueness constraint rejected the statement."""
 
 
+class ForeignKeyViolation(DatabaseError):
+    """PostgreSQL SQLSTATE 23503: a foreign-key constraint rejected the statement."""
+
+
 class CheckViolation(DatabaseError):
     """PostgreSQL SQLSTATE 23514: a CHECK constraint rejected the statement."""
 
@@ -62,6 +66,7 @@ class RaiseException(DatabaseError):
 errors = SimpleNamespace(
     NotNullViolation=NotNullViolation,
     UniqueViolation=UniqueViolation,
+    ForeignKeyViolation=ForeignKeyViolation,
     CheckViolation=CheckViolation,
     ExclusionViolation=ExclusionViolation,
     InsufficientPrivilege=InsufficientPrivilege,
@@ -238,6 +243,7 @@ def _translated_error(error: BaseException) -> BaseException:
     state = _sqlstate(error)
     translated_type = {
         "23502": NotNullViolation,
+        "23503": ForeignKeyViolation,
         "23505": UniqueViolation,
         "23514": CheckViolation,
         "23P01": ExclusionViolation,
@@ -275,22 +281,32 @@ class Cursor:
                 raise
             raise translated from exc
 
+    def fetchone(self) -> tuple[Any, ...] | None:
+        """Return one DB-API row with the tuple shape existing callers expect."""
+        row = self._inner.fetchone()
+        return None if row is None else tuple(row)
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        """Return all DB-API rows as tuples rather than pg8000's mutable lists."""
+        return [tuple(row) for row in self._inner.fetchall()]
+
     def __getattr__(self, name: str) -> Any:
         return getattr(self._inner, name)
 
     def __enter__(self) -> "Cursor":
-        self._inner.__enter__()
         return self
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> object:
-        return self._inner.__exit__(exc_type, exc, traceback)
+        self._inner.close()
+        return False
 
 
 class Connection:
     """Connection proxy that keeps pg8000 isolated from repository call sites."""
 
-    def __init__(self, inner: Any) -> None:
+    def __init__(self, inner: Any, *, database: str) -> None:
         self._inner = inner
+        self.info = SimpleNamespace(dbname=database)
 
     @property
     def autocommit(self) -> bool:
@@ -303,15 +319,26 @@ class Connection:
     def cursor(self, *args: object, **kwargs: object) -> Cursor:
         return Cursor(self._inner.cursor(*args, **kwargs))
 
+    def close(self) -> None:
+        """Close the native connection, tolerating repeated cleanup calls."""
+        try:
+            self._inner.close()
+        except _dbapi.InterfaceError as exc:
+            if "connection is closed" not in str(exc).lower():
+                raise
+
     def __getattr__(self, name: str) -> Any:
         return getattr(self._inner, name)
 
     def __enter__(self) -> "Connection":
-        self._inner.__enter__()
         return self
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> object:
-        return self._inner.__exit__(exc_type, exc, traceback)
+        if exc_type is None:
+            self._inner.commit()
+        else:
+            self._inner.rollback()
+        return False
 
 
 def connect(dsn: str, *, connect_timeout: float | int | None = None) -> Connection:
@@ -325,6 +352,6 @@ def connect(dsn: str, *, connect_timeout: float | int | None = None) -> Connecti
 
     kwargs = connection_kwargs_from_dsn(dsn, connect_timeout=connect_timeout)
     try:
-        return Connection(_dbapi.connect(**kwargs))
+        return Connection(_dbapi.connect(**kwargs), database=str(kwargs["database"]))
     except (_dbapi.InterfaceError, _dbapi.DatabaseError) as exc:
         raise OperationalError(*getattr(exc, "args", ())) from exc

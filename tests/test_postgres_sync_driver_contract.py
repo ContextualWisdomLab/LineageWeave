@@ -11,10 +11,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
+import pg8000.dbapi as _dbapi
 import pytest
 
 from lineageweave.postgres_sync import (
+    Connection,
+    Cursor,
     DatabaseError,
     OperationalError,
     _translated_error,
@@ -79,6 +83,92 @@ def test_generated_identifier_quoting_is_postgresql_safe() -> None:
     """Generated database and role names stay identifiers, never SQL text."""
     statement = sql.SQL("create database {}").format(sql.Identifier('tenant"archive'))
     assert statement == 'create database "tenant""archive"'
+
+
+def test_cursor_context_manager_closes_a_dbapi_cursor_without_native_context_support() -> None:
+    """The compatibility wrapper owns close even when pg8000 has no cursor context manager."""
+
+    class NativeCursor:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    native = NativeCursor()
+    with Cursor(native) as cursor:
+        assert cursor._inner is native
+
+    assert native.closed is True
+
+
+def test_cursor_rows_and_connection_info_preserve_existing_tooling_shapes(monkeypatch) -> None:
+    """The adapter keeps tuple rows and the database-name metadata callers consume."""
+
+    class NativeCursor:
+        def fetchone(self) -> list[object]:
+            return ["one", 1]
+
+        def fetchall(self) -> list[list[object]]:
+            return [["two", 2]]
+
+    cursor = Cursor(NativeCursor())
+    assert cursor.fetchone() == ("one", 1)
+    assert cursor.fetchall() == [("two", 2)]
+
+    native_connection = SimpleNamespace(autocommit=False)
+    monkeypatch.setattr(
+        "lineageweave.postgres_sync._dbapi.connect",
+        lambda **_kwargs: native_connection,
+    )
+    connection = connect("postgresql://alice:secret@db.example/archive")
+    assert connection.info.dbname == "archive"
+
+
+def test_connection_context_manages_transaction_without_closing() -> None:
+    """The compatibility context commits or rolls back but leaves lifetime to its owner."""
+
+    class NativeConnection:
+        autocommit = False
+        commits = 0
+        rollbacks = 0
+        closes = 0
+
+        def commit(self) -> None:
+            self.commits += 1
+
+        def rollback(self) -> None:
+            self.rollbacks += 1
+
+        def close(self) -> None:
+            self.closes += 1
+
+    native = NativeConnection()
+    connection = Connection(native, database="archive")
+    with connection:
+        pass
+    assert (native.commits, native.rollbacks, native.closes) == (1, 0, 0)
+
+    with pytest.raises(RuntimeError):
+        with connection:
+            raise RuntimeError("synthetic")
+    assert (native.commits, native.rollbacks, native.closes) == (1, 1, 0)
+
+
+def test_connection_close_is_idempotent_for_pg8000_cleanup() -> None:
+    """Nested cleanup helpers may safely close one connection more than once."""
+
+    class NativeConnection:
+        autocommit = False
+        closed = False
+
+        def close(self) -> None:
+            if self.closed:
+                raise _dbapi.InterfaceError("connection is closed")
+            self.closed = True
+
+    connection = Connection(NativeConnection(), database="archive")
+    connection.close()
+    connection.close()
 
 
 def test_generated_sql_rejects_raw_interpolation() -> None:
@@ -200,6 +290,7 @@ def test_connect_translates_server_startup_failure_to_operational_error(monkeypa
     ("sqlstate", "expected_type"),
     (
         ("23502", errors.NotNullViolation),
+        ("23503", errors.ForeignKeyViolation),
         ("23505", errors.UniqueViolation),
         ("23514", errors.CheckViolation),
         ("23P01", errors.ExclusionViolation),
