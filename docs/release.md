@@ -61,8 +61,8 @@ release does not satisfy this contract.
     non-confirming result must fail closed. This credential is not exposed to
     pull-request or unprivileged build execution.
 11. After trusted verification and the immutability preflight both succeed,
-    create an annotated release-specific tag object whose target type is
-    `commit` and whose target SHA is the exact protected source SHA from step 1,
+    create an annotated release-specific tag object with type `commit` and
+    target SHA equal to the exact protected source SHA from step 1,
     then create `refs/tags/<version>` pointing to that tag object. Record the
     newly created tag-object SHA/ref and the pre-create proof that the ref was
     absent. Refuse lightweight tags, tree/blob targets, an existing ref, or any
@@ -123,8 +123,8 @@ release identity and candidate tag ref as absent before a same-version retry is
 admissible. A cleanup failure remains RED and quarantines the version; it is
 not permission to force, retarget, or reuse the identity.
 
-Never reuse a tag name that has been associated with a published immutable
-release. GitHub's immutable-release contract locks the associated tag after
+Never reuse a tag name that has been associated with a published immutable release.
+GitHub's immutable-release contract locks the associated tag after
 publication and reserves that tag name even if the immutable release is later
 deleted. Once publication may have occurred, rollback is forward-only: preserve
 the forensic evidence, identify affected subjects, correct source/workflow
