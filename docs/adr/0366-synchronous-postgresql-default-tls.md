@@ -1,6 +1,6 @@
 # ADR 0366 — Verify synchronous PostgreSQL server identity by default
 
-**Decision status:** Proposed  
+**Decision status:** Proposed
 **Date:** 2026-09-05
 
 ## Context
