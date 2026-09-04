@@ -247,9 +247,6 @@ _EVENT_OCCURRED_AT_MIGRATION = (
     / "migrations"
     / "0183_source_post_event_occurred_at.sql"
 )
-_UI_TRANSLATION_MIGRATION = (
-    Path(__file__).resolve().parents[2] / "migrations" / "0246_ui_translation_ledger.sql"
-)
 
 
 def _postgres_available() -> bool:
@@ -428,7 +425,6 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
-            cur.execute(_UI_TRANSLATION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1906,70 +1902,6 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
     )
     assert title_sorted.status_code == 200, title_sorted.text
     assert title_sorted.json()["posts"][0]["post_title"] == "Edited own-corp private post"
-
-
-def test_translation_screen_reads_complete_published_copy(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    """An authenticated buyer receives one exact, complete screen version."""
-    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
-        cur.execute(
-            "insert into ui_translation_resource "
-            "(product_key, screen_key, resource_version) "
-            "values ('lineageweave', 'customer-master', 1) returning resource_id"
-        )
-        resource_id = cur.fetchone()[0]
-        cur.execute(
-            "insert into ui_translation_key (resource_id, translation_key) "
-            "values (%s, 'title')",
-            (resource_id,),
-        )
-        cur.execute(
-            """
-            insert into ui_translation_text
-                (resource_id, translation_key, locale, translated_text)
-            select %s, 'title', locale, translated_text
-              from (values
-                    ('ko', '고객 기준정보'), ('en', 'Customer master'),
-                    ('ja', '顧客マスター'), ('zh', '客户主数据'),
-                    ('vi', 'Dữ liệu khách hàng'), ('es', 'Maestro de clientes'),
-                    ('de', 'Kundenstamm'), ('fr', 'Référentiel clients')
-              ) as copy(locale, translated_text)
-            """,
-            (resource_id,),
-        )
-        cur.execute(
-            "update ui_translation_resource set publication_state = 'published' "
-            "where resource_id = %s",
-            (resource_id,),
-        )
-        conn.commit()
-
-    response = client.get(
-        "/api/translations/customer-master?locale=de&resource_version=1",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "screen_key": "customer-master",
-        "resource_version": 1,
-        "locale": "de",
-        "translations": {"title": "Kundenstamm"},
-    }
-    assert client.get(
-        "/api/translations/customer-master?locale=de&resource_version=1"
-    ).status_code == 401
-    assert client.get(
-        "/api/translations/customer-master?locale=it&resource_version=1",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    ).status_code == 422
-    missing = client.get(
-        "/api/translations/not-published?locale=de",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert missing.status_code == 404
-    assert "latest version" in missing.json()["detail"]
 
     invalid_sort = client.get(
         "/api/posts?sort=unsupported",
