@@ -2,7 +2,7 @@
 
 **Decision status:** Proposed
 **Date:** 2026-09-03
-**Related:** ContextualWisdomLab/.github#1782, LineageWeave #911
+**Related:** ContextualWisdomLab/.github#1782, ContextualWisdomLab/.github#1791, LineageWeave #911
 
 ## Context
 
@@ -18,22 +18,24 @@ SBOM attestation in `ContextualWisdomLab/.github`. LineageWeave must consume
 that boundary rather than copy signing, OIDC, attestation-verification, or
 provider policy into this repository.
 
-A fresh integration attempt exposed a canonical-owner prerequisite at
-`ContextualWisdomLab/.github#1782`. The current reusable workflow requires the
-GitHub Actions artifact digest as an input and also requires
-`source-identity.json` *inside the same artifact* to contain that digest. The
-artifact digest cannot be known until the artifact has been uploaded, while
-changing the identity file changes the bytes whose digest GitHub computes.
-That circular dependency makes the current handoff impossible to construct by
-a deterministic caller without weakening the verifier. This ADR therefore
-keeps the release integration Proposed until the canonical owner publishes an
-acyclic exact-SHA contract.
+A prior integration attempt exposed the circular handoff defect tracked by
+`ContextualWisdomLab/.github#1782`: the reusable required the post-upload GitHub
+Actions artifact digest inside `source-identity.json`, even though that file was
+part of the same upload whose bytes determine the digest. The canonical owner
+repaired that model in merged `.github#1791`. Protected-owner commit
+`bd866a21cca2a7e709f0b7a88150c310a9d98239` is the immutable consumer pin for
+this decision. At that commit the inner source identity binds repository,
+source SHA, predicate/schema and exact distribution/SBOM filenames and digests,
+but not the outer GitHub artifact digest. The reusable independently verifies
+the returned artifact ID/name/digest before downloading the sealed evidence and
+again inside the credentialed signer boundary. This resolves the owner-side
+cryptographic cycle without weakening transport-receipt verification.
 
-LineageWeave also cannot publish a commercial release from protected `main`
-while the reachable synchronous PostgreSQL tooling path still contains the
-LGPL-family `psycopg2-binary` dependency. PR #911 owns its replacement and the
-reproducible lockfile migration. Release work must consume that merged,
-license-clean protected result; it must not waive or suppress the inventory.
+LineageWeave still cannot publish a commercial release from protected `main`
+while the reachable synchronous PostgreSQL tooling path contains the LGPL-family
+`psycopg2-binary` dependency. PR #911 owns its replacement and the reproducible
+lockfile migration. Release work must consume that merged, license-clean
+protected result; it must not waive or suppress the inventory.
 
 GitHub's immutable-release setting is a separate repository/organization
 control from artifact attestation. GitHub documents that a published immutable
@@ -71,8 +73,9 @@ publication path.
    instructions.
 2. `ContextualWisdomLab/.github` owns the reusable credentialed SBOM
    attestation and verification boundary. The LineageWeave caller must invoke
-   a reviewed exact commit SHA of that reusable workflow. It must not vendor or
-   fork the trusted verifier to make a local release pass.
+   `ContextualWisdomLab/.github/.github/workflows/exact-artifact-sbom-attestation.yml@bd866a21cca2a7e709f0b7a88150c310a9d98239`.
+   It must not vendor or fork the trusted verifier to make a local release pass,
+   and a later mutable `.github/main` SHA does not replace this reviewed pin.
 3. Release initiation is allowed only from the exact protected LineageWeave
    `main` commit being released. A version is valid only when package metadata,
    changelog/release notes, tag, distribution metadata, source identity and
@@ -87,14 +90,15 @@ publication path.
    wheel, source distribution, one CycloneDX 1.7 SBOM bound to each exact
    distribution, `source-identity.json`, and `checksums.sha256`. The inner
    source identity binds repository, exact source SHA, predicate/schema,
-   distribution filenames and distribution/SBOM SHA-256 values. The canonical
-   owner decides the final acyclic representation after `.github#1782`.
+   distribution filenames and distribution/SBOM SHA-256 values. It deliberately
+   excludes the post-upload GitHub Actions artifact digest; that value exists
+   only in the outer transport receipt returned after upload.
 6. GitHub's uploaded artifact ID/name/digest is an outer immutable transport
-   receipt. After `.github#1782` is repaired, the caller passes the returned
-   receipt and exact inner identities to the canonical reusable workflow. The
-   reusable workflow must independently revalidate the same-run receipt and
-   inert handoff before any OIDC token or attestation permission becomes
-   available.
+   receipt. The caller passes that returned receipt and the exact inner
+   identities to the pinned canonical reusable. The reusable independently
+   revalidates same-run artifact ID/name/digest and the inert handoff before any
+   OIDC token or attestation permission becomes available, and repeats the
+   outer-receipt verification inside the credentialed signer boundary.
 7. Immutable publication occurs only after the exact artifact set has passed
    canonical attestation verification and repository release immutability has
    been independently admitted. Before tag creation or Release publication, a
@@ -161,17 +165,19 @@ publication path.
 
 ## RED / GREEN acceptance
 
-The current RED is structural and owner-bound: LineageWeave has no product
-release workflow, protected `main` is not yet license-clean, and the canonical
-exact-artifact reusable cannot accept a deterministic first-party caller
-because of `.github#1782`.
+The current RED is product-local: LineageWeave has no release workflow and
+protected `main` is not yet license-clean. The former canonical handoff blocker
+`.github#1782` is resolved by `.github#1791` and the reviewed owner pin
+`bd866a21cca2a7e709f0b7a88150c310a9d98239`; predecessor wording that treated
+that owner defect as open is no longer an admissible release-state description.
 
 GREEN requires all of the following on one unchanged protected source SHA:
 
 - #911 or a verified successor has removed the reachable disallowed dependency
   and committed a reproducible lock that passes the frozen dependency gate;
-- `.github#1782` is fixed on protected `.github/main` and LineageWeave pins the
-  repaired reusable workflow by exact commit SHA;
+- the product-local workflow consumes
+  `exact-artifact-sbom-attestation.yml@bd866a21cca2a7e709f0b7a88150c310a9d98239`
+  rather than mutable `.github/main` or a copied verifier;
 - a product-local release workflow builds wheel/sdist plus the exact six-file
   evidence handoff without credentialed execution of pull-request source;
 - the canonical reusable verifies and attests the exact returned artifact
@@ -211,8 +217,10 @@ fixes and let a product repository bypass a defect in the canonical owner.
 ### Drop the GitHub artifact digest from verification locally
 
 Rejected. The outer receipt protects the exact same-run transport handoff.
-The circularity is an owner-contract modeling defect; weakening digest binding
-in a consumer is not a causal repair.
+The former circularity was an owner-contract modeling defect; the canonical
+repair moved the digest out of the pre-upload inner identity while retaining
+independent outer-receipt verification. A consumer must not weaken that digest
+binding locally.
 
 ### Publish without proving GitHub release immutability is enabled
 
@@ -250,9 +258,10 @@ publication can be added later behind its own protected decision.
 
 ## Risks and follow-up
 
-- The central reusable contract can change while `.github#1782` is repaired.
-  LineageWeave must inspect the protected implementation and pin its exact SHA;
-  no branch-name or mutable `main` reference is acceptable in release code.
+- The canonical reusable can evolve after the reviewed owner repair. This ADR
+  intentionally pins `bd866a21cca2a7e709f0b7a88150c310a9d98239`; a later
+  owner revision requires a normal review and fresh exact evidence before the
+  LineageWeave caller changes its pin.
 - The immutable-release status endpoint requires administrative read access.
   That capability must be provisioned to the trusted release admission step
   only; it must not expand permissions for tests, builds, pull requests or the
