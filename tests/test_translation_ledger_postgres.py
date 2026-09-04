@@ -365,3 +365,60 @@ def test_postgres_required_key_query_returns_authoritative_text_sha256() -> None
         assert rows[0]["translated_text_sha256"] == hashlib.sha256(b"title-en").hexdigest()
 
     asyncio.run(_run_with_translation_db(scenario))
+
+
+def test_translation_api_reads_published_copy_through_asyncpg_boundary() -> None:
+    """The API projection composes the released read model without a sync PostgreSQL driver."""
+
+    class ExistingConnectionAcquire:
+        """Expose one real asyncpg connection through the pool context-manager shape."""
+
+        def __init__(self, connection: asyncpg.Connection) -> None:
+            self.connection = connection
+
+        async def __aenter__(self) -> asyncpg.Connection:
+            """Return the already-open throwaway-database connection."""
+            return self.connection
+
+        async def __aexit__(self, *_args: object) -> None:
+            """Leave lifecycle ownership with the throwaway database helper."""
+            return None
+
+    class ExistingConnectionPool:
+        """Minimal asyncpg-pool adapter for one real integration connection."""
+
+        def __init__(self, connection: asyncpg.Connection) -> None:
+            self.connection = connection
+
+        def acquire(self) -> ExistingConnectionAcquire:
+            """Return the existing connection without adding another driver boundary."""
+            return ExistingConnectionAcquire(self.connection)
+
+    async def scenario(connection: asyncpg.Connection) -> None:
+        from backend.app.main import read_ui_translations
+
+        resource_id = await _seed_complete_draft(connection, version=6)
+        await connection.execute(
+            """
+            update ui_translation_resource
+               set publication_state = 'published'
+             where resource_id = $1
+            """,
+            resource_id,
+        )
+        response = await read_ui_translations(
+            screen_key="customer-master",
+            locale="de",
+            resource_version=6,
+            _account=object(),  # type: ignore[arg-type]
+            pool=ExistingConnectionPool(connection),  # type: ignore[arg-type]
+            valkey=None,  # type: ignore[arg-type]
+        )
+        assert response == {
+            "screen_key": "customer-master",
+            "resource_version": 6,
+            "locale": "de",
+            "translations": {"title": "title-de"},
+        }
+
+    asyncio.run(_run_with_translation_db(scenario))
