@@ -74,7 +74,7 @@ def test_prepublication_abort_orders_identity_proof_before_conditional_tag_clean
     adr_text = _ADR.read_text(encoding="utf-8")
     release_text = _RELEASE_GUIDE.read_text(encoding="utf-8")
     abort_procedures = (
-        (_ADR, _numbered_step(adr_text, 9, 10)),
+        (_ADR, _numbered_step(adr_text, 9, 10), "protected namespace"),
         (
             _RELEASE_GUIDE,
             _between(
@@ -82,10 +82,11 @@ def test_prepublication_abort_orders_identity_proof_before_conditional_tag_clean
                 "A failure after step 11 but before publication is a **pre-publication abort**",
                 "Never reuse a tag name that has been associated with a published immutable release",
             ),
+            "protected tag namespace",
         ),
     )
 
-    for path, procedure in abort_procedures:
+    for path, procedure, protected_marker in abort_procedures:
         proof_terms = (
             "exact release id",
             "draft: true",
@@ -97,17 +98,24 @@ def test_prepublication_abort_orders_identity_proof_before_conditional_tag_clean
         )
         proof_end = max(procedure.index(term) for term in proof_terms)
         compare_delete = procedure.index("compare-and-delete")
-        quarantine = procedure.index("quarantine", compare_delete)
+        trusted_writer = procedure.index("trusted release writer", compare_delete)
+        protected_tag = procedure.index(protected_marker, trusted_writer)
+        recorded_tag_object = procedure.index("recorded tag-object sha", protected_tag)
+        serialization = procedure.index("serialization", recorded_tag_object)
+        quarantine = procedure.index("quarantine", serialization)
 
-        assert proof_end < compare_delete < quarantine, path
-        cleanup_slice = procedure[compare_delete:quarantine]
-        assert "trusted release writer" in cleanup_slice, path
-        assert "protected" in cleanup_slice and "tag" in cleanup_slice, path
-        assert "recorded tag-object sha" in cleanup_slice, path
-        assert "serialization" in cleanup_slice, path
-        assert "do not delete" in procedure[compare_delete:], path
-        assert "re-resolve" in procedure, path
-        assert "absent" in procedure, path
+        assert (
+            proof_end
+            < compare_delete
+            < trusted_writer
+            < protected_tag
+            < recorded_tag_object
+            < serialization
+            < quarantine
+        ), path
+        assert "do not delete" in procedure[serialization:quarantine], path
+        assert "re-resolve" in procedure[compare_delete:], path
+        assert "absent" in procedure[compare_delete:], path
 
 
 def test_release_contract_pins_the_repaired_canonical_attestation_owner() -> None:
