@@ -6,15 +6,23 @@ import re
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 _ROOT = Path(__file__).resolve().parents[1]
 _ADR_DIRECTORY = _ROOT / "docs" / "adr"
 _PRODUCT_GAP_BASELINE = _ROOT / "docs" / "product-technical-gap-baseline.md"
+_PRODUCT_REQUIREMENTS = _ROOT / "docs" / "product-requirements.md"
 _ROLE_CATALOG_COLUMNS = (
     "cataloged_team_id",
     "cataloged_corporate_entity_id",
     "cataloged_person_id",
 )
 _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
+_PRD_REQUIREMENT_HEADING = re.compile(r"^### (?P<identifier>PRD-FR-[0-9A-Z-]+)\b", re.MULTILINE)
+_PRD_ADR_MARKER = re.compile(r"\bADRs?\s+")
+_ADR_NUMBER = re.compile(r"(?P<number>[0-9]{4})(?!\w)")
+_ADR_RANGE_SEPARATOR = re.compile(r"\s*[\u2013-]\s*")
+_ADR_LIST_SEPARATOR = re.compile(r"\s*(?:,\s*(?:and\s+)?|/\s*|and\s+)")
 _PRIVATE_POST_IDENTIFIER = re.compile(
     r"(?i)"
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
@@ -25,6 +33,71 @@ _FORBIDDEN_MARKERS = (
     "PLACEHOLDER_DO_NOT_WRITE",
     "TODO_WRITE_ADR",
 )
+
+
+def _adr_is_current(content: str) -> bool:
+    """Return false only for an ADR whose own status fully retires it."""
+    inline_status = re.search(
+        r"(?im)^(?:[-*]\s*)?(?:\*\*)?(?:decision\s+)?status(?:\*\*)?\s*:\s*(.+)$",
+        content,
+    )
+    if inline_status is not None:
+        status = inline_status.group(1).strip().casefold()
+    else:
+        section_status = re.search(r"(?im)^## Status\s*\n\s*([^\n]+)", content)
+        status = section_status.group(1).strip().casefold() if section_status else ""
+    return not status.startswith(("retired", "superseded by"))
+
+
+def _adr_number_at(content: str, cursor: int) -> tuple[str, int] | None:
+    """Read one standalone four-digit ADR number at an expected list position."""
+    match = _ADR_NUMBER.match(content, cursor)
+    if match is not None:
+        return match.group("number"), match.end()
+    malformed = re.match(r"[0-9]\w*", content[cursor:])
+    if malformed is not None:
+        raise ValueError(f"malformed ADR reference: {malformed.group(0)}")
+    return None
+
+
+def _referenced_adr_numbers(content: str) -> set[str]:
+    """Return direct ADR reference lists without treating later prose as citations."""
+    referenced_numbers: set[str] = set()
+    for marker in _PRD_ADR_MARKER.finditer(content):
+        cursor = marker.end()
+        first = _adr_number_at(content, cursor)
+        if first is None:
+            continue
+        while True:
+            start_text, cursor = first
+            start = int(start_text)
+            end = start
+
+            range_separator = _ADR_RANGE_SEPARATOR.match(content, cursor)
+            if (
+                range_separator is not None
+                and range_separator.end() < len(content)
+                and content[range_separator.end()].isdigit()
+            ):
+                endpoint = _adr_number_at(content, range_separator.end())
+                if endpoint is None:
+                    raise ValueError("malformed ADR range endpoint")
+                end_text, cursor = endpoint
+                end = int(end_text)
+                if start > end:
+                    raise ValueError(f"descending ADR range: {start:04d}-{end:04d}")
+
+            referenced_numbers.update(f"{number:04d}" for number in range(start, end + 1))
+
+            list_separator = _ADR_LIST_SEPARATOR.match(content, cursor)
+            if list_separator is None or list_separator.end() >= len(content):
+                break
+            if not content[list_separator.end()].isdigit():
+                break
+            first = _adr_number_at(content, list_separator.end())
+            if first is None:
+                break
+    return referenced_numbers
 
 
 def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
@@ -68,6 +141,95 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
 
     match = _PRIVATE_POST_IDENTIFIER.search(baseline)
     assert match is None, f"private post identifier in product-gap baseline: {match.group(0)!r}"
+
+
+def test_product_requirement_identifiers_are_unique() -> None:
+    """Each PRD identifier names one current requirement and acceptance contract."""
+    product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    identifiers = _PRD_REQUIREMENT_HEADING.findall(product_requirements)
+
+    assert identifiers, "the product requirements must contain numbered requirements"
+    counts = Counter(identifiers)
+    duplicates = sorted(identifier for identifier, count in counts.items() if count > 1)
+    assert duplicates == [], f"duplicate PRD requirement identifiers: {duplicates}"
+
+
+def test_product_authority_register_uses_canonical_repository_names() -> None:
+    """Keep ecosystem repository identities aligned with their remote names."""
+    content = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    assert "`ContextualWisdomLab/disksage`" in content
+    assert "ContextualWisdomLab/DiskSage" not in content
+
+
+def test_retired_adr_status_is_excluded_without_hiding_partial_amendments() -> None:
+    """Only a fully retired or superseded ADR leaves current PRD traceability."""
+    assert not _adr_is_current("# ADR\n\n- Status: Superseded by ADR 0002\n")
+    assert not _adr_is_current("# ADR\n\n## Status\n\nRetired\n")
+    assert _adr_is_current(
+        "# ADR\n\n**Decision status:** Accepted, point 3 superseded by ADR 0002\n"
+    )
+
+
+def test_product_requirement_adr_references_exist() -> None:
+    """Direct ADR references in the supporting PRD resolve to normative records."""
+    product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    referenced_numbers = _referenced_adr_numbers(product_requirements)
+
+    assert {"0249", "0250", "0253", "0255"} <= referenced_numbers
+    available_numbers = {
+        match.group("number")
+        for path in _ADR_DIRECTORY.glob("*.md")
+        if (match := _ADR_NAME.fullmatch(path.name)) is not None
+    }
+
+    missing = sorted(referenced_numbers - available_numbers)
+    assert missing == [], f"PRD references missing ADRs: {missing}"
+
+
+def test_product_requirement_adr_references_reject_partial_numbers() -> None:
+    """A valid sibling reference cannot hide a malformed direct ADR token."""
+    for malformed in (
+        "ADR 02490, ADR 0250",
+        "ADR 249, ADR 0250",
+        "ADR 0249a, ADR 0250",
+        "ADR 0249_foo, ADR 0250",
+    ):
+        with pytest.raises(ValueError, match="malformed ADR reference"):
+            _referenced_adr_numbers(malformed)
+
+
+def test_product_requirement_adr_references_stop_before_prose_numbers() -> None:
+    """Quantities after a complete ADR citation are prose, not malformed references."""
+    assert _referenced_adr_numbers("ADR 0249 governs 23 groups") == {"0249"}
+    assert _referenced_adr_numbers("ADR 0249 supports version 2 for 23 groups") == {"0249"}
+
+
+def test_product_requirement_adr_reference_lists_expand_ranges() -> None:
+    """Grouped ADR lists retain every standalone number and inclusive range member."""
+    assert _referenced_adr_numbers("ADRs 0249, 0250, and 0253\u20130255") == {
+        "0249",
+        "0250",
+        "0253",
+        "0254",
+        "0255",
+    }
+    assert _referenced_adr_numbers("ADRs 0249/0250") == {"0249", "0250"}
+
+
+def test_adr_product_requirement_references_exist() -> None:
+    """Accepted ADR traceability cannot point at a removed PRD requirement."""
+    product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    available_identifiers = set(_PRD_REQUIREMENT_HEADING.findall(product_requirements))
+    referenced_identifiers: set[str] = set()
+    for path in _ADR_DIRECTORY.glob("*.md"):
+        content = path.read_text(encoding="utf-8")
+        if _adr_is_current(content):
+            referenced_identifiers.update(
+                re.findall(r"\bPRD-FR-[0-9A-Z-]+\b", content)
+            )
+
+    missing = sorted(referenced_identifiers - available_identifiers)
+    assert missing == [], f"ADRs reference missing PRD requirements: {missing}"
 
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:

@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`, the merge SHA for #782.
+> GitHub records no independent `APPROVED` review on #782 and its author merged
+> it while exact-head required controls were not successful; this is a
+> governance violation, not protected-delivery proof. Draft revert #808 is
+> `1af3e53e55d7a1c8572ab514d14d06c615c7c0d0` and also lacks independent
+> approval, so it remains unmerged. There are 55 open PRs and 10 open issues.
+> Main-based ready PRs #771, #772, #774, and #780 retain normal squash
+> auto-merge and remain blocked on an independent approval plus exact-head
+> required checks. Drafts and dirty branches are candidate evidence only.
+> Canonical remote names rechecked this cycle are
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+> `ContextualWisdomLab/TEPP`. The current PRD had repeated identifiers for
+> PRD-FR-2A, PRD-FR-2B, and PRD-FR-2C plus a conflicting PRD-FR-2B-2 draft.
+> The superseded copies are removed in the current candidate and a regression
+> test now makes duplicate PRD identifiers fail closed. This resolves issue
+> #807's authority ambiguity without changing an ADR, API, schema, model, or
+> release number.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
