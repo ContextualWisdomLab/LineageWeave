@@ -11,18 +11,10 @@ import pytest
 from lineageweave.postgres_sync import OperationalError, connect
 
 
-@pytest.mark.parametrize(
-    "dsn",
-    (
-        "postgresql://alice:secret@db.example/archive",
-        "postgresql://alice:secret@db.example/archive?sslmode=prefer",
-    ),
-)
 def test_libpq_prefer_semantics_attempt_tls_before_plaintext_fallback(
     monkeypatch: pytest.MonkeyPatch,
-    dsn: str,
 ) -> None:
-    """Default/explicit prefer must try encrypted transport before server-refusal fallback."""
+    """Explicit prefer must try encrypted transport before server-refusal fallback."""
     attempts: list[object] = []
     native_connection = SimpleNamespace(autocommit=False)
 
@@ -39,10 +31,33 @@ def test_libpq_prefer_semantics_attempt_tls_before_plaintext_fallback(
 
     monkeypatch.setattr("lineageweave.postgres_sync._dbapi.connect", fake_connect)
 
-    connection = connect(dsn)
+    connection = connect("postgresql://alice:secret@db.example/archive?sslmode=prefer")
 
     assert connection._inner is native_connection
     assert len(attempts) == 2
+
+
+def test_default_sslmode_verifies_identity_without_plaintext_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An omitted mode must verify certificate and host and never retry in plaintext."""
+    attempts = 0
+
+    def refuse_ssl(**kwargs: object) -> object:
+        nonlocal attempts
+        attempts += 1
+        ssl_context = kwargs["ssl_context"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.check_hostname is True
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        raise _dbapi.InterfaceError("Server refuses SSL")
+
+    monkeypatch.setattr("lineageweave.postgres_sync._dbapi.connect", refuse_ssl)
+
+    with pytest.raises(OperationalError):
+        connect("postgresql://alice:secret@db.example/archive")
+
+    assert attempts == 1
 
 
 def test_prefer_does_not_downgrade_on_arbitrary_transport_failure(

@@ -230,7 +230,7 @@ def connection_kwargs_from_dsn(
         if not query["application_name"]:
             raise ValueError("PostgreSQL application_name must not be empty")
         kwargs["application_name"] = query["application_name"]
-    kwargs["ssl_context"] = _ssl_context_for_mode(query.get("sslmode", "prefer"))
+    kwargs["ssl_context"] = _ssl_context_for_mode(query.get("sslmode", "verify-full"))
     if "options" in query:
         startup_params["options"] = query["options"]
     if startup_params:
@@ -388,14 +388,15 @@ def connect(dsn: str, *, connect_timeout: float | int | None = None) -> Connecti
     pg8000 reports transport failures as ``InterfaceError`` and PostgreSQL
     startup refusals such as authentication/database errors as ``DatabaseError``.
     Both occur before a connection exists and therefore preserve the historical
-    ``OperationalError`` contract used by reachability probes. Libpq's default
-    ``sslmode=prefer`` is preserved by trying encrypted transport first and
-    falling back to plaintext only when PostgreSQL explicitly refuses SSL.
+    ``OperationalError`` contract used by reachability probes. A DSN without
+    ``sslmode`` uses the product's fail-closed ``verify-full`` policy. Explicit
+    ``sslmode=prefer`` retains TLS-first behavior and falls back to plaintext
+    only when PostgreSQL explicitly refuses SSL.
     """
 
     parsed = urlsplit(dsn)
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    sslmode = query.get("sslmode", "prefer").lower()
+    sslmode = query.get("sslmode", "verify-full").lower()
     kwargs = connection_kwargs_from_dsn(dsn, connect_timeout=connect_timeout)
     try:
         native = _dbapi.connect(**kwargs)
