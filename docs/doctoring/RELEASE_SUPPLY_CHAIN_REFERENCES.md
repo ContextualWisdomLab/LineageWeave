@@ -84,49 +84,60 @@ a release attestation. GitHub recommends creating a draft release, attaching
 all assets, and publishing the populated draft so immutability does not leave a
 partially populated release.
 
-The current repository REST API exposes
-`GET /repos/{owner}/{repo}/immutable-releases` to check whether the control is
-enabled. GitHub documents an authenticated `200` response when enabled and a
-`404` when it is not enabled, and requires repository Administration (read)
-permission for the check. ADR 0361 therefore treats an authenticated
-`enabled: true` result as release admission and fails closed when the status
-cannot be established. That administrative read capability belongs only to the
-trusted admission step; it is not granted to pull-request or build execution.
-Because the setting and a newly created release tag remain mutable until the
-release is actually published, the release contract performs the status check
-before tag creation and rechecks both repository immutability and exact tag to
-source-SHA identity immediately before publish rather than treating an earlier
-preflight as durable evidence.
+The repository REST API exposes `GET /repos/{owner}/{repo}/immutable-releases`
+and returns an object containing `enabled` and `enforced_by_owner`. For ADR 0361
+both must be true: `enabled: true` proves the feature is active and
+`enforced_by_owner: true` proves repository administrators cannot locally turn
+it off during the release interval. The administrative read capability used to
+inspect that state belongs only to the trusted release boundary.
 
-The same publication boundary creates an abort obligation. GitHub's immutable
-protections apply after publication, while its release REST API separately
-supports creating, retrieving, modifying, and deleting releases and exposes
-drafts only to authorized callers. A final admission failure after draft/tag
-creation can therefore leave a real unpublished candidate identity. ADR 0361
-does not infer that deletion is safe from a version string alone: the caller
-must retain the exact draft Release ID and tag-object receipt, re-prove that the
-release remains draft/unpublished and that the candidate ref still names the
-recorded tag object, and fail closed if those proofs are ambiguous. Only that
-exact unpublished draft and candidate tag may be removed before a same-version
-retry. GitHub also states that once a tag has been associated with a published
-immutable release, the tag name cannot be reused even after that immutable
-release is deleted; possible publication therefore changes recovery to a new
-version rather than cleanup/reuse.
+The Release REST representation exposes the exact Release ID, `tag_name`,
+`draft`, `prerelease`, asset list and asset digests, and published releases
+report whether they are `immutable`. ADR 0361 therefore treats a final settings
+read alone as insufficient. Immediately before publish it re-reads the exact
+Release ID, requires `draft: true`, the admitted `tag_name`,
+`prerelease: false`, and the exact sealed asset name/digest set, then repeats the
+annotated-tag object/commit check. After publication it requires
+`immutable: true` and verifies the same tag/assets again.
 
-GitHub. (n.d.). *Immutable releases*. GitHub Docs. Retrieved September 3, 2026,
+GitHub documents no consumer-supplied compare-and-publish precondition that
+atomically binds those prior REST reads to publication. The architecture does
+not invent one. The controllable race is narrowed with three mandatory
+configuration/serialization controls: owner-enforced release immutability, a
+reviewed ruleset protecting the candidate release-tag namespace, and one
+exclusively serialized **trusted release writer** for candidate tag/ref and
+Release mutations. If those controls are absent or cannot be proved, release
+publication stays RED.
+
+That same ownership rule applies to abort cleanup. Verifying a candidate ref
+and deleting it in separate unsynchronized calls leaves a TOCTOU window. ADR
+0361 therefore defines candidate ref removal as **compare-and-delete** under the
+same trusted release writer and protected tag namespace: compare the live ref
+with the recorded tag-object SHA immediately before deletion and allow deletion
+only when writer/ruleset serialization prevents another admitted writer from
+retargeting it before the delete. If the platform configuration cannot provide
+that guarantee, the ref is not deleted; the version is quarantined. Exact draft
+identity, unpublished state, asset set and post-delete absent-state checks are
+still required.
+
+GitHub also states that once a tag has been associated with a published
+immutable release, the tag name cannot be reused even after that release is
+deleted. Possible publication therefore changes recovery to a new version
+rather than cleanup/reuse.
+
+GitHub. (n.d.). *Immutable releases*. GitHub Docs. Retrieved September 4, 2026,
 from
 https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases
 
 GitHub. (n.d.). *Preventing changes to your releases*. GitHub Docs. Retrieved
-September 3, 2026, from
+September 4, 2026, from
 https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes
 
-GitHub. (n.d.). *REST API endpoints for repositories: Check if immutable
-releases are enabled for a repository*. GitHub Docs. Retrieved September 3,
-2026, from https://docs.github.com/en/rest/repos/repos
+GitHub. (n.d.). *REST API endpoints for repositories*. GitHub Docs. Retrieved
+September 4, 2026, from https://docs.github.com/en/rest/repos/repos
 
 GitHub. (n.d.). *REST API endpoints for releases*. GitHub Docs. Retrieved
-September 3, 2026, from https://docs.github.com/en/rest/releases/releases
+September 4, 2026, from https://docs.github.com/en/rest/releases/releases
 
 ### GitHub annotated tag identity
 
@@ -143,10 +154,10 @@ Missing refs/tag objects, non-commit targets, and mismatched target SHAs fail
 closed before publication and again during post-publication verification.
 
 GitHub. (n.d.). *REST API endpoints for Git references*. GitHub Docs. Retrieved
-September 3, 2026, from https://docs.github.com/en/rest/git/refs
+September 4, 2026, from https://docs.github.com/en/rest/git/refs
 
 GitHub. (n.d.). *REST API endpoints for Git tags*. GitHub Docs. Retrieved
-September 3, 2026, from https://docs.github.com/en/rest/git/tags
+September 4, 2026, from https://docs.github.com/en/rest/git/tags
 
 ### JSON strictness
 
@@ -170,10 +181,13 @@ https://doi.org/10.17487/RFC8259
 - acyclic inner identity plus immutable outer GitHub Actions artifact receipt →
   `ContextualWisdomLab/.github#1791` at
   `bd866a21cca2a7e709f0b7a88150c310a9d98239`;
-- immutable tag/asset admission, publish-boundary revalidation, draft-first
-  publication, identity-safe pre-publication abort, and published-tag non-reuse
-  → GitHub immutable release and release REST documentation plus repository
-  immutability REST API;
+- owner-enforced immutable-release admission, exact draft/asset verification,
+  protected tag namespace, trusted-writer serialization and post-publication
+  `immutable: true` verification → GitHub immutable release, repository and
+  Release REST documentation;
+- conditional candidate-ref compare-and-delete and quarantine on missing
+  serialization → the CWE-367 recovery boundary derived from those GitHub API
+  semantics; no undocumented atomic REST primitive is assumed;
 - annotated-tag ref/object separation and exact source-commit peeling → GitHub
   Git references and Git tags REST documentation;
 - strict machine-readable evidence intake → RFC 8259 plus the stricter
