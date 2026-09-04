@@ -381,15 +381,23 @@ class OpenAiCompatibleVisionClient:
         return tuple(accepted)
 
 
-def orchestrator_vision_client(base_url: str, api_key: str, model: str | None = None) -> ImageContentClient:
+def orchestrator_vision_client(
+    base_url: str,
+    api_key: str,
+    model: str | None = None,
+    *,
+    timeout: float = 180.0,
+) -> ImageContentClient:
     """Build a vision client against the same orchestrator root other channels use.
 
     Other clients POST ``{base_url}/v1/chat/completions``;
     :class:`OpenAiCompatibleVisionClient` POSTs ``{base_url}/chat/completions``,
     so this appends ``/v1`` unless already present. An ``http://`` orchestrator
     (local docker) is allowed because the other channels already talk to the
-    same URL. A construct-time error degrades to the unavailable null rather
-    than crashing the request that asked for a description.
+    same URL. The optional timeout lets a bounded caller share its admitted
+    transport budget with synchronous Vision requests. A construct-time error
+    degrades to the unavailable null rather than crashing the request that
+    asked for a description.
     """
     if not (base_url and api_key):
         return NullImageContentClient()
@@ -402,6 +410,7 @@ def orchestrator_vision_client(base_url: str, api_key: str, model: str | None = 
             base_url=vision_base,
             api_key=api_key,
             model=model,
+            timeout=timeout,
             allow_insecure_http=parsed.scheme == "http",
         )
     except ValueError:

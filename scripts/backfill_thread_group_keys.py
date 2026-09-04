@@ -132,14 +132,18 @@ class _RollbackDryRun(Exception):
         self.cleared = cleared
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
-    """Execute one pooled backfill and convert dry-run rollback into counts."""
+async def _run_thread_group_key_backfill(
+    backfill_arguments: argparse.Namespace,
+) -> dict[str, object]:
+    """Execute one pooled thread-group-key backfill and report aggregate counts."""
     settings = load_settings()
     pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
     try:
         async with pool.acquire() as conn:
             try:
-                counts = await backfill_thread_group_keys(conn, dry_run=args.dry_run)
+                counts = await backfill_thread_group_keys(
+                    conn, dry_run=backfill_arguments.dry_run
+                )
                 return {**counts, "dry_run": False}
             except _RollbackDryRun as rolled_back:
                 return {
@@ -159,8 +163,14 @@ def main() -> None:
         action="store_true",
         help="Report counts without writing (rolls back the transaction)",
     )
-    args = parser.parse_args()
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    backfill_arguments = parser.parse_args()
+    print(
+        json.dumps(
+            asyncio.run(_run_thread_group_key_backfill(backfill_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
