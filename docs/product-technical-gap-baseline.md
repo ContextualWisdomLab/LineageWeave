@@ -2,14 +2,14 @@
 
 > Snapshot refreshed 2026-09-05 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
-> ADR 0362 candidate for issue #922 and is open / Draft. Required current-head
-> checks are not yet accepted as terminal GREEN and the delivery boundary still
-> requires qualifying independent review. The live non-identifying queue
-> snapshot contains 121 open PRs and 16 open issues; those counts describe
-> coordination load, not product maturity or release readiness. The
-> authenticated `GET /api/translations/{screen_key}` API is implemented on the
-> candidate branch. That is candidate implementation evidence, not
-> protected-main, deployed, or release evidence.
+> ADR 0362 candidate for issue #922 and is open / Ready for exact-head
+> validation. Required current-head checks are not yet accepted as terminal GREEN
+> and the delivery boundary still requires qualifying independent review. The
+> live non-identifying queue snapshot contains 121 open PRs and 16 open issues;
+> those counts describe coordination load, not product maturity or release
+> readiness. The authenticated `GET /api/translations/{screen_key}` API is
+> implemented on the candidate branch. That is candidate implementation
+> evidence, not protected-main, deployed, or release evidence.
 >
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
@@ -116,10 +116,10 @@
    baseline with the actual cutover. Keep ontology labels separate from product
    copy and consume only released owner contracts where another CWL product is
    authoritative.
-5. Keep #929 Draft while the unresolved review contract is repaired. Re-enter
-   review and arm normal auto-merge only after the unchanged exact head has
-   terminal required gates and the qualifying independent review required by
-   repository governance; do not bypass or release from the Draft lane.
+5. Keep #929 in the Ready validation lane while this exact head is evaluated.
+   Normal merge or release still requires terminal required/security gates and
+   the qualifying independent review; do not bypass or inherit predecessor
+   evidence.
 
 ## Adjacent delivery and collision audit
 
