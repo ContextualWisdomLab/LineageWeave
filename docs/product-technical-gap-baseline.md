@@ -1,5 +1,49 @@
 # Product & Technical Gap Baseline
 
+> Exact-head observation overlay: 2026-09-02 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`. PR #897 is
+> implemented through behavior-changing head
+> `419d099af60df2f275fd058bf42149700709f628`, mergeable, and protected by
+> normal squash auto-merge; exact-head Checks are queued and no qualifying
+> independent APPROVE exists. The following documentation-only commit records
+> that observation; it does not claim its own recursively unknowable commit
+> identifier as the observed implementation head. All implementation review
+> threads were resolved at the observation.
+> Its accepted-receipt seed now also fails closed
+> when a reseed encounters an existing Running history and a conflicting
+> receipt: it appends `analysis_status_failed` /
+> `tepp_result_not_persisted` unless a terminal event already exists, then
+> appends the missing Delivered event to any existing claimed outbox so a
+> terminal run cannot be retried. Focused regression evidence is 55 passing
+> tests. This remains candidate evidence,
+> not a protected-main release or authenticated PostgreSQL/UI runtime claim.
+> The queue currently contains 107 open PRs and 15 open Issues; stacked PRs
+> retain their declared bases until each parent is protected-merged. Canonical
+> remote names are `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+> `ThreadWeave`, lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and
+> `fast-mlsirm`. The largest buyer increment in this slice remains an honest
+> visible Running state after a persisted accepted receipt; producer status
+> polling stays unavailable under issue #277. TEPP PR #266 protected-merged
+> the strict HTTPS GET exchange builder, but neither that library contract nor
+> a closed provider issue proves a configured live service, authenticated
+> PostgreSQL lifecycle, evidence-based polling cadence, or rendered UI here.
+
+> Exact-head loop overlay: 2026-09-01 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` (v2.24.0 leftover-map
+> coordinates, #782). Package/pyproject versions on that head are 2.28.0.
+> Open ready PRs still lack independent APPROVE. Leftover-map stacked
+> heads through v2.106 are gold-plating and are not this cycle's buyer
+> increment. #96 stays closed as a weaker duplicate of #91. Copilot
+> review is not independent APPROVE. Do not self-approve. Do not merge
+> stacked leftover PRs onto an unprotected leftover base. Issues #79
+> and #87 stay OPEN. Issue #277 stays OPEN: consumer receipt persist is
+> on `main`; producer status HTTP remains unavailable.
+> Next buyer increment on this cycle: seed a Demo Corp Running TEPP
+> accepted receipt (ADR 0219 / v2.29.0) so `make seed` shows
+> "Measurement request accepted. Refresh this run to check whether
+> results are ready." Missing-transport Failed remains. Never invent a
+> GET URL, retry interval, leftover score, or theta.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

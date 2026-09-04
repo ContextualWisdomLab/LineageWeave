@@ -552,6 +552,25 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
     assert failure == "tepp_result_not_persisted"
 
 
+def test_tepp_submit_outcome_keeps_strict_acceptance_running() -> None:
+    """A strict accepted v1 envelope is Running transport evidence, not a result."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda payload: {
+                    "contract_version": 1,
+                    "run_id": "remote-run-1",
+                    "run_state": "accepted",
+                    "idempotency_key": payload["idempotency_key"],
+                }
+            )
+
+    status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
+    assert status == "analysis_status_running"
+    assert failure == ""
+
+
 def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> None:
     """The consumer persists TEPP's exact v1 artifact, not an ad hoc nested flag."""
 

@@ -257,11 +257,14 @@ def _tepp_submission(
     client: TeppClient,
     request: AnalysisRunRequest,
 ) -> tuple[str, str, dict[str, Any] | None]:
-    """Submit through ``tepp_client`` and require a completed result envelope.
+    """Submit through ``tepp_client`` and classify the provider envelope.
 
-    TEPP's target HTTP contract is asynchronous. An ``accepted`` response is
-    therefore not a measurement and remains ``tepp_result_not_persisted``.
-    Only a provider-authoritative completed envelope can enter the database.
+    TEPP's target HTTP contract is asynchronous. A strict accepted v1
+    response is transport evidence (ADR 0219), not a measurement: the
+    caller persists ``analysis_run_tepp_receipt`` and leaves the local
+    run Running. Only a provider-authoritative completed envelope can
+    enter ``analysis_run_tepp_result``. An invalid or unpublished shape
+    stays ``tepp_result_not_persisted``.
     """
     try:
         response = client.submit_analysis_run(request)
@@ -271,12 +274,17 @@ def _tepp_submission(
         return _FAILED, "tepp_result_not_persisted", None
     if not isinstance(response, dict):
         return _FAILED, "tepp_result_not_persisted", None
-    state = response.get("status") or response.get("run_state")
+    status = response.get("status")
+    run_state = response.get("run_state")
+    if status is not None and run_state is not None and status != run_state:
+        return _FAILED, "tepp_result_not_persisted", None
+    state = status or run_state
     remote_run_id = response.get("analysis_run_id") or response.get("run_id")
     if state == "accepted":
         if (
             set(response)
             == {"contract_version", "run_id", "run_state", "idempotency_key"}
+            and type(response["contract_version"]) is int
             and response["contract_version"] == 1
             and response["idempotency_key"] == request.idempotency_key
             and isinstance(remote_run_id, str)
