@@ -3,12 +3,18 @@
 -- rather than a destructive schema down-migration.
 begin;
 
--- Serialize the emptiness decision with writers through transaction end. Without
--- this lock, a resource can be inserted after the guard and then erased by DROP.
-lock table ui_translation_resource in access exclusive mode;
-
+-- Serialize the emptiness decision with writers through transaction end. A retry
+-- after a completed rollback has no resource relation left, so treat that state
+-- as already converged instead of turning a successful recovery into an error.
 do $$
 begin
+    begin
+        execute 'lock table ui_translation_resource in access exclusive mode';
+    exception
+        when undefined_table then
+            return;
+    end;
+
     if exists (
         select 1
           from ui_translation_resource
