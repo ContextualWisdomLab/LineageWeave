@@ -84,7 +84,7 @@ async def _wait_until_lock_blocked(observer: asyncpg.Connection, backend_pid: in
 
 
 async def _run_publication_truncate_race() -> None:
-    """Never allow a published root to commit after its copy was truncated."""
+    """Reject child TRUNCATE deterministically without deadlocking publication."""
     database_name = f"lineageweave_translation_race_{uuid.uuid4().hex[:12]}"
     admin = await asyncpg.connect(_ADMIN_DSN)
     await admin.execute(f'create database "{database_name}"')
@@ -131,7 +131,7 @@ async def _run_publication_truncate_race() -> None:
                     truncator.execute("truncate table ui_translation_text"), timeout=5
                 )
                 await truncate_transaction.commit()
-            except BaseException as exc:  # deadlock resolution may abort either side
+            except BaseException as exc:
                 truncate_error = exc
                 try:
                     await truncate_transaction.rollback()
@@ -148,12 +148,16 @@ async def _run_publication_truncate_race() -> None:
                 resource_id,
             )
 
-            assert not (publication_state == "published" and text_count == 0), (
-                "publication committed from a stale command snapshot after child TRUNCATE"
+            assert publish_error is None, (
+                "child TRUNCATE must not make publication a deadlock victim"
             )
-            assert truncate_error is not None or publish_error is not None, (
-                "the conflicting publication/TRUNCATE pair was not serialized"
+            assert isinstance(truncate_error, asyncpg.PostgresError)
+            assert getattr(truncate_error, "sqlstate", None) == "P0001", (
+                "child TRUNCATE must fail through the aggregate guard, not deadlock detection"
             )
+            assert "child UI translation relations cannot be truncated" in str(truncate_error)
+            assert publication_state == "published"
+            assert text_count == len(_LOCALES)
         finally:
             await publisher.close()
             await truncator.close()
@@ -171,5 +175,5 @@ async def _run_publication_truncate_race() -> None:
     ),
 )
 def test_postgres_publication_cannot_commit_after_child_truncate() -> None:
-    """Cross-table immutability remains true under the READ COMMITTED race."""
+    """Cross-table immutability avoids lock-order deadlocks under READ COMMITTED."""
     asyncio.run(_run_publication_truncate_race())
