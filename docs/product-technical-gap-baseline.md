@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04 21:58 KST. Protected `main` is
+> Exact-head snapshot: 2026-09-04 22:00 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Draft / mechanically
 > mergeable. Required checks remain non-terminal and the ruleset still requires
@@ -66,13 +66,13 @@
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
 - Current-head regression evidence includes an explicit-version cache-miss
-  query-budget contract requiring one PostgreSQL acquisition. Decoder
-  exhaustion is injected at the standard-library boundary because Python
-  versions do not share one JSON nesting limit; the regression verifies that
-  the read falls back without depending on interpreter-specific recursion.
-  Focused verification is 121 passing translation/API/schema/telemetry/docs
-  tests with deprecations treated as errors. Hosted required checks are
-  non-terminal, so no exact-head GREEN is claimed.
+  query-budget contract requiring one PostgreSQL acquisition. The malformed
+  cache recursion regression constructs a depth derived from the running
+  interpreter with a conservative 10,000-level floor and first proves that
+  `json.loads(raw_payload)` itself raises `RecursionError`; the same payload
+  must then converge to a cache miss. Hosted required checks remain
+  non-terminal, so no exact-head GREEN or predecessor focused-test count is
+  transferred to this head.
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
