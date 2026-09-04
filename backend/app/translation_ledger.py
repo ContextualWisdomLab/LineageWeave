@@ -58,7 +58,6 @@ _POSTGRES_BIGINT_MAX = 9_223_372_036_854_775_807
 
 _SELECT_REQUIRED_KEYS_SQL = """
 select translation_key.translation_key,
-       translation_text.translated_text,
        case
            when translation_text.translated_text is null then null
            else encode(sha256(convert_to(translation_text.translated_text, 'UTF8')), 'hex')
@@ -352,6 +351,22 @@ def _decode_cached_screen(
     )
 
 
+async def _read_exact_cache_payload(
+    cache: AsyncTranslationCache | None,
+    *,
+    cache_key: str,
+) -> str | bytes | None:
+    """Read an optional exact-version cache candidate without holding a database lease."""
+    if cache is None:
+        return None
+    try:
+        return await asyncio.wait_for(
+            cache.get(cache_key), timeout=_CACHE_IO_TIMEOUT_SECONDS
+        )
+    except (RedisError, TimeoutError):
+        return None
+
+
 async def _read_exact_cache(
     cache: AsyncTranslationCache | None,
     *,
@@ -361,16 +376,9 @@ async def _read_exact_cache(
     locale: str,
     expected_text_digests: Mapping[str, str | None],
 ) -> TranslationScreen | None:
-    """Read an exact-version cache entry after PostgreSQL establishes copy digests."""
-    if cache is None:
-        return None
+    """Validate one cache candidate against already-established PostgreSQL digests."""
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
-    try:
-        raw_payload = await asyncio.wait_for(
-            cache.get(cache_key), timeout=_CACHE_IO_TIMEOUT_SECONDS
-        )
-    except (RedisError, TimeoutError):
-        return None
+    raw_payload = await _read_exact_cache_payload(cache, cache_key=cache_key)
     if raw_payload is None:
         return None
     return _decode_cached_screen(
@@ -419,11 +427,11 @@ async def read_translation_screen(
 ) -> TranslationScreen:
     """Read one published screen version and reject incomplete requested-locale copy.
 
-    Explicit-version cache reads first resolve PostgreSQL-owned text plus SHA-256
-    evidence for every published screen key, release that connection, and only
-    then perform Valkey I/O. A cache miss reuses that immutable authoritative
-    projection instead of issuing a duplicate PostgreSQL query. Latest reads
-    resolve the complete projection from PostgreSQL before populating cache.
+    Exact-version reads consult Valkey without a PostgreSQL lease. A missing or
+    unavailable cache goes straight to one complete PostgreSQL projection. A
+    present candidate is returned only after a digest/key-set query confirms it
+    against the immutable published resource; invalid candidates fall back to
+    the complete PostgreSQL projection. Latest reads remain PostgreSQL-first.
     """
     product = _validate_identity_segment(product_key, field_name="product_key")
     screen = _validate_identity_segment(screen_key, field_name="screen_key")
@@ -431,54 +439,36 @@ async def read_translation_screen(
     version = None if resource_version is None else _validate_resource_version(resource_version)
 
     if version is not None:
-        async with pool.acquire() as connection:
-            key_rows = await connection.fetch(
-                _SELECT_REQUIRED_KEYS_SQL,
-                product,
-                screen,
-                version,
-                language,
-            )
-        if not key_rows:
-            raise TranslationResourceNotFound(
-                f"no published translation resource for {product}/{screen} version {version!r}"
-            )
-        expected_text_digests: dict[str, str | None] = {}
-        required_keys: list[str] = []
-        authoritative_values: dict[str, str | None] = {}
-        for row in key_rows:
-            translation_key = str(row["translation_key"])
-            digest = row["translated_text_sha256"]
-            required_keys.append(translation_key)
-            authoritative_values[translation_key] = row["translated_text"]
-            expected_text_digests[translation_key] = digest if isinstance(digest, str) else None
-        cached = await _read_exact_cache(
-            cache,
-            product_key=product,
-            screen_key=screen,
-            resource_version=version,
-            locale=language,
-            expected_text_digests=expected_text_digests,
-        )
-        if cached is not None:
-            return cached
-
-        projection = require_complete_translation_map(
-            required_keys,
-            authoritative_values,
-            locale=language,
-        )
         cache_key = build_translation_cache_key(product, screen, version, language)
-        result = TranslationScreen(
-            product_key=product,
-            screen_key=screen,
-            resource_version=version,
-            locale=language,
-            cache_key=cache_key,
-            translations=projection,
-        )
-        await _write_exact_cache(cache, result)
-        return result
+        raw_payload = await _read_exact_cache_payload(cache, cache_key=cache_key)
+        if raw_payload is not None:
+            async with pool.acquire() as connection:
+                key_rows = await connection.fetch(
+                    _SELECT_REQUIRED_KEYS_SQL,
+                    product,
+                    screen,
+                    version,
+                    language,
+                )
+            if not key_rows:
+                raise TranslationResourceNotFound(
+                    f"no published translation resource for {product}/{screen} version {version!r}"
+                )
+            expected_text_digests: dict[str, str | None] = {}
+            for row in key_rows:
+                translation_key = str(row["translation_key"])
+                digest = row["translated_text_sha256"]
+                expected_text_digests[translation_key] = digest if isinstance(digest, str) else None
+            cached = _decode_cached_screen(
+                raw_payload,
+                product_key=product,
+                screen_key=screen,
+                resource_version=version,
+                locale=language,
+                expected_text_digests=expected_text_digests,
+            )
+            if cached is not None:
+                return cached
 
     async with pool.acquire() as connection:
         rows = await connection.fetch(
