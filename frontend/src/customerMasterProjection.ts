@@ -2,14 +2,7 @@ import type { CustomerMasterEntity, CustomerMasterResponse } from "./apiTranspor
 import {
   buildCustomerEntityTree,
   type CustomerEntityTreeNode,
-  type CustomerHierarchyIssue,
 } from "./customerMasterTree";
-
-const HIERARCHY_ISSUE_DISPLAY: Record<CustomerHierarchyIssue, string> = {
-  cycle_parent_ignored: "Cyclic parent link omitted",
-  self_parent_ignored: "Self-parent link omitted",
-  parent_not_available: "Parent not available in this authorized view",
-};
 
 function flattenDisplayTree(
   nodes: CustomerEntityTreeNode[],
@@ -22,13 +15,10 @@ function flattenDisplayTree(
 
   while (pending.length > 0) {
     const current = pending.pop()!;
-    const suffix = current.node.hierarchyIssue
-      ? ` · ${HIERARCHY_ISSUE_DISPLAY[current.node.hierarchyIssue]}`
-      : "";
     output.push({
       ...current.node.entity,
       parent_entity_id: current.parentEntityId,
-      entity_level_label: `${current.node.entity.entity_level_label}${suffix}`,
+      hierarchy_issue_code: current.node.hierarchyIssue,
     });
 
     for (let index = current.node.children.length - 1; index >= 0; index -= 1) {
@@ -44,8 +34,8 @@ function flattenDisplayTree(
  * Produces the Customer Master display projection consumed by the existing tree UI.
  *
  * The API response remains immutable. Only the frontend projection rewrites malformed
- * parent pointers to the deterministic visible forest and composes disclosure into the
- * existing display label. `entity_level_code` and every other authoritative source fact
+ * parent pointers to the deterministic visible forest and carries a presentation-only issue
+ * code for localized rendering. `entity_level_code` and every authoritative source fact
  * are preserved exactly; no corrected parent is invented or persisted. Traversal is
  * iterative so a valid deep hierarchy cannot fail solely because of JavaScript call-stack
  * depth.

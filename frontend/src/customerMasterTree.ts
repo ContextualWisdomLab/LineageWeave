@@ -11,6 +11,12 @@ export interface CustomerEntityTreeNode {
   children: CustomerEntityTreeNode[];
 }
 
+export interface CustomerEntityDisplayRow {
+  entity: CustomerMasterEntity;
+  hierarchyIssue: CustomerHierarchyIssue | null;
+  depth: number;
+}
+
 function compareEntity(left: CustomerMasterEntity, right: CustomerMasterEntity): number {
   if (left.entity_name < right.entity_name) return -1;
   if (left.entity_name > right.entity_name) return 1;
@@ -140,4 +146,27 @@ export function buildCustomerEntityTree(
   }
 
   return roots.sort((left, right) => compareEntity(left.entity, right.entity));
+}
+
+/** Flattens the safe forest iteratively so rendering never recurses with source depth. */
+export function customerEntityDisplayRows(
+  entities: CustomerMasterEntity[],
+): CustomerEntityDisplayRow[] {
+  const rows: CustomerEntityDisplayRow[] = [];
+  const pending = buildCustomerEntityTree(entities)
+    .reverse()
+    .map((node) => ({ node, depth: 0 }));
+
+  while (pending.length > 0) {
+    const { node, depth } = pending.pop()!;
+    rows.push({
+      entity: node.entity,
+      hierarchyIssue: node.entity.hierarchy_issue_code ?? node.hierarchyIssue,
+      depth,
+    });
+    for (let index = node.children.length - 1; index >= 0; index -= 1) {
+      pending.push({ node: node.children[index], depth: depth + 1 });
+    }
+  }
+  return rows;
 }

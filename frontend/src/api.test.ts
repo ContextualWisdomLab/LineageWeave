@@ -68,6 +68,30 @@ describe("backendFetch provider-error boundary", () => {
     await rejection;
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("maps a stalled Ask response body to the whole-operation timeout", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener("abort", () =>
+                reject(new DOMException("aborted", "AbortError")),
+              );
+            }),
+        }),
+      ),
+    );
+
+    const pending = askAgent("access-token", "What changed?");
+    const rejection = expect(pending).rejects.toThrow("timed out waiting for an answer");
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
+
+    await rejection;
+  });
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),

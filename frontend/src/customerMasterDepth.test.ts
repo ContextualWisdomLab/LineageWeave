@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CustomerMasterEntity, CustomerMasterResponse } from "./apiTransport";
 import { projectCustomerMasterResponse } from "./customerMasterProjection";
+import { customerEntityDisplayRows } from "./customerMasterTree";
 
 function deepHierarchy(depth: number): CustomerMasterEntity[] {
   return Array.from({ length: depth }, (_, index) => ({
@@ -30,5 +31,8 @@ describe("Customer Master deep hierarchy", () => {
     expect(projected.corporate_entities[0].corporate_entity_id).toBe("entity-00000");
     expect(projected.corporate_entities.at(-1)?.corporate_entity_id).toBe("entity-11999");
     expect(projected.corporate_entities.at(-1)?.parent_entity_id).toBe("entity-11998");
+    const rows = customerEntityDisplayRows(projected.corporate_entities);
+    expect(rows).toHaveLength(12_000);
+    expect(rows.at(-1)?.depth).toBe(11_999);
   });
 });

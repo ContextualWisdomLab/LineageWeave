@@ -1,6 +1,6 @@
 # ADR 0364: Authenticated browser request boundary
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-04
 
 ## Context

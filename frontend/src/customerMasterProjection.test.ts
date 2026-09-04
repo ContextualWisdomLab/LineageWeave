@@ -42,13 +42,15 @@ describe("projectCustomerMasterResponse", () => {
         corporate_entity_id: "orphan",
         parent_entity_id: null,
         entity_level_code: "company",
-        entity_level_label: "Company · Parent not available in this authorized view",
+        entity_level_label: "Company",
+        hierarchy_issue_code: "parent_not_available",
       }),
       expect.objectContaining({
         corporate_entity_id: "self",
         parent_entity_id: null,
         entity_level_code: "company",
-        entity_level_label: "Company · Self-parent link omitted",
+        entity_level_label: "Company",
+        hierarchy_issue_code: "self_parent_ignored",
       }),
     ]);
   });
@@ -65,7 +67,8 @@ describe("projectCustomerMasterResponse", () => {
       expect.objectContaining({
         corporate_entity_id: "alpha",
         parent_entity_id: null,
-        entity_level_label: "Company · Cyclic parent link omitted",
+        entity_level_label: "Company",
+        hierarchy_issue_code: "cycle_parent_ignored",
       }),
       expect.objectContaining({
         corporate_entity_id: "beta",

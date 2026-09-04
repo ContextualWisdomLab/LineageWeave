@@ -590,11 +590,17 @@ async function backendFetch<T>(
         detail = body.detail;
       }
     } catch {
+      if (init?.signal?.aborted) throw new BackendError(path, 0);
       detail = undefined;
     }
     throw new BackendError(path, response.status, detail);
   }
-  return response.json() as Promise<T>;
+  try {
+    return (await response.json()) as T;
+  } catch (error) {
+    if (init?.signal?.aborted) throw new BackendError(path, 0);
+    throw error;
+  }
 }
 
 export interface LineageGraphNode {
@@ -651,6 +657,11 @@ export interface CorporateEntityRef {
 }
 
 export interface CustomerMasterEntity extends CorporateEntityRef {
+  hierarchy_issue_code?:
+    | "cycle_parent_ignored"
+    | "self_parent_ignored"
+    | "parent_not_available"
+    | null;
   corporate_entity_code: string;
   entity_level_code: string;
   entity_level_label: string;
