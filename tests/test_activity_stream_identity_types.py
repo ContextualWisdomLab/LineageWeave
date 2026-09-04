@@ -7,6 +7,7 @@ import asyncio
 import pytest
 
 from backend.app.activity_stream import (
+    index_legacy_activity_stream_aliases,
     publish_activity_event,
     publish_activity_event_sync,
     read_activity_events,
@@ -57,6 +58,44 @@ class _LegacyAliasReadValkey:
         """Return the newest fake entries for one exact requested stream key."""
         self.reads.append((key, count))
         return list(self.entries_by_key.get(key, ()))[:count]
+
+    async def smembers(self, key: str) -> set[str]:
+        """Return the durable aliases indexed for the canonical UUID."""
+        canonical_post_id = "550e8400-e29b-41d4-a716-446655440000"
+        assert key == f"activity-aliases:{canonical_post_id}"
+        return {
+            stream_key
+            for stream_key in self.entries_by_key
+            if stream_key != f"activity:{canonical_post_id}"
+        }
+
+
+class _LegacyAliasIndexValkey:
+    """Model cursor discovery and durable alias-set writes at startup."""
+
+    def __init__(self) -> None:
+        """Expose canonical, compact, braced, and non-UUID retained streams."""
+        self.keys = (
+            "activity:550e8400-e29b-41d4-a716-446655440000",
+            "activity:550e8400e29b41d4a716446655440000",
+            "activity:{550E8400-E29B-41D4-A716-446655440000}",
+            "activity:synthetic-post",
+            "activity-aliases:550e8400-e29b-41d4-a716-446655440000",
+        )
+        self.members: dict[str, set[str]] = {}
+
+    async def scan_iter(self, *, match: str):
+        """Yield the finite retained keyspace selected by the namespace pattern."""
+        assert match == "activity:*"
+        for key in self.keys:
+            yield key
+
+    async def sadd(self, key: str, member: str) -> int:
+        """Record one discovered alias with Redis-compatible added count."""
+        members = self.members.setdefault(key, set())
+        before = len(members)
+        members.add(member)
+        return int(len(members) != before)
 
 
 def test_sync_activity_rejects_numeric_actor_identity_before_valkey_access() -> None:
@@ -125,6 +164,22 @@ def test_activity_stream_key_collapses_equivalent_source_post_uuid_spellings() -
         f"activity:{canonical_post_id}",
         f"activity:{canonical_post_id}",
     ]
+
+
+def test_startup_indexes_every_existing_uuid_alias_without_guessing_forms() -> None:
+    """Compact and braced historical keys become durable canonical-read aliases."""
+    client = _LegacyAliasIndexValkey()
+
+    indexed = asyncio.run(index_legacy_activity_stream_aliases(client))  # type: ignore[arg-type]
+
+    canonical_post_id = "550e8400-e29b-41d4-a716-446655440000"
+    assert indexed == 2
+    assert client.members == {
+        f"activity-aliases:{canonical_post_id}": {
+            "activity:550e8400e29b41d4a716446655440000",
+            "activity:{550E8400-E29B-41D4-A716-446655440000}",
+        }
+    }
 
 
 def test_activity_read_preserves_precanonical_uppercase_uuid_alias_events() -> None:

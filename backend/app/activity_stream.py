@@ -21,6 +21,8 @@ from lineageweave.observability import traced
 
 _SYNC_ACTIVITY_WATCH_RETRY_LIMIT = 8
 _MAX_ACTIVITY_READ_COUNT = 1000
+_ACTIVITY_STREAM_PREFIX = "activity:"
+_ACTIVITY_ALIAS_INDEX_PREFIX = "activity-aliases:"
 
 
 def create_valkey_client(valkey_url: str) -> redis.Redis:
@@ -60,19 +62,57 @@ def _stream_key(post_id: str) -> str:
         canonical_post_id = str(UUID(post_id))
     except ValueError:
         canonical_post_id = post_id
-    return f"activity:{canonical_post_id}"
+    return f"{_ACTIVITY_STREAM_PREFIX}{canonical_post_id}"
 
 
-def _activity_read_stream_keys(post_id: str) -> tuple[str, ...]:
+def _activity_alias_index_key(post_id: str) -> str:
+    """Return the durable legacy-alias index for one canonical post UUID."""
+    return f"{_ACTIVITY_ALIAS_INDEX_PREFIX}{str(UUID(post_id))}"
+
+
+async def index_legacy_activity_stream_aliases(valkey_client: redis.Redis) -> int:
+    """Index every existing UUID stream alias before canonical-only reads begin.
+
+    PostgreSQL accepts UUID input spellings with braces, upper-case digits, and
+    non-standard hyphen placement. Older routes used that raw spelling in the
+    Valkey key, so enumerating a few common variants cannot preserve all valid
+    history. Startup performs one cursor scan and records the finite aliases
+    that actually exist. New writes remain canonical-only.
+    """
+    indexed = 0
+    async for raw_key in valkey_client.scan_iter(match=f"{_ACTIVITY_STREAM_PREFIX}*"):
+        stream_key = raw_key.decode() if isinstance(raw_key, bytes) else raw_key
+        if not isinstance(stream_key, str) or stream_key.startswith(_ACTIVITY_ALIAS_INDEX_PREFIX):
+            continue
+        raw_post_id = stream_key.removeprefix(_ACTIVITY_STREAM_PREFIX)
+        try:
+            canonical_post_id = str(UUID(raw_post_id))
+        except ValueError:
+            continue
+        canonical_key = f"{_ACTIVITY_STREAM_PREFIX}{canonical_post_id}"
+        if stream_key == canonical_key:
+            continue
+        indexed += int(
+            await valkey_client.sadd(
+                f"{_ACTIVITY_ALIAS_INDEX_PREFIX}{canonical_post_id}",
+                stream_key,
+            )
+        )
+    return indexed
+
+
+async def _activity_read_stream_keys(
+    valkey_client: redis.Redis,
+    post_id: str,
+) -> tuple[str, ...]:
     """Return the canonical stream plus bounded pre-canonical compatibility aliases.
 
     New writes converge on the canonical UUID key. Before that invariant existed,
     an uppercase UUID route spelling could create an independent raw stream. The
-    read model therefore probes the canonical key and the historical uppercase
-    spelling concurrently; if the caller supplies another non-canonical spelling,
-    that exact legacy key is included as well. The set is de-duplicated and capped
-    at three keys so compatibility cannot turn one post read into an unbounded key
-    scan. This is a read-only bridge: it does not create new alias streams.
+    startup alias index therefore supplies the finite UUID-equivalent stream keys
+    that actually exist. The request never scans unrelated keys or guesses a
+    subset of PostgreSQL's accepted UUID spellings. This is a read-only bridge:
+    it does not create new alias streams.
     """
     canonical_key = _stream_key(post_id)
     if type(post_id) is not str:
@@ -82,11 +122,8 @@ def _activity_read_stream_keys(post_id: str) -> tuple[str, ...]:
     except ValueError:
         return (canonical_key,)
 
-    candidate_keys = (
-        canonical_key,
-        f"activity:{canonical_post_id.upper()}",
-        f"activity:{post_id}",
-    )
+    indexed_aliases = await valkey_client.smembers(_activity_alias_index_key(post_id))
+    candidate_keys = (canonical_key, *sorted(indexed_aliases))
     return tuple(dict.fromkeys(candidate_keys))
 
 
@@ -352,8 +389,8 @@ async def read_activity_events(
     retained stream window. Invalid values fail before Valkey access; this
     function does not broaden the query to other posts or reconstruct missing
     facts. UUID reads include a bounded compatibility bridge for historical
-    uppercase/exact-route alias streams while all current writers remain
-    canonical-only. Cross-stream chronology is comparable at millisecond
+    UUID-equivalent alias streams recorded by startup while all current writers
+    remain canonical-only. Cross-stream chronology is comparable at millisecond
     precision only; equal-millisecond historical ties use deterministic
     canonical-first stream precedence rather than pretending stream-local
     sequence counters form a global clock. The final buyer limit is applied
@@ -362,7 +399,7 @@ async def read_activity_events(
     because Valkey stream IDs are not globally unique across independent keys.
     """
     bounded_event_count = _activity_event_count(event_count)
-    stream_keys = _activity_read_stream_keys(post_id)
+    stream_keys = await _activity_read_stream_keys(valkey_client, post_id)
     with traced(
         "lineageweave.valkey.activity_xrevrange",
         {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
