@@ -22,6 +22,13 @@ def _between(text: str, start: str, end: str) -> str:
     return section
 
 
+def _normalized_blockquote(text: str) -> str:
+    """Normalize one scoped blockquote while preserving its semantic boundary."""
+    return " ".join(
+        line.removeprefix("> ").strip() for line in text.splitlines()
+    )
+
+
 def _real_wire_test_has_structural_recursion_proof(source: str) -> bool:
     """Return whether raw JSON decoding is inside pytest.raises(RecursionError)."""
     module = ast.parse(source)
@@ -80,7 +87,7 @@ def test_translation_gap_baseline_tracks_authenticated_api_slice() -> None:
 
 
 def test_translation_gap_baseline_scopes_current_929_review_boundary() -> None:
-    """The current #929 snapshot itself must carry review and GREEN limitations."""
+    """The current #929 snapshot itself must carry exact review and GREEN limits."""
     baseline = (ROOT / "docs" / "product-technical-gap-baseline.md").read_text(
         encoding="utf-8"
     )
@@ -89,19 +96,21 @@ def test_translation_gap_baseline_scopes_current_929_review_boundary() -> None:
         "# Product & Technical Gap Baseline\n\n",
         "> Two adjacent candidates remain outside protected `main`:",
     )
-    normalized = " ".join(
-        line.removeprefix("> ").strip() for line in current_snapshot.splitlines()
-    )
+    normalized = _normalized_blockquote(current_snapshot)
 
-    assert "PR #929" in normalized
-    assert "open / Ready with normal squash auto-merge armed" in normalized
-    assert "terminal GREEN" in normalized
-    assert "qualifying independent review" in normalized
+    assert "PR #929 is the active ADR 0362 candidate for issue #922" in normalized
+    assert "open / Draft" in normalized
+    assert "open / Ready" not in normalized
+    assert (
+        "Required current-head checks are not yet accepted as terminal GREEN"
+        in normalized
+    )
+    assert "delivery boundary still requires qualifying independent review" in normalized
     assert "not protected-main, deployed, or release evidence" in normalized
 
 
 def test_translation_gap_baseline_tracks_live_adjacent_postgres_candidate() -> None:
-    """The current adjacent-candidate block must not pin #911 to a predecessor head."""
+    """The #911 candidate entry must own its current head and reject its predecessor."""
     baseline = (ROOT / "docs" / "product-technical-gap-baseline.md").read_text(
         encoding="utf-8"
     )
@@ -110,9 +119,10 @@ def test_translation_gap_baseline_tracks_live_adjacent_postgres_candidate() -> N
         "> Two adjacent candidates remain outside protected `main`:",
         "> Historical baseline overlays through the preceding snapshot are preserved as",
     )
+    postgres_candidate = _between(adjacent, "PR #911 at", ";\n> PR #909 at")
 
-    assert "`5d40eed35a0b6e0d182397f8d02b29c38e9bdd17`" in adjacent
-    assert "`034dfc42f78c89f315bf06836c71c838de9dfd72`" not in adjacent
+    assert "`5d40eed35a0b6e0d182397f8d02b29c38e9bdd17`" in postgres_candidate
+    assert "`034dfc42f78c89f315bf06836c71c838de9dfd72`" not in postgres_candidate
 
 
 def test_translation_real_wire_evidence_is_structurally_bound_to_decoder_failure() -> None:
