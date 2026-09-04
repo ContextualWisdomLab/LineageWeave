@@ -146,6 +146,57 @@ def test_translation_ledger_rollback_restores_pre0246_schema_projection() -> Non
         f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
     ),
 )
+def test_translation_ledger_rollback_is_replay_safe_after_success() -> None:
+    """Retrying an already-completed empty-foundation rollback must converge cleanly."""
+
+    async def scenario() -> None:
+        database_name = f"lineageweave_translation_rollback_replay_{uuid.uuid4().hex[:12]}"
+        admin_connection = await asyncpg.connect(_ADMIN_DSN)
+        await admin_connection.execute(f'create database "{database_name}"')
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+
+        try:
+            connection = await asyncpg.connect(database_dsn)
+            try:
+                await connection.execute(_INITIAL_SCHEMA.read_text(encoding="utf-8"))
+                await connection.execute(_MEMBER_LOCALE_MIGRATION.read_text(encoding="utf-8"))
+                await connection.execute(_TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8"))
+                rollback_sql = _TRANSLATION_LEDGER_ROLLBACK.read_text(encoding="utf-8")
+                await connection.execute(rollback_sql)
+                await connection.execute(rollback_sql)
+
+                assert await connection.fetchval(
+                    "select to_regclass('ui_translation_resource')"
+                ) is None
+                constraint_definition = await connection.fetchval(
+                    """
+                    select pg_get_constraintdef(oid)
+                      from pg_constraint
+                     where conname = 'user_account_preferred_locale_ck'
+                    """
+                )
+                assert constraint_definition is not None
+                for locale in ("en", "ko", "zh", "ja", "vi"):
+                    assert f"'{locale}'" in constraint_definition
+                for locale in ("es", "de", "fr"):
+                    assert f"'{locale}'" not in constraint_definition
+            finally:
+                await connection.close()
+        finally:
+            await admin_connection.execute(f'drop database "{database_name}"')
+            await admin_connection.close()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
 def test_translation_ledger_rollback_refuses_existing_translation_data() -> None:
     """Recovery must not erase draft or published customer copy contrary to ADR 0362."""
 
