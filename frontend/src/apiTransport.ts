@@ -552,6 +552,23 @@ async function backendFetch<T>(
   accessToken: string,
   init?: RequestInit,
 ): Promise<T> {
+  let backendUrl: URL;
+  try {
+    backendUrl = new URL(config.backendBaseUrl);
+  } catch {
+    throw new BackendError(path, 0);
+  }
+  const loopbackHost =
+    backendUrl.hostname === "localhost" ||
+    backendUrl.hostname === "127.0.0.1" ||
+    backendUrl.hostname === "[::1]";
+  if (
+    backendUrl.username ||
+    backendUrl.password ||
+    (backendUrl.protocol !== "https:" && !(backendUrl.protocol === "http:" && loopbackHost))
+  ) {
+    throw new BackendError(path, 0);
+  }
   let response: Response;
   try {
     response = await fetch(`${config.backendBaseUrl}${path}`, {
@@ -1351,6 +1368,7 @@ const ASK_POLL_INTERVAL_MS = 2000;
 // the 600 s job deadline — and the e2e suite's own answer deadline, so a
 // stored answer is never abandoned by the client that asked for it.
 const ASK_POLL_CEILING_MS = 15 * 60 * 1000;
+const ASK_TIMEOUT_MESSAGE = "Ask Agent timed out waiting for an answer. Try again.";
 
 interface AskJobStatus {
   ask_job_id: string;
@@ -1385,16 +1403,32 @@ export async function askAgent(
     knowledge_cutoff?: string;
   } = { question, verify_external: verifyExternal };
   if (knowledgeCutoff) requestBody.knowledge_cutoff = knowledgeCutoff;
-  const submitted = await backendFetch<AskJobStatus>("/api/ask", accessToken, {
+  const deadline = Date.now() + ASK_POLL_CEILING_MS;
+  const fetchBeforeDeadline = async (path: string, init?: RequestInit): Promise<AskJobStatus> => {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) throw new Error(ASK_TIMEOUT_MESSAGE);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), remainingMs);
+    try {
+      return await backendFetch<AskJobStatus>(path, accessToken, {
+        ...init,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (controller.signal.aborted && error instanceof BackendError && error.status === 0) {
+        throw new Error(ASK_TIMEOUT_MESSAGE);
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  };
+  const submitted = await fetchBeforeDeadline("/api/ask", {
     method: "POST",
     body: JSON.stringify(requestBody),
   });
-  const deadline = Date.now() + ASK_POLL_CEILING_MS;
   for (;;) {
-    const job = await backendFetch<AskJobStatus>(
-      `/api/ask/jobs/${submitted.ask_job_id}`,
-      accessToken,
-    );
+    const job = await fetchBeforeDeadline(`/api/ask/jobs/${submitted.ask_job_id}`);
     if (job.job_status_code === "succeeded" && job.answer) {
       return job.answer;
     }
@@ -1402,9 +1436,11 @@ export async function askAgent(
       throw new Error(job.failure_detail || "Ask Agent could not answer this question.");
     }
     if (Date.now() > deadline) {
-      throw new Error("Ask Agent timed out waiting for an answer. Try again.");
+      throw new Error(ASK_TIMEOUT_MESSAGE);
     }
-    await new Promise((resolve) => setTimeout(resolve, ASK_POLL_INTERVAL_MS));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(ASK_POLL_INTERVAL_MS, Math.max(0, deadline - Date.now()))),
+    );
   }
 }
 
