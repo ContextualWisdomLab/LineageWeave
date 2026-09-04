@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04 21:52 KST. Protected `main` is
+> Exact-head snapshot: 2026-09-04 21:55 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Draft / mechanically
 > mergeable. Required checks remain non-terminal and the ruleset still requires
@@ -53,6 +53,10 @@
   no cross-locale fallback, releases the PostgreSQL lease before optional
   Valkey I/O, and bounds each optional cache `get`/`set` at 20 ms so a hung
   cache converges to the PostgreSQL path instead of holding the buyer request.
+  For an explicit immutable version, that same authoritative digest query now
+  returns the requested-locale text projection, so a cache miss reuses the
+  already verified rows instead of reacquiring PostgreSQL for a duplicate
+  `SELECT`.
 - `GET /api/translations/{screen_key}` is authenticated and propagates exact
   screen/locale/version identity. Missing published resources map to 404;
   incomplete requested-locale copy maps to 409. Unsupported locale, malformed
@@ -61,10 +65,12 @@
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
-- Exact-head focused verification is 115 passing
-  translation/API/schema/telemetry tests with deprecations treated as errors,
-  including live PostgreSQL rollback replay and fail-closed data guards. Hosted
-  required checks remain non-terminal and are not reported as green.
+- Current-head regression evidence includes an explicit-version cache-miss
+  query-budget contract requiring one PostgreSQL acquisition and a real
+  over-nested JSON payload that proves decoder `RecursionError` before checking
+  cache-miss convergence. Hosted required checks are non-terminal, so no
+  exact-head GREEN is claimed and predecessor focused-test counts are not
+  transferred to this head.
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
@@ -98,6 +104,7 @@
 - Read model: `backend/app/translation_ledger.py`.
 - HTTP boundary: `backend/app/main.py` (`GET /api/translations/{screen_key}`).
 - Verification: `tests/test_translation_ledger_*`,
+  `tests/test_translation_exact_version_query_budget.py`,
   `tests/test_translation_screen_value_object.py`,
   `tests/test_translation_api_http.py`,
   `tests/test_translation_api_driver_boundary.py`,
