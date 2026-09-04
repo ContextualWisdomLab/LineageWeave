@@ -94,6 +94,19 @@ def test_translation_screen_constructor_detaches_mutable_source_mapping() -> Non
     _assert_projection_is_read_only(result.translations)
 
 
+def test_translation_screen_constructor_rejects_cache_identity_mismatch() -> None:
+    """The derived cache identity cannot disagree with the value-object identity."""
+    with pytest.raises(ValueError, match="cache_key must match translation screen identity"):
+        TranslationScreen(
+            product_key="lineageweave",
+            screen_key="customer-master",
+            resource_version=7,
+            locale="en",
+            cache_key="ui-translation:lineageweave:customer-master:v8:en",
+            translations={"body": "No customers", "title": "Customer master"},
+        )
+
+
 def test_translation_screen_postgres_projection_is_read_only() -> None:
     """The PostgreSQL construction path returns an immutable value projection."""
     result = asyncio.run(
