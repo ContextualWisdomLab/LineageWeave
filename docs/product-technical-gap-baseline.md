@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04 21:44 KST. Protected `main` is
+> Exact-head snapshot: 2026-09-04 21:52 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Draft / mechanically
 > mergeable. Required checks remain non-terminal and the ruleset still requires
@@ -61,7 +61,8 @@
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
-- Exact-head focused verification is 86 passing translation/API/schema tests,
+- Exact-head focused verification is 115 passing
+  translation/API/schema/telemetry tests with deprecations treated as errors,
   including live PostgreSQL rollback replay and fail-closed data guards. Hosted
   required checks remain non-terminal and are not reported as green.
 - None of the above is release evidence until the unchanged exact PR head has
