@@ -10,14 +10,15 @@
 > branch. That is candidate implementation evidence, not protected-main,
 > deployed, or release evidence.
 >
-> Two adjacent Ready candidates remain outside protected `main`: PR #911 at
-> `76c0e67712aefe473e6f86d499039769c1139157` replaces the synchronous
+> Two adjacent candidates remain outside protected `main`: PR #911 at
+> `034dfc42f78c89f315bf06836c71c838de9dfd72` replaces the synchronous
 > PostgreSQL driver and defaults omitted TLS policy to identity verification;
 > PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
 > Master records visible when imported hierarchy edges are malformed and adds
-> synthetic desktop/mobile Storybook evidence. Both retain normal squash
-> auto-merge, have no qualifying independent current-head approval, and have
-> non-terminal hosted checks. Neither is protected-main or deployed evidence.
+> synthetic desktop/mobile Storybook evidence. #909 retains normal squash
+> auto-merge; #911 returned to Draft after moving its colliding ADR number to
+> 0366. Neither has qualifying independent current-head approval or terminal
+> hosted checks, and neither is protected-main or deployed evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -117,11 +118,12 @@
 
 ## Adjacent delivery and collision audit
 
-- The active decisions are sequential and non-overlapping: ADR 0362 belongs to
-  the translation ledger, ADR 0363 to synchronous PostgreSQL TLS, ADR 0364 to
-  authenticated browser requests, and ADR 0365 to malformed Customer Master
-  hierarchy presentation. PR #911 alone adds the `2.28.0` changelog fragment;
-  #909 and #929 do not claim that release number.
+- The active decisions are non-overlapping: ADR 0362 belongs to the translation
+  ledger, ADR 0364 to authenticated browser requests, ADR 0365 to malformed
+  Customer Master hierarchy presentation, and ADR 0366 to synchronous
+  PostgreSQL TLS. PR #911 removed its colliding ADR 0363 before re-entering
+  review. It alone adds the `2.28.0` changelog fragment; #909 and #929 do not
+  claim that release number.
 - The wider open queue still contains dependent report branches with serialized
   release numbers and overlapping historical ADR-number ranges. Those branches
   require ancestor-order convergence and a fresh exact-head ADR/API/schema/
