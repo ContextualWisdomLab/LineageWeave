@@ -119,6 +119,34 @@ class AsyncTranslationCache(Protocol):
         ...
 
 
+def _freeze_translation_projection(translations: Mapping[str, str]) -> Mapping[str, str]:
+    """Detach and validate one projection against PostgreSQL text/key invariants."""
+    if not isinstance(translations, Mapping):
+        raise ValueError("translations must match PostgreSQL translation projection contract")
+    detached = dict(translations)
+    if not detached:
+        raise ValueError("translations must match PostgreSQL translation projection contract")
+    for key, value in detached.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise ValueError("translations must match PostgreSQL translation projection contract")
+        try:
+            key.encode("utf-8")
+            value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError(
+                "translations must match PostgreSQL translation projection contract"
+            ) from exc
+        if (
+            "\x00" in key
+            or "\x00" in value
+            or not key
+            or key.strip(_UI_WHITESPACE) != key
+            or not value.strip(_UI_WHITESPACE)
+        ):
+            raise ValueError("translations must match PostgreSQL translation projection contract")
+    return MappingProxyType(detached)
+
+
 @dataclass(frozen=True, slots=True)
 class TranslationScreen:
     """One immutable, complete product-screen translation projection."""
@@ -131,7 +159,7 @@ class TranslationScreen:
     translations: Mapping[str, str]
 
     def __post_init__(self) -> None:
-        """Own immutable copy and reject a cache key that disagrees with this identity."""
+        """Own validated immutable copy and reject cache identity disagreement."""
         expected_cache_key = build_translation_cache_key(
             self.product_key,
             self.screen_key,
@@ -140,7 +168,7 @@ class TranslationScreen:
         )
         if self.cache_key != expected_cache_key:
             raise ValueError("cache_key must match translation screen identity")
-        object.__setattr__(self, "translations", MappingProxyType(dict(self.translations)))
+        object.__setattr__(self, "translations", _freeze_translation_projection(self.translations))
 
 
 def validate_ui_locale(locale: str) -> str:
@@ -402,10 +430,7 @@ async def read_translation_screen(
 
     resolved_version = int(rows[0]["resource_version"])
     required_keys = [str(row["translation_key"]) for row in rows]
-    values = {
-        str(row["translation_key"]): row["translated_text"]
-        for row in rows
-    }
+    values = {str(row["translation_key"]): row["translated_text"] for row in rows}
     projection = require_complete_translation_map(required_keys, values, locale=language)
     cache_key = build_translation_cache_key(product, screen, resolved_version, language)
     result = TranslationScreen(
