@@ -115,12 +115,20 @@ class _SQL(str):
 sql = SimpleNamespace(SQL=_SQL, Identifier=_Identifier)
 
 
+def _encryption_only_ssl_context() -> ssl.SSLContext:
+    """Create the non-verifying TLS context used by libpq prefer semantics."""
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
+
+
 def _ssl_context_for_mode(mode: str) -> ssl.SSLContext | bool | None:
     normalized = mode.lower()
     if normalized == "disable":
         return False
     if normalized == "prefer":
-        return None
+        return _encryption_only_ssl_context()
     if normalized == "require":
         return True
     if normalized == "verify-ca":
@@ -222,8 +230,7 @@ def connection_kwargs_from_dsn(
         if not query["application_name"]:
             raise ValueError("PostgreSQL application_name must not be empty")
         kwargs["application_name"] = query["application_name"]
-    if "sslmode" in query:
-        kwargs["ssl_context"] = _ssl_context_for_mode(query["sslmode"])
+    kwargs["ssl_context"] = _ssl_context_for_mode(query.get("sslmode", "prefer"))
     if "options" in query:
         startup_params["options"] = query["options"]
     if startup_params:
@@ -254,6 +261,14 @@ def _translated_error(error: BaseException) -> BaseException:
     if translated_type is None:
         return error
     return translated_type(*getattr(error, "args", ()))
+
+
+def _server_refused_ssl(error: BaseException) -> bool:
+    """Return whether pg8000 reported PostgreSQL's explicit SSL refusal byte."""
+    return any(
+        isinstance(arg, str) and arg.strip().lower() == "server refuses ssl"
+        for arg in getattr(error, "args", ())
+    )
 
 
 class Cursor:
@@ -373,11 +388,26 @@ def connect(dsn: str, *, connect_timeout: float | int | None = None) -> Connecti
     pg8000 reports transport failures as ``InterfaceError`` and PostgreSQL
     startup refusals such as authentication/database errors as ``DatabaseError``.
     Both occur before a connection exists and therefore preserve the historical
-    ``OperationalError`` contract used by reachability probes.
+    ``OperationalError`` contract used by reachability probes. Libpq's default
+    ``sslmode=prefer`` is preserved by trying encrypted transport first and
+    falling back to plaintext only when PostgreSQL explicitly refuses SSL.
     """
 
+    parsed = urlsplit(dsn)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    sslmode = query.get("sslmode", "prefer").lower()
     kwargs = connection_kwargs_from_dsn(dsn, connect_timeout=connect_timeout)
     try:
-        return Connection(_dbapi.connect(**kwargs), database=str(kwargs["database"]))
-    except (_dbapi.InterfaceError, _dbapi.DatabaseError) as exc:
+        native = _dbapi.connect(**kwargs)
+    except _dbapi.InterfaceError as exc:
+        if sslmode != "prefer" or not _server_refused_ssl(exc):
+            raise OperationalError(*getattr(exc, "args", ())) from exc
+        fallback_kwargs = dict(kwargs)
+        fallback_kwargs["ssl_context"] = False
+        try:
+            native = _dbapi.connect(**fallback_kwargs)
+        except (_dbapi.InterfaceError, _dbapi.DatabaseError) as fallback_exc:
+            raise OperationalError(*getattr(fallback_exc, "args", ())) from fallback_exc
+    except _dbapi.DatabaseError as exc:
         raise OperationalError(*getattr(exc, "args", ())) from exc
+    return Connection(native, database=str(kwargs["database"]))
