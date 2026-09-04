@@ -150,4 +150,23 @@ describe("ProjectHistoryTimeline", () => {
       "true",
     );
   });
+
+  it("gives an actionable status without rendering empty navigation controls", () => {
+    render(
+      <ProjectHistoryTimeline
+        projection={{
+          ...projection,
+          focus_event_id: "",
+          event_count: 0,
+          distinct_observed_actor_count: 0,
+          events: [],
+        }}
+        onOpenPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(/no project events are visible/i);
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
 });

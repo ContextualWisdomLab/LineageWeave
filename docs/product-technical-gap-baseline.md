@@ -105,22 +105,21 @@
 > coordinates in this slice.
 
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
-> `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
-> open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
-> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
-> running, and no qualifying independent approval existed. PRs #702
+> `e4f1049677cd7bc00c66b6343f06aa525ffc2627`; five PRs and nine issues were
+> open. PRs #702
 > (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
 > (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
-> `main`. Central ruleset 18156473 and repository no-force-push ruleset
+> `main`; none had normal auto-merge enabled or a qualifying independent
+> approval. Central ruleset 18156473 currently requires one independent
+> approval, resolved review threads, and seven central workflows; repository
+> no-force-push ruleset
 > 21065108 remain active. This overlay supersedes every older queue count below.
 > Checks from older heads, stacked bases, or merged PRs are not transferred.
 >
-> Current-runtime boundary: the official Compose project was healthy at the
-> HTTP health route, but its PostgreSQL schema did not yet contain
-> `source_post_voice`; therefore no current Voice-history aggregate,
-> authenticated project-history API result, or rendered authenticated UI result
-> is claimed. Older aggregate observations below remain dated supporting
-> evidence, not confirmation of this exact head. The checked repository names
+> Current-runtime boundary: no authenticated PostgreSQL API or rendered UI
+> acceptance was rerun for this exact protected head before this documentation
+> refresh. Older aggregate observations below remain dated supporting evidence,
+> not confirmation of this exact head. The checked repository names
 > are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
 > and lowercase canonical `ContextualWisdomLab/disksage`.
 
@@ -742,7 +741,7 @@ this file per §3.5 of the prior snapshot).
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. PR #633's measured landing-query and event-loop work merged into open parent #629 rather than protected `main`; its aggregate observation improved 25-VU throughput but did not establish a latency SLO. The current exact #629 also persists each completed relation verification before propagating a later provider failure | Land #629 through its refreshed protected gate, rebuild that exact-head application image, and repeat `make load-http` with declared environment concurrency/window and retained raw distributions/resource configuration; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
-| Event and project semantics | #663 is the largest current user-visible gap slice: evidence-backed Project nodes, bounded traversal, cutoff/snapshot fencing, exact-value table parity, and localized graph labels. Focus visibility, label-bound, and temporal test-double regressions are repaired. #666's heuristic removal is composed into this parent but is not separately protected-main evidence. #640 separately adds project journeys without claiming authoritative lifecycle status | Combined #663 must pass exact-head checks and independent approval before protected merge. Aggregate authenticated evidence must still prove distinct projects/events and handover intervals without promoting co-occurrence |
+| Event and project semantics | Protected `main` includes ADR 0243 / #762's evidence-bound project-history API and timeline plus #763's live PostgreSQL Voice-history regression. The current candidate fills the missing Storybook acceptance inventory and replaces empty navigation controls with a next-action state; it does not claim new lifecycle facts. Draft #640 remains dirty and is not protected-main evidence | Run the authenticated PostgreSQL API and rendered desktop/mobile timeline against the exact candidate, proving only aggregate event/actor/truncation counts. Keep authoritative lifecycle ingestion unavailable until issue #284 receives a concrete owned source contract |
 | Voice primary history | Protected `main` `bbb19192` includes ADR 0252 / #761 (migration 0243, GiST primary-period exclusion, `clock_timestamp()` after the source-row lock, API/ontology half-open cutoff SQL). v2.22.1 adds synthetic PostgreSQL integration tests for A → B → A at before/between/after cutoffs, concurrent primary updates, additional-assignment close, and 0237→0243 trigger replay. This is not yet protected-main evidence | Land the live-test slice through the protected gate with independent exact-head APPROVE; close #748 only after that protected delivery |
 | Knowledge Graph readability | #659 recreates the token-backed node-type repair on current `main`, including regression coverage; it is open and therefore not protected-main evidence | Merge #659 normally, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |

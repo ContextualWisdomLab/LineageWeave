@@ -107,13 +107,18 @@ export function ProjectHistoryTimeline({
       <p className="project-history-time-basis">
         {projectHistoryText(locale, "documentTime")}
       </p>
+      {projection.events.length === 0 ? (
+        <p className="project-history-warning" role="status">
+          {projectHistoryText(locale, "noVisibleEvents")}
+        </p>
+      ) : null}
       {projection.truncated ? (
         <p className="project-history-warning" role="status">
           {projectHistoryText(locale, "truncated")}
         </p>
       ) : null}
 
-      <div
+      {projection.events.length > 0 ? <div
         className="project-history-tabs"
         role="tablist"
         aria-label={projectHistoryText(locale, "heading")}
@@ -148,7 +153,7 @@ export function ProjectHistoryTimeline({
             </button>
           );
         })}
-      </div>
+      </div> : null}
 
       {selectedEvent ? (
         <div
@@ -289,7 +294,7 @@ export function ProjectHistoryTimeline({
         </div>
       ) : null}
 
-      <details className="project-history-exact-values">
+      {projection.events.length > 0 ? <details className="project-history-exact-values">
         <summary>{projectHistoryText(locale, "exactValues")}</summary>
         <div className="project-history-table-scroll">
           <table aria-label={projectHistoryText(locale, "exactTableLabel")}>
@@ -330,7 +335,7 @@ export function ProjectHistoryTimeline({
             </tbody>
           </table>
         </div>
-      </details>
+      </details> : null}
     </section>
   );
 }
