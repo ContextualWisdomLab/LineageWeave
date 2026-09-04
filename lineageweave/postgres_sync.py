@@ -106,6 +106,7 @@ def _render_sql_composable(value: object) -> str:
 
 class _SQL(str):
     def format(self, *args: object, **kwargs: object) -> str:
+        """Interpolate only explicitly safe SQL composable fragments."""
         positional = tuple(_render_sql_composable(value) for value in args)
         named = {key: _render_sql_composable(value) for key, value in kwargs.items()}
         return str(self).format(*positional, **named)
@@ -262,6 +263,7 @@ class Cursor:
         self._inner = inner
 
     def execute(self, operation: str, args: object | None = None, **kwargs: object) -> Any:
+        """Execute one statement while translating supported PostgreSQL SQLSTATEs."""
         try:
             if args is None:
                 return self._inner.execute(operation, **kwargs)
@@ -273,6 +275,7 @@ class Cursor:
             raise translated from exc
 
     def executemany(self, operation: str, param_sets: object) -> Any:
+        """Execute a statement for many parameter sets with SQLSTATE translation."""
         try:
             return self._inner.executemany(operation, param_sets)
         except _dbapi.DatabaseError as exc:
@@ -310,13 +313,16 @@ class Connection:
 
     @property
     def autocommit(self) -> bool:
+        """Return the native connection's current autocommit setting."""
         return bool(self._inner.autocommit)
 
     @autocommit.setter
     def autocommit(self, value: bool) -> None:
+        """Set autocommit on the isolated native pg8000 connection."""
         self._inner.autocommit = value
 
     def cursor(self, *args: object, **kwargs: object) -> Cursor:
+        """Create a cursor wrapped by the adapter's SQLSTATE boundary."""
         return Cursor(self._inner.cursor(*args, **kwargs))
 
     def commit(self) -> None:
