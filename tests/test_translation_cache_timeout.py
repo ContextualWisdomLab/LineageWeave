@@ -45,7 +45,6 @@ def test_hung_cache_read_converges_to_miss_within_request_budget() -> None:
         asyncio.wait_for(
             _read_exact_cache(
                 _HangingCache(),
-                "ui-translation:lineageweave:customer-master:v7:en",
                 product_key="lineageweave",
                 screen_key="customer-master",
                 resource_version=7,
