@@ -291,6 +291,94 @@
   text-transform: uppercase;
 }
 
+/* Workspace destinations */
+.workspace-destination {
+  box-sizing: border-box;
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  padding: var(--space-panel-block);
+}
+
+.workspace-destination > h2,
+.workspace-destination > p {
+  margin-block-start: 0;
+}
+
+.section-eyebrow {
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-destination-intro {
+  color: var(--color-text);
+  max-width: 46rem;
+}
+
+.customer-master-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.customer-master-tree,
+.customer-master-tree-children {
+  display: grid;
+  gap: var(--space-control-gap);
+}
+
+.customer-master-tree-children {
+  margin-block-start: var(--space-control-gap);
+}
+
+.customer-master-tree li {
+  margin-inline-start: calc(var(--customer-hierarchy-depth, 0) * 1.25rem);
+}
+
+.customer-entity-button {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: var(--size-control-min);
+  padding: 0.75rem 1rem;
+  text-align: start;
+  width: 100%;
+}
+
+.customer-entity-button:hover,
+.customer-entity-button:focus-visible {
+  border-color: var(--color-focus-border);
+}
+
+.customer-entity-button span {
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.customer-related-posts,
+.customer-keymen {
+  margin-block-start: var(--space-panel-block);
+}
+
+@media (max-width: 768px) {
+  .workspace-destination {
+    padding: var(--space-control-gap);
+  }
+
+  .customer-master-tree > li,
+  .customer-master-tree-children > li {
+    margin-inline-start: 0;
+  }
+}
+
 /* Popup / Modals (§3.6.1 모달 레이어 투명도 50%) */
 .popup-backdrop {
   position: fixed;

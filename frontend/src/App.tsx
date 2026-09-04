@@ -1,7 +1,7 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -4645,7 +4645,7 @@ function CustomerEntityTreeRow({
     (related) => related.node_type_code === NODE_POST,
   );
   return (
-    <li style={{ marginInlineStart: depth * 20 }}>
+    <li style={{ "--customer-hierarchy-depth": depth } as CSSProperties}>
       <button
         type="button"
         className="customer-entity-button"
@@ -4762,7 +4762,7 @@ function CustomerRelatedPostCard({
   );
 }
 
-function CustomerMasterPanel({
+export function CustomerMasterPanel({
   accessToken,
 }: {
   accessToken: string;
