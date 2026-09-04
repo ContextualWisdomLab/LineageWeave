@@ -63,3 +63,27 @@ def test_prefer_does_not_downgrade_on_arbitrary_transport_failure(
         connect("postgresql://alice:secret@db.example/archive?sslmode=prefer")
 
     assert attempts == 1
+
+
+def test_libpq_require_encrypts_without_implicit_certificate_verification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Require must force TLS without silently becoming verify-ca/verify-full."""
+    attempts = 0
+    native_connection = SimpleNamespace(autocommit=False)
+
+    def fake_connect(**kwargs: object) -> object:
+        nonlocal attempts
+        attempts += 1
+        ssl_context = kwargs["ssl_context"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.check_hostname is False
+        assert ssl_context.verify_mode == ssl.CERT_NONE
+        return native_connection
+
+    monkeypatch.setattr("lineageweave.postgres_sync._dbapi.connect", fake_connect)
+
+    connection = connect("postgresql://alice:secret@db.example/archive?sslmode=require")
+
+    assert connection._inner is native_connection
+    assert attempts == 1
