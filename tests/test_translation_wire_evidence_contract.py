@@ -25,5 +25,8 @@ def test_gap_baseline_does_not_transfer_unhosted_focused_pass_counts() -> None:
     baseline = _GAP_BASELINE.read_text(encoding="utf-8")
 
     assert "Focused verification is 122 passing" not in baseline
-    assert "proves `json.loads(raw_payload)` actually raises `RecursionError`" in baseline
+    assert (
+        "proves `json.loads(raw_payload)` actually raises `RecursionError`"
+        in " ".join(baseline.split())
+    )
     assert "accepts either decoder outcome" not in baseline

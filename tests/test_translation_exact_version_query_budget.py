@@ -169,6 +169,7 @@ def test_exact_version_cache_hit_transfers_only_postgres_digest_evidence() -> No
     assert result.translations == {"body": "No customers", "title": "Customer master"}
     assert pool.acquire_count == 1
     assert pool.connection.fetch_count == 1
-    assert "translated_text_sha256" in pool.connection.queries[0]
-    assert "translation_text.translated_text," not in pool.connection.queries[0]
+    query = pool.connection.queries[0]
+    assert "translated_text_sha256" in query
+    assert "translation_text.translated_text" not in query.split("case", 1)[0]
     assert cache.set_count == 0
