@@ -15,10 +15,10 @@
 > PostgreSQL driver and defaults omitted TLS policy to identity verification;
 > PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
 > Master records visible when imported hierarchy edges are malformed and adds
-> synthetic desktop/mobile Storybook evidence. #909 retains normal squash
-> auto-merge; #911 returned to Draft after moving its colliding ADR number to
-> 0366. Neither has qualifying independent current-head approval or terminal
-> hosted checks, and neither is protected-main or deployed evidence.
+> synthetic desktop/mobile Storybook evidence. Both are Ready with normal
+> squash auto-merge after #911 moved its colliding ADR number to 0366. Neither
+> has qualifying independent current-head approval or terminal hosted checks,
+> and neither is protected-main or deployed evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
