@@ -11,7 +11,7 @@
 > deployed, or release evidence.
 >
 > Two adjacent Ready candidates remain outside protected `main`: PR #911 at
-> `307c29e96cf85ee61d690b852a115983e2985d27` replaces the synchronous
+> `76c0e67712aefe473e6f86d499039769c1139157` replaces the synchronous
 > PostgreSQL driver and defaults omitted TLS policy to identity verification;
 > PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
 > Master records visible when imported hierarchy edges are malformed and adds
