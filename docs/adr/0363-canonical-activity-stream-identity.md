@@ -1,6 +1,6 @@
 # ADR 0363: Canonical activity-stream identity
 
-- Status: Accepted
+- Status: Proposed
 - Date: 2026-09-04
 
 ## Context
