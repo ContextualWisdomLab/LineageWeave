@@ -20,6 +20,7 @@ _INITIAL_SCHEMA = ROOT / "migrations" / "0001_initial_schema.sql"
 _MEMBER_LOCALE_MIGRATION = ROOT / "migrations" / "0044_member_locale_preference.sql"
 _TRANSLATION_LEDGER_MIGRATION = ROOT / "migrations" / "0246_ui_translation_ledger.sql"
 _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_guard.sql"
+_TRANSLATION_LEDGER_ROLLBACK = ROOT / "migrations" / "rollback" / "0246_ui_translation_ledger.sql"
 _TRUNCATE_GUARD_ROLLBACK = ROOT / "migrations" / "rollback" / "0247_ui_translation_truncate_guard.sql"
 _LOCALES = ("ko", "en", "ja", "zh", "vi", "es", "de", "fr")
 
@@ -138,12 +139,15 @@ def test_migration_installs_statement_level_truncate_guards() -> None:
         assert f"before truncate on {table}" in sql
 
 
-def test_truncate_guard_rollback_is_replay_safe_after_ledger_removal() -> None:
-    """Rollback can remove guard metadata even after the guarded relations are gone."""
-    sql = _TRUNCATE_GUARD_ROLLBACK.read_text(encoding="utf-8").lower()
+def test_truncate_guard_rollbacks_converge_after_ledger_removal() -> None:
+    """Either reverse path removes guard metadata after the guarded relations disappear."""
+    guard_sql = _TRUNCATE_GUARD_ROLLBACK.read_text(encoding="utf-8").lower()
     for table in ("ui_translation_resource", "ui_translation_key", "ui_translation_text"):
-        assert f"to_regclass('public.{table}')" in sql
-    assert "drop function if exists guard_ui_translation_truncate();" in sql
+        assert f"to_regclass('public.{table}')" in guard_sql
+    assert "drop function if exists guard_ui_translation_truncate();" in guard_sql
+
+    ledger_sql = _TRANSLATION_LEDGER_ROLLBACK.read_text(encoding="utf-8").lower()
+    assert "drop function if exists guard_ui_translation_truncate();" in ledger_sql
 
 
 @pytest.mark.skipif(
