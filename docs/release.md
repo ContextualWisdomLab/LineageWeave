@@ -1,6 +1,6 @@
 # LineageWeave release contract
 
-This document is the operator projection of Proposed ADR 0360. It describes
+This document is the operator projection of Proposed ADR 0361. It describes
 what must be true before LineageWeave publishes an immutable release; it is not
 evidence that a release already exists.
 
@@ -10,7 +10,7 @@ As of 2026-09-04, protected `main` has no product-local release workflow and no
 GitHub Release has been published. One product prerequisite remains outside
 this document's implementation scope:
 
-- LineageWeave PR #911 owns removal of the reachable `psycopos-binary`
+- LineageWeave PR #911 owns removal of the reachable `psycopg2-binary`
   commercial-license intake finding and the corresponding reproducible
   `uv.lock` migration.
 
@@ -50,7 +50,7 @@ release does not satisfy this contract.
    differing subject merely to make the comparison pass.
 7. Generate one CycloneDX 1.7 SBOM for each exact distribution and bind its root
    component to the distribution filename and SHA-256 digest. Prepare the
-   six-file handoff defined by ADR 0360: wheel, wheel SBOM, source distribution,
+   six-file handoff defined by ADR 0361: wheel, wheel SBOM, source distribution,
    source-distribution SBOM, `source-identity.json`, and
    `checksums.sha256`.
 8. Upload that handoff once and retain GitHub's returned artifact ID, name and
