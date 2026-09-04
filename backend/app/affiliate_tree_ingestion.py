@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 import asyncpg
 
@@ -15,25 +16,42 @@ from .organization_name_resolution_ingestion import fetch_corroborated_organizat
 
 
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
-    """Ancestor forest of every organization this post's Keymen touch."""
-    aliases = await fetch_corroborated_organization_aliases(conn)
-    entity_rows = await conn.fetch(
-        """
-        select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
-        from corporate_entity
-        """
-    )
-    entities = tuple(
-        CorporateEntityRow(
-            entity_id=str(row["corporate_entity_id"]),
-            parent_entity_id=str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None,
-            entity_name=row["entity_name"],
-            entity_level_code=row["entity_level_code"],
+    """Ancestor forest of only the organizations this post's Keymen touch.
+
+    Read the post's stored affiliations without alias decoration first. Only
+    unresolved organization names from that post may participate in identity
+    resolution. After the bounded hierarchy is known, a second bounded alias
+    snapshot covers exactly those touched entity names so existing alias chips
+    remain available without loading the global organization-alias catalog.
+    """
+    raw_keymen = await fetch_post_keymen(conn, post_id, organization_aliases=())
+    unresolved_names = tuple(
+        sorted(
+            {
+                affiliation["organization_name"].strip()
+                for person in raw_keymen
+                for affiliation in person["affiliations"]
+                if affiliation["corporate_entity_id"] is None
+                and affiliation["organization_name"].strip()
+            }
         )
-        for row in entity_rows
     )
+    resolution_aliases = (
+        await fetch_corroborated_organization_aliases(
+            conn,
+            organization_names=unresolved_names,
+        )
+        if unresolved_names
+        else ()
+    )
+    keymen = (
+        await fetch_post_keymen(conn, post_id, organization_aliases=resolution_aliases)
+        if resolution_aliases
+        else raw_keymen
+    )
+
     leaves: list[AffiliationLeaf] = []
-    for person in await fetch_post_keymen(conn, post_id, organization_aliases=aliases):
+    for person in keymen:
         for affiliation in person["affiliations"]:
             leaves.append(
                 AffiliationLeaf(
@@ -44,11 +62,75 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
                     corporate_entity_id=affiliation["corporate_entity_id"],
                 )
             )
+
+    resolved_entity_ids = sorted(
+        {
+            UUID(leaf.corporate_entity_id)
+            for leaf in leaves
+            if leaf.corporate_entity_id is not None
+        },
+        key=str,
+    )
+    entity_rows = []
+    if resolved_entity_ids:
+        entity_rows = await conn.fetch(
+            """
+            with recursive affiliate_entity as (
+                select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
+                from corporate_entity
+                where corporate_entity_id = any($1::uuid[])
+
+                union
+
+                select parent.corporate_entity_id,
+                       parent.parent_entity_id,
+                       parent.entity_name,
+                       parent.entity_level_code
+                from corporate_entity parent
+                join affiliate_entity child
+                  on child.parent_entity_id = parent.corporate_entity_id
+            )
+            select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
+            from affiliate_entity
+            order by entity_name, corporate_entity_id
+            """,
+            resolved_entity_ids,
+        )
+    entities = tuple(
+        CorporateEntityRow(
+            entity_id=str(row["corporate_entity_id"]),
+            parent_entity_id=str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None,
+            entity_name=row["entity_name"],
+            entity_level_code=row["entity_level_code"],
+        )
+        for row in entity_rows
+    )
+
+    display_alias_names = tuple(
+        sorted(
+            set(unresolved_names)
+            | {
+                row["entity_name"].strip()
+                for row in entity_rows
+                if row["entity_name"].strip()
+            }
+        )
+    )
+    if not display_alias_names:
+        display_aliases = ()
+    elif display_alias_names == unresolved_names:
+        display_aliases = resolution_aliases
+    else:
+        display_aliases = await fetch_corroborated_organization_aliases(
+            conn,
+            organization_names=display_alias_names,
+        )
+
     forest = [node.to_dict() for node in build_affiliate_forest(entities, tuple(leaves))]
     await _attach_lookup_labels(conn, forest)
     attach_organization_aliases(
         forest,
-        aliases,
+        display_aliases,
         entity_id_key="entity_id",
     )
     return forest
