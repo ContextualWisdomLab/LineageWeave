@@ -1,12 +1,13 @@
 # Release supply-chain references
 
 **Supporting evidence for:** ADR 0361
-**Reviewed:** 2026-09-03
+**Reviewed:** 2026-09-04
 **Status:** Non-normative doctoring evidence. ADR 0361 remains the decision authority.
 
-This note records the authoritative external standards and platform contracts
-used while defining LineageWeave's immutable release boundary. It does not
-promote an unimplemented workflow or queued check to release evidence.
+This note records the authoritative external standards, platform contracts and
+canonical-owner implementation evidence used while defining LineageWeave's
+immutable release boundary. It does not promote an unimplemented workflow or a
+queued check to release evidence.
 
 ## Current authoritative baseline
 
@@ -46,6 +47,34 @@ https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attesta
 GitHub. (n.d.). *Using artifact attestations*. GitHub Docs. Retrieved September
 3, 2026, from
 https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations
+
+### Canonical exact-artifact handoff
+
+The circular transport-receipt defect originally tracked by
+`ContextualWisdomLab/.github#1782` is resolved by merged `.github#1791`. The
+reviewed immutable owner commit for LineageWeave is
+`bd866a21cca2a7e709f0b7a88150c310a9d98239`, and the consumer surface is:
+
+`ContextualWisdomLab/.github/.github/workflows/exact-artifact-sbom-attestation.yml@bd866a21cca2a7e709f0b7a88150c310a9d98239`
+
+At that commit, `source-identity.json` contains the inner source/artifact
+identity only: schema version, source repository/SHA, evidence artifact name,
+predicate/schema and exact wheel/sdist plus SBOM filenames and SHA-256 values.
+It does not contain the post-upload GitHub artifact digest. The reusable keeps
+`evidence_artifact_id`, `evidence_artifact_name` and
+`evidence_artifact_digest` as outer receipt inputs, independently queries the
+same-run GitHub Actions artifact metadata, requires exact ID/name/digest/run and
+non-expired state before download, and repeats that receipt verification inside
+the credentialed signer boundary. The six-file cardinality, strict JSON,
+checksums and exact-subject CycloneDX validation remain fail closed.
+
+The current protected `.github/main` descends from the repair commit, but ADR
+0361 pins the reviewed repair commit itself rather than a moving default branch.
+A later owner revision is a new dependency change requiring normal review and
+fresh exact evidence.
+
+ContextualWisdomLab. (2026). *fix(release): make exact artifact handoff acyclic*
+(PR #1791). GitHub.
 
 ### GitHub immutable releases
 
@@ -138,6 +167,9 @@ https://doi.org/10.17487/RFC8259
 - source/build provenance threat model → SLSA 1.2;
 - credential separation and artifact-attestation verification → GitHub artifact
   attestation documentation;
+- acyclic inner identity plus immutable outer GitHub Actions artifact receipt →
+  `ContextualWisdomLab/.github#1791` at
+  `bd866a21cca2a7e709f0b7a88150c310a9d98239`;
 - immutable tag/asset admission, publish-boundary revalidation, draft-first
   publication, identity-safe pre-publication abort, and published-tag non-reuse
   → GitHub immutable release and release REST documentation plus repository
@@ -145,10 +177,9 @@ https://doi.org/10.17487/RFC8259
 - annotated-tag ref/object separation and exact source-commit peeling → GitHub
   Git references and Git tags REST documentation;
 - strict machine-readable evidence intake → RFC 8259 plus the stricter
-  canonical `.github` verifier contract;
-- current circular transport-receipt defect → `ContextualWisdomLab/.github#1782`.
+  canonical `.github` verifier contract.
 
 External standards do not override the current canonical owner implementation.
-When `.github#1782` is repaired, LineageWeave must re-read protected
-`ContextualWisdomLab/.github` and pin the reviewed exact reusable-workflow SHA
-that implements the accepted handoff.
+LineageWeave consumes only the reviewed immutable owner SHA above; moving to a
+later `.github` revision requires a normal dependency review and regenerated
+exact-head evidence.
