@@ -27,7 +27,7 @@ const data = {
 describe("OperationsDashboardView", () => {
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
-    render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
+    render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} onRetry={() => undefined} />);
     expect(screen.getByText("5건 · 25.0%")).toBeInTheDocument();
     expect(screen.getByText("원인 수주")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));
@@ -37,15 +37,38 @@ describe("OperationsDashboardView", () => {
   });
 
   it("shows an actionable empty external-information state", () => {
-    render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
-    expect(screen.getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+    render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} onRetry={() => undefined} />);
+    expect(screen.getByRole("region", { name: /Unavailable/ })).toHaveTextContent("분석 대기 건부터 처리하세요");
   });
 
-  it("separates failed analysis from pending work and gives the next action", () => {
-    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} />);
+  it("separates failed analysis from pending work and gives the next action", async () => {
+    const onRetry = vi.fn();
+    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} onRetry={onRetry} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
-    expect(screen.getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
-    expect(screen.queryByText("분석 대기 건부터 처리하세요")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("최신 분석 상태를 다시 확인하세요");
+    await userEvent.click(screen.getByRole("button", { name: "최신 상태 확인" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("region", { name: /Unavailable/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps usable evidence explicit when only some analyses failed", () => {
+    render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 1 }} onOpenPost={() => undefined} onRetry={() => undefined} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("일부 분석 결과를 사용할 수 없습니다");
+    expect(screen.getByRole("alert")).toHaveTextContent("표시된 근거는 계속 확인할 수 있습니다");
+    expect(screen.getByRole("button", { name: "분류 근거 글 열기" })).toBeVisible();
+  });
+
+  it("uses the shared retry notice and retries the same dashboard request", async () => {
+    vi.mocked(fetchOperationsDashboard)
+      .mockRejectedValueOnce(new Error("synthetic transport failure"))
+      .mockResolvedValueOnce(data);
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+
+    await screen.findByRole("alert");
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    await screen.findByText("5건 · 25.0%");
+    expect(fetchOperationsDashboard).toHaveBeenCalledTimes(2);
   });
 
   it("keeps period controls mounted while a changed period loads", async () => {
