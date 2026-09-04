@@ -148,9 +148,11 @@ def test_connection_context_manages_transaction_without_closing() -> None:
         pass
     assert (native.commits, native.rollbacks, native.closes) == (1, 0, 0)
 
-    with pytest.raises(RuntimeError):
+    def fail_inside_transaction() -> None:
         with connection:
             raise RuntimeError("synthetic")
+
+    pytest.raises(RuntimeError, fail_inside_transaction)
     assert (native.commits, native.rollbacks, native.closes) == (1, 1, 0)
 
 
