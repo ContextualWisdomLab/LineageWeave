@@ -2,8 +2,11 @@
 
 > Exact-head snapshot: 2026-09-04. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
-> ADR 0362 candidate for issue #922 and is open / Draft / mechanically
-> mergeable. The authenticated `GET /api/translations/{screen_key}` API is
+> ADR 0362 candidate for issue #922 at `bad21a9c78807c12f77c756719e43e4a54e43ff1` and is open / ready /
+> mechanically mergeable with normal squash auto-merge armed. The live queue
+> contains 121 open PRs and 16 open issues. Required checks remain queued and
+> the ruleset still requires one independent approval. The authenticated
+> `GET /api/translations/{screen_key}` API is
 > implemented on this branch. That is candidate implementation evidence, not
 > protected-main, deployed, or release evidence.
 >
@@ -72,8 +75,8 @@
    baseline with the actual cutover. Keep ontology labels separate from product
    copy and consume only released owner contracts where another CWL product is
    authoritative.
-5. Keep #929 Draft and do not merge, bypass, or release until exact-head gates
-   and independent review are complete.
+5. Keep #929's normal squash auto-merge armed; do not bypass or release until
+   exact-head gates and independent review are complete.
 
 ## Traceability
 
