@@ -48,14 +48,26 @@ class _SequencedPool:
                         {
                             "resource_version": 7,
                             "translation_key": "body",
-                            "translated_text": body,
                             "translated_text_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
                         },
                         {
                             "resource_version": 7,
                             "translation_key": "title",
-                            "translated_text": title,
                             "translated_text_sha256": hashlib.sha256(title.encode("utf-8")).hexdigest(),
+                        },
+                    ]
+                ),
+                _Connection(
+                    [
+                        {
+                            "resource_version": 7,
+                            "translation_key": "body",
+                            "translated_text": body,
+                        },
+                        {
+                            "resource_version": 7,
+                            "translation_key": "title",
+                            "translated_text": title,
                         },
                     ]
                 ),
@@ -105,4 +117,4 @@ def test_unpaired_surrogate_cache_copy_falls_back_to_postgres() -> None:
     )
 
     assert result.translations == {"body": "No customers", "title": "Customer master"}
-    assert pool.acquire_count == 1
+    assert pool.acquire_count == 2

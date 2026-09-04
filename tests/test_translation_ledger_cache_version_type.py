@@ -107,5 +107,5 @@ def test_float_cache_version_is_noncanonical_and_falls_back_to_postgres() -> Non
     """JSON 7.0 must not impersonate PostgreSQL BIGINT identity 7 through Python equality."""
     acquisitions, title = _read(7.0)
 
-    assert acquisitions == 1
+    assert acquisitions == 2
     assert title == "Customer master"
