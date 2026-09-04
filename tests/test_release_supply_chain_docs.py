@@ -15,7 +15,7 @@ def _numbered_step(text: str, number: int, following: int) -> str:
     """Return one numbered release/decision step so ordering assertions stay local."""
     start = text.index(f"\n{number}. ")
     end = text.index(f"\n{following}. ", start)
-    return text[start:end].lower()
+    return " ".join(text[start:end].lower().split())
 
 
 def _between(text: str, start_marker: str, end_marker: str) -> str:
