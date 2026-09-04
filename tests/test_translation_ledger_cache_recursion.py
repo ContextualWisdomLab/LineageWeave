@@ -1,9 +1,12 @@
-"""Malformed Valkey recursion must not outrank PostgreSQL recursion authority."""
+"""Malformed Valkey recursion must not outrank PostgreSQL translation authority."""
 
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
+
+import pytest
 
 from backend.app.translation_ledger import _decode_cached_screen
 
@@ -13,6 +16,9 @@ def test_deeply_nested_cache_json_is_an_authoritative_miss() -> None:
     depth = max(10_000, sys.getrecursionlimit() * 10)
     raw_payload = "[" * depth + "0" + "]" * depth
     expected_digest = hashlib.sha256(b"Title").hexdigest()
+
+    with pytest.raises(RecursionError):
+        json.loads(raw_payload)
 
     assert _decode_cached_screen(
         raw_payload,
