@@ -319,6 +319,26 @@ class Connection:
     def cursor(self, *args: object, **kwargs: object) -> Cursor:
         return Cursor(self._inner.cursor(*args, **kwargs))
 
+    def commit(self) -> None:
+        """Commit while preserving SQLSTATE-specific adapter error types."""
+        try:
+            self._inner.commit()
+        except _dbapi.DatabaseError as exc:
+            translated = _translated_error(exc)
+            if translated is exc:
+                raise
+            raise translated from exc
+
+    def rollback(self) -> None:
+        """Roll back while preserving SQLSTATE-specific adapter error types."""
+        try:
+            self._inner.rollback()
+        except _dbapi.DatabaseError as exc:
+            translated = _translated_error(exc)
+            if translated is exc:
+                raise
+            raise translated from exc
+
     def close(self) -> None:
         """Close the native connection, tolerating repeated cleanup calls."""
         try:
@@ -335,9 +355,9 @@ class Connection:
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> object:
         if exc_type is None:
-            self._inner.commit()
+            self.commit()
         else:
-            self._inner.rollback()
+            self.rollback()
         return False
 
 
