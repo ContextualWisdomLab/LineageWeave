@@ -9,6 +9,15 @@ product and research boundaries.
 from .affiliate_tree import build_affiliate_forest
 from .corporate_hierarchy_resolution import resolve_corporate_entity
 from .entity_relationship_classification import OrganizationRelationship
+from .evaluation_lineage import (
+    DYNAMIC_EVALUATION_LINEAGE_CONTRACT_ID,
+    DynamicEvaluationItemLineage,
+    DynamicEvaluationLineageError,
+    DynamicEvaluationRunLineage,
+    RunComparabilityStatus,
+    build_dynamic_evaluation_item_lineage,
+    build_dynamic_evaluation_run_lineage,
+)
 from .external_lineage_analysis import analyze_external_lineage
 from .external_lineage_contract import (
     CONTRACT_VERSION,
@@ -73,7 +82,11 @@ from .voc_evidence import sentence_excerpts
 __all__ = [
     "CHANNEL_EVIDENCE_TOLERANCE",
     "CONTRACT_VERSION",
+    "DYNAMIC_EVALUATION_LINEAGE_CONTRACT_ID",
     "ChannelEvidence",
+    "DynamicEvaluationItemLineage",
+    "DynamicEvaluationLineageError",
+    "DynamicEvaluationRunLineage",
     "ExplicitParent",
     "LineageAnalysisPolicy",
     "LineageAnalysisRequest",
@@ -106,9 +119,12 @@ __all__ = [
     "ProvLiteral",
     "ProvValidationError",
     "Record",
+    "RunComparabilityStatus",
     "Tree",
     "analyze_external_lineage",
     "build_affiliate_forest",
+    "build_dynamic_evaluation_item_lineage",
+    "build_dynamic_evaluation_run_lineage",
     "build_workspace_naruon_client",
     "cited_post_summaries",
     "default_calendar_window",

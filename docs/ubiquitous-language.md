@@ -37,6 +37,38 @@ A non-operational instrument state in which observations may be collected for si
 **Activation**  
 The governed transition from pilot to operational scoring after the instrument's declared evidence criteria are satisfied. Activation is fail-closed: insufficient evidence preserves observations without issuing a latent score.
 
+## Dynamic evaluation vocabulary
+
+**Evaluation Blueprint Revision**  
+An immutable plan that governs how evaluation items are sourced, generated, sampled, covered, and reviewed. It is not the concrete item set administered in a run and may legitimately declare zero fixed anchors during cold start.
+
+**Dynamic Evaluation Item Snapshot**  
+The exact, immutable identity of one concrete authored, sampled, perturbed, adversarial, or generated item resolved under a blueprint revision. It preserves a content reference/digest and foreign evidence references without storing provider credentials or granting the generator decision authority.
+
+**Evaluation Run Snapshot**  
+The immutable set of concrete item snapshots resolved before observations are interpreted for one run. Replacing an item creates a new run-snapshot revision; a mutable blueprint or later regeneration cannot silently rewrite the administered set.
+
+**Reference Semantics**  
+The evidence form used to judge a response, such as exact, constraint, acceptable-set, rubric, pairwise, or open-ended semantics. It is distinct from the current governance status of that reference.
+
+**Reference Status**  
+The independent state of an item's reference evidence: unresolved, provisional, adjudication-required, adjudicated, validated, or invalidated. `adjudicated` does not mean calibrated, approved, validated, active, or anchor-eligible.
+
+**Validated Anchor**  
+An item snapshot explicitly promoted for an intended linking/use scope after separate validation and calibration evidence. An adjudication resolution or repeated model agreement alone does not create an anchor.
+
+**Anchor Promotion Decision**  
+A separate immutable governance artifact that changes an item's evaluation role for a declared use without rewriting the prior item snapshot, source observations, or adjudication case.
+
+**Run Comparability**  
+The claim supported for one run: unavailable, within-run-only, or linked. `linked` requires at least one validated/promoted anchor plus independent linking evidence; using the same nominal score range or rubric name is insufficient.
+
+**Content Replay**  
+Retrieval of the exact frozen content reference/digest used in a prior run. It is distinct from invoking a generator again.
+
+**Content Regeneration**  
+A new generation execution from recorded inputs. A seed, prompt revision, or provider/model identity is provenance only and does not establish deterministic regeneration without independent evidence.
+
 ## Model families
 
 **Rasch**  
@@ -69,7 +101,7 @@ The LineageWeave-facing reference to a contextual-orchestrator orchestration/pro
 A reproducible judging condition that may affect observations: judge model, provider observation identity/provenance, prompt/policy revision, language, occasion, agent role, and other declared method conditions. Scientifically material facets are retained for severity/leniency, interaction, repeatability, calibration, and DIF/invariance analysis.
 
 **Adjudication**  
-The governed use of evidence and one or more fallible observations to support a product decision. Adjudication is not synonymous with accepting an LLM answer.
+The governed use of evidence and one or more fallible observations to support a product decision. Adjudication is not synonymous with accepting an LLM answer, validating an item, promoting an anchor, or rewriting its source observations.
 
 **Disagreement**  
 A reproducible difference among judge observations or between judge and independent criterion evidence. Disagreement is retained/analyzed; it is not automatically resolved by majority vote.
