@@ -130,6 +130,10 @@ class TranslationScreen:
     cache_key: str
     translations: Mapping[str, str]
 
+    def __post_init__(self) -> None:
+        """Detach caller-owned copy so the value object cannot retain a mutable alias."""
+        object.__setattr__(self, "translations", MappingProxyType(dict(self.translations)))
+
 
 def validate_ui_locale(locale: str) -> str:
     """Return a supported locale or reject it without fallback substitution."""
@@ -204,11 +208,6 @@ def require_complete_translation_map(
     return projection
 
 
-def _freeze_translations(translations: Mapping[str, str]) -> Mapping[str, str]:
-    """Return a detached read-only mapping for one published screen value object."""
-    return MappingProxyType(dict(translations))
-
-
 def _matches_authoritative_text_digests(
     translations: Mapping[str, str],
     expected_text_digests: Mapping[str, str | None],
@@ -274,7 +273,7 @@ def _decode_cached_screen(
         resource_version=resource_version,
         locale=locale,
         cache_key=cache_key,
-        translations=_freeze_translations(translations),
+        translations=translations,
     )
 
 
@@ -407,7 +406,7 @@ async def read_translation_screen(
         resource_version=resolved_version,
         locale=language,
         cache_key=cache_key,
-        translations=_freeze_translations(projection),
+        translations=projection,
     )
     await _write_exact_cache(cache, result)
     return result
