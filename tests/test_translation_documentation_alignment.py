@@ -21,14 +21,17 @@ def test_translation_gap_baseline_tracks_authenticated_api_slice() -> None:
     assert "`GET /api/translations/{screen_key}`" in baseline
 
 
-def test_translation_gap_baseline_keeps_unreviewed_candidate_draft() -> None:
-    """Non-terminal evidence must never be documented as merge-ready."""
+def test_translation_gap_baseline_keeps_unreviewed_candidate_on_normal_auto_merge() -> None:
+    """Ready status must retain the independent-review and exact-head boundary."""
     baseline = (ROOT / "docs" / "product-technical-gap-baseline.md").read_text(
         encoding="utf-8"
     )
+    normalized = " ".join(baseline.split())
 
-    assert "open / ready" not in baseline
-    assert "open / Draft" in baseline
+    assert "open / Ready with normal squash" in normalized
+    assert "qualifying independent" in normalized
+    assert "review" in normalized
+    assert "Keep #929 on normal auto-merge" in normalized
 
 
 def test_translation_history_has_no_blank_lines_inside_blockquotes() -> None:
