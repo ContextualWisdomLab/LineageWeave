@@ -1,14 +1,12 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04 22:04 KST. Protected `main` is
+> Exact-head snapshot: 2026-09-04 22:48 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Draft / mechanically
 > mergeable. Required checks remain non-terminal and the ruleset still requires
-> one independent approval. The live queue has 121 open PRs and 16 open issues;
-> those counts are current inventory, not delivery evidence. The authenticated
-> `GET /api/translations/{screen_key}` API is implemented on this branch. That
-> is candidate implementation evidence, not protected-main, deployed, or
-> release evidence.
+> one independent approval. The authenticated `GET /api/translations/{screen_key}`
+> API is implemented on this branch. That is candidate implementation evidence,
+> not protected-main, deployed, or release evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -66,15 +64,17 @@
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
 - Current-head regression evidence includes an explicit-version cache-miss
-  query-budget contract requiring one PostgreSQL acquisition. Decoder
-  exhaustion is injected at the standard-library boundary because Python
-  versions do not share one JSON nesting limit; the regression verifies that
-  the read falls back without depending on interpreter-specific recursion. A
-  separate real over-nested wire payload remains a cache miss whether that
-  runtime parses it as a nested list or rejects it for recursion depth.
-  Focused verification is 122 passing translation/API/schema/telemetry/docs
-  tests with deprecations treated as errors. Hosted required checks are
-  non-terminal, so no exact-head GREEN is claimed.
+  query-budget contract requiring one PostgreSQL acquisition. Recursion
+  exhaustion has two independent tests: synthetic fault injection preserves
+  exception-classification coverage, while
+  `test_translation_cache_recursion_real_payload.py` constructs a depth from
+  the running interpreter with a conservative 10,000-level floor, proves
+  `json.loads(raw_payload)` actually raises `RecursionError`, and then requires
+  that same wire payload to converge to a cache miss. The evidence-contract test
+  prevents later edits from weakening that real-wire proof or promoting a local
+  or predecessor focused-pass count into current hosted evidence. Hosted required
+  checks are non-terminal, so no exact-head GREEN or focused-pass total is
+  claimed for this head.
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
@@ -110,6 +110,7 @@
 - Verification: `tests/test_translation_ledger_*`,
   `tests/test_translation_exact_version_query_budget.py`,
   `tests/test_translation_cache_recursion_real_payload.py`,
+  `tests/test_translation_wire_evidence_contract.py`,
   `tests/test_translation_screen_value_object.py`,
   `tests/test_translation_api_http.py`,
   `tests/test_translation_api_driver_boundary.py`,
