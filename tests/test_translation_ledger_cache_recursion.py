@@ -1,4 +1,4 @@
-"""Malformed Valkey recursion must not outrank PostgreSQL translation authority."""
+"""Malformed Valkey recursion must not outrank PostgreSQL recursion authority."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from backend.app.translation_ledger import _decode_cached_screen
 
 def test_deeply_nested_cache_json_is_an_authoritative_miss() -> None:
     """Decoder recursion exhaustion must fall back instead of escaping cache admission."""
-    depth = sys.getrecursionlimit() * 2
+    depth = max(10_000, sys.getrecursionlimit() * 10)
     raw_payload = "[" * depth + "0" + "]" * depth
     expected_digest = hashlib.sha256(b"Title").hexdigest()
 
