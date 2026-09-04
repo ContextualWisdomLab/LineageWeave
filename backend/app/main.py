@@ -192,6 +192,11 @@ from backend.app.source_post_voice_ingestion import (
     PrimaryVoiceAssignmentError,
     persist_additional_voice_assignment,
 )
+from backend.app.translation_ledger import (
+    TranslationCoverageError,
+    TranslationResourceNotFound,
+    read_translation_screen,
+)
 from lineageweave.adjudication_client import (
     AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
@@ -817,6 +822,48 @@ async def read_tenant_settings(
     if not row:
         return {"brandName": "LineageWeave"}
     return {"brandName": row["brand_name"]}
+
+
+@app.get("/api/translations/{screen_key}")
+async def read_ui_translations(
+    screen_key: str,
+    locale: str = Query(...),
+    resource_version: int | None = Query(default=None, ge=1),
+    _account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Return one complete, published interface-copy version for a screen."""
+    try:
+        screen = await read_translation_screen(
+            pool,
+            valkey,
+            product_key="lineageweave",
+            screen_key=screen_key,
+            locale=locale,
+            resource_version=resource_version,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Choose one of the supported interface languages.",
+        ) from exc
+    except TranslationResourceNotFound as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "This screen version is not available. Refresh and try the latest version.",
+        ) from exc
+    except TranslationCoverageError as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This screen is not yet available in the selected language. Choose another language.",
+        ) from exc
+    return {
+        "screen_key": screen.screen_key,
+        "resource_version": screen.resource_version,
+        "locale": screen.locale,
+        "translations": dict(screen.translations),
+    }
 
 @app.patch("/api/settings", response_model=dict)
 async def update_tenant_settings(
