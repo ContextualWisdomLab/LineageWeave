@@ -18,11 +18,13 @@ import os
 import subprocess
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
-import psycopg2
 import pytest
 
+from lineageweave import postgres_sync as sync_postgres
+from lineageweave.postgres_sync import sql
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 
 _ADMIN_DSN = os.environ.get(
@@ -33,11 +35,17 @@ _MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 def _postgres_available() -> bool:
     try:
-        conn = psycopg2.connect(_ADMIN_DSN, connect_timeout=2)
+        conn = sync_postgres.connect(_ADMIN_DSN, connect_timeout=2)
         conn.close()
         return True
-    except psycopg2.OperationalError:
+    except sync_postgres.OperationalError:
         return False
+
+
+def _database_dsn(database_name: str) -> str:
+    """Replace only the database path while retaining query options."""
+    parsed = urlsplit(_ADMIN_DSN)
+    return urlunsplit(parsed._replace(path=f"/{database_name}"))
 
 
 pytestmark = pytest.mark.skipif(
@@ -50,17 +58,16 @@ pytestmark = pytest.mark.skipif(
 def migrated_db():
     """A freshly migrated, throwaway database, dropped afterward."""
     db_name = f"lineageweave_cleanup_test_{uuid.uuid4().hex[:12]}"
-    admin_conn = psycopg2.connect(_ADMIN_DSN)
+    admin_conn = sync_postgres.connect(_ADMIN_DSN)
     admin_conn.autocommit = True
     with admin_conn.cursor() as cur:
-        cur.execute(f'create database "{db_name}"')
+        cur.execute(sql.SQL("create database {}").format(sql.Identifier(db_name)))
     admin_conn.close()
 
-    db_dsn = _ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
-    # psql, not psycopg2 cur.execute(), matches docker/postgres-init/migrate.sh:
-    # a few migrations use CREATE INDEX CONCURRENTLY, which errors under
-    # psycopg2's implicit multi-statement transaction wrapping but not under
-    # psql's one-statement-at-a-time execution of a -f file.
+    db_dsn = _database_dsn(db_name)
+    # psql, not one DB-API execute(), matches docker/postgres-init/migrate.sh:
+    # a few migrations use CREATE INDEX CONCURRENTLY, which must run outside
+    # an implicit multi-statement transaction.
     for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
         subprocess.run(
             ["psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn, "-f", str(migration)],
@@ -69,14 +76,14 @@ def migrated_db():
 
     yield db_dsn
 
-    admin_conn = psycopg2.connect(_ADMIN_DSN)
+    admin_conn = sync_postgres.connect(_ADMIN_DSN)
     admin_conn.autocommit = True
     with admin_conn.cursor() as cur:
         cur.execute(
             "select pg_terminate_backend(pid) from pg_stat_activity where datname = %s",
             (db_name,),
         )
-        cur.execute(f'drop database "{db_name}"')
+        cur.execute(sql.SQL("drop database {}").format(sql.Identifier(db_name)))
     admin_conn.close()
 
 
@@ -122,7 +129,6 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 demo_pu,
             )
 
-            # The synthetic seed post: no source_* evidence at all.
             synthetic_post = await conn.fetchval(
                 "insert into source_post "
                 "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
@@ -133,8 +139,6 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 demo_entity,
                 demo_pu,
             )
-            # A real, imported post sharing the same DEMO-CORP-01 entity (the
-            # entangled-scope shape this repo actually hit).
             real_post = await conn.fetchval(
                 "insert into source_post "
                 "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
@@ -145,8 +149,6 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 demo_entity,
                 demo_pu,
             )
-            # A second synthetic post that an analysis run has already
-            # reconstructed over -- must be reported as blocked, never deleted.
             blocked_synthetic_post = await conn.fetchval(
                 "insert into source_post "
                 "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
@@ -209,9 +211,6 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 blocked_synthetic_post,
             )
 
-            # The real post cites the synthetic post as internal corroborating
-            # evidence -- deleting the synthetic post must null this citation,
-            # never delete the real post's counterparty row.
             counterparty_relationship_type = await conn.fetchval(
                 "select lookup_code from common_lookup_value "
                 "where lookup_category = 'entity_relationship_type' limit 1"

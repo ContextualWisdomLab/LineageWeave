@@ -1,0 +1,309 @@
+"""Commercial-license and compatibility contract for synchronous PostgreSQL tooling.
+
+LineageWeave's runtime uses asyncpg, but seed/admin/schema tooling still needs a
+small synchronous DB-API boundary. This contract prevents that boundary from
+silently reintroducing the former psycopg2-binary dependency and locks the
+behaviour that generated database/role identifiers, PostgreSQL DSNs, and
+constraint/security assertions rely on.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from types import SimpleNamespace
+
+import pg8000.dbapi as _dbapi
+import pytest
+
+from lineageweave.postgres_sync import (
+    Connection,
+    Cursor,
+    DatabaseError,
+    OperationalError,
+    _translated_error,
+    connect,
+    connection_kwargs_from_dsn,
+    errors,
+    sql,
+)
+
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+_FORBIDDEN_IMPORT = re.compile(r"(?m)^\s*(?:import\s+psycopg2\b|from\s+psycopg2\b)")
+_UPLOAD_ARTIFACT_SHA = "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+
+
+def test_sync_postgres_driver_is_not_psycopg2() -> None:
+    """Executable Python and dependency metadata must not retain psycopg2."""
+    roots = (
+        _REPOSITORY_ROOT / "lineageweave",
+        _REPOSITORY_ROOT / "scripts",
+        _REPOSITORY_ROOT / "tests",
+        _REPOSITORY_ROOT / "backend",
+    )
+    offenders: list[str] = []
+    for root in roots:
+        for path in root.rglob("*.py"):
+            if path == Path(__file__):
+                continue
+            if _FORBIDDEN_IMPORT.search(path.read_text(encoding="utf-8")):
+                offenders.append(str(path.relative_to(_REPOSITORY_ROOT)))
+
+    pyproject = (_REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert "psycopg2-binary" not in pyproject
+    assert "pg8000" in pyproject
+    assert offenders == []
+
+
+def test_lockfile_matches_synchronous_postgres_driver_contract() -> None:
+    """The reproducible environment must resolve the same driver as pyproject."""
+    lockfile = (_REPOSITORY_ROOT / "uv.lock").read_text(encoding="utf-8")
+    assert 'name = "psycopg2"' not in lockfile
+    assert 'name = "psycopg2-binary"' not in lockfile
+    assert 'name = "pg8000"' in lockfile
+
+
+def test_ci_preserves_resolver_output_when_committed_lock_is_stale() -> None:
+    """A stale frozen lock must fail closed while preserving a valid resolver candidate."""
+    workflow = (_REPOSITORY_ROOT / ".github" / "workflows" / "tests.yml").read_text(
+        encoding="utf-8"
+    )
+
+    lock_check = workflow.index("uv lock --check")
+    frozen_sync = workflow.index("uv sync --frozen --extra dev --extra backend")
+    assert lock_check < frozen_sync
+    assert "set -euo pipefail" in workflow
+    assert f"actions/upload-artifact@{_UPLOAD_ARTIFACT_SHA}" in workflow
+    assert "uv-lock-candidate-${{ github.sha }}" in workflow
+    assert "if-no-files-found: error" in workflow
+
+
+def test_generated_identifier_quoting_is_postgresql_safe() -> None:
+    """Generated database and role names stay identifiers, never SQL text."""
+    statement = sql.SQL("create database {}").format(sql.Identifier('tenant"archive'))
+    assert statement == 'create database "tenant""archive"'
+
+
+def test_cursor_context_manager_closes_a_dbapi_cursor_without_native_context_support() -> None:
+    """The compatibility wrapper owns close even when pg8000 has no cursor context manager."""
+
+    class NativeCursor:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    native = NativeCursor()
+    with Cursor(native) as cursor:
+        assert cursor._inner is native
+
+    assert native.closed is True
+
+
+def test_cursor_rows_and_connection_info_preserve_existing_tooling_shapes(monkeypatch) -> None:
+    """The adapter keeps tuple rows and the database-name metadata callers consume."""
+
+    class NativeCursor:
+        def fetchone(self) -> list[object]:
+            return ["one", 1]
+
+        def fetchall(self) -> list[list[object]]:
+            return [["two", 2]]
+
+    cursor = Cursor(NativeCursor())
+    assert cursor.fetchone() == ("one", 1)
+    assert cursor.fetchall() == [("two", 2)]
+
+    native_connection = SimpleNamespace(autocommit=False)
+    monkeypatch.setattr(
+        "lineageweave.postgres_sync._dbapi.connect",
+        lambda **_kwargs: native_connection,
+    )
+    connection = connect("postgresql://alice:secret@db.example/archive")
+    assert connection.info.dbname == "archive"
+
+
+def test_connection_context_manages_transaction_without_closing() -> None:
+    """The compatibility context commits or rolls back but leaves lifetime to its owner."""
+
+    class NativeConnection:
+        autocommit = False
+        commits = 0
+        rollbacks = 0
+        closes = 0
+
+        def commit(self) -> None:
+            self.commits += 1
+
+        def rollback(self) -> None:
+            self.rollbacks += 1
+
+        def close(self) -> None:
+            self.closes += 1
+
+    native = NativeConnection()
+    connection = Connection(native, database="archive")
+    with connection:
+        pass
+    assert (native.commits, native.rollbacks, native.closes) == (1, 0, 0)
+
+    def fail_inside_transaction() -> None:
+        with connection:
+            raise RuntimeError("synthetic")
+
+    pytest.raises(RuntimeError, fail_inside_transaction)
+    assert (native.commits, native.rollbacks, native.closes) == (1, 1, 0)
+
+
+def test_connection_close_is_idempotent_for_pg8000_cleanup() -> None:
+    """Nested cleanup helpers may safely close one connection more than once."""
+
+    class NativeConnection:
+        autocommit = False
+        closed = False
+
+        def close(self) -> None:
+            if self.closed:
+                raise _dbapi.InterfaceError("connection is closed")
+            self.closed = True
+
+    connection = Connection(NativeConnection(), database="archive")
+    connection.close()
+    connection.close()
+
+
+def test_generated_sql_rejects_raw_interpolation() -> None:
+    """Dynamic SQL fragments must use an explicit safe composable wrapper."""
+    with pytest.raises(TypeError, match="SQL interpolation requires"):
+        sql.SQL("create database {}").format('tenant"; drop database archive; --')
+
+
+def test_dsn_query_options_are_mapped_without_silent_loss() -> None:
+    """Supported libpq-style DSN options survive the pg8000 adapter boundary."""
+    kwargs = connection_kwargs_from_dsn(
+        "postgresql://alice:p%40ss@db.example:6543/archive"
+        "?connect_timeout=7&application_name=lineageweave-test&sslmode=disable"
+    )
+
+    assert kwargs["user"] == "alice"
+    assert kwargs["password"] == "p@ss"
+    assert kwargs["host"] == "db.example"
+    assert kwargs["port"] == 6543
+    assert kwargs["database"] == "archive"
+    assert kwargs["timeout"] == 7.0
+    assert kwargs["application_name"] == "lineageweave-test"
+    assert kwargs["ssl_context"] is False
+
+
+def test_explicit_zero_dsn_port_fails_closed() -> None:
+    """An explicit port zero must not silently become PostgreSQL's default port."""
+    with pytest.raises(ValueError, match="port"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example:0/archive"
+        )
+
+
+def test_hostless_dsn_fails_closed_instead_of_switching_to_tcp() -> None:
+    """A libpq Unix-socket DSN must not silently become localhost TCP."""
+    with pytest.raises(ValueError, match="host"):
+        connection_kwargs_from_dsn("postgresql:///archive")
+
+
+@pytest.mark.parametrize("timeout_value", ("nan", "inf", "-inf"))
+def test_dsn_connect_timeout_must_be_finite(timeout_value: str) -> None:
+    """Non-finite timeouts must not disable or destabilize the network deadline."""
+    with pytest.raises(ValueError, match="finite positive"):
+        connection_kwargs_from_dsn(
+            f"postgresql://alice:secret@db.example/archive?connect_timeout={timeout_value}"
+        )
+
+
+def test_explicit_connect_timeout_rejects_boolean_values() -> None:
+    """Boolean values must not become accidental one-second network deadlines."""
+    with pytest.raises(TypeError, match="real number"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive",
+            connect_timeout=True,
+        )
+
+
+def test_explicit_connect_timeout_rejects_unrepresentable_integer() -> None:
+    """An integer too large for float conversion must fail through the validation contract."""
+    with pytest.raises(ValueError, match="finite positive"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive",
+            connect_timeout=10**10000,
+        )
+
+
+def test_dsn_without_user_preserves_libpq_os_user_default(monkeypatch) -> None:
+    """Existing admin DSNs without a username still use the local OS account."""
+    monkeypatch.setattr("lineageweave.postgres_sync.getpass.getuser", lambda: "ci-runner")
+
+    kwargs = connection_kwargs_from_dsn("postgresql://localhost/postgres")
+
+    assert kwargs["user"] == "ci-runner"
+    assert kwargs["host"] == "localhost"
+    assert kwargs["database"] == "postgres"
+
+
+def test_unknown_dsn_query_option_fails_closed() -> None:
+    """A connection option must never disappear merely because drivers differ."""
+    with pytest.raises(ValueError, match="unsupported PostgreSQL DSN option"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive?target_session_attrs=read-write"
+        )
+
+
+def test_dsn_fragment_fails_closed_instead_of_being_silently_discarded() -> None:
+    """URI fragments are outside libpq's connection grammar and must not disappear."""
+    with pytest.raises(ValueError, match="must not include a fragment"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive#sslmode=require"
+        )
+
+
+def test_duplicate_dsn_query_option_fails_closed() -> None:
+    """Conflicting duplicate options must not be collapsed by query parsing."""
+    with pytest.raises(ValueError, match="duplicate PostgreSQL DSN option: sslmode"):
+        connection_kwargs_from_dsn(
+            "postgresql://alice:secret@db.example/archive?sslmode=require&sslmode=disable"
+        )
+
+
+def test_connect_translates_server_startup_failure_to_operational_error(monkeypatch) -> None:
+    """Server-side startup refusal must preserve the old reachability-probe contract."""
+    failure = DatabaseError({"C": "28P01", "M": "password authentication failed"})
+
+    def fail_connect(**_: object) -> None:
+        raise failure
+
+    monkeypatch.setattr("lineageweave.postgres_sync._dbapi.connect", fail_connect)
+
+    with pytest.raises(OperationalError) as raised:
+        connect("postgresql://alice:secret@db.example/archive")
+
+    assert raised.value.args == failure.args
+    assert raised.value.__cause__ is failure
+
+
+@pytest.mark.parametrize(
+    ("sqlstate", "expected_type"),
+    (
+        ("23502", errors.NotNullViolation),
+        ("23503", errors.ForeignKeyViolation),
+        ("23505", errors.UniqueViolation),
+        ("23514", errors.CheckViolation),
+        ("23P01", errors.ExclusionViolation),
+        ("42501", errors.InsufficientPrivilege),
+        ("P0001", errors.RaiseException),
+    ),
+)
+def test_schema_fixture_sqlstates_keep_typed_error_contract(
+    sqlstate: str,
+    expected_type: type[BaseException],
+) -> None:
+    """Migrated tests still distinguish integrity, privilege, and trigger failures."""
+    translated = _translated_error(DatabaseError({"C": sqlstate, "M": "synthetic"}))
+    assert isinstance(translated, expected_type)

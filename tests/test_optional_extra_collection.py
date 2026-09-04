@@ -17,8 +17,8 @@ def test_missing_optional_extra_modules_returns_absent_names() -> None:
     """Names whose find_spec is None are reported; present names are not."""
 
     def fake_find_spec(name: str) -> object | None:
-        """Model one unavailable optional module and one installed module."""
-        if name == "asyncpg":
+        """Model one unavailable optional module and installed siblings."""
+        if name == "pg8000":
             return None
         return object()
 
@@ -26,7 +26,7 @@ def test_missing_optional_extra_modules_returns_absent_names() -> None:
         "lineageweave.optional_extra_collection.importlib.util.find_spec",
         side_effect=fake_find_spec,
     ):
-        assert missing_optional_extra_modules(("asyncpg", "redis")) == ("asyncpg",)
+        assert missing_optional_extra_modules(("pg8000", "redis")) == ("pg8000",)
 
 
 def test_collection_path_does_not_skip_when_no_extras_are_missing(
@@ -57,11 +57,16 @@ def test_collection_path_skips_only_backend_tests_with_transitive_missing_import
 def test_collection_path_skips_files_that_import_a_missing_extra(
     tmp_path: Path,
 ) -> None:
-    """A test that imports fast_mlsirm is ignored only when that extra is absent."""
-    path = tmp_path / "test_post_evaluation.py"
-    path.write_text("from fast_mlsirm import LLMJudgeResult\n", encoding="utf-8")
-    assert collection_path_requires_missing_extras(path, ("fast_mlsirm",)) is True
-    assert collection_path_requires_missing_extras(path, ("asyncpg",)) is False
+    """Direct optional imports are skipped only when that exact module is absent."""
+    psychometrics = tmp_path / "test_post_evaluation.py"
+    psychometrics.write_text("from fast_mlsirm import LLMJudgeResult\n", encoding="utf-8")
+    assert collection_path_requires_missing_extras(psychometrics, ("fast_mlsirm",)) is True
+    assert collection_path_requires_missing_extras(psychometrics, ("asyncpg",)) is False
+
+    postgres = tmp_path / "test_postgres_sync.py"
+    postgres.write_text("import pg8000.dbapi\n", encoding="utf-8")
+    assert collection_path_requires_missing_extras(postgres, ("pg8000",)) is True
+    assert collection_path_requires_missing_extras(postgres, ("asyncpg",)) is False
 
 
 def test_collection_path_does_not_match_comments_or_import_prefixes(
@@ -121,11 +126,29 @@ def test_collection_path_skips_known_transitive_optional_importers(
     seed.write_text("from scripts.seed_demo_data import seed\n", encoding="utf-8")
     assert collection_path_requires_missing_extras(seed, ("redis",)) is False
 
+    sync_postgres = tmp_path / "test_sync_postgres.py"
+    sync_postgres.write_text(
+        "from lineageweave.postgres_sync import connect\n",
+        encoding="utf-8",
+    )
+    assert collection_path_requires_missing_extras(sync_postgres, ("pg8000",)) is True
+
+
+def test_collection_path_tracks_submodule_imported_from_package(tmp_path: Path) -> None:
+    """Package-style submodule imports still expose their transitive optional driver."""
+    sync_postgres = tmp_path / "test_sync_postgres_package_import.py"
+    sync_postgres.write_text(
+        "from lineageweave import postgres_sync as sync_postgres\n",
+        encoding="utf-8",
+    )
+
+    assert collection_path_requires_missing_extras(sync_postgres, ("pg8000",)) is True
+
 
 def test_helper_test_module_is_never_ignored(tmp_path: Path) -> None:
     """The collection-helper tests must run in the sandbox that lacks extras."""
     path = tmp_path / "test_optional_extra_collection.py"
-    path.write_text("import asyncpg\n", encoding="utf-8")
+    path.write_text("import pg8000\n", encoding="utf-8")
     assert collection_path_requires_missing_extras(path, OPTIONAL_EXTRA_MODULES) is False
 
 

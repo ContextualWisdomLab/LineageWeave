@@ -22,11 +22,10 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
-import psycopg2
-import psycopg2.errors
 import pytest
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from lineageweave import postgres_sync as psycopg2
 from lineageweave.occupational_construct_catalog import (
     catalog_content_sha256,
     sync_onet_construct_catalog,
