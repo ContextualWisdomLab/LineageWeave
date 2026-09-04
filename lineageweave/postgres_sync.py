@@ -116,7 +116,7 @@ sql = SimpleNamespace(SQL=_SQL, Identifier=_Identifier)
 
 
 def _encryption_only_ssl_context() -> ssl.SSLContext:
-    """Create the non-verifying TLS context used by libpq prefer semantics."""
+    """Create the non-verifying TLS context used by libpq prefer/require semantics."""
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
@@ -130,7 +130,7 @@ def _ssl_context_for_mode(mode: str) -> ssl.SSLContext | bool | None:
     if normalized == "prefer":
         return _encryption_only_ssl_context()
     if normalized == "require":
-        return True
+        return _encryption_only_ssl_context()
     if normalized == "verify-ca":
         context = ssl.create_default_context()
         context.check_hostname = False
