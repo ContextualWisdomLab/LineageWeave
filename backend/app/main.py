@@ -194,7 +194,10 @@ from backend.app.source_post_voice_ingestion import (
 )
 from backend.app.translation_ledger import (
     TranslationCoverageError,
+    TranslationIdentityError,
     TranslationResourceNotFound,
+    TranslationResourceVersionError,
+    UnsupportedTranslationLocale,
     read_translation_screen,
 )
 from lineageweave.adjudication_client import (
@@ -843,10 +846,20 @@ async def read_ui_translations(
             locale=locale,
             resource_version=resource_version,
         )
-    except ValueError as exc:
+    except UnsupportedTranslationLocale as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Choose one of the supported interface languages.",
+        ) from exc
+    except TranslationIdentityError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "The translation screen identifier is invalid.",
+        ) from exc
+    except TranslationResourceVersionError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Choose a translation resource version within the supported range.",
         ) from exc
     except TranslationResourceNotFound as exc:
         raise HTTPException(

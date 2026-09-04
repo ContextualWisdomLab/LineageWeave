@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04 19:27 KST. Protected `main` is
+> Exact-head snapshot: 2026-09-04 21:44 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Draft / mechanically
 > mergeable. Required checks remain non-terminal and the ruleset still requires
@@ -55,8 +55,9 @@
   cache converges to the PostgreSQL path instead of holding the buyer request.
 - `GET /api/translations/{screen_key}` is authenticated and propagates exact
   screen/locale/version identity. Missing published resources map to 404;
-  incomplete requested-locale copy maps to 409; unsupported admission maps to
-  422.
+  incomplete requested-locale copy maps to 409. Unsupported locale, malformed
+  screen identity, and an unrepresentable resource version each map to a
+  distinct 422 response that tells the caller which request value to correct.
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
