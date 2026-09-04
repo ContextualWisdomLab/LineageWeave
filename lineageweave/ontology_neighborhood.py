@@ -412,13 +412,12 @@ class OntologyNeighborhood:
                 }
             )
         for assignment in self.voice_assignments:
-            post_iri = ontology_node_iri(NODE_POST, assignment.post_id)
             assignment_iri = _voice_assignment_iri(assignment)
             evidence_post_id = assignment.evidence_post_id
             evidence_iri = (
                 ontology_node_iri(NODE_POST, evidence_post_id)
                 if evidence_post_id is not None
-                else post_iri if assignment.is_primary else None
+                else None
             )
             provenance = (
                 {
@@ -432,6 +431,9 @@ class OntologyNeighborhood:
                 "@id": assignment_iri,
                 "@type": str(LW.VoiceAssignment),
                 str(LW.assignedVoiceType): {"@id": assignment.voice_type_iri},
+                str(LW.voiceAssignmentCarryingPost): {
+                    "@id": ontology_node_iri(NODE_POST, assignment.post_id)
+                },
                 str(LW.primaryVoiceAssignment): {
                     "@value": assignment.is_primary,
                     "@type": "xsd:boolean",

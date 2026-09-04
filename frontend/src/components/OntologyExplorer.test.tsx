@@ -138,6 +138,24 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it("keeps the exact-value heading outside the focusable horizontal scroller", () => {
+    const { container } = render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+
+    const region = screen.getByRole("region", { name: "Exact values" });
+    const heading = screen.getByRole("heading", { name: "Exact values" });
+    const scroller = container.querySelector(".ontology-exact-values-scroll");
+    expect(region).toContainElement(heading);
+    expect(scroller).toHaveAttribute("tabindex", "0");
+    expect(scroller).toContainElement(screen.getByRole("table", { name: "Exact values" }));
+    expect(scroller).not.toContainElement(heading);
+  });
+
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
     const projectNode = {
@@ -286,6 +304,19 @@ describe("OntologyExplorer", () => {
         focusNodeId={POST_ID}
         neighborhood={{
           ...source,
+          voice_assignments: [
+            {
+              post_id: POST_ID,
+              voice_type_code: "voc_customer",
+              voice_type_iri: "https://example.test/voice/customer",
+              voice_type_label: "Voice of Customer",
+              is_primary: false,
+              truth_status_code: "truth_observed",
+              recorded_at: "2026-01-10T12:00:00+00:00",
+              provenance_reference: "prov:assignment",
+              evidence_post_id: EVIDENCE_POST_ID,
+            },
+          ],
           exact_value_rows: [
             ...source.exact_value_rows,
             {
@@ -319,6 +350,47 @@ describe("OntologyExplorer", () => {
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
     await userEvent.click(screen.getByRole("button", { name: "Open evidence: Demo evidence post" }));
     expect(onOpenEvidence).toHaveBeenCalledWith(EVIDENCE_POST_ID);
+  });
+
+  it("does not present imported primary source evidence as derivation evidence", () => {
+    const source = neighborhood();
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{
+          ...source,
+          voice_assignments: [
+            {
+              post_id: POST_ID,
+              voice_type_code: "voc_customer",
+              voice_type_iri: "https://example.test/voice/customer",
+              voice_type_label: "Voice of Customer",
+              is_primary: true,
+              truth_status_code: "truth_observed",
+              recorded_at: "2026-01-10T12:00:00+00:00",
+              provenance_reference: "Imported primary voice",
+              evidence_post_id: POST_ID,
+            },
+          ],
+          exact_value_rows: [
+            {
+              ...source.exact_value_rows[0],
+              edge_id: `voice-assignment:${POST_ID}:voc_customer`,
+              property_code: "hasVoiceAssignment",
+              property_label: "Voice carried by this post",
+              target_node_id: "voc_customer",
+              target_label: "Voice of Customer",
+              target_type_code: "node_voice_type",
+              evidence_post_id: POST_ID,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Open post: Demo public post" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Open evidence: Demo public post" })).not.toBeInTheDocument();
   });
 
   it("keeps complete long node labels in the rendered graph and exact-value table", () => {

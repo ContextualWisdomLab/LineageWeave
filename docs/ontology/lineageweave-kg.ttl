@@ -386,12 +386,18 @@
     rdfs:range xsd:boolean ;
     rdfs:label "primary voice assignment"@en .
 
+:voiceAssignmentCarryingPost a owl:ObjectProperty ;
+    rdfs:domain :VoiceAssignment ;
+    rdfs:range :Post ;
+    rdfs:label "voice assignment carrying post"@en ;
+    rdfs:comment "The authorized post that carries this qualified Voice assignment; this relation does not assert derivation."@en .
+
 :voiceAssignmentEvidence a owl:ObjectProperty ;
     rdfs:subPropertyOf prov:wasDerivedFrom ;
     rdfs:domain :VoiceAssignment ;
     rdfs:range :Post ;
     rdfs:label "voice assignment evidence"@en ;
-    rdfs:comment "The authorized source post that supports this qualified voice assignment."@en .
+    rdfs:comment "The authorized evidence post from which an additional qualified voice assignment was derived."@en .
 
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
