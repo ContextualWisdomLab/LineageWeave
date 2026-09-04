@@ -37,8 +37,9 @@
   `ko/en/ja/zh/vi/es/de/fr`, returns immutable `TranslationScreen` value
   projections, validates canonical PostgreSQL text/BIGINT identities, admits
   cache hits only after PostgreSQL key-set and SHA-256 value evidence, performs
-  no cross-locale fallback, and releases the PostgreSQL lease before optional
-  Valkey I/O.
+  no cross-locale fallback, releases the PostgreSQL lease before optional
+  Valkey I/O, and bounds each optional cache `get`/`set` at 20 ms so a hung
+  cache converges to the PostgreSQL path instead of holding the buyer request.
 - `GET /api/translations/{screen_key}` is authenticated and propagates exact
   screen/locale/version identity. Missing published resources map to 404;
   incomplete requested-locale copy maps to 409; unsupported admission maps to
@@ -81,6 +82,7 @@
 - Verification: `tests/test_translation_ledger_*`,
   `tests/test_translation_screen_value_object.py`,
   `tests/test_translation_api_http.py`,
-  `tests/test_translation_api_driver_boundary.py`, and
+  `tests/test_translation_api_driver_boundary.py`,
+  `tests/test_translation_cache_timeout.py`, and
   `tests/test_translation_documentation_alignment.py`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
