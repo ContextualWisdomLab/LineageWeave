@@ -18,11 +18,22 @@ def _numbered_step(text: str, number: int, following: int) -> str:
     return text[start:end].lower()
 
 
+def _between(text: str, start_marker: str, end_marker: str) -> str:
+    """Return one named procedure slice instead of accepting document-wide keywords."""
+    start = text.lower().index(start_marker.lower())
+    end = text.lower().index(end_marker.lower(), start)
+    return text[start:end].lower()
+
+
 def test_release_publication_requires_owner_enforced_github_release_immutability() -> None:
     """Keep the immutability admission predicate in one ordered preflight step."""
     for path in (_ADR, _RELEASE_GUIDE):
         text = path.read_text(encoding="utf-8")
-        preflight = _numbered_step(text, 10 if path == _RELEASE_GUIDE else 7, 11 if path == _RELEASE_GUIDE else 8)
+        preflight = _numbered_step(
+            text,
+            10 if path == _RELEASE_GUIDE else 7,
+            11 if path == _RELEASE_GUIDE else 8,
+        )
         assert _IMMUTABILITY_ENDPOINT.lower() in preflight, path
         assert "enabled: true" in preflight, path
         assert "enforced_by_owner: true" in preflight, path
@@ -33,7 +44,11 @@ def test_release_publication_rechecks_exact_draft_tag_assets_and_immutability_at
     """Bind the final publish decision to one exact draft, tag, asset set and immutable policy."""
     for path in (_ADR, _RELEASE_GUIDE):
         text = path.read_text(encoding="utf-8")
-        publish_step = _numbered_step(text, 12 if path == _RELEASE_GUIDE else 8, 13 if path == _RELEASE_GUIDE else 9)
+        publish_step = _numbered_step(
+            text,
+            12 if path == _RELEASE_GUIDE else 8,
+            13 if path == _RELEASE_GUIDE else 9,
+        )
         for required in (
             "immediately before publish",
             "exact release id",
@@ -54,17 +69,45 @@ def test_release_publication_rechecks_exact_draft_tag_assets_and_immutability_at
         assert "fail closed" in publish_step, path
 
 
-def test_prepublication_abort_has_conditional_tag_cleanup_before_same_version_retry() -> None:
-    """Never delete a candidate ref after a stale ownership check."""
-    for path in (_ADR, _RELEASE_GUIDE):
-        text = path.read_text(encoding="utf-8").lower()
-        assert "pre-publication abort" in text, path
-        assert "draft" in text and "unpublished" in text, path
-        assert "compare-and-delete" in text, path
-        assert "trusted release writer" in text, path
-        assert "re-resolve" in text and "absent" in text, path
-        assert "quarantine" in text and "version" in text, path
-        assert "never reuse" in text and "published immutable release" in text, path
+def test_prepublication_abort_orders_identity_proof_before_conditional_tag_cleanup() -> None:
+    """Exact candidate ownership must be proved before compare-and-delete or quarantine."""
+    adr_text = _ADR.read_text(encoding="utf-8")
+    release_text = _RELEASE_GUIDE.read_text(encoding="utf-8")
+    abort_procedures = (
+        (_ADR, _numbered_step(adr_text, 9, 10)),
+        (
+            _RELEASE_GUIDE,
+            _between(
+                release_text,
+                "A failure after step 11 but before publication is a **pre-publication abort**",
+                "Never reuse a tag name that has been associated with a published immutable release",
+            ),
+        ),
+    )
+
+    for path, procedure in abort_procedures:
+        proof_terms = (
+            "exact release id",
+            "draft: true",
+            "prerelease: false",
+            "tag_name",
+            "asset",
+            "digest",
+            "recorded tag object" if path == _ADR else "recorded candidate tag object",
+        )
+        proof_end = max(procedure.index(term) for term in proof_terms)
+        compare_delete = procedure.index("compare-and-delete")
+        quarantine = procedure.index("quarantine", compare_delete)
+
+        assert proof_end < compare_delete < quarantine, path
+        cleanup_slice = procedure[compare_delete:quarantine]
+        assert "trusted release writer" in cleanup_slice, path
+        assert "protected" in cleanup_slice and "tag" in cleanup_slice, path
+        assert "recorded tag-object sha" in cleanup_slice, path
+        assert "serialization" in cleanup_slice, path
+        assert "do not delete" in procedure[compare_delete:], path
+        assert "re-resolve" in procedure, path
+        assert "absent" in procedure, path
 
 
 def test_release_contract_pins_the_repaired_canonical_attestation_owner() -> None:
