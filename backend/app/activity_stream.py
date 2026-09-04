@@ -122,7 +122,11 @@ async def _activity_read_stream_keys(
     except ValueError:
         return (canonical_key,)
 
-    indexed_aliases = await valkey_client.smembers(_activity_alias_index_key(post_id))
+    indexed_aliases: list[str] = []
+    async for alias in valkey_client.sscan_iter(_activity_alias_index_key(post_id)):
+        indexed_aliases.append(alias)
+        if len(indexed_aliases) > _MAX_ACTIVITY_READ_COUNT - 1:
+            raise RuntimeError("Activity history has too many retained compatibility streams")
     candidate_keys = (canonical_key, *sorted(indexed_aliases))
     return tuple(dict.fromkeys(candidate_keys))
 
@@ -400,31 +404,38 @@ async def read_activity_events(
     """
     bounded_event_count = _activity_event_count(event_count)
     stream_keys = await _activity_read_stream_keys(valkey_client, post_id)
+    next_entries: list[tuple[tuple[str, dict[str, str]], int]] = []
+    stream_results: list[tuple[str, dict[str, str]] | None] = [None] * len(stream_keys)
     with traced(
         "lineageweave.valkey.activity_xrevrange",
         {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
     ):
-        stream_results = await asyncio.gather(
-            *(
-                valkey_client.xrevrange(
-                    stream_key,
-                    count=bounded_event_count,
-                )
-                for stream_key in stream_keys
-            )
+        first_pages = await asyncio.gather(
+            *(valkey_client.xrevrange(stream_key, count=1) for stream_key in stream_keys)
         )
-    stream_entries = sorted(
-        (
-            (entry, stream_index)
-            for stream_index, stream_result in enumerate(stream_results)
-            for entry in stream_result
-        ),
-        key=lambda item: _activity_compatibility_merge_order(
-            item[0][0],
-            item[1],
-        ),
-        reverse=True,
-    )[:bounded_event_count]
+        for stream_index, page in enumerate(first_pages):
+            if page:
+                stream_results[stream_index] = page[0]
+
+        while len(next_entries) < bounded_event_count:
+            available = [
+                (entry, stream_index)
+                for stream_index, entry in enumerate(stream_results)
+                if entry is not None
+            ]
+            if not available:
+                break
+            newest_entry, newest_stream_index = max(
+                available,
+                key=lambda item: _activity_compatibility_merge_order(item[0][0], item[1]),
+            )
+            next_entries.append((newest_entry, newest_stream_index))
+            next_page = await valkey_client.xrevrange(
+                stream_keys[newest_stream_index],
+                max=f"({newest_entry[0]}",
+                count=1,
+            )
+            stream_results[newest_stream_index] = next_page[0] if next_page else None
     return [
         {
             "event_id": _activity_public_event_id(entry_id, stream_index),
@@ -432,5 +443,5 @@ async def read_activity_events(
             "actor_account_id": activity_fields["actor_account_id"],
             "summary": activity_fields["summary"],
         }
-        for (entry_id, activity_fields), stream_index in stream_entries
+        for (entry_id, activity_fields), stream_index in next_entries
     ]

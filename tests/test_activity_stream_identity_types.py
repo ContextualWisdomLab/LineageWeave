@@ -54,20 +54,25 @@ class _LegacyAliasReadValkey:
         self.entries_by_key = entries_by_key
         self.reads: list[tuple[str, int]] = []
 
-    async def xrevrange(self, key: str, *, count: int):
+    async def xrevrange(self, key: str, *, count: int, max: str = "+"):
         """Return the newest fake entries for one exact requested stream key."""
         self.reads.append((key, count))
-        return list(self.entries_by_key.get(key, ()))[:count]
+        entries = list(self.entries_by_key.get(key, ()))
+        if max.startswith("("):
+            boundary = max[1:]
+            entries = [entry for entry in entries if entry[0] != boundary]
+        return entries[:count]
 
-    async def smembers(self, key: str) -> set[str]:
+    async def sscan_iter(self, key: str):
         """Return the durable aliases indexed for the canonical UUID."""
         canonical_post_id = "550e8400-e29b-41d4-a716-446655440000"
         assert key == f"activity-aliases:{canonical_post_id}"
-        return {
+        for stream_key in {
             stream_key
             for stream_key in self.entries_by_key
             if stream_key != f"activity:{canonical_post_id}"
-        }
+        }:
+            yield stream_key
 
 
 class _LegacyAliasIndexValkey:
@@ -222,7 +227,12 @@ def test_activity_read_preserves_precanonical_uppercase_uuid_alias_events() -> N
     )
 
     assert [event["event_id"] for event in events] == ["200-0", "legacy-1:100-0"]
-    assert client.reads == [(canonical_key, 10), (legacy_key, 10)]
+    assert client.reads == [
+        (canonical_key, 1),
+        (legacy_key, 1),
+        (canonical_key, 1),
+        (legacy_key, 1),
+    ]
 
 
 def test_activity_read_does_not_compare_cross_stream_sequence_numbers() -> None:

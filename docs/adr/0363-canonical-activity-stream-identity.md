@@ -1,6 +1,6 @@
 # ADR 0363: Canonical activity-stream identity
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-04
 
 ## Context
@@ -34,10 +34,22 @@ WATCH retries, retained-window read limits, and alias-index startup are fixed
 product contracts. Failure to build the alias index makes the application
 unready; the product does not silently hide historical activity.
 
+The supported deployment is the repository's single `lineageweave` Compose
+backend service. Deployment stops the preceding backend before starting the
+replacement, so no pre-canonical writer may overlap the alias scan. A rolling
+multi-version replica deployment is unavailable until it has a separate
+writer-fencing contract.
+
+Reads enumerate at most the retained-window number of streams and then perform
+a newest-first incremental merge. They fetch one entry per stream initially
+and at most one further entry per returned event. More retained aliases fail
+closed instead of creating unbounded fan-out or silently sampling history.
+
 ## Consequences
 
 - Canonical reads retain every historical UUID spelling that actually exists.
-- Request-time work is limited to the canonical stream and its durable aliases.
+- Request-time records and calls are bounded by the retained stream and output
+  limits; excessive alias cardinality is explicitly unavailable.
 - Startup performs a cursor scan and must finish before readiness.
 - The alias index is additional derived Valkey state and can be rebuilt from
   retained activity keys.
