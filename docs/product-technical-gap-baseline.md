@@ -67,11 +67,11 @@
   query-budget contract requiring one PostgreSQL acquisition. Recursion
   exhaustion has two independent tests: synthetic fault injection preserves
   exception-classification coverage, while
-  `test_translation_cache_recursion_real_payload.py` constructs a depth from
-  the running interpreter with a conservative 10,000-level floor, proves
-  `json.loads(raw_payload)` actually raises `RecursionError`, and then requires
-  that same wire payload to converge to a cache miss. The evidence-contract test
-  prevents later edits from weakening that real-wire proof or promoting a local
+  `test_translation_cache_recursion_real_payload.py` constructs a depth with a
+  conservative 10,000-level floor, accepts either decoder outcome supported by
+  that Python runtime, and requires the same wire
+  payload to converge to a cache miss. The evidence-contract test prevents later
+  edits from weakening that deep-payload proof or promoting a local
   or predecessor focused-pass count into current hosted evidence. Hosted required
   checks are non-terminal, so no exact-head GREEN or focused-pass total is
   claimed for this head.
