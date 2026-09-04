@@ -8,6 +8,11 @@ returns trigger
 language plpgsql
 as $$
 begin
+    -- READ COMMITTED keeps the outer publication UPDATE command snapshot while
+    -- it waits on child relations. Serialize here so TRUNCATE cannot validate a
+    -- draft root and then let that stale UPDATE publish after child copy is gone.
+    lock table ui_translation_resource in share mode;
+
     if exists (
         select 1
           from ui_translation_resource
