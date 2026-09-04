@@ -3,23 +3,36 @@
 -- rather than a destructive schema down-migration.
 begin;
 
--- Serialize the emptiness decision with writers through transaction end. A retry
--- after a completed rollback has no resource relation left, so treat that state
--- as already converged instead of turning a successful recovery into an error.
+-- Serialize both rollback admission decisions with their writers through
+-- transaction end. A retry after a completed rollback has no resource relation
+-- left, but member-locale admission still needs to converge through the same
+-- explicit guard before the pre-0246 constraint is restored.
 do $$
+declare
+    resource_relation_exists boolean := true;
 begin
     begin
         execute 'lock table ui_translation_resource in access exclusive mode';
     exception
         when undefined_table then
-            return;
+            resource_relation_exists := false;
     end;
 
-    if exists (
+    if resource_relation_exists and exists (
         select 1
           from ui_translation_resource
     ) then
         raise exception 'refusing 0246 rollback because translation resources exist; use application/read-routing recovery';
+    end if;
+
+    lock table user_account in access exclusive mode;
+    if exists (
+        select 1
+          from user_account
+         where preferred_locale is not null
+           and preferred_locale not in ('en', 'ko', 'zh', 'ja', 'vi')
+    ) then
+        raise exception 'refusing 0246 rollback because post-0246 member locale preferences exist; migrate member preferences before schema rollback';
     end if;
 end $$;
 
