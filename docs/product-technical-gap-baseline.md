@@ -76,3 +76,21 @@
    authoritative.
 5. Keep #929 Draft; do not bypass or release until exact-head gates and
    independent review are complete.
+
+## Traceability
+
+- Product gap: issue #922, `i18n: move UI translations to versioned DB ledger
+  and complete 8-locale coverage`.
+- Decision: `docs/adr/0362-versioned-ui-translation-ledger.md`.
+- Persistence: `migrations/0246_ui_translation_ledger.sql`,
+  `migrations/0247_ui_translation_truncate_guard.sql`, and their rollback
+  artifacts.
+- Read model: `backend/app/translation_ledger.py`.
+- HTTP boundary: `backend/app/main.py` (`GET /api/translations/{screen_key}`).
+- Verification: `tests/test_translation_ledger_*`,
+  `tests/test_translation_screen_value_object.py`,
+  `tests/test_translation_api_http.py`,
+  `tests/test_translation_api_driver_boundary.py`,
+  `tests/test_translation_cache_timeout.py`, and
+  `tests/test_translation_documentation_alignment.py`.
+- Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
