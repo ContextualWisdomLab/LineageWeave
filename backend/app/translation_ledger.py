@@ -131,7 +131,15 @@ class TranslationScreen:
     translations: Mapping[str, str]
 
     def __post_init__(self) -> None:
-        """Detach caller-owned copy so the value object cannot retain a mutable alias."""
+        """Own immutable copy and reject a cache key that disagrees with this identity."""
+        expected_cache_key = build_translation_cache_key(
+            self.product_key,
+            self.screen_key,
+            self.resource_version,
+            self.locale,
+        )
+        if self.cache_key != expected_cache_key:
+            raise ValueError("cache_key must match translation screen identity")
         object.__setattr__(self, "translations", MappingProxyType(dict(self.translations)))
 
 
