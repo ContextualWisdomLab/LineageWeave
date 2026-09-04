@@ -11,42 +11,57 @@ _IMMUTABILITY_ENDPOINT = "GET /repos/{owner}/{repo}/immutable-releases"
 _EXACT_ARTIFACT_OWNER_SHA = "bd866a21cca2a7e709f0b7a88150c310a9d98239"
 
 
-def test_release_publication_requires_enabled_github_release_immutability() -> None:
-    """Fail closed before publication unless GitHub release immutability is enabled."""
+def _numbered_step(text: str, number: int, following: int) -> str:
+    """Return one numbered release/decision step so ordering assertions stay local."""
+    start = text.index(f"\n{number}. ")
+    end = text.index(f"\n{following}. ", start)
+    return text[start:end].lower()
+
+
+def test_release_publication_requires_owner_enforced_github_release_immutability() -> None:
+    """Keep the immutability admission predicate in one ordered preflight step."""
     for path in (_ADR, _RELEASE_GUIDE):
         text = path.read_text(encoding="utf-8")
-        assert _IMMUTABILITY_ENDPOINT in text, path
-        assert "fail closed" in text.lower(), path
-        assert "before tag" in text.lower(), path
+        preflight = _numbered_step(text, 10 if path == _RELEASE_GUIDE else 7, 11 if path == _RELEASE_GUIDE else 8)
+        assert _IMMUTABILITY_ENDPOINT.lower() in preflight, path
+        assert "enabled: true" in preflight, path
+        assert "enforced_by_owner: true" in preflight, path
+        assert "fail closed" in preflight, path
 
 
-def test_release_publication_rechecks_immutability_and_tag_identity_at_publish_boundary() -> None:
-    """Close the preflight-to-publish TOCTOU window for immutable release identity."""
+def test_release_publication_rechecks_exact_draft_tag_assets_and_immutability_at_boundary() -> None:
+    """Bind the final publish decision to one exact draft, tag, asset set and immutable policy."""
     for path in (_ADR, _RELEASE_GUIDE):
-        text = path.read_text(encoding="utf-8").lower()
-        assert "immediately before publish" in text, path
-        assert "recheck" in text, path
-        assert "tag" in text and "source sha" in text, path
+        text = path.read_text(encoding="utf-8")
+        publish_step = _numbered_step(text, 12 if path == _RELEASE_GUIDE else 8, 13 if path == _RELEASE_GUIDE else 9)
+        for required in (
+            "immediately before publish",
+            "exact release id",
+            "draft: true",
+            "tag_name",
+            "prerelease: false",
+            "asset",
+            "digest",
+            "annotated tag",
+            "tag object",
+            "peel",
+            "type `commit`",
+            "exact protected source sha",
+        ):
+            assert required in publish_step, (path, required)
+        assert "enforced_by_owner: true" in publish_step, path
+        assert "trusted release writer" in publish_step, path
+        assert "fail closed" in publish_step, path
 
 
-def test_annotated_release_tag_is_peeled_to_the_exact_source_commit() -> None:
-    """Do not compare an annotated tag-object SHA directly with the source commit SHA."""
-    for path in (_ADR, _RELEASE_GUIDE):
-        text = path.read_text(encoding="utf-8").lower()
-        assert "annotated tag" in text, path
-        assert "tag object" in text, path
-        assert "peel" in text, path
-        assert "type `commit`" in text, path
-        assert "exact protected source sha" in text, path
-
-
-def test_prepublication_abort_has_identity_safe_cleanup_before_same_version_retry() -> None:
-    """Do not orphan or unsafely reuse a draft release identity after an aborted publish."""
+def test_prepublication_abort_has_conditional_tag_cleanup_before_same_version_retry() -> None:
+    """Never delete a candidate ref after a stale ownership check."""
     for path in (_ADR, _RELEASE_GUIDE):
         text = path.read_text(encoding="utf-8").lower()
         assert "pre-publication abort" in text, path
         assert "draft" in text and "unpublished" in text, path
-        assert "delete" in text and "candidate tag" in text, path
+        assert "compare-and-delete" in text, path
+        assert "trusted release writer" in text, path
         assert "re-resolve" in text and "absent" in text, path
         assert "quarantine" in text and "version" in text, path
         assert "never reuse" in text and "published immutable release" in text, path
