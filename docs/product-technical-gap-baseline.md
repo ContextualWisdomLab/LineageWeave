@@ -1,5 +1,29 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop snapshot: 2026-09-04 13:40 KST. Protected `main` is
+> `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. The live GitHub inventory has
+> 121 open PRs and 16 open issues; these are queue counts, not product adoption
+> or release evidence. The largest active buyer-facing gap remains the complete
+> eight-locale interface in issue #922. PR #929 at exact head
+> `2e83785c70fb0fc9fc7dfb81c9c81403983a3de9` supplies the ADR 0362 versioned
+> translation-ledger foundation and passes its focused 31-test local contract,
+> but is still a draft with queued hosted checks and no independent approval.
+> It does not yet provide the authenticated PostgreSQL API and rendered
+> desktop/mobile evidence required to call the buyer flow complete, so the gap
+> remains **partially implemented / runtime unverified**. PR #925 at
+> `9dfb79da481e37fe10e86e279f50b48179770dd1` and PR #911 at
+> `097b2d7004927c04402dfd37bb1afad401053499` have normal squash auto-merge
+> armed; both remain protected by current checks and independent-review gates.
+> A queued check is not a failed product contract, and no earlier-head review or
+> check is transferred to these heads.
+>
+> Next buyer increment: expose the exact-version translation aggregate through
+> the authenticated API, then cut one complete screen over to the existing
+> locale and design-token boundaries. Keep missing or incomplete locale copies
+> explicitly unavailable. Do not synthesize translations. Capture fresh
+> desktop and mobile renders only after the API-backed screen works at the same
+> exact head.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
