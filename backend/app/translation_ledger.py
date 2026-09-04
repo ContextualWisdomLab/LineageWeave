@@ -286,7 +286,7 @@ def _decode_cached_screen(
     """Accept a cache hit only when identity and copy match PostgreSQL evidence."""
     try:
         decoded = json.loads(raw_payload, object_pairs_hook=_unique_json_object)
-    except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError):
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError, RecursionError):
         return None
     if not isinstance(decoded, dict):
         return None
