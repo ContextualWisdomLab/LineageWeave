@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LineageWeave</title>
+  <meta name="description" content="Evidence-bound lineage reconstruction and branching history for scattered enterprise records.">
+  <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -- canonical metadata fetches no subresource -->
+  <link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/">
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; line-height: 1.55; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #172033; background: #f5f7fb; }
+    a { color: #174ea6; }
+    a:focus-visible { outline: 3px solid #f2b705; outline-offset: 3px; }
+    header { color: white; background: #102a43; padding: 3rem max(1.25rem, calc((100vw - 70rem)/2)); }
+    header p { max-width: 70ch; color: #d9e8f5; }
+    main { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .actions { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); margin: 1.5rem 0 2rem; }
+    .actions a { display: block; padding: 1rem; border: 1px solid #c8d2df; border-radius: .75rem; background: #fff; text-decoration: none; font-weight: 700; }
+    .boundary { padding: 1rem 1.25rem; border-left: .35rem solid #2b6cb0; background: #eaf2fb; }
+    footer { border-top: 1px solid #c8d2df; padding: 2rem 1.25rem; text-align: center; }
+    @media (prefers-color-scheme: dark) {
+      body { color: #e8eef5; background: #0b1522; }
+      header { background: #06111d; }
+      a { color: #8fc2ff; }
+      .actions a { background: #122236; border-color: #38516a; }
+      .boundary { background: #102a43; }
+      footer { border-color: #38516a; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LineageWeave</h1>
+    <p>Evidence-bound lineage reconstruction and branching history for scattered enterprise records.</p>
+  </header>
+  <main>
+    <p>Use LineageWeave when related records do not carry reliable explicit cross-record links and you need to inspect how events, claims, posts, and decisions relate over time without turning inferred lineage into source-system truth.</p>
+    <nav class="actions" aria-label="LineageWeave public navigation">
+      <a href="ontology/">Ontology</a>
+      <a href="https://github.com/ContextualWisdomLab/LineageWeave">Repository</a>
+      <a href="https://github.com/ContextualWisdomLab/LineageWeave/blob/main/README.md">README</a>
+      <a href="https://github.com/ContextualWisdomLab/LineageWeave/blob/main/ARCHITECTURE.md">Architecture</a>
+      <a href="https://github.com/ContextualWisdomLab/LineageWeave/releases">Releases</a>
+      <a href="https://deepwiki.com/ContextualWisdomLab/LineageWeave">Ask DeepWiki</a>
+    </nav>
+    <section class="boundary" aria-labelledby="boundary-heading">
+      <h2 id="boundary-heading">Evidence boundary</h2>
+      <p>Published source and release evidence remain authoritative. Lineage inference, retrieval, and model-assisted adjudication do not silently become source-system truth, authentication authority, tenant authority, measurement authority, or provider-routing authority.</p>
+    </section>
+  </main>
+  <footer><p>ContextualWisdomLab / LineageWeave</p></footer>
+</body>
+</html>
