@@ -66,15 +66,15 @@
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
 - Current-head regression evidence includes an explicit-version cache-miss
-  query-budget contract requiring one PostgreSQL acquisition. Recursion
-  exhaustion has two independent tests: the existing synthetic injection keeps
-  exception-classification coverage stable, while
-  `test_translation_cache_recursion_real_payload.py` constructs a depth from
-  the running interpreter with a conservative 10,000-level floor, first proves
-  that `json.loads(raw_payload)` actually raises `RecursionError`, and then
-  requires that same wire payload to converge to a cache miss. Hosted required
-  checks remain non-terminal, so no exact-head GREEN or predecessor focused-test
-  count is transferred to this head.
+  query-budget contract requiring one PostgreSQL acquisition. Decoder
+  exhaustion is injected at the standard-library boundary because Python
+  versions do not share one JSON nesting limit; the regression verifies that
+  the read falls back without depending on interpreter-specific recursion. A
+  separate real over-nested wire payload remains a cache miss whether that
+  runtime parses it as a nested list or rejects it for recursion depth.
+  Focused verification is 122 passing translation/API/schema/telemetry/docs
+  tests with deprecations treated as errors. Hosted required checks are
+  non-terminal, so no exact-head GREEN is claimed.
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
