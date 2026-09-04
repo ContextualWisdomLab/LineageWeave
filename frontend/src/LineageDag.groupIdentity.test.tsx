@@ -40,7 +40,7 @@ describe("LineageDag reconstruct-group identity", () => {
       <LineageDag graph={graph} onSelectPost={vi.fn()} />,
     );
 
-    const figures = [...container.querySelectorAll(".lineage-dag-group")];
+    const figures = [...container.querySelectorAll<HTMLElement>(".lineage-dag-group")];
     expect(figures).toHaveLength(3);
     expect(figures[0]).toHaveTextContent("Alpha record");
     expect(figures[1]).toHaveTextContent("Named Ungrouped record");
@@ -50,7 +50,7 @@ describe("LineageDag reconstruct-group identity", () => {
     expect(screen.getAllByRole("region", { name: "Ungrouped lineage viewport" })).toHaveLength(2);
 
     rerender(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
-    const rerendered = [...container.querySelectorAll(".lineage-dag-group")];
+    const rerendered = [...container.querySelectorAll<HTMLElement>(".lineage-dag-group")];
     expect(
       rerendered.map((figure) => within(figure).getByRole("button").getAttribute("aria-label")),
     ).toEqual([
