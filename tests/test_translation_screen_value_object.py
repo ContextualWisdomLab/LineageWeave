@@ -14,7 +14,7 @@ class _Connection:
     """Return one complete two-key published screen projection."""
 
     async def fetch(self, *_args: object) -> list[dict[str, object]]:
-        """Return asyncpg-shaped rows for the requested screen."""
+        """Return asyncpg-shaped rows for the requested screen.""
         return [
             {"resource_version": 7, "translation_key": "body", "translated_text": "No customers"},
             {"resource_version": 7, "translation_key": "title", "translated_text": "Customer master"},
@@ -28,11 +28,11 @@ class _Acquire:
         self.connection = connection
 
     async def __aenter__(self) -> _Connection:
-        """Return the deterministic connection."""
+        """Return the deterministic connection.""
         return self.connection
 
     async def __aexit__(self, *_args: object) -> None:
-        """Release without suppressing exceptions."""
+        """Release without suppressing exceptions.""
         return None
 
 
@@ -43,7 +43,7 @@ class _Pool:
         self.connection = _Connection()
 
     def acquire(self) -> _Acquire:
-        """Return one deterministic acquisition context."""
+        """Return one deterministic acquisition context.""
         return _Acquire(self.connection)
 
 
@@ -62,22 +62,22 @@ class _Cache:
         )
 
     async def get(self, _key: str) -> str:
-        """Return a structurally complete exact-version payload."""
+        """Return a structurally complete exact-version payload.""
         return self.payload
 
     async def set(self, _key: str, _value: str, *, ex: int) -> None:
-        """Accept cache population for protocol completeness."""
+        """Accept cache population for protocol completeness.""
         assert ex > 0
 
 
 def _assert_projection_is_read_only(translations: object) -> None:
-    """Published screen copy cannot be mutated while retaining its immutable identity."""
+    """Published screen copy cannot be mutated while retaining its immutable identity.""
     with pytest.raises(TypeError):
         translations["title"] = "tampered"  # type: ignore[index]
 
 
 def test_translation_screen_constructor_detaches_mutable_source_mapping() -> None:
-    """The value object owns a detached read-only copy, not the caller's mutable alias."""
+    """The value object owns a detached read-only copy, not the caller's mutable alias.""
     source = {"body": "No customers", "title": "Customer master"}
     result = TranslationScreen(
         product_key="lineageweave",
@@ -95,7 +95,7 @@ def test_translation_screen_constructor_detaches_mutable_source_mapping() -> Non
 
 
 def test_translation_screen_constructor_rejects_cache_identity_mismatch() -> None:
-    """The derived cache identity cannot disagree with the value-object identity."""
+    """The derived cache identity cannot disagree with the value-object identity.""
     with pytest.raises(ValueError, match="cache_key must match translation screen identity"):
         TranslationScreen(
             product_key="lineageweave",
@@ -107,8 +107,40 @@ def test_translation_screen_constructor_rejects_cache_identity_mismatch() -> Non
         )
 
 
+@pytest.mark.parametrize(
+    "translations",
+    [
+        {},
+        {"": "Customer master"},
+        {" title ": "Customer master"},
+        {"title": ""},
+        {"title": "\u00a0"},
+        {"title": "bad\x00copy"},
+        {"title": "bad" + chr(0xD800)},
+        {1: "Customer master"},
+        {"title": 1},
+    ],
+)
+def test_translation_screen_constructor_rejects_projection_outside_postgres_contract(
+    translations: object,
+) -> None:
+    """Direct construction cannot create a projection PostgreSQL text/key rules forbid.""
+    with pytest.raises(
+        ValueError,
+        match="translations must match PostgreSQL translation projection contract",
+    ):
+        TranslationScreen(
+            product_key="lineageweave",
+            screen_key="customer-master",
+            resource_version=7,
+            locale="en",
+            cache_key="ui-translation:lineageweave:customer-master:v7:en",
+            translations=translations,  # type: ignore[arg-type]
+        )
+
+
 def test_translation_screen_postgres_projection_is_read_only() -> None:
-    """The PostgreSQL construction path returns an immutable value projection."""
+    """The PostgreSQL construction path returns an immutable value projection.""
     result = asyncio.run(
         read_translation_screen(
             _Pool(),  # type: ignore[arg-type]
@@ -124,7 +156,7 @@ def test_translation_screen_postgres_projection_is_read_only() -> None:
 
 
 def test_translation_screen_cache_hit_projection_is_read_only() -> None:
-    """The exact-version cache-hit path preserves the same immutable value contract."""
+    """The exact-version cache-hit path preserves the same immutable value contract.""
     result = asyncio.run(
         read_translation_screen(
             _Pool(),  # type: ignore[arg-type]
