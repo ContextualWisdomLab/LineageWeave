@@ -8,10 +8,16 @@ returns trigger
 language plpgsql
 as $$
 begin
-    -- READ COMMITTED keeps the outer publication UPDATE command snapshot while
-    -- it waits on child relations. Serialize here so TRUNCATE cannot validate a
-    -- draft root and then let that stale UPDATE publish after child copy is gone.
-    lock table ui_translation_resource in share mode;
+    -- TRUNCATE owns ACCESS EXCLUSIVE on its target before this statement trigger
+    -- runs. A blocking resource SHARE lock would invert the lock order against a
+    -- concurrent publisher that owns ROW EXCLUSIVE on the root while waiting to
+    -- read child copy. Fail the child TRUNCATE closed instead of deadlocking.
+    begin
+        lock table ui_translation_resource in share mode nowait;
+    exception
+        when sqlstate '55P03' then
+            raise exception 'child UI translation relations cannot be truncated while publication is active';
+    end;
 
     if exists (
         select 1
