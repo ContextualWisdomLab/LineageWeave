@@ -232,8 +232,9 @@ describe("LineageDag", () => {
     expect(screen.getAllByText("Contains").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Overlaps").length).toBeGreaterThan(0);
     expect(screen.getByRole("list", { name: "Interval relations" })).toBeInTheDocument();
-    expect(container.querySelector("path title")).toHaveTextContent(
-      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
+    const titles = [...container.querySelectorAll("path title")].map((node) => node.textContent);
+    expect(titles).toContain(
+      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up (0.90) — Contains",
     );
   });
 
