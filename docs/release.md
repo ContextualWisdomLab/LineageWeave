@@ -6,17 +6,23 @@ evidence that a release already exists.
 
 ## Current delivery state
 
-As of 2026-09-03, protected `main` has no product-local release workflow and no
-GitHub Release has been published. Two prerequisites are intentionally outside
+As of 2026-09-04, protected `main` has no product-local release workflow and no
+GitHub Release has been published. One product prerequisite remains outside
 this document's implementation scope:
 
 - LineageWeave PR #911 owns removal of the reachable `psycopg2-binary`
   commercial-license intake finding and the corresponding reproducible
   `uv.lock` migration.
-- `ContextualWisdomLab/.github#1782` owns the circular artifact-digest defect in
-  the canonical exact-artifact SBOM attestation reusable. LineageWeave will
-  consume the repaired protected-owner workflow by exact commit SHA; it will
-  not copy or weaken that trust boundary locally.
+
+The former canonical-owner blocker `ContextualWisdomLab/.github#1782` is
+resolved by merged `.github#1791`. LineageWeave consumes the repaired acyclic
+exact-artifact reusable at immutable protected-owner commit
+`bd866a21cca2a7e709f0b7a88150c310a9d98239`; it does not copy or weaken that
+trust boundary locally. At that owner commit the sealed inner
+`source-identity.json` is constructible before upload and excludes the
+post-upload artifact digest, while GitHub's artifact ID/name/digest remains an
+outer transport receipt that is independently rechecked before and inside the
+credentialed signer boundary.
 
 A queued workflow, a predecessor-head success, a locally built wheel, a tag
 without exact evidence, a mutable GitHub release, or an unpublished draft
@@ -49,10 +55,12 @@ release does not satisfy this contract.
    `checksums.sha256`.
 8. Upload that handoff once and retain GitHub's returned artifact ID, name and
    digest as the immutable outer transport receipt.
-9. Invoke the repaired `ContextualWisdomLab/.github` exact-artifact reusable at
-   an immutable reviewed commit SHA. The central verifier must independently
-   bind the same run, source SHA, outer receipt, inner checksums and exact
-   wheel/sdist subjects before its credentialed attestation job runs.
+9. Invoke
+   `ContextualWisdomLab/.github/.github/workflows/exact-artifact-sbom-attestation.yml@bd866a21cca2a7e709f0b7a88150c310a9d98239`.
+   The canonical verifier must independently bind the same run, source SHA,
+   outer artifact ID/name/digest receipt, inner checksums and exact wheel/sdist
+   subjects before its credentialed attestation job runs. A later mutable
+   `.github/main` commit is not a substitute for this reviewed pin.
 10. Before tag creation or Release publication, use a trusted admission step to
     call `GET /repos/{owner}/{repo}/immutable-releases` with only the GitHub
     Administration (read) capability required by that endpoint. Continue only
