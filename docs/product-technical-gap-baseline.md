@@ -17,12 +17,14 @@
 > A queued check is not a failed product contract, and no earlier-head review or
 > check is transferred to these heads.
 >
-> Next buyer increment: expose the exact-version translation aggregate through
-> the authenticated API, then cut one complete screen over to the existing
-> locale and design-token boundaries. Keep missing or incomplete locale copies
-> explicitly unavailable. Do not synthesize translations. Capture fresh
-> desktop and mobile renders only after the API-backed screen works at the same
-> exact head.
+> The next commit on this branch, `ceed87e0a0efed8454631efde6585d31d458413b`,
+> adds the first authenticated, exact-version API read backed by a real
+> PostgreSQL fixture. It keeps unsupported and unpublished copy unavailable;
+> that is implementation evidence, not protected-main or deployed evidence.
+> Next buyer increment: cut one complete screen over to this API using the
+> existing locale and design-token boundaries. Do not synthesize translations.
+> Capture fresh desktop and mobile renders only after the API-backed screen
+> works at the same exact head.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
