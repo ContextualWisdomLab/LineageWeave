@@ -1,12 +1,13 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04 22:48 KST. Protected `main` is
-> `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
-> ADR 0362 candidate for issue #922 and is open / Draft / mechanically
-> mergeable. Required checks remain non-terminal and the ruleset still requires
-> one independent approval. The authenticated `GET /api/translations/{screen_key}`
-> API is implemented on this branch. That is candidate implementation evidence,
-> not protected-main, deployed, or release evidence.
+> Snapshot refreshed 2026-09-05 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
+> ADR 0362 candidate for issue #922 and is open / Draft. Required current-head
+> checks are not yet accepted as terminal GREEN and the delivery boundary still
+> requires qualifying independent review. The authenticated
+> `GET /api/translations/{screen_key}` API is implemented on the candidate
+> branch. That is candidate implementation evidence, not protected-main,
+> deployed, or release evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -67,11 +68,11 @@
   query-budget contract requiring one PostgreSQL acquisition. Recursion
   exhaustion has two independent tests: synthetic fault injection preserves
   exception-classification coverage, while
-  `test_translation_cache_recursion_real_payload.py` constructs a depth with a
-  conservative 10,000-level floor, accepts either decoder outcome supported by
-  that Python runtime, and requires the same wire
-  payload to converge to a cache miss. The evidence-contract test prevents later
-  edits from weakening that deep-payload proof or promoting a local
+  `test_translation_cache_recursion_real_payload.py` constructs a depth from
+  the running interpreter with a conservative 10,000-level floor, proves
+  `json.loads(raw_payload)` actually raises `RecursionError`, and then requires
+  that same wire payload to converge to a cache miss. The evidence-contract test
+  prevents later edits from weakening that real-wire proof or promoting a local
   or predecessor focused-pass count into current hosted evidence. Hosted required
   checks are non-terminal, so no exact-head GREEN or focused-pass total is
   claimed for this head.
