@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from backend.app.translation_ledger import read_translation_screen
+from backend.app.translation_ledger import TranslationScreen, read_translation_screen
 
 
 class _Connection:
@@ -74,6 +74,24 @@ def _assert_projection_is_read_only(translations: object) -> None:
     """Published screen copy cannot be mutated while retaining its immutable identity."""
     with pytest.raises(TypeError):
         translations["title"] = "tampered"  # type: ignore[index]
+
+
+def test_translation_screen_constructor_detaches_mutable_source_mapping() -> None:
+    """The value object owns a detached read-only copy, not the caller's mutable alias."""
+    source = {"body": "No customers", "title": "Customer master"}
+    result = TranslationScreen(
+        product_key="lineageweave",
+        screen_key="customer-master",
+        resource_version=7,
+        locale="en",
+        cache_key="ui-translation:lineageweave:customer-master:v7:en",
+        translations=source,
+    )
+
+    source["title"] = "tampered through caller alias"
+
+    assert result.translations["title"] == "Customer master"
+    _assert_projection_is_read_only(result.translations)
 
 
 def test_translation_screen_postgres_projection_is_read_only() -> None:
