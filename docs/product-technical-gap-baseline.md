@@ -1,10 +1,11 @@
 # Product & Technical Gap Baseline
 
-> Exact-head snapshot: 2026-09-04. Protected `main` is
+> Exact-head snapshot: 2026-09-04 19:27 KST. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Draft / mechanically
 > mergeable. Required checks remain non-terminal and the ruleset still requires
-> one independent approval. The authenticated
+> one independent approval. The live queue has 121 open PRs and 16 open issues;
+> those counts are current inventory, not delivery evidence. The authenticated
 > `GET /api/translations/{screen_key}` API is implemented on this branch. That
 > is candidate implementation evidence, not protected-main, deployed, or
 > release evidence.
@@ -41,6 +42,10 @@
   domain rejection instead of waiting into a child/root lock-order deadlock;
   otherwise the SHARE lock keeps a new publisher from starting until the
   draft-only TRUNCATE decision and statement finish.
+- The 0246 rollback keeps its resource lookup dynamic after acquiring the
+  resource lock. A retry after a completed empty-foundation rollback therefore
+  converges without resolving an already-dropped table, while existing copy
+  and post-0246 member locale preferences still reject rollback before DDL.
 - `backend/app/translation_ledger.py` admits exactly
   `ko/en/ja/zh/vi/es/de/fr`, returns immutable `TranslationScreen` value
   projections, validates canonical PostgreSQL text/BIGINT identities, admits
@@ -55,6 +60,9 @@
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
+- Exact-head focused verification is 86 passing translation/API/schema tests,
+  including live PostgreSQL rollback replay and fail-closed data guards. Hosted
+  required checks remain non-terminal and are not reported as green.
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
