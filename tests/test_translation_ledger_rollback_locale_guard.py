@@ -23,17 +23,19 @@ _TRANSLATION_LEDGER_ROLLBACK = ROOT / "migrations" / "rollback" / "0246_ui_trans
 
 
 def test_translation_ledger_rollback_guards_post0246_member_locales_before_ddl() -> None:
-    """Rollback must name and reject member data that the old locale constraint cannot represent."""
+    """Rollback must serialize, name, and reject member data the old constraint cannot represent."""
     sql = _TRANSLATION_LEDGER_ROLLBACK.read_text(encoding="utf-8").lower()
+    lock_index = sql.index("lock table user_account in access exclusive mode")
     guard_index = sql.index("refusing 0246 rollback because post-0246 member locale preferences exist")
     ddl_index = sql.index("alter table user_account")
 
-    assert "from user_account" in sql[:ddl_index]
-    assert "preferred_locale not in ('en', 'ko', 'zh', 'ja', 'vi')" in sql[:ddl_index]
-    assert guard_index < ddl_index
+    assert lock_index < guard_index < ddl_index
+    assert "from user_account" in sql[lock_index:ddl_index]
+    assert "preferred_locale not in ('en', 'ko', 'zh', 'ja', 'vi')" in sql[lock_index:ddl_index]
 
 
 async def _postgres_available_async() -> bool:
+    """Return whether the configured PostgreSQL admin endpoint is reachable."""
     try:
         connection = await asyncpg.connect(_ADMIN_DSN, timeout=2)
     except (asyncpg.PostgresError, OSError, TimeoutError):
@@ -43,6 +45,7 @@ async def _postgres_available_async() -> bool:
 
 
 def _postgres_available() -> bool:
+    """Probe PostgreSQL once during collection without adding a sync DB driver."""
     return asyncio.run(_postgres_available_async())
 
 
@@ -50,7 +53,7 @@ def _postgres_available() -> bool:
     not _postgres_available(),
     reason=(
         "no reachable PostgreSQL server at "
-        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_POSTGRES_ADMIN_DSN)"
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
     ),
 )
 def test_translation_ledger_rollback_refuses_post0246_member_locale_without_mutation() -> None:
