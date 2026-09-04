@@ -7,6 +7,7 @@ supply ontology labels or cross-locale fallback copy.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
@@ -52,6 +53,7 @@ _UI_WHITESPACE_CODEPOINTS: tuple[int, ...] = (
 )
 _UI_WHITESPACE = "".join(chr(codepoint) for codepoint in _UI_WHITESPACE_CODEPOINTS)
 _CACHE_TTL_SECONDS = 300
+_CACHE_IO_TIMEOUT_SECONDS = 0.02
 _POSTGRES_BIGINT_MAX = 9_223_372_036_854_775_807
 
 _SELECT_REQUIRED_KEYS_SQL = """
@@ -337,8 +339,10 @@ async def _read_exact_cache(
         return None
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
     try:
-        raw_payload = await cache.get(cache_key)
-    except RedisError:
+        raw_payload = await asyncio.wait_for(
+            cache.get(cache_key), timeout=_CACHE_IO_TIMEOUT_SECONDS
+        )
+    except (RedisError, TimeoutError):
         return None
     if raw_payload is None:
         return None
@@ -369,8 +373,11 @@ async def _write_exact_cache(cache: AsyncTranslationCache | None, screen: Transl
         sort_keys=True,
     )
     try:
-        await cache.set(screen.cache_key, payload, ex=_CACHE_TTL_SECONDS)
-    except RedisError:
+        await asyncio.wait_for(
+            cache.set(screen.cache_key, payload, ex=_CACHE_TTL_SECONDS),
+            timeout=_CACHE_IO_TIMEOUT_SECONDS,
+        )
+    except (RedisError, TimeoutError):
         return
 
 
