@@ -10,6 +10,7 @@ begin;
 do $$
 declare
     resource_relation_exists boolean := true;
+    resource_rows_exist boolean := false;
 begin
     begin
         execute 'lock table ui_translation_resource in access exclusive mode';
@@ -18,10 +19,15 @@ begin
             resource_relation_exists := false;
     end;
 
-    if resource_relation_exists and exists (
-        select 1
-          from ui_translation_resource
-    ) then
+    -- Keep the relation lookup dynamic. PostgreSQL resolves a static table
+    -- reference while compiling the DO block, even when the preceding flag is
+    -- false, so a completed rollback could not be replayed.
+    if resource_relation_exists then
+        execute 'select exists (select 1 from ui_translation_resource)'
+           into resource_rows_exist;
+    end if;
+
+    if resource_rows_exist then
         raise exception 'refusing 0246 rollback because translation resources exist; use application/read-routing recovery';
     end if;
 
