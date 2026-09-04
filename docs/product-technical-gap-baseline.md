@@ -2,18 +2,17 @@
 
 > Exact-head snapshot: 2026-09-04. Protected `main` is
 > `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`. PR #929 is the active
-> ADR 0362 candidate for issue #922 at `bad21a9c78807c12f77c756719e43e4a54e43ff1` and is open / ready /
-> mechanically mergeable with normal squash auto-merge armed. The live queue
-> contains 121 open PRs and 16 open issues. Required checks remain queued and
-> the ruleset still requires one independent approval. The authenticated
-> `GET /api/translations/{screen_key}` API is
-> implemented on this branch. That is candidate implementation evidence, not
-> protected-main, deployed, or release evidence.
+> ADR 0362 candidate for issue #922 and is open / Draft / mechanically
+> mergeable. Required checks remain non-terminal and the ruleset still requires
+> one independent approval. The authenticated
+> `GET /api/translations/{screen_key}` API is implemented on this branch. That
+> is candidate implementation evidence, not protected-main, deployed, or
+> release evidence.
 >
-> Historical baseline overlays through the preceding snapshot are preserved
-> byte-for-byte at
-> `docs/product-technical-gap-baseline-history-2026-09-04.md`. They remain dated
-> evidence and must not override this current snapshot.
+> Historical baseline overlays through the preceding snapshot are preserved as
+> dated evidence at
+> `docs/product-technical-gap-baseline-history-2026-09-04.md`. Historical
+> formatting repairs do not promote dated observations into current evidence.
 >
 > The buyer-visible gap in #922 remains open. Protected `main` still ships the
 > production frontend translation source in `frontend/src/i18n.ts` with only
@@ -75,23 +74,5 @@
    baseline with the actual cutover. Keep ontology labels separate from product
    copy and consume only released owner contracts where another CWL product is
    authoritative.
-5. Keep #929's normal squash auto-merge armed; do not bypass or release until
-   exact-head gates and independent review are complete.
-
-## Traceability
-
-- Product gap: issue #922, `i18n: move UI translations to versioned DB ledger
-  and complete 8-locale coverage`.
-- Decision: `docs/adr/0362-versioned-ui-translation-ledger.md`.
-- Persistence: `migrations/0246_ui_translation_ledger.sql`,
-  `migrations/0247_ui_translation_truncate_guard.sql`, and their rollback
-  artifacts.
-- Read model: `backend/app/translation_ledger.py`.
-- HTTP boundary: `backend/app/main.py` (`GET /api/translations/{screen_key}`).
-- Verification: `tests/test_translation_ledger_*`,
-  `tests/test_translation_screen_value_object.py`,
-  `tests/test_translation_api_http.py`,
-  `tests/test_translation_api_driver_boundary.py`,
-  `tests/test_translation_cache_timeout.py`, and
-  `tests/test_translation_documentation_alignment.py`.
-- Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
+5. Keep #929 Draft; do not bypass or release until exact-head gates and
+   independent review are complete.
