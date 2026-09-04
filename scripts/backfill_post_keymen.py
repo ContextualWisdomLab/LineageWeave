@@ -36,15 +36,15 @@ from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
 
-def _first_env(*names: str) -> str:
-    return next((os.environ.get(name, "").strip() for name in names if os.environ.get(name, "").strip()), "")
-
-
 def _orchestrator_config() -> tuple[str, str]:
-    base_url = _first_env("ORCHESTRATOR_BASE_URL", "LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL")
-    api_key = _first_env("ORCHESTRATOR_API_KEY", "LLM_GATEWAY_API_KEY")
+    """Return the published contextual-orchestrator consumer endpoint and bearer."""
+    base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "").strip()
+    api_key = os.environ.get("ORCHESTRATOR_API_KEY", "").strip()
     if not base_url or not api_key:
-        raise RuntimeError("contextual-orchestrator gateway configuration is unavailable")
+        raise RuntimeError(
+            "set ORCHESTRATOR_BASE_URL and ORCHESTRATOR_API_KEY to reach "
+            "contextual-orchestrator"
+        )
     return base_url, api_key
 
 
