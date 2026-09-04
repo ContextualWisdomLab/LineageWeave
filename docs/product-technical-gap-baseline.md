@@ -49,13 +49,15 @@
   `ko/en/ja/zh/vi/es/de/fr`, returns immutable `TranslationScreen` value
   projections, validates canonical PostgreSQL text/BIGINT identities, admits
   cache hits only after PostgreSQL key-set and SHA-256 value evidence, performs
-  no cross-locale fallback, releases the PostgreSQL lease before optional
-  Valkey I/O, and bounds each optional cache `get`/`set` at 20 ms so a hung
-  cache converges to the PostgreSQL path instead of holding the buyer request.
-  For an explicit immutable version, that same authoritative digest query now
-  returns the requested-locale text projection, so a cache miss reuses the
-  already verified rows instead of reacquiring PostgreSQL for a duplicate
-  `SELECT`.
+  no cross-locale fallback, and bounds each optional cache `get`/`set` at 20 ms.
+  Exact-version reads perform bounded Valkey candidate I/O without holding a
+  PostgreSQL lease. A missing/timed-out/unavailable candidate goes directly to
+  one complete PostgreSQL projection. A present candidate is still untrusted:
+  one digest/key-set PostgreSQL query admits a valid hit without transferring
+  the full localized projection; malformed, identity-mismatched, incomplete,
+  extra-key, or value-mismatched candidates are not returned and converge to
+  the authoritative full projection after digest admission. Latest-version
+  reads remain PostgreSQL-first.
 - `GET /api/translations/{screen_key}` is authenticated and propagates exact
   screen/locale/version identity. Missing published resources map to 404;
   incomplete requested-locale copy maps to 409. Unsupported locale, malformed
@@ -64,10 +66,14 @@
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
-- Current-head regression evidence includes an explicit-version cache-miss
-  query-budget contract requiring one PostgreSQL acquisition. Recursion
-  exhaustion has two independent tests: synthetic fault injection preserves
-  exception-classification coverage, while
+- Current-head regression evidence includes exact-version query-budget
+  contracts for both normal paths: a true cache miss must perform Valkey I/O
+  before any PostgreSQL acquisition and use one full PostgreSQL projection; a
+  valid candidate must use one digest/key-set query that does not select the
+  full localized text projection. Corrupt present candidates retain explicit
+  fail-closed fallback coverage and are not misreported as ordinary misses.
+  Recursion exhaustion has two independent tests: synthetic fault injection
+  preserves exception-classification coverage, while
   `test_translation_cache_recursion_real_payload.py` constructs a depth from
   the running interpreter with a conservative 10,000-level floor, proves
   `json.loads(raw_payload)` actually raises `RecursionError`, and then requires
