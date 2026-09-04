@@ -33,9 +33,12 @@
   `0247_ui_translation_truncate_guard.sql` define the normalized ledger,
   publication immutability, eight-locale completeness, writer serialization,
   statement-level TRUNCATE protection, and replay/fail-closed rollback path.
-  The TRUNCATE guard takes a `SHARE` lock on `ui_translation_resource` before
-  reading publication state so a READ COMMITTED draft→published command snapshot
-  cannot resume after a concurrent child TRUNCATE has deleted its copy.
+  Child-table TRUNCATE performs a nonblocking `SHARE ... NOWAIT` admission on
+  `ui_translation_resource` before reading publication state. If a publisher
+  already holds the root update lock, lock contention is translated to a
+  domain rejection instead of waiting into a child/root lock-order deadlock;
+  otherwise the SHARE lock keeps a new publisher from starting until the
+  draft-only TRUNCATE decision and statement finish.
 - `backend/app/translation_ledger.py` admits exactly
   `ko/en/ja/zh/vi/es/de/fr`, returns immutable `TranslationScreen` value
   projections, validates canonical PostgreSQL text/BIGINT identities, admits
