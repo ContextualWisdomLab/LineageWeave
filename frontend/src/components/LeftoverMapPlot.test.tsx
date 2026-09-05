@@ -61,7 +61,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage and leftover-map item complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Post ξ")).toBeInTheDocument();
@@ -90,6 +90,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getAllByLabelText("leftover expected E 2.00")).toHaveLength(2);
     expect(screen.getAllByLabelText("leftover-map rank rank 1")).toHaveLength(2);
     expect(screen.queryByLabelText("Leftover-map graphic coverage")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
 
 
     const postMarker = screen.getByRole("button", {
@@ -595,5 +596,100 @@ describe("LeftoverMapPlot", () => {
       "Leftover map used 0 of 3 scored posts (complete-case)",
     );
     expect(screen.getByLabelText("leftover-map rank rank 0")).toBeInTheDocument();
+  });
+
+  it("names persisted leftover-map item complete-case coverage on the graphic without inventing a leftover score", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 1,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 1,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 1 of 2 scored criteria (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).not.toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
+  });
+
+  it("omits leftover-map item coverage on the graphic when item coverage is missing or not usable", () => {
+    const { rerender } = render(
+      <LeftoverMapPlot pairs={PAIRS} criterionLabel={criterionLabel} onSelectPost={vi.fn()} />,
+    );
+    expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
+    rerender(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 3,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+  });
+
+  it("names leftover-map item coverage 0 of M on a rank-0 origin when that persisted used count is a non-negative integer", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            pair_kind: "closest",
+            post_id: "post-demo-public",
+            post_title: "Public post",
+            criterion_code: "sales_lead_quality",
+            leftover_distance: 0,
+            leftover_residual: 0,
+            observed_response: 0,
+            expected_response: 0,
+            leftover_map_rank: 0,
+            leftover_map_reconstruction: 0,
+            leftover_map_explained_share: 0,
+            leftover_map_unexplained_share: 0,
+            leftover_map_cross_share: 0,
+            leftover_map_unexplained: 0,
+            leftover_map_person_axis_1: 0,
+            leftover_map_person_axis_2: 0,
+            leftover_map_item_axis_1: 0,
+            leftover_map_item_axis_2: 0,
+          },
+        ]}
+        leftoverMapCoverage={{
+          map_post_count: 0,
+          scored_post_count: 3,
+          map_item_count: 0,
+          scored_item_count: 2,
+          incomplete_post_count: 3,
+          incomplete_item_count: 2,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 0 of 2 scored criteria (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
+      "Leftover map used 0 of 3 scored posts (complete-case)",
+    );
   });
 });
