@@ -131,6 +131,59 @@ async def _activity_read_stream_keys(
     return tuple(dict.fromkeys(candidate_keys))
 
 
+async def _activity_canonical_entries_if_alias_free(
+    valkey_client: redis.Redis,
+    post_id: str,
+    event_count: int,
+) -> list[tuple[str, dict[str, str]]] | None:
+    """Read alias admission and canonical events in one UUID-path network exchange.
+
+    The retained-alias set exists only to bridge pre-canonical UUID spellings.
+    A normal UUID read must not pay one network wait for that empty compatibility
+    set and a second wait for the canonical stream. Redis pipelines preserve the
+    two independent commands while sending them together. If the first bounded
+    SSCAN page proves that the alias set is empty, its paired canonical XREVRANGE
+    is the complete fast-path result. Any observed alias or nonzero scan cursor
+    falls back to the bounded compatibility merger so retained history is never
+    hidden merely to reduce latency.
+
+    Minimal Redis-compatible test adapters without pipeline support return
+    ``None`` and exercise the established fallback; production clients created
+    by :func:`create_valkey_client` always provide the async pipeline contract.
+    """
+    canonical_key = _stream_key(post_id)
+    try:
+        UUID(post_id)
+    except ValueError:
+        return None
+
+    pipeline_factory = getattr(valkey_client, "pipeline", None)
+    if pipeline_factory is None:
+        return None
+
+    async with pipeline_factory(transaction=False) as read_pipeline:
+        read_pipeline.sscan(
+            _activity_alias_index_key(post_id),
+            cursor=0,
+            count=_MAX_ACTIVITY_READ_COUNT,
+        )
+        read_pipeline.xrevrange(canonical_key, count=event_count)
+        with traced(
+            "lineageweave.valkey.activity_read_pipeline",
+            {
+                "db.system": "redis",
+                "db.operation.name": "pipeline",
+                "lineageweave.stream.kind": "activity",
+            },
+        ):
+            alias_page, canonical_entries = await read_pipeline.execute()
+
+    alias_cursor, aliases = alias_page
+    if int(alias_cursor) == 0 and not aliases:
+        return canonical_entries
+    return None
+
+
 def _activity_stream_entry_order(entry_id: str) -> tuple[int, int]:
     """Parse one Valkey stream entry id into its stream-local numeric order."""
     milliseconds, separator, sequence = entry_id.partition("-")
@@ -403,6 +456,22 @@ async def read_activity_events(
     because Valkey stream IDs are not globally unique across independent keys.
     """
     bounded_event_count = _activity_event_count(event_count)
+    pipelined_canonical_entries = await _activity_canonical_entries_if_alias_free(
+        valkey_client,
+        post_id,
+        bounded_event_count,
+    )
+    if pipelined_canonical_entries is not None:
+        return [
+            {
+                "event_id": entry_id,
+                "event_type": activity_fields["event_type"],
+                "actor_account_id": activity_fields["actor_account_id"],
+                "summary": activity_fields["summary"],
+            }
+            for entry_id, activity_fields in pipelined_canonical_entries
+        ]
+
     stream_keys = await _activity_read_stream_keys(valkey_client, post_id)
 
     if len(stream_keys) == 1:
