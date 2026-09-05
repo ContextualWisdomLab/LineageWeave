@@ -1,8 +1,128 @@
 # Product & Technical Gap Baseline
 
-## Current bounded loop — 2026-09-05
+## Current bounded loop — 2026-09-05 09:03 UTC
 
-This section supersedes every dated snapshot below. It records observations,
+Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e`.
+The tested implementation is `b49a68a288cd7babf1d80436180521d5e0c3b31d`,
+stacked on #934 at `3060dd7000791160c2bcc98351af129899ff32ff`, whose parent
+is #780 at `1d8fa267b059289e77301a09985dfac70a439814`. Evidence-only commits
+after the implementation do not replace its tested identity. No protected
+merge or deployed-release completion is claimed.
+
+### Authority, implementation, and chosen user gap
+
+The current LineageWeave PRD and ADR 0184/0246/0251/0256 were read, along with
+remote ThreadWeave `docs/PRD.md`, RankWeave `ARCHITECTURE.md`, TEPP
+`docs/product/prd-v0.4-approved.md`, contextual-orchestrator
+`docs/product_planning.md`, and disksage's current design authority. GitHub
+confirmed `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`contextual-orchestrator`, and lowercase `disksage`. PRD spelling/duplicate
+requirement identities remain owned by #847/#807; no second repository is
+inferred from case differences. ADR 0251 here owns I/O Psychology; the
+reconciled Voice composition authority is ADR 0256, extending ADR 0246.
+
+The selected gap is a reproducible mismatch in an existing evidence export:
+search removed an edge and its target from the visible neighborhood, but its
+source's direct JSON-LD assertion survived. This is prioritized as an observed
+evidence-integrity failure, without assigning unsupported scores to product
+opportunities. Filtering now retains direct assertions only for retained typed
+source/property/target triples, both before and after page accumulation. Node
+metadata and authorized Voice derivations are preserved. There is no new API,
+schema, release number, inference policy, arithmetic, or provider integration.
+The W3C [RDF triple contract](https://www.w3.org/TR/rdf11-concepts/#section-triples)
+and [JSON-LD node objects](https://www.w3.org/TR/json-ld11/#node-objects) explain
+the projection; they do not establish stakeholder classifications or weights.
+
+Three new regressions failed before the repair and passed afterward. Related
+frontend validation passed 43 tests, lint, TypeScript, and production build.
+Backend validation passed 33 tests, including real Keycloak/JWKS authentication
+and primary-Voice PostgreSQL API projection against a newly migrated synthetic
+database. No DeprecationWarning was emitted; the existing build chunk-size
+advisory was retained without suppression or speculative tuning.
+
+`FilteredExportEvidence` reuses the existing Storybook component and tokens.
+Real Chromium search/download checks passed at 1440×1000 and 390×844: the
+removed assertion is absent from the downloaded JSON-LD and the retained
+assertion remains. Both document widths equal viewport widths. Visually
+reviewed [desktop](screenshots/ontology-filter-export-20260905-desktop.png) and
+[mobile](screenshots/ontology-filter-export-20260905-mobile.png) show the
+retained relationship and the mobile table's contained horizontal scroll.
+The first rendering attempt timed out; the subsequent completed render and
+actual downloads are the evidence. This is synthetic Storybook plus a separate
+authenticated API check, not authenticated deployed end-to-end acceptance.
+Full additional-Voice, hidden-evidence, cutoff, and paged authenticated UI
+acceptance therefore remains **unavailable**.
+
+### Live aggregates and descriptive load
+
+The official `lineageweave` PostgreSQL returned 43,189 source records and
+43,189 Voice associations, all primary. The aggregate query that assumed an
+`evidence_post_id` storage column failed and was corrected to the verified
+count/primary columns; no schema repair or identifying output was performed.
+These exact counts do not establish functional acceptance or a population
+inference. No real records were sampled or exported.
+
+A synthetic authenticated k6 HTTP observation used 2 VUs for 10 seconds:
+4 successful requests, 0 failed requests, 0.349 requests/second, p95 6414.11 ms,
+maximum 6414.16 ms. Across 51 PostgreSQL samples, peak connections were 5,
+active sessions 2, and lock waiters 0, including the observer. This is a short
+observed workload, not an SLO, capacity estimate, or identified bottleneck.
+The temporary API stopped and its synthetic database was removed.
+
+A separate official-service snapshot showed PostgreSQL 2.21% CPU / 198.8 MiB,
+Valkey 0.21% / 643.1 MiB, Ask worker 0.20% / 109.1 MiB, and orchestrator 0.01% /
+76.79 MiB. It is not a synchronized saturation trace. This read-only workload
+invokes neither worker nor model work; worker/Valkey/gateway end-to-end
+saturation and attribution of the latency remain **unavailable**. No pool,
+queue, routing, or mathematical policy was changed without causal evidence.
+Formal Compose services and volumes were preserved; no test containers were
+created. Sequential Thinking and Memory MCP tools were not callable in this
+session; local memory informed the verification procedure only. DeepWiki had
+no index and Context7 returned quota exhaustion; neither is authority evidence.
+
+### Exact-head queue, reviews, and conflicts
+
+The [remote metadata snapshot](development-loop-20260905-filter.json) records
+117 open PRs at 08:48:46 UTC: 91 drafts, 26 ready, zero current-head approved
+reviews, and 105 unresolved threads within the first 100 threads per PR.
+Authority paths were refreshed for changed heads; paths from the earlier
+snapshot were reused only for identical immutable heads. These are bounded
+queue observations, not a claim that all 105 findings were adjudicated.
+The 16 open Issues remain proposed work, distinct from implemented acceptance.
+
+#780 retains normal squash auto-merge and has no confirmed merge SHA. #934
+remains stacked on it. No child was retargeted or merged into an unprotected
+parent. In-progress runs belonged to open #929 and #911 at their exact heads;
+both were preserved. No stale run was cancelled and no CI contract change was
+needed for a manually cleared stall.
+
+#929's existing minimal quality fixes were already present at
+`2a8ed5d02f4a3082b346d923d754c1ff37ebff52`; its rollback/race/HTTP suite passed
+12 tests in a separate checkout. The remaining no-effect findings refer to an
+awaited database rollback task and two Protocol signatures. The awaited task
+has required completion/error semantics; ellipsis protocol bodies follow the
+[Python typing specification](https://typing.python.org/en/latest/spec/protocol.html#defining-a-protocol).
+The three threads were resolved after exact-head verification, and normal
+squash auto-merge was re-enabled with a matching-head guard. No warning
+suppression or redundant code rewrite was added. The primary
+checkout's concurrent translation-ledger changes were preserved.
+
+Exact-head added-path comparison reconfirms ten ADR identifier collisions:
+0355 (#920/#915), 0301 (#902/#838), 0300 (#899/#837), 0279 (#888/#811),
+0335 (#877/#876), 0305 (#844/#843), 0304 (#842/#841), 0293 (#828/#826),
+0290 (#823/#822), and 0289 (#821/#820). The six proposed release-title
+collisions in the earlier snapshot remain unresolved. No distinct added
+migration filenames share a numeric prefix in this snapshot; cross-branch SQL
+replay and semantic compatibility are not thereby proven. API-file overlap
+remains a review target, not proof of a conflict. Parent-first protected
+merging, explicit authority reconciliation, then fresh child checks/reviews
+are required before delivery. The active rules require independent approval,
+resolved review threads, central workflows, and no force push; no bypass or
+self-approval was used.
+
+## Earlier bounded loop — 2026-09-05 07:25 UTC
+
+This historical section is superseded by the current snapshot above. It records observations,
 not a protected-release claim. Remote `main` was
 `83eba56149eb802cd63642c507c324c9976ec78e`. The implemented export repair is
 `05384255df15c3995dbc3cef149abd5d92afd40a`, a child of #780 at
