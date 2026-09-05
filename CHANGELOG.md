@@ -9,6 +9,33 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption the leftover-map graphic display with
+  persisted leftover-map incomplete item coverage (ADR 0284 / v2.41.0). After
+  `make seed`, closest and farthest leftover pairs sit above the member
+  list with the Gabriel biplot of already-named coordinates, leftover-map
+  axis share when finite, axis ticks that match `ξ (x, y) ζ (x, y)` on
+  the pair row, pair segments that match `d` on the pair row, pair
+  segments that match `R̂` on the pair row, pair segments that match
+  `R̂²/R²` on the pair row, pair segments that match `U²/R²` on the pair
+  row, pair segments that match `2R̂U/R²` on the pair row, pair segments
+  that match `U` on the pair row, pair segments that match `R` on the
+  pair row, pair segments that match `Y` on the pair row, pair segments
+  that match `E` on the pair row, pair segments that match leftover-map
+  rank on the pair row, a plot caption that matches leftover-map
+  complete-case coverage above the pair list, a plot caption that matches
+  leftover-map item complete-case coverage, a plot caption that matches
+  leftover-map incomplete post coverage, and a plot caption that matches
+  leftover-map incomplete item coverage; click a post marker or a
+  pair button opens that post. A missing, non-integer, or negative
+  dropped count, or a dropped count that contradicts usable item
+  complete-case integers, omits that leftover-map incomplete item caption.
+  Dropped `0` is shown when that persisted dropped count is a non-negative
+  integer. Do not invent dropped criteria from scored minus used, plotted
+  criterion marker count, leftover-map distance, leftover-map rank,
+  leftover-map post coverage, leftover-map item coverage, leftover-map
+  incomplete post coverage, or the count of unused axes. Never invent a
+  leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption the leftover-map graphic display with
   persisted leftover-map incomplete post coverage (ADR 0283 / v2.40.0). After
   `make seed`, closest and farthest leftover pairs sit above the member
   list with the Gabriel biplot of already-named coordinates, leftover-map

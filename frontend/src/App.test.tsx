@@ -4163,6 +4163,9 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
       "Leftover map dropped 1 incomplete posts",
     );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
     const coverageCaption = screen.getByLabelText("Leftover map coverage");
     const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
     const farthestPair = screen.getByRole("button", {

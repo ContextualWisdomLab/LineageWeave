@@ -61,7 +61,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, and leftover-map incomplete post coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Post ξ")).toBeInTheDocument();
@@ -92,6 +92,7 @@ describe("LeftoverMapPlot", () => {
     expect(screen.queryByLabelText("Leftover-map graphic coverage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover-map graphic item coverage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Leftover-map graphic incomplete posts")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map graphic incomplete items")).not.toBeInTheDocument();
 
 
     const postMarker = screen.getByRole("button", {
@@ -624,6 +625,9 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
       "Leftover map dropped 1 incomplete posts",
     );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 1 incomplete criteria",
+    );
   });
 
   it("omits leftover-map item coverage on the graphic when item coverage is missing or not usable", () => {
@@ -652,6 +656,9 @@ describe("LeftoverMapPlot", () => {
     );
     expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
       "Leftover map dropped 1 incomplete posts",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
     );
   });
 
@@ -701,6 +708,9 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
       "Leftover map dropped 3 incomplete posts",
     );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 2 incomplete criteria",
+    );
   });
 
   it("omits leftover-map incomplete posts on the graphic when the dropped count is missing or not usable", () => {
@@ -727,6 +737,9 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
   });
 
   it("names leftover-map incomplete posts 0 when that persisted dropped count is a non-negative integer", () => {
@@ -750,6 +763,62 @@ describe("LeftoverMapPlot", () => {
     );
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 3 of 3 scored posts (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
+  });
+
+  it("omits leftover-map incomplete items on the graphic when the dropped count is missing or not usable", () => {
+    const { rerender } = render(
+      <LeftoverMapPlot pairs={PAIRS} criterionLabel={criterionLabel} onSelectPost={vi.fn()} />,
+    );
+    expect(screen.queryByLabelText("Leftover-map graphic incomplete items")).not.toBeInTheDocument();
+    rerender(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 2,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 1,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Leftover-map graphic incomplete items")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
+      "Leftover map dropped 1 incomplete posts",
+    );
+  });
+
+  it("names leftover-map incomplete items 0 when that persisted dropped count is a non-negative integer", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 2,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
     );
   });
 });

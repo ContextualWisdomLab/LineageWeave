@@ -3,10 +3,13 @@ import { t, tf } from "../i18n";
 import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
 import {
   leftoverMapCoverageCounts,
+  leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
   LEFTOVER_MAP_PLOT_COVERAGE,
   LEFTOVER_MAP_PLOT_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM,
+  LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_PLOT_INCOMPLETE_POST,
   LEFTOVER_MAP_PLOT_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
@@ -75,9 +78,9 @@ function leftoverMapPlotAxisText(
  * unexplained leftover ``U``, leftover residual ``R``, leftover
  * observed ``Y``, leftover expected ``E``, and leftover-map rank so the
  * pair-row badges match the graphic. Name leftover-map complete-case
- * coverage, leftover-map item complete-case coverage, and leftover-map
- * incomplete post coverage on the figure when those persisted post and
- * criterion counts are usable.
+ * coverage, leftover-map item complete-case coverage, leftover-map
+ * incomplete post coverage, and leftover-map incomplete item coverage
+ * on the figure when those persisted post and criterion counts are usable.
  * Omit that distance caption when ``d`` is missing or non-finite. Omit
  * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
  * that explained leftover share caption when ``e`` is missing or
@@ -93,6 +96,8 @@ function leftoverMapPlotAxisText(
  * Omit that leftover-map item coverage caption when item coverage is missing or
  * not usable complete-case integers. Omit that leftover-map incomplete post
  * caption when incomplete post coverage is missing or not a usable integer.
+ * Omit that leftover-map incomplete item caption when incomplete item
+ * coverage is missing or not a usable integer.
  * Omit that axis badge when share is
  * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
@@ -112,6 +117,7 @@ export function LeftoverMapPlot({
   const coverageCounts = leftoverMapCoverageCounts(leftoverMapCoverage);
   const itemCoverageCounts = leftoverMapItemCoverageCounts(leftoverMapCoverage);
   const incompletePostCount = leftoverMapIncompletePostCount(leftoverMapCoverage);
+  const incompleteItemCount = leftoverMapIncompleteItemCount(leftoverMapCoverage);
 
   const openPost = (postId: string) => {
     const pair = firstPlottablePairForPost(pairs, postId);
@@ -148,6 +154,15 @@ export function LeftoverMapPlot({
           aria-label={t(LEFTOVER_MAP_PLOT_INCOMPLETE_POST_LABEL)}
         >
           {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, incompletePostCount)}
+        </p>
+      ) : null}
+      {incompleteItemCount !== null ? (
+        <p
+          className="leftover-map-plot-incomplete-items"
+          role="note"
+          aria-label={t(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL)}
+        >
+          {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, incompleteItemCount)}
         </p>
       ) : null}
       <ul className="leftover-map-plot-legend">
