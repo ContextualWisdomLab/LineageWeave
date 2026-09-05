@@ -29,6 +29,8 @@ permissions:
   contents: read
 
 concurrency:
+  # Draft/closed events intentionally skip the product job but retain the
+  # workflow event needed to cancel an older active run for this same PR.
   group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 

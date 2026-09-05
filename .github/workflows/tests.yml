@@ -10,9 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  # A merged pull request can report the base ref on ``closed``. Keying PR
-  # events by number lets that close run cancel an older queued synchronize
-  # run for the same PR instead of consuming runners after the PR is closed.
+  # Draft/closed events deliberately create a no-job run in this workflow so
+  # workflow-level concurrency can cancel any older active run for the same PR.
   group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 

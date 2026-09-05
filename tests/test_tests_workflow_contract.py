@@ -17,15 +17,23 @@ _PULL_REQUEST_TYPES = (
     "converted_to_draft, closed]"
 )
 _DRAFT_ADMISSION = "github.event.pull_request.draft == false"
+_INACTIVE_ADMISSION = (
+    "github.event.action != 'closed' && github.event.pull_request.draft == false"
+)
 
 
-def test_pull_request_concurrency_survives_closed_ref_change() -> None:
-    """Key synchronize and closed events by PR number so close cancels stale work."""
+def test_lifecycle_events_cancel_inactive_pr_work() -> None:
+    """Keep lifecycle events so Draft/close transitions cancel active local work."""
 
-    workflow = (_WORKFLOW_DIRECTORY / "tests.yml").read_text(encoding="utf-8")
-
-    assert _PULL_REQUEST_TYPES in workflow
-    assert workflow.count("github.event.action != 'closed'") == 2
+    expected_inactive_guards = {
+        "tests.yml": 2,
+        "prov-o-contract.yml": 1,
+        "ontology-pages.yml": 1,
+    }
+    for workflow_name, expected_guard_count in expected_inactive_guards.items():
+        workflow = (_WORKFLOW_DIRECTORY / workflow_name).read_text(encoding="utf-8")
+        assert _PULL_REQUEST_TYPES in workflow, workflow_name
+        assert workflow.count(_INACTIVE_ADMISSION) == expected_guard_count, workflow_name
 
 
 def test_pull_request_workflows_cancel_only_superseded_same_pr_runs() -> None:
