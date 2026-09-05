@@ -36,6 +36,27 @@ def test_customer_master_data_effect_requires_auth_bound_copy() -> None:
     assert "void loadMaster();" in data_effect
 
 
+def test_customer_master_auth_transition_clears_data_before_copy_can_unlock() -> None:
+    """Token/locale transitions must invalidate customer data before replacement copy is fetched."""
+    panel = _customer_master_panel_source()
+    translation_fetch = panel.index('fetchTranslationScreen(accessToken, "customer-master", locale)')
+    effect_start = panel.rfind("  useEffect(() => {", 0, translation_fetch)
+    transition_prefix = panel[effect_start:translation_fetch]
+
+    assert "setMaster(null);" in transition_prefix
+
+
+def test_customer_master_fetch_completion_is_not_admitted_by_unscoped_then_setter() -> None:
+    """A request started under an old auth identity must not publish after identity changes."""
+    panel = _customer_master_panel_source()
+    callback_start = panel.index("  const loadMaster = useCallback(() => {")
+    callback_end = panel.index("\n  useEffect(() => {", callback_start)
+    load_master = panel[callback_start:callback_end]
+
+    assert ".then(setMaster)" not in load_master
+    assert "masterRequestGeneration" in panel
+
+
 def test_customer_master_render_gate_rejects_stale_token_copy() -> None:
     """Stale-token translations must not unlock the Customer Master surface."""
     panel = _customer_master_panel_source()
