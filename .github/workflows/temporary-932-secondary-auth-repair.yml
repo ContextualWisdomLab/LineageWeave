@@ -47,11 +47,11 @@ jobs:
           replacements = [
               (
                   "  const masterRequestGeneration = useRef(0);\n  const [error, setError] = useState<string | null>(null);",
-                  "  const masterRequestGeneration = useRef(0);\n  const currentAccessTokenRef = useRef(accessToken);\n  const [error, setError] = useState<string | null>(null);",
+                  "  const masterRequestGeneration = useRef(0);\n  const currentAccessTokenRef = useRef(accessToken);\n  currentAccessTokenRef.current = accessToken;\n  const [error, setError] = useState<string | null>(null);",
               ),
               (
                   '''  useEffect(() => {\n    let active = true;\n    fetchMe(accessToken)\n      .then((member) => {\n        if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));\n      })\n      .catch(() => {\n        if (active) setCanResolveHints(false);\n      });\n    return () => {\n      active = false;\n    };\n  }, [accessToken]);''',
-                  '''  useEffect(() => {\n    let active = true;\n    currentAccessTokenRef.current = accessToken;\n    setCanResolveHints(false);\n    setRelatedByEntity({});\n    setExpandedEntityId(null);\n    setRelatedLoading(null);\n    setSelectedPostId(null);\n    setSelectedPostGraph(null);\n    setResolvingHint(null);\n    setResolveError(null);\n    fetchMe(accessToken)\n      .then((member) => {\n        if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));\n      })\n      .catch(() => {\n        if (active) setCanResolveHints(false);\n      });\n    return () => {\n      active = false;\n    };\n  }, [accessToken]);''',
+                  '''  useEffect(() => {\n    let active = true;\n    setCanResolveHints(false);\n    setRelatedByEntity({});\n    setExpandedEntityId(null);\n    setRelatedLoading(null);\n    setSelectedPostId(null);\n    setSelectedPostGraph(null);\n    setResolvingHint(null);\n    setResolveError(null);\n    fetchMe(accessToken)\n      .then((member) => {\n        if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));\n      })\n      .catch(() => {\n        if (active) setCanResolveHints(false);\n      });\n    return () => {\n      active = false;\n    };\n  }, [accessToken]);''',
               ),
               (
                   '''  const loadMaster = useCallback(() => {\n    const requestGeneration = ++masterRequestGeneration.current;\n    setError(null);\n    return fetchCustomerMaster(accessToken)\n      .then((nextMaster) => {\n        if (requestGeneration === masterRequestGeneration.current) setMaster(nextMaster);\n      })\n      .catch(() => {\n        if (requestGeneration === masterRequestGeneration.current) {\n          setError(t("Customer master could not be loaded."));\n        }\n      });\n  }, [accessToken]);''',
@@ -79,7 +79,7 @@ jobs:
         run: uv run --frozen python -m pytest -q tests/test_customer_master_translation_auth_gate_contract.py
 
       - name: Set up Node
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v6
         with:
           node-version: "24"
 
@@ -94,7 +94,7 @@ jobs:
         working-directory: frontend
         run: |
           pnpm exec vitest run src/App.test.tsx src/components/ScreenTranslationGate.test.tsx
-          pnpm exec eslint src/App.tsx
+          pnpm exec oxlint src/App.tsx
 
       - name: Commit clean product tree
         shell: bash
