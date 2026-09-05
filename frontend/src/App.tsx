@@ -149,6 +149,10 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
 } from "./leftoverMapUnexplainedShare";
+import {
+  formatLeftoverMapCrossShare,
+  LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,
+} from "./leftoverMapCrossShare";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4080,6 +4084,9 @@ function ReportsPanel({
                     const unexplainedShare = formatLeftoverMapUnexplainedShare(
                       pair.leftover_map_unexplained_share,
                     );
+                    const crossShare = formatLeftoverMapCrossShare(
+                      pair.leftover_map_cross_share,
+                    );
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4128,6 +4135,14 @@ function ReportsPanel({
                               aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)}
                             >
                               {unexplainedShare}
+                            </span>
+                          ) : null}
+                          {crossShare ? (
+                            <span
+                              className="post-badge"
+                              aria-label={t(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL)}
+                            >
+                              {crossShare}
                             </span>
                           ) : null}
                         </button>

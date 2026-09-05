@@ -1,5 +1,84 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 00:48 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. #805 leftover-map
+> unexplained leftover `U` on pair segments (v2.33.0 / ADR 0276) is
+> `e3fdfd74`. #806 leftover residual `R` on pair segments (v2.34.0 /
+> ADR 0277) is `33f6c3dd`. #809 leftover observed `Y` on pair segments
+> (v2.35.0 / ADR 0278) is `b334b00e`. #810 leftover expected `E` on pair
+> segments (v2.36.0 / ADR 0279) is `6e37757a`. #811 leftover-map rank on
+> pair segments (v2.37.0 / ADR 0280) is `e626a1d0`. #812 leftover-map
+> complete-case coverage on the graphic (v2.38.0 / ADR 0281) is `64964cb6`.
+> #813 leftover-map item complete-case coverage on the graphic (v2.39.0 /
+> ADR 0282) is `de2a8a8b`. #814 leftover-map incomplete post coverage on
+> the graphic (v2.40.0 / ADR 0283) is `77292872`. #815 leftover-map
+> incomplete item coverage on the graphic (v2.41.0 / ADR 0284) is
+> `63092de`. #816 leftover-map item complete-case coverage on the pair
+> list (v2.42.0 / ADR 0285) is `1e3d13e`. #817 leftover-map incomplete
+> post coverage on the pair list (v2.43.0 / ADR 0286) is `ef30930`.
+> #818 leftover-map incomplete item coverage on the pair list
+> (v2.44.0 / ADR 0287) is `aa32089`. #819 leftover-map post complete-case
+> coverage fail-closed on the pair list (v2.45.0 / ADR 0288) is `a2c96551`.
+> #821 leftover-map complete-case coverage on the grouping comparison
+> strip (v2.46.0 / ADR 0289) is `11a78553`. #822 leftover-map item
+> complete-case coverage on the grouping comparison strip (v2.47.0 /
+> ADR 0290) is `6726353a`. #823 leftover-map singular values on leftover-axis
+> badges (v2.47.0 / ADR 0290, plot stack) is `eb172c40`. #824 leftover-map
+> incomplete post coverage on the grouping comparison strip (v2.48.0 /
+> ADR 0291) is `8b2ed95`. #825 leftover-map incomplete item coverage on
+> the grouping comparison strip (v2.49.0 / ADR 0292) is `bca6baa`. #826 leftover-map
+> reconstruction `R̂` on grouping comparison leftover-pair buttons
+> (v2.50.0 / ADR 0293) is `a4bf239`. #827 leftover-map explained leftover
+> share `e` on grouping comparison leftover-pair buttons (v2.51.0 /
+> ADR 0294) is `ead81bd`. #829 leftover-map unexplained leftover share
+> `s` on grouping comparison leftover-pair buttons (v2.52.0 / ADR 0295)
+> is `4d82c28`. Leave
+> #782/#802/#803/#804/#805/#806/#808/#809/#810/#811/#812/#813/#814/#815/#816/#817/#818/#819/#821/#822/#823/#824/#825/#826/#827/#829 open for
+> independent review. Do not squash-merge stacked leftover PRs onto an
+> unprotected leftover base. Do not merge #808 without independent APPROVE.
+> Strix on #782 failed closed at `Run Strix (quick)`; do not weaken
+> fail-closed on `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError`
+> classifier is already on ContextualWisdomLab/.github. Copilot review is
+> not independent APPROVE. Issues #79 and #87 stay open. #96 is already
+> closed. Only collaborator is `seonghobae`; no independent reviewer can
+> be requested from this token.
+>
+> Next buyer increment on this cycle: leftover-map cross share
+> `x` on grouping comparison leftover-pair buttons (ADR 0296 / v2.53.0)
+> delivered locally on `feat/leftover-map-compare-cross-share-v2530`.
+> Caption each strip leftover-pair button through
+> formatLeftoverMapCrossShare with distinct aria-label
+> `Leftover map comparison cross share` next to leftover-map unexplained
+> leftover share `s`, leftover-map explained leftover share `e`, leftover-map
+> reconstruction `R̂`, and leftover-map distance `d`. UI-only; no new
+> columns. Missing or non-finite `x` omits that leftover-map comparison
+> cross share badge independently of `s`, `e`, `R̂`, `d`, and coverage
+> notes. Do not invent `x` from `R̂`, `U`, and `R`, leftover-map distance,
+> plotted coordinates, leftover-map reconstruction, leftover residual,
+> leftover-map explained leftover share, leftover-map unexplained leftover
+> share, leftover-map rank, leftover-map post coverage, leftover-map item
+> coverage, leftover-map incomplete post coverage, leftover-map incomplete
+> item coverage, or the count of unused axes. A finite negative share is
+> shown, never clamped. Do not caption the leftover-map graphic on the
+> strip. Do not invent leftover scores. Stack onto leftover branch
+> `feat/leftover-map-compare-unexplained-share-v2520` / #829; leave the PR
+> open for independent review. Do not squash-merge onto the leftover
+> base. Do not persist leftover-map inner product, cosine, or length as
+> separate columns.
+
+
 > Exact-head loop overlay: 2026-08-31 00:42 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
