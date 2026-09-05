@@ -1,0 +1,74 @@
+name: Temporary 811 Vietnamese copy repair
+
+on:
+  push:
+    branches:
+      - "automation/811-vietnamese-copy-repair-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-811-vietnamese-copy-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/811-vietnamese-copy-repair-20260906
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply exact Vietnamese terminology repair
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/i18n.ts")
+          text = path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  "phần dư giải thích bản đồ phần dư {label}",
+                  "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",
+              ),
+              (
+                  "phần dư giải thích e",
+                  "tỷ phần phần dư được giải thích e",
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one occurrence of {old!r}, found {count}")
+              text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+
+      - name: Run focused RED-to-GREEN tests
+        working-directory: frontend
+        run: pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts src/i18n.test.ts
+
+      - name: Validate and commit clean product tree
+        run: |
+          git diff --check
+          rm .github/workflows/temporary-811-vietnamese-copy-repair.yml
+          test "$(git diff --name-only | sort | tr '\n' ' ')" = ".github/workflows/temporary-811-vietnamese-copy-repair.yml frontend/src/i18n.ts "
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/i18n.ts .github/workflows/temporary-811-vietnamese-copy-repair.yml
+          git commit -m "fix(i18n): restore Vietnamese explained-share terminology"
+          git push origin HEAD:automation/811-vietnamese-copy-repair-20260906
