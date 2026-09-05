@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 01:19 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #831 leftover-map cross share `x` on grouping comparison leftover-pair
+> buttons (v2.53.0 / ADR 0296) is `2cefc0b6`. Checks on #831 are green
+> (Full test suite + Frontend lint, test, build). Devin Review COMMENTED
+> only; Copilot review is not independent APPROVE. Leave #831 open.
+> Next buyer increment on this cycle: leftover-map unexplained leftover
+> `U` on grouping comparison leftover-pair buttons (ADR 0297 / v2.54.0)
+> delivered locally on `feat/leftover-map-compare-unexplained-v2540`.
+> Caption each strip leftover-pair button through
+> formatLeftoverMapUnexplained with distinct aria-label
+> `Leftover map comparison unexplained leftover` next to leftover-map
+> cross share `x`, leftover-map unexplained leftover share `s`, leftover-map
+> explained leftover share `e`, leftover-map reconstruction `R̂`, and
+> leftover-map distance `d`. UI-only; no new columns. Missing or
+> non-finite `U` omits that leftover-map comparison unexplained leftover
+> badge independently of `x`, `s`, `e`, `R̂`, `d`, and coverage notes.
+> Do not invent `U` from `R` and `R̂`, leftover-map distance, plotted
+> coordinates, leftover-map reconstruction, leftover residual,
+> leftover-map explained leftover share, leftover-map unexplained leftover
+> share, leftover-map cross share, leftover-map rank, leftover-map post
+> coverage, leftover-map item coverage, leftover-map incomplete post
+> coverage, leftover-map incomplete item coverage, or the count of unused
+> axes. A finite negative leftover is shown, never clamped. Do not caption
+> the leftover-map graphic on the strip. Do not invent leftover scores.
+> Stack onto leftover branch
+> `feat/leftover-map-compare-cross-share-v2530` / #831; leave the PR
+> open for independent review. Do not squash-merge onto the leftover
+> base. Do not persist leftover-map inner product, cosine, or length as
+> separate columns. Issues #79 and #87 stay open. #96 is already closed.
+> Only collaborator is `seonghobae`; no independent reviewer can be
+> requested from this token. Do not merge #808 without independent
+> APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 00:48 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
