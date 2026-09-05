@@ -1,5 +1,24 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 02:30 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #839 leftover-map coordinates `ξ` / `ζ` on grouping
+> comparison leftover-pair buttons (v2.59.0 / ADR 0302) is `51bf33a`,
+> stacked on #838 @ `6c7c66f`. Next buyer increment on this cycle:
+> leftover-map coordinates `ξ` / `ζ` on `GET /api/reports/compare/{period}`
+> leftover pairs (ADR 0303 / v2.60.0) delivered locally on
+> `feat/leftover-map-compare-coordinates-payload-v2600`. Return the four
+> persisted leftover-map axis columns on each compare leftover pair,
+> preserving nulls and converting finite numerics the same way as the
+> detail report. Rank-0 origin cells still return `0.0` on each axis when
+> stored. Missing axis stays null independently of rank, `E`, `Y`, `R`,
+> `U`, `x`, `s`, `e`, `R̂`, `d`, and coverage notes. Do not invent
+> coordinates from leftover-map rank, leftover-map distance, or leftover-map
+> reconstruction. Stack onto #839. Leave open for independent review. Do
+> not squash-merge. Issues #79 and #87 stay open. #96 is already closed.
+> Do not merge #808 without independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 02:20 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #838 leftover-map rank on grouping comparison leftover-pair

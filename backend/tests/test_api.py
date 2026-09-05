@@ -5851,6 +5851,36 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         or isinstance(pair["leftover_map_reconstruction"], (int, float))
         for pair in leftover_thread.get("leftover_pairs", [])
     )
+    assert all(
+        {
+            "leftover_map_person_axis_1",
+            "leftover_map_person_axis_2",
+            "leftover_map_item_axis_1",
+            "leftover_map_item_axis_2",
+        }.issubset(pair)
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    for pair in leftover_thread.get("leftover_pairs", []):
+        person_axis_1 = pair["leftover_map_person_axis_1"]
+        person_axis_2 = pair["leftover_map_person_axis_2"]
+        item_axis_1 = pair["leftover_map_item_axis_1"]
+        item_axis_2 = pair["leftover_map_item_axis_2"]
+        axes = (person_axis_1, person_axis_2, item_axis_1, item_axis_2)
+        if any(axis is None for axis in axes):
+            assert axes == (None, None, None, None)
+            continue
+        for axis in axes:
+            assert isinstance(axis, (int, float))
+            assert not math.isnan(axis)
+            assert not math.isinf(axis)
+        reconstruction = pair.get("leftover_map_reconstruction")
+        if reconstruction is not None:
+            assert reconstruction == pytest.approx(
+                person_axis_1 * item_axis_1 + person_axis_2 * item_axis_2
+            )
+        assert pair["leftover_distance"] == pytest.approx(
+            math.hypot(person_axis_1 - item_axis_1, person_axis_2 - item_axis_2)
+        )
 
 
 def test_seed_period_report_includes_fixture_event_lineage_posts(
