@@ -404,6 +404,29 @@ async def read_activity_events(
     """
     bounded_event_count = _activity_event_count(event_count)
     stream_keys = await _activity_read_stream_keys(valkey_client, post_id)
+
+    if len(stream_keys) == 1:
+        with traced(
+            "lineageweave.valkey.activity_xrevrange",
+            {
+                "db.system": "redis",
+                "db.operation.name": "xrevrange",
+                "lineageweave.stream.kind": "activity",
+            },
+        ):
+            canonical_entries = await valkey_client.xrevrange(
+                stream_keys[0], count=bounded_event_count
+            )
+        return [
+            {
+                "event_id": entry_id,
+                "event_type": activity_fields["event_type"],
+                "actor_account_id": activity_fields["actor_account_id"],
+                "summary": activity_fields["summary"],
+            }
+            for entry_id, activity_fields in canonical_entries
+        ]
+
     next_entries: list[tuple[tuple[str, dict[str, str]], int]] = []
     stream_results: list[tuple[str, dict[str, str]] | None] = [None] * len(stream_keys)
     with traced(
