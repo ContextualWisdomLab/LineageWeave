@@ -106,7 +106,8 @@ export type LeftoverPairListProps = {
  * pair list. ADR 0303 returns persisted leftover-map coordinates on
  * grouping comparison leftover pairs, not this pair list. ADR 0304
  * names persisted leftover-map axis share on the grouping comparison
- * strip, not this pair list. Every badge still
+ * strip, not this pair list. ADR 0305 returns persisted leftover-map
+ * rank on grouping comparison leftover pairs, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
