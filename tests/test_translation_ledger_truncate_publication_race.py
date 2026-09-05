@@ -108,7 +108,7 @@ async def _run_publication_truncate_race() -> None:
                 "lock table ui_translation_text in access exclusive mode"
             )
 
-            async def publish() -> BaseException | None:
+            async def publish() -> Exception | None:
                 try:
                     await publisher.execute(
                         """
@@ -118,24 +118,25 @@ async def _run_publication_truncate_race() -> None:
                         """,
                         resource_id,
                     )
-                except BaseException as exc:  # preserve the database race outcome for assertions
+                except Exception as exc:  # preserve the database race outcome for assertions
                     return exc
                 return None
 
             publish_task = asyncio.create_task(publish())
             await _wait_until_lock_blocked(setup, publisher_pid)
 
-            truncate_error: BaseException | None = None
+            truncate_error: Exception | None = None
             try:
                 await asyncio.wait_for(
                     truncator.execute("truncate table ui_translation_text"), timeout=5
                 )
                 await truncate_transaction.commit()
-            except BaseException as exc:
+            except Exception as exc:
                 truncate_error = exc
                 try:
                     await truncate_transaction.rollback()
                 except asyncpg.PostgresError:
+                    # Preserve the original TRUNCATE outcome after a terminated transaction.
                     pass
 
             publish_error = await asyncio.wait_for(publish_task, timeout=5)

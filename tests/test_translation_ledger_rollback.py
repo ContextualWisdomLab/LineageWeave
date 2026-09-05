@@ -307,7 +307,7 @@ def test_translation_ledger_rollback_serializes_empty_guard_against_concurrent_i
             await blocker.execute("commit")
             await rollback_task
             with pytest.raises(asyncpg.PostgresError):
-                await insert_task
+                _ = await insert_task
 
             assert await observer.fetchval("select to_regclass('ui_translation_resource')") is None
         finally:
@@ -315,6 +315,7 @@ def test_translation_ledger_rollback_serializes_empty_guard_against_concurrent_i
                 try:
                     await blocker.execute("rollback")
                 except asyncpg.PostgresError:
+                    # Teardown is best-effort after PostgreSQL ended the transaction.
                     pass
             for task in (rollback_task, insert_task):
                 if task is not None and not task.done():
@@ -322,6 +323,7 @@ def test_translation_ledger_rollback_serializes_empty_guard_against_concurrent_i
                     try:
                         await task
                     except (asyncio.CancelledError, asyncpg.PostgresError):
+                        # Cancellation or a terminated transaction is expected in teardown.
                         pass
             for connection in (observer, insert_connection, rollback_connection, blocker):
                 if connection is not None and not connection.is_closed():
