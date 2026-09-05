@@ -157,7 +157,11 @@ from backend.app.occupational_construct_search import (
     search_visible_occupational_constructs,
 )
 from backend.app.post_content_worker import run_post_content_worker
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    source_post_scope_sql,
+    source_post_visible,
+)
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
@@ -725,14 +729,42 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
     return await labels_for_codes(conn, codes)
 
 
+_VOICE_EVIDENCE_VISIBILITY_SQL = """
+    ({voice}.is_primary or exists (
+        select 1
+          from provenance_assertion voice_assertion
+          join provenance_resource_binding voice_evidence
+            on voice_evidence.resource_id = voice_assertion.object_resource_id
+           and voice_evidence.node_type_code = 'node_post'
+          join source_post voice_evidence_post
+            on voice_evidence_post.post_id = voice_evidence.node_id
+         where voice_assertion.assertion_id = {voice}.provenance_assertion_id
+           and voice_assertion.relation_code = 'prov_was_derived_from'
+           and {scope}
+           and {eligible}
+           and ({cutoff}::timestamptz is null
+                or voice_evidence_post.created_at <= {cutoff}::timestamptz)
+    ))
+""".format(
+    voice="{voice}",
+    cutoff="{cutoff}",
+    scope=source_post_scope_sql("voice_evidence_post")
+    .replace("$1", "{corporate_entities}")
+    .replace("$2", "{process_units}"),
+    eligible=SOURCE_POST_ELIGIBILITY_SQL.format(alias="voice_evidence_post"),
+)
+
+
 async def _load_post_voice_types(
     conn: asyncpg.Connection,
     post_id: str,
+    account: CurrentAccount,
     effective_cutoff: datetime | None = None,
 ) -> list[dict[str, Any]]:
-    """Return qualified Voice-of-X associations without exposing assertion ids."""
-    rows = await conn.fetch(
-        """
+    """Return Voice associations whose derivation evidence remains authorized."""
+    # SQL fragments are closed schema predicates; all caller values remain bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select voice.voice_type_code, lookup.lookup_label, voice.is_primary,
                voice.truth_status_code,
                voice.provenance_assertion_id is not null as evidence_available
@@ -741,6 +773,7 @@ async def _load_post_voice_types(
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = voice.voice_type_code
          where voice.post_id = $1
+           and {_VOICE_EVIDENCE_VISIBILITY_SQL.format(voice='voice', corporate_entities='$3', process_units='$4', cutoff='$2')}
            and (($2::timestamptz is null and voice.effective_to is null)
                 or ($2::timestamptz is not null
                     and voice.effective_from <= $2
@@ -749,6 +782,8 @@ async def _load_post_voice_types(
         """,
         post_id,
         effective_cutoff,
+        list(account.corporate_entity_ids),
+        list(account.process_unit_ids),
     )
     return [
         {
@@ -775,6 +810,7 @@ async def _post_filter_options(
           from source_post post
           left join source_post_voice voice
             on voice.post_id = post.post_id and voice.effective_to is null
+           and {_VOICE_EVIDENCE_VISIBILITY_SQL.format(voice='voice', corporate_entities='$1', process_units='$2', cutoff='null')}
          cross join lateral (
                values ('post_visibility', post.visibility_code),
                       ('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))
@@ -1605,6 +1641,7 @@ async def list_posts(
                      where voice_filter.post_id = post.post_id
                        and voice_filter.effective_to is null
                        and voice_filter.voice_type_code = any($3::text[])
+                       and {_VOICE_EVIDENCE_VISIBILITY_SQL.format(voice='voice_filter', corporate_entities='$2', process_units='$9', cutoff='null')}
                ))
                and ($4::text is null or post.visibility_code = $4)
                  order by
@@ -1680,6 +1717,7 @@ async def list_posts(
                      and lookup.lookup_code = voice.voice_type_code
                    where voice.post_id = page.post_id
                      and voice.effective_to is null
+                     and {_VOICE_EVIDENCE_VISIBILITY_SQL.format(voice='voice', corporate_entities='$2', process_units='$9', cutoff='null')}
               ) voices on true
              order by
                 case when $1::text is not null then page.search_priority end asc,
@@ -1765,7 +1803,7 @@ async def read_post(
         project_evidence = await _load_project_evidence(
             conn, post_id, row["source_project_code"], row["source_project_name"]
         )
-        voice_types = await _load_post_voice_types(conn, post_id, as_of_clock)
+        voice_types = await _load_post_voice_types(conn, post_id, account, as_of_clock)
         if as_of_clock is None:
             occupational_construct_assertions = (
                 await load_occupational_construct_assertions(conn, post_id)
@@ -1842,10 +1880,15 @@ async def create_post_voice_assignment(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "voice_type_code and truth_status_code must use governed lookup values",
             ) from exc
-        assignments = await _load_post_voice_types(conn, post_id)
+        assignments = await _load_post_voice_types(conn, post_id, account)
     assignment = next(
-        item for item in assignments if item["code"] == request.voice_type_code
+        (item for item in assignments if item["code"] == request.voice_type_code), None
     )
+    if assignment is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "The evidence is no longer available. Reopen the post and choose evidence you can view.",
+        )
     await publish_activity_event(
         valkey,
         post_id,
