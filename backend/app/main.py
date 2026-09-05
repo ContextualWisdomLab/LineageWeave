@@ -1861,7 +1861,7 @@ async def create_post_voice_assignment(
     evidence_post_id = str(request.evidence_post_id)
     if evidence_post_id != post_id:
         await _load_visible_post(evidence_post_id, account, pool)
-    async with pool.acquire() as conn:
+    async with pool.acquire() as conn, conn.transaction():
         try:
             await persist_additional_voice_assignment(
                 conn,
@@ -1881,14 +1881,14 @@ async def create_post_voice_assignment(
                 "voice_type_code and truth_status_code must use governed lookup values",
             ) from exc
         assignments = await _load_post_voice_types(conn, post_id, account)
-    assignment = next(
-        (item for item in assignments if item["code"] == request.voice_type_code), None
-    )
-    if assignment is None:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "The evidence is no longer available. Reopen the post and choose evidence you can view.",
+        assignment = next(
+            (item for item in assignments if item["code"] == request.voice_type_code), None
         )
+        if assignment is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "The evidence is no longer available. Reopen the post and choose evidence you can view.",
+            )
     await publish_activity_event(
         valkey,
         post_id,

@@ -197,6 +197,11 @@ def test_voice_reads_reauthorize_evidence_without_changing_assignments(
                 assert revoked_write.status_code == 409
                 assert evidence not in revoked_write.text
                 assert "Reopen the post" in revoked_write.json()["detail"]
+                async with pool.acquire() as conn:
+                    assert not await conn.fetchval(
+                        "select exists (select 1 from source_post_voice "
+                        "where post_id=$1::uuid and voice_type_code='voe')", post,
+                    )
         finally:
             main.app.dependency_overrides.clear()
             main.app.dependency_overrides.update(overrides)
