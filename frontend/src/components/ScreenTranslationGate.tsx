@@ -13,8 +13,8 @@ export function ScreenTranslationGate({ state, onRetry }: ScreenTranslationGateP
   return (
     <StatusNotice
       kind="retry"
-      message="This screen is not available in your selected language yet."
-      nextAction="Ask an administrator to publish this screen, or choose another language."
+      message="We could not load this screen in your selected language."
+      nextAction="Retry the translation request. If it still fails, ask an administrator to check access and publication status."
       onRetry={onRetry}
     />
   );
