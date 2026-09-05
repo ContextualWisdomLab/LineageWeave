@@ -933,6 +933,7 @@ describe("App, authenticated", () => {
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
                     leftover_map_reconstruction: 0.248,
+                    leftover_map_explained_share: 0.76,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4350,6 +4351,21 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        /leftover-map explained leftover share/,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison explained leftover share",
+      ),
+    ).toHaveTextContent("R̂²/R² 0.76");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison explained leftover share",
+      ),
+    ).toHaveLength(1);
+    expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: specification revision requested/i,
       }),
@@ -4359,6 +4375,11 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: specification revision requested/i,
       }),
     ).not.toHaveTextContent("R̂");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: specification revision requested/i,
+      }),
+    ).not.toHaveTextContent("R̂²/R²");
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
@@ -4383,6 +4404,11 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("R̂ +0.25");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("R̂²/R² 0.76");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),
