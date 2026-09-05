@@ -52,22 +52,26 @@ writer-fencing contract.
 Reads enumerate at most the retained-window number of streams. For a UUID read,
 the common path queues the first bounded alias-index `SSCAN` page and canonical
 `XREVRANGE count=N` in one non-transactional redis-py pipeline. When that scan
-returns cursor zero with no aliases, the paired canonical page is the complete
-result, so alias admission and data retrieval consume one network exchange rather
-than two sequential waits. A nonzero cursor or any retained alias falls back to
-the compatibility reader; it never treats an incomplete alias scan as evidence
-that the canonical stream is the only history.
+returns cursor zero, its alias members and paired canonical page are both reused
+by the same request. An empty member set completes the canonical-only response
+in that one exchange. A complete non-empty member set enters compatibility
+merge without scanning the alias index again or re-fetching the canonical page;
+only retained alias pages are fetched in the next pipeline exchange. A nonzero
+cursor falls back to the bounded compatibility iterator and never treats an
+incomplete alias scan as complete history.
 
 When aliases exist, production redis-py clients prefetch a bounded slice from
-every admitted stream in one non-transactional pipeline before merging locally.
-The per-stream page size is `min(event_count, 1000 // stream_count)`, with a
-minimum of one, so initial retained-entry buffering never exceeds the same
-1,000-entry product ceiling even when alias cardinality is high. If one stream
-supplies more than its prefetched share, only that exhausted stream is refilled
-with another bounded page. Minimal adapters without pipeline support retain the
-older one-entry incremental merger. Both paths preserve complete retained
-history, canonical-first equal-millisecond ordering, and the final 1..1000
-buyer-facing output budget.
+every admitted stream before merging locally. The per-stream page size is
+`min(event_count, 1000 // stream_count)`, with a minimum of one. When the first
+UUID pipeline already fetched the canonical page, that page is trimmed to this
+per-stream budget before retained aliases are fetched, and the alias-only second
+pipeline fills the remaining stream pages. Thus resident compatibility pages
+still stay within the same 1,000-entry product ceiling. If one stream supplies
+more than its prefetched share, only that exhausted stream is refilled with
+another bounded page. Minimal adapters without pipeline support retain the older
+one-entry incremental merger. Both paths preserve complete retained history,
+canonical-first equal-millisecond ordering, and the final 1..1000 buyer-facing
+output budget.
 
 ## Consequences
 
@@ -77,9 +81,11 @@ buyer-facing output budget.
   per alias.
 - The alias-free UUID buyer path admits compatibility metadata and fetches the
   bounded canonical window in one redis-py pipeline network exchange.
-- The retained-alias production path batches its first bounded history pages in
-  one pipeline exchange instead of issuing one network command per stream and
-  one additional command per returned event.
+- A complete retained-alias admission page is reused rather than discarded: the
+  one-alias compatibility fixture now needs two network exchanges, not three.
+- The retained-alias production path batches bounded history pages instead of
+  issuing one network command per stream and one additional command per returned
+  event.
 - Compatibility prefetch retains at most 1,000 stream entries at a time before
   output construction; skewed history refills only the stream that exhausted
   its bounded page.
@@ -102,6 +108,9 @@ buyer-facing output budget.
 - Perform an alias-index lookup and only afterward issue the canonical
   `XREVRANGE`: rejected because the normal UUID path then has at least two
   sequential Valkey network waits even when the alias set is empty.
+- Discard a complete non-empty first alias page and rescan it before compatibility
+  merge: rejected because it adds a deterministic network exchange and repeats
+  admission work without improving history correctness.
 - Fetch one compatibility entry per stream and then await one `XREVRANGE` per
   returned event: rejected because an authorized 50-event legacy-history panel
   still pays roughly one sequential Valkey wait per result.
@@ -140,6 +149,15 @@ buyer-facing output budget.
 - Production repair `2ee36cf7844526a5f27803100f2b469e31573a98` batches bounded per-stream
   history pages through one non-transactional pipeline and refills only an
   exhausted stream, with total initial buffering capped at 1,000 entries.
+- Review `5122107164` found that the retained-alias path still discarded the
+  complete first SSCAN page and canonical XREVRANGE, then repeated alias
+  admission and canonical retrieval before merging.
+- RED `15746e2be27effca16c71f445f8d77f5d55fe6b8` requires the one-alias fixture
+  to preserve exact four-event ordering in exactly two network exchanges, with
+  pipeline batches `[2, 1]`.
+- Production repair `07fa552f9fecbe1cda79a9fccc7eeacd82c4fba5` carries a complete first
+  alias page plus the canonical page into compatibility merge and fetches only
+  retained alias pages in the second pipeline exchange.
 - redis-py asyncio pipeline documentation specifies that pipeline commands are
   buffered and executed together when awaited through `execute()`; transactions
   remain optional and are not required for these independent read or set-write
