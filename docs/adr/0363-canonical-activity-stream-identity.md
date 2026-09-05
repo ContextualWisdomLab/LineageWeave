@@ -56,9 +56,11 @@ returns cursor zero, its alias members and paired canonical page are both reused
 by the same request. An empty member set completes the canonical-only response
 in that one exchange. A complete non-empty member set enters compatibility
 merge without scanning the alias index again or re-fetching the canonical page;
-only retained alias pages are fetched in the next pipeline exchange. A nonzero
-cursor falls back to the bounded compatibility iterator and never treats an
-incomplete alias scan as complete history.
+only retained alias pages are fetched in the next pipeline exchange. Reusing a
+complete page does not bypass the existing fan-out ceiling: canonical stream plus
+retained aliases may contain at most 1,000 distinct stream keys. A nonzero cursor
+falls back to the bounded compatibility iterator and never treats an incomplete
+alias scan as complete history.
 
 When aliases exist, production redis-py clients prefetch a bounded slice from
 every admitted stream before merging locally. The per-stream page size is
@@ -83,6 +85,8 @@ output budget.
   bounded canonical window in one redis-py pipeline network exchange.
 - A complete retained-alias admission page is reused rather than discarded: the
   one-alias compatibility fixture now needs two network exchanges, not three.
+- Reused admission pages fail closed above 1,000 distinct canonical-plus-alias
+  stream keys before any retained-alias fan-out is issued.
 - The retained-alias production path batches bounded history pages instead of
   issuing one network command per stream and one additional command per returned
   event.
@@ -111,6 +115,9 @@ output budget.
 - Discard a complete non-empty first alias page and rescan it before compatibility
   merge: rejected because it adds a deterministic network exchange and repeats
   admission work without improving history correctness.
+- Reuse a complete alias page without reapplying the total-stream ceiling:
+  rejected because 1,000 aliases plus the canonical stream would silently expand
+  request fan-out beyond the bounded contract formerly enforced by the iterator.
 - Fetch one compatibility entry per stream and then await one `XREVRANGE` per
   returned event: rejected because an authorized 50-event legacy-history panel
   still pays roughly one sequential Valkey wait per result.
@@ -158,6 +165,13 @@ output budget.
 - Production repair `07fa552f9fecbe1cda79a9fccc7eeacd82c4fba5` carries a complete first
   alias page plus the canonical page into compatibility merge and fetches only
   retained alias pages in the second pipeline exchange.
+- Follow-up review `5122123572` found that this reuse path initially skipped the
+  iterator's existing total-stream fan-out guard.
+- RED `a9c080c1f2fa030bd2b0cec0e2fb6b43e4328bbc` supplies a complete first page
+  with 1,000 aliases and requires fail-closed behavior after the first two-command
+  exchange, before a retained-alias pipeline is issued.
+- Production repair `8ef3a42608739e5a32b5841e4a14494df5326a3f` reapplies the 1,000 distinct
+  canonical-plus-alias stream ceiling to reused admission pages.
 - redis-py asyncio pipeline documentation specifies that pipeline commands are
   buffered and executed together when awaited through `execute()`; transactions
   remain optional and are not required for these independent read or set-write
