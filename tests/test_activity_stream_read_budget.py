@@ -40,8 +40,13 @@ class _PopulatedReadClient:
             ("100-0", {"event_type": "first", "actor_account_id": "actor", "summary": "first"}),
         ]
 
+    def pipeline(self, *, transaction: bool):
+        """Queue alias admission and canonical data read onto one network exchange."""
+        assert transaction is False
+        return _ReadPipeline(self)
+
     async def sscan_iter(self, key: str):
-        """Count the alias-index exchange that precedes the canonical stream read."""
+        """Count any compatibility fallback alias scan as another exchange."""
         del key
         self.round_trips += 1
         if False:
@@ -64,6 +69,48 @@ class _PopulatedReadClient:
             upper_ms = int(upper.partition("-")[0])
             eligible = [entry for entry in self.entries if int(entry[0].partition("-")[0]) < upper_ms]
         return eligible[:count]
+
+
+class _ReadPipeline:
+    """Model two queued Redis commands completed by one pipeline exchange."""
+
+    def __init__(self, client: _PopulatedReadClient) -> None:
+        self.client = client
+        self.alias_key: str | None = None
+        self.read_request: tuple[str, str, int | None] | None = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback) -> bool:
+        del exc_type, exc, traceback
+        return False
+
+    def sscan(self, key: str, *, cursor: int, count: int):
+        assert cursor == 0
+        assert count == 1000
+        self.alias_key = key
+        return self
+
+    def xrevrange(
+        self,
+        key: str,
+        max: str = "+",
+        min: str = "-",
+        count: int | None = None,
+    ):
+        del min
+        self.read_request = (key, max, count)
+        return self
+
+    async def execute(self):
+        assert self.alias_key == "activity-aliases:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        assert self.read_request is not None
+        key, max_value, count = self.read_request
+        self.client.round_trips += 1
+        self.client.calls.append((key, max_value, count))
+        eligible = self.client.entries
+        return [(0, []), eligible[:count]]
 
 
 @pytest.mark.parametrize("event_count", (True, 1.0, "50"))
