@@ -1,5 +1,198 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-30 19:08 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. #805 leftover-map
+> unexplained leftover `U` on pair segments (v2.33.0 / ADR 0276) is
+> `e3fdfd74`. #806 leftover residual `R` on pair segments (v2.34.0 /
+> ADR 0277) is `33f6c3dd`. #809 leftover observed `Y` on pair segments
+> (v2.35.0 / ADR 0278) is `b334b00e`. #810 leftover expected `E` on pair
+> segments (v2.36.0 / ADR 0279) is `6e37757a`. Leave
+> #782/#802/#803/#804/#805/#806/#808/#809/#810 open for independent review.
+> Do not squash-merge stacked leftover PRs onto an unprotected leftover
+> base. Do not merge #808 without independent APPROVE. Strix on #782
+> failed closed at `Run Strix (quick)`; do not weaken fail-closed on
+> `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError` classifier is
+> already on ContextualWisdomLab/.github. Copilot review is not
+> independent APPROVE. Issues #79 and #87 stay open. #96 is already
+> closed. Only collaborator is `seonghobae`; no independent reviewer can
+> be requested from this token.
+>
+> Next buyer increment on this cycle: leftover-map rank on
+> graphic-display pair segments (ADR 0280 / v2.37.0) delivered locally on
+> `feat/leftover-map-segment-rank-v2370`. Caption each closest/farthest
+> segment with persisted leftover-map rank so the pair-row `rank` badge
+> matches the graphic and a rank-0 origin is not read as a two-axis map.
+> UI-only; no new columns. Missing, negative, or non-integer rank omits
+> that leftover-map rank caption. Rank `0` is shown when persisted. Do
+> not invent rank from plotted coordinates, leftover-map distance, or
+> the count of unused axes. Do not invent leftover scores. Stack onto
+> leftover branch `feat/leftover-map-segment-expected-v2360` / #810;
+> leave the PR open for independent review. Do not squash-merge onto the
+> leftover base. Do not persist leftover-map inner product, cosine, or
+> length as separate columns.
+
+> Exact-head loop overlay: 2026-08-30 16:09 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `1af3e53e`) restores `main` toward
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. #805 leftover-map
+> unexplained leftover `U` on pair segments (v2.33.0 / ADR 0276) is
+> `e3fdfd74`. #806 leftover residual `R` on pair segments (v2.34.0 /
+> ADR 0277) is `33f6c3dd`. #809 leftover observed `Y` on pair segments
+> (v2.35.0 / ADR 0278) is `b334b00e`. Leave
+> #782/#802/#803/#804/#805/#806/#808/#809 open for independent review.
+> Do not squash-merge stacked leftover PRs onto an unprotected leftover
+> base. Do not merge #808 without independent APPROVE. Strix on #782
+> failed closed at `Run Strix (quick)`; do not weaken fail-closed on
+> `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError` classifier is
+> already on ContextualWisdomLab/.github. Copilot review is not
+> independent APPROVE. Issues #79 and #87 stay open. #96 does not exist
+> on this repository. Only collaborator is `seonghobae`; no independent
+> reviewer can be requested from this token.
+>
+> Next buyer increment on this cycle: leftover expected `E` on
+> graphic-display pair segments (ADR 0279 / v2.36.0) delivered locally on
+> `feat/leftover-map-segment-expected-v2360`. Caption each
+> closest/farthest segment with persisted leftover expected so the
+> pair-row `E` badge matches the graphic and `Y − E = R` is
+> graphic-auditable. UI-only; no new columns. Missing/non-finite `E`
+> omits that leftover expected caption. A finite negative expected is
+> shown; do not clamp to nonnegative. Do not invent `E` from `Y` and
+> `R` or from plotted coordinates. Do not invent leftover scores.
+> Stack onto leftover branch `feat/leftover-map-segment-observed-v2350`
+> / #809; leave the PR open for independent review. Do not squash-merge
+> onto the leftover base. Do not persist leftover-map inner product,
+> cosine, or length as separate columns.
+
+> Exact-head loop overlay: 2026-08-30 13:06 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
+> of leftover-map coordinates (v2.24.0 / #782). Revert #808
+> (`revert-pr782-unauthorized` @ `a10c2101`) restores `main` to
+> `fc13acaa` (v2.23.0) and still needs independent APPROVE. GitHub
+> writes work (comment/close/create-PR/push). Token still has empty
+> `X-OAuth-Scopes`; repo permission is ADMIN. Open leftover stack
+> still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. #805 leftover-map
+> unexplained leftover `U` on pair segments (v2.33.0 / ADR 0276) is
+> `e3fdfd74`. #806 leftover residual `R` on pair segments (v2.34.0 /
+> ADR 0277) is `33f6c3dd`. Leave #782/#802/#803/#804/#805/#806/#808
+> open for independent review. Do not squash-merge stacked leftover PRs
+> onto an unprotected leftover base. Do not merge #808 without
+> independent APPROVE. Strix on #782 failed closed at `Run Strix (quick)`;
+> do not weaken fail-closed on `Vulnerabilities [1-9]`. Org Strix
+> `ModelBehaviorError` classifier is already on ContextualWisdomLab/.github.
+> Copilot review is not independent APPROVE. Issues #79 and #87 stay open.
+> #96 closed as weaker duplicate of #91. Only collaborator is
+> `seonghobae`; no independent reviewer can be requested from this token.
+>
+> Next buyer increment on this cycle: leftover observed `Y` on
+> graphic-display pair segments (ADR 0278 / v2.35.0) delivered locally on
+> `feat/leftover-map-segment-observed-v2350`. Caption each
+> closest/farthest segment with persisted leftover observed so the
+> pair-row `Y` badge matches the graphic and `Y − E = R` is
+> graphic-auditable. UI-only; no new columns. Missing/non-finite `Y`
+> omits that leftover observed caption. A finite negative observed is
+> shown; do not clamp to nonnegative. Do not invent `Y` from `R` and
+> `E` or from plotted coordinates. Do not invent leftover scores.
+> Stack onto leftover branch `feat/leftover-map-segment-residual-v2340`
+> / #806; leave the PR open for independent review. Do not squash-merge
+> onto the leftover base. Do not persist leftover-map inner product,
+> cosine, or length as separate columns.
+
+> Exact-head loop overlay: 2026-08-30 06:20 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share). GitHub writes work (comment/close/create-PR).
+> Token still has empty `X-OAuth-Scopes`; repo permission is ADMIN.
+> Open leftover stack still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. #805 leftover-map
+> unexplained leftover `U` on pair segments (v2.33.0 / ADR 0276) is
+> `e3fdfd74`. Leave #782/#802/#803/#804/#805 open for independent review.
+> Do not squash-merge stacked leftover PRs onto an unprotected leftover
+> base. Strix on #782 failed closed at `Run Strix (quick)`; do not weaken
+> fail-closed on `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError`
+> classifier is already on ContextualWisdomLab/.github. Copilot review is
+> not independent APPROVE. Issues #79 and #87 stay open. Only collaborator
+> is `seonghobae`; no independent reviewer can be requested from this token.
+>
+> Next buyer increment on this cycle: leftover residual `R` on
+> graphic-display pair segments (ADR 0277 / v2.34.0) delivered locally on
+> `feat/leftover-map-segment-residual-v2340`. Caption each
+> closest/farthest segment with persisted leftover residual so the
+> pair-row `R` badge matches the graphic and `U + R̂ = R` is
+> graphic-auditable. UI-only; no new columns. Missing/non-finite `R`
+> omits that leftover residual caption. A finite negative leftover is
+> shown; do not clamp to nonnegative. Do not invent `R` from `Y` and `E`,
+> from `U` and `R̂`, or from plotted coordinates. Do not invent leftover
+> scores. Stack onto leftover branch
+> `feat/leftover-map-segment-unexplained-leftover-v2330` / #805; leave the
+> PR open for independent review. Do not squash-merge onto the leftover
+> base. Do not persist leftover-map inner product, cosine, or length as
+> separate columns.
+
+> Exact-head loop overlay: 2026-08-30 02:09 KST. Protected `main` is
+> `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
+> explained leftover share). GitHub writes work (comment/close/create-PR).
+> Token still has empty `X-OAuth-Scopes`; repo permission is ADMIN.
+> Open leftover stack still lacks independent APPROVE. Do not self-approve.
+> #782 leftover-map coordinates through pair-segment distance
+> (v2.24.0–v2.28.0 / ADR 0267–0271) is `9bdd3e4d`. #802 explained
+> leftover share on pair segments (v2.30.0 / ADR 0273, includes v2.29
+> reconstruction) is `79ec22f0`. #803 unexplained leftover share on pair
+> segments (v2.31.0 / ADR 0274) is `089a1571`. #804 leftover-map cross
+> share on pair segments (v2.32.0 / ADR 0275) is `c513002b`. Leave
+> #782/#802/#803/#804 open for independent review. Do not squash-merge
+> stacked leftover PRs onto an unprotected leftover base. Strix on #782
+> failed closed at `Run Strix (quick)`; do not weaken fail-closed on
+> `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError` classifier is
+> already on ContextualWisdomLab/.github. Copilot review is not
+> independent APPROVE. Issues #79 and #87 stay open.
+>
+> Next buyer increment on this cycle: leftover-map unexplained leftover
+> `U` on graphic-display pair segments (ADR 0276 / v2.33.0) delivered
+> locally on `feat/leftover-map-segment-unexplained-leftover-v2330`.
+> Caption each closest/farthest segment with persisted leftover-map
+> unexplained leftover so the pair-row `U` badge matches the graphic
+> and `U + R̂ = R` is graphic-auditable. UI-only; no new columns.
+> Missing/non-finite `U` omits that unexplained leftover caption. A
+> finite negative leftover is shown; do not clamp to nonnegative. Do not
+> invent `U` from `R` and `R̂` or from plotted coordinates. Do not invent
+> leftover scores. Stack onto leftover branch
+> `feat/leftover-map-segment-cross-share-v2320` / #804; leave the PR open
+> for independent review. Do not squash-merge onto the leftover base.
+> Do not persist leftover-map inner product, cosine, or length as
+> separate columns.
+
 > Exact-head loop overlay: 2026-08-29 23:10 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

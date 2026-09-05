@@ -71,7 +71,12 @@ describe("i18n", () => {
     "leftover-map explained leftover share {label}",
     "leftover-map unexplained leftover share {label}",
     "leftover-map cross share {label}",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, and leftover-map cross share x. Click a post marker to open that post. The plot does not invent a leftover score.",
+    "leftover-map unexplained leftover {label}",
+    "leftover residual {label}",
+    "leftover observed {label}",
+    "leftover expected {label}",
+    "leftover-map rank {label}",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Open leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
@@ -335,22 +340,22 @@ describe("i18n", () => {
   it.each([
     [
       "ko",
-      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d, 잔여 지도 재구성 R̂, 잔여 지도 설명 잔여 점유율 e, 잔여 지도 미설명 잔여 점유율 s, 잔여 지도 교차 점유율 x입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d, 잔여 지도 재구성 R̂, 잔여 지도 설명 잔여 점유율 e, 잔여 지도 미설명 잔여 점유율 s, 잔여 지도 교차 점유율 x, 잔여 지도 미설명 잔여 U, 잔여 R, 관측 Y, 기대 E, 잔여 지도 순위입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
     ],
-    ["zh", "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d、残差图重建 R̂、残差图已解释残差份额 e、残差图未解释残差份额 s 与残差图交叉份额 x。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
+    ["zh", "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d、残差图重建 R̂、残差图已解释残差份额 e、残差图未解释残差份额 s、残差图交叉份额 x、残差图未解释残差 U、残差 R、观测 Y、期望 E 与残差图秩。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
     [
       "ja",
-      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d、残差マップ再構成 R̂、残差マップ説明済み残差割合 e、残差マップ未説明残差割合 s、残差マップ交差割合 x です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d、残差マップ再構成 R̂、残差マップ説明済み残差割合 e、残差マップ未説明残差割合 s、残差マップ交差割合 x、残差マップ未説明残差 U、残差 R、観測 Y、期待 E、残差マップ階数です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
     ],
     [
       "vi",
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s và phần giao x. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     ],
   ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
     setLocale(locale);
     expect(
       t(
-        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, and leftover-map cross share x. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBe(expected);
   });
@@ -417,6 +422,56 @@ describe("i18n", () => {
   ] as const)("formats leftover-map segment cross share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map cross share {label}", { label: "2R̂U/R² 0.12" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 미설명 잔여 U +0.05"],
+    ["zh", "残差图未解释残差 U +0.05"],
+    ["ja", "残差マップ未説明残差 U +0.05"],
+    ["vi", "phần dư chưa giải thích U +0.05"],
+  ] as const)("formats leftover-map segment unexplained leftover in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map unexplained leftover {label}", { label: "U +0.05" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 R +0.40"],
+    ["zh", "残差 R +0.40"],
+    ["ja", "残差 R +0.40"],
+    ["vi", "phần dư R +0.40"],
+  ] as const)("formats leftover-map segment leftover residual in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover residual {label}", { label: "R +0.40" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "관측 Y 2.40"],
+    ["zh", "观测 Y 2.40"],
+    ["ja", "観測 Y 2.40"],
+    ["vi", "quan sát Y 2.40"],
+  ] as const)("formats leftover-map segment leftover observed in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover observed {label}", { label: "Y 2.40" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "기대 E 2.00"],
+    ["zh", "期望 E 2.00"],
+    ["ja", "期待 E 2.00"],
+    ["vi", "kỳ vọng E 2.00"],
+  ] as const)("formats leftover-map segment leftover expected in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover expected {label}", { label: "E 2.00" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 순위 rank 1"],
+    ["zh", "残差图秩 rank 1"],
+    ["ja", "残差マップ階数 rank 1"],
+    ["vi", "hạng bản đồ phần dư rank 1"],
+  ] as const)("formats leftover-map segment leftover-map rank in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map rank {label}", { label: "rank 1" })).toBe(expected);
   });
 
   it.each([

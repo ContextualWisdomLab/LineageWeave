@@ -9,6 +9,94 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover-map rank (ADR 0280 / v2.37.0). After
+  `make seed`, closest and farthest leftover pairs sit above the member
+  list with the Gabriel biplot of already-named coordinates, leftover-map
+  axis share when finite, axis ticks that match `ξ (x, y) ζ (x, y)` on
+  the pair row, pair segments that match `d` on the pair row, pair
+  segments that match `R̂` on the pair row, pair segments that match
+  `R̂²/R²` on the pair row, pair segments that match `U²/R²` on the pair
+  row, pair segments that match `2R̂U/R²` on the pair row, pair segments
+  that match `U` on the pair row, pair segments that match `R` on the
+  pair row, pair segments that match `Y` on the pair row, pair segments
+  that match `E` on the pair row, and pair segments that match leftover-map
+  rank on the pair row; click a post marker or a pair button opens that
+  post. A missing, negative, or non-integer rank omits that leftover-map
+  rank caption. Rank `0` is shown when that persisted rank is a
+  non-negative integer; do not hide a rank-0 collapse. Do not invent rank
+  from plotted coordinates, leftover-map distance, or the count of unused
+  axes. Never invent a leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover expected `E[Y|θ, item]` (ADR 0279 /
+  v2.36.0). After `make seed`, closest and farthest leftover pairs sit
+  above the member list with the Gabriel biplot of already-named
+  coordinates, leftover-map axis share when finite, axis ticks that
+  match `ξ (x, y) ζ (x, y)` on the pair row, pair segments that match
+  `d` on the pair row, pair segments that match `R̂` on the pair row,
+  pair segments that match `R̂²/R²` on the pair row, pair segments that
+  match `U²/R²` on the pair row, pair segments that match `2R̂U/R²` on
+  the pair row, pair segments that match `U` on the pair row, pair
+  segments that match `R` on the pair row, pair segments that match `Y`
+  on the pair row, and pair segments that match `E` on the pair row;
+  click a post marker or a pair button opens that post. A missing or
+  non-finite `E` omits that leftover expected caption. A finite
+  negative expected is shown; do not clamp to nonnegative. Do not
+  invent `E` from `Y` and `R` or from plotted coordinates. Never invent
+  a leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover observed `Y` (ADR 0278 / v2.35.0).
+  After `make seed`, closest and farthest leftover pairs sit above the
+  member list with the Gabriel biplot of already-named coordinates,
+  leftover-map axis share when finite, axis ticks that match
+  `ξ (x, y) ζ (x, y)` on the pair row, pair segments that match `d` on
+  the pair row, pair segments that match `R̂` on the pair row, pair
+  segments that match `R̂²/R²` on the pair row, pair segments that
+  match `U²/R²` on the pair row, pair segments that match `2R̂U/R²` on
+  the pair row, pair segments that match `U` on the pair row, pair
+  segments that match `R` on the pair row, and pair segments that match
+  `Y` on the pair row; click a post marker or a pair button opens that
+  post. A missing or non-finite `Y` omits that leftover observed
+  caption. A finite negative observed is shown; do not clamp to
+  nonnegative. Do not invent `Y` from `R` and `E` or from plotted
+  coordinates. Never invent a leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover residual `R = Y − E[Y|θ, item]`
+  (ADR 0277 / v2.34.0). After `make seed`, closest and farthest leftover
+  pairs sit above the member list with the Gabriel biplot of
+  already-named coordinates, leftover-map axis share when finite, axis
+  ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair segments
+  that match `d` on the pair row, pair segments that match `R̂` on the
+  pair row, pair segments that match `R̂²/R²` on the pair row, pair
+  segments that match `U²/R²` on the pair row, pair segments that match
+  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair
+  row, and pair segments that match `R` on the pair row; click a post
+  marker or a pair button opens that post. A missing or non-finite `R`
+  omits that leftover residual caption. A finite negative leftover is
+  shown; do not clamp to nonnegative. Do not invent `R` from `Y` and
+  `E`, from `U` and `R̂`, or from plotted coordinates. Never invent a
+  leftover score or a theta. No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display pair
+  segments with persisted leftover-map unexplained leftover
+  `U = R − R̂` (ADR 0276 / v2.33.0). After `make seed`, closest and
+  farthest leftover pairs sit above the member list with the Gabriel
+  biplot of already-named coordinates, leftover-map axis share when
+  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row,
+  pair segments that match `d` on the pair row, pair segments that
+  match `R̂` on the pair row, pair segments that match `R̂²/R²` on
+  the pair row, pair segments that match `U²/R²` on the pair row,
+  pair segments that match `2R̂U/R²` on the pair row, and pair
+  segments that match `U` on the pair row; click a post marker or a
+  pair button opens that post. A missing or non-finite `U` omits that
+  unexplained leftover caption. A finite negative leftover is shown;
+  do not clamp to nonnegative. Do not invent `U` from `R` and `R̂` or
+  from plotted coordinates. Never invent a leftover score or a theta.
+  No new columns.
+
+- Period leftover pairs now caption leftover-map graphic-display pair
   segments with persisted leftover-map cross share
   `x = 2 R̂ U / R²` (ADR 0275 / v2.32.0). After `make seed`, closest and
   farthest leftover pairs sit above the member list with the Gabriel

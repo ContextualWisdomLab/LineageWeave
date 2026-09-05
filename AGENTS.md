@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -317,8 +317,30 @@ the pair-row `U²/R²` badge matches the graphic; a missing or non-finite
 segments with persisted leftover-map cross share `x` so
 the pair-row `2R̂U/R²` badge matches the graphic; a missing or non-finite
 `x` omits that leftover-map cross share caption and does not invent
-`x` from `R̂`, `U`, and `R` or from plotted coordinates. When `R`, `R̂`, `U`, `x`,
-`s`, and `e` are finite, `e + s + x = 1`. When coordinates,
+`x` from `R̂`, `U`, and `R` or from plotted coordinates. ADR 0276 captions leftover-map pair
+segments with persisted leftover-map unexplained leftover `U` so
+the pair-row `U` badge matches the graphic; a missing or non-finite
+`U` omits that unexplained leftover caption and does not invent
+`U` from `R` and `R̂` or from plotted coordinates. ADR 0277 captions leftover-map pair
+segments with persisted leftover residual `R` so the pair-row residual
+badge matches the graphic; a missing or non-finite `R` omits that leftover
+residual caption and does not invent `R` from `Y` and `E`, from `U` and
+`R̂`, or from plotted coordinates. ADR 0278 captions leftover-map pair
+segments with persisted leftover observed `Y` so the pair-row `Y` badge
+matches the graphic; a missing or non-finite `Y` omits that leftover
+observed caption and does not invent `Y` from `R` and `E` or from plotted
+coordinates. ADR 0279 captions leftover-map pair
+segments with persisted leftover expected `E` so the pair-row `E` badge
+matches the graphic; a missing or non-finite `E` omits that leftover
+expected caption and does not invent `E` from `Y` and `R` or from plotted
+coordinates. ADR 0280 captions leftover-map pair
+segments with persisted leftover-map rank so the pair-row `rank` badge
+matches the graphic; a missing, negative, or non-integer rank omits that
+leftover-map rank caption and does not invent rank from plotted
+coordinates, leftover-map distance, or the count of unused axes. When `R`, `R̂`, `U`, `x`,
+`s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
+finite, `Y − E = R`. When `R`, `R̂`, and `U` are
+finite, `U + R̂ = R`. When coordinates,
 reconstruction, and distance are finite, `R̂ = ξ · ζ` and
 `d = ‖ξ − ζ‖`. The pairs sit above the member
 list so a click opens that post with the leftover criterion current

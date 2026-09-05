@@ -19,7 +19,12 @@
 [ADR 0272](0272-leftover-map-segment-reconstruction.md) (leftover-map reconstruction on pair segments);
 [ADR 0273](0273-leftover-map-segment-explained-share.md) (leftover-map explained leftover share on pair segments);
 [ADR 0274](0274-leftover-map-segment-unexplained-share.md) (leftover-map unexplained leftover share on pair segments);
-[ADR 0275](0275-leftover-map-segment-cross-share.md) (leftover-map cross share on pair segments)
+[ADR 0275](0275-leftover-map-segment-cross-share.md) (leftover-map cross share on pair segments);
+[ADR 0276](0276-leftover-map-segment-unexplained-leftover.md) (leftover-map unexplained leftover on pair segments);
+[ADR 0277](0277-leftover-map-segment-residual.md) (leftover residual on pair segments);
+[ADR 0278](0278-leftover-map-segment-observed.md) (leftover observed Y on pair segments);
+[ADR 0279](0279-leftover-map-segment-expected.md) (leftover expected E on pair segments);
+[ADR 0280](0280-leftover-map-segment-rank.md) (leftover-map rank on pair segments)
 
 ## Context
 
@@ -51,7 +56,12 @@ distance `d` (ADR 0271). Pair segments name persisted leftover-map
 reconstruction `R̂` (ADR 0272). Pair segments name persisted leftover-map
 explained leftover share `e` (ADR 0273). Pair segments name persisted leftover-map
 unexplained leftover share `s` (ADR 0274). Pair segments name persisted leftover-map
-cross share `x` (ADR 0275). The pair renders every available finite measurement.
+cross share `x` (ADR 0275). Pair segments name persisted leftover-map
+unexplained leftover `U` (ADR 0276). Pair segments name persisted leftover
+residual `R` (ADR 0277). Pair segments name persisted leftover observed
+`Y` (ADR 0278). Pair segments name persisted leftover expected
+`E` (ADR 0279). Pair segments name persisted leftover-map rank
+(ADR 0280). The pair renders every available finite measurement.
 The next action uses the first available value in the priority below; no
 amendment hides another badge, rank 0
 explicitly names no leftover structure, and unexplained leftover names
@@ -92,6 +102,16 @@ Leftover-map unexplained leftover share on pair segments is
 [ADR 0274](0274-leftover-map-segment-unexplained-share.md).
 Leftover-map cross share on pair segments is
 [ADR 0275](0275-leftover-map-segment-cross-share.md).
+Leftover-map unexplained leftover on pair segments is
+[ADR 0276](0276-leftover-map-segment-unexplained-leftover.md).
+Leftover residual on pair segments is
+[ADR 0277](0277-leftover-map-segment-residual.md).
+Leftover observed Y on pair segments is
+[ADR 0278](0278-leftover-map-segment-observed.md).
+Leftover expected E on pair segments is
+[ADR 0279](0279-leftover-map-segment-expected.md).
+Leftover-map rank on pair segments is
+[ADR 0280](0280-leftover-map-segment-rank.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover
