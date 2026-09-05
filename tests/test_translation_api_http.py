@@ -16,10 +16,10 @@ from backend.app.translation_ledger import (
 def _client(*, authenticated: bool) -> TestClient:
     """Build a route-level client without starting external service lifespans."""
     api.app.dependency_overrides.clear()
-    api.app.dependency_overrides[api.get_pool] = lambda: object()
-    api.app.dependency_overrides[api.get_valkey] = lambda: object()
+    api.app.dependency_overrides[api.get_pool] = object
+    api.app.dependency_overrides[api.get_valkey] = object
     if authenticated:
-        api.app.dependency_overrides[api.get_current_account] = lambda: object()
+        api.app.dependency_overrides[api.get_current_account] = object
     return TestClient(api.app)
 
 
