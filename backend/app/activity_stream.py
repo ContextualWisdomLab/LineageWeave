@@ -164,20 +164,19 @@ async def _activity_read_stream_keys(
     return tuple(dict.fromkeys(candidate_keys))
 
 
-async def _activity_canonical_entries_if_alias_free(
+async def _activity_initial_uuid_read(
     valkey_client: redis.Redis,
     post_id: str,
     event_count: int,
-) -> list[tuple[str, dict[str, str]]] | None:
-    """Read alias admission and canonical events in one UUID-path network exchange.
+) -> tuple[list[tuple[str, dict[str, str]]], tuple[str, ...]] | None:
+    """Read complete alias admission and canonical events in one UUID exchange.
 
     The retained-alias set exists only to bridge pre-canonical UUID spellings.
-    A normal UUID read must not pay one network wait for that empty compatibility
-    set and a second wait for the canonical stream. Redis pipelines preserve the
-    two independent commands while sending them together. If the first bounded
-    SSCAN page proves that the alias set is empty, its paired canonical XREVRANGE
-    is the complete fast-path result. Any observed alias or nonzero scan cursor
-    falls back to the bounded compatibility merger so retained history is never
+    Redis pipelines preserve the independent SSCAN and canonical XREVRANGE while
+    sending them together. When the bounded SSCAN page is complete, its aliases
+    are authoritative for this request and are returned with the already-fetched
+    canonical page instead of being discarded and scanned again. A nonzero scan
+    cursor falls back to the established bounded iterator so history is never
     hidden merely to reduce latency.
 
     Minimal Redis-compatible test adapters without pipeline support return
@@ -212,9 +211,11 @@ async def _activity_canonical_entries_if_alias_free(
             alias_page, canonical_entries = await read_pipeline.execute()
 
     alias_cursor, aliases = alias_page
-    if int(alias_cursor) == 0 and not aliases:
-        return canonical_entries
-    return None
+    if int(alias_cursor) != 0:
+        return None
+    candidate_keys = (canonical_key, *sorted(aliases))
+    stream_keys = tuple(dict.fromkeys(candidate_keys))
+    return canonical_entries, stream_keys[1:]
 
 
 def _activity_stream_entry_order(entry_id: str) -> tuple[int, int]:
@@ -489,23 +490,29 @@ async def read_activity_events(
     because Valkey stream IDs are not globally unique across independent keys.
     """
     bounded_event_count = _activity_event_count(event_count)
-    pipelined_canonical_entries = await _activity_canonical_entries_if_alias_free(
+    initial_uuid_read = await _activity_initial_uuid_read(
         valkey_client,
         post_id,
         bounded_event_count,
     )
-    if pipelined_canonical_entries is not None:
-        return [
-            {
-                "event_id": entry_id,
-                "event_type": activity_fields["event_type"],
-                "actor_account_id": activity_fields["actor_account_id"],
-                "summary": activity_fields["summary"],
-            }
-            for entry_id, activity_fields in pipelined_canonical_entries
-        ]
-
-    stream_keys = await _activity_read_stream_keys(valkey_client, post_id)
+    prefetched_canonical_entries: list[tuple[str, dict[str, str]]] | None = None
+    if initial_uuid_read is not None:
+        canonical_entries, indexed_aliases = initial_uuid_read
+        if not indexed_aliases:
+            return [
+                {
+                    "event_id": entry_id,
+                    "event_type": activity_fields["event_type"],
+                    "actor_account_id": activity_fields["actor_account_id"],
+                    "summary": activity_fields["summary"],
+                }
+                for entry_id, activity_fields in canonical_entries
+            ]
+        canonical_key = _stream_key(post_id)
+        stream_keys = (canonical_key, *indexed_aliases)
+        prefetched_canonical_entries = canonical_entries
+    else:
+        stream_keys = await _activity_read_stream_keys(valkey_client, post_id)
 
     if len(stream_keys) == 1:
         with traced(
@@ -538,18 +545,33 @@ async def read_activity_events(
                 _MAX_ACTIVITY_READ_COUNT // len(stream_keys),
             ),
         )
-        async with pipeline_factory(transaction=False) as read_pipeline:
-            for stream_key in stream_keys:
-                read_pipeline.xrevrange(stream_key, count=prefetch_count)
-            with traced(
-                "lineageweave.valkey.activity_read_pipeline",
-                {
-                    "db.system": "redis",
-                    "db.operation.name": "pipeline",
-                    "lineageweave.stream.kind": "activity",
-                },
-            ):
-                stream_pages = await read_pipeline.execute()
+        if prefetched_canonical_entries is not None:
+            stream_pages = [prefetched_canonical_entries[:prefetch_count]]
+            async with pipeline_factory(transaction=False) as read_pipeline:
+                for stream_key in stream_keys[1:]:
+                    read_pipeline.xrevrange(stream_key, count=prefetch_count)
+                with traced(
+                    "lineageweave.valkey.activity_read_pipeline",
+                    {
+                        "db.system": "redis",
+                        "db.operation.name": "pipeline",
+                        "lineageweave.stream.kind": "activity",
+                    },
+                ):
+                    stream_pages.extend(await read_pipeline.execute())
+        else:
+            async with pipeline_factory(transaction=False) as read_pipeline:
+                for stream_key in stream_keys:
+                    read_pipeline.xrevrange(stream_key, count=prefetch_count)
+                with traced(
+                    "lineageweave.valkey.activity_read_pipeline",
+                    {
+                        "db.system": "redis",
+                        "db.operation.name": "pipeline",
+                        "lineageweave.stream.kind": "activity",
+                    },
+                ):
+                    stream_pages = await read_pipeline.execute()
 
         next_entries: list[tuple[tuple[str, dict[str, str]], int]] = []
         stream_positions = [0] * len(stream_keys)
