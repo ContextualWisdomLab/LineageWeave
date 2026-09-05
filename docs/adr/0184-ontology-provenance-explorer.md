@@ -28,6 +28,14 @@
 8. Node type uses shape plus text (never color alone). Every edge carries both endpoint type codes and IDs, so heterogeneous catalogs remain unambiguous even if UUIDs collide. Keyboard users can select every visible node and edge. The graph SVG has no enclosing ARIA `img`; native browser text layout wraps complete node labels instead of truncating or estimating character widths. Exact-value table, CSV, JSON-LD, and print expose the same authorized visible graph. JSON-LD emits the source-to-target property assertion directly and describes its evidence-bearing edge as an RDF reified statement with exact `rdf:subject`, `rdf:predicate`, and `rdf:object`; it does not make the edge resource itself the relationship subject. JSON-LD represents system time with `prov:generatedAtTime` and non-null validity bounds as OWL-Time `time:Instant` values using `time:inXSDDateTimeStamp`; it omits unavailable bounds rather than inventing them.
 9. Synthetic Storybook frames cover desktop, narrow exact-value-first, node drawer, edge drawer, legend, empty, truncated, denied, stale, and rejected states. No confidential Figma content enters the repository. Storybook inventory records the implementation surface; frame IDs are not copied from the confidential design file (ADR 0002).
 
+**Search/export clarification (2026-09-05):** Search filters direct JSON-LD
+assertions by the retained typed source, property IRI, and typed target, not
+only by the presence of their subject node. A retained node must not carry a
+relationship excluded from the visible edge list, including after continuation
+has combined singleton assertions into arrays. Keep its labels, times, truth,
+and authorized Voice derivation metadata intact. This is a projection of the
+already-authorized response, not a new authorization or inference boundary.
+
 **Consequences:**
 
 - Event Lineage and ontology neighborhood stay distinct product capabilities.
