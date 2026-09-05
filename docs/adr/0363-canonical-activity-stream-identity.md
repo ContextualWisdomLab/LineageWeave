@@ -40,22 +40,30 @@ replacement, so no pre-canonical writer may overlap the alias scan. A rolling
 multi-version replica deployment is unavailable until it has a separate
 writer-fencing contract.
 
-Reads enumerate at most the retained-window number of streams. When no retained
-compatibility alias exists, the ordinary canonical path fetches the requested
-bounded window with one `XREVRANGE count=N`; it must not turn an N-event panel
-into N sequential Valkey round trips. When aliases exist, the compatibility
-path performs a newest-first incremental merge, fetching one entry per stream
-initially and at most one further entry per returned event. More retained
-aliases fail closed instead of creating unbounded fan-out or silently sampling
-history. This keeps the common path latency bounded without pretending legacy
-stream-local sequence numbers form one global order.
+Reads enumerate at most the retained-window number of streams. For a UUID read,
+the common path queues the first bounded alias-index `SSCAN` page and canonical
+`XREVRANGE count=N` in one non-transactional redis-py pipeline. When that scan
+returns cursor zero with no aliases, the paired canonical page is the complete
+result, so alias admission and data retrieval consume one network exchange rather
+than two sequential waits. A nonzero cursor or any retained alias falls back to
+the compatibility reader; it never treats an incomplete alias scan as evidence
+that the canonical stream is the only history.
+
+When aliases exist, the compatibility path performs a newest-first incremental
+merge, fetching one entry per stream initially and at most one further entry per
+returned event. More retained aliases fail closed instead of creating unbounded
+fan-out or silently sampling history. This keeps the common path latency bounded
+without pretending legacy stream-local sequence numbers form one global order.
 
 ## Consequences
 
 - Canonical reads retain every historical UUID spelling that actually exists.
-- The alias-free buyer path performs one bounded stream read after alias lookup;
-  compatibility merging pays incremental reads only when retained aliases exist.
-- Request-time records and calls are bounded by the retained stream and output
+- The alias-free UUID buyer path admits compatibility metadata and fetches the
+  bounded canonical window in one redis-py pipeline network exchange.
+- Compatibility merging may pay an additional bounded probe before its existing
+  incremental reads; legacy-history preservation takes precedence over the
+  alias-free fast path once an alias or unfinished scan is observed.
+- Request-time records and calls remain bounded by the retained stream and output
   limits; excessive alias cardinality is explicitly unavailable.
 - Startup performs a cursor scan and must finish before readiness.
 - The alias index is additional derived Valkey state and can be rebuilt from
@@ -65,6 +73,9 @@ stream-local sequence numbers form one global order.
 
 - Enumerate common UUID spellings: rejected because PostgreSQL accepts more
   forms than a finite hand-picked list would honestly cover.
+- Perform an alias-index lookup and only afterward issue the canonical
+  `XREVRANGE`: rejected because the normal UUID path then has at least two
+  sequential Valkey network waits even when the alias set is empty.
 - Always use one-entry incremental reads, including the canonical-only path:
   rejected because it turns the normal activity panel into one sequential Valkey
   round trip per returned event without adding compatibility information.
@@ -72,3 +83,18 @@ stream-local sequence numbers form one global order.
   would scale with unrelated posts.
 - Drop legacy aliases: rejected because canonicalization would hide retained
   authorized history.
+
+## Implementation evidence
+
+- Review `5121693984` identified that the earlier read-budget test counted only
+  `XREVRANGE` and omitted the preceding alias-index `SSCAN` network wait.
+- RED `7dcc5c16bc61393fc6a533e216baee8c43363894` counts both direct Valkey waits
+  and therefore rejects the earlier two-exchange canonical UUID path.
+- Production repair `02417fcf92969ffe7924f2722b192f40ff953e0d`
+  pipelines bounded alias admission with the canonical page while preserving the
+  existing compatibility fallback.
+- Test convergence `2b594942c12c37fe68459c02fbf47a2d11a727e4` models the pipeline as one
+  network exchange and retains the exact canonical stream/count assertion.
+- redis-py asyncio pipeline documentation specifies that pipeline commands are
+  buffered and executed together when awaited through `execute()`; transactions
+  remain optional and are not required for these independent read commands.
