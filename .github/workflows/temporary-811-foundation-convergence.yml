@@ -1,0 +1,75 @@
+name: Temporary 811 foundation convergence
+
+on:
+  push:
+    branches:
+      - "automation/811-foundation-convergence-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-811-foundation-convergence
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact #811 staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/811-foundation-convergence-20260906
+          fetch-depth: 0
+
+      - name: Verify exact #802 foundation and merge without flattening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/leftover-map-segment-explained-share-v2300
+          parent=32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6
+          actual="$(git rev-parse origin/feat/leftover-map-segment-explained-share-v2300)"
+          test "$actual" = "$parent"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$parent"
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            conflicts="$(git diff --name-only --diff-filter=U | sort | tr '\n' ' ' | sed 's/ $//')"
+            echo "::error title=Exact #811/#802 conflicts::$conflicts"
+            exit 42
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run successor and foundation contracts
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run \
+            src/leftoverMapPlotVietnameseCopy.test.ts \
+            src/i18n.test.ts \
+            src/leftoverMapPlotSmallCanvas.test.ts \
+            src/components/LeftoverMapPlot.test.tsx
+
+      - name: Commit clean two-parent tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          rm .github/workflows/temporary-811-foundation-convergence.yml
+          git add -A
+          test -f .git/MERGE_HEAD
+          git commit -m "merge: converge #811 with #802 foundation"
+          git push origin HEAD:automation/811-foundation-convergence-20260906
