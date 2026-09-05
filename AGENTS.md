@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -337,7 +337,12 @@ coordinates. ADR 0280 captions leftover-map pair
 segments with persisted leftover-map rank so the pair-row `rank` badge
 matches the graphic; a missing, negative, or non-integer rank omits that
 leftover-map rank caption and does not invent rank from plotted
-coordinates, leftover-map distance, or the count of unused axes. When `R`, `R̂`, `U`, `x`,
+coordinates, leftover-map distance, or the count of unused axes. ADR 0281
+captions the leftover-map graphic display with persisted leftover-map
+complete-case coverage so the pair-list `used N of M scored posts` note
+matches the plot; a missing, non-integer, negative-used, non-positive-scored,
+or used-greater-than-scored coverage omits that leftover-map coverage caption
+and does not invent coverage from plotted marker count. When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
 finite, `U + R̂ = R`. When coordinates,
@@ -348,8 +353,8 @@ in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inerti
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
 and are not a leftover score. Complete-case coverage (ADR 0168) persists to
-`report_leftover_map_coverage` and captions the pair list with how
-many scored posts entered the map.
+`report_leftover_map_coverage` and captions the pair list and the leftover-map
+graphic with how many scored posts entered the map.
 
 Authorized occupational construct catalog search (ADR 0257) matches official
 O*NET preferred labels or descriptions only when a source-eligible, ABAC-visible
