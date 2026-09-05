@@ -89,7 +89,7 @@ def test_startup_alias_index_batches_independent_sadd_writes() -> None:
 def test_startup_alias_index_flushes_before_exceeding_the_batch_ceiling() -> None:
     """The 129th independent alias starts a second bounded pipeline exchange."""
     aliases = tuple(
-        f"activity:{str(UUID(int=index + 1)).upper()}"
+        f"activity:{{{str(UUID(int=index + 1)).upper()}}}"
         for index in range(129)
     )
     client = _AliasIndexClient(aliases)
