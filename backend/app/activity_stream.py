@@ -21,6 +21,7 @@ from lineageweave.observability import traced
 
 _SYNC_ACTIVITY_WATCH_RETRY_LIMIT = 8
 _MAX_ACTIVITY_READ_COUNT = 1000
+_ACTIVITY_ALIAS_INDEX_WRITE_BATCH_SIZE = 128
 _ACTIVITY_STREAM_PREFIX = "activity:"
 _ACTIVITY_ALIAS_INDEX_PREFIX = "activity-aliases:"
 
@@ -70,6 +71,28 @@ def _activity_alias_index_key(post_id: str) -> str:
     return f"{_ACTIVITY_ALIAS_INDEX_PREFIX}{str(UUID(post_id))}"
 
 
+async def _flush_activity_alias_index_writes(
+    valkey_client: redis.Redis,
+    writes: list[tuple[str, str]],
+) -> int:
+    """Persist one bounded batch of independent alias-index set insertions."""
+    if not writes:
+        return 0
+
+    pipeline_factory = getattr(valkey_client, "pipeline", None)
+    if pipeline_factory is None:
+        indexed = 0
+        for index_key, stream_key in writes:
+            indexed += int(await valkey_client.sadd(index_key, stream_key))
+        return indexed
+
+    async with pipeline_factory(transaction=False) as write_pipeline:
+        for index_key, stream_key in writes:
+            write_pipeline.sadd(index_key, stream_key)
+        results = await write_pipeline.execute()
+    return sum(int(result) for result in results)
+
+
 async def index_legacy_activity_stream_aliases(valkey_client: redis.Redis) -> int:
     """Index every existing UUID stream alias before canonical-only reads begin.
 
@@ -77,9 +100,12 @@ async def index_legacy_activity_stream_aliases(valkey_client: redis.Redis) -> in
     non-standard hyphen placement. Older routes used that raw spelling in the
     Valkey key, so enumerating a few common variants cannot preserve all valid
     history. Startup performs one cursor scan and records the finite aliases
-    that actually exist. New writes remain canonical-only.
+    that actually exist. New writes remain canonical-only. Independent alias-set
+    writes are flushed through bounded non-transactional pipeline batches so
+    rollout readiness does not add one serial network wait per historical alias.
     """
     indexed = 0
+    pending_writes: list[tuple[str, str]] = []
     async for raw_key in valkey_client.scan_iter(match=f"{_ACTIVITY_STREAM_PREFIX}*"):
         stream_key = raw_key.decode() if isinstance(raw_key, bytes) else raw_key
         if not isinstance(stream_key, str) or stream_key.startswith(_ACTIVITY_ALIAS_INDEX_PREFIX):
@@ -92,12 +118,19 @@ async def index_legacy_activity_stream_aliases(valkey_client: redis.Redis) -> in
         canonical_key = f"{_ACTIVITY_STREAM_PREFIX}{canonical_post_id}"
         if stream_key == canonical_key:
             continue
-        indexed += int(
-            await valkey_client.sadd(
+        pending_writes.append(
+            (
                 f"{_ACTIVITY_ALIAS_INDEX_PREFIX}{canonical_post_id}",
                 stream_key,
             )
         )
+        if len(pending_writes) >= _ACTIVITY_ALIAS_INDEX_WRITE_BATCH_SIZE:
+            indexed += await _flush_activity_alias_index_writes(
+                valkey_client,
+                pending_writes,
+            )
+            pending_writes.clear()
+    indexed += await _flush_activity_alias_index_writes(valkey_client, pending_writes)
     return indexed
 
 
