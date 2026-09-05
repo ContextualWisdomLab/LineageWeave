@@ -118,7 +118,7 @@ async def _activity_read_stream_keys(
     if type(post_id) is not str:
         raise TypeError("post_id must be a string")
     try:
-        canonical_post_id = str(UUID(post_id))
+        UUID(post_id)
     except ValueError:
         return (canonical_key,)
 

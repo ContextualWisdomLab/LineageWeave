@@ -19,10 +19,11 @@ class _ReadClient:
     async def xrevrange(
         self,
         key: str,
-        *,
-        count: int,
+        max: str = "+",
+        min: str = "-",
+        count: int | None = None,
     ) -> list[tuple[str, dict[str, str]]]:
-        del key, count
+        del key, max, min, count
         self.calls += 1
         return []
 
