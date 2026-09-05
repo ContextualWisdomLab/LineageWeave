@@ -225,8 +225,26 @@ function leftoverMapSegmentLabelPosition(
   };
 }
 
-function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
-  return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+function leftoverMapStackedCaptionY(
+  labelY: number,
+  stackedAbove: number,
+  captionSpacing = RECONSTRUCTION_LABEL_OFFSET,
+): number {
+  return stackedAbove > 0 ? labelY + stackedAbove * captionSpacing : labelY;
+}
+
+function leftoverMapCaptionSpacing(height: number, captionCount: number): number {
+  if (captionCount <= 1) {
+    return 0;
+  }
+  const availableStackHeight = Math.max(
+    0,
+    height - SEGMENT_LABEL_TOP_INSET - SEGMENT_LABEL_BOTTOM_INSET,
+  );
+  return Math.min(
+    RECONSTRUCTION_LABEL_OFFSET,
+    availableStackHeight / (captionCount - 1),
+  );
 }
 
 export function layoutLeftoverMapPlot(
@@ -326,10 +344,13 @@ export function layoutLeftoverMapPlot(
     const captionCount = [distanceLabel, reconstructionLabel, explainedShareLabel].filter(
       (label) => label !== null,
     ).length;
-    const maximumLabelY =
+    const captionSpacing = leftoverMapCaptionSpacing(height, captionCount);
+    const maximumLabelY = Math.max(
+      SEGMENT_LABEL_TOP_INSET,
       height -
-      SEGMENT_LABEL_BOTTOM_INSET -
-      Math.max(0, captionCount - 1) * RECONSTRUCTION_LABEL_OFFSET;
+        SEGMENT_LABEL_BOTTOM_INSET -
+        Math.max(0, captionCount - 1) * captionSpacing,
+    );
     const labelY = Math.min(
       Math.max(labelPosition.labelY, SEGMENT_LABEL_TOP_INSET),
       maximumLabelY,
@@ -337,10 +358,12 @@ export function layoutLeftoverMapPlot(
     const reconstructionY = leftoverMapStackedCaptionY(
       labelY,
       distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+      captionSpacing,
     );
     const explainedShareY = leftoverMapStackedCaptionY(
       labelY,
       (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
