@@ -1,5 +1,8 @@
 /** Observed Y and expected E[Y|θ, item] after IRT main effects. */
 
+export const LEFTOVER_MAP_COMPARE_OBSERVED_LABEL =
+  "Leftover map comparison observed";
+
 export function formatLeftoverObservedExpected(
   observed: number | null | undefined,
   expected: number | null | undefined,

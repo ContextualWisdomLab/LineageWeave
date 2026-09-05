@@ -3,6 +3,7 @@ import {
   formatLeftoverMapExpected,
   formatLeftoverMapObserved,
   formatLeftoverObservedExpected,
+  LEFTOVER_MAP_COMPARE_OBSERVED_LABEL,
 } from "./leftoverObservedExpected";
 
 describe("formatLeftoverObservedExpected", () => {
@@ -33,6 +34,11 @@ describe("formatLeftoverMapObserved", () => {
     expect(formatLeftoverMapObserved(undefined)).toBeNull();
     expect(formatLeftoverMapObserved(Number.NaN)).toBeNull();
     expect(formatLeftoverMapObserved(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it("keeps the grouping comparison observed label distinct from the graphic observed label", () => {
+    expect(LEFTOVER_MAP_COMPARE_OBSERVED_LABEL).toBe("Leftover map comparison observed");
+    expect(LEFTOVER_MAP_COMPARE_OBSERVED_LABEL).not.toBe("leftover observed {label}");
   });
 });
 

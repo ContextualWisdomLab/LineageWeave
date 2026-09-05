@@ -87,6 +87,7 @@ describe("i18n", () => {
     "Leftover map comparison cross share",
     "Leftover map comparison unexplained leftover",
     "Leftover map comparison residual",
+    "Leftover map comparison observed",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -502,6 +503,19 @@ describe("i18n", () => {
     (locale, expected) => {
       setLocale(locale);
       expect(t("Leftover map comparison residual")).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 관측"],
+    ["zh", "残差地图比较观测"],
+    ["ja", "残差マップの比較観測"],
+    ["vi", "Quan sát so sánh bản đồ phần dư"],
+  ] as const)(
+    "formats leftover map comparison observed label in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(t("Leftover map comparison observed")).toBe(expected);
     },
   );
 
