@@ -11,13 +11,19 @@
 > implemented on the candidate branch. That is candidate implementation
 > evidence, not protected-main, deployed, or release evidence.
 > A stacked Customer Master consumer candidate now exists at implementation
-> head `3d6ae1dd9fcd6b095e5fceb70ed1b476ecd9bd58` on top of PR #929's
+> head `cb093960d43e95cdfb1d9ed491e920e2106305db` on top of PR #929's
 > exact head `f07a755972e38b4b2a961ab11acd9d3abb229967`. It admits all eight
 > locale tags, fetches the authenticated `customer-master` resource before
 > customer data, rejects incomplete screen projections, ignores late responses
 > from a previous locale, and shows an actionable retry state instead of
-> rendering bundled Customer Master copy. This stacked branch is not
-> protected-main, hosted-check, authenticated PostgreSQL, or deployed evidence.
+> rendering bundled Customer Master copy. Review `5119233938` found that the
+> retry shell incorrectly diagnosed every transport/auth/permission/not-found/
+> service exception as an unpublished translation. RED
+> `fd3f0326f539f23dfae75fc3511722ead4455d36` and causal repair
+> `cb093960d43e95cdfb1d9ed491e920e2106305db` keep that unclassified failure
+> cause-neutral while retaining one concrete retry action. This stacked branch
+> is not protected-main, hosted-product-GREEN, authenticated PostgreSQL, or
+> deployed evidence.
 >
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
@@ -25,11 +31,13 @@
 > PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
 > Master records visible when imported hierarchy edges are malformed and adds
 > synthetic desktop/mobile Storybook evidence. #911 is Ready for exact-head
-> validation after moving its colliding TLS ADR to Proposed ADR 0366. #909 is
-> Draft because #922's eight-locale published-resource cutover and the required
-> current-head material-UI/runtime evidence are still absent. Neither has
-> qualifying independent current-head approval or terminal hosted checks, and
-> neither is protected-main or deployed evidence.
+> validation after moving its colliding TLS ADR to Proposed ADR 0366. Its
+> repository-local Tests, PROV-O, and Ontology Pages runs are successful, while
+> central Security/CodeQL/SAST remain queued. #909 is Draft because #922's
+> eight-locale published-resource cutover and the required current-head
+> material-UI/runtime evidence are still absent. Neither has qualifying
+> independent current-head approval, and neither is protected-main or deployed
+> evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -41,12 +49,13 @@
 > `en/ko/zh/ja/vi`; `es/de/fr` are not first-class frontend locales. No material
 > SPA screen has yet been released on a published eight-locale ledger resource.
 > The stacked Customer Master candidate covers API admission plus loading and
-> retry rendering, including inspected 1440×900 and 390×844 Storybook captures.
-> It does not contain reviewed eight-locale product copy or authenticated
-> PostgreSQL normal/empty/permission evidence. There is no release evidence for
-> normal, loading,
-> empty, error, permission, responsive, keyboard/focus/screen-reader, CJK text
-> expansion, or font fallback states.
+> retry rendering. Its earlier 1440×900 and 390×844 Storybook captures predate
+> the current auth-bound/cause-neutral repair head and are predecessor evidence,
+> not current-head browser acceptance. It does not contain reviewed eight-locale
+> product copy or authenticated PostgreSQL normal/empty/permission evidence.
+> There is no release evidence for normal, loading, empty, error, permission,
+> responsive, keyboard/focus/screen-reader, CJK text expansion, or font fallback
+> states.
 >
 > Do not synthesize translations and do not count English fallback as translated
 > coverage. Ontology labels and concept names remain outside this presentation
@@ -89,6 +98,12 @@
   incomplete requested-locale copy maps to 409. Unsupported locale, malformed
   screen identity, and an unrepresentable resource version each map to a
   distinct 422 response that tells the caller which request value to correct.
+- The Customer Master consumer does not reinterpret those backend failure
+  categories when the fetch promise is caught generically. Until a typed
+  frontend failure contract is introduced, its retry shell says only that the
+  selected-language screen could not be loaded, retries the request first, and
+  asks an administrator to check access and publication status only if the
+  failure persists. It does not assert that publication is missing.
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
@@ -128,6 +143,8 @@
 3. Prove normal/loading/empty/error/permission/responsive states plus
    keyboard/focus/screen-reader behavior, CJK rendering, text expansion, and
    font fallback on the same exact head with fresh desktop and mobile evidence.
+   Include the small loading/retry shell in locale and text-expansion review;
+   its English source copy is not evidence of eight-locale behavior.
 4. Converge PRD/TRD/ARCHITECTURE/UX/OPERABILITY/TEST_STRATEGY/CHANGELOG and this
    baseline with the actual cutover. Keep ontology labels separate from product
    copy and consume only released owner contracts where another CWL product is
@@ -181,7 +198,10 @@
   `tests/test_translation_cache_timeout.py`, and
   `tests/test_translation_documentation_alignment.py`.
 - Stacked Customer Master consumer: `frontend/src/api.ts`,
-  `frontend/src/i18n.ts`, `frontend/src/App.tsx`, and
-  `frontend/src/components/ScreenTranslationGate.tsx`; visual evidence is
+  `frontend/src/i18n.ts`, `frontend/src/App.tsx`,
+  `frontend/src/components/ScreenTranslationGate.tsx`,
+  `frontend/src/components/ScreenTranslationGate.test.tsx`, and
+  `tests/test_customer_master_translation_auth_gate_contract.py`; predecessor
+  visual evidence is
   `docs/screenshots/customer-master-translation-gate-{desktop,mobile}.png`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
