@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 02:10 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #837 leftover expected `E` on grouping comparison
+> leftover-pair buttons (v2.57.0 / ADR 0300) is `e6638a8`, stacked on
+> #836 @ `ada0c86`. Next buyer increment on this cycle: leftover-map rank
+> on grouping comparison leftover-pair buttons (ADR 0301 / v2.58.0)
+> delivered locally on `feat/leftover-map-compare-rank-v2580`. Caption
+> each strip leftover-pair button through formatLeftoverMapRank with
+> distinct aria-label `Leftover map comparison rank`. UI-only; no new
+> columns. Missing, negative, or non-integer rank omits that badge
+> independently of `E`, `Y`, `R`, `U`, `x`, `s`, `e`, `R̂`, `d`, and
+> coverage notes. Rank-0 origin cells still name `rank 0`. Do not invent
+> rank from plotted coordinates, leftover-map distance, or the count of
+> unused axes. Stack onto #837. Leave open for independent review. Do not
+> squash-merge. Issues #79 and #87 stay open. #96 is already closed. Do
+> not merge #808 without independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 01:45 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #836 leftover observed `Y` on grouping comparison

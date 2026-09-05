@@ -939,6 +939,7 @@ describe("App, authenticated", () => {
                     leftover_map_unexplained: 0.05,
                     observed_response: 2.4,
                     expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4466,6 +4467,21 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        /leftover-map rank/,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison rank",
+      ),
+    ).toHaveTextContent("rank 1");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison rank",
+      ),
+    ).toHaveLength(1);
+    expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: specification revision requested/i,
       }),
@@ -4510,6 +4526,11 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: specification revision requested/i,
       }),
     ).not.toHaveTextContent("E ");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: specification revision requested/i,
+      }),
+    ).not.toHaveTextContent("rank ");
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
@@ -4569,6 +4590,11 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("E 2.00");
+    expect(
+      screen.getByRole("button", {
+        name: /open leftover closest pair from comparison: public post/i,
+      }),
+    ).toHaveTextContent("rank 1");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatLeftoverMapRank } from "./leftoverMapRank";
+import { formatLeftoverMapRank, LEFTOVER_MAP_COMPARE_RANK_LABEL } from "./leftoverMapRank";
 
 describe("formatLeftoverMapRank", () => {
   it("names leftover-map rank without inventing leftover structure", () => {
@@ -14,5 +14,10 @@ describe("formatLeftoverMapRank", () => {
     expect(formatLeftoverMapRank(-1)).toBeNull();
     expect(formatLeftoverMapRank(1.5)).toBeNull();
     expect(formatLeftoverMapRank(Number.NaN)).toBeNull();
+  });
+
+  it("keeps the grouping comparison rank label distinct from the graphic rank label", () => {
+    expect(LEFTOVER_MAP_COMPARE_RANK_LABEL).toBe("Leftover map comparison rank");
+    expect(LEFTOVER_MAP_COMPARE_RANK_LABEL).not.toBe("leftover-map rank {label}");
   });
 });
