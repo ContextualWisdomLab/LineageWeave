@@ -81,7 +81,8 @@ volume was changed, and no real Post data was sampled.
 
 The [non-identifying per-PR snapshot](development-loop-20260905.json) records
 116 open PR heads, bases, draft states, bounded review-thread results, and
-changed authority paths. At collection there were 93 drafts, 23 ready PRs,
+changed authority paths, collected before child #934 was created. At collection
+there were 93 drafts, 23 ready PRs,
 16 open issues, and 111 unresolved threads. No `APPROVED` review decision was
 present. Review bodies/real records/credentials are not persisted. The latest
 20 reviews and first 100 threads per PR bound this review collection; these
@@ -127,6 +128,23 @@ the historical ADR 0134 row saying no shared component exists is obsolete.
 checkout's uncommitted #929 changes were preserved. #847/#807 own the broader
 PRD authority-ID reconciliation. This child adds no schema, API, or release
 number and does not rewrite those owners' work.
+
+### Follow-on review repair
+
+#914 advanced from `c2579713d64ba0d261f11dd9f9777b45ee3ef58b` to
+`64340c0a86f876f32d0a37ef17321f3d9b993818`. The installed Redis client's
+`xrevrange` accepts `max`; its test double did not. The double now matches the
+client argument contract, and the unused UUID binding was removed without
+changing validation. All 28 activity regressions passed. Both verified review
+threads were resolved. The unchanged ADR 0363 remains Proposed. Ready admission
+and normal auto-merge request fresh workflow evidence, not policy acceptance;
+12 new-head checks were queued and 4 Draft-era jobs skipped at first read.
+Neither skipped nor predecessor checks count as success. No merge is claimed.
+
+Child #934 contains the export repair and this evidence update. It remains
+based on #780; Ready admission permits validation but it must not auto-merge
+into the feature branch. Only after #780's protected merge may it be retargeted
+to `main` and evaluated for normal auto-merge with fresh evidence.
 
 ## Historical evidence — not current acceptance
 
