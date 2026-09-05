@@ -4764,6 +4764,7 @@ function CustomerMasterPanel({
   const locale = useLocale();
   const [copyState, setCopyState] = useState<"loading" | "ready" | "retry">("loading");
   const [copyLocale, setCopyLocale] = useState<string | null>(null);
+  const [copyAccessToken, setCopyAccessToken] = useState<string | null>(null);
   const [copyAttempt, setCopyAttempt] = useState(0);
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -4807,12 +4808,14 @@ function CustomerMasterPanel({
     let active = true;
     setCopyState("loading");
     setCopyLocale(null);
+    setCopyAccessToken(null);
     clearCustomerMasterTranslations();
     fetchTranslationScreen(accessToken, "customer-master", locale)
       .then((screen) => {
         if (!active || screen.screen_key !== "customer-master" || screen.locale !== locale) return;
         setCustomerMasterTranslations(screen.translations);
         setCopyLocale(locale);
+        setCopyAccessToken(accessToken);
         setCopyState("ready");
       })
       .catch(() => {
@@ -4825,10 +4828,10 @@ function CustomerMasterPanel({
   }, [accessToken, locale, copyAttempt]);
 
   useEffect(() => {
-    if (copyState !== "ready") return;
+    if (copyState !== "ready" || copyLocale !== locale || copyAccessToken !== accessToken) return;
     setMaster(null);
     void loadMaster();
-  }, [copyState, loadMaster]);
+  }, [accessToken, copyAccessToken, copyLocale, copyState, loadMaster, locale]);
 
   useEffect(() => {
     if (!selectedPostId) {
@@ -4884,11 +4887,11 @@ function CustomerMasterPanel({
     }
   }
 
-  if (copyState === "loading" || copyLocale !== locale) {
-    return <ScreenTranslationGate state="loading" />;
-  }
   if (copyState === "retry") {
     return <ScreenTranslationGate state="retry" onRetry={() => setCopyAttempt((attempt) => attempt + 1)} />;
+  }
+  if (copyState === "loading" || copyLocale !== locale || copyAccessToken !== accessToken) {
+    return <ScreenTranslationGate state="loading" />;
   }
   return (
     <section className="workspace-destination" aria-labelledby="customer-master-heading">
