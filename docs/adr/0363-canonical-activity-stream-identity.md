@@ -40,14 +40,21 @@ replacement, so no pre-canonical writer may overlap the alias scan. A rolling
 multi-version replica deployment is unavailable until it has a separate
 writer-fencing contract.
 
-Reads enumerate at most the retained-window number of streams and then perform
-a newest-first incremental merge. They fetch one entry per stream initially
-and at most one further entry per returned event. More retained aliases fail
-closed instead of creating unbounded fan-out or silently sampling history.
+Reads enumerate at most the retained-window number of streams. When no retained
+compatibility alias exists, the ordinary canonical path fetches the requested
+bounded window with one `XREVRANGE count=N`; it must not turn an N-event panel
+into N sequential Valkey round trips. When aliases exist, the compatibility
+path performs a newest-first incremental merge, fetching one entry per stream
+initially and at most one further entry per returned event. More retained
+aliases fail closed instead of creating unbounded fan-out or silently sampling
+history. This keeps the common path latency bounded without pretending legacy
+stream-local sequence numbers form one global order.
 
 ## Consequences
 
 - Canonical reads retain every historical UUID spelling that actually exists.
+- The alias-free buyer path performs one bounded stream read after alias lookup;
+  compatibility merging pays incremental reads only when retained aliases exist.
 - Request-time records and calls are bounded by the retained stream and output
   limits; excessive alias cardinality is explicitly unavailable.
 - Startup performs a cursor scan and must finish before readiness.
@@ -58,6 +65,9 @@ closed instead of creating unbounded fan-out or silently sampling history.
 
 - Enumerate common UUID spellings: rejected because PostgreSQL accepts more
   forms than a finite hand-picked list would honestly cover.
+- Always use one-entry incremental reads, including the canonical-only path:
+  rejected because it turns the normal activity panel into one sequential Valkey
+  round trip per returned event without adding compatibility information.
 - Scan the activity keyspace on each request: rejected because latency and work
   would scale with unrelated posts.
 - Drop legacy aliases: rejected because canonicalization would hide retained
