@@ -85,8 +85,8 @@ class _CompatibilityReadClient:
         return entries[:count]
 
 
-def test_retained_alias_read_batches_bounded_history_before_local_merge() -> None:
-    """A four-event compatibility read must not pay one network wait per event."""
+def test_retained_alias_read_reuses_complete_admission_page_before_local_merge() -> None:
+    """A complete alias admission page must not be discarded and scanned again."""
     client = _CompatibilityReadClient()
 
     events = asyncio.run(
@@ -103,5 +103,5 @@ def test_retained_alias_read_batches_bounded_history_before_local_merge() -> Non
         "canonical 200",
         "legacy 100",
     ]
-    assert client.round_trips <= 3
-    assert client.pipeline_batch_sizes[-1] == 2
+    assert client.round_trips == 2
+    assert client.pipeline_batch_sizes == [2, 1]
