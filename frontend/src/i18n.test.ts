@@ -6,13 +6,17 @@ import {
 import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
+  CUSTOMER_MASTER_TRANSLATION_KEYS,
+  clearCustomerMasterTranslations,
   getLocale,
+  setCustomerMasterTranslations,
   setLocale,
   t,
   tf,
 } from "./i18n";
 
 afterEach(() => {
+  clearCustomerMasterTranslations();
   setLocale("en");
 });
 
@@ -101,9 +105,20 @@ describe("i18n", () => {
     "Compare these cutoff-grounded citations with live evidence next.",
   ] as const;
 
-  it("supports the five product locales", () => {
-    expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
-    expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
+  it("supports the governed eight product locales", () => {
+    expect(SUPPORTED_LOCALES).toEqual(["ko", "en", "ja", "zh", "vi", "es", "de", "fr"]);
+    expect(Object.keys(LOCALE_LABELS)).toHaveLength(8);
+  });
+
+  it("admits only a complete Customer Master screen projection", () => {
+    const complete = Object.fromEntries(
+      CUSTOMER_MASTER_TRANSLATION_KEYS.map((key) => [key, `published:${key}`]),
+    );
+    setCustomerMasterTranslations(complete);
+    expect(t("Customer master")).toBe("published:Customer master");
+    expect(() => setCustomerMasterTranslations({ "Customer master": "Kundenstamm" })).toThrow(
+      "Incomplete Customer Master translation",
+    );
   });
 
   it.each([

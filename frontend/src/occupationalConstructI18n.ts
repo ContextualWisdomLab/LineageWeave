@@ -200,13 +200,14 @@ const COPY = {
     "Finding work evidence...": "Đang tìm bằng chứng công việc...",
     "Show more matching records": "Hiển thị thêm bản ghi phù hợp",
   },
-} as const satisfies Record<Locale, Record<string, string>>;
+} as const;
 
 export type OccupationalConstructCopyKey = keyof (typeof COPY)["en"];
 
 /** Return occupational-construct evidence copy in the active product locale. */
 export function occupationalConstructText(key: OccupationalConstructCopyKey): string {
-  return COPY[getLocale()][key];
+  const copy = COPY as Partial<Record<Locale, Record<keyof (typeof COPY)["en"], string>>>;
+  return copy[getLocale()]?.[key] ?? COPY.en[key];
 }
 
 /** Substitute named placeholders in occupational-construct copy. */

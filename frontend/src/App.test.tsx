@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { SurfaceBoundary } from "./App";
 import { optionalKnowledgeCutoffIso } from "./api";
-import { setLocale } from "./i18n";
+import { CUSTOMER_MASTER_TRANSLATION_KEYS, clearCustomerMasterTranslations, setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
@@ -15,6 +15,7 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 beforeEach(() => {
+  clearCustomerMasterTranslations();
   setLocale("en");
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
@@ -39,6 +40,7 @@ it("normalizes valid knowledge cutoffs and rejects invalid input", () => {
 });
 
 afterEach(() => {
+  clearCustomerMasterTranslations();
   vi.unstubAllGlobals();
   window.history.replaceState({}, "", "/");
   window.sessionStorage.clear();
@@ -1902,6 +1904,19 @@ describe("App, authenticated", () => {
               },
             } : undefined,
             },
+          }),
+        );
+      }
+      if (url.includes("/api/translations/customer-master?") && method === "GET") {
+        const translations = Object.fromEntries(
+          CUSTOMER_MASTER_TRANSLATION_KEYS.map((key) => [key, key]),
+        );
+        return Promise.resolve(
+          jsonResponse({
+            screen_key: "customer-master",
+            resource_version: 1,
+            locale: new URL(url).searchParams.get("locale") ?? "en",
+            translations,
           }),
         );
       }

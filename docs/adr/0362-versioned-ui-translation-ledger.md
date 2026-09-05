@@ -119,6 +119,17 @@ Child insert/update/delete obtains a `FOR UPDATE` lock on the parent resource. P
 
 The existing `user_account.preferred_locale` constraint expands to the same eight language tags. API request validation and frontend consumption must be cut over to the same contract before #922 can close; the database/read-model foundation alone is not buyer-visible completion.
 
+The first consumer slice is the Customer Master destination. It requests the
+latest published `customer-master` resource after authentication and after each
+locale change, admits it only when every key used by that destination is
+present, and does not request Customer Master data until that copy is ready.
+Loading and retry states remain a small product shell outside the translated
+screen resource so a missing resource can tell the reader what to do next.
+Changing locale aborts the prior request logically; a late response for an old
+locale cannot replace the active screen. Other destinations remain on their
+existing bundle until they receive their own complete resource and executable
+cutover evidence.
+
 ## DDD mapping
 
 - Subdomain: product composition / presentation read model.

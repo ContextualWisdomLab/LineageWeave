@@ -26,6 +26,8 @@ export type StatusNoticeProps = {
   message: string;
   nextAction?: string;
   retryLabel?: string;
+  kindLabel?: string;
+  kindDescription?: string;
   onRetry?: () => void;
 };
 
@@ -34,7 +36,10 @@ export type StatusNoticeProps = {
  *
  * Color is never the only channel: each kind keeps a distinct glyph and
  * visible label. Callers pass already-localized message text and must not
- * interpolate provider payloads (ADR 0123).
+ * interpolate provider payloads (ADR 0123). Bootstrap surfaces that must render
+ * before the normal translation catalog is available may also pass an
+ * already-localized kind label/description; ordinary callers keep the shared
+ * `t()` defaults.
  *
  * Success and unavailable are a named region, not `role="status"`, so they
  * do not collide with App live-region uniqueness. Retry is `role="alert"`.
@@ -44,10 +49,12 @@ export function StatusNotice({
   message,
   nextAction,
   retryLabel,
+  kindLabel,
+  kindDescription,
   onRetry,
 }: StatusNoticeProps) {
-  const label = t(KIND_LABEL_KEY[kind]);
-  const description = t(KIND_DESCRIPTION_KEY[kind]);
+  const label = kindLabel ?? t(KIND_LABEL_KEY[kind]);
+  const description = kindDescription ?? t(KIND_DESCRIPTION_KEY[kind]);
   const showRetry = kind === "retry" && typeof onRetry === "function";
   const isRetry = kind === "retry";
   return (

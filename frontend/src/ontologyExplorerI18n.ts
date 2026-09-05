@@ -46,11 +46,14 @@ const ONTOLOGY_EXPLORER_COPY = {
     "No direct evidence post is attached. Review the provenance reference above.":
       "Không có bài đăng bằng chứng trực tiếp được đính kèm. Hãy xem tham chiếu nguồn gốc ở trên.",
   },
-} as const satisfies Record<Locale, Record<string, string>>;
+} as const;
 
 export type OntologyExplorerCopyKey = keyof (typeof ONTOLOGY_EXPLORER_COPY)["en"];
 
 /** Return ontology-explorer stabilization copy in the active product locale. */
 export function ontologyExplorerText(key: OntologyExplorerCopyKey): string {
-  return ONTOLOGY_EXPLORER_COPY[getLocale()][key];
+  const copy = ONTOLOGY_EXPLORER_COPY as Partial<
+    Record<Locale, Record<keyof (typeof ONTOLOGY_EXPLORER_COPY)["en"], string>>
+  >;
+  return copy[getLocale()]?.[key] ?? ONTOLOGY_EXPLORER_COPY.en[key];
 }
