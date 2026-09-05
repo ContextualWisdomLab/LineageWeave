@@ -8,6 +8,7 @@ import {
   LEFTOVER_MAP_COMPARE_COVERAGE_LABEL,
   LEFTOVER_MAP_COMPARE_ITEM_COVERAGE_LABEL,
   LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL,
+  LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_COVERAGE_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
@@ -220,5 +221,11 @@ describe("leftoverMapIncompleteItemCount", () => {
     expect(LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL).toBe("Leftover map incomplete items");
     expect(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL).toBe("Leftover-map graphic incomplete items");
     expect(LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL).not.toBe(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL);
+  });
+
+  it("keeps the grouping comparison incomplete item label distinct from the pair-list and graphic incomplete item labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL).toBe("Leftover map comparison incomplete items");
+    expect(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL).not.toBe(LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL);
+    expect(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL).not.toBe(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL);
   });
 });

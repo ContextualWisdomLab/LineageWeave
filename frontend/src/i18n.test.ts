@@ -80,6 +80,7 @@ describe("i18n", () => {
     "Leftover map comparison coverage",
     "Leftover map comparison item coverage",
     "Leftover map comparison incomplete posts",
+    "Leftover map comparison incomplete items",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -411,6 +412,16 @@ describe("i18n", () => {
   ] as const)("formats leftover map comparison incomplete posts label in %s", (locale, expected) => {
     setLocale(locale);
     expect(t("Leftover map comparison incomplete posts")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 불완전 기준"],
+    ["zh", "残差地图比较不完整准则"],
+    ["ja", "残差マップの比較不完全基準"],
+    ["vi", "Tiêu chí không đầy đủ so sánh trên bản đồ phần dư"],
+  ] as const)("formats leftover map comparison incomplete items label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map comparison incomplete items")).toBe(expected);
   });
 
   it.each([
