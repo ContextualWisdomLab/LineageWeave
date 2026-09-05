@@ -10,6 +10,14 @@
 > readiness. The authenticated `GET /api/translations/{screen_key}` API is
 > implemented on the candidate branch. That is candidate implementation
 > evidence, not protected-main, deployed, or release evidence.
+> A stacked Customer Master consumer candidate now exists at implementation
+> head `3d6ae1dd9fcd6b095e5fceb70ed1b476ecd9bd58` on top of PR #929's
+> exact head `f07a755972e38b4b2a961ab11acd9d3abb229967`. It admits all eight
+> locale tags, fetches the authenticated `customer-master` resource before
+> customer data, rejects incomplete screen projections, ignores late responses
+> from a previous locale, and shows an actionable retry state instead of
+> rendering bundled Customer Master copy. This stacked branch is not
+> protected-main, hosted-check, authenticated PostgreSQL, or deployed evidence.
 >
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
@@ -31,8 +39,12 @@
 > The buyer-visible gap in #922 remains open. Protected `main` still ships the
 > production frontend translation source in `frontend/src/i18n.ts` with only
 > `en/ko/zh/ja/vi`; `es/de/fr` are not first-class frontend locales. No material
-> SPA screen has yet been cut over to a published eight-locale ledger resource,
-> and there is no exact-head desktop/mobile evidence covering normal, loading,
+> SPA screen has yet been released on a published eight-locale ledger resource.
+> The stacked Customer Master candidate covers API admission plus loading and
+> retry rendering, including inspected 1440×900 and 390×844 Storybook captures.
+> It does not contain reviewed eight-locale product copy or authenticated
+> PostgreSQL normal/empty/permission evidence. There is no release evidence for
+> normal, loading,
 > empty, error, permission, responsive, keyboard/focus/screen-reader, CJK text
 > expansion, or font fallback states.
 >
@@ -100,15 +112,19 @@
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
+- The stacked Customer Master consumer has no new ADR number, migration, API
+  route, schema object, or release number. It extends ADR 0362 and consumes the
+  route owned by #929, avoiding collisions with ADRs 0364–0366 and the
+  serialized report-release stack.
 
 ## Next buyer cut
 
 1. Use reviewed product copy to create and publish one complete screen resource
    for all eight locales. Do not invent copy to satisfy coverage.
-2. Cut one material SPA screen off bundled `TRANSLATIONS` and onto the versioned
-   API. Customer Master is the natural first slice because #922 gates its open
-   material-UI work, but the screen identity must follow the actual product
-   composition contract rather than creating a second domain owner.
+2. Finish the stacked Customer Master cutover by publishing reviewed product
+   copy for its declared keys in all eight locales and proving the authenticated
+   PostgreSQL/API normal path. The consumer and fail-closed loading/retry gate
+   exist only as branch evidence.
 3. Prove normal/loading/empty/error/permission/responsive states plus
    keyboard/focus/screen-reader behavior, CJK rendering, text expansion, and
    font fallback on the same exact head with fresh desktop and mobile evidence.
@@ -164,4 +180,8 @@
   `tests/test_translation_api_driver_boundary.py`,
   `tests/test_translation_cache_timeout.py`, and
   `tests/test_translation_documentation_alignment.py`.
+- Stacked Customer Master consumer: `frontend/src/api.ts`,
+  `frontend/src/i18n.ts`, `frontend/src/App.tsx`, and
+  `frontend/src/components/ScreenTranslationGate.tsx`; visual evidence is
+  `docs/screenshots/customer-master-translation-gate-{desktop,mobile}.png`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
