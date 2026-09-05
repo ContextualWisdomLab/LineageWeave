@@ -1,4 +1,4 @@
-/** Leftover-map complete-case coverage after IRT main effects (ADR 0168 / ADR 0281 / ADR 0282 / ADR 0283 / ADR 0284 / ADR 0285 / ADR 0286 / ADR 0287 / ADR 0288 / ADR 0289). */
+/** Leftover-map complete-case coverage after IRT main effects (ADR 0168 / ADR 0281 / ADR 0282 / ADR 0283 / ADR 0284 / ADR 0285 / ADR 0286 / ADR 0287 / ADR 0288 / ADR 0289 / ADR 0290). */
 
 import type { LeftoverMapCoverage } from "./api";
 
@@ -7,6 +7,8 @@ export const LEFTOVER_MAP_PLOT_COVERAGE_LABEL = "Leftover-map graphic coverage";
 export const LEFTOVER_MAP_LIST_COVERAGE_LABEL = "Leftover map coverage";
 
 export const LEFTOVER_MAP_COMPARE_COVERAGE_LABEL = "Leftover map comparison coverage";
+
+export const LEFTOVER_MAP_COMPARE_ITEM_COVERAGE_LABEL = "Leftover map comparison item coverage";
 
 export const LEFTOVER_MAP_PLOT_COVERAGE =
   "Leftover map used {used} of {scored} scored posts (complete-case)";

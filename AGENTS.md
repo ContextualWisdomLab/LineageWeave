@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -391,9 +391,15 @@ compares leftover pairs can read how many scored posts entered each grouping's
 Gabriel factorization; a missing, non-integer, negative-used, non-positive-scored,
 or used-greater-than-scored coverage omits that leftover-map comparison coverage
 note and does not invent post coverage from leftover pair count or plotted
-marker count. The strip does not gain leftover-map item coverage, leftover-map
-incomplete post coverage, leftover-map incomplete item coverage, or the
-leftover-map graphic.
+marker count. The strip does not gain leftover-map incomplete post coverage,
+leftover-map incomplete item coverage, or the leftover-map graphic.
+ADR 0290 captions the grouping comparison strip with persisted leftover-map
+item complete-case coverage through leftoverMapItemCoverageCounts so a buyer who
+compares leftover pairs can read how many scored criteria entered each grouping's
+Gabriel factorization; a missing, non-integer, negative-used, non-positive-scored,
+or used-greater-than-scored item coverage omits that leftover-map comparison item
+coverage note and does not invent item coverage from leftover pair count or plotted
+criterion marker count.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -410,6 +416,8 @@ graphic with how many scored posts entered the map. Pair-list post complete-case
 coverage (ADR 0288) fail-closes that pair-list note through leftoverMapCoverageCounts.
 Grouping comparison complete-case coverage (ADR 0289) captions the grouping
 comparison strip with how many scored posts entered each grouping's map.
+Grouping comparison item complete-case coverage (ADR 0290) captions the grouping
+comparison strip with how many scored criteria entered each grouping's map.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
