@@ -416,6 +416,14 @@ dropped count that contradicts usable item complete-case integers, omits that le
 comparison incomplete item note and does not invent dropped criteria from scored minus
 used or from leftover pair count. Dropped `0` is shown when persisted. The strip
 does not gain the leftover-map graphic.
+ADR 0293 captions the grouping comparison strip with persisted leftover-map
+axis share through leftoverMapCompareAxisShare so a buyer who compares leftover
+pairs can read Gabriel inertia of residual SVD axes 1 and 2 for that grouping;
+a missing or non-finite share omits that leftover-map comparison axis share
+badge and does not invent leftover-map axis share from leftover-map singular
+value, leftover pair count, or plotted marker count. Share `0` is shown when
+persisted, including rank-0 unused axes. The strip does not gain leftover-map
+singular values or the leftover-map graphic.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
