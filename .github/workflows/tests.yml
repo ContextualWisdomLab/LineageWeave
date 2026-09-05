@@ -4,19 +4,21 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
 
 permissions:
   contents: read
 
 concurrency:
+  # Draft/closed events deliberately create a no-job run in this workflow so
+  # workflow-level concurrency can cancel any older active run for the same PR.
   group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pytest:
     name: Full test suite
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-24.04
     services:
       postgres:
@@ -62,7 +64,7 @@ jobs:
 
   frontend:
     name: Frontend lint, test, build
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
