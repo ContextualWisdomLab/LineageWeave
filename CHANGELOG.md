@@ -9,6 +9,43 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption the grouping comparison strip with
+  persisted leftover-map incomplete post coverage through
+  leftoverMapIncompletePostCount (ADR 0291 / v2.48.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with the
+  Gabriel biplot of already-named coordinates, leftover-map axis share when
+  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
+  segments that match `d` on the pair row, pair segments that match `R̂` on
+  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
+  segments that match `U²/R²` on the pair row, pair segments that match
+  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
+  pair segments that match `R` on the pair row, pair segments that match
+  `Y` on the pair row, pair segments that match `E` on the pair row, pair
+  segments that match leftover-map rank on the pair row, a plot caption
+  that matches leftover-map complete-case coverage above the pair list, a
+  plot caption that matches leftover-map item complete-case coverage, a
+  plot caption that matches leftover-map incomplete post coverage, a plot
+  caption that matches leftover-map incomplete item coverage, a pair-list
+  note that matches leftover-map post complete-case coverage, a pair-list
+  note that matches leftover-map item complete-case coverage, a pair-list
+  note that matches leftover-map incomplete post coverage, a pair-list
+  note that matches leftover-map incomplete item coverage, a grouping
+  comparison note that matches leftover-map post complete-case coverage,
+  a grouping comparison note that matches leftover-map item
+  complete-case coverage, and a grouping comparison note that matches
+  leftover-map incomplete post coverage; click a post marker or a pair
+  button opens that post. A missing, non-integer, or negative dropped
+  count, or a dropped count that contradicts usable complete-case
+  integers, omits that leftover-map comparison incomplete post note.
+  Dropped `0` is shown when that persisted dropped count is a
+  non-negative integer. Do not invent dropped posts from scored minus
+  used, leftover pair count, plotted marker count, leftover-map distance,
+  leftover-map rank, leftover-map post coverage, leftover-map item
+  coverage, leftover-map incomplete item coverage, or the count of unused
+  axes. The strip does not gain leftover-map incomplete item coverage or
+  the leftover-map graphic. Never invent a leftover score or a theta. No
+  new columns.
+
+- Period leftover pairs now caption the grouping comparison strip with
   persisted leftover-map item complete-case coverage through
   leftoverMapItemCoverageCounts (ADR 0290 / v2.47.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the

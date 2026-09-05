@@ -671,6 +671,8 @@ on the leftover pair list through leftoverMapCoverageCounts. ADR 0289 captions t
 grouping comparison strip with persisted leftover-map post complete-case coverage
 through leftoverMapCoverageCounts. ADR 0290 captions the grouping comparison strip
 with persisted leftover-map item complete-case coverage through leftoverMapItemCoverageCounts.
+ADR 0291 captions the grouping comparison strip with persisted leftover-map incomplete
+post coverage through leftoverMapIncompletePostCount.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -689,8 +691,8 @@ including on the pair list. Results persist to
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
 `GET /api/reports/compare/{period}` is the home-page grouping strip
 and carries the same ABAC-filtered leftover pairs (ADR 0149) plus persisted
-leftover-map complete-case coverage (ADR 0289) and leftover-map item complete-case
-coverage (ADR 0290);
+leftover-map complete-case coverage (ADR 0289), leftover-map item complete-case
+coverage (ADR 0290), and leftover-map incomplete post coverage (ADR 0291);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
