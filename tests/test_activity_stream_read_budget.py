@@ -29,7 +29,7 @@ class _ReadClient:
 
 
 class _PopulatedReadClient:
-    """Expose a canonical stream while recording its bounded Valkey reads."""
+    """Expose one canonical UUID stream and no retained compatibility aliases."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, int | None]] = []
@@ -38,6 +38,11 @@ class _PopulatedReadClient:
             ("200-0", {"event_type": "second", "actor_account_id": "actor", "summary": "second"}),
             ("100-0", {"event_type": "first", "actor_account_id": "actor", "summary": "first"}),
         ]
+
+    async def sscan_iter(self, key: str):
+        del key
+        if False:
+            yield ""
 
     async def xrevrange(
         self,
@@ -90,10 +95,11 @@ def test_activity_read_count_accepts_the_retained_window_ceiling() -> None:
 
 
 def test_canonical_activity_read_uses_one_bounded_valkey_round_trip() -> None:
-    """The normal canonical stream must not pay one network round trip per event."""
+    """The normal UUID stream must not pay one network round trip per event."""
     client = _PopulatedReadClient()
+    post_id = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    events = asyncio.run(read_activity_events(client, "post-1", event_count=3))
+    events = asyncio.run(read_activity_events(client, post_id, event_count=3))
 
     assert [event["event_id"] for event in events] == ["300-0", "200-0", "100-0"]
-    assert client.calls == [("activity:post-1", "+", 3)]
+    assert client.calls == [("activity:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "+", 3)]
