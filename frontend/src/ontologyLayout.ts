@@ -317,15 +317,22 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
-            const values = [...existing[key], ...incoming[key]];
+          if (key !== "@id" && Object.hasOwn(existing, key)) {
+            const values = [
+              ...(Array.isArray(existing[key]) ? existing[key] : [existing[key]]),
+              ...(Array.isArray(incoming[key]) ? incoming[key] : [incoming[key]]),
+            ];
             const seen = new Set<string>();
-            merged[key] = values.filter((value) => {
+            const unique = values.filter((value) => {
               const serialized = JSON.stringify(value);
               if (seen.has(serialized)) return false;
               seen.add(serialized);
               return true;
             });
+            merged[key] = unique.length === 1 &&
+              !Array.isArray(existing[key]) && !Array.isArray(incoming[key])
+              ? unique[0]
+              : unique;
           }
         }
         graphItems.set(item["@id"], merged);

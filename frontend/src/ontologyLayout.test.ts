@@ -260,6 +260,55 @@ describe("ontologyLayout", () => {
     ]);
   });
 
+  it.each([
+    [{ "@id": "target:one" }, { "@id": "target:two" }],
+    [[{ "@id": "target:one" }], { "@id": "target:two" }],
+    [{ "@id": "target:one" }, [{ "@id": "target:two" }]],
+  ])("retains singleton and array relations across pages: %j, %j", (left, right) => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const relation = `${ONTOLOGY_NAMESPACE}mentions`;
+    const page = (value: unknown) => ({
+      ...source,
+      jsonld: { "@graph": [{ "@id": postIri, [relation]: value }] },
+    });
+    const first = page(left);
+    const second = page(right);
+    const before = JSON.stringify([first, second]);
+    const result = accumulateNeighborhoodPages(first, second);
+    expect(result.jsonld["@graph"]).toEqual([
+      { "@id": postIri, [relation]: [{ "@id": "target:one" }, { "@id": "target:two" }] },
+    ]);
+    expect(accumulateNeighborhoodPages(result, second).jsonld).toEqual(result.jsonld);
+    expect(JSON.stringify([first, second])).toBe(before);
+  });
+
+  it("retains direct relationships, types, labels and Voices within one page", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const relation = `${ONTOLOGY_NAMESPACE}mentions`;
+    const voices = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+    const next = {
+      ...source,
+      jsonld: { "@graph": [
+        { "@id": postIri, "@type": "lw:Post", "rdfs:label": "Demo public post" },
+        { "@id": postIri, [relation]: { "@id": "target:one" } },
+        { "@id": postIri, [relation]: { "@id": "target:two" } },
+        { "@id": postIri, [voices]: [{ "@id": "voice:one" }, { "@id": "voice:two" }] },
+        { "@id": postIri, "@type": "prov:Entity", "rdfs:label": "Synthetic translated label" },
+      ] },
+    };
+    expect(accumulateNeighborhoodPages(source, next).jsonld["@graph"]).toEqual([
+      {
+        "@id": postIri,
+        "@type": ["lw:Post", "prov:Entity"],
+        "rdfs:label": ["Demo public post", "Synthetic translated label"],
+        [relation]: [{ "@id": "target:one" }, { "@id": "target:two" }],
+        [voices]: [{ "@id": "voice:one" }, { "@id": "voice:two" }],
+      },
+    ]);
+  });
+
   it("keeps only exact canonical JSON-LD node ids when filtering", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;

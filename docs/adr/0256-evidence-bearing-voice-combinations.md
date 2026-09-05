@@ -22,6 +22,13 @@ attributes rather than from one exhaustive industry-role list.
 
 ## Decision
 
+Continuation clarification (2026-09-05): accumulating authorized pages retains
+every value of a repeated JSON-LD subject property, whether represented as a
+single value or an array. Repeated values are deduplicated; a later fragment
+must not replace an earlier relationship, type, or label. This implements
+ADR 0184's export parity under the W3C JSON-LD 1.1 node-object contract, without
+changing authorization, truth, cutoff, or Voice assignment identity.
+
 Represent composition as rows in normalized `source_post_voice`, not as
 compound lookup codes.
 
