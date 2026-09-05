@@ -51,11 +51,14 @@ const EVIDENCE_STATUS_COPY = {
     "A forecast. Treat as unconfirmed until later evidence arrives.":
       "Đây là một dự đoán. Hãy coi là chưa xác nhận cho đến khi có bằng chứng sau này.",
   },
-} as const satisfies Record<Locale, Record<string, string>>;
+} as const;
 
 export type EvidenceStatusCopyKey = keyof (typeof EVIDENCE_STATUS_COPY)["en"];
 
 /** Return reader-facing evidence/inference/prediction copy in the active product locale. */
 export function evidenceStatusText(key: EvidenceStatusCopyKey): string {
-  return EVIDENCE_STATUS_COPY[getLocale()][key];
+  const copy = EVIDENCE_STATUS_COPY as Partial<
+    Record<Locale, Record<keyof (typeof EVIDENCE_STATUS_COPY)["en"], string>>
+  >;
+  return copy[getLocale()]?.[key] ?? EVIDENCE_STATUS_COPY.en[key];
 }

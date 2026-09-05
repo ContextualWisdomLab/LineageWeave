@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-export const SUPPORTED_LOCALES = ["en", "ko", "zh", "ja", "vi"] as const;
+export const SUPPORTED_LOCALES = ["ko", "en", "ja", "zh", "vi", "es", "de", "fr"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const LOCALE_LABELS: Record<Locale, string> = {
@@ -9,7 +9,43 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   zh: "中文",
   ja: "日本語",
   vi: "Tiếng Việt",
+  es: "Español",
+  de: "Deutsch",
+  fr: "Français",
 };
+
+export const CUSTOMER_MASTER_TRANSLATION_KEYS = [
+  "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.",
+  "Affiliates of {name}", "Author context", "Authorization context", "Authorized customer scope",
+  "Customer entities available to this account.", "Customer master could not be loaded.", "Customer master",
+  "Hint only", "Keymen", "Loading customer master...", "Loading related posts...", "Multiple roles observed",
+  "No customer entities are connected to this account.", "No linked posts yet.", "No post body.",
+  "Observed customer evidence", "Open record", "Open related post: {label}", "Our-side Keymen hints",
+  "Post body preview", "Related posts", "Relationship network", "Resolve", "Resolving...",
+  "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.",
+  "Showing the first {shown} of {total} observed source authors, ranked by post count.",
+  "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.",
+  "This hint could not be resolved to a corroborated organization name.", "Unresolved source identifier", "posts",
+] as const;
+
+let activeScreenTranslations: Readonly<Record<string, string>> | null = null;
+
+/** Admit a complete Customer Master projection and notify subscribed readers. */
+export function setCustomerMasterTranslations(translations: Record<string, string>): void {
+  for (const key of CUSTOMER_MASTER_TRANSLATION_KEYS) {
+    if (typeof translations[key] !== "string" || translations[key].trim() === "") {
+      throw new Error(`Incomplete Customer Master translation: ${key}`);
+    }
+  }
+  activeScreenTranslations = Object.freeze({ ...translations });
+  listeners.forEach((listener) => listener());
+}
+
+/** Remove the active Customer Master projection when its destination unmounts. */
+export function clearCustomerMasterTranslations(): void {
+  activeScreenTranslations = null;
+  listeners.forEach((listener) => listener());
+}
 
 export function isSupportedLocale(value: unknown): value is Locale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
@@ -2358,7 +2394,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
 };
 
 /** Customer-facing labels keep implementation vocabulary out of the reader UI. */
-const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
+const CUSTOMER_COPY: Partial<Record<Locale, Record<string, string>>> = {
   en: {
     "View related information": "View related information",
     "Related information": "Related information",
@@ -2455,7 +2491,7 @@ export function useLocale(): Locale {
 }
 
 export function t(key: string): string {
-  return CUSTOMER_COPY[currentLocale][key] ?? TRANSLATIONS[currentLocale]?.[key] ?? key;
+  return activeScreenTranslations?.[key] ?? CUSTOMER_COPY[currentLocale]?.[key] ?? TRANSLATIONS[currentLocale]?.[key] ?? key;
 }
 
 export function tf(key: string, values: Record<string, string | number>): string {
