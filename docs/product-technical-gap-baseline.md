@@ -10,12 +10,13 @@
 > readiness. The authenticated `GET /api/translations/{screen_key}` API is
 > implemented on the candidate branch. That is candidate implementation
 > evidence, not protected-main, deployed, or release evidence.
-> A stacked Customer Master consumer candidate now exists at implementation
-> head `cb093960d43e95cdfb1d9ed491e920e2106305db` on top of PR #929's
+> A stacked Customer Master consumer candidate now exists at exact head
+> `cb093960d43e95cdfb1d9ed491e920e2106305db` on top of PR #929's
 > exact head `f07a755972e38b4b2a961ab11acd9d3abb229967`. It admits all eight
 > locale tags, fetches the authenticated `customer-master` resource before
 > customer data, rejects incomplete screen projections, ignores late responses
-> from a previous locale, and shows an actionable retry state instead of
+> from a previous locale or authorization identity, and shows an actionable
+> retry state instead of
 > rendering bundled Customer Master copy. Review `5119233938` found that the
 > retry shell incorrectly diagnosed every transport/auth/permission/not-found/
 > service exception as an unpublished translation. RED
@@ -24,6 +25,10 @@
 > cause-neutral while retaining one concrete retry action. This stacked branch
 > is not protected-main, hosted-product-GREEN, authenticated PostgreSQL, or
 > deployed evidence.
+> Current-head local evidence is 59 frontend test files / 538 tests, lint,
+> production build, Storybook build, nine focused Python contract tests, and
+> freshly inspected 1440 x 900 plus 390 x 844 retry-state captures. These local
+> results do not satisfy the protected delivery boundary.
 >
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
@@ -49,9 +54,10 @@
 > `en/ko/zh/ja/vi`; `es/de/fr` are not first-class frontend locales. No material
 > SPA screen has yet been released on a published eight-locale ledger resource.
 > The stacked Customer Master candidate covers API admission plus loading and
-> retry rendering. Its earlier 1440×900 and 390×844 Storybook captures predate
-> the current auth-bound/cause-neutral repair head and are predecessor evidence,
-> not current-head browser acceptance. It does not contain reviewed eight-locale
+> retry rendering. The 1440×900 and 390×844 Storybook captures were regenerated
+> and inspected after the current auth-bound/cause-neutral repair. They prove
+> only the synthetic retry shell, not authenticated browser acceptance. The
+> candidate does not contain reviewed eight-locale
 > product copy or authenticated PostgreSQL normal/empty/permission evidence.
 > There is no release evidence for normal, loading, empty, error, permission,
 > responsive, keyboard/focus/screen-reader, CJK text expansion, or font fallback
@@ -201,7 +207,7 @@
   `frontend/src/i18n.ts`, `frontend/src/App.tsx`,
   `frontend/src/components/ScreenTranslationGate.tsx`,
   `frontend/src/components/ScreenTranslationGate.test.tsx`, and
-  `tests/test_customer_master_translation_auth_gate_contract.py`; predecessor
-  visual evidence is
+  `tests/test_customer_master_translation_auth_gate_contract.py`; current-head
+  synthetic visual evidence is
   `docs/screenshots/customer-master-translation-gate-{desktop,mobile}.png`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
