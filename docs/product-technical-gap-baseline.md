@@ -116,7 +116,25 @@ migration filenames share a numeric prefix in this snapshot; cross-branch SQL
 replay and semantic compatibility are not thereby proven. API-file overlap
 remains a review target, not proof of a conflict. Parent-first protected
 merging, explicit authority reconciliation, then fresh child checks/reviews
-are required before delivery. The active rules require independent approval,
+are required before delivery. Final hosted recheck: #780 retains three queued checks and cancelled earlier
+central runs; #929 has eleven queued checks and no failures; #934 has two
+queued checks. #914 has fourteen queued checks. #911 still fails dependency
+review (GitHub HTTP 403), Noema (HTTP 502), CodeQL dispatch admission, and
+Strix (cause not established here). #907 still fails Noema (HTTP 502) and
+CodeQL's missing terminal dispatch verdict. These are unresolved hosted gates,
+not local-product test failures, and none was bypassed or suppressed. Normal
+auto-merge is enabled on #780/#929/#914/#911/#907. No merge SHA exists for any
+of those open PRs at the recheck.
+
+The new repair is draft #935, created after the 117-PR queue snapshot, at
+`76fcd6207f549f8cbe710c8a2f8c87227f3712ee` before this evidence-only update.
+Its parent is #934. Repository Tests were correctly Draft-skipped, which is
+not hosted GREEN; this child cannot auto-merge into its unprotected parent.
+Fresh protected-main checks and independent approval remain required after
+parent-first delivery. Six documentation/Voice contract tests passed after
+the new baseline content was added.
+
+The active rules require independent approval,
 resolved review threads, central workflows, and no force push; no bypass or
 self-approval was used.
 
