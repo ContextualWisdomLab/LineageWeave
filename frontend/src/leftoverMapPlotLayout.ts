@@ -26,8 +26,9 @@
  *  (ADR 0295), grouping comparison leftover-map cross share
  *  (ADR 0296), grouping comparison leftover-map unexplained leftover
  *  (ADR 0297), grouping comparison leftover residual
- *  (ADR 0298), and grouping comparison leftover observed
- *  (ADR 0299) caption the pair list or the grouping comparison strip,
+ *  (ADR 0298), grouping comparison leftover observed
+ *  (ADR 0299), and grouping comparison leftover expected
+ *  (ADR 0300) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 

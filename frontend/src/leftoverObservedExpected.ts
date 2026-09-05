@@ -3,6 +3,9 @@
 export const LEFTOVER_MAP_COMPARE_OBSERVED_LABEL =
   "Leftover map comparison observed";
 
+export const LEFTOVER_MAP_COMPARE_EXPECTED_LABEL =
+  "Leftover map comparison expected";
+
 export function formatLeftoverObservedExpected(
   observed: number | null | undefined,
   expected: number | null | undefined,
