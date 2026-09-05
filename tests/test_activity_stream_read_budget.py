@@ -28,6 +28,35 @@ class _ReadClient:
         return []
 
 
+class _PopulatedReadClient:
+    """Expose a canonical stream while recording its bounded Valkey reads."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, int | None]] = []
+        self.entries = [
+            ("300-0", {"event_type": "third", "actor_account_id": "actor", "summary": "third"}),
+            ("200-0", {"event_type": "second", "actor_account_id": "actor", "summary": "second"}),
+            ("100-0", {"event_type": "first", "actor_account_id": "actor", "summary": "first"}),
+        ]
+
+    async def xrevrange(
+        self,
+        key: str,
+        max: str = "+",
+        min: str = "-",
+        count: int | None = None,
+    ) -> list[tuple[str, dict[str, str]]]:
+        del min
+        self.calls.append((key, max, count))
+        if max == "+":
+            eligible = self.entries
+        else:
+            upper = max.removeprefix("(")
+            upper_ms = int(upper.partition("-")[0])
+            eligible = [entry for entry in self.entries if int(entry[0].partition("-")[0]) < upper_ms]
+        return eligible[:count]
+
+
 @pytest.mark.parametrize("event_count", (True, 1.0, "50"))
 def test_activity_read_count_requires_an_exact_integer(event_count: Any) -> None:
     """Scalar coercion must not create an implicit buyer-facing read budget."""
@@ -58,3 +87,13 @@ def test_activity_read_count_accepts_the_retained_window_ceiling() -> None:
 
     assert asyncio.run(read_activity_events(client, "post-1", event_count=1000)) == []
     assert client.calls == 1
+
+
+def test_canonical_activity_read_uses_one_bounded_valkey_round_trip() -> None:
+    """The normal canonical stream must not pay one network round trip per event."""
+    client = _PopulatedReadClient()
+
+    events = asyncio.run(read_activity_events(client, "post-1", event_count=3))
+
+    assert [event["event_id"] for event in events] == ["300-0", "200-0", "100-0"]
+    assert client.calls == [("activity:post-1", "+", 3)]
