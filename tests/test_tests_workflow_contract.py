@@ -13,19 +13,27 @@ _PULL_REQUEST_CANCELLATION = (
     "cancel-in-progress: ${{ github.event_name == 'pull_request' }}"
 )
 _PULL_REQUEST_TYPES = (
-    "types: [opened, synchronize, reopened, ready_for_review]"
+    "types: [opened, synchronize, reopened, ready_for_review, "
+    "converted_to_draft, closed]"
 )
 _DRAFT_ADMISSION = "github.event.pull_request.draft == false"
+_INACTIVE_ADMISSION = (
+    "github.event.action != 'closed' && github.event.pull_request.draft == false"
+)
 
 
-def test_product_workflows_do_not_create_inactive_pr_runs() -> None:
-    """Leave draft and closed lifecycle cleanup to the central workflow."""
+def test_lifecycle_events_cancel_inactive_pr_work() -> None:
+    """Keep lifecycle events so Draft/close transitions cancel active local work."""
 
-    workflow = (_WORKFLOW_DIRECTORY / "tests.yml").read_text(encoding="utf-8")
-
-    assert _PULL_REQUEST_TYPES in workflow
-    assert "converted_to_draft" not in workflow
-    assert "github.event.action != 'closed'" not in workflow
+    expected_inactive_guards = {
+        "tests.yml": 2,
+        "prov-o-contract.yml": 1,
+        "ontology-pages.yml": 1,
+    }
+    for workflow_name, expected_guard_count in expected_inactive_guards.items():
+        workflow = (_WORKFLOW_DIRECTORY / workflow_name).read_text(encoding="utf-8")
+        assert _PULL_REQUEST_TYPES in workflow, workflow_name
+        assert workflow.count(_INACTIVE_ADMISSION) == expected_guard_count, workflow_name
 
 
 def test_pull_request_workflows_cancel_only_superseded_same_pr_runs() -> None:
