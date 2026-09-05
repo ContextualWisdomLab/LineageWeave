@@ -65,3 +65,47 @@ def test_customer_master_render_gate_rejects_stale_token_copy() -> None:
     render_gate = panel[render_gate_start:render_gate_end]
 
     assert "copyAccessToken !== accessToken" in render_gate
+
+
+def test_customer_master_auth_transition_invalidates_secondary_authorization_projections() -> None:
+    """Related data, post detail, and privileges from the old token must be discarded on transition."""
+    panel = _customer_master_panel_source()
+    fetch_me = panel.index("fetchMe(accessToken)")
+    effect_start = panel.rfind("  useEffect(() => {", 0, fetch_me)
+    effect_end = panel.index("\n  }, [accessToken]);", fetch_me)
+    auth_effect = panel[effect_start:effect_end]
+
+    for statement in (
+        "setCanResolveHints(false);",
+        "setRelatedByEntity({});",
+        "setExpandedEntityId(null);",
+        "setRelatedLoading(null);",
+        "setSelectedPostId(null);",
+        "setSelectedPostGraph(null);",
+        "setResolvingHint(null);",
+        "setResolveError(null);",
+    ):
+        assert statement in auth_effect
+
+
+def test_customer_master_secondary_async_completions_are_bound_to_current_auth_identity() -> None:
+    """Old-token async continuations must not repopulate Customer Master secondary projections."""
+    panel = _customer_master_panel_source()
+
+    assert "const currentAccessTokenRef = useRef(accessToken);" in panel
+    assert "currentAccessTokenRef.current = accessToken;" in panel
+
+    load_start = panel.index("  const loadMaster = useCallback(() => {")
+    load_end = panel.index("\n  useEffect(() => {", load_start)
+    load_master = panel[load_start:load_end]
+    assert "requestAccessToken === currentAccessTokenRef.current" in load_master
+
+    resolve_start = panel.index("  async function handleResolveHint(")
+    resolve_end = panel.index("\n  async function toggleEntity(", resolve_start)
+    resolve_hint = panel[resolve_start:resolve_end]
+    assert "requestAccessToken === currentAccessTokenRef.current" in resolve_hint
+
+    toggle_start = panel.index("  async function toggleEntity(")
+    toggle_end = panel.index('\n  if (copyState === "retry")', toggle_start)
+    toggle_entity = panel[toggle_start:toggle_end]
+    assert "requestAccessToken === currentAccessTokenRef.current" in toggle_entity
