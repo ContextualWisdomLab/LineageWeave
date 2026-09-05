@@ -120,10 +120,13 @@ import {
   useLocale,
 } from "./i18n";
 import {
+  leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM,
   LEFTOVER_MAP_PLOT_INCOMPLETE_POST,
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
 } from "./leftoverMapCoverage";
@@ -3822,6 +3825,7 @@ function ReportsPanel({
         {orderedReports.map((report) => {
           const itemCoverageCounts = leftoverMapItemCoverageCounts(report.leftover_map_coverage);
           const incompletePostCount = leftoverMapIncompletePostCount(report.leftover_map_coverage);
+          const incompleteItemCount = leftoverMapIncompleteItemCount(report.leftover_map_coverage);
           return (
           <li
             key={report.grouping_key}
@@ -3868,6 +3872,11 @@ function ReportsPanel({
             {incompletePostCount !== null ? (
               <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL)}>
                 {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, incompletePostCount)}
+              </p>
+            ) : null}
+            {incompleteItemCount !== null ? (
+              <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL)}>
+                {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, incompleteItemCount)}
               </p>
             ) : null}
             {report.leftover_map_axes?.map((axis) => (

@@ -4160,6 +4160,9 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover map incomplete posts")).toHaveTextContent(
       "Leftover map dropped 1 incomplete posts",
     );
+    expect(screen.getByLabelText("Leftover map incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -4242,6 +4245,9 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete posts"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete items"),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
