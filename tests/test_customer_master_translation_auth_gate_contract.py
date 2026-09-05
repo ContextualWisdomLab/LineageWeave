@@ -27,7 +27,7 @@ def test_customer_master_translation_ready_is_bound_to_current_access_token() ->
 def test_customer_master_data_effect_requires_auth_bound_copy() -> None:
     """The Customer Master request effect must fail closed on stale-token copy."""
     panel = _customer_master_panel_source()
-    effect_start = panel.index('if (copyState !== "ready")')
+    effect_start = panel.index('if (copyState !== "ready"')
     effect_end = panel.index("\n  useEffect(() => {", effect_start + 1)
     data_effect = panel[effect_start:effect_end]
 
