@@ -215,6 +215,8 @@ async def _activity_initial_uuid_read(
         return None
     candidate_keys = (canonical_key, *sorted(aliases))
     stream_keys = tuple(dict.fromkeys(candidate_keys))
+    if len(stream_keys) > _MAX_ACTIVITY_READ_COUNT:
+        raise RuntimeError("Activity history has too many retained compatibility streams")
     return canonical_entries, stream_keys[1:]
 
 
