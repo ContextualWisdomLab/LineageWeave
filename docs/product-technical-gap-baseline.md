@@ -5,14 +5,14 @@
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
 > validation. Required current-head checks are not yet accepted as terminal GREEN
 > and the delivery boundary still requires qualifying independent review. The
-> live non-identifying queue snapshot contains 120 open PRs and 16 open issues;
+> live non-identifying queue snapshot contains 122 open PRs and 16 open issues;
 > those counts describe coordination load, not product maturity or release
 > readiness. The authenticated `GET /api/translations/{screen_key}` API is
 > implemented on the candidate branch. That is candidate implementation
 > evidence, not protected-main, deployed, or release evidence.
 > A stacked Customer Master consumer candidate now exists at exact head
-> `cb093960d43e95cdfb1d9ed491e920e2106305db` on top of PR #929's
-> exact head `f07a755972e38b4b2a961ab11acd9d3abb229967`. It admits all eight
+> `c95736ab6627d646ba4455ae2749f84f9cf23d31` on top of PR #929's
+> exact head `2a8ed5d02f4a3082b346d923d754c1ff37ebff52`. It admits all eight
 > locale tags, fetches the authenticated `customer-master` resource before
 > customer data, rejects incomplete screen projections, ignores late responses
 > from a previous locale or authorization identity, and shows an actionable
@@ -25,8 +25,8 @@
 > cause-neutral while retaining one concrete retry action. This stacked branch
 > is not protected-main, hosted-product-GREEN, authenticated PostgreSQL, or
 > deployed evidence.
-> Current-head local evidence is 59 frontend test files / 538 tests, lint,
-> production build, Storybook build, nine focused Python contract tests, and
+> Current-head local evidence is 59 frontend test files / 546 tests, lint,
+> production build, Storybook build, five focused Python contract tests, and
 > freshly inspected 1440 x 900 plus 390 x 844 retry-state captures. These local
 > results do not satisfy the protected delivery boundary.
 >
