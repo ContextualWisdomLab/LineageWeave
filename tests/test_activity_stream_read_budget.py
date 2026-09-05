@@ -33,6 +33,7 @@ class _PopulatedReadClient:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, int | None]] = []
+        self.round_trips = 0
         self.entries = [
             ("300-0", {"event_type": "third", "actor_account_id": "actor", "summary": "third"}),
             ("200-0", {"event_type": "second", "actor_account_id": "actor", "summary": "second"}),
@@ -40,7 +41,9 @@ class _PopulatedReadClient:
         ]
 
     async def sscan_iter(self, key: str):
+        """Count the alias-index exchange that precedes the canonical stream read."""
         del key
+        self.round_trips += 1
         if False:
             yield ""
 
@@ -52,6 +55,7 @@ class _PopulatedReadClient:
         count: int | None = None,
     ) -> list[tuple[str, dict[str, str]]]:
         del min
+        self.round_trips += 1
         self.calls.append((key, max, count))
         if max == "+":
             eligible = self.entries
@@ -95,7 +99,7 @@ def test_activity_read_count_accepts_the_retained_window_ceiling() -> None:
 
 
 def test_canonical_activity_read_uses_one_bounded_valkey_round_trip() -> None:
-    """The normal UUID stream must not pay one network round trip per event."""
+    """The normal UUID path counts alias admission and data read as real I/O."""
     client = _PopulatedReadClient()
     post_id = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -103,3 +107,4 @@ def test_canonical_activity_read_uses_one_bounded_valkey_round_trip() -> None:
 
     assert [event["event_id"] for event in events] == ["300-0", "200-0", "100-0"]
     assert client.calls == [("activity:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "+", 3)]
+    assert client.round_trips == 1
