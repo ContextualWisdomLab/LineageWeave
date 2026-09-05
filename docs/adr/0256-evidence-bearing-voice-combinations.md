@@ -52,8 +52,10 @@ compound lookup codes.
   keyword rule, confidence threshold, or weight converts those dimensions into
   a voice.
 - The public ontology represents each row as a qualified `VoiceAssignment`
-  linked from its post. Each assignment names one atomic SKOS voice concept;
-  additional assignments retain evidence through `prov:wasDerivedFrom`.
+  linked from its post. Each assignment names one atomic SKOS voice concept
+  and its carrying Post through `voiceAssignmentCarryingPost`, which does not
+  imply derivation. Additional assignments alone retain their distinct
+  evidence Post through `voiceAssignmentEvidence` and `prov:wasDerivedFrom`.
 - Authorized post list/detail responses expose ordered voice assignments with
   labels, truth state, and evidence availability but never internal assertion
   identifiers. Filters match any associated voice, and repeated post cards show
@@ -72,7 +74,8 @@ compound lookup codes.
   accounts without `post_admin` do not expose this write control.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
-  atomic voice concept, primary flag, and source-post evidence. The exact-value
+  atomic voice concept, primary flag, and carrying Post. Additional assignments
+  also require derivation evidence. The exact-value
   table opens the carrying Post and, separately, the already-authorized
   derivation-evidence Post. It does not invent a graph edge or expose an
   internal assertion identifier. A single bounded query loads
