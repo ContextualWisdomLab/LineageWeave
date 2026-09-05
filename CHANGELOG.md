@@ -9,6 +9,56 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Period leftover pairs now caption grouping comparison leftover-pair
+  buttons with persisted leftover residual `R` through
+  formatLeftoverMapResidual (ADR 0298 / v2.55.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with the
+  Gabriel biplot of already-named coordinates, leftover-map axis share when
+  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
+  segments that match `d` on the pair row, pair segments that match `R̂` on
+  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
+  segments that match `U²/R²` on the pair row, pair segments that match
+  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
+  pair segments that match `R` on the pair row, pair segments that match
+  `Y` on the pair row, pair segments that match `E` on the pair row, pair
+  segments that match leftover-map rank on the pair row, a plot caption
+  that matches leftover-map complete-case coverage above the pair list, a
+  plot caption that matches leftover-map item complete-case coverage, a
+  plot caption that matches leftover-map incomplete post coverage, a plot
+  caption that matches leftover-map incomplete item coverage, a pair-list
+  note that matches leftover-map post complete-case coverage, a pair-list
+  note that matches leftover-map item complete-case coverage, a pair-list
+  note that matches leftover-map incomplete post coverage, a pair-list
+  note that matches leftover-map incomplete item coverage, a grouping
+  comparison note that matches leftover-map post complete-case coverage,
+  a grouping comparison note that matches leftover-map item
+  complete-case coverage, a grouping comparison note that matches
+  leftover-map incomplete post coverage, a grouping comparison note
+  that matches leftover-map incomplete item coverage, grouping comparison
+  leftover-pair buttons that match leftover-map reconstruction `R̂` on the
+  pair row, grouping comparison leftover-pair buttons that match
+  leftover-map explained leftover share `e` on the pair row, grouping
+  comparison leftover-pair buttons that match leftover-map unexplained
+  leftover share `s` on the pair row, grouping comparison leftover-pair
+  buttons that match leftover-map cross share `x` on the pair row,
+  grouping comparison leftover-pair buttons that match leftover-map
+  unexplained leftover `U` on the pair row, and grouping comparison
+  leftover-pair buttons that match leftover residual `R` on the pair row;
+  click a post marker or a pair button opens that post. A missing or
+  non-finite `R` omits that leftover-map comparison residual badge and
+  keeps leftover-map unexplained leftover `U` when finite, leftover-map
+  cross share `x` when finite, leftover-map unexplained leftover share
+  `s` when finite, leftover-map explained leftover share `e` when finite,
+  leftover-map reconstruction `R̂` when finite, leftover-map distance `d`,
+  plus the strip coverage notes. Do not invent `R` from `Y` and `E`, from
+  `U` and `R̂`, leftover-map distance, plotted coordinates, leftover-map
+  reconstruction, leftover-map unexplained leftover, leftover-map rank,
+  leftover-map post coverage, leftover-map item coverage, leftover-map
+  incomplete post coverage, leftover-map incomplete item coverage, or the
+  count of unused axes. A finite negative leftover is shown, never clamped.
+  The strip does not gain the leftover-map graphic. Never invent a leftover
+  score or a theta. No new columns.
+
+- Period leftover pairs now caption grouping comparison leftover-pair
   buttons with persisted leftover-map unexplained leftover `U` through
   formatLeftoverMapUnexplained (ADR 0297 / v2.54.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the

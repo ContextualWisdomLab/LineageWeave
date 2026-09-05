@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 01:30 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #833 leftover-map unexplained leftover `U` on grouping
+> comparison leftover-pair buttons (v2.54.0 / ADR 0297) is `18d89b4`,
+> stacked on #831 @ `2cefc0b`. Next buyer increment on this cycle:
+> leftover residual `R` on grouping comparison leftover-pair buttons
+> (ADR 0298 / v2.55.0) delivered locally on
+> `feat/leftover-map-compare-residual-v2550`. Caption each strip
+> leftover-pair button through formatLeftoverMapResidual with distinct
+> aria-label `Leftover map comparison residual`. UI-only; no new columns.
+> Missing or non-finite `R` omits that badge independently of `U`, `x`,
+> `s`, `e`, `R̂`, `d`, and coverage notes. Do not invent `R` from `Y` and
+> `E` or from `U` and `R̂`. A finite negative leftover is shown, never
+> clamped. Stack onto #833. Leave open for independent review. Do not
+> squash-merge. Issues #79 and #87 stay open. #96 is already closed. Do
+> not merge #808 without independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 01:19 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808

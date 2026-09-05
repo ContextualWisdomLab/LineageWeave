@@ -19,3 +19,7 @@ export function formatLeftoverMapResidual(value: number | null | undefined): str
   }
   return `R ${formatLeftoverResidual(value)}`;
 }
+
+export const LEFTOVER_MAP_COMPARE_RESIDUAL_LABEL =
+  "Leftover map comparison residual";
+
