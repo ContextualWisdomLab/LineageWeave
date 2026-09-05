@@ -90,7 +90,9 @@ export type LeftoverPairListProps = {
  * incomplete item coverage on the grouping comparison strip, not this pair list. ADR 0293
  * names persisted leftover-map reconstruction on grouping comparison leftover-pair
  * buttons, not this pair list. ADR 0294 names persisted leftover-map explained leftover
- * share on grouping comparison leftover-pair buttons, not this pair list. Every badge still
+ * share on grouping comparison leftover-pair buttons, not this pair list. ADR 0295 names
+ * persisted leftover-map unexplained leftover share on grouping comparison leftover-pair
+ * buttons, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
