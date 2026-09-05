@@ -2,7 +2,7 @@ name: PROV-O contract
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
     branches: [main]
     paths:
       - "lineageweave/prov_o.py"
@@ -29,13 +29,15 @@ permissions:
   contents: read
 
 concurrency:
+  # Draft/closed events intentionally skip the product job but retain the
+  # workflow event needed to cancel an older active run for this same PR.
   group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   standards-contract:
     name: Registry, inference, coverage, PostgreSQL
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-24.04
     services:
       postgres:
