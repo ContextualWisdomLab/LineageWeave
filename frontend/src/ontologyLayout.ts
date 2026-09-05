@@ -182,9 +182,13 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
   return `${lines.join("\n")}\n`;
 }
 
+const SPREADSHEET_FORMULA_PREFIX = /^[=+\-@\t\r\n\u0000\uFF1D\uFF0B\uFF0D\uFF20]/u;
+
 function csvCell(value: string): string {
-  const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
-  if (/[",\n]/.test(safeValue)) {
+  // Spreadsheet formula parsers recognize control and locale-specific prefixes
+  // beyond ASCII =+-@, so neutralize the complete export boundary before quoting.
+  const safeValue = SPREADSHEET_FORMULA_PREFIX.test(value) ? `'${value}` : value;
+  if (/[",\r\n]/.test(safeValue)) {
     return `"${safeValue.replaceAll('"', '""')}"`;
   }
   return safeValue;
