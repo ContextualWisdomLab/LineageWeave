@@ -13,19 +13,19 @@ _PULL_REQUEST_CANCELLATION = (
     "cancel-in-progress: ${{ github.event_name == 'pull_request' }}"
 )
 _PULL_REQUEST_TYPES = (
-    "types: [opened, synchronize, reopened, ready_for_review, "
-    "converted_to_draft, closed]"
+    "types: [opened, synchronize, reopened, ready_for_review]"
 )
 _DRAFT_ADMISSION = "github.event.pull_request.draft == false"
 
 
-def test_pull_request_concurrency_survives_closed_ref_change() -> None:
-    """Key synchronize and closed events by PR number so close cancels stale work."""
+def test_product_workflows_do_not_create_inactive_pr_runs() -> None:
+    """Leave draft and closed lifecycle cleanup to the central workflow."""
 
     workflow = (_WORKFLOW_DIRECTORY / "tests.yml").read_text(encoding="utf-8")
 
     assert _PULL_REQUEST_TYPES in workflow
-    assert workflow.count("github.event.action != 'closed'") == 2
+    assert "converted_to_draft" not in workflow
+    assert "github.event.action != 'closed'" not in workflow
 
 
 def test_pull_request_workflows_cancel_only_superseded_same_pr_runs() -> None:
