@@ -4767,6 +4767,7 @@ function CustomerMasterPanel({
   const [copyAccessToken, setCopyAccessToken] = useState<string | null>(null);
   const [copyAttempt, setCopyAttempt] = useState(0);
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
+  const masterRequestGeneration = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
@@ -4798,14 +4799,23 @@ function CustomerMasterPanel({
   }, [accessToken]);
 
   const loadMaster = useCallback(() => {
+    const requestGeneration = ++masterRequestGeneration.current;
     setError(null);
     return fetchCustomerMaster(accessToken)
-      .then(setMaster)
-      .catch(() => setError(t("Customer master could not be loaded.")));
+      .then((nextMaster) => {
+        if (requestGeneration === masterRequestGeneration.current) setMaster(nextMaster);
+      })
+      .catch(() => {
+        if (requestGeneration === masterRequestGeneration.current) {
+          setError(t("Customer master could not be loaded."));
+        }
+      });
   }, [accessToken]);
 
   useEffect(() => {
     let active = true;
+    masterRequestGeneration.current += 1;
+    setMaster(null);
     setCopyState("loading");
     setCopyLocale(null);
     setCopyAccessToken(null);
