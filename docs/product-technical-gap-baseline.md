@@ -1,5 +1,135 @@
 # Product & Technical Gap Baseline
 
+## Current bounded loop — 2026-09-05
+
+This section supersedes every dated snapshot below. It records observations,
+not a protected-release claim. Remote `main` was
+`83eba56149eb802cd63642c507c324c9976ec78e`. The implemented export repair is
+`05384255df15c3995dbc3cef149abd5d92afd40a`, a child of #780 at
+`1d8fa267b059289e77301a09985dfac70a439814`. This document is a later evidence
+commit; its own hash is not substituted for the tested implementation hash.
+
+### Authority and current implementation
+
+The current LineageWeave PRD, ADR 0184, ADR 0246, and the reconciled Voice
+combination ADR 0256 were read before implementation. ADR 0251 on this branch
+owns I/O Psychology; it must not be conflated with the historical Voice
+combination number. The twelve atomic Voices remain extensible associations,
+with separate carrying Post, authorized derivation evidence, PROV-O, truth,
+and cutoff. No compound-code enumeration or inferred replacement evidence was
+introduced. W3C [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/#node-objects)
+supports retaining all property values for a repeated subject; it does not
+supply stakeholder classifications, weights, or psychometric results.
+
+Remote ecosystem authority read in this cycle: ThreadWeave `docs/PRD.md`,
+RankWeave `ARCHITECTURE.md`, and contextual-orchestrator
+`docs/product_planning.md`. Those repositories' threading, ranking, and model
+boundaries are unchanged. GitHub confirms canonical names
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `ContextualWisdomLab/disksage`. The PRD's `DiskSage` repository spelling
+is a documentation discrepancy, not a separate repository or integration.
+DeepWiki has no indexed repository; Context7 returned quota exhaustion. Neither
+response was treated as architecture evidence.
+
+### Selected user gap and local evidence
+
+Continuing an ontology neighborhood could silently replace an earlier direct
+relationship when the JSON-LD property was a singleton. This loses evidence
+from the user's exported neighborhood even though the exact-value rows remain.
+It is the priority in this bounded cycle because an existing evidence-review
+and export action loses accepted information; no invented score ranks it
+against unmeasured product opportunities. The accumulator now unions singleton
+and array values while retaining node labels, types, and multi-Voice relations.
+Four new regression cases failed before the repair and passed afterward.
+
+- 41 focused frontend tests passed; lint, TypeScript, and production build passed.
+- 53 ontology/SHACL/backend tests passed, including the authenticated API test
+  using real Keycloak/JWKS and a newly migrated synthetic PostgreSQL database.
+  This is the candidate ASGI application, not a deployed-image assertion.
+- Existing `CombinedVoiceEvidence` Storybook was rendered and visually audited
+  at 1440×1000 and 390×844. The mobile exact-value region scrolls internally;
+  document widths equal viewport widths. Source and derivation actions remain
+  separate. [Desktop](screenshots/voice-export-20260905-desktop.png) and
+  [mobile](screenshots/voice-export-20260905-mobile.png) are synthetic artifacts.
+- No DeprecationWarning was emitted by these runs. The production build's
+  large-chunk advisory remains; no unmeasured performance change was made.
+
+Full authenticated deployed additional-Voice, hidden-evidence, cutoff, and
+paged UI-to-PostgreSQL acceptance remains **unavailable**. The focused primary-
+Voice API proof and synthetic Storybook renders do not complete that contract.
+
+### Observed load and current runtime aggregates
+
+A real HTTP k6 run used the candidate API, live demo authentication, and only a
+throwaway synthetic PostgreSQL database: 2 VUs for 10 seconds, 856 requests,
+85.07 requests/second, zero failed requests, p95 25.88 ms, maximum 1787.68 ms.
+These are descriptive observations, not an SLO, population estimate, or
+saturation envelope. Across 48 database samples, peak connections were 6,
+peak active sessions 2, and lock waiters 0 (sampling includes the observer).
+The API stopped and the synthetic database was removed afterward.
+
+The official Compose project remains `lineageweave`. A separate resource
+snapshot observed PostgreSQL 0.69% CPU / 207.6 MiB, Valkey 0.43% / 643.1 MiB,
+Ask worker 0.48% / 108.7 MiB, and orchestrator 0.02% / 76.78 MiB; Valkey reported
+5 clients and 1 blocked client. These snapshots cannot establish saturation
+or causation. This ontology read workload does not invoke worker, LLM, VISION,
+embedding, or gateway work; their end-to-end capacity remains **unavailable**.
+No throughput policy, pool limit, mathematical implementation, container, or
+volume was changed, and no real Post data was sampled.
+
+### Exact-head queue and integration conflicts
+
+The [non-identifying per-PR snapshot](development-loop-20260905.json) records
+116 open PR heads, bases, draft states, bounded review-thread results, and
+changed authority paths. At collection there were 93 drafts, 23 ready PRs,
+16 open issues, and 111 unresolved threads. No `APPROVED` review decision was
+present. Review bodies/real records/credentials are not persisted. The latest
+20 reviews and first 100 threads per PR bound this review collection; these
+counts are not a claim that every review finding has been adjudicated.
+
+#780 had zero unresolved threads and was admitted to Ready on the unchanged
+head so Draft-skipped checks can run. Normal squash auto-merge is enabled;
+independent approval and current-head required workflows remain unmet. #907,
+#911, and #929 retain their existing auto-merge. One in-progress run was tied
+to open #911's exact head and was retained. No stale run was cancelled, no
+stack was retargeted, and no protected merge SHA is claimed. GitHub's temporary
+`merge_commit_sha` on an unmerged PR is not completion evidence.
+
+Cross-PR added-file inspection found the following distinct ADR number
+collisions; inherited paths alone were not counted:
+
+| ADR | Owning PRs |
+| --- | --- |
+| 0355 | #920, #915 |
+| 0301 | #902, #838 |
+| 0300 | #899, #837 |
+| 0279 | #888, #811 |
+| 0335 | #877, #876 |
+| 0305 | #844, #843 |
+| 0304 | #842, #841 |
+| 0293 | #828, #826 |
+| 0290 | #823, #822 |
+| 0289 | #821, #820 |
+
+Proposed release titles also collide at v2.92.0 (#877/#876), v2.62.0
+(#844/#843), v2.61.0 (#842/#841), v2.50.0 (#828/#826), v2.47.0 (#823/#822),
+and v2.46.0 (#821/#820). File inspection found no distinct added migration
+filenames sharing a numeric prefix in this snapshot; SQL semantic/replay
+compatibility across all branches remains unverified. API files overlap in
+#932/#929/#914/#911/#909/#904/#888/#844/#842/#828/#821/#808/#780/#702/#679/#672/#667;
+overlap is a review target, not proof of an API conflict. Do not merge the
+stacks until parents merge normally, then retarget children to `main`, resolve
+ownership conflicts, and collect new exact-head evidence.
+
+`StatusNotice` already exists on the observed protected main under ADR 0220;
+the historical ADR 0134 row saying no shared component exists is obsolete.
+#901 owns that older baseline reconciliation. Its file and the primary
+checkout's uncommitted #929 changes were preserved. #847/#807 own the broader
+PRD authority-ID reconciliation. This child adds no schema, API, or release
+number and does not rewrite those owners' work.
+
+## Historical evidence — not current acceptance
+
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
