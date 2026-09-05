@@ -529,6 +529,79 @@ async def read_activity_events(
             for entry_id, activity_fields in canonical_entries
         ]
 
+    pipeline_factory = getattr(valkey_client, "pipeline", None)
+    if pipeline_factory is not None:
+        prefetch_count = max(
+            1,
+            min(
+                bounded_event_count,
+                _MAX_ACTIVITY_READ_COUNT // len(stream_keys),
+            ),
+        )
+        async with pipeline_factory(transaction=False) as read_pipeline:
+            for stream_key in stream_keys:
+                read_pipeline.xrevrange(stream_key, count=prefetch_count)
+            with traced(
+                "lineageweave.valkey.activity_read_pipeline",
+                {
+                    "db.system": "redis",
+                    "db.operation.name": "pipeline",
+                    "lineageweave.stream.kind": "activity",
+                },
+            ):
+                stream_pages = await read_pipeline.execute()
+
+        next_entries: list[tuple[tuple[str, dict[str, str]], int]] = []
+        stream_positions = [0] * len(stream_keys)
+        with traced(
+            "lineageweave.valkey.activity_xrevrange",
+            {
+                "db.system": "redis",
+                "db.operation.name": "xrevrange",
+                "lineageweave.stream.kind": "activity",
+            },
+        ):
+            while len(next_entries) < bounded_event_count:
+                available = [
+                    (stream_pages[stream_index][stream_position], stream_index)
+                    for stream_index, stream_position in enumerate(stream_positions)
+                    if stream_position < len(stream_pages[stream_index])
+                ]
+                if not available:
+                    break
+                newest_entry, newest_stream_index = max(
+                    available,
+                    key=lambda item: _activity_compatibility_merge_order(
+                        item[0][0], item[1]
+                    ),
+                )
+                next_entries.append((newest_entry, newest_stream_index))
+                stream_positions[newest_stream_index] += 1
+
+                if (
+                    len(next_entries) < bounded_event_count
+                    and stream_positions[newest_stream_index]
+                    >= len(stream_pages[newest_stream_index])
+                    and len(stream_pages[newest_stream_index]) == prefetch_count
+                ):
+                    next_page = await valkey_client.xrevrange(
+                        stream_keys[newest_stream_index],
+                        max=f"({newest_entry[0]}",
+                        count=prefetch_count,
+                    )
+                    stream_pages[newest_stream_index] = next_page
+                    stream_positions[newest_stream_index] = 0
+
+        return [
+            {
+                "event_id": _activity_public_event_id(entry_id, stream_index),
+                "event_type": activity_fields["event_type"],
+                "actor_account_id": activity_fields["actor_account_id"],
+                "summary": activity_fields["summary"],
+            }
+            for (entry_id, activity_fields), stream_index in next_entries
+        ]
+
     next_entries: list[tuple[tuple[str, dict[str, str]], int]] = []
     stream_results: list[tuple[str, dict[str, str]] | None] = [None] * len(stream_keys)
     with traced(
