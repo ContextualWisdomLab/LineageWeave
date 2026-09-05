@@ -3,14 +3,8 @@ name: Tests
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
 
 permissions:
   contents: read
@@ -19,17 +13,17 @@ concurrency:
   # A merged pull request can report the base ref on ``closed``. Keying PR
   # events by number lets that close run cancel an older queued synchronize
   # run for the same PR instead of consuming runners after the PR is closed.
-  group: tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pytest:
     name: Full test suite
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc4999588649806c4678c61a1
         env:
           POSTGRES_PASSWORD: postgres
         ports:
@@ -71,7 +65,7 @@ jobs:
 
   frontend:
     name: Frontend lint, test, build
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
