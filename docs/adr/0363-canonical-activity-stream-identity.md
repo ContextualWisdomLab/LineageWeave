@@ -34,6 +34,15 @@ WATCH retries, retained-window read limits, and alias-index startup are fixed
 product contracts. Failure to build the alias index makes the application
 unready; the product does not silently hide historical activity.
 
+Alias discovery may find many independent legacy keys. Startup therefore keeps
+at most 128 pending alias-set writes in memory and flushes each bounded group
+through a non-transactional redis-py pipeline. `SADD` result integers are summed
+exactly, preserving the existing count of newly indexed aliases. Minimal test
+adapters without pipeline support retain the sequential compatibility fallback;
+the production client created by `create_valkey_client` uses the batched path.
+The batching changes transport cost only: discovery, durability, and readiness
+semantics remain unchanged.
+
 The supported deployment is the repository's single `lineageweave` Compose
 backend service. Deployment stops the preceding backend before starting the
 replacement, so no pre-canonical writer may overlap the alias scan. A rolling
@@ -58,6 +67,9 @@ without pretending legacy stream-local sequence numbers form one global order.
 ## Consequences
 
 - Canonical reads retain every historical UUID spelling that actually exists.
+- Startup alias writes use at most 128 pending `(index key, legacy stream key)`
+  tuples per production pipeline exchange instead of one awaited network write
+  per alias.
 - The alias-free UUID buyer path admits compatibility metadata and fetches the
   bounded canonical window in one redis-py pipeline network exchange.
 - Compatibility merging may pay an additional bounded probe before its existing
@@ -73,6 +85,12 @@ without pretending legacy stream-local sequence numbers form one global order.
 
 - Enumerate common UUID spellings: rejected because PostgreSQL accepts more
   forms than a finite hand-picked list would honestly cover.
+- Await one `SADD` for every discovered alias: rejected because rollout/readiness
+  latency then adds one serial Valkey write round trip per historical alias even
+  though those writes are independent.
+- Buffer every discovered alias and issue one unbounded pipeline at the end:
+  rejected because startup memory and command-buffer size would scale with the
+  entire retained keyspace rather than a fixed batch.
 - Perform an alias-index lookup and only afterward issue the canonical
   `XREVRANGE`: rejected because the normal UUID path then has at least two
   sequential Valkey network waits even when the alias set is empty.
@@ -95,6 +113,14 @@ without pretending legacy stream-local sequence numbers form one global order.
   existing compatibility fallback.
 - Test convergence `2b594942c12c37fe68459c02fbf47a2d11a727e4` models the pipeline as one
   network exchange and retains the exact canonical stream/count assertion.
+- Review `5121832019` identified the independent startup N+1 where alias
+  discovery awaited one `SADD` network write for every retained legacy key.
+- RED `4cfa402acadb43c3f60e4dba7bad8917230b9460` rejects direct per-alias `SADD`
+  on a two-alias fixture while preserving exact durable members and added count.
+- Production repair `c4a25ce1f03ee225874a56c3f102ffa8b48a0621` introduces a bounded 128-write
+  non-transactional pipeline batch with a compatibility fallback for minimal
+  adapters that do not expose redis-py pipeline support.
 - redis-py asyncio pipeline documentation specifies that pipeline commands are
   buffered and executed together when awaited through `execute()`; transactions
-  remain optional and are not required for these independent read commands.
+  remain optional and are not required for these independent read or set-write
+  commands.
