@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -470,6 +470,12 @@ compares leftover pairs can match the pair-row `rank` badge; a missing, negative
 non-integer rank omits that leftover-map comparison rank badge and does not invent
 rank from plotted coordinates, leftover-map distance, or the count of unused axes.
 The strip does not gain the leftover-map graphic.
+ADR 0302 captions grouping comparison leftover-pair buttons with persisted leftover-map
+coordinates `ξ` / `ζ` through formatLeftoverMapCoordinates so a buyer who
+compares leftover pairs can match the pair-row coordinate badge; a missing or
+non-finite axis omits that leftover-map comparison coordinates badge and does not
+invent coordinates from leftover-map rank, leftover-map distance, leftover-map
+reconstruction, or leftover residual. The strip does not gain the leftover-map graphic.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -510,6 +516,8 @@ Grouping comparison leftover expected (ADR 0300) captions grouping comparison le
 buttons with persisted leftover expected `E`.
 Grouping comparison leftover-map rank (ADR 0301) captions grouping comparison leftover-pair
 buttons with persisted leftover-map rank.
+Grouping comparison leftover-map coordinates (ADR 0302) captions grouping comparison leftover-pair
+buttons with persisted leftover-map coordinates `ξ` / `ζ`.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)

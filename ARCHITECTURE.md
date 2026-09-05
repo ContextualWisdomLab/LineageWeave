@@ -693,6 +693,8 @@ ADR 0300 captions grouping comparison leftover-pair buttons with persisted lefto
 expected `E` through formatLeftoverMapExpected.
 ADR 0301 captions grouping comparison leftover-pair buttons with persisted leftover-map
 rank through formatLeftoverMapRank.
+ADR 0302 captions grouping comparison leftover-pair buttons with persisted leftover-map
+coordinates `ξ` / `ζ` through formatLeftoverMapCoordinates.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -721,8 +723,9 @@ incomplete item coverage (ADR 0292), leftover-map reconstruction `R̂`
 (ADR 0297), leftover residual `R`
 (ADR 0298), leftover observed `Y`
 (ADR 0299), leftover expected `E`
-(ADR 0300), and leftover-map rank
-(ADR 0301);
+(ADR 0300), leftover-map rank
+(ADR 0301), and leftover-map coordinates `ξ` / `ζ`
+(ADR 0302);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

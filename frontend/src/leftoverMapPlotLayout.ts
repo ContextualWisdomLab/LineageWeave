@@ -28,8 +28,9 @@
  *  (ADR 0297), grouping comparison leftover residual
  *  (ADR 0298), grouping comparison leftover observed
  *  (ADR 0299), grouping comparison leftover expected
- *  (ADR 0300), and grouping comparison leftover-map rank
- *  (ADR 0301) caption the pair list or the grouping comparison strip,
+ *  (ADR 0300), grouping comparison leftover-map rank
+ *  (ADR 0301), and grouping comparison leftover-map coordinates
+ *  (ADR 0302) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 
