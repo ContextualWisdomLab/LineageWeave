@@ -43,8 +43,8 @@ jobs:
               echo "::error title=Unexpected exact-parent conflicts::$conflicts"
               exit 42
             fi
-            # #812 owns the v2.38 successor release identity; #811 owns the
-            # Vietnamese parent terminology that is reapplied below.
+            # #812 owns v2.38 and the expanded coverage caption; #811 owns
+            # the corrected Vietnamese explained-share terminology.
             git checkout --ours frontend/src/i18n.ts frontend/src/i18n.test.ts lineageweave/__init__.py
             git add lineageweave/__init__.py
           fi
@@ -53,6 +53,7 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import subprocess
 
           repairs = {
               Path("frontend/src/i18n.ts"): [
@@ -87,8 +88,39 @@ jobs:
                   if text.count(new) < 1:
                       raise SystemExit(f"{path}: repaired value {new!r} is absent")
               path.write_text(text, encoding="utf-8")
-          import subprocess
-          subprocess.run(["git", "add", "frontend/src/i18n.ts", "frontend/src/i18n.test.ts"], check=True)
+
+          # The inherited #811 regression named its then-current caption as a
+          # hard-coded key. #812 legitimately extends that caption with persisted
+          # complete-case coverage, so bind the regression to the production
+          # constant instead of retaining a dead translation key.
+          test_path = Path("frontend/src/leftoverMapPlotVietnameseCopy.test.ts")
+          test_text = test_path.read_text(encoding="utf-8")
+          old_lines = [
+              'import { setLocale, tf } from "./i18n";',
+              "",
+              "const GRAPHIC_DISPLAY_COPY =",
+              '  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.";',
+          ]
+          new_lines = [
+              'import { setLocale, tf } from "./i18n";',
+              'import { LEFTOVER_MAP_PLOT_CAPTION } from "./leftoverMapPlotLayout";',
+          ]
+          lines = test_text.splitlines()
+          matches = [index for index in range(len(lines) - len(old_lines) + 1) if lines[index:index + len(old_lines)] == old_lines]
+          if len(matches) != 1:
+              raise SystemExit(f"expected one inherited hard-coded caption fixture, found {len(matches)}")
+          index = matches[0]
+          lines[index:index + len(old_lines)] = new_lines
+          test_text = "\n".join(lines) + "\n"
+          if test_text.count("tf(GRAPHIC_DISPLAY_COPY, {})") != 1:
+              raise SystemExit("expected inherited graphic-display invocation")
+          test_text = test_text.replace("tf(GRAPHIC_DISPLAY_COPY, {})", "tf(LEFTOVER_MAP_PLOT_CAPTION, {})", 1)
+          test_path.write_text(test_text, encoding="utf-8")
+
+          subprocess.run([
+              "git", "add", "frontend/src/i18n.ts", "frontend/src/i18n.test.ts",
+              "frontend/src/leftoverMapPlotVietnameseCopy.test.ts",
+          ], check=True)
 
       - name: Verify v2.38 release identity survives parent convergence
         shell: python
