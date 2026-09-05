@@ -1,0 +1,2175 @@
+{
+  "collected_date_kst": "2026-09-05",
+  "protected_main": "83eba56149eb802cd63642c507c324c9976ec78e",
+  "implementation_commit": "4210fe5fead389504f19f3d1c73657a44b3d4af4",
+  "open_pr_count": 119,
+  "open_issue_numbers": [
+    922,
+    910,
+    906,
+    900,
+    898,
+    807,
+    741,
+    338,
+    284,
+    280,
+    277,
+    272,
+    271,
+    269,
+    87,
+    79
+  ],
+  "pull_requests": [
+    {
+      "number": 936,
+      "head": "e6c1d157dad9f0d26ee703de455b2106a77b34d9",
+      "base": "fix/voice-export-authority-20260828",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 935,
+      "head": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
+      "base": "codex/voice-gap-20260905",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 934,
+      "head": "3060dd7000791160c2bcc98351af129899ff32ff",
+      "base": "fix/voice-export-authority-20260828",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 933,
+      "head": "de4e6cf9a48b042af0bb1128fa9b194abd1952a5",
+      "base": "docs/public-surface-deepwiki",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 932,
+      "head": "fe01453821105e62274a754797f6bf51a2b9ae7d",
+      "base": "feat/i18n-versioned-translation-ledger",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 929,
+      "head": "2a8ed5d02f4a3082b346d923d754c1ff37ebff52",
+      "base": "main",
+      "draft": false,
+      "auto_merge": true,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "queued": 11,
+        "success": 17,
+        "skipped": 3
+      }
+    },
+    {
+      "number": 928,
+      "head": "322b58247e933592ceb6d6eab6cac258ee5335cd",
+      "base": "feat/leftover-map-axis-origin-badge-v21150",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 927,
+      "head": "34595e41ee65b89a468efeebf64fee86eff881d9",
+      "base": "feat/leftover-map-compare-axis-origin-badge-v21140",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 926,
+      "head": "ede308929b20f24a56c5ff3ae2211dd84d20f3ae",
+      "base": "feat/leftover-map-compare-plot-origin-badge-v21130",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 925,
+      "head": "8cbaad528c9aaa8d4e356db1577b932fa85ac686",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 9,
+        "skipped": 7,
+        "success": 11
+      }
+    },
+    {
+      "number": 921,
+      "head": "76ebcb10a72955a68c616c02e6e0732db0800f93",
+      "base": "feat/leftover-map-plot-origin-badge-v21120",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 920,
+      "head": "d54c5611cc693bb7a85e9164814761417ccb563e",
+      "base": "feat/leftover-map-compare-list-criterion-origin-badge-v21110",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 919,
+      "head": "caf8ee0f576eb23dc80d907fccfdcd6a4cecb232",
+      "base": "fix/contextual-orchestrator-owner-boundary",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 918,
+      "head": "a91d2ec56bad922f9159e17649f77d229a0f98d3",
+      "base": "feat/leftover-map-compare-list-post-origin-badge-v21100",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 917,
+      "head": "8192b48560a919c800ec47927adc966179a2b572",
+      "base": "feat/leftover-map-list-criterion-origin-badge-v21090",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 916,
+      "head": "7978e92561e16a3ea4e2837fef1f35fe0bec3f3c",
+      "base": "feat/leftover-map-list-post-origin-badge-v21080",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 915,
+      "head": "8c74712f2af4acf76871c71a9fd72c6aa2912f4a",
+      "base": "feat/dichotomous-measurement-policy",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 914,
+      "head": "ce5331328d01639efc52079d74128fd65f40f303",
+      "base": "main",
+      "draft": false,
+      "auto_merge": true,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 2,
+        "queued": 14
+      }
+    },
+    {
+      "number": 913,
+      "head": "371bb82cea8437f907249d6e8b166f63dfe5bb8e",
+      "base": "feat/leftover-map-compare-plot-criterion-origin-badge-v21070",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 912,
+      "head": "2ac677bae522eb1925edc6bd105f1f57a287f73e",
+      "base": "feat/leftover-map-compare-plot-post-origin-badge-v21060",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 911,
+      "head": "5d40eed35a0b6e0d182397f8d02b29c38e9bdd17",
+      "base": "main",
+      "draft": false,
+      "auto_merge": true,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "queued": 1,
+        "skipped": 5,
+        "success": 27,
+        "failure": 6
+      }
+    },
+    {
+      "number": 909,
+      "head": "e82aed38c0997588529e21fe0e1bf4159f3c198c",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 5,
+        "cancelled": 14
+      }
+    },
+    {
+      "number": 908,
+      "head": "00e90e03ae1afb7f13ae843dd578694d0f72b325",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 10,
+        "cancelled": 13,
+        "success": 6
+      }
+    },
+    {
+      "number": 907,
+      "head": "847a15e73e69bfc768d517a83fa8706aecfafe7e",
+      "base": "main",
+      "draft": false,
+      "auto_merge": true,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "failure": 5,
+        "success": 22,
+        "cancelled": 2,
+        "skipped": 7
+      }
+    },
+    {
+      "number": 904,
+      "head": "09d7be51a6b599769fb78371c9995a99d7df6974",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 7,
+        "cancelled": 11,
+        "success": 10
+      }
+    },
+    {
+      "number": 903,
+      "head": "e325b3f63fdb9c34a7c62ae58045ec36e34b1879",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 11,
+        "skipped": 7,
+        "success": 10
+      }
+    },
+    {
+      "number": 902,
+      "head": "c316bfbde8644feda7e49579d43cc162e99b0bad",
+      "base": "fix/contextual-orchestrator-owner-boundary",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 901,
+      "head": "d44cd875a93cb929b6e30b744976d2c19e67d981",
+      "base": "fix/voice-export-authority-20260828",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 899,
+      "head": "e5711282c48cc20d0a88fb56a9e382d500989c72",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 5,
+        "cancelled": 12
+      }
+    },
+    {
+      "number": 897,
+      "head": "c4194085f7bc0c7383f994da81d6a8146b695dc8",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 15,
+        "skipped": 8
+      }
+    },
+    {
+      "number": 893,
+      "head": "f2a1860185714d2921162a754425065d867bcce6",
+      "base": "feat/leftover-map-plot-post-origin-badge-v21050",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 892,
+      "head": "c941929c7244f64e31e5ceca8b3c6f6bcb1e3541",
+      "base": "feat/leftover-map-plot-criterion-origin-badge-v21040",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 891,
+      "head": "47dd988d6b5cdea713b163b40702235b65af5ffe",
+      "base": "feat/leftover-map-axis-tick-origin-badge-v21030",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 889,
+      "head": "4bfb490d3e2bd8dd74caabaf2922ac3f6755749a",
+      "base": "feat/leftover-map-compare-axis-tick-origin-badge-v21020",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 888,
+      "head": "e5f38f3bda1caa1d48975204918c994a6a3dff3f",
+      "base": "feat/dashboard-case-metrics",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 887,
+      "head": "7637fc8bbe165be297794a74187aa1065e82486c",
+      "base": "feat/leftover-map-compare-plot-tick-origin-badge-v21010",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 886,
+      "head": "4a31a41f9036cad4ba35ed16b8fdf1c1212e4847",
+      "base": "feat/leftover-map-plot-tick-origin-badge-v21000",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 885,
+      "head": "7a6c0384f4d82544541b6af70cf178c51ed60d62",
+      "base": "feat/leftover-map-compare-list-criterion-coordinates-v2990",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 884,
+      "head": "bcbb7ce03f92304ccdc34fb014a8db8e3bf8a659",
+      "base": "feat/leftover-map-compare-list-post-coordinates-v2980",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 883,
+      "head": "bdd48e23a16358b91a652e45c4373c6f45e389fa",
+      "base": "feat/leftover-map-list-criterion-coordinates-v2970",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 882,
+      "head": "094d1a0c8bcfd4b351f9665c47a84c510cbab94d",
+      "base": "feat/leftover-map-list-post-coordinates-v2960",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 4,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 881,
+      "head": "167888d669ba1b44c7dd0209ab26c9be9f19bf93",
+      "base": "feat/leftover-map-plot-post-coordinates-v2950",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 880,
+      "head": "c69459a3597a8a8af618417ce2c2a57a3114930b",
+      "base": "feat/leftover-map-compare-plot-post-coordinates-v2940",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 879,
+      "head": "d9972c260b1864e0b6391cbf050686e0bdd73359",
+      "base": "feat/leftover-map-compare-plot-criterion-coordinates-v2930",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 878,
+      "head": "617b97126a14337a4848f2b5663ada381ae693c0",
+      "base": "feat/leftover-map-plot-criterion-coordinates-v2920",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 877,
+      "head": "86b8eaab48a4b47610d539bb941b97eb24b7e951",
+      "base": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 876,
+      "head": "89ed56b17acec187fd8e5f756c6b9a6a8f00438c",
+      "base": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 875,
+      "head": "d19f1fdc18cf16bac0e80bf6ae4257b831a4a619",
+      "base": "feat/leftover-map-compare-axis-tick-share-badge-v2900",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 874,
+      "head": "ba58c21a92966fe098988e528020d5528978d06c",
+      "base": "feat/leftover-map-plot-tick-share-badge-v2890",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 873,
+      "head": "923bcfe8a9146286ec3098adb784f55ffe32a78e",
+      "base": "feat/leftover-map-compare-plot-tick-share-badge-v2880",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 872,
+      "head": "7bdc562b222ab7681ff6b929a7b3fb2cd8068a3c",
+      "base": "feat/leftover-map-axis-tick-badge-v2870",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 871,
+      "head": "e9e4c2a622219bfbddfe71c74b14483f7b36aa5c",
+      "base": "feat/leftover-map-compare-axis-tick-badge-v2860",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 870,
+      "head": "b086d97675586ee83f5478d7b4e3bf84b0a5da8c",
+      "base": "feat/leftover-map-compare-plot-tick-axis-badge-v2850",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 869,
+      "head": "98a29e4adf0daad8bd30c945e41d45922051312d",
+      "base": "feat/leftover-map-plot-tick-axis-badge-v2840",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 868,
+      "head": "5218a5c0e6821451efdfac0c1286ef7273081af7",
+      "base": "feat/leftover-map-compare-plot-axis-badge-v2830",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 867,
+      "head": "cf7bb55db1ba098e4ab264605634a686e4664d56",
+      "base": "feat/leftover-map-axis-singular-only-v2820",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 866,
+      "head": "593b8d8246c73226e224d2a9d251668649cbb54f",
+      "base": "feat/leftover-map-plot-axis-singular-v2810",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 865,
+      "head": "a3613acf8cafac056850ec7ebc45f6d77f77a074",
+      "base": "feat/leftover-map-compare-axis-singular-v2800",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 863,
+      "head": "52b3597e5c6b825f988a9c8a7c68ae1653535982",
+      "base": "feat/leftover-map-axis-singular-v2790",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 862,
+      "head": "f24b664ce88bb2b3898fcaa0fd0ee7f69c5e12f7",
+      "base": "feat/leftover-map-compare-plot-singular-v2780",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 861,
+      "head": "3aac452eef781f3c1a5da258cd1c0c548e4930e6",
+      "base": "feat/leftover-map-compare-plot-ticks-v2770",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 860,
+      "head": "40fa5bdbfb9223a7ca89fccea47451a419d81048",
+      "base": "feat/leftover-map-compare-plot-distance-v2760",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 4,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 859,
+      "head": "9ba8535327bb2d42d5305d84017e6cd08a110c68",
+      "base": "feat/leftover-map-compare-plot-rank-v2750",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 858,
+      "head": "4b9184fd83f6749e25384d7bcf5d9d7721437b77",
+      "base": "feat/leftover-map-compare-plot-expected-v2740",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 857,
+      "head": "ade9ed5cc2f0530eb62d2d473d14d2ffb41eddba",
+      "base": "feat/leftover-map-compare-plot-observed-v2730",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 856,
+      "head": "cf3b6d4195f2ccb5fba5b8d3359f018c8f26332d",
+      "base": "feat/leftover-map-compare-plot-residual-v2720",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 855,
+      "head": "1087b16f2dba743bc0d1d4e08ff50811b5845393",
+      "base": "feat/leftover-map-compare-plot-unexplained-leftover-v2710",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 854,
+      "head": "935cdea99c7c53ec7e99e4f455cd0653e34f4e30",
+      "base": "feat/leftover-map-compare-plot-cross-share-v2700",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 853,
+      "head": "c4f79bc9ba4bc23317c8aa184aecd74eb1971704",
+      "base": "feat/leftover-map-compare-plot-unexplained-share-v2690",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 852,
+      "head": "2c34896b5fcf8f306103d28a610aced0a9d964b4",
+      "base": "feat/leftover-map-compare-plot-explained-share-v2680",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 851,
+      "head": "2d6e8e778e2abb491b3a3c0a8b085c8230c9def4",
+      "base": "feat/leftover-map-compare-plot-reconstruction-v2670",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 850,
+      "head": "85451d87c9ddb4559a13366b1352af1bea7aafa0",
+      "base": "feat/leftover-map-compare-plot-incomplete-item-v2660",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 849,
+      "head": "43ce1936bfc3b035e591898ad5141a1b81cc526c",
+      "base": "feat/leftover-map-compare-plot-incomplete-post-v2650",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 4,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 848,
+      "head": "6707725ecaeb47c33c8a55b0801c8156527c6f01",
+      "base": "feat/leftover-map-compare-plot-item-coverage-v2640",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 847,
+      "head": "9bb4f07a61a9275953974ef276a4af81940ba883",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 15,
+        "skipped": 5
+      }
+    },
+    {
+      "number": 846,
+      "head": "47797643dc5c3071a7bbe3970ab563755113aa5b",
+      "base": "feat/leftover-map-compare-plot-coverage-v2630",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 845,
+      "head": "7c026df8d85f9eeae9850f44cdf5e1bc6d644aa7",
+      "base": "feat/leftover-map-compare-plot-axis-share-v2620",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 844,
+      "head": "95538f9980dcba70a6d6d174500d00c7af01df6c",
+      "base": "feat/leftover-map-compare-graphic-v2610",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 843,
+      "head": "2a5ab4d735a1240997150578b151c6b6492e2f43",
+      "base": "feat/leftover-map-compare-axis-share-v2610",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 842,
+      "head": "12e40c93acb8473075199d8c8124b85b3d39adff",
+      "base": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 841,
+      "head": "ee467df2f0e322623d74e948144b78bc27964aff",
+      "base": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 840,
+      "head": "cbf994462ec787d4d3e7a2749f913f62fd9c96d0",
+      "base": "feat/leftover-map-compare-coordinates-v2590",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 839,
+      "head": "51bf33a83b8a03e0dc4de65422313e38c9d45a21",
+      "base": "feat/leftover-map-compare-rank-v2580",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 838,
+      "head": "6c7c66fc4a39dc140f85e93d87f899ddb0695229",
+      "base": "feat/leftover-map-compare-expected-v2570",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 837,
+      "head": "e6638a8e1d93b89376c004c60db9f016e03f00e0",
+      "base": "feat/leftover-map-compare-observed-v2560",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 836,
+      "head": "ada0c86e86c0e1570269d3a5d1f9121624938797",
+      "base": "feat/leftover-map-compare-residual-v2550",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 835,
+      "head": "a825c336d87a4f481717e45800630e4805ab15bc",
+      "base": "feat/leftover-map-compare-unexplained-v2540",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 833,
+      "head": "18d89b498a58d68ec58100065d71664f2c691347",
+      "base": "feat/leftover-map-compare-cross-share-v2530",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 831,
+      "head": "2cefc0b63436989210bca3204e7750e87edba662",
+      "base": "feat/leftover-map-compare-unexplained-share-v2520",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 829,
+      "head": "4d82c2872cc27e08c0357cb4b7cf071ab81ab9d7",
+      "base": "feat/leftover-map-compare-explained-share-v2510",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 828,
+      "head": "e79137611f0d3041ad836c21e49a95bf7ef1001e",
+      "base": "feat/leftover-map-compare-incomplete-item-v2490",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 827,
+      "head": "ead81bd3f51005f083871dc0bd49148a42a351b2",
+      "base": "feat/leftover-map-compare-reconstruction-v2500",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 826,
+      "head": "a4bf239f1cf07ea29bd49b28300f252be0ca7a19",
+      "base": "feat/leftover-map-compare-incomplete-item-v2490",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 3,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 825,
+      "head": "bca6baabd917478bf4f6b688ec2755cde95e3575",
+      "base": "feat/leftover-map-compare-incomplete-post-v2480",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 824,
+      "head": "8b2ed956b2ba66e3aa2d149b701c242e3b016dd9",
+      "base": "feat/leftover-map-compare-item-coverage-v2470",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 823,
+      "head": "eb172c40d8ecd08f3e1c220cbf3117b488cddb30",
+      "base": "feat/leftover-map-plot-singular-v2460",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 822,
+      "head": "6726353a13798c0d1566821de9885f1783ebe35f",
+      "base": "feat/leftover-map-compare-coverage-v2460",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 821,
+      "head": "11a785533ba52e6b1c6854203818902e38736dc5",
+      "base": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 820,
+      "head": "b7222713a69acdf3d32bbce992001a2433946d21",
+      "base": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 819,
+      "head": "a2c965511d26923bd878ec56d655fb8a0183c4d7",
+      "base": "feat/leftover-map-list-incomplete-item-v2440",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 818,
+      "head": "aa3208959950637b52001457e7d4dfc1ef1764eb",
+      "base": "feat/leftover-map-list-incomplete-post-v2430",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 817,
+      "head": "ef30930271a729044af2f690df04f0b89f751ffd",
+      "base": "feat/leftover-map-list-item-coverage-v2420",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 2,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 816,
+      "head": "326a2f016f7bbf1f01bffdffa8b96a9b1451b6c0",
+      "base": "feat/leftover-map-plot-incomplete-item-v2410",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 815,
+      "head": "c9f864383ebc9222bb3e69008e51b81ce14540cb",
+      "base": "feat/leftover-map-plot-incomplete-v2400",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 1,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 814,
+      "head": "d837883c67fa9753f4b0cbf4326d33759bdd98eb",
+      "base": "feat/leftover-map-plot-item-coverage-v2390",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 813,
+      "head": "bf593e713a5fa1879b26fd89ea6677e5b9f2cd48",
+      "base": "feat/leftover-map-plot-coverage-v2380",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 812,
+      "head": "3bbc5dbc984e60692dafe8a5a7e284c91f644b17",
+      "base": "feat/leftover-map-segment-rank-v2370",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 811,
+      "head": "98c794fe1f94b8c5a49a8ecbeced0141e3900ffc",
+      "base": "feat/leftover-map-segment-explained-share-v2300",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "",
+      "unresolved_threads": 4,
+      "current_head_approvals": 0,
+      "checks": null
+    },
+    {
+      "number": 808,
+      "head": "ef38ddc9cf4f81c6a30050fa2409d294779fbd93",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 11,
+        "skipped": 8,
+        "success": 11
+      }
+    },
+    {
+      "number": 802,
+      "head": "32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6",
+      "base": "main",
+      "draft": false,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "success": 17,
+        "queued": 11,
+        "skipped": 3
+      }
+    },
+    {
+      "number": 780,
+      "head": "1d8fa267b059289e77301a09985dfac70a439814",
+      "base": "main",
+      "draft": false,
+      "auto_merge": true,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 8,
+        "success": 8,
+        "cancelled": 11
+      }
+    },
+    {
+      "number": 774,
+      "head": "0e4ba4e00a1578aba6f80fa25d7d779516b9af96",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 15,
+        "skipped": 5
+      }
+    },
+    {
+      "number": 772,
+      "head": "781ebb11a00b50bf1956ff3536eef46160271931",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 15,
+        "skipped": 5
+      }
+    },
+    {
+      "number": 771,
+      "head": "9a4dbfcd46d955cd758148cf55cfd5ee795b02cd",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 15,
+        "skipped": 5
+      }
+    },
+    {
+      "number": 770,
+      "head": "101cd8acc1d510382ea928d4f6bb9c84b199349d",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "cancelled": 15,
+        "skipped": 5
+      }
+    },
+    {
+      "number": 702,
+      "head": "93e7b81d096ddfc1fda9080c9c6a9784cbfbcec2",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 6,
+        "failure": 1,
+        "success": 8
+      }
+    },
+    {
+      "number": 679,
+      "head": "135dfe7c4266c7a2098c622b7c9976eaf7304cdd",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "success": 21,
+        "skipped": 7
+      }
+    },
+    {
+      "number": 672,
+      "head": "a3e87a89185fae03c5f18c79e2d97d12c73e8af9",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "success": 19,
+        "skipped": 6
+      }
+    },
+    {
+      "number": 667,
+      "head": "0c0f4af572a94e63cc8ea4545e48f5eda32a389c",
+      "base": "main",
+      "draft": true,
+      "auto_merge": false,
+      "review_decision": "REVIEW_REQUIRED",
+      "unresolved_threads": 0,
+      "current_head_approvals": 0,
+      "checks": {
+        "skipped": 8,
+        "failure": 1,
+        "success": 19
+      }
+    }
+  ],
+  "runtime_census": {
+    "source_posts": 43189,
+    "current_voice_assignments": 43189,
+    "current_additional_voices": 0,
+    "closed_voice_intervals": 0,
+    "method": "read-only exact table counts on lineageweave-postgres-1; not API or population-inference acceptance"
+  },
+  "synthetic_http_load": {
+    "code_parent": "1d8fa267b059289e77301a09985dfac70a439814",
+    "synthetic_posts": 2,
+    "oidc": "real demo realm",
+    "postgresql": "full migrations in disposable database on lineageweave service",
+    "gateway": "official contextual-orchestrator",
+    "authenticated_visibility_transition": true,
+    "runs": [
+      {
+        "vus": 1,
+        "duration": "10s",
+        "exit_code": 0,
+        "summary": {
+          "root_group": {
+            "name": "",
+            "path": "",
+            "id": "d41d8cd98f00b204e9800998ecf8427e",
+            "groups": {},
+            "checks": {
+              "posts read succeeds": {
+                "name": "posts read succeeds",
+                "path": "::posts read succeeds",
+                "id": "dcada67cb0c9855685a76d2188f20bcb",
+                "passes": 869,
+                "fails": 0
+              },
+              "lineage read succeeds": {
+                "passes": 869,
+                "fails": 0,
+                "name": "lineage read succeeds",
+                "path": "::lineage read succeeds",
+                "id": "c8a5187266a8f4d8daeab1d6fa1b5078"
+              },
+              "Ask poll succeeds": {
+                "name": "Ask poll succeeds",
+                "path": "::Ask poll succeeds",
+                "id": "c52c13a088a06409eb53d86b13a59273",
+                "passes": 869,
+                "fails": 0
+              }
+            }
+          },
+          "metrics": {
+            "data_sent": {
+              "count": 3946303,
+              "rate": 347016.41993254895
+            },
+            "lineageweave_read_duration": {
+              "avg": 9.063848676639813,
+              "min": 4.101,
+              "med": 8.347,
+              "max": 58.265,
+              "p(90)": 13.715800000000002,
+              "p(95)": 15.892699999999998
+            },
+            "lineageweave_ask_state_observations": {
+              "count": 869,
+              "rate": 76.41513308060355
+            },
+            "http_reqs": {
+              "rate": 229.4212683628247,
+              "count": 2609
+            },
+            "http_req_sending": {
+              "min": 0.003,
+              "med": 0.007,
+              "max": 101.245,
+              "p(90)": 0.013,
+              "p(95)": 0.016,
+              "avg": 0.064486009965501
+            },
+            "lineageweave_ask_enqueue_duration": {
+              "max": 240.544,
+              "p(90)": 240.544,
+              "p(95)": 240.544,
+              "avg": 240.544,
+              "min": 240.544,
+              "med": 240.544
+            },
+            "iterations": {
+              "count": 869,
+              "rate": 76.41513308060355
+            },
+            "http_req_duration{expected_response:true}": {
+              "max": 249.328,
+              "p(90)": 12.3918,
+              "p(95)": 14.838399999999998,
+              "avg": 8.073196243771548,
+              "min": 3.023,
+              "med": 6.929
+            },
+            "http_req_waiting": {
+              "p(95)": 14.705799999999993,
+              "avg": 7.899205442698331,
+              "min": 2.995,
+              "med": 6.885,
+              "max": 147.982,
+              "p(90)": 12.3314
+            },
+            "http_req_failed": {
+              "fails": 2609,
+              "passes": 0,
+              "value": 0
+            },
+            "http_req_receiving": {
+              "avg": 0.10950479110770334,
+              "min": 0.012,
+              "med": 0.032,
+              "max": 179.572,
+              "p(90)": 0.061,
+              "p(95)": 0.079
+            },
+            "http_req_duration": {
+              "p(95)": 14.838399999999998,
+              "avg": 8.073196243771548,
+              "min": 3.023,
+              "med": 6.929,
+              "max": 249.328,
+              "p(90)": 12.3918
+            },
+            "vus": {
+              "max": 1,
+              "value": 1,
+              "min": 0
+            },
+            "http_req_blocked": {
+              "min": 0,
+              "med": 0.002,
+              "max": 511.609,
+              "p(90)": 0.005,
+              "p(95)": 0.012,
+              "avg": 0.2161655806822351
+            },
+            "http_req_connecting": {
+              "p(90)": 0,
+              "p(95)": 0,
+              "avg": 0.020482177079340743,
+              "min": 0,
+              "med": 0,
+              "max": 52.94
+            },
+            "data_received": {
+              "count": 2396522,
+              "rate": 210737.10881541332
+            },
+            "lineageweave_ask_poll_duration": {
+              "avg": 5.5467525891829705,
+              "min": 3.023,
+              "med": 4.829,
+              "max": 56.288,
+              "p(90)": 7.7716,
+              "p(95)": 9.094399999999998
+            },
+            "iteration_duration": {
+              "max": 254.440041,
+              "p(90)": 16.067433400000002,
+              "p(95)": 19.490774999999996,
+              "avg": 11.47794678250863,
+              "min": 5.860667,
+              "med": 9.405625
+            },
+            "checks": {
+              "passes": 2607,
+              "fails": 0,
+              "value": 1
+            },
+            "http_req_tls_handshaking": {
+              "min": 0,
+              "med": 0,
+              "max": 0,
+              "p(90)": 0,
+              "p(95)": 0,
+              "avg": 0
+            },
+            "vus_max": {
+              "value": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "setup_data": {
+            "askJobId": "fda1b7bd-ce7e-4943-9d35-c33acd86b042",
+            "token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwYTRXdnBHWGkxdV9MN01pSmNnRjhOY2xNMzlhT1dLb1ZHWGZ1bFdjQkN3In0.eyJleHAiOjE3ODg2MTMwNjYsImlhdCI6MTc4ODYxMjE2NiwianRpIjoiNjhkNGUxMGItN2YwMy00MTZjLTkwMTctNTVmYWFkMWI5OWU5IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvbGluZWFnZXdlYXZlLWRlbW8iLCJhdWQiOlsiaHR0cDovL2xvY2FsaG9zdDoxODAwMS9tY3AiLCJsaW5lYWdld2VhdmUtYXBpIl0sInN1YiI6ImFkMGY4YzNjLWFkZTAtNDhiYy05OGMwLTI3NWZhZmNhNmYzMiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImxpbmVhZ2V3ZWF2ZS1mcm9udGVuZCIsInNpZCI6IjdlY2I4ZmFjLWM4MjctNGMzYi1iODAxLTJjMDg4NDQ2ZTBkNSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDozNTE3MyIsImh0dHA6Ly9sb2NhbGhvc3Q6MTUxNzMiLCJodHRwOi8vbG9jYWxob3N0OjUxNzMiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbInBvc3Rfdmlld2VyIl19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiY29ycF9jb2RlIjoiREVNTy1DT1JQLTAxIiwibmFtZSI6IkRlbW8gQW5hbHlzdCIsInByZWZlcnJlZF91c2VybmFtZSI6ImRlbW8uYW5hbHlzdCIsImdpdmVuX25hbWUiOiJEZW1vIiwiZmFtaWx5X25hbWUiOiJBbmFseXN0IiwicHVfY29kZSI6IkRFTU8tUFUtQSIsImVtYWlsIjoiZGVtby5hbmFseXN0QGV4YW1wbGUudGVzdCJ9.bU1y2LvqSQ-Evr-HdjxLv92WwvhM9ehZN-6hE5yp_fkPsTDOtFDRWHwZ1xet5MqO77bzIPi5uztmGY7CriV8CCuBxBnikTBzrkRn0WzMHNphbbtpWRq0zOZU1GKCHN5XriffFRYxCKLdAg57ex8VVkFbGywfTiuthufgXxRqzzJLdoxvOpPDkN8mZyAr8CLebBwBOU9KZ39sLdgjgcSFW5hAtA_NImS_cWXcHwZbt8MQxj3Q2uFaj_o4Ict5HYCmhVq5GOC-T9SDtTrZVjTSuX4xJTw66MldGj1OJeLygiua5SDyyYITP5lzAB3kd5qJzT8jij6FZpMjOt2E5HGe6Q"
+          }
+        },
+        "samples": [
+          {
+            "elapsed_seconds": 0.03,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 2
+              }
+            ],
+            "ask_jobs": {},
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1185752,
+              "instantaneous_ops_per_sec": 3,
+              "rejected_connections": 0
+            },
+            "shared_service_usage_status": "unavailable: docker stats exceeded 15-second observation budget",
+            "local_backend_and_worker_cpu_memory_percent": "0.0  0.1"
+          },
+          {
+            "elapsed_seconds": 15.255,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 2
+              }
+            ],
+            "ask_jobs": {},
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1170392,
+              "instantaneous_ops_per_sec": 1,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "1.20%",
+                "MemUsage": "208.4MiB / 7.737GiB",
+                "PIDs": "12"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "0.02%",
+                "MemUsage": "130MiB / 7.737GiB",
+                "PIDs": "6"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.22%",
+                "MemUsage": "3.379MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "0.1  0.1"
+          },
+          {
+            "elapsed_seconds": 21.855,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 2
+              }
+            ],
+            "ask_jobs": {},
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1170392,
+              "instantaneous_ops_per_sec": 3,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "1.66%",
+                "MemUsage": "208.7MiB / 7.737GiB",
+                "PIDs": "12"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "19.50%",
+                "MemUsage": "130MiB / 7.737GiB",
+                "PIDs": "7"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.22%",
+                "MemUsage": "3.379MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "1.6  0.2"
+          },
+          {
+            "elapsed_seconds": 28.055,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 2
+              }
+            ],
+            "ask_jobs": {
+              "running": 1
+            },
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1174744,
+              "instantaneous_ops_per_sec": 4,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "47.14%",
+                "MemUsage": "217.7MiB / 7.737GiB",
+                "PIDs": "13"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "24.98%",
+                "MemUsage": "130.1MiB / 7.737GiB",
+                "PIDs": "7"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.21%",
+                "MemUsage": "3.383MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "31.2  0.2"
+          },
+          {
+            "elapsed_seconds": 34.212,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "Client",
+                "count": 1
+              },
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 2
+              }
+            ],
+            "ask_jobs": {
+              "running": 1
+            },
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1174760,
+              "instantaneous_ops_per_sec": 3,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "4.78%",
+                "MemUsage": "223.9MiB / 7.737GiB",
+                "PIDs": "14"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "8.27%",
+                "MemUsage": "130.4MiB / 7.737GiB",
+                "PIDs": "6"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.22%",
+                "MemUsage": "3.383MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "0.0  0.2"
+          }
+        ]
+      },
+      {
+        "vus": 4,
+        "duration": "10s",
+        "exit_code": 0,
+        "summary": {
+          "metrics": {
+            "http_req_receiving": {
+              "avg": 0.3242688504326324,
+              "min": 0.011,
+              "med": 0.041,
+              "max": 62.924,
+              "p(90)": 0.1365000000000001,
+              "p(95)": 0.214
+            },
+            "http_req_connecting": {
+              "avg": 0.0032799752781211373,
+              "min": 0,
+              "med": 0,
+              "max": 4.034,
+              "p(90)": 0,
+              "p(95)": 0
+            },
+            "lineageweave_ask_enqueue_duration": {
+              "max": 13.422,
+              "p(90)": 13.422,
+              "p(95)": 13.422,
+              "avg": 13.422,
+              "min": 13.422,
+              "med": 13.422
+            },
+            "data_received": {
+              "rate": 231723.0876895554,
+              "count": 2821122
+            },
+            "iterations": {
+              "count": 1078,
+              "rate": 88.54543990984465
+            },
+            "vus_max": {
+              "value": 4,
+              "min": 4,
+              "max": 4
+            },
+            "http_req_failed": {
+              "passes": 0,
+              "fails": 3236,
+              "value": 0
+            },
+            "iteration_duration": {
+              "p(95)": 74.89440629999984,
+              "avg": 42.53092509276445,
+              "min": 15.405458,
+              "med": 26.808812500000002,
+              "max": 2195.863208,
+              "p(90)": 56.83212940000001
+            },
+            "lineageweave_ask_poll_duration": {
+              "p(95)": 44.36215,
+              "avg": 25.27242671614098,
+              "min": 6.341,
+              "med": 15.023499999999999,
+              "max": 2163.828,
+              "p(90)": 32.616
+            },
+            "lineageweave_ask_state_observations": {
+              "rate": 88.54543990984465,
+              "count": 1078
+            },
+            "checks": {
+              "passes": 3234,
+              "fails": 0,
+              "value": 1
+            },
+            "http_req_duration": {
+              "min": 6.341,
+              "med": 21.4045,
+              "max": 2193.492,
+              "p(90)": 45.814,
+              "p(95)": 65.67174999999999,
+              "avg": 34.41644870210133
+            },
+            "http_req_sending": {
+              "p(95)": 0.045,
+              "avg": 0.018181396786155952,
+              "min": 0.003,
+              "med": 0.008,
+              "max": 2.548,
+              "p(90)": 0.028
+            },
+            "vus": {
+              "value": 3,
+              "min": 3,
+              "max": 4
+            },
+            "lineageweave_read_duration": {
+              "avg": 38.92867671614098,
+              "min": 9.4,
+              "med": 24.251,
+              "max": 2193.492,
+              "p(90)": 50.915,
+              "p(95)": 69.39899999999996
+            },
+            "http_req_duration{expected_response:true}": {
+              "p(90)": 45.814,
+              "p(95)": 65.67174999999999,
+              "avg": 34.41644870210133,
+              "min": 6.341,
+              "med": 21.4045,
+              "max": 2193.492
+            },
+            "http_req_blocked": {
+              "avg": 0.03312669962917162,
+              "min": 0,
+              "med": 0.002,
+              "max": 22.123,
+              "p(90)": 0.010500000000000072,
+              "p(95)": 0.027
+            },
+            "http_req_waiting": {
+              "min": 6.306,
+              "med": 21.2555,
+              "max": 2193.3,
+              "p(90)": 45.7575,
+              "p(95)": 65.4695,
+              "avg": 34.07399845488257
+            },
+            "data_sent": {
+              "count": 4894954,
+              "rate": 402064.80080561567
+            },
+            "http_reqs": {
+              "count": 3236,
+              "rate": 265.800596983541
+            },
+            "http_req_tls_handshaking": {
+              "avg": 0,
+              "min": 0,
+              "med": 0,
+              "max": 0,
+              "p(90)": 0,
+              "p(95)": 0
+            }
+          },
+          "setup_data": {
+            "askJobId": "ac48e404-235b-42b5-93a6-b21119a19215",
+            "token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwYTRXdnBHWGkxdV9MN01pSmNnRjhOY2xNMzlhT1dLb1ZHWGZ1bFdjQkN3In0.eyJleHAiOjE3ODg2MTMwODcsImlhdCI6MTc4ODYxMjE4NywianRpIjoiOWRmOGM4MGYtNGYwNi00OWEzLTk2ODItYTVhNDhlNmU2YWVjIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvbGluZWFnZXdlYXZlLWRlbW8iLCJhdWQiOlsiaHR0cDovL2xvY2FsaG9zdDoxODAwMS9tY3AiLCJsaW5lYWdld2VhdmUtYXBpIl0sInN1YiI6ImFkMGY4YzNjLWFkZTAtNDhiYy05OGMwLTI3NWZhZmNhNmYzMiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImxpbmVhZ2V3ZWF2ZS1mcm9udGVuZCIsInNpZCI6ImZmYzI5MWY3LTJlYTYtNGEyYi04N2VmLTcwZDQ4OTFmNmJlMCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDozNTE3MyIsImh0dHA6Ly9sb2NhbGhvc3Q6MTUxNzMiLCJodHRwOi8vbG9jYWxob3N0OjUxNzMiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbInBvc3Rfdmlld2VyIl19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiY29ycF9jb2RlIjoiREVNTy1DT1JQLTAxIiwibmFtZSI6IkRlbW8gQW5hbHlzdCIsInByZWZlcnJlZF91c2VybmFtZSI6ImRlbW8uYW5hbHlzdCIsImdpdmVuX25hbWUiOiJEZW1vIiwiZmFtaWx5X25hbWUiOiJBbmFseXN0IiwicHVfY29kZSI6IkRFTU8tUFUtQSIsImVtYWlsIjoiZGVtby5hbmFseXN0QGV4YW1wbGUudGVzdCJ9.FBM_g6J-a-HWmRDfh77TCj6UR1P52RtGaBAkCL2liDPZCy-uTXy69bNsGlj660FcokAC4q0w-2arHn0ywaM-2O2vLa46BldNd7mdSBObO5ZmAZNyeHZniLzdJZVLmfDDEjzrKHoZOzXa0Qb96v-DcAIvZBWVeoc7JNavhInixgin2DUz0XdcFJeyCaEEIeOAuiy9bAOLLMTuuOx0x6cPs8ABbPpENUdWdqQ9TEAKpGhf5IEaoD0bT0EkA2hMywyedgrQJ2nye8E7Npdo387pdHYiEFDmL3DFMepAVrlzu5wfrFwCHpPTY80LGfVsJnDZQJPSina88P61oHGL4zaOSA"
+          },
+          "root_group": {
+            "path": "",
+            "id": "d41d8cd98f00b204e9800998ecf8427e",
+            "groups": {},
+            "checks": {
+              "posts read succeeds": {
+                "name": "posts read succeeds",
+                "path": "::posts read succeeds",
+                "id": "dcada67cb0c9855685a76d2188f20bcb",
+                "passes": 1078,
+                "fails": 0
+              },
+              "lineage read succeeds": {
+                "path": "::lineage read succeeds",
+                "id": "c8a5187266a8f4d8daeab1d6fa1b5078",
+                "passes": 1078,
+                "fails": 0,
+                "name": "lineage read succeeds"
+              },
+              "Ask poll succeeds": {
+                "passes": 1078,
+                "fails": 0,
+                "name": "Ask poll succeeds",
+                "path": "::Ask poll succeeds",
+                "id": "c52c13a088a06409eb53d86b13a59273"
+              }
+            },
+            "name": ""
+          }
+        },
+        "samples": [
+          {
+            "elapsed_seconds": 0.173,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 4
+              }
+            ],
+            "ask_jobs": {
+              "succeeded": 1
+            },
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1174760,
+              "instantaneous_ops_per_sec": 2,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "1.37%",
+                "MemUsage": "223.7MiB / 7.737GiB",
+                "PIDs": "14"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "0.02%",
+                "MemUsage": "130.4MiB / 7.737GiB",
+                "PIDs": "6"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.19%",
+                "MemUsage": "3.383MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "0.1  0.1"
+          },
+          {
+            "elapsed_seconds": 6.837,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 1
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 4
+              }
+            ],
+            "ask_jobs": {
+              "succeeded": 1
+            },
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1174760,
+              "instantaneous_ops_per_sec": 3,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "113.69%",
+                "MemUsage": "250.8MiB / 7.737GiB",
+                "PIDs": "20"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "22.97%",
+                "MemUsage": "130.4MiB / 7.737GiB",
+                "PIDs": "7"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.19%",
+                "MemUsage": "3.383MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "61.1  0.2"
+          },
+          {
+            "elapsed_seconds": 13.427,
+            "postgresql": [
+              {
+                "state": "active",
+                "wait": "none",
+                "count": 3
+              },
+              {
+                "state": "idle",
+                "wait": "Client",
+                "count": 8
+              }
+            ],
+            "ask_jobs": {
+              "running": 1,
+              "succeeded": 1
+            },
+            "valkey": {
+              "connected_clients": 5,
+              "blocked_clients": 3,
+              "used_memory": 1174760,
+              "instantaneous_ops_per_sec": 3,
+              "rejected_connections": 0
+            },
+            "shared_service_usage": [
+              {
+                "Name": "lineageweave-postgres-1",
+                "CPUPerc": "2.59%",
+                "MemUsage": "251.9MiB / 7.737GiB",
+                "PIDs": "20"
+              },
+              {
+                "Name": "lineageweave-orchestrator-1",
+                "CPUPerc": "0.05%",
+                "MemUsage": "130.5MiB / 7.737GiB",
+                "PIDs": "6"
+              },
+              {
+                "Name": "lineageweave-voice-evidence-test-valkey-1",
+                "CPUPerc": "0.51%",
+                "MemUsage": "3.383MiB / 7.737GiB",
+                "PIDs": "5"
+              }
+            ],
+            "local_backend_and_worker_cpu_memory_percent": "0.1  0.1"
+          }
+        ]
+      }
+    ],
+    "revision_scope": "Working-tree read authorization change on code_parent; collected before the final 409 write-response guard. No exact released-head capacity claim."
+  },
+  "rendering": [
+    {
+      "state": "visible",
+      "width": 1440,
+      "evidenceConnectedCount": 1,
+      "overflow": false,
+      "screenshot": "voice-evidence-visible-desktop-20260905.png"
+    },
+    {
+      "state": "visible",
+      "width": 390,
+      "evidenceConnectedCount": 1,
+      "overflow": false,
+      "screenshot": "voice-evidence-visible-mobile-20260905.png"
+    },
+    {
+      "state": "hidden",
+      "width": 1440,
+      "evidenceConnectedCount": 0,
+      "overflow": false,
+      "screenshot": "voice-evidence-hidden-desktop-20260905.png"
+    },
+    {
+      "state": "hidden",
+      "width": 390,
+      "evidenceConnectedCount": 0,
+      "overflow": false,
+      "screenshot": "voice-evidence-hidden-mobile-20260905.png"
+    }
+  ]
+}
