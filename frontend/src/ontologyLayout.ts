@@ -194,6 +194,20 @@ function compareCodeUnits(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+function structuralJsonKey(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(structuralJsonKey).join(",")}]`;
+  }
+  if (typeof value === "object" && value !== null) {
+    const object = value as Record<string, unknown>;
+    return `{${Object.keys(object)
+      .sort(compareCodeUnits)
+      .map((key) => `${JSON.stringify(key)}:${structuralJsonKey(object[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? String(value);
+}
+
 /**
  * Restrict every exportable projection to the graph visible after search.
  *
@@ -324,7 +338,7 @@ export function accumulateNeighborhoodPages(
             ];
             const seen = new Set<string>();
             const unique = values.filter((value) => {
-              const serialized = JSON.stringify(value);
+              const serialized = structuralJsonKey(value);
               if (seen.has(serialized)) return false;
               seen.add(serialized);
               return true;
