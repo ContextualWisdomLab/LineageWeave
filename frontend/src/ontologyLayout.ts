@@ -182,9 +182,13 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
   return `${lines.join("\n")}\n`;
 }
 
+const SPREADSHEET_FORMULA_PREFIX = /^[=+\-@\t\r\n\u0000\uFF1D\uFF0B\uFF0D\uFF20]/u;
+
 function csvCell(value: string): string {
-  const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
-  if (/[",\n]/.test(safeValue)) {
+  // Spreadsheet formula parsers recognize control and locale-specific prefixes
+  // beyond ASCII =+-@, so neutralize the complete export boundary before quoting.
+  const safeValue = SPREADSHEET_FORMULA_PREFIX.test(value) ? `'${value}` : value;
+  if (/[",\r\n]/.test(safeValue)) {
     return `"${safeValue.replaceAll('"', '""')}"`;
   }
   return safeValue;
@@ -263,6 +267,19 @@ export function filterNeighborhood(
       `${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
     ]),
   );
+  const visibleEdgeIds = new Set(edges.map((edge) => edge.edge_id));
+  const directTargets = new Map<string, Set<string>>();
+  for (const edge of payload.edges) {
+    const key = JSON.stringify([
+      ontologyNodeId(edge.source_node_type_code, edge.source_node_id),
+      edge.ontology_property_iri,
+    ]);
+    const targets = directTargets.get(key) ?? new Set<string>();
+    if (visibleEdgeIds.has(edge.edge_id)) {
+      targets.add(ontologyNodeId(edge.target_node_type_code, edge.target_node_id));
+    }
+    directTargets.set(key, targets);
+  }
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
@@ -274,7 +291,15 @@ export function filterNeighborhood(
             (visibleIds.has(item["@id"]) ||
               visibleNodeIds.has(item["@id"]) ||
               visibleVoiceIds.has(item["@id"])),
-        ),
+        ).map((item) => Object.fromEntries(Object.entries(item).flatMap(([key, value]) => {
+          const targets = directTargets.get(JSON.stringify([item["@id"], key]));
+          if (!targets) return [[key, value]];
+          const values = (Array.isArray(value) ? value : [value]).filter((target) =>
+            typeof target === "object" && target !== null &&
+            typeof target["@id"] === "string" && targets.has(target["@id"]),
+          );
+          return values.length ? [[key, Array.isArray(value) ? values : values[0]]] : [];
+        }))),
       }
     : payload.jsonld;
   return {

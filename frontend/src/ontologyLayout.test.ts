@@ -116,6 +116,59 @@ function payload(): OntologyNeighborhoodPayload {
 }
 
 describe("ontologyLayout", () => {
+  it.each([false, true])("removes filtered direct assertions before or after page accumulation: %s", (accumulated) => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const personIri = `${ONTOLOGY_NAMESPACE}node/node_person/${PERSON_ID}`;
+    const corpIri = `${ONTOLOGY_NAMESPACE}node/node_corporate_entity/${CORP_ID}`;
+    const withAssertions = {
+      ...source,
+      jsonld: { "@graph": [
+        { "@id": postIri, "rdfs:label": "Demo public post" },
+        { "@id": postIri, [source.edges[0].ontology_property_iri]: { "@id": personIri } },
+        { "@id": personIri, "rdfs:label": "Test Person" },
+        { "@id": personIri, [source.edges[1].ontology_property_iri]: { "@id": corpIri } },
+        { "@id": corpIri, "rdfs:label": "Demo Corp" },
+        { "@id": `lw:edge/${source.edges[0].edge_id}` },
+        { "@id": `lw:edge/${source.edges[1].edge_id}` },
+      ] },
+    };
+    const input = accumulated ? accumulateNeighborhoodPages(withAssertions, withAssertions) : withAssertions;
+    const before = JSON.stringify(input);
+    const result = filterNeighborhood(input, "Demo public")!;
+    expect(result.edges).toEqual([source.edges[0]]);
+    expect(JSON.stringify(result.jsonld)).not.toContain(corpIri);
+    expect(JSON.stringify(result.jsonld)).not.toContain(source.edges[1].ontology_property_iri);
+    expect(JSON.stringify(result.jsonld)).toContain(personIri);
+    expect(JSON.stringify(result.jsonld)).toContain("Test Person");
+    expect(JSON.stringify(input)).toBe(before);
+  });
+
+  it("filters targets by the retained edge even when both endpoints remain visible", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const personIri = `${ONTOLOGY_NAMESPACE}node/node_person/${PERSON_ID}`;
+    const corpIri = `${ONTOLOGY_NAMESPACE}node/node_corporate_entity/${CORP_ID}`;
+    const relation = source.edges[0].ontology_property_iri;
+    const first = { ...source.edges[0], truth_status_code: "truth_authoritative" };
+    const second = { ...source.edges[0], edge_id: "other", target_node_id: CORP_ID,
+      target_node_type_code: "node_corporate_entity" };
+    const connector = { ...source.edges[1], truth_status_code: "truth_authoritative" };
+    const result = filterNeighborhood({
+      ...source,
+      edges: [first, second, connector],
+      jsonld: { "@graph": [{ "@id": postIri,
+        [relation]: [{ "@id": personIri }, { "@id": corpIri }],
+        "prov:wasDerivedFrom": { "@id": "https://example.test/authorized-evidence" },
+      }] },
+    }, "truth_authoritative")!;
+    expect(result.nodes).toHaveLength(3);
+    expect(result.jsonld["@graph"]).toEqual([{ "@id": postIri,
+      [relation]: [{ "@id": personIri }],
+      "prov:wasDerivedFrom": { "@id": "https://example.test/authorized-evidence" },
+    }]);
+  });
+
   it("keeps evidence-bearing voice assignments in CSV, filters, and page accumulation", () => {
     const source = payload();
     const assignment = {

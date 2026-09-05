@@ -320,6 +320,34 @@ type Story = StoryObj<typeof meta>;
 
 export const DesktopNeighborhood: Story = {};
 
+export const FilteredExportEvidence: Story = {
+  args: {
+    neighborhood: {
+      ...demoNeighborhood,
+      nodes: demoNeighborhood.nodes.slice(0, 3),
+      edges: demoNeighborhood.edges.slice(0, 2),
+      exact_value_rows: demoNeighborhood.exact_value_rows.slice(0, 2),
+      jsonld: {
+        ...demoNeighborhood.jsonld,
+        "@graph": [
+          ...demoNeighborhood.nodes.slice(0, 3).map((node) => ({
+            "@id": `https://contextualwisdomlab.github.io/LineageWeave/ontology#node/${node.node_type_code}/${node.node_id}`,
+            "@type": node.ontology_class_iri,
+          })),
+          ...demoNeighborhood.edges.slice(0, 2).flatMap((edge) => {
+            const source = `https://contextualwisdomlab.github.io/LineageWeave/ontology#node/${edge.source_node_type_code}/${edge.source_node_id}`;
+            const target = `https://contextualwisdomlab.github.io/LineageWeave/ontology#node/${edge.target_node_type_code}/${edge.target_node_id}`;
+            return [
+              { "@id": source, [edge.ontology_property_iri]: { "@id": target } },
+              { "@id": `lw:edge/${edge.edge_id}` },
+            ];
+          }),
+        ],
+      },
+    },
+  },
+};
+
 export const CombinedVoiceEvidence: Story = {
   args: { neighborhood: combinedVoiceNeighborhood },
   play: ({ canvasElement }) => {

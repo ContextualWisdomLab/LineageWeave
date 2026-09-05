@@ -28,6 +28,22 @@
 8. Node type uses shape plus text (never color alone). Every edge carries both endpoint type codes and IDs, so heterogeneous catalogs remain unambiguous even if UUIDs collide. Keyboard users can select every visible node and edge. The graph SVG has no enclosing ARIA `img`; native browser text layout wraps complete node labels instead of truncating or estimating character widths. Exact-value table, CSV, JSON-LD, and print expose the same authorized visible graph. JSON-LD emits the source-to-target property assertion directly and describes its evidence-bearing edge as an RDF reified statement with exact `rdf:subject`, `rdf:predicate`, and `rdf:object`; it does not make the edge resource itself the relationship subject. JSON-LD represents system time with `prov:generatedAtTime` and non-null validity bounds as OWL-Time `time:Instant` values using `time:inXSDDateTimeStamp`; it omits unavailable bounds rather than inventing them.
 9. Synthetic Storybook frames cover desktop, narrow exact-value-first, node drawer, edge drawer, legend, empty, truncated, denied, stale, and rejected states. No confidential Figma content enters the repository. Storybook inventory records the implementation surface; frame IDs are not copied from the confidential design file (ADR 0002).
 
+**Search/export clarification (2026-09-05):** Search filters direct JSON-LD
+assertions by the retained typed source, property IRI, and typed target, not
+only by the presence of their subject node. A retained node must not carry a
+relationship excluded from the visible edge list, including after continuation
+has combined singleton assertions into arrays. Keep its labels, times, truth,
+and authorized Voice derivation metadata intact. This is a projection of the
+already-authorized response, not a new authorization or inference boundary.
+
+CSV is a spreadsheet-facing rendering of the same authorized evidence, so
+untrusted labels and evidence values must remain literal data when opened in a
+spreadsheet. Neutralize formula-triggering ASCII, control, null, and supported
+locale-sensitive full-width prefixes before CSV quoting, and quote both CR and
+LF-bearing fields. This follows OWASP ASVS 5.0.0 requirement v5.0.0-1.2.10 and
+the OWASP CSV Injection/WSTG guidance; it changes only export encoding, never
+the authoritative value stored in PostgreSQL or represented by JSON-LD.
+
 **Consequences:**
 
 - Event Lineage and ontology neighborhood stay distinct product capabilities.
@@ -54,6 +70,12 @@ Kellogg, G., Champin, P.-A., & Longley, D. (Eds.). (2020). *JSON-LD 1.1* (W3C Re
 Knublauch, H., & Kontokostas, D. (Eds.). (2017). *Shapes constraint language (SHACL)* (W3C Recommendation). World Wide Web Consortium. https://www.w3.org/TR/shacl/
 
 World Wide Web Consortium. (2024). *Web content accessibility guidelines (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+
+Open Worldwide Application Security Project. (2025). *OWASP application security verification standard 5.0.0*. https://owasp.org/www-project-application-security-verification-standard/
+
+Open Worldwide Application Security Project. (n.d.). *CSV injection*. https://owasp.org/www-community/attacks/CSV_Injection
+
+Open Worldwide Application Security Project. (n.d.). *Testing for CSV injection* (WSTG-INPV-21). https://wstg.owasp.org/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/21-Testing_for_CSV_Injection/
 
 Open Worldwide Application Security Project. (2023). *API1:2023 broken object
 level authorization*. https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/
