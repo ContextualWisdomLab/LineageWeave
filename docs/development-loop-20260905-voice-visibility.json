@@ -31,7 +31,10 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2,
+        "cancelled": 2
+      }
     },
     {
       "number": 935,
@@ -42,7 +45,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2
+      }
     },
     {
       "number": 934,
@@ -53,7 +58,10 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2,
+        "cancelled": 2
+      }
     },
     {
       "number": 933,
@@ -64,7 +72,10 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2,
+        "cancelled": 2
+      }
     },
     {
       "number": 932,
@@ -75,7 +86,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2
+      }
     },
     {
       "number": 929,
@@ -101,7 +114,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 927,
@@ -112,7 +127,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 926,
@@ -123,7 +140,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 925,
@@ -149,7 +168,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 920,
@@ -160,7 +181,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 919,
@@ -171,7 +194,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2
+      }
     },
     {
       "number": 918,
@@ -182,7 +207,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 917,
@@ -193,7 +220,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 916,
@@ -204,7 +233,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 915,
@@ -215,7 +246,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2
+      }
     },
     {
       "number": 914,
@@ -240,7 +273,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 912,
@@ -251,7 +286,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 911,
@@ -353,7 +390,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2
+      }
     },
     {
       "number": 901,
@@ -364,7 +403,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "skipped": 2
+      }
     },
     {
       "number": 899,
@@ -403,7 +444,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 892,
@@ -414,7 +457,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 891,
@@ -425,7 +470,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 889,
@@ -436,7 +483,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 888,
@@ -447,7 +496,10 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "failure": 1,
+        "success": 1
+      }
     },
     {
       "number": 887,
@@ -458,7 +510,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 886,
@@ -469,7 +523,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 885,
@@ -480,7 +536,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 884,
@@ -491,7 +549,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 883,
@@ -502,7 +562,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 882,
@@ -513,7 +575,9 @@
       "review_decision": "",
       "unresolved_threads": 4,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 881,
@@ -524,7 +588,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 880,
@@ -535,7 +601,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 879,
@@ -546,7 +614,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 878,
@@ -557,7 +627,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 877,
@@ -568,7 +640,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 876,
@@ -579,7 +653,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 875,
@@ -590,7 +666,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 874,
@@ -601,7 +679,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 873,
@@ -612,7 +692,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 872,
@@ -623,7 +705,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 871,
@@ -634,7 +718,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 870,
@@ -645,7 +731,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 869,
@@ -656,7 +744,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 868,
@@ -667,7 +757,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 867,
@@ -678,7 +770,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 866,
@@ -689,7 +783,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 865,
@@ -700,7 +796,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 863,
@@ -711,7 +809,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 862,
@@ -722,7 +822,10 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "failure": 1,
+        "success": 1
+      }
     },
     {
       "number": 861,
@@ -733,7 +836,10 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "failure": 1,
+        "success": 1
+      }
     },
     {
       "number": 860,
@@ -744,7 +850,9 @@
       "review_decision": "",
       "unresolved_threads": 4,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 859,
@@ -755,7 +863,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 858,
@@ -766,7 +876,7 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {}
     },
     {
       "number": 857,
@@ -777,7 +887,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 856,
@@ -788,7 +900,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 855,
@@ -799,7 +913,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 854,
@@ -810,7 +926,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 853,
@@ -821,7 +939,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 852,
@@ -832,7 +952,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 851,
@@ -843,7 +965,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 850,
@@ -854,7 +978,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 849,
@@ -865,7 +991,9 @@
       "review_decision": "",
       "unresolved_threads": 4,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 848,
@@ -876,7 +1004,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 847,
@@ -901,7 +1031,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 845,
@@ -912,7 +1044,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 844,
@@ -923,7 +1057,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 843,
@@ -934,7 +1070,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 842,
@@ -945,7 +1083,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 841,
@@ -956,7 +1096,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 840,
@@ -967,7 +1109,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 839,
@@ -978,7 +1122,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 838,
@@ -989,7 +1135,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 837,
@@ -1000,7 +1148,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 836,
@@ -1011,7 +1161,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 835,
@@ -1022,7 +1174,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 833,
@@ -1033,7 +1187,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 831,
@@ -1044,7 +1200,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 829,
@@ -1055,7 +1213,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 828,
@@ -1066,7 +1226,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 827,
@@ -1077,7 +1239,9 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 826,
@@ -1088,7 +1252,9 @@
       "review_decision": "",
       "unresolved_threads": 3,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 825,
@@ -1099,7 +1265,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 824,
@@ -1110,7 +1278,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 823,
@@ -1121,7 +1291,10 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 1,
+        "failure": 1
+      }
     },
     {
       "number": 822,
@@ -1132,7 +1305,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 821,
@@ -1143,7 +1318,9 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 820,
@@ -1154,7 +1331,10 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "failure": 1,
+        "success": 1
+      }
     },
     {
       "number": 819,
@@ -1165,7 +1345,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 818,
@@ -1176,7 +1358,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 817,
@@ -1187,7 +1371,9 @@
       "review_decision": "",
       "unresolved_threads": 2,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "success": 2
+      }
     },
     {
       "number": 816,
@@ -1198,7 +1384,10 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "failure": 1,
+        "in_progress": 1
+      }
     },
     {
       "number": 815,
@@ -1209,7 +1398,10 @@
       "review_decision": "",
       "unresolved_threads": 1,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {
+        "queued": 1,
+        "in_progress": 1
+      }
     },
     {
       "number": 814,
@@ -1220,7 +1412,7 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {}
     },
     {
       "number": 813,
@@ -1231,7 +1423,7 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {}
     },
     {
       "number": 812,
@@ -1242,7 +1434,7 @@
       "review_decision": "",
       "unresolved_threads": 0,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {}
     },
     {
       "number": 811,
@@ -1253,7 +1445,7 @@
       "review_decision": "",
       "unresolved_threads": 4,
       "current_head_approvals": 0,
-      "checks": null
+      "checks": {}
     },
     {
       "number": 808,
@@ -2171,5 +2363,37 @@
       "overflow": false,
       "screenshot": "voice-evidence-hidden-mobile-20260905.png"
     }
-  ]
+  ],
+  "checks_scope": "All 119 pre-registration open PR exact heads; every check-runs page was complete. Empty checks means no check was reported, not success.",
+  "registered_candidate": {
+    "number": 937,
+    "head": "1371a4ec1c4ac3206d108d9001c0179e2b8df370",
+    "base": "fix/voice-export-authority-20260828",
+    "draft": true,
+    "merge_sha": null,
+    "scope": "Snapshot before local atomicity and documentation follow-up commits; current commit is resolved by GitHub, not self-embedded."
+  },
+  "final_review_refresh": "GraphQL rate limit prevented a later review-thread refresh; prior exact-head observations are timestamped evidence only.",
+  "followup_pr": {
+    "number": 811,
+    "head": "430077e24aca9a3643e66fa52bb8b7e21d0fb3b4",
+    "draft": true,
+    "change": "Reuse parent caption-offset regression expectation; preserve another agent's production fix",
+    "local_tests": {
+      "passed": 55,
+      "files": 4
+    },
+    "merge_sha": null,
+    "github_checks": {
+      "total_count": 0,
+      "meaning": "No checks reported on this exact head; not passing evidence"
+    }
+  },
+  "atomicity_followup": {
+    "code_head": "629d23836b24fe25923c6566f0ee9ad7f3e21106",
+    "preserved_contributor_test_head": "1371a4ec1c4ac3206d108d9001c0179e2b8df370",
+    "selected_tests_passed": 11,
+    "documentation_tests_passed": 5,
+    "real_postgres_rollback_verified": true
+  }
 }

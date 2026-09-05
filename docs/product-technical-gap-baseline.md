@@ -12,7 +12,7 @@ The queue captured before this slice's PR registration contains **119 open PRs
 and 16 open issues**, including 23 PRs targeting `main`. All 119 heads and
 bases are recorded in the snapshot. Review-thread pagination was complete;
 all 23 main-targeted PRs had zero unresolved threads, no current-head
-independent approval, and `REVIEW_REQUIRED`. Main-targeted Checks were read
+independent approval, and `REVIEW_REQUIRED`. Checks for all 119 pre-registration PRs were read
 from each exact commit, not inherited from a prior head or merge simulation.
 
 PR #780 remains open at `1d8fa267b059289e77301a09985dfac70a439814`, targeting
@@ -37,7 +37,8 @@ report decoration. This priority is a product trust requirement, not a
 weighted score or a claim about prevalence in current data.
 
 The implementation is committed as
-`4210fe5fead389504f19f3d1c73657a44b3d4af4` in PR #937, stacked on #780. It:
+`4210fe5fead389504f19f3d1c73657a44b3d4af4`, with atomic rejection follow-up
+`629d23836b24fe25923c6566f0ee9ad7f3e21106`, in PR #937, stacked on #780. It:
 
 - reauthorizes genuine derivation evidence in Post detail, list labels, filter
   options, and filtered membership/totals, including knowledge-cutoff reads;
@@ -47,7 +48,8 @@ The implementation is committed as
   intervals, and PROV-O derivation, allowing the same assignment to reappear
   when access is restored;
 - returns an actionable conflict if evidence disappears before a write's
-  response is assembled.
+  response is assembled, with assignment persistence and response
+  reauthorization in one transaction so rejection rolls back the write.
 
 The SQL uses the existing source eligibility and public-or-affiliated-scope
 contract. No schema, migration, release number, numerical kernel, inference,
@@ -57,6 +59,7 @@ model selector, provider call, or new dependency was introduced.
 | --- | --- | --- |
 | Reproduction | Real OIDC/JWKS plus a disposable, fully migrated PostgreSQL database reproduced the hidden-evidence disclosure before the fix | Synthetic only |
 | Implementation regression | 63 selected backend, authorization, ontology, SHACL, and docstring tests pass | Includes live/cutoff visibility withdrawal, restoration, exact process scope, and a concurrent withdrawal response |
+| Atomic rejection follow-up | 11 selected backend tests pass after the transaction change; 5 documentation checks pass | Real authenticated PostgreSQL test confirms a rejected additional Voice is absent after the 409; preserves another agent's atomicity regression from `1371a4ec1c4ac3206d108d9001c0179e2b8df370` |
 | Frontend regression | 30 focused Voice/ontology/export tests pass using the thread pool | Full frontend run remains unverified: fork workers timed out before tests ran |
 | Build and documentation | Frontend lint, production build, Storybook build, and 5 documentation-hygiene tests pass | Existing chunk-size warning is retained; no DeprecationWarning suppression added |
 | Rendered evidence | Authenticated synthetic API payloads rendered with the existing component and global tokens at 1440 and 390 pixels; visible/withdrawn states show no document overflow | Component renders, not a deployed authenticated full-application journey |
@@ -179,13 +182,22 @@ contract. This Voice fix changes none of those contracts.
 
 ## Next protected loop
 
+A later GraphQL review-thread refresh reached the account rate limit. No
+review or merge eligibility is inferred while that refresh is unavailable.
+
 1. Preserve auto-merge while independent approval and required workflows wait;
    inspect failed #907/#911 central workflows at their owning repository.
    Their named failures are recorded; run-log retrieval returned 404 and their
    root causes were not inferred from older runs.
-2. Fix the still-valid #811 rank-caption clipping review in its owner branch,
-   keeping persisted rank/distance values and resolving its parent/ADR conflict
-   before protected integration. Informational review notes are not defects.
+2. PR #811 already carries another agent's caption-bound correction in
+   `98c794fe1f94b8c5a49a8ecbeced0141e3900ffc`. Exact-head focused tests found
+   51 passes and one obsolete midpoint-position expectation inherited from
+   before that layout change. Commit
+   `430077e24aca9a3643e66fa52bb8b7e21d0fb3b4` carries the exact parent
+   caption-offset expectation into the child; all 55 tests in the four layout
+   and rank suites pass. The production clipping fix is preserved. Its
+   parent/ADR conflict still blocks protected integration; GitHub Checks and
+   independent approval remain unverified. Informational notes are not defects.
 3. Merge #780 only through its current ruleset, then retarget its children one
    at a time and recollect exact-head checks, threads, approval, and merge SHA.
 4. Keep #277 receipt/completion, #272 public-claim evidence, #269 authenticated
