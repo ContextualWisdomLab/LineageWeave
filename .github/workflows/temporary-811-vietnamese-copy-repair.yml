@@ -58,6 +58,30 @@ jobs:
               text = text.replace(old, new)
           path.write_text(text, encoding="utf-8")
 
+      - name: Align exact i18n expectations with the repaired terminology
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/i18n.test.ts")
+          text = path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  "phần dư giải thích e",
+                  "tỷ phần phần dư được giải thích e",
+              ),
+              (
+                  "phần dư giải thích bản đồ phần dư R̂²/R² 0.76",
+                  "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76",
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one test expectation for {old!r}, found {count}")
+              text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+
       - name: Run focused RED-to-GREEN tests
         working-directory: frontend
         run: pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts src/i18n.test.ts
@@ -66,9 +90,9 @@ jobs:
         run: |
           git diff --check
           rm .github/workflows/temporary-811-vietnamese-copy-repair.yml
-          test "$(git diff --name-only | sort | tr '\n' ' ')" = ".github/workflows/temporary-811-vietnamese-copy-repair.yml frontend/src/i18n.ts "
+          test "$(git diff --name-only | sort | tr '\n' ' ')" = ".github/workflows/temporary-811-vietnamese-copy-repair.yml frontend/src/i18n.test.ts frontend/src/i18n.ts "
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/src/i18n.ts .github/workflows/temporary-811-vietnamese-copy-repair.yml
+          git add frontend/src/i18n.ts frontend/src/i18n.test.ts .github/workflows/temporary-811-vietnamese-copy-repair.yml
           git commit -m "fix(i18n): restore Vietnamese explained-share terminology"
           git push origin HEAD:automation/811-vietnamese-copy-repair-20260906
