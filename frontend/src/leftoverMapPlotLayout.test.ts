@@ -23,6 +23,8 @@ function pair(
     leftover_map_item_axis_1: 0.5,
     leftover_map_item_axis_2: -0.02,
     leftover_distance: 0.12,
+    leftover_map_reconstruction: 0.248,
+    leftover_map_explained_share: 0.76,
     ...overrides,
   };
 }
@@ -208,6 +210,22 @@ describe("layoutLeftoverMapPlot", () => {
     );
   });
 
+  it("keeps distinct persisted coordinates that share a rounded tick label", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0.001,
+          leftover_map_item_axis_1: 0.004,
+        }),
+      ],
+      criterionLabel,
+    );
+    const axis1 = layout?.ticks.filter((tick) => tick.axis === 1);
+    expect(axis1?.map((tick) => tick.value)).toEqual([0, 0.001, 0.004]);
+    expect(axis1?.map((tick) => tick.label)).toEqual(["0.00", "+0.00", "+0.00"]);
+    expect(new Set(axis1?.map((tick) => tick.x))).toHaveProperty("size", 3);
+  });
+
   it("names persisted leftover-map distance on pair segments without inventing a leftover score", () => {
     const layout = layoutLeftoverMapPlot(
       [
@@ -226,10 +244,11 @@ describe("layoutLeftoverMapPlot", () => {
       criterionLabel,
     );
     expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual(["d 0.12", "d 1.84"]);
-    expect(layout?.segments[0]?.labelX).toBeCloseTo(
-      ((layout?.segments[0]?.x1 ?? 0) + (layout?.segments[0]?.x2 ?? 0)) / 2,
-      5,
-    );
+    const segment = layout?.segments[0];
+    const midpointX = ((segment?.x1 ?? 0) + (segment?.x2 ?? 0)) / 2;
+    const midpointY = ((segment?.y1 ?? 0) + (segment?.y2 ?? 0)) / 2;
+    expect(Math.hypot((segment?.labelX ?? 0) - midpointX, (segment?.labelY ?? 0) - midpointY))
+      .toBeCloseTo(24, 5);
   });
 
   it("omits a leftover-map distance caption when d is missing or non-finite", () => {
@@ -264,6 +283,201 @@ describe("layoutLeftoverMapPlot", () => {
     );
     expect(layout?.segments[0]?.distanceLabel).toBe("d 0.12");
     expect(layout?.segments[0]?.distanceLabel).not.toBe("d 1.00");
+  });
+
+  it("names persisted leftover-map reconstruction on pair segments without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair(),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          leftover_distance: 1.84,
+          leftover_map_reconstruction: -0.95,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.reconstructionLabel)).toEqual([
+      "R\u0302 +0.25",
+      "R\u0302 \u22120.95",
+    ]);
+    expect(layout?.segments[0]?.reconstructionX).toBeCloseTo(layout?.segments[0]?.labelX ?? 0, 5);
+    expect(layout?.segments[0]?.reconstructionY).toBeGreaterThan(layout?.segments[0]?.labelY ?? 0);
+  });
+
+  it("omits a leftover-map reconstruction caption when R̂ is missing or non-finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ leftover_map_reconstruction: null }),
+        pair({
+          pair_kind: "farthest",
+          leftover_map_reconstruction: Number.NaN,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          criterion_code: "negative_sentiment",
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.reconstructionLabel)).toEqual([null, null]);
+    expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual(["d 0.12", "d 0.12"]);
+  });
+
+  it("does not invent leftover-map reconstruction from plotted coordinates", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+          leftover_map_reconstruction: 0.35,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 +0.35");
+    expect(layout?.segments[0]?.reconstructionLabel).not.toBe("R\u0302 +1.00");
+  });
+
+  it("names rank-0 origin reconstruction R̂ 0.00 when that persisted value is finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 0,
+          leftover_distance: 0,
+          leftover_map_reconstruction: 0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");
+    expect(layout?.segments[0]?.distanceLabel).toBe("d 0.00");
+  });
+
+  it("names persisted leftover-map explained leftover share on pair segments without inventing a leftover score", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair(),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 0.9,
+          leftover_map_person_axis_2: 0.8,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          leftover_distance: 1.84,
+          leftover_map_reconstruction: -0.95,
+          leftover_map_explained_share: 0.6,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.explainedShareLabel)).toEqual([
+      "R\u0302\u00b2/R\u00b2 0.76",
+      "R\u0302\u00b2/R\u00b2 0.60",
+    ]);
+    expect(layout?.segments[0]?.explainedShareX).toBeCloseTo(layout?.segments[0]?.labelX ?? 0, 5);
+    expect(layout?.segments[0]?.explainedShareY).toBeGreaterThan(
+      layout?.segments[0]?.reconstructionY ?? 0,
+    );
+  });
+
+  it("keeps complete caption stacks inside top and bottom plot edges", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: -1,
+          leftover_map_person_axis_2: -1,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: -1,
+        }),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 1,
+          leftover_map_item_axis_1: -1,
+          leftover_map_item_axis_2: 1,
+        }),
+      ],
+      criterionLabel,
+    );
+
+    for (const segment of layout?.segments ?? []) {
+      expect(segment.labelY).toBeGreaterThanOrEqual(12);
+      expect(segment.explainedShareY).toBeLessThanOrEqual((layout?.height ?? 0) - 4);
+    }
+  });
+
+  it("omits a leftover-map explained leftover share caption when e is missing or non-finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({ leftover_map_explained_share: null }),
+        pair({
+          pair_kind: "farthest",
+          leftover_map_explained_share: Number.NaN,
+          leftover_map_item_axis_1: -0.7,
+          leftover_map_item_axis_2: -0.4,
+          criterion_code: "negative_sentiment",
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments.map((segment) => segment.explainedShareLabel)).toEqual([null, null]);
+    expect(layout?.segments.map((segment) => segment.reconstructionLabel)).toEqual([
+      "R\u0302 +0.25",
+      "R\u0302 +0.25",
+    ]);
+  });
+
+  it("does not invent leftover-map explained leftover share from reconstruction or residual", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: 0,
+          leftover_map_reconstruction: 1,
+          leftover_map_explained_share: 0.76,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.explainedShareLabel).toBe("R\u0302\u00b2/R\u00b2 0.76");
+    expect(layout?.segments[0]?.explainedShareLabel).not.toBe("R\u0302\u00b2/R\u00b2 1.00");
+  });
+
+  it("names rank-0 origin explained leftover share e 0.00 when that persisted value is finite", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0,
+          leftover_map_person_axis_2: 0,
+          leftover_map_item_axis_1: 0,
+          leftover_map_item_axis_2: 0,
+          leftover_distance: 0,
+          leftover_map_reconstruction: 0,
+          leftover_map_explained_share: 0,
+        }),
+      ],
+      criterionLabel,
+    );
+    expect(layout?.segments[0]?.explainedShareLabel).toBe("R\u0302\u00b2/R\u00b2 0.00");
+    expect(layout?.segments[0]?.reconstructionLabel).toBe("R\u0302 0.00");
+    expect(layout?.segments[0]?.distanceLabel).toBe("d 0.00");
   });
 });
 

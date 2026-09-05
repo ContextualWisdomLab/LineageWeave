@@ -4,7 +4,11 @@
 **Date:** 2026-08-25
 
 **Amended by:** [ADR 0267](0267-leftover-map-coordinates.md)
-(leftover-map coordinates ξ, ζ)
+(leftover-map coordinates ξ, ζ);
+[ADR 0272](0272-leftover-map-segment-reconstruction.md)
+(leftover-map reconstruction on graphic-display pair segments);
+[ADR 0273](0273-leftover-map-segment-explained-share.md)
+(leftover-map explained leftover share on graphic-display pair segments)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and

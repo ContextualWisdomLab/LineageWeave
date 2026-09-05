@@ -15,7 +15,9 @@
 [ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display);
 [ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display);
 [ADR 0270](0270-leftover-map-coordinate-ticks.md) (leftover-map coordinate ticks);
-[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments)
+[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments);
+[ADR 0272](0272-leftover-map-segment-reconstruction.md) (leftover-map reconstruction on pair segments);
+[ADR 0273](0273-leftover-map-segment-explained-share.md) (leftover-map explained leftover share on pair segments)
 
 ## Context
 
@@ -43,7 +45,9 @@ sits above the pair buttons (ADR 0268); click a post marker to open
 that post. Leftover-map axis share captions those leftover-map axes
 when finite (ADR 0269). Leftover-map axis ticks name persisted `ξ` /
 `ζ` coordinates (ADR 0270). Pair segments name persisted leftover-map
-distance `d` (ADR 0271). The pair renders every available finite measurement.
+distance `d` (ADR 0271). Pair segments name persisted leftover-map
+reconstruction `R̂` (ADR 0272). Pair segments name persisted leftover-map
+explained leftover share `e` (ADR 0273). The pair renders every available finite measurement.
 The next action uses the first available value in the priority below; no
 amendment hides another badge, rank 0
 explicitly names no leftover structure, and unexplained leftover names
@@ -76,6 +80,10 @@ Leftover-map coordinate ticks are
 [ADR 0270](0270-leftover-map-coordinate-ticks.md).
 Leftover-map distance on pair segments is
 [ADR 0271](0271-leftover-map-segment-distance.md).
+Leftover-map reconstruction on pair segments is
+[ADR 0272](0272-leftover-map-segment-reconstruction.md).
+Leftover-map explained leftover share on pair segments is
+[ADR 0273](0273-leftover-map-segment-explained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover
