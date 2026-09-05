@@ -38,12 +38,15 @@ jobs:
           set -e
           if [ "$rc" -ne 0 ]; then
             conflicts="$(git diff --name-only --diff-filter=U | sort | tr '\n' ' ' | sed 's/ $//')"
-            expected="frontend/src/i18n.test.ts frontend/src/i18n.ts"
+            expected="frontend/src/i18n.test.ts frontend/src/i18n.ts lineageweave/__init__.py"
             if [ "$conflicts" != "$expected" ]; then
               echo "::error title=Unexpected exact-parent conflicts::$conflicts"
               exit 42
             fi
-            git checkout --ours frontend/src/i18n.ts frontend/src/i18n.test.ts
+            # #812 owns the v2.38 successor release identity; #811 owns the
+            # Vietnamese parent terminology that is reapplied below.
+            git checkout --ours frontend/src/i18n.ts frontend/src/i18n.test.ts lineageweave/__init__.py
+            git add lineageweave/__init__.py
           fi
 
       - name: Preserve child i18n delta and parent Vietnamese terminology
@@ -86,6 +89,25 @@ jobs:
               path.write_text(text, encoding="utf-8")
           import subprocess
           subprocess.run(["git", "add", "frontend/src/i18n.ts", "frontend/src/i18n.test.ts"], check=True)
+
+      - name: Verify v2.38 release identity survives parent convergence
+        shell: python
+        run: |
+          import json
+          import re
+          import tomllib
+          from pathlib import Path
+
+          root = Path(".")
+          project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+          frontend = json.loads((root / "frontend/package.json").read_text(encoding="utf-8"))
+          init_text = (root / "lineageweave/__init__.py").read_text(encoding="utf-8")
+          match = re.search(r'^__version__ = "([^"]+)"$', init_text, re.MULTILINE)
+          if match is None:
+              raise SystemExit("lineageweave.__version__ declaration missing")
+          versions = (project["project"]["version"], frontend["version"], match.group(1))
+          if versions != ("2.38.0", "2.38.0", "2.38.0"):
+              raise SystemExit(f"release identity drift after convergence: {versions!r}")
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
