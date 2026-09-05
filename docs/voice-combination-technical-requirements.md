@@ -34,6 +34,15 @@ open historical = effective_from <= reference_time AND effective_to IS NULL
 The interval is lower-inclusive and upper-exclusive. The exact primary-change
 instant belongs to the new primary, so a read cannot return two primary rows.
 
+ADR 0256's evidence authorization also applies after an assignment is recorded.
+Post detail, list labels, filter options, and filtered totals must reauthorize
+the actual derivation evidence on each read. Making that evidence private,
+draft, or deleted omits the additional assignment in both live and cutoff
+views, without changing its persisted truth, interval, or provenance. A cutoff
+cannot admit an evidence Post created after that instant. Restoring access
+allows the same persisted assignment to be read again. The carrying Post is
+never substituted for hidden evidence.
+
 ## Component flow
 
 ```mermaid

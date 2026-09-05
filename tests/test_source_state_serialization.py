@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 from backend.app.main import _load_post_voice_types, _serialize_post
 
@@ -75,13 +76,16 @@ def test_voice_loader_projects_evidence_availability_not_assertion_ids() -> None
 
     class Connection:
         async def fetch(
-            self, query: str, post_id: str, effective_cutoff: datetime
+            self, query: str, post_id: str, effective_cutoff: datetime,
+            corporate_entities: list[str], process_units: list[str],
         ) -> list[dict[str, object]]:
             assert "provenance_assertion_id is not null as evidence_available" in query
             assert "voice.effective_from <= $2" in query
             assert "$2 < voice.effective_to" in query
             assert post_id == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
             assert effective_cutoff == datetime(2026, 1, 1, tzinfo=UTC)
+            assert corporate_entities == ["synthetic-corporation"]
+            assert process_units == ["synthetic-process"]
             return [
                 {
                     "voice_type_code": "vops",
@@ -96,6 +100,10 @@ def test_voice_loader_projects_evidence_availability_not_assertion_ids() -> None
         _load_post_voice_types(  # type: ignore[arg-type]
             Connection(),
             "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            SimpleNamespace(
+                corporate_entity_ids=frozenset({"synthetic-corporation"}),
+                process_unit_ids=frozenset({"synthetic-process"}),
+            ),
             datetime(2026, 1, 1, tzinfo=UTC),
         )
     )
