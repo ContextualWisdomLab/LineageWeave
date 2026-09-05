@@ -90,6 +90,49 @@ compound lookup codes.
 
 ## Data model
 
+### Amendment: preserve revisions of additional evidence (2026-09-05)
+
+Status: proposed amendment; protected integration and release acceptance pending.
+
+In the context of correcting an additional Voice's recorded evidence, facing
+loss of earlier cutoff states, we decided for serialized half-open assignment
+revisions and against overwriting the current row or rejecting all corrections,
+to achieve auditable historical truth and derivation evidence, accepting one
+additional persisted interval per material correction and per-Post lock waits.
+
+An authorized repeat write may change an additional Voice's truth state or
+derivation evidence. Updating its current row in place destroys the earlier
+cutoff view. Serialize these writes with imported-primary changes by locking
+the carrying `source_post` row before reading the current assignment. An exact
+repeat of the same truth state and bound evidence Post is a no-op. Otherwise,
+close the existing additional interval and insert a new assignment at the same
+database `clock_timestamp()`, read after the lock is acquired. Retain the old
+truth state, assertion, start, and recorded time. A primary conflict fails
+before writing provenance. Any failure rolls back the entire replacement.
+
+Each new additional interval uses its existing `voice_assignment_id` UUID in
+its canonical PROV Entity IRI, under
+`voice-assignment/{post_id}/{voice_type_code}/{voice_assignment_id}`. Earlier
+IRIs and assertions remain unchanged. Reusing a post/code-only Entity for a
+later interval would merge distinct derivations; overwriting or rejecting all
+authorized corrections would respectively erase history or remove the existing
+upsert capability. Neither alternative satisfies the cutoff contract.
+
+This reuses migration 0237/0243 identities and half-open intervals; it adds no
+schema, Voice code, inference, or release number. Public payload shapes and
+evidence authorization stay unchanged. PostgreSQL row locking and the database
+clock supply ordering; no application timestamp repair is permitted. Historical
+states already overwritten before this amendment remain unavailable. Synthetic
+PostgreSQL tests must prove correction, exact retry, rollback, concurrent writes,
+primary protection, and distinct persisted PROV derivations. Authenticated API
+and rendered UI acceptance remain separate requirements.
+
+Authority: [PostgreSQL transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html)
+and [W3C PROV-O derivation](https://www.w3.org/TR/prov-o/#wasDerivedFrom),
+alongside ADR 0252's existing database-clock and interval contract. These sources
+support concurrency and provenance semantics, not stakeholder classification or
+population inference.
+
 ```mermaid
 classDiagram
   class SourcePost {

@@ -42,6 +42,20 @@ export const NarrowViewport: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
 
+export const CorrectedEvidence: Story = {
+  args: {
+    voices: meta.args.voices.map((voice) => (
+      voice.is_primary ? voice : { ...voice, truth_status_code: "truth_proposed" }
+    )),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Voice of Customer (Observed)")).toBeVisible();
+    await expect(canvas.getByText("Voice of Process (Proposed)")).toBeVisible();
+    await expect(canvas.getByText("Evidence connected")).toBeVisible();
+  },
+};
+
 export const RejectedEvidence: Story = {
   args: {
     voices: [

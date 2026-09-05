@@ -1,5 +1,110 @@
 # Product & Technical Gap Baseline
 
+## Current development-loop evidence — 2026-09-05
+
+Snapshot collected at `2026-09-05T10:57:25+00:00`; protected `main` remains
+`83eba56149eb802cd63642c507c324c9976ec78e`. This section supersedes the
+queue and runtime claims in every historical snapshot below. The complete
+[exact-head queue and load record](development-loop-20260905-voice-history.json)
+contains all 119 open PRs, their bases, draft state, checks, approvals, and
+unresolved-thread counts. There are 16 open issues; 98 PRs are draft,
+21 are ready, and no current PR has an independent exact-head approval.
+Required workflows still apply in addition to the organization ruleset's
+approval and resolved-thread requirements. No protected merge occurred in this
+cycle; no self-approval, bypass, force push, or stack-base merge was used.
+
+### Selected user-visible gap: corrections erased earlier Voice evidence
+
+Correcting an additional perspective overwrote its previous truth state and
+source evidence. An earlier cutoff could therefore lose the assignment it had
+previously shown. This was selected over duplicating translation (#929/#932),
+export pagination/filter (#780/#934/#935), or customer hierarchy (#907/#909)
+work: the loss is irreversible for evidence reviewers and the write path had
+no open owning PR. Protected-main code reproduced one row where two historical
+intervals were required. PR #936 now preserves the old interval and derivation,
+serializes corrections with primary imports, and leaves an exact retry
+unchanged. An invalid correction rolls back without replacing accepted evidence.
+
+Candidate implementation `b8dd36e713ea1cb123de272fe61314145448e818` is stacked on #780 at
+`1d8fa267b059289e77301a09985dfac70a439814`. The parent's live-Post missing-import
+repair is reused; it also exists in #911, so convergence must retain one copy.
+Merge #780 through protection first, then retarget #936 to `main` and collect
+fresh head/base/review/check evidence. Never merge this child into an unprotected
+feature branch. #934 and #935 remain separate pagination/filter owners.
+
+| Evidence class | Current finding | Acceptance |
+| --- | --- | --- |
+| Normative product/architecture | Read current PRD, ADR 0246's twelve atomic Voices, ADR 0256's expandable evidence-bearing composition, ADR 0252's cutoff history, and ADR 0251's FJA I/O-psychology layer. The new ADR 0256 amendment is proposed pending integration. | No fixed combination codes, reclassification, invented weights, or new schema/version. |
+| External authority | PostgreSQL transaction isolation and database-clock semantics; W3C PROV-O derivation. | These ground storage/concurrency; they do not establish stakeholder classification or statistical inference. |
+| Current implementation | Correction history and interval-specific stored PROV identities; exact retries, rollback, concurrent waits, and primary protection. | Implemented in #936; not protected-main delivery. |
+| Authenticated API | 14 targeted tests passed with full-schema synthetic PostgreSQL, real demo OIDC/JWKS, RBAC/ABAC, Valkey, historical/live truth, and hidden-evidence denial. | Real ASGI API with real services; full browser-to-API flow remains unverified. |
+| Rendered UI | Frontend lint, 534 tests, and build passed. Existing `Post/Recorded perspectives` shows retained Observed and corrected Proposed states at 1440 and 390 CSS pixels without document overflow. | Four synthetic screenshots; separate component evidence, not deployed browser acceptance. |
+| Current runtime aggregate | Official `lineageweave` PostgreSQL has 43,189 source rows and the Voice schema; the observation saw three connections and no lock waiters. | A non-identifying descriptive count, not proof that #936 runs there or a population estimate. |
+| Open work | #936 is the history correction candidate; #780/#934/#935 own carrying/evidence and paged/filtered export acceptance. | Voice export and full protected acceptance remain unverified until their exact integrated head is proven. |
+
+### Queue and cross-PR contracts
+
+Normal auto-merge remains enabled on #780, #907, #911, #914, and #929; it was
+also enabled on #802 with `--match-head-commit` at
+`32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6`. Pending checks were not used to stop
+safe work. #907/#911 also retain failed current-head checks; their queried run
+logs returned HTTP 404, so no unverified failure cause or passing substitute is
+asserted. There were no in-progress Actions at the inspected instant, hence no
+stale run was cancelled and no new workflow cancellation policy was invented.
+Closed-unmerged #640 still underlies #888; it is not a protected parent.
+
+Added-ADR identity collisions were found at 0279, 0289, 0290, 0293, 0300,
+0301, 0304, 0305, 0335, and 0355 across separate open PRs; exact paths and
+heads are in the snapshot. Parallel release-number claims include 2.46.0,
+2.47.0, 2.50.0, 2.61.0, 2.62.0, and 2.92.0. No conflicting newly-added
+migration prefix was found in the complete changed-file inventories. This is
+not a proof of schema/API semantic compatibility: shared definitions and
+existing occupational ADR aliases (#847 / issue #807) still require parent-first
+convergence and API/schema regression checks. AST comparison across ten changed API heads also found divergent signatures
+for Dashboard, Customer Master, Posts, Post detail, and Rankings, plus
+`ChatRequest` annotation differences. The artifact groups exact signatures;
+these include inherited old-base drift and are not assumed to be new conflicting
+policies. This amendment allocates no ADR, migration, or release number and
+preserves the current HTTP payload shape.
+
+### Synthetic authenticated load observation
+
+The repository's existing k6 HTTP scenario ran against a temporary fully
+migrated database, the actual backend and workers, real demo OIDC, an ephemeral
+Valkey service under Compose project `lineageweave`, and the official
+contextual-orchestrator boundary using a runtime-only credential. It submitted
+one synthetic Ask per scenario and polled its observable asynchronous status
+while reading Posts and Event Lineage. No real record entered this workload.
+
+| Scenario | HTTP requests/s | HTTP p95 | HTTP error rate | Read p95 | Ask poll p95 | Ask enqueue |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 VU, 10 seconds | 165.18 | 17.03 ms | 0% | 18.37 ms | 10.96 ms | 2,706.17 ms |
+| 4 VUs, 10 seconds | 315.45 | 80.22 ms | 0% | 85.71 ms | 61.68 ms | 20.40 ms |
+
+These are short diagnostic observations, not a capacity threshold, latency SLO,
+terminal-answer result, or population inference. Two Running Ask jobs were
+observed. Samples reached 93.53% PostgreSQL CPU, 28.62% gateway CPU, and 54.9%
+local backend CPU; shared-service samples include unrelated traffic. No sampled
+PostgreSQL connection waited on a lock and Valkey rejected no connection. Its
+three blocked clients are stream readers, not a demonstrated bottleneck.
+Gateway admission/queue saturation and full-workload completion remain
+unverified. The cold/warm enqueue difference has no isolated causal diagnosis,
+so no timeout, pool size, worker count, or provider setting was changed.
+Temporary database and backend process were removed/stopped; the exact temporary
+Valkey container was stopped, observed exited with no mounts, and removed.
+Official containers and data volumes were preserved.
+
+Canonical remote names were rechecked: `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, `fast-mlsirm`, and
+lowercase `disksage`. The PRD/authority register's `DiskSage` spelling is not the
+remote canonical name. The related current authorities read were
+contextual-orchestrator's `docs/product_planning.md` and `docs/architecture.md`,
+TEPP's approved PRD, fast-mlsirm's PRD, RankWeave's architecture, and
+ThreadWeave's PRD. Mathematical/model policies and inference remain with their
+owners; this change adds no Python mathematical or psychometric operation.
+
+## Historical snapshots — not current release acceptance
+
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence

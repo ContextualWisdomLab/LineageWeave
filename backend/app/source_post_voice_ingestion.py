@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 if TYPE_CHECKING:
     import asyncpg
@@ -88,9 +89,46 @@ async def persist_additional_voice_assignment(
     truth_status_code: str,
     evidence_post_id: str,
 ) -> None:
-    """Atomically bind one additional Voice to an authorized evidence post."""
-    assignment_iri = str(LW[f"voice-assignment/{post_id}/{voice_type_code}"])
+    """Retain cutoff history when authorized additional Voice evidence changes."""
     async with conn.transaction():
+        # Imported-primary changes hold this same row lock. Read the current
+        # interval only after acquiring it, including when this write waited.
+        await conn.execute(
+            "select post_id from source_post where post_id = $1::uuid for update",
+            post_id,
+        )
+        current = await conn.fetchrow(
+            """
+            select voice.is_primary, voice.truth_status_code,
+                   evidence.node_id as evidence_post_id
+              from source_post_voice voice
+              left join provenance_assertion assertion
+                on assertion.assertion_id = voice.provenance_assertion_id
+               and assertion.relation_code = 'prov_was_derived_from'
+              left join provenance_resource_binding evidence
+                on evidence.resource_id = assertion.object_resource_id
+               and evidence.node_type_code = 'node_post'
+             where voice.post_id = $1::uuid and voice.voice_type_code = $2
+               and voice.effective_to is null
+            """,
+            post_id,
+            voice_type_code,
+        )
+        if current is not None:
+            if current["is_primary"]:
+                raise PrimaryVoiceAssignmentError(
+                    "the imported primary Voice cannot be changed through the additional-voice path"
+                )
+            if (
+                current["truth_status_code"] == truth_status_code
+                and str(current["evidence_post_id"]) == evidence_post_id
+            ):
+                return
+        change_at = await conn.fetchval("select clock_timestamp()")
+        assignment_id = uuid4()
+        assignment_iri = str(
+            LW[f"voice-assignment/{post_id}/{voice_type_code}/{assignment_id}"]
+        )
         evidence_resource_id = await _post_resource_id(conn, evidence_post_id)
         assignment_resource_id = await conn.fetchval(
             """
@@ -139,28 +177,31 @@ async def persist_additional_voice_assignment(
             )
         if assertion_id is None:
             raise RuntimeError("Voice evidence derivation was not persisted")
-        stored = await conn.fetchrow(
+        await conn.execute(
+            """
+            update source_post_voice
+               set effective_to = $3
+             where post_id = $1::uuid and voice_type_code = $2
+               and effective_to is null and not is_primary
+            """,
+            post_id,
+            voice_type_code,
+            change_at,
+        )
+        await conn.execute(
             """
             insert into source_post_voice
-                (post_id, voice_type_code, is_primary, truth_status_code,
+                (voice_assignment_id, post_id, voice_type_code, is_primary, truth_status_code,
                  provenance_assertion_id, effective_from, recorded_at)
-            values ($1::uuid, $2, false, $3, $4::uuid, now(), now())
-            on conflict (post_id, voice_type_code) where effective_to is null do update
-            set truth_status_code = excluded.truth_status_code,
-                provenance_assertion_id = excluded.provenance_assertion_id,
-                recorded_at = now()
-            where not source_post_voice.is_primary
-            returning voice_type_code
+            values ($6::uuid, $1::uuid, $2, false, $3, $4::uuid, $5, $5)
             """,
             post_id,
             voice_type_code,
             truth_status_code,
             assertion_id,
+            change_at,
+            assignment_id,
         )
-        if stored is None:
-            raise PrimaryVoiceAssignmentError(
-                "the imported primary Voice cannot be changed through the additional-voice path"
-            )
 
 
 __all__ = ["PrimaryVoiceAssignmentError", "persist_additional_voice_assignment"]
