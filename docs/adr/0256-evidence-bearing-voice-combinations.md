@@ -25,9 +25,14 @@ attributes rather than from one exhaustive industry-role list.
 Continuation clarification (2026-09-05): accumulating authorized pages retains
 every value of a repeated JSON-LD subject property, whether represented as a
 single value or an array. Repeated values are deduplicated; a later fragment
-must not replace an earlier relationship, type, or label. This implements
-ADR 0184's export parity under the W3C JSON-LD 1.1 node-object contract, without
-changing authorization, truth, cutoff, or Voice assignment identity.
+must not replace an earlier relationship, type, or label. JSON object member
+order is not part of value identity, consistent with RFC 8259's unordered
+object model, so equivalent node/value objects remain one value when a later
+page serializes their members in a different order. The accumulator preserves
+JSON array sequence rather than pretending to perform full JSON-LD expansion,
+set normalization, or RDF canonicalization. This implements ADR 0184's export
+parity under the W3C JSON-LD 1.1 node-object contract without changing
+authorization, truth, cutoff, or Voice assignment identity.
 
 Represent composition as rows in normalized `source_post_voice`, not as
 compound lookup codes.
@@ -162,6 +167,10 @@ release claim still requires protected-main delivery evidence.
 AccountAbility. (2015). *AA1000 stakeholder engagement standard*.
 https://www.accountability.org/standards/aa1000-stakeholder-engagement
 
+Bray, T. (2017). *The JavaScript Object Notation (JSON) data interchange
+format* (RFC 8259). Internet Engineering Task Force.
+https://www.rfc-editor.org/rfc/rfc8259
+
 International Organization for Standardization. (2010). *Guidance on social
 responsibility* (ISO Standard No. 26000:2010).
 https://www.iso.org/standard/42546.html
@@ -174,3 +183,7 @@ Mitchell, R. K., Agle, B. R., & Wood, D. J. (1997). Toward a theory of
 stakeholder identification and salience: Defining the principle of who and
 what really counts. *Academy of Management Review, 22*(4), 853–886.
 https://doi.org/10.5465/amr.1997.9711022105
+
+World Wide Web Consortium. (2020). *JSON-LD 1.1: A JSON-based serialization
+for linked data* (W3C Recommendation).
+https://www.w3.org/TR/json-ld11/
