@@ -194,6 +194,20 @@ function compareCodeUnits(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+function structuralJsonKey(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(structuralJsonKey).join(",")}]`;
+  }
+  if (typeof value === "object" && value !== null) {
+    const object = value as Record<string, unknown>;
+    return `{${Object.keys(object)
+      .sort(compareCodeUnits)
+      .map((key) => `${JSON.stringify(key)}:${structuralJsonKey(object[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? String(value);
+}
+
 /**
  * Restrict every exportable projection to the graph visible after search.
  *
@@ -317,15 +331,22 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
-            const values = [...existing[key], ...incoming[key]];
+          if (key !== "@id" && Object.hasOwn(existing, key)) {
+            const values = [
+              ...(Array.isArray(existing[key]) ? existing[key] : [existing[key]]),
+              ...(Array.isArray(incoming[key]) ? incoming[key] : [incoming[key]]),
+            ];
             const seen = new Set<string>();
-            merged[key] = values.filter((value) => {
-              const serialized = JSON.stringify(value);
+            const unique = values.filter((value) => {
+              const serialized = structuralJsonKey(value);
               if (seen.has(serialized)) return false;
               seen.add(serialized);
               return true;
             });
+            merged[key] = unique.length === 1 &&
+              !Array.isArray(existing[key]) && !Array.isArray(incoming[key])
+              ? unique[0]
+              : unique;
           }
         }
         graphItems.set(item["@id"], merged);
