@@ -58,11 +58,16 @@ than two sequential waits. A nonzero cursor or any retained alias falls back to
 the compatibility reader; it never treats an incomplete alias scan as evidence
 that the canonical stream is the only history.
 
-When aliases exist, the compatibility path performs a newest-first incremental
-merge, fetching one entry per stream initially and at most one further entry per
-returned event. More retained aliases fail closed instead of creating unbounded
-fan-out or silently sampling history. This keeps the common path latency bounded
-without pretending legacy stream-local sequence numbers form one global order.
+When aliases exist, production redis-py clients prefetch a bounded slice from
+every admitted stream in one non-transactional pipeline before merging locally.
+The per-stream page size is `min(event_count, 1000 // stream_count)`, with a
+minimum of one, so initial retained-entry buffering never exceeds the same
+1,000-entry product ceiling even when alias cardinality is high. If one stream
+supplies more than its prefetched share, only that exhausted stream is refilled
+with another bounded page. Minimal adapters without pipeline support retain the
+older one-entry incremental merger. Both paths preserve complete retained
+history, canonical-first equal-millisecond ordering, and the final 1..1000
+buyer-facing output budget.
 
 ## Consequences
 
@@ -72,9 +77,12 @@ without pretending legacy stream-local sequence numbers form one global order.
   per alias.
 - The alias-free UUID buyer path admits compatibility metadata and fetches the
   bounded canonical window in one redis-py pipeline network exchange.
-- Compatibility merging may pay an additional bounded probe before its existing
-  incremental reads; legacy-history preservation takes precedence over the
-  alias-free fast path once an alias or unfinished scan is observed.
+- The retained-alias production path batches its first bounded history pages in
+  one pipeline exchange instead of issuing one network command per stream and
+  one additional command per returned event.
+- Compatibility prefetch retains at most 1,000 stream entries at a time before
+  output construction; skewed history refills only the stream that exhausted
+  its bounded page.
 - Request-time records and calls remain bounded by the retained stream and output
   limits; excessive alias cardinality is explicitly unavailable.
 - Startup performs a cursor scan and must finish before readiness.
@@ -94,9 +102,12 @@ without pretending legacy stream-local sequence numbers form one global order.
 - Perform an alias-index lookup and only afterward issue the canonical
   `XREVRANGE`: rejected because the normal UUID path then has at least two
   sequential Valkey network waits even when the alias set is empty.
-- Always use one-entry incremental reads, including the canonical-only path:
-  rejected because it turns the normal activity panel into one sequential Valkey
-  round trip per returned event without adding compatibility information.
+- Fetch one compatibility entry per stream and then await one `XREVRANGE` per
+  returned event: rejected because an authorized 50-event legacy-history panel
+  still pays roughly one sequential Valkey wait per result.
+- Fetch `event_count` entries from every compatibility stream in one pipeline:
+  rejected because worst-case buffering becomes `event_count * stream_count`,
+  up to one million retained records under the existing limits.
 - Scan the activity keyspace on each request: rejected because latency and work
   would scale with unrelated posts.
 - Drop legacy aliases: rejected because canonicalization would hide retained
@@ -120,6 +131,15 @@ without pretending legacy stream-local sequence numbers form one global order.
 - Production repair `c4a25ce1f03ee225874a56c3f102ffa8b48a0621` introduces a bounded 128-write
   non-transactional pipeline batch with a compatibility fallback for minimal
   adapters that do not expose redis-py pipeline support.
+- Review `5121915874` identified the retained-alias buyer-path N+1 left after the
+  canonical fast-path repairs: initial probes were concurrent, but each emitted
+  event still triggered another awaited `XREVRANGE count=1`.
+- RED `7d44315c81bd942db58af75ea9af9e9885c46dc5` requires a four-event,
+  two-stream compatibility read to preserve exact merge order without paying one
+  network exchange per event.
+- Production repair `2ee36cf7844526a5f27803100f2b469e31573a98` batches bounded per-stream
+  history pages through one non-transactional pipeline and refills only an
+  exhausted stream, with total initial buffering capped at 1,000 entries.
 - redis-py asyncio pipeline documentation specifies that pipeline commands are
   buffered and executed together when awaited through `execute()`; transactions
   remain optional and are not required for these independent read or set-write
