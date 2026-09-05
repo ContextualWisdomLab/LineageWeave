@@ -44,26 +44,26 @@ jobs:
           path = Path("backend/app/main.py")
           text = path.read_text(encoding="utf-8")
           old = '''        visible.append(
-              {
-                  **row,
-                  "members": [],
-                  "leftover_pairs": leftover_pairs,
-                  "post_count": len(members),
-              }
-          )'''
+            {
+                **row,
+                "members": [],
+                "leftover_pairs": leftover_pairs,
+                "post_count": len(members),
+            }
+        )'''
           new = '''        visible.append(
-              {
-                  **row,
-                  "members": [],
-                  "leftover_pairs": leftover_pairs,
-                  "leftover_map_axes": (
-                      row.get("leftover_map_axes", [])
-                      if len(members) == len(row["members"])
-                      else []
-                  ),
-                  "post_count": len(members),
-              }
-          )'''
+            {
+                **row,
+                "members": [],
+                "leftover_pairs": leftover_pairs,
+                "leftover_map_axes": (
+                    row.get("leftover_map_axes", [])
+                    if len(members) == len(row["members"])
+                    else []
+                ),
+                "post_count": len(members),
+            }
+        )'''
           count = text.count(old)
           if count != 1:
               raise SystemExit(f"expected exactly one compare response block, found {count}")
