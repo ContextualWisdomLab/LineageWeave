@@ -69,8 +69,7 @@
 > #825; leave the PR open for independent review. Do not squash-merge onto
 > the leftover base. Do not persist leftover-map inner product, cosine, or
 > length as separate columns.
-
-
+>
 > Exact-head loop overlay: 2026-08-30 23:28 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
@@ -269,8 +268,7 @@
 > `feat/leftover-map-compare-coverage-v2460` / #821; leave the PR open for
 > independent review. Do not squash-merge onto the leftover base. Do not
 > persist leftover-map inner product, cosine, or length as separate columns.
-
-
+>
 > Exact-head loop overlay: 2026-08-30 22:52 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
@@ -332,8 +330,7 @@
 > / #819; leave the PR open for independent review. Do not squash-merge
 > onto the leftover base. Do not persist leftover-map inner product, cosine,
 > or length as separate columns.
-
-
+>
 > Exact-head loop overlay: 2026-08-30 22:30 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808

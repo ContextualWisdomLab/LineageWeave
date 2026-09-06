@@ -696,8 +696,9 @@ including on the pair list. Results persist to
 `GET /api/reports/compare/{period}` is the home-page grouping strip
 and carries the same ABAC-filtered leftover pairs (ADR 0149) plus persisted
 leftover-map complete-case coverage (ADR 0289), leftover-map item complete-case
-coverage (ADR 0290), leftover-map incomplete post coverage (ADR 0291), and leftover-map
-incomplete item coverage (ADR 0292);
+coverage (ADR 0290), leftover-map incomplete post coverage (ADR 0291), leftover-map
+incomplete item coverage (ADR 0292), and persisted `leftover_map_axes` consumed through
+`leftoverMapCompareAxisShare` under the full-visible-grouping rule (ADR 0367);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
