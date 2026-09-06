@@ -83,7 +83,7 @@ export function setup() {
   );
   askEnqueueDuration.add(submitted.timings.duration);
   if (submitted.status !== 202) {
-    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}: ${submitted.body}`);
+    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}`);
   }
   return { token, askJobId: submitted.json("ask_job_id") };
 }

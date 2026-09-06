@@ -37,8 +37,13 @@ function authenticate() {
 function result(response) {
   const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
   if (!line) fail(`MCP response omitted a data event: HTTP ${response.status}`);
-  const envelope = JSON.parse(line.slice(6));
-  if (envelope.error) fail(`MCP returned ${JSON.stringify(envelope.error)}`);
+  let envelope;
+  try {
+    envelope = JSON.parse(line.slice(6));
+  } catch {
+    fail(`MCP response was unreadable: HTTP ${response.status}`);
+  }
+  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);
   return envelope.result;
 }
 
@@ -82,7 +87,7 @@ function callTool(token, session, id, name, args) {
 
 function structured(response) {
   const toolResult = result(response);
-  if (toolResult.isError) fail(`MCP tool failed: ${response.body}`);
+  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);
   return toolResult.structuredContent;
 }
 

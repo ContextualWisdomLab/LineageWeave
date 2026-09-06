@@ -1,5 +1,118 @@
 # Product & Technical Gap Baseline
 
+## Bounded observation — 2026-09-06 23:39 KST
+
+This is a dated observation of protected `main` at `83eba56149eb802cd63642c507c324c9976ec78e` and
+of the PR heads below. It is supporting evidence, not architecture authority,
+a live queue registry, or a release claim. Re-fetch remote state before any
+merge decision. The older observations below retain their original dates;
+none establishes the present runtime or queue.
+
+### Authority and research
+
+The current LineageWeave `docs/product-requirements.md` and the remote
+TEPP `docs/product/prd-v0.4-approved.md`, contextual-orchestrator
+`docs/product_planning.md` / `docs/architecture.md`, RankWeave
+`ARCHITECTURE.md`, and ThreadWeave `docs/PRD.md` were read before selecting
+this change. ADRs remain normative. Existing ownership of inference,
+measurement, Rust arithmetic, and shared post-scoped orchestration sessions
+is unchanged; no model/weight/estimator policy is inferred from this audit.
+
+The GitHub repository API confirms canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, `fast-mlsirm`, and
+lowercase `ContextualWisdomLab/disksage`. The latter is only a naming check;
+no DiskSage integration or product-authority review is claimed in this slice.
+DeepWiki had no indexed LineageWeave entry. Context7 was quota-unavailable;
+[Grafana's k6 fail contract](https://grafana.com/docs/k6/latest/javascript-api/k6/fail/)
+confirms that the supplied error text is printed to stderr. This supports the
+specific diagnostic repair; it establishes no load or capacity conclusion.
+
+### Exact implementation and open work
+
+The [captured PR heads and overlapping paths](development-loop-20260906-load-diagnostics.json)
+contained 123 open PRs (118 Draft, 5 Ready); the issue query returned 18 open issues.
+These requests were collected during the audit and are not an atomic snapshot.
+All five Ready PRs had zero unresolved review threads after complete thread
+pagination, but none had an independent approval on its listed head.
+Classic branch protection returned 404; active ruleset 18156473 still requires
+one approval, stale-review dismissal, resolved threads, and seven central
+workflows. Ruleset 21065108 prohibits force pushes. No merge occurred in this
+observation. Existing auto-merge remained enabled.
+
+| PR | Observed head | Delivery state at observation |
+|---|---|---|
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | Review required; auto-merge enabled |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | Review required; auto-merge enabled |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | Review required; auto-merge enabled |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Review required; auto-merge enabled |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Review required; auto-merge enabled |
+
+#914's exact-head OpenCode run 33979625980 failed because it lacked an
+`opencode-agent` current-head verdict; this is not a product-test failure or
+an approval. Other failed central workflows remain failed, without a blanket
+rerun or suppression. #780's cancelled CodeQL run 33903233347 was verified
+against its still-open current head and its failed jobs were re-requested.
+A retry request is not passing evidence. Running #959 run 34031208996 matched
+its open current head and was retained; no run was cancelled in this audit.
+
+Voice work remains owned by #780, #934/#935 (paged exports), #936 (correction
+history), and #937 (evidence reauthorization/atomic write). They retain the
+12 atomic Voices and extensible evidence-bearing associations. No fixed
+combination codes, replacement evidence, or new Voice inference is added.
+Children remain Draft until their parent merges normally; only then may they
+retarget to main and gather fresh evidence. Existing uncommitted translation
+ledger code, tests, and baseline changes in the primary checkout were preserved.
+
+The bounded repair in this branch contains four confirmed load-harness error
+leaks: failed HTTP Ask body, MCP JSON-RPC error, failed MCP tool body, and
+malformed MCP JSON parser excerpt. They now report the operation and numeric
+HTTP status only. Five executable JavaScript tests reproduced four failures
+before the repair and passed afterward, including preservation of a successful
+structured result. This closes a diagnostic confidentiality defect; it does
+not close the largest remaining buyer acceptance gap, which is authenticated
+end-to-end evidence continuity across the Voice and asynchronous-work surfaces.
+
+### Cross-PR integration risks
+
+An exact-ref added-file scan found eight conflicting ADR numbers among open
+candidates: 0279 (#888/#811), 0289 (#821/#820), 0290 (#823/#822),
+0300 (#899/#837), 0301 (#902/#838), 0305 (#844/#843),
+0335 (#877/#876), and 0355 (#920/#915). These are different filenames sharing
+an identity; they require convergence before protected delivery.
+ADR 0256 is also edited by #780/#934/#936/#937: preserve both export and
+history/authorization contracts during parent-first integration.
+
+Release-title candidates duplicate 2.46.0 (#821/#820), 2.47.0 (#823/#822),
+2.50.0 (#828/#826), 2.61.0 (#842/#841), 2.62.0 (#844/#843), and
+2.92.0 (#877/#876). Titles alone do not prove package/release collisions;
+package metadata and changelogs must be revalidated after convergence.
+The same scan found no duplicate newly added migration identity, which is
+not proof of SQL compatibility. Eight candidates modify `frontend/src/api.ts`
+(#960/#932/#909/#844/#842/#828/#821/#808); preserve #909's transport/abort
+boundary and #960's diagnostic/no-retry boundary rather than replacing files.
+This repair adds no ADR number, schema, API, or release identity.
+
+### Current non-identifying runtime observation and unavailable acceptance
+
+A read-only census of the formal `lineageweave` PostgreSQL runtime observed
+43,189 Posts and 130 persisted Ask jobs (105 succeeded, 25 failed). These are
+whole-table operational counts at observation time, not this candidate's
+results, a latency sample, semantic correctness, or population inference.
+The source-post, Voice, and Ask tables exist. The formal backend, Ask worker,
+frontend, MCP, orchestrator, identity, PostgreSQL, search, and Valkey containers
+were running. Container state does not prove candidate deployment or API health.
+
+This run did not submit load to the mixed/private formal data source.
+Synthetic-only authenticated k6 concurrency, latency, error-rate, throughput,
+and correlated PostgreSQL/worker/Valkey/gateway saturation evidence remain
+unavailable for this head. No observed bottleneck justifies a performance change.
+No formal volume or container was removed and no Compose expansion was printed.
+Authenticated candidate PostgreSQL API, desktop/mobile full-application rendering,
+Voice cutoff/hidden-evidence acceptance, and protected-main delivery remain
+unverified. Historical Storybook/API/k6 results are not transferred to this head.
+
+## Historical observations (dated; not current authority)
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
