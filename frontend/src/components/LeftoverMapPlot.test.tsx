@@ -821,4 +821,76 @@ describe("LeftoverMapPlot", () => {
       "Leftover map used 2 of 2 scored criteria (complete-case)",
     );
   });
+
+  it("captions leftover map comparison axes with persisted leftover-map axis share", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(screen.getByLabelText("Leftover map comparison graphic")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Leftover-map graphic display")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Leftover map comparison graphic of already-named coordinates. Click a post marker to open that post. The plot does not invent a leftover score.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 1 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.queryByText("leftover-map axis 1 (82%)")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover-map axis 2 (18%)")).not.toBeInTheDocument();
+  });
+
+  it("keeps leftover map comparison axis text when share is missing or non-finite", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 1.84, leftover_share: Number.NaN },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(screen.getByText("leftover map comparison axis 1")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 2")).toBeInTheDocument();
+    expect(screen.queryByText(/leftover map comparison axis 1 \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/leftover map comparison axis 2 \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover-map axis 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("leftover-map axis 2")).not.toBeInTheDocument();
+  });
+
+  it("names rank-0 zero leftover-map axis share on the comparison graphic", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0,
+            leftover_map_person_axis_2: 0,
+            leftover_map_item_axis_1: 0,
+            leftover_map_item_axis_2: 0,
+          },
+        ]}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+          { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+        variant="comparison"
+      />,
+    );
+    expect(screen.getByText("leftover map comparison axis 1 (0%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover map comparison axis 2 (0%)")).toBeInTheDocument();
+  });
 });

@@ -5833,6 +5833,13 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_compare_coverage is not None
     assert leftover_compare_coverage["map_post_count"] <= leftover_compare_coverage["scored_post_count"]
     assert leftover_compare_coverage["scored_post_count"] > 0
+    leftover_compare_axes = leftover_thread.get("leftover_map_axes", [])
+    assert [axis["axis_index"] for axis in leftover_compare_axes] == [1, 2]
+    assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_compare_axes)
+    assert all(0.0 <= axis["leftover_share"] <= 1.0 for axis in leftover_compare_axes)
+    assert leftover_compare_axes[0]["leftover_share"] != len(
+        leftover_thread.get("leftover_pairs", [])
+    )
     assert leftover_compare_coverage["incomplete_post_count"] == (
         leftover_compare_coverage["scored_post_count"] - leftover_compare_coverage["map_post_count"]
     )

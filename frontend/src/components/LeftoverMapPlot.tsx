@@ -18,11 +18,17 @@ import {
 import {
   formatLeftoverMapPlotAxisShare,
   leftoverShareForAxis,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_1,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_2,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
+  LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
+  LEFTOVER_MAP_COMPARE_PLOT_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SVG,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -39,12 +45,15 @@ import {
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
 
+export type LeftoverMapPlotVariant = "report" | "comparison";
+
 export type LeftoverMapPlotProps = {
   pairs: LeftoverPair[];
   leftoverMapAxes?: LeftoverMapAxis[];
   leftoverMapCoverage?: LeftoverMapCoverage | null;
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
+  variant?: LeftoverMapPlotVariant;
 };
 
 function diamondPoints(x: number, y: number, radius: number): string {
@@ -54,10 +63,17 @@ function diamondPoints(x: number, y: number, radius: number): string {
 function leftoverMapPlotAxisText(
   axisIndex: 1 | 2,
   leftoverMapAxes: LeftoverMapAxis[] | undefined,
+  variant: LeftoverMapPlotVariant,
 ): string {
   const percent = formatLeftoverMapPlotAxisShare(
     leftoverShareForAxis(leftoverMapAxes, axisIndex),
   );
+  if (variant === "comparison") {
+    if (percent === null) {
+      return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
+    }
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  }
   if (percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
@@ -103,7 +119,9 @@ function leftoverMapPlotAxisText(
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * ADR 0304 reuses this graphic on the grouping comparison strip from
  * already-named leftover-map coordinates and does not caption leftover-map
- * axis share or leftover-map coverage on that comparison plot.
+ * coverage on that comparison plot. ADR 0305 captions leftover-map axis
+ * share on that comparison graphic from already-named leftover-map axes
+ * with distinct leftover map comparison axis labels.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -112,6 +130,7 @@ export function LeftoverMapPlot({
   leftoverMapCoverage,
   criterionLabel,
   onSelectPost,
+  variant = "report",
 }: LeftoverMapPlotProps) {
   const layout = layoutLeftoverMapPlot(pairs, criterionLabel);
   if (layout === null) {
@@ -130,8 +149,13 @@ export function LeftoverMapPlot({
   };
 
   return (
-    <figure className="leftover-map-plot" aria-label={t("Leftover-map graphic display")}>
-      <figcaption className="leftover-map-plot-caption">{t(LEFTOVER_MAP_PLOT_CAPTION)}</figcaption>
+    <figure
+      className="leftover-map-plot"
+      aria-label={t(variant === "comparison" ? LEFTOVER_MAP_COMPARE_PLOT_LABEL : "Leftover-map graphic display")}
+    >
+      <figcaption className="leftover-map-plot-caption">
+        {t(variant === "comparison" ? LEFTOVER_MAP_COMPARE_PLOT_CAPTION : LEFTOVER_MAP_PLOT_CAPTION)}
+      </figcaption>
       {coverageCounts !== null ? (
         <p
           className="leftover-map-plot-coverage"
@@ -183,7 +207,7 @@ export function LeftoverMapPlot({
           className="leftover-map-plot-svg"
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           role="group"
-          aria-label={t("Leftover map")}
+          aria-label={t(variant === "comparison" ? LEFTOVER_MAP_COMPARE_PLOT_SVG : "Leftover map")}
         >
           <line
             className="leftover-map-plot-axis"
@@ -200,10 +224,10 @@ export function LeftoverMapPlot({
             y2={layout.originY}
           />
           <text className="leftover-map-plot-axis-label" x={layout.width - 8} y={layout.originY - 8} textAnchor="end">
-            {leftoverMapPlotAxisText(1, leftoverMapAxes)}
+            {leftoverMapPlotAxisText(1, leftoverMapAxes, variant)}
           </text>
           <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
-            {leftoverMapPlotAxisText(2, leftoverMapAxes)}
+            {leftoverMapPlotAxisText(2, leftoverMapAxes, variant)}
           </text>
           {layout.ticks.map((tick) => (
             <g

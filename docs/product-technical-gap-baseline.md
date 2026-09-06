@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-08-31 03:45 KST. Protected `main` is
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
+> self-approve. #841 leftover-map graphic on the grouping comparison strip
+> (v2.61.0 / ADR 0304) is `ee467df`, stacked on #840 @ `cbf9944`. Next
+> buyer increment on this cycle: leftover-map axis share on the grouping
+> comparison leftover-map graphic (ADR 0305 / v2.62.0) delivered locally on
+> `feat/leftover-map-compare-plot-axis-share-v2620`. Return persisted
+> leftover-map axes on `GET /api/reports/compare/{period}` and caption
+> leftover map comparison axis `{k} ({share}%)` when finite. Distinct from
+> hyphen leftover-map axis share on the period-report graphic. Rank-0 unused
+> axes still name zero leftover-map axis share. Do not invent leftover-map
+> axis share from leftover-map rank, leftover-map distance, or leftover-map
+> reconstruction. Stack onto #841. Leave open for independent review. Do not
+> squash-merge. Issues #79 and #87 stay open. #96 is already closed. Do not
+> merge #808 without independent APPROVE.
+
+
 > Exact-head loop overlay: 2026-08-31 03:25 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #840 leftover-map coordinates `ξ` / `ζ` on

@@ -3,6 +3,9 @@
 **Decision status:** Proposed
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0305](0305-leftover-map-compare-plot-axis-share.md)
+(leftover-map axis share on the grouping comparison leftover-map graphic)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)), leftover-map
@@ -205,8 +208,7 @@ leftover share on pair segments, leftover-map unexplained leftover share
 persistence, leftover-map explained leftover share on pair segments,
 leftover-map explained leftover share persistence, leftover-map reconstruction
 on pair segments, leftover-map reconstruction persistence, leftover-map item
-complete-case coverage on the graphic display, leftover-map item complete-case
-coverage on the pair list, leftover-map incomplete post coverage on the graphic
+complete-case coverage on the graphic display, leftover-map item complete-case coverage on the pair list, leftover-map incomplete post coverage on the graphic
 display, leftover-map incomplete post coverage on the pair list, leftover-map
 incomplete item coverage on the graphic display, leftover-map incomplete item
 coverage on the pair list, leftover-map post complete-case coverage fail-closed

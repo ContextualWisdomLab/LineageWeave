@@ -4,6 +4,13 @@ import type { LeftoverMapAxis } from "./api";
 
 export const LEFTOVER_MAP_PLOT_AXIS_SHARE = "leftover-map axis {axis} ({share}%)";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE =
+  "leftover map comparison axis {axis} ({share}%)";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 = "leftover map comparison axis 1";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_2 = "leftover map comparison axis 2";
+
 export type LeftoverMapPlotAxisShare = {
   axis_index: LeftoverMapAxis["axis_index"];
   leftover_share?: LeftoverMapAxis["leftover_share"] | null;

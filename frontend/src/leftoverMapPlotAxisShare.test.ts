@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   formatLeftoverMapPlotAxisShare,
   leftoverShareForAxis,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_1,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_2,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
+  LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
 
 describe("leftoverShareForAxis", () => {
@@ -46,5 +50,18 @@ describe("formatLeftoverMapPlotAxisShare", () => {
     expect(formatLeftoverMapPlotAxisShare(Number.NaN)).toBeNull();
     expect(formatLeftoverMapPlotAxisShare(Number.POSITIVE_INFINITY)).toBeNull();
     expect(formatLeftoverMapPlotAxisShare(Number.NEGATIVE_INFINITY)).toBeNull();
+  });
+});
+
+describe("leftover map comparison axis share labels", () => {
+  it("stays distinct from leftover-map graphic axis share copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE).toBe(
+      "leftover map comparison axis {axis} ({share}%)",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_1).toBe("leftover map comparison axis 1");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_2).toBe("leftover map comparison axis 2");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SHARE);
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_1).not.toBe("leftover-map axis 1");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_AXIS_2).not.toBe("leftover-map axis 2");
   });
 });
