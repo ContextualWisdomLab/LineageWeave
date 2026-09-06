@@ -71,13 +71,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm .github/workflows/temporary-855-adr-status-repair.yml
+          workflow=.github/workflows/temporary-855-adr-status-repair.yml
+          rm "$workflow"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/temporary-855-adr-status-repair.yml$' || true)"
           expected="$(printf '%s\n' docs/adr/0315-leftover-map-compare-plot-residual.md tests/test_adr_0315_governance.py | sort)"
-          actual="$(git diff --cached --name-only | sort)"
+          actual="$(git diff --cached --name-only | grep -v "^${workflow}$" | sort)"
           test "$actual" = "$expected"
+          test "$(git diff --cached --name-only | grep "^${workflow}$")" = "$workflow"
           git commit -m "docs(adr): keep ADR 0315 proposed while draft"
           git push origin HEAD:automation/855-adr-status-repair-20260906
