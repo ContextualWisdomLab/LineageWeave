@@ -1,0 +1,132 @@
+name: Temporary 959 denied supplied state repair
+
+on:
+  push:
+    branches:
+      - "automation/959-denied-supplied-state-repair-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-959-denied-supplied-state-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/959-denied-supplied-state-repair-20260906
+          fetch-depth: 0
+
+      - name: Verify exact product head
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=3db3a477bebd15ca335ec29a0eff65664db613c9
+          git fetch origin codex/loop-gap-20260906-audit
+          test "$(git rev-parse origin/codex/loop-gap-20260906-audit)" = "$product"
+          git merge-base --is-ancestor "$product" HEAD
+          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-959-denied-supplied-state-repair.yml"
+
+      - name: Add supplied-denial resurrection regression
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/components/OntologyExplorer.test.tsx")
+          text = path.read_text(encoding="utf-8")
+          anchor = '  it("lets keyboard users open node and edge evidence", async () => {'
+          if text.count(anchor) != 1:
+              raise SystemExit(f"expected one test insertion anchor, found {text.count(anchor)}")
+          regression = '''  it("does not resurrect a denied supplied payload when only status changes", () => {\n    const supplied = neighborhood();\n    const { rerender } = render(\n      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={supplied} status="denied" />,\n    );\n\n    rerender(\n      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={supplied} status="ready" />,\n    );\n    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();\n    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();\n    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();\n\n    rerender(\n      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} status="ready" />,\n    );\n    expect(screen.getByRole("button", { name: "Export CSV" })).not.toBeDisabled();\n  });\n\n'''
+          path.write_text(text.replace(anchor, regression + anchor, 1), encoding="utf-8")
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify realistic resurrection RED
+        shell: bash
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm exec vitest run src/components/OntologyExplorer.test.tsx -t 'does not resurrect a denied supplied payload when only status changes' >/tmp/denied-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/denied-red.log
+          test "$status" -ne 0
+          grep -q 'does not resurrect a denied supplied payload when only status changes' /tmp/denied-red.log
+
+      - name: Apply minimal fail-closed supplied-state fix
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/components/OntologyExplorer.tsx")
+          text = path.read_text(encoding="utf-8")
+
+          old_import = 'import { useEffect, useMemo, useState } from "react";'
+          if text.count(old_import) != 1:
+              raise SystemExit(f"expected one React hook import, found {text.count(old_import)}")
+          text = text.replace(old_import, 'import { useEffect, useMemo, useRef, useState } from "react";', 1)
+
+          state_anchor = '  const [liveFocus, setLiveFocus] = useState(false);\n'
+          if text.count(state_anchor) != 1:
+              raise SystemExit(f"expected one liveFocus state anchor, found {text.count(state_anchor)}")
+          text = text.replace(
+              state_anchor,
+              state_anchor + '  const deniedProvidedRef = useRef<OntologyNeighborhoodPayload | null>(null);\n',
+              1,
+          )
+
+          old = '''    if (useProvided && provided) {\n      setLoaded(provided);\n      setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));\n      return;\n    }'''
+          new = '''    if (useProvided && provided) {\n      if (providedStatus === "denied" || provided === deniedProvidedRef.current) {\n        if (providedStatus === "denied") deniedProvidedRef.current = provided;\n        setLoaded(null);\n        clearSelection();\n        setStatus("denied");\n        return;\n      }\n      deniedProvidedRef.current = null;\n      setLoaded(provided);\n      setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));\n      return;\n    }'''
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one supplied payload branch, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+      - name: Verify focused GREEN
+        working-directory: frontend
+        run: pnpm exec vitest run src/components/OntologyExplorer.test.tsx
+
+      - name: Verify full frontend GREEN
+        working-directory: frontend
+        run: pnpm exec vitest run
+
+      - name: Verify frontend lint
+        working-directory: frontend
+        run: pnpm exec oxlint
+
+      - name: Verify production build
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Commit clean repaired tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-959-denied-supplied-state-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-959-denied-supplied-state-repair\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-959-denied-supplied-state-repair.yml'
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git commit -m "fix(ontology): discard denied supplied payload state"
+          git push origin HEAD:automation/959-denied-supplied-state-repair-20260906
