@@ -10,7 +10,7 @@
 > share on grouping comparison (v2.50.0 / ADR 0293) sits on the incomplete-item
 > dead-end, not this stack (0293 here is reconstruction). Next buyer increment
 > on this cycle: leftover-map axis share on the grouping comparison strip
-> (ADR 0304 / v2.61.0) delivered locally on
+> (ADR 0368 / v2.61.0) delivered locally on
 > `feat/leftover-map-compare-axis-share-v2610`. Include persisted
 > leftover_map_axes on GET /api/reports/compare/{period} and caption each
 > grouping row through leftoverMapCompareAxisShare with distinct aria-label

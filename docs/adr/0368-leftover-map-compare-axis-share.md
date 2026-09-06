@@ -1,6 +1,6 @@
-# ADR 0304 — Name leftover-map axis share on the grouping comparison strip
+# ADR 0368 — Name leftover-map axis share on the grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 Amends leftover pairs on the grouping comparison strip
