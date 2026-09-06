@@ -1,0 +1,53 @@
+name: automation-823-current-822-reapply-diagnose
+
+on:
+  push:
+    branches:
+      - automation/823-current-822-reapply-diagnose-20260907-0837
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_PARENT: 724872a34469c84064d5a72b07c6acf16de8a760
+      HISTORICAL_FEATURE: eb172c40d8ecd08f3e1c220cbf3117b488cddb30
+      DIAGNOSTIC_BRANCH: automation/823-reapply-diagnostics-20260907-0837
+    steps:
+      - name: Checkout exact repository history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Capture exact-parent reapply conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git cherry-pick --no-commit "$HISTORICAL_FEATURE"
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            changed="$(git diff --name-status "$EXPECTED_PARENT")"
+            printf 'reapply_status=clean\n%s\n' "$changed" > /tmp/diagnostic.txt
+          else
+            unmerged="$(git diff --name-only --diff-filter=U)"
+            printf 'reapply_status=conflict\n%s\n' "$unmerged" > /tmp/diagnostic.txt
+          fi
+          git reset --hard "$EXPECTED_PARENT"
+          git clean -fd
+          git switch -C diagnostic "$EXPECTED_PARENT"
+          mkdir -p automation
+          cp /tmp/diagnostic.txt automation/823-reapply-diagnostics.txt
+          git add automation/823-reapply-diagnostics.txt
+          git commit -m 'chore(automation): record #823 reapply diagnostics'
+          git push origin "HEAD:refs/heads/$DIAGNOSTIC_BRANCH"
+          if grep -q '^reapply_status=conflict$' automation/823-reapply-diagnostics.txt; then
+            exit 1
+          fi
