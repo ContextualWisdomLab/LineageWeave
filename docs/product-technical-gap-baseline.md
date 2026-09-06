@@ -1,5 +1,66 @@
 # Product & Technical Gap Baseline
 
+## Review repair audit — 2026-09-06 19:20 KST
+
+This update supersedes queue and acceptance claims in the earlier audit below.
+Remote `main` remains `83eba56149eb802cd63642c507c324c9976ec78e`.
+The fully paginated inventory has **121 open PRs (114 draft, 7 ready)** and
+**16 open issues**. The six previously ready heads listed below are unchanged;
+PR #959 entered review at `3db3a477bebd15ca335ec29a0eff65664db613c9`.
+REST exact-head checks were re-read for all seven ready PRs. Queued and
+cancelled checks are not success. GraphQL CLI quota was exhausted; review
+thread lookup through the connector found one unresolved #959 documentation
+thread. No new independent approval or protected merge is claimed.
+The existing six squash auto-merge settings remain enabled.
+
+### Selected user-visible repair and evidence boundary
+
+PR #959's supplied-data path still retained a denied neighborhood, and changing
+only its status to ready made the same records exportable again. Two new
+rerender regressions reproduced this defect before repair. The component now
+discards loaded data and selection/search state, remembers denied object
+identities weakly, and requires a replacement projection before showing data
+again. The immediate denied-prop render also omits the old projection. No
+source record, Voice, inference, API, schema, release version, or owner-engine
+contract changes. Existing controls, notices, tokens and Storybook scenes are
+reused; fresh projections do not restore a previously selected evidence drawer.
+
+Implementation commit: `c6b272ae7542c1f686a5178259463252c9d7f243`.
+Lint, TypeScript/Vite build, and Storybook build passed. Chromium rendering at
+1440px and 390px confirmed disabled CSV/JSON-LD exports, zero old evidence
+tables/drawers, and no horizontal overflow; both screenshots were inspected:
+[desktop](screenshots/ontology-denial-repair-desktop-20260906.png) and
+[mobile](screenshots/ontology-denial-repair-mobile-20260906.png).
+The new status-recovery regressions failed twice before repair and passed in
+the bounded full-file attempt; that attempt also had six existing UI failures.
+Subsequent isolated execution hit test-process startup timeouts under observed
+host load averages around 28–36. A separate layout file passed nine tests, but
+the combined run had one process-startup error. These are not a green full
+suite. No timeout, warning filter, test assertion, or CI gate was weakened.
+
+The current LineageWeave PRD, ADR 0184 and ADR 0256, and the upstream
+contextual-orchestrator product/architecture authority were read before this
+repair. Canonical remote names were rechecked: `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase
+`ContextualWisdomLab/disksage`. No research-derived policy is added. Context7
+returned a quota error and DeepWiki had no indexed LineageWeave documentation;
+neither is presented as verified authority. React's official reference supplied
+the effect/ref lifecycle contract.
+
+All **121 current PR file lists** were retrieved. The eight distinct ADR-number
+collisions listed below remain present; no distinct added migration filenames
+share a numeric prefix. This is filename/ownership evidence, not complete
+cross-branch SQL or API compatibility. Existing Voice/export PRs remain the
+owners of their respective changes, and no child was retargeted before its
+parent's protected merge. No in-progress repository Actions run was returned,
+so no runner job was cancelled.
+
+The earlier runtime counts and k6 probe below are dated evidence from the
+previous candidate, not measurements of this repair. Authenticated PostgreSQL
+API/rendered UI acceptance, full asynchronous end-to-end load and saturation,
+and all Voice truth/cutoff/PROV-O acceptance remain **unverified**. Synthetic
+rendering and local regression tests must not promote those conditions to done.
+
 ## Current audit — 2026-09-06
 
 This section supersedes the dated queue snapshots below. Audited protected
@@ -117,8 +178,8 @@ Do not merge these child branches onto an unprotected parent; protect the
 parent first, retarget, and gather new head/base/review/check evidence.
 
 Existing owner PRs remain intact: #780 carries Voice export authority;
-#934 singleton JSON-LD page relations; #935 filtered export parity;
-#936 correction history; #937 evidence visibility/write admission; #929
+PR #934 singleton JSON-LD page relations; #935 filtered export parity;
+PR #936 correction history; #937 evidence visibility/write admission; #929
 versioned translations. The denial fix changes `OntologyExplorer.tsx` and its
 regressions only; shared Storybook/inventory/baseline edits need reconciliation
 when those PRs reach main. API, schema, ADR identity, and release number are
