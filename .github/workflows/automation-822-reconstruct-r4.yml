@@ -1,0 +1,110 @@
+name: automation-822-current-821-reconstruction-r4
+
+on:
+  push:
+    branches:
+      - automation/822-current-821-reconstruction-r4-20260907-0811
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-822-current-821-reconstruction-r4
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_PARENT: 93eaa40f34098678fd53da4dbdccb1782dfd41a7
+      HISTORICAL_FEATURE: 6726353a13798c0d1566821de9885f1783ebe35f
+      STAGING_BRANCH: automation/822-product-staging-r4-20260907-0811
+      R1_WORKFLOW_COMMIT: 34c479088f15bdf021fcd2de298e04f552cb27b0
+      R2_WORKFLOW_COMMIT: 5303e3600de645f23d3ffc44bbc79d6ebd853f29
+    steps:
+      - name: Checkout exact repository history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Recover reviewed scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git cat-file -e "$R2_WORKFLOW_COMMIT^{commit}"
+          git show "$R2_WORKFLOW_COMMIT:.github/workflows/automation-822-reconstruct-r2.yml" > /tmp/r2.yml
+          python - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/r2.yml').read_text(encoding='utf-8').splitlines()
+          def extract(name: str, output: str) -> None:
+              marker = f'      - name: {name}'
+              start = lines.index(marker)
+              run_index = next(i for i in range(start + 1, len(lines)) if lines[i] == '        run: |')
+              body: list[str] = []
+              for line in lines[run_index + 1:]:
+                  if line.startswith('      - name: '):
+                      break
+                  if line.startswith('          '):
+                      body.append(line[10:])
+                  elif line == '':
+                      body.append('')
+                  else:
+                      raise SystemExit(f'unexpected indentation in {name}: {line!r}')
+              Path(output).write_text('\n'.join(body) + '\n', encoding='utf-8')
+          extract('Recover reviewed reconstruction transforms', '/tmp/recover.sh')
+          extract('Reapply historical delta on exact parent', '/tmp/reapply-wrapper.sh')
+          extract('Apply reviewed minimal v2.48 fix', '/tmp/fix-wrapper.sh')
+          extract('Exact reconstructed GREEN', '/tmp/green.sh')
+          extract('Commit workflow-free clean staging tree', '/tmp/commit.sh')
+          green = Path('/tmp/green.sh').read_text(encoding='utf-8')
+          green = green.replace('uv sync --frozen --extra dev', 'uv sync --frozen --extra dev --extra backend', 1)
+          Path('/tmp/green.sh').write_text(green, encoding='utf-8')
+          PY
+
+      - name: Reconstruct historical item coverage on exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash /tmp/recover.sh
+          bash /tmp/reapply-wrapper.sh
+
+      - name: Reproduce real ADR identity RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev
+          set +e
+          uv run --no-sync pytest -q tests/test_adr_0291_governance.py
+          rc=$?
+          set -e
+          test "$rc" -eq 1
+
+      - name: Apply reviewed minimal v2.48 fix
+        shell: bash
+        run: bash /tmp/fix-wrapper.sh
+
+      - name: Exact reconstructed GREEN with backend dependencies
+        shell: bash
+        run: bash /tmp/green.sh
+
+      - name: Commit workflow-free clean staging tree
+        shell: bash
+        run: bash /tmp/commit.sh
