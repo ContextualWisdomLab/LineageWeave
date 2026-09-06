@@ -1,0 +1,45 @@
+name: Temporary 821 current-820 diagnostic
+
+on:
+  push:
+    branches:
+      - "automation/821-current-820-diagnostic-20260907"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact historical product
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/821-current-820-diagnostic-20260907
+          fetch-depth: 0
+
+      - name: Diagnose exact current-parent merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=5d9ed038a8525736ba47d5a80e4ff04edfbab28c
+          parent=503d043e165e0ae4c6b5c8cca4366c114c74ef2d
+          workflow=.github/workflows/temporary-821-current-820-diagnostic.yml
+          git fetch origin feat/leftover-map-compare-coverage-v2460 feat/leftover-map-plot-singular-v2460
+          test "$(git rev-parse origin/feat/leftover-map-compare-coverage-v2460)" = "$product"
+          test "$(git rev-parse origin/feat/leftover-map-plot-singular-v2460)" = "$parent"
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$parent"
+          status=$?
+          set -e
+          echo "MERGE_STATUS=$status"
+          echo "CONFLICTS_BEGIN"
+          git diff --name-only --diff-filter=U | sort
+          echo "CONFLICTS_END"
+          echo "PARENT_ONLY_BEGIN"
+          git diff --name-only "$product" "$parent" | sort
+          echo "PARENT_ONLY_END"
+          exit 0
