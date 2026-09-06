@@ -1,6 +1,6 @@
 # ADR 0283 — Name leftover-map incomplete post coverage on the graphic display
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md),
