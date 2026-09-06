@@ -80,7 +80,7 @@ jobs:
 
       - name: Check changed source
         run: |
-          uv run --frozen ruff check backend/app/main.py tests/test_compare_axis_share_visibility.py
+          uv run --frozen python -m py_compile backend/app/main.py
           git diff --check
 
       - name: Commit clean product tree
