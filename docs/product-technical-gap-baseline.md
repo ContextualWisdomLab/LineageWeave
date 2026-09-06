@@ -34,7 +34,7 @@ Ruleset 18156473 requires an independent approval, resolved threads, and seven c
 
 ### Cross-PR collision audit
 
-All 122 PR file inventories were fetched again and all 122 heads were rechecked unchanged. Complete review-thread pagination found 103 unresolved threads on 50 PRs, including informational observations and execution requests; this count is not 103 confirmed defects. The six Ready lanes and the Voice repair stack have no unresolved threads. #960 has one valid documentation-lineage clarification, addressed above. Distinct changes must be verified in the owning stack before resolving other threads. #811 has a concrete lower-viewport rank-caption clipping report; the other three threads there are execution or informational notes, not three more implementation defects.
+All 122 PR file inventories were fetched again and all 122 heads were rechecked unchanged. Complete review-thread pagination found 103 unresolved threads on 50 PRs, including informational observations and execution requests; this count is not 103 confirmed defects. The six Ready lanes and the Voice repair stack have no unresolved threads. #960 has one valid documentation-lineage clarification, addressed above. Distinct changes must be verified in the owning stack before resolving other threads. #811 was subsequently rechecked at `e0fad9af9d8fe446769474bd5fc8300c902a052f`: commit `66bccfbc670188ce46e22b0f0ec345942a5e50b6` already contains the caption-bounds repair. Follow-up `4dcd789385f67c76a4e479194f566f35bb5d2d76` preserves that implementation and strengthens the full-caption regression to assert the final rank baseline for both plot edges. Layout, rank, and short-canvas suites pass: 55 tests. The clipping thread is resolved; execution/informational threads are distinct from new confirmed defects. The parent is still #802, so #811 remains Draft on its existing base.
 
  Distinct ADR filenames share these identifiers:
 
@@ -79,6 +79,18 @@ Existing `Chrome/StatusNotice/UnreadableResponse` renders the safe copy with exi
 
 - [Desktop](screenshots/unreadable-response-desktop-20260906.png)
 - [Mobile](screenshots/unreadable-response-mobile-20260906.png)
+
+### Concurrent delivery-state change
+
+#960 was pushed at `38900637e646f8a6d29438406202e1e67cfc0417`, its
+verified documentation thread was resolved, and normal Ready/auto-merge was
+set at 13:19 UTC. A separate action under the same GitHub account converted it
+to Draft at 13:21:20 UTC; GitHub disabled auto-merge because of that conversion.
+The timeline records no reason for the Draft decision. This loop does not
+continually reverse another actor's state changes. Required workflows remain
+queued/cancelled/skipped on that head, not successful protected delivery.
+The six existing Ready lanes retain their separate approval/check requirements.
+No merge SHA exists for either follow-up; no protected merge is claimed.
 
 ### Current runtime and remaining acceptance
 
