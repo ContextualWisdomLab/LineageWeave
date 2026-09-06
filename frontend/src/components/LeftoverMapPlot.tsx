@@ -11,9 +11,16 @@ import {
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
   LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE,
+  LEFTOVER_MAP_PLOT_SEGMENT_EXPECTED,
+  LEFTOVER_MAP_PLOT_SEGMENT_OBSERVED,
+  LEFTOVER_MAP_PLOT_SEGMENT_RANK,
   LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION,
+  LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL,
+  LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED,
+  LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE,
   LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
@@ -50,15 +57,26 @@ function leftoverMapPlotAxisText(
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
- * distance ``d``, leftover-map reconstruction ``R̂``, and leftover-map
- * explained leftover share ``e`` so the pair-row badges match the graphic.
+ * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
+ * explained leftover share ``e``, leftover-map unexplained leftover
+ * share ``s``, leftover-map cross share ``x``, leftover-map
+ * unexplained leftover ``U``, leftover residual ``R``, leftover
+ * observed ``Y``, leftover expected ``E``, and leftover-map rank so the
+ * pair-row badges match the graphic.
  * Omit that distance caption when ``d`` is missing or non-finite. Omit
  * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
  * that explained leftover share caption when ``e`` is missing or
- * non-finite. Omit that axis badge when share is missing or non-finite
- * and keep the existing leftover-map axis text. Omit the plot when no
- * pair has four finite leftover-map coordinates. Never invent a leftover
- * score.
+ * non-finite. Omit that unexplained leftover share caption when ``s`` is
+ * missing or non-finite. Omit that leftover-map cross share caption when
+ * ``x`` is missing or non-finite. Omit that unexplained leftover caption
+ * when ``U`` is missing or non-finite. Omit that leftover residual
+ * caption when ``R`` is missing or non-finite. Omit that leftover observed
+ * caption when ``Y`` is missing or non-finite. Omit that leftover expected
+ * caption when ``E`` is missing or non-finite. Omit that leftover-map rank
+ * caption when rank is missing, negative, or not an integer. Omit that axis badge when share is
+ * missing or non-finite and keep the existing leftover-map axis text.
+ * Omit the plot when no pair has four finite leftover-map coordinates.
+ * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
   pairs,
@@ -181,6 +199,97 @@ export function LeftoverMapPlot({
                   })}
                 >
                   {segment.explainedShareLabel}
+                </text>
+              ) : null}
+              {segment.unexplainedShareLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-unexplained-share"
+                  x={segment.unexplainedShareX}
+                  y={segment.unexplainedShareY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE, {
+                    label: segment.unexplainedShareLabel,
+                  })}
+                >
+                  {segment.unexplainedShareLabel}
+                </text>
+              ) : null}
+              {segment.crossShareLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-cross-share"
+                  x={segment.crossShareX}
+                  y={segment.crossShareY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE, {
+                    label: segment.crossShareLabel,
+                  })}
+                >
+                  {segment.crossShareLabel}
+                </text>
+              ) : null}
+              {segment.unexplainedLeftoverLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-unexplained"
+                  x={segment.unexplainedLeftoverX}
+                  y={segment.unexplainedLeftoverY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED, {
+                    label: segment.unexplainedLeftoverLabel,
+                  })}
+                >
+                  {segment.unexplainedLeftoverLabel}
+                </text>
+              ) : null}
+              {segment.residualLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-residual"
+                  x={segment.residualX}
+                  y={segment.residualY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL, {
+                    label: segment.residualLabel,
+                  })}
+                >
+                  {segment.residualLabel}
+                </text>
+              ) : null}
+              {segment.observedLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-observed"
+                  x={segment.observedX}
+                  y={segment.observedY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_OBSERVED, {
+                    label: segment.observedLabel,
+                  })}
+                >
+                  {segment.observedLabel}
+                </text>
+              ) : null}
+              {segment.expectedLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-expected"
+                  x={segment.expectedX}
+                  y={segment.expectedY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_EXPECTED, {
+                    label: segment.expectedLabel,
+                  })}
+                >
+                  {segment.expectedLabel}
+                </text>
+              ) : null}
+              {segment.rankLabel !== null ? (
+                <text
+                  className="leftover-map-plot-segment-label leftover-map-plot-segment-rank"
+                  x={segment.rankX}
+                  y={segment.rankY}
+                  textAnchor="middle"
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_RANK, {
+                    label: segment.rankLabel,
+                  })}
+                >
+                  {segment.rankLabel}
                 </text>
               ) : null}
             </g>

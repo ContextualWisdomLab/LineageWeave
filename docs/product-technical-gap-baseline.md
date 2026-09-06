@@ -1,5 +1,7 @@
 # Product & Technical Gap Baseline
 
+> Exact-head convergence note: the v2.37 leftover-map successor composition keeps the #802 explained-share foundation while retaining persisted unexplained-share, cross-share, unexplained-U, residual-R, observed-Y, expected-E, and rank captions plus the Vietnamese explained-share terminology regression. This branch remains review-gated; no predecessor check or approval is inherited.
+
 > Exact-head rendered-UX overlay: 2026-08-31 12:16 KST. PR #802
 > implementation revision `1e972d7f6` retains persisted-only `d`, `R̂`, and
 > `e` projection while moving dense segment captions off their plot segments
