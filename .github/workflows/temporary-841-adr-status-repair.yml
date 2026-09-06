@@ -65,16 +65,22 @@ jobs:
           namespace = runpy.run_path("tests/test_compare_graphic_adr_status.py")
           namespace["test_compare_graphic_adr_remains_proposed_until_independent_acceptance"]()
 
-      - name: Verify causal delta
+      - name: Verify causal product delta
+        shell: bash
         run: |
+          set -euo pipefail
           git diff --check
-          test "$(git diff --name-only | sort)" = $'docs/adr/0304-leftover-map-compare-graphic.md\ntests/test_compare_graphic_adr_status.py'
+          changed="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort )"
+          test "$changed" = $'docs/adr/0304-leftover-map-compare-graphic.md\ntests/test_compare_graphic_adr_status.py'
 
       - name: Commit clean product tree
+        shell: bash
         run: |
+          set -euo pipefail
           rm .github/workflows/temporary-841-adr-status-repair.yml
           git diff --check
-          test "$(git diff --name-only | sort)" = $'docs/adr/0304-leftover-map-compare-graphic.md\ntests/test_compare_graphic_adr_status.py'
+          product_changed="$( { git diff --name-only; git ls-files --others --exclude-standard; } | grep -v '^.github/workflows/temporary-841-adr-status-repair.yml$' | sort )"
+          test "$product_changed" = $'docs/adr/0304-leftover-map-compare-graphic.md\ntests/test_compare_graphic_adr_status.py'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/adr/0304-leftover-map-compare-graphic.md tests/test_compare_graphic_adr_status.py .github/workflows/temporary-841-adr-status-repair.yml
