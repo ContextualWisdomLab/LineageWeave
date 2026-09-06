@@ -1,6 +1,6 @@
-# ADR 0290 — Name leftover-map singular values on leftover-axis badges
+# ADR 0292 — Name leftover-map singular values on leftover-axis badges
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
 
 Amends leftover-map axis share persistence
@@ -53,6 +53,9 @@ persistence ([ADR 0182](0182-leftover-map-unexplained.md)), leftover-map rank
 persistence ([ADR 0164](0164-leftover-map-rank.md)), leftover-map complete-case
 coverage persistence ([ADR 0168](0168-leftover-map-complete-case-coverage.md)),
 and leftover-map graphic display ([ADR 0268](0268-leftover-map-graphic-display.md)).
+
+
+This successor identity is orthogonal to ADR 0290 (grouping comparison post coverage) and ADR 0291 (grouping comparison item coverage). Those authorization decisions remain unchanged; this UI decision does not reinterpret their persisted denominators.
 
 ## Context
 

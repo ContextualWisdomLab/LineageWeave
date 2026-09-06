@@ -67,10 +67,10 @@ function leftoverMapPlotAxisText(
   const singular = formatLeftoverMapPlotAxisSingular(
     leftoverSingularForAxis(leftoverMapAxes, axisIndex),
   );
-  if (singular === null && percent === null) {
-    return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
-  }
   if (singular === null) {
+    if (percent === null) {
+      return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+    }
     return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
   }
   if (percent === null) {
@@ -228,7 +228,7 @@ export function LeftoverMapPlot({
           </text>
           {layout.ticks.map((tick) => (
             <g
-              key={`tick:${tick.axis}:${tick.label}`}
+              key={`tick:${tick.axis}:${tick.value}`}
               className="leftover-map-plot-tick"
               aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
             >

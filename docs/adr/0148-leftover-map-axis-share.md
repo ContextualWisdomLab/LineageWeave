@@ -6,7 +6,7 @@
 (leftover-map axis share on the graphic display);
 [ADR 0289](0289-leftover-map-plot-singular.md)
 (leftover-map singular values on the graphic display);
-[ADR 0290](0290-leftover-map-axis-singular.md)
+[ADR 0292](0292-leftover-map-axis-singular.md)
 (leftover-map singular values on leftover-axis badges)
 
 ## Context

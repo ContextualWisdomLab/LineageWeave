@@ -838,4 +838,56 @@ describe("LeftoverMapPlot", () => {
       "Leftover map used 2 of 2 scored criteria (complete-case)",
     );
   });
+  it("renders every distinct persisted tick when rounded labels match", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0.001,
+            leftover_map_item_axis_1: 0.004,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("leftover-map axis 1 tick 0.00")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("leftover-map axis 1 tick +0.00")).toHaveLength(2);
+  });
+
+  it("captions leftover-map axes with persisted leftover-map axis share", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: 0.82 },
+          { axis_index: 2, leftover_singular_value: Number.NaN, leftover_share: 0.18 },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+  });
+
+  it("keeps existing leftover-map axis text when share is missing or non-finite", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={PAIRS}
+        leftoverMapAxes={[
+          { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: Number.NaN },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("leftover-map axis 1")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2")).toBeInTheDocument();
+    expect(screen.queryByText(/leftover-map axis 1 \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/leftover-map axis 2 \(/)).not.toBeInTheDocument();
+  });
+
 });

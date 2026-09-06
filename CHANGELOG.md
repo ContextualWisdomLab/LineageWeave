@@ -8,16 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Period leftover pairs now caption leftover-axis report badges with persisted
-  leftover-map singular values `σ_k` (ADR 0290 / v2.47.0). After `make seed`,
-  leftover-axis badges name persisted leftover-map singular values when finite
-  together with persisted leftover-map axis share; leftover-map graphic axes
-  name those same singular values; click a leftover pair opens that post. A
-  missing, non-finite, or negative singular value omits that `σ` badge and
-  keeps `leftover axis {k} {share}%`. Rank-0 unused axes still name `σ 0.00`.
-  Pair-list leftover-axis badges stay distinct from leftover-map graphic axis
-  captions. Do not invent `σ_k` from leftover-map axis share. Never invent a
-  leftover score or a theta. No new columns.
+- Period leftover pairs now caption leftover-axis report badges with persisted leftover-map singular values `σ_k` (ADR 0292 / v2.49.0). Missing, non-finite, or negative singular values omit only that `σ` caption; rank-0 zero remains `σ 0.00`, and axis share remains distinct.
+
+- Grouping comparison rows now name persisted leftover-map item complete-case coverage (ADR 0291 / v2.48.0) only when the caller can see the full persisted grouping population; partial-visibility rows omit the aggregate rather than leaking a denominator or recomputing subset coverage.
+
+- Grouping comparison rows now expose persisted leftover-map post complete-case coverage through `leftoverMapCoverageCounts` (ADR 0290 / v2.47.0) only for fully visible grouping populations. Partial-visibility rows omit the aggregate instead of leaking the full-group denominator or recomputing psychometric coverage from the visible subset.
 
 - Period leftover pairs now caption leftover-map graphic axes with persisted
   leftover-map singular values `σ_k` (ADR 0289 / v2.46.0). After `make seed`,

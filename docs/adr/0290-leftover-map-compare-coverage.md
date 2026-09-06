@@ -1,11 +1,16 @@
-# ADR 0288 — Fail-close leftover-map post complete-case coverage on the pair list
+# ADR 0290 — Name leftover-map complete-case coverage on the grouping comparison strip
 
 **Decision status:** Proposed
 **Date:** 2026-08-30
 
-Amends [ADR 0049](0049-leftover-pair-report-ui.md) and leftover-map complete-case
-coverage ([ADR 0168](0168-leftover-map-complete-case-coverage.md)). Independent of
-leftover-map incomplete item coverage on the pair list
+Parent decision: [ADR 0289](0289-leftover-map-plot-singular.md) names persisted leftover-map singular values on the graphic display; this comparison-coverage decision is independent of that axis-caption contract.
+
+Amends leftover pairs on the grouping comparison strip
+([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)) and leftover-map
+complete-case coverage ([ADR 0168](0168-leftover-map-complete-case-coverage.md)).
+Independent of leftover-map post complete-case coverage fail-closed on the pair
+list ([ADR 0288](0288-leftover-map-list-post-coverage-helper.md)), leftover-map
+incomplete item coverage on the pair list
 ([ADR 0287](0287-leftover-map-list-incomplete-item.md)), leftover-map incomplete
 post coverage on the pair list
 ([ADR 0286](0286-leftover-map-list-incomplete-post.md)), leftover-map item
@@ -52,27 +57,27 @@ share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
 ## Context
 
 ADR 0168 already persists `map_post_count` / `scored_post_count` on
-`report_leftover_map_coverage` and captions the pair list with post
-complete-case coverage. ADR 0281 already fail-closes that same coverage on
-the leftover-map graphic display through leftoverMapCoverageCounts. The
-pair-list note still interpolates raw `map_post_count` / `scored_post_count`
-whenever `scored_post_count > 0`, so a used-greater-than-scored, negative,
-or non-integer payload still captions a contradictory `used N of M scored
-posts (complete-case)` note. Incomplete rows are dropped from Gabriel
-factorization; a contradictory pair-list census lets a buyer treat those N
-posts as the scored census even when the integers cannot be a complete-case
-count.
+`report_leftover_map_coverage`. ADR 0149 already carries ABAC-filtered leftover
+pairs on `GET /api/reports/compare/{period}`. ADR 0281 already fail-closes that
+same coverage on the leftover-map graphic. ADR 0288 already fail-closes that
+same coverage on the leftover pair list. The grouping comparison strip still
+names leftover pairs and `d` without naming how many scored posts entered the
+Gabriel factorization for that grouping, so a buyer who compares PU / corp /
+thread leftover pairs can treat a 2-of-8 complete-case map as if it used the
+same census as an 8-of-8 map.
 
-This increment fail-closes leftover-map post complete-case coverage on the
-pair-list note through leftoverMapCoverageCounts. It does not add columns.
-It does not recompute post coverage from plotted marker count, leftover-map
-distance, or leftover-map rank. It does not persist leftover-map inner
-product, cosine, or length as separate columns. It does not land Post
-quality on the leftover criterion. Leftover-map distance stays two-axis
-Euclidean. Do not invent a leftover score. Do not invent a theta.
+This increment includes persisted leftover-map complete-case coverage on the
+comparison payload and captions each grouping row through leftoverMapCoverageCounts.
+It does not add columns. It does not recompute post coverage from leftover pair
+count, plotted marker count, leftover-map distance, or leftover-map rank. It
+does not persist leftover-map inner product, cosine, or length as separate
+columns. It does not land Post quality on the leftover criterion. Leftover-map
+distance stays two-axis Euclidean. Do not invent a leftover score. Do not invent
+a theta.
 
 The dashboard stack already used neighbouring leftover facts under other
-numbers. This protected increment uses **0288** so it does not collide with
+numbers. This protected increment uses **0290** so it does not collide with
+leftover-map post complete-case coverage fail-closed on the pair list (0288),
 leftover-map incomplete item coverage on the pair list (0287), leftover-map
 incomplete post coverage on the pair list (0286), leftover-map item
 complete-case coverage on the pair list (0285), leftover-map incomplete
@@ -101,26 +106,32 @@ occupational construct catalog search (0265), or the dashboard stacks.
 
 ## Decision
 
-On the leftover pair list, caption persisted leftover-map post complete-case
-coverage as `Leftover map used {used} of {scored} scored posts (complete-case)`
-only when leftoverMapCoverageCounts returns usable complete-case integers
-from persisted `map_post_count` / `scored_post_count`. A missing coverage
-row, a non-integer count, a negative used count, a non-positive scored
-count, or used greater than scored omits that leftover-map coverage note
-and keeps the pair-list item coverage note, the pair-list incomplete post
-note, the pair-list incomplete item note, and any leftover-map distance,
-reconstruction, explained leftover share, unexplained leftover share,
-leftover-map cross share, unexplained leftover, leftover residual, leftover
-observed, leftover expected, leftover-map rank, leftover-map post coverage,
-leftover-map item coverage, leftover-map incomplete post, or leftover-map
-incomplete item caption on the graphic. Coverage `0 of M` is shown when
-that persisted used count is a non-negative integer and scored is a
-positive integer. Do not invent post coverage from plotted marker count,
-leftover-map distance, leftover-map rank, leftover-map item coverage,
-leftover-map incomplete post coverage, leftover-map incomplete item
-coverage, or the count of unused axes. Click a pair button to open that
-post. The grouping comparison strip (ADR 0149) stays on its reduced leftover
-payload and does not gain this leftover-map coverage caption.
+On the grouping comparison strip, include persisted `leftover_map_coverage` on
+each comparison row and caption leftover-map post complete-case coverage as
+`Leftover map used {used} of {scored} scored posts (complete-case)` only when
+leftoverMapCoverageCounts returns usable complete-case integers from persisted
+`map_post_count` / `scored_post_count`. Use the distinct accessible name
+`Leftover map comparison coverage` so the strip caption is not the pair-list
+note (`Leftover map coverage`) and is not the graphic caption
+(`Leftover-map graphic coverage`). A missing coverage row, a non-integer
+count, a negative used count, a non-positive scored count, or used greater
+than scored omits that leftover-map comparison coverage note and keeps the
+strip leftover pairs, leftover-map distance `d`, and any leftover-map
+distance, reconstruction, explained leftover share, unexplained leftover
+share, leftover-map cross share, unexplained leftover, leftover residual,
+leftover observed, leftover expected, leftover-map rank, leftover-map post
+coverage, leftover-map item coverage, leftover-map incomplete post, or
+leftover-map incomplete item caption on the pair list and graphic. Coverage
+`0 of M` is shown when that persisted used count is a non-negative integer
+and scored is a positive integer. Do not invent post coverage from leftover
+pair count, plotted marker count, leftover-map distance, leftover-map rank,
+leftover-map item coverage, leftover-map incomplete post coverage,
+leftover-map incomplete item coverage, or the count of unused axes. Do not
+caption leftover-map item coverage, leftover-map incomplete post coverage,
+or leftover-map incomplete item coverage on the strip in this increment.
+Do not add the leftover-map graphic to the strip. Coverage is aggregate and
+non-identifying: ABAC that hides leftover pairs does not hide persisted
+coverage counts. Click a leftover pair on the strip to open that post.
 
 Do not add SQL. Do not edit shipped migrations. Do not persist inner
 product, cosine, or length as separate columns. Do not invent a leftover
@@ -128,16 +139,19 @@ score. Do not invent a theta.
 
 ## Consequences
 
-After `make seed`, closest and farthest leftover pairs sit above the member
-list with the leftover-map graphic display of persisted `ξ` and `ζ`,
-leftover-map axes name persisted Gabriel inertia share when finite,
-leftover-map axis ticks name the same coordinates shown on the pair row,
-pair segments name persisted leftover-map distance `d`, persisted leftover-map
-reconstruction `R̂`, persisted leftover-map explained leftover share `e`,
-persisted leftover-map unexplained leftover share `s`, persisted leftover-map
-cross share `x`, persisted leftover-map unexplained leftover `U`, persisted
-leftover residual `R`, persisted leftover observed `Y`, persisted leftover
-expected `E`, persisted leftover-map rank, the plot names persisted leftover-map
+After `make seed`, the grouping comparison strip names persisted leftover-map
+post complete-case coverage on each grouping row when leftoverMapCoverageCounts
+returns usable integers, then names leftover pairs with leftover-map distance
+`d`. Closest and farthest leftover pairs still sit above the member list with
+the leftover-map graphic display of persisted `ξ` and `ζ`, leftover-map axes
+name persisted Gabriel inertia share when finite, leftover-map axis ticks name
+the same coordinates shown on the pair row, pair segments name persisted
+leftover-map distance `d`, persisted leftover-map reconstruction `R̂`,
+persisted leftover-map explained leftover share `e`, persisted leftover-map
+unexplained leftover share `s`, persisted leftover-map cross share `x`,
+persisted leftover-map unexplained leftover `U`, persisted leftover residual
+`R`, persisted leftover observed `Y`, persisted leftover expected `E`,
+persisted leftover-map rank, the plot names persisted leftover-map
 complete-case coverage, the plot names persisted leftover-map item
 complete-case coverage, the plot names persisted leftover-map incomplete
 post coverage, the plot names persisted leftover-map incomplete item
@@ -147,9 +161,9 @@ pair list names persisted leftover-map item complete-case coverage, the pair
 list names persisted leftover-map incomplete post coverage, and the pair list
 names persisted leftover-map incomplete item coverage; click a post marker
 or a pair button opens that post.
-Hidden posts stay hidden. Rank-0 unused axes still plot at the origin and still
-name post coverage on the pair list when that coverage is persisted as usable
-complete-case integers.
+Hidden posts stay hidden; partial-visibility groupings omit the comparison coverage aggregate rather than disclosing or recomputing it. Rank-0 unused axes still plot at the origin and still
+name post coverage on the comparison strip when that coverage is persisted as
+usable complete-case integers.
 
 ## Related
 
@@ -175,8 +189,9 @@ leftover-map item complete-case coverage on the graphic display,
 leftover-map incomplete post coverage on the graphic display,
 leftover-map incomplete item coverage on the graphic display,
 leftover-map item complete-case coverage on the pair list, leftover-map
-incomplete post coverage on the pair list, and leftover-map incomplete
-item coverage on the pair list.
+incomplete post coverage on the pair list, leftover-map incomplete
+item coverage on the pair list, and leftover-map post complete-case
+coverage fail-closed on the pair list.
 
 ## References
 
@@ -192,6 +207,6 @@ https://doi.org/10.1007/s11336-021-09762-5
 `α_j − β_i`; typically `p = 2` for the interaction map. Gabriel
 reconstruction of the leftover cell is the two-axis inner product
 `R̂ = ξ_{1:2} · ζ_{1:2}`. Incomplete rows are dropped from the
-complete-case residual rectangle; pair-list post coverage names how many
-scored posts entered that factorization only when leftoverMapCoverageCounts
-returns usable complete-case integers.)
+complete-case residual rectangle; grouping comparison coverage names how
+many scored posts entered that factorization for that grouping only when
+leftoverMapCoverageCounts returns usable complete-case integers.)
