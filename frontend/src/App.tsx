@@ -4768,6 +4768,8 @@ function CustomerMasterPanel({
   const [copyAttempt, setCopyAttempt] = useState(0);
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const masterRequestGeneration = useRef(0);
+  const currentAccessTokenRef = useRef(accessToken);
+  currentAccessTokenRef.current = accessToken;
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
@@ -4786,6 +4788,14 @@ function CustomerMasterPanel({
 
   useEffect(() => {
     let active = true;
+    setCanResolveHints(false);
+    setRelatedByEntity({});
+    setExpandedEntityId(null);
+    setRelatedLoading(null);
+    setSelectedPostId(null);
+    setSelectedPostGraph(null);
+    setResolvingHint(null);
+    setResolveError(null);
     fetchMe(accessToken)
       .then((member) => {
         if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));
@@ -4799,14 +4809,23 @@ function CustomerMasterPanel({
   }, [accessToken]);
 
   const loadMaster = useCallback(() => {
+    const requestAccessToken = accessToken;
     const requestGeneration = ++masterRequestGeneration.current;
     setError(null);
-    return fetchCustomerMaster(accessToken)
+    return fetchCustomerMaster(requestAccessToken)
       .then((nextMaster) => {
-        if (requestGeneration === masterRequestGeneration.current) setMaster(nextMaster);
+        if (
+          requestGeneration === masterRequestGeneration.current &&
+          requestAccessToken === currentAccessTokenRef.current
+        ) {
+          setMaster(nextMaster);
+        }
       })
       .catch(() => {
-        if (requestGeneration === masterRequestGeneration.current) {
+        if (
+          requestGeneration === masterRequestGeneration.current &&
+          requestAccessToken === currentAccessTokenRef.current
+        ) {
           setError(t("Customer master could not be loaded."));
         }
       });
@@ -4867,19 +4886,23 @@ function CustomerMasterPanel({
   }
 
   async function handleResolveHint(hintCode: string) {
+    const requestAccessToken = accessToken;
     setResolvingHint(hintCode);
     setResolveError(null);
     try {
-      await resolveCustomerHint(accessToken, hintCode);
-      await loadMaster();
+      await resolveCustomerHint(requestAccessToken, hintCode);
+      if (requestAccessToken === currentAccessTokenRef.current) await loadMaster();
     } catch {
-      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      if (requestAccessToken === currentAccessTokenRef.current) {
+        setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      }
     } finally {
-      setResolvingHint(null);
+      if (requestAccessToken === currentAccessTokenRef.current) setResolvingHint(null);
     }
   }
 
   async function toggleEntity(entityId: string) {
+    const requestAccessToken = accessToken;
     if (expandedEntityId === entityId) {
       setExpandedEntityId(null);
       return;
@@ -4888,12 +4911,16 @@ function CustomerMasterPanel({
     if (relatedByEntity[entityId]) return;
     setRelatedLoading(entityId);
     try {
-      const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+      const response = await fetchRelatedEntity(requestAccessToken, entityId);
+      if (requestAccessToken === currentAccessTokenRef.current) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+      }
     } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+      if (requestAccessToken === currentAccessTokenRef.current) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+      }
     } finally {
-      setRelatedLoading(null);
+      if (requestAccessToken === currentAccessTokenRef.current) setRelatedLoading(null);
     }
   }
 
