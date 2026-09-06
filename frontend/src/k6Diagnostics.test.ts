@@ -91,15 +91,15 @@ describe("k6 diagnostic confidentiality", () => {
   });
 
   it.each([
-    [{ id: 2, result: {} }, "MCP response protocol was invalid"],
-    [{ jsonrpc: "1.0", id: 2, result: {} }, "MCP response protocol was invalid"],
-    [{ jsonrpc: "2.0", result: {} }, "MCP response id mismatch"],
-    [{ jsonrpc: "2.0", id: 7, result: {} }, "MCP response id mismatch"],
-    [{ jsonrpc: "2.0", id: 2, result: {}, error: null }, "MCP response result/error shape was invalid"],
-  ])("rejects malformed or unrelated JSON-RPC responses (%j)", (envelope, message) => {
+    [{ id: 2, result: {} }, /^MCP response protocol was invalid: HTTP 200$/],
+    [{ jsonrpc: "1.0", id: 2, result: {} }, /^MCP response protocol was invalid: HTTP 200$/],
+    [{ jsonrpc: "2.0", result: {} }, /^MCP response id mismatch: HTTP 200$/],
+    [{ jsonrpc: "2.0", id: 7, result: {} }, /^MCP response id mismatch: HTTP 200$/],
+    [{ jsonrpc: "2.0", id: 2, result: {}, error: null }, /^MCP response result\/error shape was invalid: HTTP 200$/],
+  ])("rejects malformed or unrelated JSON-RPC responses (%j)", (envelope, expectedError) => {
     expect(() => harness("k6_mcp_e2e.js").result({
       status: 200, body: `data: ${JSON.stringify(envelope)}`,
-    }, 2)).toThrow(new RegExp(`^${message}: HTTP 200$`));
+    }, 2)).toThrow(expectedError);
   });
 
   it.each([null, [], privatePayload].map(value => [value]))("rejects invalid tool results (%j)", (result) => {
