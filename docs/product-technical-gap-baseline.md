@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Current authority snapshot: 2026-09-06. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`. Python package and frontend
+> metadata both declare v2.28.0, while protected runtime identity still
+> declares v2.20.0; Draft PR #961 owns the minimal release-provenance repair
+> and invariant test. No repository tag currently exists, so v2.28.0 is not
+> represented here as an immutable released artifact.
+>
+> Leftover-map stack authority is also moving: #811 advanced non-force to
+> `4dcd789385f67c76a4e479194f566f35bb5d2d76`; #812 must converge that
+> foundation before #813–#819 local repair evidence can become final stack
+> authority. #820/#821 retain distinct valid product deltas but historically
+> collide on ADR 0289 / v2.46.0; after upstream convergence, #820 keeps that
+> identity and #821 must be reconstructed as an explicit child with a unique
+> ADR/release identity. Historical dated overlays below are evidence snapshots,
+> not current branch/merge/release authority.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
