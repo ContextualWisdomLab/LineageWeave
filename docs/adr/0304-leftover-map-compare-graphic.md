@@ -1,6 +1,6 @@
 # ADR 0304 — Show leftover-map graphic display on grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 Amends leftover pairs on the grouping comparison strip
