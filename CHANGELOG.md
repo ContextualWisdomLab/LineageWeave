@@ -10,7 +10,7 @@ All notable changes to this project are documented here. Format follows
 
 - Period leftover pairs now return persisted leftover-map axis share on
   `GET /api/reports/compare/{period}` grouping rows and caption the grouping
-  comparison strip through leftoverMapCompareAxisShare (ADR 0304 / v2.61.0).
+  comparison strip through leftoverMapCompareAxisShare (ADR 0368 / v2.61.0).
   After `make seed`, closest and farthest leftover pairs sit above the member
   list with the Gabriel biplot of already-named coordinates, leftover-map axis
   share when finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair

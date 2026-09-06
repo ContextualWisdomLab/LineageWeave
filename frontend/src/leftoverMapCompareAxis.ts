@@ -1,4 +1,4 @@
-/** Caption leftover-map axis share on the grouping comparison strip (ADR 0304). */
+/** Caption leftover-map axis share on the grouping comparison strip (ADR 0368). */
 
 import type { LeftoverMapAxis } from "./api";
 

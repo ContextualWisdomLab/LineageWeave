@@ -4,7 +4,7 @@
 **Date:** 2026-08-24
 **Amended by:** [ADR 0269](0269-leftover-map-axis-share-plot.md)
 (leftover-map axis share on the graphic display),
-[ADR 0304](0304-leftover-map-compare-axis-share.md)
+[ADR 0368](0368-leftover-map-compare-axis-share.md)
 (leftover-map axis share on the grouping comparison strip)
 
 ## Context
