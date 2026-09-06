@@ -2,12 +2,17 @@
 
 ## Current bounded audit — 2026-09-06
 
-Protected base: `83eba56149eb802cd63642c507c324c9976ec78e`. Tested implementation: `3487b635f23166a964ac3ee69d5d19d12ddba055`.
-Queue observed at 2026-09-06T11:50:20.768799+00:00: 121 open PRs (115 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This snapshot supersedes queue and runtime claims in the dated historical material below.
+Protected base: `83eba56149eb802cd63642c507c324c9976ec78e`. Tested implementation: `4f86ccc1a7885c55340adecff99bd273bbfe8bed`.
+The previously reviewed documentation head `149af3c2208a4041773fb88a708cfb7087e56c2c`
+is the direct child of tested implementation `3487b635f23166a964ac3ee69d5d19d12ddba055`,
+which is the direct child of the protected base. The new tested implementation
+is the direct child of that documentation head. This document commit follows
+the tested implementation; it does not transfer hosted Checks between heads.
+Queue rechecked on 2026-09-06 at 13:14 UTC: 122 open PRs (116 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This snapshot supersedes queue and runtime claims in the dated historical material below.
 
 ### Authority and evidence boundaries
 
-- Read the current LineageWeave PRD, ADR 0123 (error disclosure), and ADR 0220 (existing status notice). The connected contextual-orchestrator authority is `docs/product_planning.md` and its README; there is no `docs/product-requirements.md` at that owner. No orchestration or mathematical policy changes in this slice.
+- Read the current LineageWeave PRD, ADR 0123 (error disclosure), and ADR 0220 (existing status notice). The connected contextual-orchestrator authority is `docs/product_planning.md` and `docs/architecture.md`; there is no `docs/product-requirements.md` at that owner. No orchestration or mathematical policy changes in this slice.
 - GitHub metadata confirms canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase `ContextualWisdomLab/disksage`. The differently cased DiskSage PRD register entry remains a documentation discrepancy, not a second repository.
 - Normative architecture remains in ADRs. Research references in ADR 0123 justify non-disclosure; the Fetch response contract explains separate body-read/JSON failures. Neither source establishes capacity, model quality, weights, population inference, or release completion.
 - DeepWiki could not find this repository. Context7 returned quota exhaustion. No inferred documentation or research result substitutes for either unavailable source.
@@ -25,11 +30,13 @@ Counts below are REST check runs filtered by `head_sha` equality, including opti
 | #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | 28 / 7 / 4 / 0 |
 | #780 | `1d8fa267b059289e77301a09985dfac70a439814` | 8 / 0 / 8 / 11 |
 
-Ruleset 18156473 requires an independent approval, resolved threads, and seven central workflows; ruleset 21065108 prohibits force pushes. Main deletion/non-fast-forward protections also apply. Existing failure triage identifies central dispatcher and Dependency Review ownership, not a replacement leaf implementation. `.github#1927`, `#1902`, and `#810` remain open; `.github#1932` is independently confirmed merged at `6f8c51d7389c22ebaf294fe8fe9ef495257883c0`. This owner merge is not LineageWeave release evidence. No in-progress LineageWeave Actions runs were returned by the status-filtered inventory, so no stale run was cancelled.
+Ruleset 18156473 requires an independent approval, resolved threads, and seven central workflows; ruleset 21065108 prohibits force pushes. Main deletion/non-fast-forward protections also apply. Existing failure triage identifies central dispatcher and Dependency Review ownership, not a replacement leaf implementation. `.github#1927`, `#1902`, and `#810` remain open; `.github#1932` is independently confirmed merged at `6f8c51d7389c22ebaf294fe8fe9ef495257883c0`. This owner merge is not LineageWeave release evidence. The fresh status-filtered inventory again returned no in-progress LineageWeave Actions runs; no current-main or open-PR run was cancelled. In the earlier inventory, no in-progress LineageWeave Actions runs were returned by the status-filtered inventory, so no stale run was cancelled.
 
 ### Cross-PR collision audit
 
-All 121 PR file inventories were fetched. Distinct ADR filenames share these identifiers:
+All 122 PR file inventories were fetched again and all 122 heads were rechecked unchanged. Complete review-thread pagination found 103 unresolved threads on 50 PRs, including informational observations and execution requests; this count is not 103 confirmed defects. The six Ready lanes and the Voice repair stack have no unresolved threads. #960 has one valid documentation-lineage clarification, addressed above. Distinct changes must be verified in the owning stack before resolving other threads. #811 has a concrete lower-viewport rank-caption clipping report; the other three threads there are execution or informational notes, not three more implementation defects.
+
+ Distinct ADR filenames share these identifiers:
 
 - 0233: `docs/adr/0233-global-ask-semantic-candidate-nomination.md`; `docs/adr/0233-leftover-map-unexplained-share.md`
 - 0245: `docs/adr/0245-io-occupational-taxonomy-in-the-published-ontology.md`; `docs/adr/0245-lineage-scoring-and-entity-resolution-owner-contract.md`
@@ -45,7 +52,7 @@ All 121 PR file inventories were fetched. Distinct ADR filenames share these ide
 
 Release labels also collide in PR titles (supporting metadata, not verified manifest versions): v2.92.0: #877/#876; v2.62.0: #844/#843; v2.61.0: #842/#841; v2.50.0: #828/#826; v2.47.0: #823/#822; v2.46.0: #821/#820. Six PR inventories touch migrations. Semantic migration compatibility and the actual release manifest values remain to be checked before each protected merge; filename/title collision detection is not sufficient clearance.
 
-Nine open PRs touch `frontend/src/api.ts`. Eight retain the uncontained successful-body decoder. #909 moves that decoder into `apiTransport.ts` and still rethrows parser exceptions, while adding an abort/deadline boundary. When integrating #909, carry this sanitization into the moved decoder and preserve its abort behavior; do not overwrite its request gate or hierarchy repair. This slice changes no route, response schema, migration, release number, or new ADR identifier.
+Ten open PRs touch `frontend/src/api.ts`, including this candidate. Eight retain the uncontained successful-body decoder. #909 moves that decoder into `apiTransport.ts` and still rethrows parser exceptions, while adding an abort/deadline boundary. When integrating #909, carry this sanitization into the moved decoder and preserve its abort behavior; do not overwrite its request gate or hierarchy repair. This slice changes no route, response schema, migration, release number, or new ADR identifier.
 
 Keep #780 → #934/#936/#937, #934 → #935, #929 → #932, and the report/owner stacks parent-first. #959 owns ontology authorization-denial recovery; its concurrent repair is not duplicated here. No child was retargeted before a protected parent merge.
 
@@ -53,17 +60,30 @@ Keep #780 → #934/#936/#937, #934 → #935, #929 → #932, and the report/owner
 
 The shared browser client allowed successful HTTP response parsing errors to escape into customer error handlers. A malformed body can place source content inside a native SyntaxError; a failed response stream can expose its exception message. This affects both read paths and settings writes. It is a directly reproduced privacy/error-recovery gap, selected ahead of adding new product surface while the existing Voice, localization, and authorization lanes remain in review. No numerical priority model or population claim is used.
 
-The minimal repair contains body-read/JSON failures at the shared client boundary, retains the observed HTTP status, and returns the existing safe next-action message. It neither supplies replacement evidence nor retries a write. Regression evidence: three new cases failed before the repair; all 10 API tests pass after it, covering HTTP 200/201 reads and writes and an errored native response stream. Six existing StatusNotice tests pass. TypeScript, oxlint, and the production build pass with the installed project toolchain; the build retains its existing large-chunk warning. Frozen-lock hosted checks are separate and not claimed here.
+The initial repair contains body-read/JSON failures at the shared client boundary, retains the observed HTTP status, and returns the existing safe next-action message. It neither supplies replacement evidence nor retries a write. Regression evidence: three new cases failed before the repair; all 10 API tests pass after it, covering HTTP 200/201 reads and writes and an errored native response stream. Six existing StatusNotice tests pass. TypeScript, oxlint, and the production build pass with the installed project toolchain; the build retains its existing large-chunk warning. Frozen-lock hosted checks are separate and not claimed here.
 
-Existing `Chrome/StatusNotice/UnreadableResponse` renders the safe copy with existing semantic tokens and alert semantics. Desktop 1440×900 and mobile 390×844 screenshots were inspected: the message is visible with no document overflow. These are synthetic presentation evidence, not authenticated deployed UI acceptance:
+The follow-up closes another reproduced path in the same boundary: unreadable
+4xx responses used to include the request URL and its identifiers in the visible
+error. The fallback now uses the existing safe message. HTTP status still reaches
+authorization handlers, and actionable validation details remain unchanged.
+The installed Node 24.19.0 toolchain passed all 16 API tests (five request-identity
+cases and one validation-detail case added), TypeScript, oxlint, the production
+build, and five documentation-hygiene tests. The build retains its existing
+large-chunk warning. Initial Vitest worker starts timed out; the successful API
+run used one thread. The unchanged StatusNotice suite hit the same worker-start
+timeout on this follow-up and is not counted as a fresh pass. pnpm's automatic
+install refused the pre-existing shared node_modules symlink; no shared dependencies
+were deleted or changed. Frozen-lock hosted verification remains outstanding.
+
+Existing `Chrome/StatusNotice/UnreadableResponse` renders the safe copy with existing semantic tokens and alert semantics. Desktop 1440×900 and mobile 390×844 screenshots were recaptured and inspected on this follow-up: the message is visible with no document overflow. These are synthetic presentation evidence, not authenticated deployed UI acceptance:
 
 - [Desktop](screenshots/unreadable-response-desktop-20260906.png)
 - [Mobile](screenshots/unreadable-response-mobile-20260906.png)
 
 ### Current runtime and remaining acceptance
 
-- Official Compose project `lineageweave` is running. Read-only PostgreSQL aggregate: 43,189 source posts; the Voice-association table exists. No source name, record key, body, title, or credential was emitted. This is a descriptive whole-store count, not population inference or a claim that a diagnostic sample is representative.
-- The seeded synthetic account authenticated and `/api/posts` returned a JSON collection on the running PostgreSQL-backed API. This proves only that read path; the runtime is not the candidate commit. No current authenticated Voice truth/cutoff/PROV-O/write/export acceptance or candidate rendered-product acceptance is marked complete.
+- Official Compose project `lineageweave` is running. Read-only PostgreSQL aggregate rechecked during this follow-up: 43,189 source posts; the Voice-association table exists. No source name, record key, body, title, or credential was emitted. This is a descriptive whole-store count, not population inference or a claim that a diagnostic sample is representative.
+- In the earlier 11:50 UTC observation, the seeded synthetic account authenticated and `/api/posts` returned a JSON collection on the running PostgreSQL-backed API. This proves only that read path; the runtime is not the candidate commit. No current authenticated Voice truth/cutoff/PROV-O/write/export acceptance or candidate rendered-product acceptance is marked complete.
 - The shared running store is not certified synthetic-only. The existing k6 harness queries unrestricted posts/lineage and submits Ask, so it was not launched against this store. Synthetic-only authenticated end-to-end concurrency, latency, error rate, throughput, and PostgreSQL/worker/Valkey/gateway saturation remain unavailable. No speculative bottleneck repair, saturation claim, SLO, or population estimator was added.
 - Twelve atomic Voices and evidence-bearing extensible associations remain the contract. Preserve carrying Post versus derivation evidence, hidden-evidence omission, truth status, PROV-O, cutoff, and paged multi-Voice union in the respective owner PRs. Historical screenshots or a present table do not satisfy those acceptance conditions.
 - No temporary containers were created and no data volume was removed. Protected integration, independent approval, full required checks, and merge SHA remain outstanding for this candidate.
