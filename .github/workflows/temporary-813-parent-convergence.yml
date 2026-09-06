@@ -132,7 +132,6 @@ jobs:
 
           baseline = Path("docs/product-technical-gap-baseline.md").read_text(encoding="utf-8")
           assert "v2.39.0 / ADR 0282 adds persisted item complete-case coverage" in baseline
-          git_conflicts = []
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
@@ -146,17 +145,33 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Run parent-child convergence contracts
+      - name: Contract - Vietnamese production-bound copy
+        if: ${{ !cancelled() }}
         working-directory: frontend
-        run: |
-          pnpm exec vitest run \
-            src/leftoverMapPlotVietnameseCopy.test.ts \
-            src/i18n.test.ts \
-            src/leftoverMapCoverage.test.ts \
-            src/leftoverMapPlotLayout.test.ts \
-            src/components/LeftoverMapPlot.test.tsx
+        run: pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts
+
+      - name: Contract - locale ledger copy
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: pnpm exec vitest run src/i18n.test.ts
+
+      - name: Contract - item coverage helper
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: pnpm exec vitest run src/leftoverMapCoverage.test.ts
+
+      - name: Contract - leftover-map layout
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: pnpm exec vitest run src/leftoverMapPlotLayout.test.ts
+
+      - name: Contract - LeftoverMapPlot component
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: pnpm exec vitest run src/components/LeftoverMapPlot.test.tsx
 
       - name: Commit clean merge tree
+        if: ${{ success() }}
         shell: bash
         run: |
           set -euo pipefail
