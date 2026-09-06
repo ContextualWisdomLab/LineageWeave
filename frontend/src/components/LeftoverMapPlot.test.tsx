@@ -178,6 +178,25 @@ describe("LeftoverMapPlot", () => {
     expect(screen.getByLabelText("leftover-map rank rank 0")).toBeInTheDocument();
   });
 
+  it("renders every distinct persisted tick when rounded labels match", () => {
+    render(
+      <LeftoverMapPlot
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_map_person_axis_1: 0.001,
+            leftover_map_item_axis_1: 0.004,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("leftover-map axis 1 tick 0.00")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("leftover-map axis 1 tick +0.00")).toHaveLength(2);
+  });
+
   it("captions leftover-map axes with persisted leftover-map axis share", () => {
     render(
       <LeftoverMapPlot
