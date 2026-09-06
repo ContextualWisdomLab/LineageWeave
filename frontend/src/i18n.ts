@@ -2371,7 +2371,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",
     "leftover-map distance {label}": "khoảng cách bản đồ phần dư {label}",
     "leftover-map reconstruction {label}": "tái dựng bản đồ phần dư {label}",
-    "leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",
+    "leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",
     "leftover-map unexplained leftover share {label}": "phần dư chưa giải thích bản đồ phần dư {label}",
     "leftover-map cross share {label}": "phần giao bản đồ phần dư {label}",
     "leftover-map unexplained leftover {label}": "phần dư chưa giải thích {label}",
@@ -2381,7 +2381,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map rank {label}": "hạng bản đồ phần dư {label}",
     "Leftover-map graphic coverage": "Phạm vi đồ họa bản đồ phần dư",
     "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     "Open leftover-map post {title} at ξ {person}":
       "Mở bài viết bản đồ phần dư {title} tại ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":

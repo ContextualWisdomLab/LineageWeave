@@ -2,6 +2,7 @@ name: PROV-O contract
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
     branches: [main]
     paths:
       - "lineageweave/prov_o.py"
@@ -28,12 +29,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: prov-o-contract-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.repository }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   standards-contract:
     name: Registry, inference, coverage, PostgreSQL
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     services:
       postgres:
