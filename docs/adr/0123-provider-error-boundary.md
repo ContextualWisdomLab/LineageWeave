@@ -27,6 +27,9 @@ The browser API client is a second trust boundary: HTTP 5xx details are
 discarded, and transport failures become a stable status-0 client error
 before any UI handler can render them. Client-error details remain available
 only for actionable validation or authorization responses.
+If no actionable detail is available, the browser shows the existing safe
+next-action message, never the request URL or its record identifiers. The
+observed HTTP status remains available to authorization/recovery handlers.
 
 Successful HTTP headers do not make the response body trustworthy. Failed
 body reads and JSON decoding return the same safe product error, retaining

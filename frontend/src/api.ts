@@ -518,7 +518,7 @@ export interface ActivityEvent {
 export class BackendError extends Error {
   readonly status: number;
 
-  constructor(path: string, status: number, detail?: string) {
+  constructor(_path: string, status: number, detail?: string) {
     const message =
       status === 0
         ? "The service is unreachable. Try again later."
@@ -526,7 +526,7 @@ export class BackendError extends Error {
           ? "The service could not complete this request. Try again later."
           : detail && detail.trim()
             ? detail
-            : `${path} -> HTTP ${status}`;
+            : "The service could not complete this request. Try again later.";
     super(message);
     this.name = "BackendError";
     this.status = status;

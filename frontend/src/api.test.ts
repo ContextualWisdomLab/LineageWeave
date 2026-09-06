@@ -14,6 +14,35 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([400, 401, 403, 404, 422])("keeps request identifiers out of an unreadable HTTP %s error", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not JSON", { status })));
+
+    const error = await fetchOccupationRatings("synthetic-token", {
+      onetsocCode: "synthetic-private-occupation",
+      dataReleaseCode: "synthetic-private-release",
+      sourceTableCode: "synthetic-private-source",
+    }).catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(BackendError);
+    expect(error).toMatchObject({
+      status,
+      message: "The service could not complete this request. Try again later.",
+    });
+    expect(String(error)).not.toContain("synthetic-private");
+    expect(String(error)).not.toContain("/api/");
+  });
+
+  it("preserves actionable validation details", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ detail: "Choose an available source and try again." }),
+      { status: 422 },
+    )));
+    await expect(fetchMe("synthetic-token")).rejects.toMatchObject({
+      status: 422,
+      message: "Choose an available source and try again.",
+    });
+  });
+
   it.each([200, 201])("hides malformed successful response bodies at HTTP %s", async (status) => {
     vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(
       'synthetic-private-body {"unfinished":',
