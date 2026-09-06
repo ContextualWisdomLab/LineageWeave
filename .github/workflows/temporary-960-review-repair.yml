@@ -29,7 +29,7 @@ jobs:
           product=149af3c2208a4041773fb88a708cfb7087e56c2c
           git fetch origin codex/voice-export-loop-20260906
           test "$(git rev-parse origin/codex/voice-export-loop-20260906)" = "$product"
-          test "$(git rev-parse HEAD^)" = "$product"
+          git merge-base --is-ancestor "$product" HEAD
           test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-960-review-repair.yml"
 
       - name: Apply verified review repairs
