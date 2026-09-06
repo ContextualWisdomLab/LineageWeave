@@ -1,0 +1,206 @@
+name: Temporary 820 parent reconstruction
+
+on:
+  push:
+    branches:
+      - "automation/820-parent-reconstruction-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-820-parent-reconstruction
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact reconstruction branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/820-parent-reconstruction-20260906
+          fetch-depth: 0
+
+      - name: Verify exact current parent and historical child
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=e6e3c5d0bad22292005f49c07b1c97944b0442d6
+          product=b7222713a69acdf3d32bbce992001a2433946d21
+          git fetch origin feat/leftover-map-list-post-coverage-helper-v2450 feat/leftover-map-plot-singular-v2460
+          test "$(git rev-parse origin/feat/leftover-map-list-post-coverage-helper-v2450)" = "$parent"
+          test "$(git rev-parse origin/feat/leftover-map-plot-singular-v2460)" = "$product"
+          git merge-base --is-ancestor "$parent" HEAD
+          test "$(git diff --name-only "$parent"..HEAD)" = ".github/workflows/temporary-820-parent-reconstruction.yml"
+
+      - name: Reapply only the v2.46 singular-value product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=e6e3c5d0bad22292005f49c07b1c97944b0442d6
+          feature=b7222713a69acdf3d32bbce992001a2433946d21
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git cherry-pick --no-commit "$feature"
+          git restore --source="$parent" -- docs/product-technical-gap-baseline.md
+          python - <<'PY'
+          from pathlib import Path
+
+          Path("tests/test_adr_0289_governance.py").write_text(
+              '''"""Governance regression for the draft ADR 0289 decision state."""\n\nfrom pathlib import Path\n\n\nADR_PATH = Path(__file__).parents[1] / "docs/adr/0289-leftover-map-plot-singular.md"\n\n\ndef test_draft_adr_0289_remains_proposed() -> None:\n    """Keep the unmerged decision proposed until independent acceptance exists."""\n    text = ADR_PATH.read_text(encoding="utf-8")\n    assert "**Decision status:** Proposed" in text\n    assert "**Decision status:** Accepted" not in text\n''',
+              encoding="utf-8",
+          )
+
+          baseline = Path("docs/product-technical-gap-baseline.md")
+          text = baseline.read_text(encoding="utf-8")
+          marker = "> #820 current-parent reconstruction: v2.46 singular-value axis captions"
+          if marker not in text:
+              title = "# Product & Technical Gap Baseline\n"
+              if not text.startswith(title):
+                  raise SystemExit("gap baseline title missing")
+              note = (
+                  "\n> #820 current-parent reconstruction: v2.46 singular-value axis captions\n"
+                  "> are being rebuilt from exact #819 `e6e3c5d0bad22292005f49c07b1c97944b0442d6`.\n"
+                  "> Preserve only the singular-value product delta from `b7222713a69acdf3d32bbce992001a2433946d21`;\n"
+                  "> the historical scheduler-era baseline overlay is not authority. ADR 0289 remains Proposed while Draft,\n"
+                  "> and package/frontend/runtime release identity must converge at 2.46.0 before promotion.\n"
+                  "> Sibling #821 cannot reuse ADR 0289 / v2.46.0 for a different decision.\n"
+              )
+              baseline.write_text(title + note + text[len(title):], encoding="utf-8")
+          PY
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install locked dev dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify realistic release and governance RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          uv run --frozen python -m pytest -q tests/test_package_version.py >/tmp/release-red.log 2>&1
+          release_status=$?
+          uv run --frozen python -m pytest -q tests/test_adr_0289_governance.py >/tmp/governance-red.log 2>&1
+          governance_status=$?
+          set -e
+          cat /tmp/release-red.log
+          cat /tmp/governance-red.log
+          test "$release_status" -ne 0
+          test "$governance_status" -ne 0
+          grep -q 'test_release_versions_are_synchronized' /tmp/release-red.log
+          grep -q 'test_draft_adr_0289_remains_proposed' /tmp/governance-red.log
+
+      - name: Apply minimal causal release and governance fix
+        shell: python
+        run: |
+          import json
+          import re
+          import tomllib
+          from pathlib import Path
+
+          adr = Path("docs/adr/0289-leftover-map-plot-singular.md")
+          text = adr.read_text(encoding="utf-8")
+          old = "**Decision status:** Accepted"
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one ADR0289 Accepted marker, found {text.count(old)}")
+          adr.write_text(text.replace(old, "**Decision status:** Proposed", 1), encoding="utf-8")
+
+          init_path = Path("lineageweave/__init__.py")
+          init_text = init_path.read_text(encoding="utf-8")
+          init_text, count = re.subn(
+              r'^__version__ = "[^"]+"$',
+              '__version__ = "2.46.0"',
+              init_text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("runtime version declaration missing")
+          init_path.write_text(init_text, encoding="utf-8")
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          frontend = json.loads(Path("frontend/package.json").read_text(encoding="utf-8"))
+          runtime = re.search(r'^__version__ = "([^"]+)"$', init_text, re.MULTILINE)
+          versions = (project["project"]["version"], frontend["version"], runtime.group(1) if runtime else None)
+          if versions != ("2.46.0", "2.46.0", "2.46.0"):
+              raise SystemExit(f"release identity drift after reconstruction: {versions!r}")
+
+      - name: Verify inherited parent authority remains present
+        shell: python
+        run: |
+          from pathlib import Path
+
+          i18n = Path("frontend/src/i18n.ts").read_text(encoding="utf-8")
+          assert "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}" in i18n
+          for number, slug in (
+              (283, "leftover-map-plot-incomplete"),
+              (284, "leftover-map-plot-incomplete-item"),
+              (285, "leftover-map-list-item-coverage"),
+              (286, "leftover-map-list-incomplete-post"),
+              (287, "leftover-map-list-incomplete-item"),
+              (288, "leftover-map-list-post-coverage-helper"),
+              (289, "leftover-map-plot-singular"),
+          ):
+              path = Path(f"docs/adr/{number:04d}-{slug}.md")
+              text = path.read_text(encoding="utf-8")
+              assert "**Decision status:** Proposed" in text
+              assert "**Decision status:** Accepted" not in text
+
+      - name: Verify exact GREEN for release and governance contracts
+        run: uv run --frozen python -m pytest -q tests/test_package_version.py tests/test_adr_0288_governance.py tests/test_adr_0289_governance.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify v2.46 and inherited frontend contracts
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/App.test.tsx
+          src/i18n.test.ts
+          src/leftoverMapCoverage.test.ts
+          src/leftoverMapPlotAxisSingular.test.ts
+          src/leftoverMapPlotLayout.test.ts
+          src/leftoverMapPlotSmallCanvas.test.ts
+          src/leftoverMapPlotVietnameseCopy.test.ts
+          src/components/LeftoverMapPlot.test.tsx
+          src/components/LeftoverPairList.test.tsx
+
+      - name: Verify frontend lint
+        working-directory: frontend
+        run: pnpm exec oxlint
+
+      - name: Commit clean reconstructed tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-820-parent-reconstruction.yml
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-820-parent-reconstruction\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-820-parent-reconstruction.yml'
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git commit -m "merge: reconstruct #820 on current #819 parent"
+          git push origin HEAD:automation/820-parent-reconstruction-20260906
