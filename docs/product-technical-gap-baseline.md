@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Current bounded audit — 2026-09-06
+## Bounded audit snapshot — 2026-09-06T13:14:00Z
 
 Protected base: `83eba56149eb802cd63642c507c324c9976ec78e`. Tested implementation: `4f86ccc1a7885c55340adecff99bd273bbfe8bed`.
 The previously reviewed documentation head `149af3c2208a4041773fb88a708cfb7087e56c2c`
@@ -8,7 +8,7 @@ is the direct child of tested implementation `3487b635f23166a964ac3ee69d5d19d12d
 which is the direct child of the protected base. The new tested implementation
 is the direct child of that documentation head. This document commit follows
 the tested implementation; it does not transfer hosted Checks between heads.
-Queue rechecked on 2026-09-06 at 13:14 UTC: 122 open PRs (116 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This snapshot supersedes queue and runtime claims in the dated historical material below.
+Queue rechecked on 2026-09-06 at 13:14 UTC: 122 open PRs (116 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This is time-scoped evidence only: live GitHub PR/check/runtime state supersedes it. It supersedes only older dated snapshots below, not later live state.
 
 ### Authority and evidence boundaries
 
@@ -80,17 +80,9 @@ Existing `Chrome/StatusNotice/UnreadableResponse` renders the safe copy with exi
 - [Desktop](screenshots/unreadable-response-desktop-20260906.png)
 - [Mobile](screenshots/unreadable-response-mobile-20260906.png)
 
-### Concurrent delivery-state change
+### Dated delivery-state observation
 
-#960 was pushed at `38900637e646f8a6d29438406202e1e67cfc0417`, its
-verified documentation thread was resolved, and normal Ready/auto-merge was
-set at 13:19 UTC. A separate action under the same GitHub account converted it
-to Draft at 13:21:20 UTC; GitHub disabled auto-merge because of that conversion.
-The timeline records no reason for the Draft decision. This loop does not
-continually reverse another actor's state changes. Required workflows remain
-queued/cancelled/skipped on that head, not successful protected delivery.
-The six existing Ready lanes retain their separate approval/check requirements.
-No merge SHA exists for either follow-up; no protected merge is claimed.
+At 13:19 UTC #960 was Ready with auto-merge enabled; at 13:21:20 UTC it was Draft and auto-merge was disabled. These are historical state observations, not actor-intent or current-queue authority. The current PR body records unresolved no-retry and documentation-authority findings and keeps the candidate Draft until their repair plus required evidence is complete. Live GitHub PR/check state supersedes these timestamps. No merge SHA exists and no protected merge is claimed.
 
 ### Current runtime and remaining acceptance
 
