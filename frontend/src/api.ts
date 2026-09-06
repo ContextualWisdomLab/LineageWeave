@@ -577,7 +577,15 @@ async function backendFetch<T>(
     }
     throw new BackendError(path, response.status, detail);
   }
-  return response.json() as Promise<T>;
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new BackendError(
+      path,
+      response.status,
+      "The service could not complete this request. Try again later.",
+    );
+  }
 }
 
 export interface LineageGraphNode {

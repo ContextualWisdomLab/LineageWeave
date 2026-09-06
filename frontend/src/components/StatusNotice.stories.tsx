@@ -63,3 +63,17 @@ export const Retry: Story = {
     await expect(args.onRetry).toHaveBeenCalledTimes(1);
   },
 };
+
+export const UnreadableResponse: Story = {
+  args: {
+    kind: "retry",
+    message: "The service could not complete this request. Try again later.",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("alert")).toHaveTextContent(
+      "The service could not complete this request. Try again later.",
+    );
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};

@@ -28,6 +28,11 @@ discarded, and transport failures become a stable status-0 client error
 before any UI handler can render them. Client-error details remain available
 only for actionable validation or authorization responses.
 
+Successful HTTP headers do not make the response body trustworthy. Failed
+body reads and JSON decoding return the same safe product error, retaining
+the observed HTTP status without retaining the raw parser exception or body.
+The client does not retry a write whose response could not be decoded.
+
 Missing or malformed evidence remains unavailable; it is never converted into
 a fabricated negative result. Existing input-validation errors outside a
 provider boundary retain their client-actionable 422 detail.
