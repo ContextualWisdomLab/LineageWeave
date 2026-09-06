@@ -1,0 +1,157 @@
+name: Temporary 812 parent convergence r2
+
+on:
+  push:
+    branches:
+      - "automation/812-parent-convergence-r2-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-812-parent-convergence-r2
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact child staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/812-parent-convergence-r2-20260906
+          fetch-depth: 0
+
+      - name: Verify exact parent and attempt non-force merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/leftover-map-segment-rank-v2370
+          parent=e0fad9af9d8fe446769474bd5fc8300c902a052f
+          actual="$(git rev-parse origin/feat/leftover-map-segment-rank-v2370)"
+          test "$actual" = "$parent"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$parent"
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            conflicts="$(git diff --name-only --diff-filter=U | sort | tr '\n' ' ' | sed 's/ $//')"
+            expected="docs/product-technical-gap-baseline.md frontend/src/i18n.test.ts frontend/src/i18n.ts lineageweave/__init__.py"
+            if [ "$conflicts" != "$expected" ]; then
+              echo "::error title=Unexpected exact-parent conflicts::$conflicts"
+              exit 42
+            fi
+            git checkout --ours frontend/src/i18n.ts frontend/src/i18n.test.ts lineageweave/__init__.py
+            git checkout --theirs docs/product-technical-gap-baseline.md
+            git add lineageweave/__init__.py docs/product-technical-gap-baseline.md
+          fi
+
+      - name: Preserve child i18n delta and parent Vietnamese terminology
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+
+          repairs = {
+              Path("frontend/src/i18n.ts"): [
+                  ("phần dư giải thích bản đồ phần dư {label}", "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}"),
+                  ("phần dư giải thích e", "tỷ phần phần dư được giải thích e"),
+              ],
+              Path("frontend/src/i18n.test.ts"): [
+                  ("phần dư giải thích e", "tỷ phần phần dư được giải thích e"),
+                  ("phần dư giải thích bản đồ phần dư R̂²/R² 0.76", "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"),
+              ],
+          }
+          for path, replacements in repairs.items():
+              text = path.read_text(encoding="utf-8")
+              for old, new in replacements:
+                  old_count = text.count(old)
+                  if old_count > 1:
+                      raise SystemExit(f"{path}: expected at most one old value {old!r}, found {old_count}")
+                  if old_count == 1:
+                      text = text.replace(old, new)
+                  if text.count(new) < 1:
+                      raise SystemExit(f"{path}: repaired value {new!r} is absent")
+              path.write_text(text, encoding="utf-8")
+
+          test_path = Path("frontend/src/leftoverMapPlotVietnameseCopy.test.ts")
+          test_text = test_path.read_text(encoding="utf-8")
+          old_lines = [
+              'import { setLocale, tf } from "./i18n";',
+              "",
+              "const GRAPHIC_DISPLAY_COPY =",
+              '  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.";',
+          ]
+          new_lines = [
+              'import { setLocale, tf } from "./i18n";',
+              'import { LEFTOVER_MAP_PLOT_CAPTION } from "./leftoverMapPlotLayout";',
+          ]
+          lines = test_text.splitlines()
+          matches = [index for index in range(len(lines) - len(old_lines) + 1) if lines[index:index + len(old_lines)] == old_lines]
+          if len(matches) != 1:
+              raise SystemExit(f"expected one inherited hard-coded caption fixture, found {len(matches)}")
+          index = matches[0]
+          lines[index:index + len(old_lines)] = new_lines
+          test_text = "\n".join(lines) + "\n"
+          if test_text.count("tf(GRAPHIC_DISPLAY_COPY, {})") != 1:
+              raise SystemExit("expected inherited graphic-display invocation")
+          test_text = test_text.replace("tf(GRAPHIC_DISPLAY_COPY, {})", "tf(LEFTOVER_MAP_PLOT_CAPTION, {})", 1)
+          test_path.write_text(test_text, encoding="utf-8")
+
+          subprocess.run([
+              "git", "add", "frontend/src/i18n.ts", "frontend/src/i18n.test.ts",
+              "frontend/src/leftoverMapPlotVietnameseCopy.test.ts",
+          ], check=True)
+
+      - name: Verify v2.38 release identity survives parent convergence
+        shell: python
+        run: |
+          import json
+          import re
+          import tomllib
+          from pathlib import Path
+
+          root = Path(".")
+          project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+          frontend = json.loads((root / "frontend/package.json").read_text(encoding="utf-8"))
+          init_text = (root / "lineageweave/__init__.py").read_text(encoding="utf-8")
+          match = re.search(r'^__version__ = "([^"]+)"$', init_text, re.MULTILINE)
+          if match is None:
+              raise SystemExit("lineageweave.__version__ declaration missing")
+          versions = (project["project"]["version"], frontend["version"], match.group(1))
+          if versions != ("2.38.0", "2.38.0", "2.38.0"):
+              raise SystemExit(f"release identity drift after convergence: {versions!r}")
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run parent-child convergence contracts
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run \
+            src/leftoverMapPlotVietnameseCopy.test.ts \
+            src/i18n.test.ts \
+            src/leftoverMapCoverage.test.ts \
+            src/components/LeftoverMapPlot.test.tsx
+
+      - name: Commit clean merge tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          rm .github/workflows/temporary-812-parent-convergence-r2.yml
+          git add -A
+          test -f .git/MERGE_HEAD
+          git commit -m "merge: converge #812 with current #811 parent"
+          git push origin HEAD:automation/812-parent-convergence-r2-20260906
