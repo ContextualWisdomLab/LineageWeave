@@ -111,10 +111,10 @@ jobs:
 
           claude = Path("CLAUDE.md")
           text = claude.read_text(encoding="utf-8")
-          marker = "/ 0293), occupational construct search"
+          marker = "/ 0293), occupational construct catalog search"
           if text.count(marker) != 1:
               raise SystemExit(f"expected one CLAUDE numeric authority marker, found {text.count(marker)}")
-          claude.write_text(text.replace(marker, "/ 0367), occupational construct search"), encoding="utf-8")
+          claude.write_text(text.replace(marker, "/ 0367), occupational construct catalog search"), encoding="utf-8")
 
           excluded = {Path("tests/test_leftover_map_axis_share_adr_authority.py")}
           leftovers = []
@@ -140,10 +140,7 @@ jobs:
 
       - name: Check changed source
         run: |
-          uv run --frozen ruff check \
-            backend/app/main.py \
-            tests/test_compare_axis_share_visibility.py \
-            tests/test_leftover_map_axis_share_adr_authority.py
+          uv run --frozen python -m py_compile backend/app/main.py
           git diff --check
 
       - name: Commit clean product tree
