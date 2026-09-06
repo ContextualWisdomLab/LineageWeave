@@ -84,9 +84,13 @@ jobs:
           )
           replace_once("ARCHITECTURE.md", architecture_old, architecture_new)
 
+          baseline_path = Path("docs/product-technical-gap-baseline.md")
+          baseline = baseline_path.read_text(encoding="utf-8")
           baseline_old = "length as separate columns.\n\n\n> Exact-head loop overlay:"
           baseline_new = "length as separate columns.\n>\n> Exact-head loop overlay:"
-          replace_once("docs/product-technical-gap-baseline.md", baseline_old, baseline_new)
+          if baseline.count(baseline_old) != 3:
+              raise SystemExit(f"{baseline_path}: expected three repeated MD028 targets, found {baseline.count(baseline_old)}")
+          baseline_path.write_text(baseline.replace(baseline_old, baseline_new), encoding="utf-8")
 
       - name: Verify repaired documentation contracts
         shell: python
@@ -107,7 +111,6 @@ jobs:
           assert "including zero and finite negative values" in storybook
           assert "persisted `leftover_map_axes` consumed through" in architecture
           assert "`leftoverMapCompareAxisShare` under the full-visible-grouping rule (ADR 0367)" in architecture
-          assert "length as separate columns.\n>\n> Exact-head loop overlay:" in baseline
           assert "length as separate columns.\n\n\n> Exact-head loop overlay:" not in baseline
 
       - name: Check clean diff
