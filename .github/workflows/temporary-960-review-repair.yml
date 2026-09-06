@@ -63,7 +63,20 @@ jobs:
           )
           if text.count(old) != 1:
               raise SystemExit("bounded-audit ancestry sentence missing")
-          baseline.write_text(text.replace(old, new, 1), encoding="utf-8")
+          text = text.replace(old, new, 1)
+
+          old_heading = "## Current bounded audit — 2026-09-06"
+          new_heading = "## Bounded audit snapshot — 2026-09-06T11:50:20Z"
+          if text.count(old_heading) != 1:
+              raise SystemExit("bounded-audit heading missing")
+          text = text.replace(old_heading, new_heading, 1)
+
+          old_queue = "Queue observed at 2026-09-06T11:50:20.768799+00:00: 121 open PRs (115 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This snapshot supersedes queue and runtime claims in the dated historical material below."
+          new_queue = "Queue observed at 2026-09-06T11:50:20.768799+00:00: 121 open PRs (115 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This is time-scoped evidence only: live GitHub PR/check/runtime state supersedes it. It supersedes only older dated snapshots below, not later live state."
+          if text.count(old_queue) != 1:
+              raise SystemExit("bounded-audit queue sentence missing")
+          text = text.replace(old_queue, new_queue, 1)
+          baseline.write_text(text, encoding="utf-8")
 
       - name: Verify focused API and status contracts
         working-directory: frontend
