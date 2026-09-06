@@ -34,7 +34,7 @@ jobs:
           test "$actual" = "$parent"
           test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-813-parent-convergence.yml"
 
-      - name: Attempt exact non-force parent merge
+      - name: Merge parent and resolve only reviewed successor overlaps
         shell: bash
         run: |
           set -euo pipefail
@@ -46,13 +46,63 @@ jobs:
           rc=$?
           set -e
           if [ "$rc" -ne 0 ]; then
-            conflicts="$(git diff --name-only --diff-filter=U | sort)"
-            echo "::error title=#813 current-parent reconstruction conflicts::${conflicts//$'\n'/, }"
-            printf '%s\n' "$conflicts"
-            exit 42
+            actual="$(git diff --name-only --diff-filter=U | sort)"
+            expected="$(printf '%s\n' \
+              docs/product-technical-gap-baseline.md \
+              frontend/src/i18n.test.ts \
+              frontend/src/i18n.ts \
+              frontend/src/leftoverMapPlotVietnameseCopy.test.ts \
+              lineageweave/__init__.py | sort)"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error title=#813 unexpected current-parent conflicts::${actual//$'\n'/, }"
+              exit 42
+            fi
+            git checkout --theirs -- docs/product-technical-gap-baseline.md frontend/src/leftoverMapPlotVietnameseCopy.test.ts
+            git checkout --ours -- frontend/src/i18n.test.ts frontend/src/i18n.ts lineageweave/__init__.py
+            git add docs/product-technical-gap-baseline.md frontend/src/i18n.test.ts frontend/src/i18n.ts frontend/src/leftoverMapPlotVietnameseCopy.test.ts lineageweave/__init__.py
           fi
+          test -z "$(git diff --name-only --diff-filter=U)"
 
-      - name: Verify v2.39 successor identity
+      - name: Reconcile v2.39 item coverage with inherited Vietnamese authority
+        shell: python
+        run: |
+          from pathlib import Path
+
+          i18n = Path("frontend/src/i18n.ts")
+          text = i18n.read_text(encoding="utf-8")
+          replacements = {
+              '"leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}"':
+                  '"leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}"',
+              "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e,":
+                  "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e,",
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"expected one inherited Vietnamese repair target: {old}")
+              text = text.replace(old, new, 1)
+          i18n.write_text(text, encoding="utf-8")
+
+          tests = Path("frontend/src/i18n.test.ts")
+          text = tests.read_text(encoding="utf-8")
+          old = "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e,"
+          new = "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e,"
+          if text.count(old) != 1:
+              raise SystemExit("expected one stale Vietnamese caption fixture")
+          tests.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          baseline = Path("docs/product-technical-gap-baseline.md")
+          text = baseline.read_text(encoding="utf-8")
+          note = (
+              "> Exact-head convergence note: v2.39.0 / ADR 0282 adds persisted item complete-case coverage "
+              "to the leftover-map graphic on current #812 while inheriting #811/#812 Vietnamese explained-share "
+              "terminology. Item coverage remains persisted-only and distinct from post coverage; no criterion-count, "
+              "rank, distance, or unused-axis inference is allowed. This Draft child inherits no predecessor checks or approval.\n\n"
+          )
+          if note not in text:
+              text = text.replace("# Product & Technical Gap Baseline\n\n", "# Product & Technical Gap Baseline\n\n" + note, 1)
+          baseline.write_text(text, encoding="utf-8")
+
+      - name: Verify v2.39 successor identity and inherited copy contract
         shell: python
         run: |
           import json
@@ -69,6 +119,20 @@ jobs:
           versions = (project["project"]["version"], frontend["version"], match.group(1))
           if versions != ("2.39.0", "2.39.0", "2.39.0"):
               raise SystemExit(f"release identity drift after convergence: {versions!r}")
+
+          i18n = Path("frontend/src/i18n.ts").read_text(encoding="utf-8")
+          assert '"Leftover-map graphic item coverage"' in i18n
+          assert "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}" in i18n
+          assert "tỷ phần phần dư được giải thích e" in i18n
+          assert "phần dư giải thích bản đồ phần dư {label}" not in i18n
+
+          vi_test = Path("frontend/src/leftoverMapPlotVietnameseCopy.test.ts").read_text(encoding="utf-8")
+          assert 'import { LEFTOVER_MAP_PLOT_CAPTION } from "./leftoverMapPlotLayout";' in vi_test
+          assert "GRAPHIC_DISPLAY_COPY" not in vi_test
+
+          baseline = Path("docs/product-technical-gap-baseline.md").read_text(encoding="utf-8")
+          assert "v2.39.0 / ADR 0282 adds persisted item complete-case coverage" in baseline
+          git_conflicts = []
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
@@ -97,6 +161,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
+          test -z "$(git diff --name-only --diff-filter=U)"
           rm .github/workflows/temporary-813-parent-convergence.yml
           git add -A
           test -f .git/MERGE_HEAD
