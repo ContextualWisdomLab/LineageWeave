@@ -1,0 +1,50 @@
+name: automation-823-current-822-reapply-probe
+
+on:
+  push:
+    branches:
+      - automation/823-current-822-reapply-probe-20260907-0833
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-823-current-822-reapply-probe
+  cancel-in-progress: true
+
+jobs:
+  reapply-probe:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_PARENT: 724872a34469c84064d5a72b07c6acf16de8a760
+      HISTORICAL_FEATURE: eb172c40d8ecd08f3e1c220cbf3117b488cddb30
+    steps:
+      - name: Checkout exact repository history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact parent and probe historical delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          test "$(git rev-parse "$HISTORICAL_FEATURE^")" = "b7222713a69acdf3d32bbce992001a2433946d21"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git cherry-pick --no-commit "$HISTORICAL_FEATURE"
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo '--- unmerged paths ---'
+            git diff --name-only --diff-filter=U
+            echo '--- conflict markers ---'
+            git grep -n '^<<<<<<<\|^=======\|^>>>>>>>' -- . ':!.github/workflows/automation-823-reapply-probe.yml' || true
+            exit "$rc"
+          fi
+          echo '--- exact-parent reapply succeeded; changed paths ---'
+          git diff --name-status "$EXPECTED_PARENT"
+          echo '--- historical ADR/version collisions expected for repair ---'
+          test -f docs/adr/0290-leftover-map-axis-singular.md
+          test -f CHANGELOG.d/2.47.0-leftover-map-axis-singular.md
