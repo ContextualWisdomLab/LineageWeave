@@ -4273,6 +4273,16 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map item coverage"),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison item coverage",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison item coverage",
+      )[0],
+    ).toHaveTextContent("Leftover map used 2 of 2 scored criteria (complete-case)");
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete posts"),
     ).not.toBeInTheDocument();
     expect(
