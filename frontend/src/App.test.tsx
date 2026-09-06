@@ -4181,14 +4181,14 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(await screen.findByLabelText("Leftover pairs")).toBeInTheDocument();
-    expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Leftover-map graphic display")).toHaveLength(2);
     expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
     expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
+      screen.getAllByRole("button", {
         name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
       }),
-    ).toBeInTheDocument();
+    ).toHaveLength(2);
     expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -4279,6 +4279,21 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
     expect(
+      await within(screen.getByLabelText("Grouping comparison")).findByLabelText(
+        "Leftover-map graphic display",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover-map graphic display",
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByRole("button", {
+        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
+      }),
+    ).toBeInTheDocument();
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map coverage"),
     ).not.toBeInTheDocument();
     expect(
@@ -4349,7 +4364,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map reconstruction/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("R̂ +0.25");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison reconstruction",
@@ -4364,7 +4379,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map explained leftover share/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("R̂²/R² 0.76");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison explained leftover share",
@@ -4379,7 +4394,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map unexplained leftover share/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("U²/R² 0.02");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison unexplained leftover share",
@@ -4394,7 +4409,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map cross share/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("2R̂U/R² 0.12");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison cross share",
@@ -4406,10 +4421,10 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        /leftover-map unexplained leftover/,
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover-map unexplained leftover U +0.05",
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("U +0.05");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison unexplained leftover",
@@ -4421,10 +4436,10 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        /leftover residual/,
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover residual R +0.40",
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("R +0.40");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
         "Leftover map comparison residual",
@@ -4444,7 +4459,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover observed/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("Y 2.40");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison observed",
@@ -4459,7 +4474,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover expected/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("E 2.00");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison expected",
@@ -4474,7 +4489,7 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         /leftover-map rank/,
       ),
-    ).not.toBeInTheDocument();
+    ).toHaveTextContent("rank 1");
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison rank",
@@ -4486,10 +4501,10 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        /leftover-map axis/,
-      ),
-    ).not.toBeInTheDocument();
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        /leftover-map axis \d tick/,
+      ).length,
+    ).toBeGreaterThan(0);
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison coordinates",
@@ -4648,6 +4663,19 @@ describe("App, authenticated", () => {
     await userEvent.click(
       await screen.findByRole("button", {
         name: /open leftover closest pair from comparison: public post/i,
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("opens a leftover pair post from the grouping comparison leftover-map graphic", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    const comparison = await screen.findByLabelText("Grouping comparison");
+    await userEvent.click(
+      await within(comparison).findByRole("button", {
+        name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());

@@ -101,6 +101,9 @@ function leftoverMapPlotAxisText(
  * Omit that axis badge when share is
  * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
+ * ADR 0304 reuses this graphic on the grouping comparison strip from
+ * already-named leftover-map coordinates and does not caption leftover-map
+ * axis share or leftover-map coverage on that comparison plot.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
