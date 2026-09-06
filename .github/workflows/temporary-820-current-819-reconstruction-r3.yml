@@ -1,0 +1,277 @@
+name: Temporary 820 current-819 reconstruction r3
+
+on:
+  push:
+    branches:
+      - "automation/820-current-819-reconstruction-r3-20260907"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-820-current-819-reconstruction-r3
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact reconstruction branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/820-current-819-reconstruction-r3-20260907
+          fetch-depth: 0
+
+      - name: Verify exact current parent and historical feature
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=f37ca315e3c48fa37bbcafe96e46c5d7dab991b7
+          feature=b7222713a69acdf3d32bbce992001a2433946d21
+          workflow=.github/workflows/temporary-820-current-819-reconstruction-r3.yml
+          git fetch origin feat/leftover-map-list-post-coverage-helper-v2450 feat/leftover-map-plot-singular-v2460
+          test "$(git rev-parse origin/feat/leftover-map-list-post-coverage-helper-v2450)" = "$parent"
+          test "$(git rev-parse origin/feat/leftover-map-plot-singular-v2460)" = "$feature"
+          git merge-base --is-ancestor "$parent" HEAD
+          test "$(git diff --name-only "$parent"..HEAD)" = "$workflow"
+
+      - name: Reapply v2.46 delta and preserve all exact-parent regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=f37ca315e3c48fa37bbcafe96e46c5d7dab991b7
+          feature=b7222713a69acdf3d32bbce992001a2433946d21
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          set +e
+          git cherry-pick --no-commit "$feature"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          conflicts="$(git diff --name-only --diff-filter=U | sort)"
+          expected=$'docs/product-technical-gap-baseline.md\nfrontend/src/components/LeftoverMapPlot.test.tsx'
+          test "$conflicts" = "$expected"
+
+          git checkout --ours docs/product-technical-gap-baseline.md
+          git checkout --theirs frontend/src/components/LeftoverMapPlot.test.tsx
+
+          PARENT="$parent" python - <<'PY'
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          parent = os.environ["PARENT"]
+          test_path = Path("frontend/src/components/LeftoverMapPlot.test.tsx")
+          current = test_path.read_text(encoding="utf-8")
+          parent_text = subprocess.check_output(
+              ["git", "show", f"{parent}:frontend/src/components/LeftoverMapPlot.test.tsx"],
+              text=True,
+          )
+          title_pattern = re.compile(r'\n  it\("([^"]+)"')
+          parent_titles = title_pattern.findall(parent_text)
+          current_titles = set(title_pattern.findall(current))
+          missing = set(parent_titles) - current_titles
+          expected_missing = {
+              "renders every distinct persisted tick when rounded labels match",
+              "captions leftover-map axes with persisted leftover-map axis share",
+              "keeps existing leftover-map axis text when share is missing or non-finite",
+          }
+          if missing != expected_missing:
+              raise SystemExit(f"unexpected parent-only LeftoverMapPlot tests: {sorted(missing)!r}")
+
+          ordered_missing = [title for title in parent_titles if title in expected_missing]
+          insert_at = current.rfind("\n});")
+          if insert_at < 0:
+              raise SystemExit("LeftoverMapPlot test suite terminator missing")
+          blocks = []
+          for title in ordered_missing:
+              marker = f'\n  it("{title}"'
+              start = parent_text.index(marker)
+              end = parent_text.find('\n  it("', start + len(marker))
+              if end < 0:
+                  end = parent_text.rfind("\n});")
+              if end < 0:
+                  raise SystemExit(f"could not delimit current-parent regression block: {title}")
+              blocks.append(parent_text[start:end])
+          merged = current[:insert_at] + "".join(blocks) + current[insert_at:]
+          merged_titles = set(title_pattern.findall(merged))
+          if not expected_missing.issubset(merged_titles):
+              raise SystemExit("one or more exact-parent regressions were not restored")
+          test_path.write_text(merged, encoding="utf-8")
+
+          Path("tests/test_adr_0289_governance.py").write_text(
+              '''"""Governance regression for draft ADR 0289."""\n\nfrom pathlib import Path\n\nADR_PATH = Path(__file__).parents[1] / "docs/adr/0289-leftover-map-plot-singular.md"\n\ndef test_draft_adr_0289_remains_proposed() -> None:\n    """Keep the unmerged decision proposed until independent acceptance exists."""\n    text = ADR_PATH.read_text(encoding="utf-8")\n    assert "**Decision status:** Proposed" in text\n    assert "**Decision status:** Accepted" not in text\n''',
+              encoding="utf-8",
+          )
+
+          baseline = Path("docs/product-technical-gap-baseline.md")
+          text = baseline.read_text(encoding="utf-8")
+          title_line = "# Product & Technical Gap Baseline\n"
+          if not text.startswith(title_line):
+              raise SystemExit("gap baseline title missing")
+          marker = "> #820 exact-current-parent reconstruction: persisted singular-value axis badges"
+          if marker not in text:
+              note = (
+                  "\n> #820 exact-current-parent reconstruction: persisted singular-value axis badges\n"
+                  "> are being reconstructed from #819 `f37ca315e3c48fa37bbcafe96e46c5d7dab991b7`.\n"
+                  "> Preserve finite, non-negative persisted `σ_k`, including rank-0 `σ 0.00`; omit missing,\n"
+                  "> non-finite, or negative singular values independently of axis share. Never derive `σ_k`\n"
+                  "> from share, distance, rank, or plotted coordinates. ADR 0289 stays Proposed while Draft,\n"
+                  "> and package/frontend/runtime identity must converge at 2.46.0 before promotion. #821 must\n"
+                  "> use a distinct ADR/release identity for its different decision.\n"
+              )
+              baseline.write_text(title_line + note + text[len(title_line):], encoding="utf-8")
+          PY
+
+          git add docs/product-technical-gap-baseline.md frontend/src/components/LeftoverMapPlot.test.tsx tests/test_adr_0289_governance.py
+          test -z "$(git diff --name-only --diff-filter=U)"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install locked Python dev dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify realistic release and governance RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          uv run --frozen python -m pytest -q tests/test_package_version.py >/tmp/release-red.log 2>&1
+          release_status=$?
+          uv run --frozen python -m pytest -q tests/test_adr_0289_governance.py >/tmp/governance-red.log 2>&1
+          governance_status=$?
+          set -e
+          cat /tmp/release-red.log
+          cat /tmp/governance-red.log
+          test "$release_status" -ne 0
+          test "$governance_status" -ne 0
+          grep -q 'test_release_versions_are_synchronized' /tmp/release-red.log
+          grep -q 'test_draft_adr_0289_remains_proposed' /tmp/governance-red.log
+
+      - name: Apply minimal causal release and governance fix
+        shell: python
+        run: |
+          import json
+          import re
+          import tomllib
+          from pathlib import Path
+
+          adr = Path("docs/adr/0289-leftover-map-plot-singular.md")
+          text = adr.read_text(encoding="utf-8")
+          old = "**Decision status:** Accepted"
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one ADR0289 Accepted marker, found {text.count(old)}")
+          adr.write_text(text.replace(old, "**Decision status:** Proposed", 1), encoding="utf-8")
+
+          init_path = Path("lineageweave/__init__.py")
+          init_text = init_path.read_text(encoding="utf-8")
+          init_text, count = re.subn(
+              r'^__version__ = "[^"]+"$',
+              '__version__ = "2.46.0"',
+              init_text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("runtime version declaration missing")
+          init_path.write_text(init_text, encoding="utf-8")
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          frontend = json.loads(Path("frontend/package.json").read_text(encoding="utf-8"))
+          runtime = re.search(r'^__version__ = "([^"]+)"$', init_text, re.MULTILINE)
+          versions = (project["project"]["version"], frontend["version"], runtime.group(1) if runtime else None)
+          if versions != ("2.46.0", "2.46.0", "2.46.0"):
+              raise SystemExit(f"release identity drift after reconstruction: {versions!r}")
+
+      - name: Verify inherited authority and v2.46 contract are both present
+        shell: python
+        run: |
+          from pathlib import Path
+          tests = Path("frontend/src/components/LeftoverMapPlot.test.tsx").read_text(encoding="utf-8")
+          for title in (
+              "renders every distinct persisted tick when rounded labels match",
+              "captions leftover-map axes with persisted leftover-map axis share",
+              "keeps existing leftover-map axis text when share is missing or non-finite",
+              "captions leftover-map axes with persisted leftover-map singular values and leftover-map axis share",
+          ):
+              assert title in tests
+          i18n = Path("frontend/src/i18n.ts").read_text(encoding="utf-8")
+          assert "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}" in i18n
+          for number, slug in (
+              (283, "leftover-map-plot-incomplete"),
+              (284, "leftover-map-plot-incomplete-item"),
+              (285, "leftover-map-list-item-coverage"),
+              (286, "leftover-map-list-incomplete-post"),
+              (287, "leftover-map-list-incomplete-item"),
+              (288, "leftover-map-list-post-coverage-helper"),
+              (289, "leftover-map-plot-singular"),
+          ):
+              text = Path(f"docs/adr/{number:04d}-{slug}.md").read_text(encoding="utf-8")
+              assert "**Decision status:** Proposed" in text
+              assert "**Decision status:** Accepted" not in text
+
+      - name: Verify exact GREEN for release and governance contracts
+        run: uv run --frozen python -m pytest -q tests/test_package_version.py tests/test_adr_0288_governance.py tests/test_adr_0289_governance.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify v2.46 and inherited frontend contracts
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/App.test.tsx
+          src/i18n.test.ts
+          src/leftoverMapCoverage.test.ts
+          src/leftoverMapPlotAxisSingular.test.ts
+          src/leftoverMapPlotLayout.test.ts
+          src/leftoverMapPlotSmallCanvas.test.ts
+          src/leftoverMapPlotVietnameseCopy.test.ts
+          src/components/LeftoverMapPlot.test.tsx
+          src/components/LeftoverPairList.test.tsx
+
+      - name: Verify frontend lint and production build
+        working-directory: frontend
+        run: |
+          pnpm exec oxlint
+          pnpm run build
+
+      - name: Verify Storybook build
+        working-directory: frontend
+        run: pnpm run build-storybook
+
+      - name: Commit workflow-free reconstructed tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-820-current-819-reconstruction-r3.yml
+          git diff --check
+          git diff --cached --check
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-820-current-819-reconstruction-r3\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-820-current-819-reconstruction-r3.yml'
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git commit -m "merge: reconstruct #820 on exact current #819"
+          git push origin HEAD:automation/820-current-819-reconstruction-r3-20260907
