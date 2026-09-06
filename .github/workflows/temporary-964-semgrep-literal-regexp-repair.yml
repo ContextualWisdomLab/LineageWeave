@@ -93,7 +93,7 @@ jobs:
           git diff --check
           rm "$workflow"
           git add -A
-          test "$(git diff --cached --name-only | sort)" = $'frontend/src/k6Diagnostics.test.ts\n.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml'
+          test "$(git diff --cached --name-only | sort)" = $'.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml\nfrontend/src/k6Diagnostics.test.ts'
           test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
