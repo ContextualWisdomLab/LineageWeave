@@ -8,7 +8,8 @@ machine-readable inventory is
 [`development-loop-20260906-voice-admission.json`](development-loop-20260906-voice-admission.json).
 
 Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
-The complete remote PR listing contains **120 open PRs: 6 Ready and 114 Draft**.
+The remote PR listing captured before this increment contains **120 open PRs:
+6 Ready and 114 Draft**.
 All exact head/base pairs were retained and their changed-path inventories inspected. The
 current issue count is unavailable: the REST refresh exhausted its quota.
 The older count of 16 is not a current observation.
@@ -61,7 +62,7 @@ unmerged #780. It does not absorb #934/#935's exports or #936's history changes.
 | Minimal implementation | Existing scope/eligibility predicates admit both source rows under ordered `FOR SHARE` locks inside the existing write transaction; a miss returns actionable 409 before persistence | No new schema, Voice code, numerical policy, API shape or release number |
 | Regression | Withdrawn-target write is rejected; the candidate assignment is absent; a competing PostgreSQL session cannot acquire a non-key-update lock on either source row; existing evidence rollback, cutoff/filter visibility and primary history pass | Authenticated API and database evidence for this candidate, not deployed protected-main acceptance |
 | Edge cases | Uppercase UUID spelling and carrying-Post self-evidence succeed; prior stored assignments survive later visibility withdrawal | Existing provenance and temporal contracts preserved |
-| Local validation | 17 focused backend/live/docstring tests, 59 ontology/schema tests, 35 documentation/visibility/cutoff/ontology tests, and 21 focused frontend tests pass; final live copy assertion also passes | Suite counts overlap; do not sum them as distinct tests |
+| Local validation | 17 focused backend/live/docstring tests, 59 ontology/schema tests, 35 documentation/visibility/cutoff/ontology tests, and 32 focused frontend tests pass; final live copy assertion also passes | Suite counts overlap; do not sum them as distinct tests |
 | Rendered evidence | New `PostNoLongerAvailable` Storybook interaction displays the actual API conflict copy at 1440 and 390 pixels, keeps selections, emits no success notice, and has no document overflow | Component rendering, not an authenticated deployed full-application journey |
 | Build evidence | Frontend lint/build and Storybook build pass | Existing large-chunk advisory remains; no warning threshold or deprecation suppression added |
 
@@ -87,7 +88,11 @@ No customer message exposes database, worker, model or provider terminology.
   properties; #935 preserves filtered export parity and spreadsheet safety;
   #936 preserves additional-Voice correction intervals. They remain distinct
   unmerged candidates. No candidate's checks or screenshots transfer to another
-  head. #937 repairs read/write authorization rather than a numerical engine.
+  head. On #935 at `7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3`,
+  45 local layout/pagination/CSV/Explorer tests passed, including singleton
+  property accumulation, order-insensitive deduplication and filtered exports.
+  That is sibling-candidate validation, not protected delivery. #937 repairs
+  read/write authorization rather than a numerical engine.
 - **Current non-identifying census:** a read-only query on formal
   `lineageweave-postgres-1` counted 43,189 source records, 43,189 current Voice
   assignments, zero current additional assignments and zero closed intervals.

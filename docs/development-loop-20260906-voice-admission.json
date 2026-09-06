@@ -1459,7 +1459,7 @@
     "backend_focused_with_live": 17,
     "ontology_and_schema": 59,
     "documentation_cutoff_visibility_ontology": 35,
-    "frontend_focused": 21,
+    "frontend_focused": 32,
     "live_after_copy_assertion": 1,
     "lint": "passed",
     "frontend_build": "passed",
@@ -1844,5 +1844,19 @@
         "CONFLICT (content): Merge conflict in docs/product-technical-gap-baseline.md"
       ]
     }
-  ]
+  ],
+  "queue_observed_at": "2026-09-06T07:32:33.865112+00:00",
+  "sibling_export_validation": {
+    "pr": 935,
+    "head": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
+    "local_tests_passed": 45,
+    "protected_delivery": false
+  },
+  "implementation_documentation_head_checked": "1b64f07debf97218b01522b5fc6560e9c2a25edf",
+  "implementation_documentation_head_workflow": {
+    "run_id": 34020254308,
+    "status": "completed",
+    "conclusion": "skipped",
+    "reason": "Draft admission, not acceptance"
+  }
 }
