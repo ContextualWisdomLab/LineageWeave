@@ -69,8 +69,11 @@ or candidate deployment evidence. The mixed/private source was not load-tested.
 Synthetic-only authenticated k6 latency/concurrency/error/throughput and correlated
 PostgreSQL/worker/Valkey/gateway saturation remain unavailable. No performance
 change is justified by this idle snapshot. Candidate authenticated API, desktop
-and mobile rendering, and Voice acceptance remain unverified. No historical
-screenshots or load observations are promoted to current-head acceptance.
+and mobile rendering, and Voice acceptance remain unverified. Follow-on verification at #780 exact head
+`1d8fa267b059289e77301a09985dfac70a439814` passed seven Voice authority/history
+tests; its authenticated PostgreSQL API case skipped because the local-stack
+availability precondition was not satisfied. A skip is not API evidence.
+No historical screenshots or load observations are promoted to current-head acceptance.
 
 ## Bounded observation — 2026-09-06 23:39 KST
 
