@@ -35,11 +35,20 @@ jobs:
           git merge --no-commit --no-ff "$parent"
           status=$?
           set -e
-          echo "MERGE_STATUS=$status"
-          echo "CONFLICTS_BEGIN"
-          git diff --name-only --diff-filter=U | sort
-          echo "CONFLICTS_END"
-          echo "PARENT_ONLY_BEGIN"
-          git diff --name-only "$product" "$parent" | sort
-          echo "PARENT_ONLY_END"
-          exit 0
+          {
+            echo "MERGE_STATUS=$status"
+            echo "CONFLICTS_BEGIN"
+            git diff --name-only --diff-filter=U | sort
+            echo "CONFLICTS_END"
+            echo "PARENT_DIFF_BEGIN"
+            git diff --name-only "$product" "$parent" | sort
+            echo "PARENT_DIFF_END"
+          } | tee conflict-manifest.txt
+
+      - name: Upload conflict manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: conflict-manifest
+          path: conflict-manifest.txt
+          if-no-files-found: error
+          retention-days: 1
