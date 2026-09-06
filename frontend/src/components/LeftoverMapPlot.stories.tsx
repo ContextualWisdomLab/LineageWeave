@@ -178,3 +178,17 @@ export const ComparisonMissingIncompletePosts: Story = {
     },
   },
 };
+
+export const ComparisonMissingIncompleteItems: Story = {
+  args: {
+    variant: "comparison",
+    leftoverMapCoverage: {
+      map_post_count: 2,
+      scored_post_count: 3,
+      map_item_count: 2,
+      scored_item_count: 2,
+      incomplete_post_count: 1,
+      incomplete_item_count: 1,
+    },
+  },
+};
