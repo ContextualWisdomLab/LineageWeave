@@ -1,5 +1,11 @@
 # Product & Technical Gap Baseline
 
+> #819 current-parent reconstruction: v2.45 pair-list post coverage fail-close
+> is being rebuilt from exact #818 `bc971a402ef9faecb2f0b4ffd743092f4779d76b`.
+> Preserve only feature delta `a2c965511d26923bd878ec56d655fb8a0183c4d7`;
+> historical convergence is evidence only. ADR 0288 remains Proposed while Draft,
+> and package/frontend/runtime release identity must converge at 2.45.0 before promotion.
+
 > Exact-head loop overlay: 2026-08-30 22:18 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808

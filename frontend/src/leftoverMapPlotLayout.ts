@@ -12,10 +12,11 @@
  *  rank (ADR 0280). The plot names persisted leftover-map complete-case
  *  coverage (ADR 0281), leftover-map item complete-case coverage
  *  (ADR 0282), leftover-map incomplete post coverage (ADR 0283), and
- *  leftover-map incomplete item coverage (ADR 0284). Pair-list item
- *  complete-case coverage (ADR 0285), pair-list incomplete post
- *  coverage (ADR 0286), and pair-list incomplete item coverage
- *  (ADR 0287) caption the pair list, not this graphic layout.
+ *  leftover-map incomplete item coverage (ADR 0284). Pair-list post
+ *  complete-case coverage fail-closed through leftoverMapCoverageCounts
+ *  (ADR 0288), pair-list item complete-case coverage (ADR 0285), pair-list
+ *  incomplete post coverage (ADR 0286), and pair-list incomplete item
+ *  coverage (ADR 0287) caption the pair list, not this graphic layout.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
