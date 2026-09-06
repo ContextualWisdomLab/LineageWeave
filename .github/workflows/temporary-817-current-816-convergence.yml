@@ -1,0 +1,116 @@
+name: Temporary 817 current-816 convergence
+
+on:
+  push:
+    branches:
+      - "automation/817-current-816-convergence-20260907"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-817-current-816-convergence
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact convergence branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/817-current-816-convergence-20260907
+          fetch-depth: 0
+
+      - name: Verify exact product and parent heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=9604ace428681de963519d058e39c01e41e3c73f
+          parent=4d81c881469496fedeb8d9bb98cd485209df2089
+          workflow=.github/workflows/temporary-817-current-816-convergence.yml
+          git fetch origin feat/leftover-map-list-incomplete-post-v2430 feat/leftover-map-list-item-coverage-v2420
+          test "$(git rev-parse origin/feat/leftover-map-list-incomplete-post-v2430)" = "$product"
+          test "$(git rev-parse origin/feat/leftover-map-list-item-coverage-v2420)" = "$parent"
+          git merge-base --is-ancestor "$product" HEAD
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+
+      - name: Merge exact current parent without rewriting child history
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=4d81c881469496fedeb8d9bb98cd485209df2089
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-commit --no-ff "$parent"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          test "$(git diff --name-only HEAD | sort)" = "frontend/src/leftoverMapPlotLayout.test.ts"
+
+      - name: Verify inherited rank boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'expect(segment.rankLabel).toBe("rank 1")' frontend/src/leftoverMapPlotLayout.test.ts
+          grep -q 'expect(segment.rankY).toBeGreaterThan(segment.expectedY)' frontend/src/leftoverMapPlotLayout.test.ts
+          grep -q 'expect(segment.rankY).toBeLessThanOrEqual(layout!.height - 4)' frontend/src/leftoverMapPlotLayout.test.ts
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install locked Python dev dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify v2.43 governance and release identity
+        run: uv run --frozen python -m pytest -q tests/test_adr_0286_governance.py tests/test_package_version.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Verify current-parent and v2.43 presentation contracts
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/leftoverMapPlotLayout.test.ts
+          src/leftoverMapPlotSmallCanvas.test.ts
+          src/leftoverMapPlotVietnameseCopy.test.ts
+          src/leftoverMapCoverage.test.ts
+          src/i18n.test.ts
+          src/components/LeftoverMapPlot.test.tsx
+          src/components/LeftoverPairList.test.tsx
+
+      - name: Verify frontend lint
+        working-directory: frontend
+        run: pnpm exec oxlint
+
+      - name: Commit workflow-free converged tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-817-current-816-convergence.yml
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-817-current-816-convergence\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-817-current-816-convergence.yml'
+          test "$(git diff --cached --name-only | grep -v '^\.github/workflows/temporary-817-current-816-convergence\.yml$' | sort)" = "frontend/src/leftoverMapPlotLayout.test.ts"
+          git commit -m "merge: converge #817 with current #816"
+          git push origin HEAD:automation/817-current-816-convergence-20260907
