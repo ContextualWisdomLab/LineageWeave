@@ -99,7 +99,7 @@ jobs:
       - name: Validate backend rank-payload contract
         run: |
           uv sync --frozen --extra dev --extra backend
-          uv run --frozen python -m pytest -q backend/tests/test_api.py -k 'period_comparison'
+          uv run --frozen python -m pytest -q backend/tests/test_api.py -k 'test_seed_period_report_surfaces_on_get_reports'
           uv run --frozen python -m py_compile backend/app/report_ingestion.py
 
       - name: Validate frontend composition contract
