@@ -359,7 +359,7 @@ describe("i18n", () => {
     ],
     [
       "vi",
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     ],
   ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
     setLocale(locale);
@@ -474,7 +474,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 설명 잔여 점유율 R̂²/R² 0.76"],
     ["zh", "残差图已解释残差份额 R̂²/R² 0.76"],
     ["ja", "残差マップ説明済み残差割合 R̂²/R² 0.76"],
-    ["vi", "phần dư giải thích bản đồ phần dư R̂²/R² 0.76"],
+    ["vi", "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"],
   ] as const)("formats leftover-map segment explained leftover share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map explained leftover share {label}", { label: "R̂²/R² 0.76" })).toBe(
