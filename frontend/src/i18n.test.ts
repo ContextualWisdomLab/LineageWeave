@@ -43,6 +43,7 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "leftover axis {axis} {share}%",
+    "leftover map comparison axis {axis} {share}%",
     "Leftover-map axis share",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
     "Leftover pairs",
@@ -91,6 +92,7 @@ describe("i18n", () => {
     "Leftover map comparison expected",
     "Leftover map comparison rank",
     "Leftover map comparison coordinates",
+    "Leftover map comparison axis share",
     "Leftover-map graphic item coverage",
     "Leftover map item coverage",
     "Leftover map incomplete posts",
@@ -558,6 +560,19 @@ describe("i18n", () => {
     (locale, expected) => {
       setLocale(locale);
       expect(t("Leftover map comparison coordinates")).toBe(expected);
+    },
+  );
+
+  it.each([
+    ["ko", "잔여 지도 비교 축 비율"],
+    ["zh", "残差地图比较轴占比"],
+    ["ja", "残差マップの比較軸の比率"],
+    ["vi", "Tỷ trọng trục so sánh bản đồ phần dư"],
+  ] as const)(
+    "formats leftover map comparison axis share label in %s",
+    (locale, expected) => {
+      setLocale(locale);
+      expect(t("Leftover map comparison axis share")).toBe(expected);
     },
   );
 
