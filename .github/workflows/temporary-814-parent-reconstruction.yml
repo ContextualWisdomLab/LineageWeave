@@ -170,10 +170,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          workflow=.github/workflows/temporary-814-parent-reconstruction.yml
           git diff --check
-          rm .github/workflows/temporary-814-parent-reconstruction.yml
+          rm "$workflow"
           git add -A
-          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' || true)"
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-814-parent-reconstruction\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-814-parent-reconstruction.yml'
           test -z "$(git diff --name-only --diff-filter=U)"
           git commit -m "merge: reconstruct #814 on current #813 parent"
           git push origin HEAD:automation/814-parent-reconstruction-20260906
