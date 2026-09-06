@@ -62,43 +62,25 @@ jobs:
           insert = marker + """    const captionCount = [\n      distanceLabel,\n      reconstructionLabel,\n      explainedShareLabel,\n      unexplainedShareLabel,\n      crossShareLabel,\n      unexplainedLeftoverLabel,\n      residualLabel,\n      observedLabel,\n      expectedLabel,\n      rankLabel,\n    ].filter((label) => label !== null).length;\n    const captionSpacing = leftoverMapCaptionSpacing(height, captionCount);\n    const maximumLabelY = Math.max(\n      SEGMENT_LABEL_TOP_INSET,\n      height -\n        SEGMENT_LABEL_BOTTOM_INSET -\n        Math.max(0, captionCount - 1) * captionSpacing,\n    );\n    const labelY = Math.min(\n      Math.max(labelPosition.labelY, SEGMENT_LABEL_TOP_INSET),\n      maximumLabelY,\n    );\n"""
           replace_once(marker, insert)
 
-          text = text.replace("leftoverMapStackedCaptionY(\n      labelPosition.labelY,", "leftoverMapStackedCaptionY(\n      labelY,")
-          if text.count("captionSpacing,\n    );") != 0:
-              raise SystemExit("caption spacing already partially present before deterministic repair")
+          replaced = text.count("leftoverMapStackedCaptionY(\n      labelPosition.labelY,")
+          if replaced != 10:
+              raise SystemExit(f"expected ten old stacked-caption labelY arguments, found {replaced}")
+          text = text.replace(
+              "leftoverMapStackedCaptionY(\n      labelPosition.labelY,",
+              "leftoverMapStackedCaptionY(\n      labelY,",
+          )
 
-          calls = [
-              "distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,",
-              "(distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),",
-              "(explainedShareLabel !== null ? 1 : 0),",
-              "(unexplainedShareLabel !== null ? 1 : 0),",
-              "(crossShareLabel !== null ? 1 : 0),",
-              "(unexplainedLeftoverLabel !== null ? 1 : 0),",
-              "(residualLabel !== null ? 1 : 0),",
-              "(observedLabel !== null ? 1 : 0),",
-              "(expectedLabel !== null ? 1 : 0),",
-          ]
-          # Insert captionSpacing before each of the ten stacked-caption closing calls.
-          cursor = 0
-          pieces = []
-          while True:
-              start = text.find("leftoverMapStackedCaptionY(", cursor)
-              if start < 0:
-                  pieces.append(text[cursor:])
-                  break
-              pieces.append(text[cursor:start])
-              end = text.find("\n    );", start)
-              if end < 0:
-                  raise SystemExit("unterminated stacked-caption call")
+          cursor = text.index("    const reconstructionY = leftoverMapStackedCaptionY(")
+          for index in range(10):
+              start = text.index("leftoverMapStackedCaptionY(", cursor)
+              end = text.index("\n    );", start)
               call = text[start:end]
-              if "captionSpacing" not in call:
-                  call += "\n      captionSpacing,"
-              pieces.append(call + "\n    );")
-              cursor = end + len("\n    );")
-          text = "".join(pieces)
-          if text.count("leftoverMapStackedCaptionY(") != 10:
-              raise SystemExit("expected ten stacked caption calls")
-          if text.count("captionSpacing,") != 10:
-              raise SystemExit(f"expected ten caption-spacing call arguments, found {text.count('captionSpacing,')}")
+              if "captionSpacing," in call:
+                  raise SystemExit(f"stacked-caption call {index} already has spacing")
+              text = text[:end] + "\n      captionSpacing," + text[end:]
+              cursor = end + len("\n      captionSpacing,\n    );")
+          if text.find("leftoverMapStackedCaptionY(", cursor) != -1:
+              raise SystemExit("unexpected extra stacked-caption call after rank caption")
 
           replace_once(
               "      rankY,\n      ...labelPosition,\n    });",
@@ -149,7 +131,10 @@ jobs:
           text = text.replace(old_header, new_header, 1)
           if text.count("tf(GRAPHIC_DISPLAY_COPY, {})") != 1:
               raise SystemExit("expected one stale GRAPHIC_DISPLAY_COPY use")
-          vi_test.write_text(text.replace("tf(GRAPHIC_DISPLAY_COPY, {})", "tf(LEFTOVER_MAP_PLOT_CAPTION, {})", 1), encoding="utf-8")
+          vi_test.write_text(
+              text.replace("tf(GRAPHIC_DISPLAY_COPY, {})", "tf(LEFTOVER_MAP_PLOT_CAPTION, {})", 1),
+              encoding="utf-8",
+          )
 
       - name: Synchronize runtime release identity
         shell: python
