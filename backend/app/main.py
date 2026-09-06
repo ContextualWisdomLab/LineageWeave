@@ -1862,6 +1862,28 @@ async def create_post_voice_assignment(
     if evidence_post_id != post_id:
         await _load_visible_post(evidence_post_id, account, pool)
     async with pool.acquire() as conn, conn.transaction():
+        source_ids = {UUID(post_id), request.evidence_post_id}
+        # Lock both authorization-bearing rows in one order before persistence;
+        # source visibility/lifecycle updates must wait until this write ends.
+        admitted = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            select source_post.post_id
+              from source_post
+             where source_post.post_id = any($3::uuid[])
+               and {source_post_scope_sql('source_post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+             order by source_post.post_id
+             for share
+            """,
+            list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
+            list(source_ids),
+        )
+        if {row["post_id"] for row in admitted} != source_ids:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "The post or its evidence is no longer available. Reopen the post and try again.",
+            )
         try:
             await persist_additional_voice_assignment(
                 conn,

@@ -202,6 +202,69 @@ def test_voice_reads_reauthorize_evidence_without_changing_assignments(
                         "select exists (select 1 from source_post_voice "
                         "where post_id=$1::uuid and voice_type_code='voe')", post,
                     )
+                monkeypatch.setattr(main, "persist_additional_voice_assignment", persist)
+                visible_post = main._load_visible_post
+
+                async def visible_then_withdraw_target(post_id, *args, **kwargs):
+                    row = await visible_post(post_id, *args, **kwargs)
+                    if post_id == evidence:
+                        async with pool.acquire() as conn:
+                            await conn.execute(
+                                "update source_post set visibility_code='private' "
+                                "where post_id=$1::uuid", post,
+                            )
+                    return row
+
+                monkeypatch.setattr(main, "_load_visible_post", visible_then_withdraw_target)
+                revoked_target = await client.post(
+                    f"/api/posts/{post}/voice-assignments",
+                    json={"voice_type_code": "voi", "truth_status_code": "truth_proposed",
+                          "evidence_post_id": evidence},
+                )
+                assert revoked_target.status_code == 409
+                assert revoked_target.json()["detail"] == (
+                    "The post or its evidence is no longer available. Reopen the post and try again."
+                )
+                assert post not in revoked_target.text
+                assert evidence not in revoked_target.text
+                async with pool.acquire() as conn:
+                    assert not await conn.fetchval(
+                        "select exists (select 1 from source_post_voice "
+                        "where post_id=$1::uuid and voice_type_code='voi')", post,
+                    )
+                    await conn.execute(
+                        "update source_post set visibility_code='public' where post_id=$1::uuid", post,
+                    )
+                monkeypatch.setattr(main, "_load_visible_post", visible_post)
+
+                async def persist_with_locked_sources(conn, **kwargs):
+                    # A second real PostgreSQL session must not change either
+                    # authorization-bearing source row before the write commits.
+                    async with pool.acquire() as competing:
+                        for source_id in (post, evidence):
+                            with pytest.raises(asyncpg.LockNotAvailableError):
+                                await competing.fetchrow(
+                                    "select post_id from source_post where post_id=$1::uuid "
+                                    "for no key update nowait", source_id,
+                                )
+                    await persist(conn, **kwargs)
+
+                monkeypatch.setattr(main, "persist_additional_voice_assignment", persist_with_locked_sources)
+                locked_write = await client.post(
+                    f"/api/posts/{post}/voice-assignments",
+                    json={"voice_type_code": "voi", "truth_status_code": "truth_proposed",
+                          "evidence_post_id": evidence},
+                )
+                assert locked_write.status_code == 201
+                assert locked_write.json()["code"] == "voi"
+                monkeypatch.setattr(main, "persist_additional_voice_assignment", persist)
+                self_evidence = await client.post(
+                    f"/api/posts/{post.upper()}/voice-assignments",
+                    json={"voice_type_code": "vor", "truth_status_code": "truth_proposed",
+                          "evidence_post_id": post},
+                )
+                assert self_evidence.status_code == 201
+                assert self_evidence.json()["code"] == "vor"
         finally:
             main.app.dependency_overrides.clear()
             main.app.dependency_overrides.update(overrides)

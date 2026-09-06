@@ -19,6 +19,9 @@ class _FakeConnection:
     def __init__(self) -> None:
         self.transaction_depth = 0
 
+    async def fetch(self, _sql, _entities, _process_units, source_ids):
+        return [{"post_id": source_id} for source_id in source_ids]
+
     @asynccontextmanager
     async def transaction(self):
         self.transaction_depth += 1
