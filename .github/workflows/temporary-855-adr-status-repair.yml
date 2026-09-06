@@ -76,9 +76,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          expected="$(printf '%s\n' docs/adr/0315-leftover-map-compare-plot-residual.md tests/test_adr_0315_governance.py | sort)"
-          actual="$(git diff --cached --name-only | grep -v "^${workflow}$" | sort)"
-          test "$actual" = "$expected"
-          test "$(git diff --cached --name-only | grep "^${workflow}$")" = "$workflow"
+          test "$(git diff --cached --name-only | grep -v "^${workflow}$")" = "docs/adr/0315-leftover-map-compare-plot-residual.md"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-855-adr-status-repair.yml'
           git commit -m "docs(adr): keep ADR 0315 proposed while draft"
           git push origin HEAD:automation/855-adr-status-repair-20260906
