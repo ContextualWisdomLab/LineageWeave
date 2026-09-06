@@ -98,6 +98,26 @@ jobs:
               raise SystemExit(f"expected one supplied payload branch, found {text.count(old)}")
           path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
+      - name: Repair verified Markdown line-start finding
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          replacements = {
+              "#934 singleton JSON-LD page relations;": "PR #934 singleton JSON-LD page relations;",
+              "#936 correction history;": "PR #936 correction history;",
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"expected one markdown identifier {old!r}, found {text.count(old)}")
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8")
+          for line in text.splitlines():
+              if line.startswith(("#934", "#936")):
+                  raise SystemExit(f"MD018-prone line remains: {line}")
+
       - name: Verify focused GREEN
         working-directory: frontend
         run: pnpm exec vitest run src/components/OntologyExplorer.test.tsx
