@@ -266,6 +266,36 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
   });
 
+  it.each([403, 404])("restarts at the first page after continuation denial and credential refresh (%s)", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status))
+      .mockResolvedValueOnce(neighborhood({ next_cursor: null }));
+
+    const { rerender } = render(
+      <OntologyExplorer accessToken="synthetic-token-a" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+    expect(
+      await screen.findByText("Related information is unavailable for this record. Open a visible post next."),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(2));
+
+    rerender(
+      <OntologyExplorer accessToken="synthetic-token-b" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(
+      3,
+      "synthetic-token-b",
+      expect.objectContaining({ cursor: undefined }),
+    );
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+  });
+
   it.each(["ready", undefined] as const)("does not restore a denied supplied payload on status-only recovery (%s)", (recoveredStatus) => {
     const payload = neighborhood();
     const { rerender } = render(

@@ -104,6 +104,12 @@ export function OntologyExplorer({
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
   const deniedPayloads = useRef(new WeakSet<OntologyNeighborhoodPayload>());
+  const deniedLiveRequest = useRef<{
+    accessToken: string;
+    focusNodeType: string;
+    focusNodeId: string;
+    knowledgeCutoff?: string;
+  } | null>(null);
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -142,6 +148,17 @@ export function OntologyExplorer({
       setStatus(providedStatus ?? "empty");
       return;
     }
+    const deniedRequest = deniedLiveRequest.current;
+    if (
+      deniedRequest?.accessToken === accessToken &&
+      deniedRequest.focusNodeType === focusType &&
+      deniedRequest.focusNodeId === focusId &&
+      deniedRequest.knowledgeCutoff === knowledgeCutoff
+    ) {
+      setLoaded(null);
+      setStatus("denied");
+      return;
+    }
     let cancelled = false;
     setStatus("loading");
     fetchOntologyNeighborhood(accessToken, {
@@ -152,6 +169,7 @@ export function OntologyExplorer({
     })
       .then((payload) => {
         if (cancelled) return;
+        deniedLiveRequest.current = null;
         setLoaded((current) =>
           cursor && current ? accumulateNeighborhoodPages(current, payload) : payload,
         );
@@ -161,6 +179,13 @@ export function OntologyExplorer({
         if (cancelled) return;
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+          deniedLiveRequest.current = {
+            accessToken,
+            focusNodeType: focusType,
+            focusNodeId: focusId,
+            knowledgeCutoff,
+          };
+          setCursor(undefined);
           setLoaded(null);
           clearSelection();
           setStatus("denied");
