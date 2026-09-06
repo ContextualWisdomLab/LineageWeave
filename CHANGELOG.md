@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Grouping comparison rows now expose persisted leftover-map post complete-case coverage through `leftoverMapCoverageCounts` (ADR 0290 / v2.47.0) only for fully visible grouping populations. Partial-visibility rows omit the aggregate instead of leaking the full-group denominator or recomputing psychometric coverage from the visible subset.
+
 - Period leftover pairs now caption leftover-map graphic axes with persisted
   leftover-map singular values `σ_k` (ADR 0289 / v2.46.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the

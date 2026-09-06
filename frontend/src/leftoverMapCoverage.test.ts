@@ -5,6 +5,7 @@ import {
   leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_COMPARE_COVERAGE_LABEL,
   LEFTOVER_MAP_LIST_COVERAGE_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_ITEM_LABEL,
   LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
@@ -69,6 +70,12 @@ describe("leftoverMapCoverageCounts", () => {
     expect(LEFTOVER_MAP_LIST_COVERAGE_LABEL).toBe("Leftover map coverage");
     expect(LEFTOVER_MAP_PLOT_COVERAGE_LABEL).toBe("Leftover-map graphic coverage");
     expect(LEFTOVER_MAP_LIST_COVERAGE_LABEL).not.toBe(LEFTOVER_MAP_PLOT_COVERAGE_LABEL);
+  });
+
+  it("keeps the grouping comparison coverage label distinct from the pair-list and graphic labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_COVERAGE_LABEL).toBe("Leftover map comparison coverage");
+    expect(LEFTOVER_MAP_COMPARE_COVERAGE_LABEL).not.toBe(LEFTOVER_MAP_LIST_COVERAGE_LABEL);
+    expect(LEFTOVER_MAP_COMPARE_COVERAGE_LABEL).not.toBe(LEFTOVER_MAP_PLOT_COVERAGE_LABEL);
   });
 });
 

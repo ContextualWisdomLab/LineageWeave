@@ -1,5 +1,7 @@
 # Product & Technical Gap Baseline
 
+> #821 current-parent reconstruction: preserve grouping-comparison leftover-map post complete-case coverage from historical `11a78553...` on exact #820 `503d043e...`, but move the decision to ADR 0290 / v2.47.0 and fail closed persisted coverage whenever ABAC hides any grouping member. Review 5126637582 is the authorization RED authority; #963 still owns the broader current-vs-historical baseline cleanup.
+>
 > #820 exact-current-parent reconstruction: persisted singular-value axis badges
 > are reconstructed from #819 `f37ca315e3c48fa37bbcafe96e46c5d7dab991b7`.
 > Preserve finite, non-negative persisted `σ_k`, including rank-0 `σ 0.00`; omit missing,

@@ -1070,6 +1070,22 @@ async def fetch_period_comparison(
     leftover_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
     for row in leftover:
         leftover_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
+    leftover_coverage = await conn.fetch(
+        """
+        select grouping_kind, grouping_key, map_post_count, scored_post_count,
+               map_item_count, scored_item_count,
+               incomplete_post_count, incomplete_item_count
+        from report_leftover_map_coverage
+        where period_code = $1 and rubric_version = $2
+          and grouping_kind = any($3::text[])
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    leftover_coverage_by_key = {
+        (row["grouping_kind"], row["grouping_key"]): row for row in leftover_coverage
+    }
     payload: list[dict[str, Any]] = []
     for row in rows:
         label = await resolve_grouping_label(conn, row["grouping_kind"], row["grouping_key"])
@@ -1113,6 +1129,9 @@ async def fetch_period_comparison(
                     }
                     for pair in leftover_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],
+                "leftover_map_coverage": _leftover_map_coverage_payload(
+                    leftover_coverage_by_key.get((row["grouping_kind"], row["grouping_key"]))
+                ),
             }
         )
     return payload
