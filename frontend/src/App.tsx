@@ -120,8 +120,11 @@ import {
   useLocale,
 } from "./i18n";
 import {
+  leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL,
   LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_INCOMPLETE_POST,
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
 } from "./leftoverMapCoverage";
 import "./App.css";
@@ -3818,6 +3821,7 @@ function ReportsPanel({
       >
         {orderedReports.map((report) => {
           const itemCoverageCounts = leftoverMapItemCoverageCounts(report.leftover_map_coverage);
+          const incompletePostCount = leftoverMapIncompletePostCount(report.leftover_map_coverage);
           return (
           <li
             key={report.grouping_key}
@@ -3859,6 +3863,11 @@ function ReportsPanel({
             {itemCoverageCounts !== null ? (
               <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL)}>
                 {tf(LEFTOVER_MAP_PLOT_ITEM_COVERAGE, itemCoverageCounts)}
+              </p>
+            ) : null}
+            {incompletePostCount !== null ? (
+              <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_INCOMPLETE_POST_LABEL)}>
+                {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, incompletePostCount)}
               </p>
             ) : null}
             {report.leftover_map_axes?.map((axis) => (

@@ -269,6 +269,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Period reports": "기간 리포트",
     "Leftover map coverage": "잔여 지도 포함 범위",
     "Leftover map item coverage": "잔여 지도 기준 포함 범위",
+    "Leftover map incomplete posts": "잔여 지도 불완전 글",
     "Leftover map used {used} of {scored} scored posts (complete-case)":
       "잔여 지도는 채점된 글 {scored}개 중 {used}개를 사용했습니다(완전사례)",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
@@ -873,6 +874,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Period reports": "周期报告",
     "Leftover map coverage": "残差地图覆盖范围",
     "Leftover map item coverage": "残差地图准则覆盖范围",
+    "Leftover map incomplete posts": "残差地图不完整帖文",
     "Leftover map used {used} of {scored} scored posts (complete-case)":
       "残差地图使用了 {scored} 篇已评分帖文中的 {used} 篇（完全案例）",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
@@ -1498,6 +1500,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Period reports": "期間レポート",
     "Leftover map coverage": "残差マップの対象範囲",
     "Leftover map item coverage": "残差マップの基準対象範囲",
+    "Leftover map incomplete posts": "残差マップの不完全投稿",
     "Leftover map used {used} of {scored} scored posts (complete-case)":
       "残差マップは採点済み投稿 {scored} 件のうち {used} 件を使いました（完全ケース）",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
@@ -2102,6 +2105,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Period reports": "Báo cáo theo kỳ",
     "Leftover map coverage": "Phạm vi bản đồ phần dư",
     "Leftover map item coverage": "Phạm vi tiêu chí bản đồ phần dư",
+    "Leftover map incomplete posts": "Bài không đầy đủ trên bản đồ phần dư",
     "Leftover map used {used} of {scored} scored posts (complete-case)":
       "Bản đồ phần dư dùng {used} trên {scored} bài đã chấm (trường hợp đầy đủ)",
     "Leftover map used {used} of {scored} scored criteria (complete-case)":
