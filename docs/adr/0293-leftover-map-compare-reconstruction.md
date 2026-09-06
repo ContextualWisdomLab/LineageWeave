@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-30
 
+**Amended by:** [ADR 0310](0310-leftover-map-compare-plot-reconstruction.md)
+(leftover-map reconstruction on the grouping comparison leftover-map graphic)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 reconstruction persistence ([ADR 0201](0201-leftover-map-reconstruction.md)),
