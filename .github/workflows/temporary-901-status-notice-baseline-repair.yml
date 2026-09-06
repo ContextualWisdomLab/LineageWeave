@@ -55,7 +55,7 @@ jobs:
           rm .github/workflows/temporary-901-status-notice-baseline-repair.yml
           git diff --check
           test "$(git diff --numstat -- docs/product-technical-gap-baseline.md | awk '{print $1 ":" $2}')" = "1:1"
-          test "$(git diff --name-only | sort)" = "docs/product-technical-gap-baseline.md"
+          test "$(git diff --name-only | grep -v '^.github/workflows/temporary-901-status-notice-baseline-repair.yml$' | sort)" = "docs/product-technical-gap-baseline.md"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/product-technical-gap-baseline.md .github/workflows/temporary-901-status-notice-baseline-repair.yml
