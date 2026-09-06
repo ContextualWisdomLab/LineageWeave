@@ -48,8 +48,9 @@ all 18 JavaScript cases and both Python harness contracts pass afterward.
 TypeScript and the production frontend build pass. This is a load-observation
 reliability fix, not completed customer-facing Voice acceptance.
 
-PR #961 now retains normal squash auto-merge. Existing auto-merge settings are
-preserved. Active main rules require independent approval, stale-review
+After the repair, both #964 review threads were resolved and the PR was
+marked Ready with normal squash auto-merge enabled. PR #961 also retains
+normal squash auto-merge. Existing auto-merge settings are preserved. Active main rules require independent approval, stale-review
 dismissal, resolved threads, and seven central workflows; force pushes remain
 prohibited. Current-head CodeQL compatibility failures on #961 explicitly
 report that dispatch has started and the owning workflow will rerun the exact
@@ -68,8 +69,14 @@ study. Implementation ownership remains #780, #934/#935 (paged export),
 #936 (correction history), and #937 (read/write admission). Their exact heads
 are in the inventory. No new competing implementation is introduced while
 the protected parent is unmerged. Child retargeting must follow parent merge.
-Authenticated PostgreSQL API and desktop/mobile rendered acceptance on a
-converged candidate remain unavailable; no completion box is checked.
+A separate detached checkout of #935 at
+`7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3` passed 45 frontend tests
+covering pagination, JSON-LD, exact-value/CSV, and explorer behavior, plus 53
+backend Voice-authority, ontology-neighborhood, and SHACL tests. No new defect
+was reproduced in that bounded check. These results belong to #935, not #964
+or protected main. Authenticated PostgreSQL API and desktop/mobile rendered
+acceptance on a converged candidate remain unavailable; no completion box is
+checked.
 
 The fresh added-file scan confirms eight competing ADR identities:
 0279 (#888/#811), 0289 (#821/#820), 0290 (#823/#822), 0300 (#899/#837),
