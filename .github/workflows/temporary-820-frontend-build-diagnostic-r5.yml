@@ -1,0 +1,103 @@
+name: Temporary 820 frontend build diagnostic r5
+
+on:
+  push:
+    branches:
+      - "automation/820-frontend-build-diagnostic-r5-20260907"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact diagnostic branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/820-frontend-build-diagnostic-r5-20260907
+          fetch-depth: 0
+
+      - name: Reconstruct exact frontend state
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=b7222713a69acdf3d32bbce992001a2433946d21
+          parent=f37ca315e3c48fa37bbcafe96e46c5d7dab991b7
+          workflow=.github/workflows/temporary-820-frontend-build-diagnostic-r5.yml
+          git fetch origin feat/leftover-map-plot-singular-v2460 feat/leftover-map-list-post-coverage-helper-v2450
+          test "$(git rev-parse origin/feat/leftover-map-plot-singular-v2460)" = "$product"
+          test "$(git rev-parse origin/feat/leftover-map-list-post-coverage-helper-v2450)" = "$parent"
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$parent"
+          status=$?
+          set -e
+          test "$status" -ne 0
+          conflicts="$(git diff --name-only --diff-filter=U | sort)"
+          expected=$'docs/product-technical-gap-baseline.md\nfrontend/src/components/LeftoverMapPlot.test.tsx'
+          test "$conflicts" = "$expected"
+          git checkout --theirs docs/product-technical-gap-baseline.md
+          git checkout --ours frontend/src/components/LeftoverMapPlot.test.tsx
+          PARENT="$parent" python - <<'PY'
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+          parent = os.environ["PARENT"]
+          path = Path("frontend/src/components/LeftoverMapPlot.test.tsx")
+          feature_text = path.read_text(encoding="utf-8")
+          parent_text = subprocess.check_output(["git", "show", f"{parent}:{path}"], text=True)
+          title_pattern = re.compile(r'\n  it\("([^"]+)"')
+          parent_titles = title_pattern.findall(parent_text)
+          feature_titles = set(title_pattern.findall(feature_text))
+          expected_missing = {
+              "renders every distinct persisted tick when rounded labels match",
+              "captions leftover-map axes with persisted leftover-map axis share",
+              "keeps existing leftover-map axis text when share is missing or non-finite",
+          }
+          missing = set(parent_titles) - feature_titles
+          if missing != expected_missing:
+              raise SystemExit(f"unexpected parent-only tests: {sorted(missing)!r}")
+          blocks = []
+          for title in [t for t in parent_titles if t in expected_missing]:
+              marker = f'\n  it("{title}"'
+              start = parent_text.index(marker)
+              end = parent_text.find('\n  it("', start + len(marker))
+              if end < 0:
+                  end = parent_text.rfind("\n});")
+              block = parent_text[start:end]
+              if title != "renders every distinct persisted tick when rounded labels match":
+                  block = re.sub(r"leftover_singular_value: ([^,}\n]+)", "leftover_singular_value: Number.NaN", block)
+              blocks.append(block)
+          insert_at = feature_text.rfind("\n});")
+          path.write_text(feature_text[:insert_at] + "".join(blocks) + feature_text[insert_at:], encoding="utf-8")
+          PY
+          git add docs/product-technical-gap-baseline.md frontend/src/components/LeftoverMapPlot.test.tsx
+          test -z "$(git diff --name-only --diff-filter=U)"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify oxlint
+        working-directory: frontend
+        run: pnpm exec oxlint
+
+      - name: Verify TypeScript
+        working-directory: frontend
+        run: pnpm exec tsc -b
+
+      - name: Verify Vite production build
+        working-directory: frontend
+        run: pnpm exec vite build
