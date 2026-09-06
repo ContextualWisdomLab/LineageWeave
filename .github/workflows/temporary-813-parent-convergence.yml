@@ -1,0 +1,104 @@
+name: Temporary 813 parent convergence
+
+on:
+  push:
+    branches:
+      - "automation/813-parent-convergence-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-813-parent-convergence
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact child staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/813-parent-convergence-20260906
+          fetch-depth: 0
+
+      - name: Verify exact product ancestry and current parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=bf593e713a5fa1879b26fd89ea6677e5b9f2cd48
+          parent=aea06ad7c70f4542a1413b6003d414c0c42d59a7
+          git merge-base --is-ancestor "$product" HEAD
+          git fetch origin feat/leftover-map-plot-coverage-v2380
+          actual="$(git rev-parse origin/feat/leftover-map-plot-coverage-v2380)"
+          test "$actual" = "$parent"
+          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-813-parent-convergence.yml"
+
+      - name: Attempt exact non-force parent merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=aea06ad7c70f4542a1413b6003d414c0c42d59a7
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$parent"
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            conflicts="$(git diff --name-only --diff-filter=U | sort)"
+            echo "::error title=#813 current-parent reconstruction conflicts::${conflicts//$'\n'/, }"
+            printf '%s\n' "$conflicts"
+            exit 42
+          fi
+
+      - name: Verify v2.39 successor identity
+        shell: python
+        run: |
+          import json
+          import re
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          frontend = json.loads(Path("frontend/package.json").read_text(encoding="utf-8"))
+          init_text = Path("lineageweave/__init__.py").read_text(encoding="utf-8")
+          match = re.search(r'^__version__ = "([^"]+)"$', init_text, re.MULTILINE)
+          if match is None:
+              raise SystemExit("lineageweave.__version__ declaration missing")
+          versions = (project["project"]["version"], frontend["version"], match.group(1))
+          if versions != ("2.39.0", "2.39.0", "2.39.0"):
+              raise SystemExit(f"release identity drift after convergence: {versions!r}")
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run parent-child convergence contracts
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run \
+            src/leftoverMapPlotVietnameseCopy.test.ts \
+            src/i18n.test.ts \
+            src/leftoverMapCoverage.test.ts \
+            src/leftoverMapPlotLayout.test.ts \
+            src/components/LeftoverMapPlot.test.tsx
+
+      - name: Commit clean merge tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          rm .github/workflows/temporary-813-parent-convergence.yml
+          git add -A
+          test -f .git/MERGE_HEAD
+          git commit -m "merge: converge #813 with current #812 parent"
+          git push origin HEAD:automation/813-parent-convergence-20260906
