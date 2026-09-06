@@ -36,7 +36,21 @@ the bounded full-file attempt; that attempt also had six existing UI failures.
 Subsequent isolated execution hit test-process startup timeouts under observed
 host load averages around 28–36. A separate layout file passed nine tests, but
 the combined run had one process-startup error. These are not a green full
-suite. No timeout, warning filter, test assertion, or CI gate was weakened.
+suite. The final state-transition regression uses synchronous click/change
+events instead of per-keystroke simulation; its two cases pass in isolation
+with every assertion and the original timeout retained. Lint and production
+build evidence concerns the unchanged production component. Full-suite
+acceptance still requires a clean run. No timeout, warning filter, test
+assertion, or CI gate was weakened.
+
+At remote repair head `25688661c05e48f2b95470ce23add24b8827ef30`,
+GitHub's authenticated browser confirmed normal squash auto-merge enabled,
+the documentation thread resolved, and independent approval still required.
+Fourteen exact-head Checks were queued and two were skipped; none of those
+states is terminal success. CLI/connector GraphQL mutations had failed on
+quota, so the standard web auto-merge control was used with bypass unchecked.
+No merge SHA is claimed. The following test/documentation-only update
+requires fresh Checks on its own head; predecessor results do not transfer.
 
 The current LineageWeave PRD, ADR 0184 and ADR 0256, and the upstream
 contextual-orchestrator product/architecture authority were read before this

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
@@ -266,13 +266,13 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
   });
 
-  it.each(["ready", undefined] as const)("does not restore a denied supplied payload on status-only recovery (%s)", async (recoveredStatus) => {
+  it.each(["ready", undefined] as const)("does not restore a denied supplied payload on status-only recovery (%s)", (recoveredStatus) => {
     const payload = neighborhood();
     const { rerender } = render(
       <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
-    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "Demo");
+    fireEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    fireEvent.change(screen.getByLabelText("Search within this neighborhood"), { target: { value: "Demo" } });
     rerender(
       <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} status="denied" />,
     );
