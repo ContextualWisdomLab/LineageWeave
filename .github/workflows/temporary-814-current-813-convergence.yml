@@ -1,0 +1,100 @@
+name: Temporary 814 current-813 convergence
+
+on:
+  push:
+    branches:
+      - "automation/814-current-813-convergence-20260907"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-814-current-813-convergence
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact convergence branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/814-current-813-convergence-20260907
+          fetch-depth: 0
+
+      - name: Verify exact product and parent heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=7f96f013d6de50a80120a74b06e72bc4fc8c338d
+          parent=44ace39111664a9b39a81e575a8dbdf06506050f
+          workflow=.github/workflows/temporary-814-current-813-convergence.yml
+          git fetch origin feat/leftover-map-plot-incomplete-v2400 feat/leftover-map-plot-item-coverage-v2390
+          test "$(git rev-parse origin/feat/leftover-map-plot-incomplete-v2400)" = "$product"
+          test "$(git rev-parse origin/feat/leftover-map-plot-item-coverage-v2390)" = "$parent"
+          test "$(git rev-parse HEAD^)" = "$product"
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+
+      - name: Merge exact current parent without rewriting child history
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=44ace39111664a9b39a81e575a8dbdf06506050f
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-commit --no-ff "$parent"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          test "$(git diff --name-only HEAD | sort)" = "frontend/src/leftoverMapPlotLayout.test.ts"
+
+      - name: Verify inherited rank boundary and v2.40 governance
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'expect(segment.rankLabel).toBe("rank 1")' frontend/src/leftoverMapPlotLayout.test.ts
+          grep -q 'expect(segment.rankY).toBeGreaterThan(segment.expectedY)' frontend/src/leftoverMapPlotLayout.test.ts
+          grep -q 'expect(segment.rankY).toBeLessThanOrEqual(layout!.height - 4)' frontend/src/leftoverMapPlotLayout.test.ts
+          python -m pytest -q tests/test_adr_0283_governance.py tests/test_package_version.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Verify current-parent and v2.40 presentation contracts
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/leftoverMapPlotLayout.test.ts
+          src/leftoverMapPlotSmallCanvas.test.ts
+          src/leftoverMapPlotVietnameseCopy.test.ts
+          src/leftoverMapCoverage.test.ts
+          src/i18n.test.ts
+          src/components/LeftoverMapPlot.test.tsx
+          src/components/LeftoverPairList.test.tsx
+
+      - name: Verify frontend lint
+        working-directory: frontend
+        run: pnpm exec oxlint
+
+      - name: Commit workflow-free converged tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-814-current-813-convergence.yml
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-814-current-813-convergence\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-814-current-813-convergence.yml'
+          test "$(git diff --cached --name-only | grep -v '^\.github/workflows/temporary-814-current-813-convergence\.yml$' | sort)" = "frontend/src/leftoverMapPlotLayout.test.ts"
+          git commit -m "merge: converge #814 with current #813"
+          git push origin HEAD:automation/814-current-813-convergence-20260907
