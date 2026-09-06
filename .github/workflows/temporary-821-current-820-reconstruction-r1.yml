@@ -1,0 +1,55 @@
+name: Temporary 821 current-820 reconstruction r1
+
+on:
+  push:
+    branches:
+      - "automation/821-current-820-reconstruction-r1-20260907"
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact historical product
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/821-current-820-reconstruction-r1-20260907
+          fetch-depth: 0
+
+      - name: Inventory exact current-parent merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=5d9ed038a8525736ba47d5a80e4ff04edfbab28c
+          parent=503d043e165e0ae4c6b5c8cca4366c114c74ef2d
+          workflow=.github/workflows/temporary-821-current-820-reconstruction-r1.yml
+          git fetch origin feat/leftover-map-compare-coverage-v2460 feat/leftover-map-plot-singular-v2460
+          test "$(git rev-parse origin/feat/leftover-map-compare-coverage-v2460)" = "$product"
+          test "$(git rev-parse origin/feat/leftover-map-plot-singular-v2460)" = "$parent"
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$parent"
+          status=$?
+          set -e
+          {
+            echo "MERGE_STATUS=$status"
+            echo "CONFLICTS_BEGIN"
+            git diff --name-only --diff-filter=U | sort
+            echo "CONFLICTS_END"
+            echo "UNMERGED_BEGIN"
+            git ls-files -u
+            echo "UNMERGED_END"
+          } > conflict-manifest.txt
+          cat conflict-manifest.txt
+
+      - name: Upload conflict manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: conflict-manifest
+          path: conflict-manifest.txt
+          if-no-files-found: error
+          retention-days: 1
