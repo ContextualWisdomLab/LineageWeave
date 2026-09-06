@@ -34,7 +34,8 @@ All notable changes to this project are documented here. Format follows
   comparison note that matches leftover-map incomplete post coverage, a
   grouping comparison note that matches leftover-map incomplete item
   coverage, and a grouping comparison leftover-map axis share badge that
-  matches leftover-axis report badges; click a post marker or a pair button
+  names the same persisted share as leftover-axis report badges but uses
+  distinct comparison copy and accessible naming; click a post marker or a pair button
   opens that post. A missing or non-finite share omits that leftover-map
   comparison axis share badge. Share `0` is shown when that persisted share
   is a finite number, including rank-0 unused axes. A finite negative share
