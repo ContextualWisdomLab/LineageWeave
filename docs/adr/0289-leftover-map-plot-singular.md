@@ -1,6 +1,6 @@
 # ADR 0289 — Name leftover-map singular values on the graphic display
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
 
 Amends leftover-map axis share on the graphic display
