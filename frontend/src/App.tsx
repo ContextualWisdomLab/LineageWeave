@@ -119,6 +119,11 @@ import {
   tf,
   useLocale,
 } from "./i18n";
+import {
+  leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
+} from "./leftoverMapCoverage";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -3811,7 +3816,9 @@ function ReportsPanel({
         className="ticket-list"
         aria-label={openedGroupingLabel ? "Opened grouping report" : "Period report groups"}
       >
-        {orderedReports.map((report) => (
+        {orderedReports.map((report) => {
+          const itemCoverageCounts = leftoverMapItemCoverageCounts(report.leftover_map_coverage);
+          return (
           <li
             key={report.grouping_key}
             className="ticket-list-item"
@@ -3849,6 +3856,11 @@ function ReportsPanel({
                 })}
               </p>
             )}
+            {itemCoverageCounts !== null ? (
+              <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_LIST_ITEM_COVERAGE_LABEL)}>
+                {tf(LEFTOVER_MAP_PLOT_ITEM_COVERAGE, itemCoverageCounts)}
+              </p>
+            ) : null}
             {report.leftover_map_axes?.map((axis) => (
               <span key={axis.axis_index} className="post-badge">
                 {tf("leftover axis {axis} {share}%", {
@@ -3915,7 +3927,8 @@ function ReportsPanel({
               </ul>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     ) : null;
 
