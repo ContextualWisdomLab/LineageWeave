@@ -214,6 +214,22 @@ describe("layoutLeftoverMapPlot", () => {
     );
   });
 
+  it("keeps distinct persisted coordinates that share a rounded tick label", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0.001,
+          leftover_map_item_axis_1: 0.004,
+        }),
+      ],
+      criterionLabel,
+    );
+    const axis1 = layout?.ticks.filter((tick) => tick.axis === 1);
+    expect(axis1?.map((tick) => tick.value)).toEqual([0, 0.001, 0.004]);
+    expect(axis1?.map((tick) => tick.label)).toEqual(["0.00", "+0.00", "+0.00"]);
+    expect(new Set(axis1?.map((tick) => tick.x))).toHaveProperty("size", 3);
+  });
+
   it("names persisted leftover-map distance on pair segments without inventing a leftover score", () => {
     const layout = layoutLeftoverMapPlot(
       [
@@ -379,6 +395,34 @@ describe("layoutLeftoverMapPlot", () => {
     expect(layout?.segments[0]?.explainedShareY).toBeGreaterThan(
       layout?.segments[0]?.reconstructionY ?? 0,
     );
+  });
+
+  it("keeps complete caption stacks inside top and bottom plot edges", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: -1,
+          leftover_map_person_axis_2: -1,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: -1,
+        }),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 1,
+          leftover_map_item_axis_1: -1,
+          leftover_map_item_axis_2: 1,
+        }),
+      ],
+      criterionLabel,
+    );
+
+    for (const segment of layout?.segments ?? []) {
+      expect(segment.labelY).toBeGreaterThanOrEqual(12);
+      expect(segment.explainedShareY).toBeLessThanOrEqual((layout?.height ?? 0) - 4);
+    }
   });
 
   it("omits a leftover-map explained leftover share caption when e is missing or non-finite", () => {
