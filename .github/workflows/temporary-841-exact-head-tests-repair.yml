@@ -1,0 +1,233 @@
+name: Temporary 841 exact-head tests repair
+
+on:
+  push:
+    branches:
+      - "automation/841-exact-head-tests-repair-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-841-exact-head-tests-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/841-exact-head-tests-repair-20260906
+          fetch-depth: 0
+
+      - name: Verify exact product ancestry and isolated harness delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=87979568b36219ae99631e88f32d0af1a9247923
+          git merge-base --is-ancestor "$product" HEAD
+          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-841-exact-head-tests-repair.yml"
+
+      - name: Carry reviewed small-canvas bounds repair
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/leftoverMapPlotLayout.ts")
+          text = path.read_text(encoding="utf-8")
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"layout repair target count {count}, expected 1: {old[:100]!r}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "const COINCIDENT_LABEL_OFFSET = 14;\nconst RECONSTRUCTION_LABEL_OFFSET = 12;",
+              "const COINCIDENT_LABEL_OFFSET = 14;\nconst SEGMENT_LABEL_OFFSET = 24;\nconst RECONSTRUCTION_LABEL_OFFSET = 12;\nconst SEGMENT_LABEL_TOP_INSET = 12;\nconst SEGMENT_LABEL_BOTTOM_INSET = 4;",
+          )
+          replace_once(
+              """function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {\n  const byLabel = new Map<string, number>();\n  for (const value of values) {\n    const label = formatSignedLeftoverValue(value);\n    if (label === null) {\n      continue;\n    }\n    if (!byLabel.has(label)) {\n      byLabel.set(label, value);\n    }\n  }\n  return [...byLabel.entries()].map(([label, value]) => ({ value, label }));\n}""",
+              """function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {\n  const seen = new Set<number>();\n  const ticks: { value: number; label: string }[] = [];\n  for (const value of values) {\n    const label = formatSignedLeftoverValue(value);\n    if (label === null || seen.has(value)) {\n      continue;\n    }\n    seen.add(value);\n    ticks.push({ value, label });\n  }\n  return ticks;\n}""",
+          )
+          replace_once(
+              """  const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;\n  return {\n    labelX: (x1 + x2) / 2,\n    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,\n  };\n}\n\nfunction leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {\n  return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;\n}""",
+              """  const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;\n  const midpointX = (x1 + x2) / 2;\n  const midpointY = (y1 + y2) / 2;\n  if (coincident) {\n    return {\n      labelX: midpointX,\n      labelY: midpointY - COINCIDENT_LABEL_OFFSET,\n    };\n  }\n  const deltaX = x2 - x1;\n  const deltaY = y2 - y1;\n  const length = Math.hypot(deltaX, deltaY);\n  return {\n    labelX: midpointX - (deltaY / length) * SEGMENT_LABEL_OFFSET,\n    labelY: midpointY + (deltaX / length) * SEGMENT_LABEL_OFFSET,\n  };\n}\n\nfunction leftoverMapStackedCaptionY(\n  labelY: number,\n  stackedAbove: number,\n  captionSpacing = RECONSTRUCTION_LABEL_OFFSET,\n): number {\n  return stackedAbove > 0 ? labelY + stackedAbove * captionSpacing : labelY;\n}\n\nfunction leftoverMapCaptionSpacing(height: number, captionCount: number): number {\n  if (captionCount <= 1) {\n    return 0;\n  }\n  const availableStackHeight = Math.max(\n    0,\n    height - SEGMENT_LABEL_TOP_INSET - SEGMENT_LABEL_BOTTOM_INSET,\n  );\n  return Math.min(\n    RECONSTRUCTION_LABEL_OFFSET,\n    availableStackHeight / (captionCount - 1),\n  );\n}""",
+          )
+
+          marker = """    const labelPosition = leftoverMapSegmentLabelPosition(\n      personPos.x,\n      personPos.y,\n      itemPos.x,\n      itemPos.y,\n    );\n"""
+          insert = marker + """    const captionCount = [\n      distanceLabel,\n      reconstructionLabel,\n      explainedShareLabel,\n      unexplainedShareLabel,\n      crossShareLabel,\n      unexplainedLeftoverLabel,\n      residualLabel,\n      observedLabel,\n      expectedLabel,\n      rankLabel,\n    ].filter((label) => label !== null).length;\n    const captionSpacing = leftoverMapCaptionSpacing(height, captionCount);\n    const maximumLabelY = Math.max(\n      SEGMENT_LABEL_TOP_INSET,\n      height -\n        SEGMENT_LABEL_BOTTOM_INSET -\n        Math.max(0, captionCount - 1) * captionSpacing,\n    );\n    const labelY = Math.min(\n      Math.max(labelPosition.labelY, SEGMENT_LABEL_TOP_INSET),\n      maximumLabelY,\n    );\n"""
+          replace_once(marker, insert)
+
+          text = text.replace("leftoverMapStackedCaptionY(\n      labelPosition.labelY,", "leftoverMapStackedCaptionY(\n      labelY,")
+          if text.count("captionSpacing,\n    );") != 0:
+              raise SystemExit("caption spacing already partially present before deterministic repair")
+
+          calls = [
+              "distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,",
+              "(distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),",
+              "(explainedShareLabel !== null ? 1 : 0),",
+              "(unexplainedShareLabel !== null ? 1 : 0),",
+              "(crossShareLabel !== null ? 1 : 0),",
+              "(unexplainedLeftoverLabel !== null ? 1 : 0),",
+              "(residualLabel !== null ? 1 : 0),",
+              "(observedLabel !== null ? 1 : 0),",
+              "(expectedLabel !== null ? 1 : 0),",
+          ]
+          # Insert captionSpacing before each of the ten stacked-caption closing calls.
+          cursor = 0
+          pieces = []
+          while True:
+              start = text.find("leftoverMapStackedCaptionY(", cursor)
+              if start < 0:
+                  pieces.append(text[cursor:])
+                  break
+              pieces.append(text[cursor:start])
+              end = text.find("\n    );", start)
+              if end < 0:
+                  raise SystemExit("unterminated stacked-caption call")
+              call = text[start:end]
+              if "captionSpacing" not in call:
+                  call += "\n      captionSpacing,"
+              pieces.append(call + "\n    );")
+              cursor = end + len("\n    );")
+          text = "".join(pieces)
+          if text.count("leftoverMapStackedCaptionY(") != 10:
+              raise SystemExit("expected ten stacked caption calls")
+          if text.count("captionSpacing,") != 10:
+              raise SystemExit(f"expected ten caption-spacing call arguments, found {text.count('captionSpacing,')}")
+
+          replace_once(
+              "      rankY,\n      ...labelPosition,\n    });",
+              "      rankY,\n      ...labelPosition,\n      labelY,\n    });",
+          )
+          path.write_text(text, encoding="utf-8")
+
+      - name: Restore Vietnamese share copy and product-bound regression
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path_name: str, old: str, new: str) -> None:
+              path = Path(path_name)
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one target, found {count}: {old[:100]!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "frontend/src/i18n.ts",
+              '"leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}"',
+              '"leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}"',
+          )
+          replace_once(
+              "frontend/src/i18n.ts",
+              "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e,",
+              "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e,",
+          )
+          replace_once(
+              "frontend/src/i18n.test.ts",
+              "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e,",
+              "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e,",
+          )
+          replace_once(
+              "frontend/src/i18n.test.ts",
+              '"phần dư giải thích bản đồ phần dư R̂²/R² 0.76"',
+              '"tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"',
+          )
+
+          vi_test = Path("frontend/src/leftoverMapPlotVietnameseCopy.test.ts")
+          text = vi_test.read_text(encoding="utf-8")
+          old_header = '''import { setLocale, tf } from "./i18n";\n\nconst GRAPHIC_DISPLAY_COPY =\n  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.";'''
+          new_header = '''import { setLocale, tf } from "./i18n";\nimport { LEFTOVER_MAP_PLOT_CAPTION } from "./leftoverMapPlotLayout";'''
+          if text.count(old_header) != 1:
+              raise SystemExit("expected one stale duplicated Vietnamese caption fixture")
+          text = text.replace(old_header, new_header, 1)
+          if text.count("tf(GRAPHIC_DISPLAY_COPY, {})") != 1:
+              raise SystemExit("expected one stale GRAPHIC_DISPLAY_COPY use")
+          vi_test.write_text(text.replace("tf(GRAPHIC_DISPLAY_COPY, {})", "tf(LEFTOVER_MAP_PLOT_CAPTION, {})", 1), encoding="utf-8")
+
+      - name: Synchronize runtime release identity
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("lineageweave/__init__.py")
+          text = path.read_text(encoding="utf-8")
+          old = '__version__ = "2.41.0"'
+          if text.count(old) != 1:
+              raise SystemExit("expected one stale runtime version 2.41.0")
+          path.write_text(text.replace(old, '__version__ = "2.61.0"', 1), encoding="utf-8")
+
+      - name: Verify causal source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^\*\*Decision status:\*\* Proposed$' docs/adr/0304-leftover-map-compare-graphic.md
+          grep -q '__version__ = "2.61.0"' lineageweave/__init__.py
+          grep -q 'version = "2.61.0"' pyproject.toml
+          grep -q '"version": "2.61.0"' frontend/package.json
+          grep -q 'SEGMENT_LABEL_TOP_INSET = 12' frontend/src/leftoverMapPlotLayout.ts
+          grep -q 'leftoverMapCaptionSpacing(height, captionCount)' frontend/src/leftoverMapPlotLayout.ts
+          grep -q 'tỷ phần phần dư được giải thích trên bản đồ phần dư {label}' frontend/src/i18n.ts
+          grep -q 'LEFTOVER_MAP_PLOT_CAPTION' frontend/src/leftoverMapPlotVietnameseCopy.test.ts
+          ! grep -q 'GRAPHIC_DISPLAY_COPY' frontend/src/leftoverMapPlotVietnameseCopy.test.ts
+          git diff --check
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Validate synchronized package provenance
+        run: |
+          uv sync --frozen --extra dev
+          uv run --frozen python -m pytest -q tests/test_package_version.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate exact failed frontend contracts and full frontend suite
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run \
+            src/leftoverMapPlotSmallCanvas.test.ts \
+            src/leftoverMapPlotVietnameseCopy.test.ts \
+            src/i18n.test.ts \
+            src/leftoverMapPlotLayout.test.ts \
+            src/components/LeftoverMapPlot.test.tsx
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Commit clean repaired product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          rm .github/workflows/temporary-841-exact-head-tests-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/temporary-841-exact-head-tests-repair.yml$' || true)"
+          git commit -m "fix(reports): restore graphic bounds and release identity"
+          git push origin HEAD:automation/841-exact-head-tests-repair-20260906
