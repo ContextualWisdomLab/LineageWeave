@@ -9,7 +9,8 @@
  *  unexplained leftover ``U`` (ADR 0276), persisted leftover residual
  *  ``R`` (ADR 0277), persisted leftover observed ``Y`` (ADR 0278),
  *  persisted leftover expected ``E`` (ADR 0279), and persisted leftover-map
- *  rank (ADR 0280).
+ *  rank (ADR 0280). The plot names persisted leftover-map complete-case
+ *  coverage (ADR 0281).
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -27,7 +28,7 @@ import { formatLeftoverMapResidual } from "./leftoverResidual";
 import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.";
+  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";

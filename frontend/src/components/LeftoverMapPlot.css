@@ -6,7 +6,8 @@
   background: var(--color-background);
 }
 
-.leftover-map-plot-caption {
+.leftover-map-plot-caption,
+.leftover-map-plot-coverage {
   margin: 0 0 var(--space-control-gap);
   color: var(--color-text);
   font-size: 0.85rem;

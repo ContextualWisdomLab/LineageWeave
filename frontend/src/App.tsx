@@ -3869,6 +3869,7 @@ function ReportsPanel({
                 <LeftoverPairList
                   pairs={report.leftover_pairs}
                   leftoverMapAxes={report.leftover_map_axes}
+                  leftoverMapCoverage={report.leftover_map_coverage}
                   criterionLabel={criterionShortLabel}
                   onSelectPost={(pair) => {
                     onSelectPost(pair.post_id, {

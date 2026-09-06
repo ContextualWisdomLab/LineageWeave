@@ -8,6 +8,28 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now caption the leftover-map graphic display with
+  persisted leftover-map complete-case coverage (ADR 0281 / v2.38.0). After
+  `make seed`, closest and farthest leftover pairs sit above the member
+  list with the Gabriel biplot of already-named coordinates, leftover-map
+  axis share when finite, axis ticks that match `ξ (x, y) ζ (x, y)` on
+  the pair row, pair segments that match `d` on the pair row, pair
+  segments that match `R̂` on the pair row, pair segments that match
+  `R̂²/R²` on the pair row, pair segments that match `U²/R²` on the pair
+  row, pair segments that match `2R̂U/R²` on the pair row, pair segments
+  that match `U` on the pair row, pair segments that match `R` on the
+  pair row, pair segments that match `Y` on the pair row, pair segments
+  that match `E` on the pair row, pair segments that match leftover-map
+  rank on the pair row, and a plot caption that matches leftover-map
+  complete-case coverage above the pair list; click a post marker or a
+  pair button opens that post. A missing, non-integer, negative-used,
+  non-positive-scored, or used-greater-than-scored coverage omits that
+  leftover-map coverage caption. Coverage `0 of M` is shown when that
+  persisted used count is a non-negative integer. Do not invent coverage
+  from plotted marker count, leftover-map distance, leftover-map rank, or
+  the count of unused axes. Never invent a leftover score or a theta. No
+  new columns.
+
 - Period leftover pairs now caption leftover-map graphic-display pair
   segments with persisted leftover-map rank (ADR 0280 / v2.37.0). After
   `make seed`, closest and farthest leftover pairs sit above the member

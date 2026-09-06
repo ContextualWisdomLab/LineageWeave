@@ -1,4 +1,4 @@
-import type { LeftoverMapAxis, LeftoverPair } from "../api";
+import type { LeftoverMapAxis, LeftoverMapCoverage, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import {
   formatLeftoverMapCrossShare,
@@ -38,6 +38,7 @@ import { LeftoverMapPlot } from "./LeftoverMapPlot";
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
   leftoverMapAxes?: LeftoverMapAxis[];
+  leftoverMapCoverage?: LeftoverMapCoverage | null;
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
 };
@@ -69,12 +70,16 @@ export type LeftoverPairListProps = {
  * those pair segments. ADR 0276 names persisted leftover-map unexplained
  * leftover ``U`` on those pair segments. ADR 0277 names persisted leftover
  * residual ``R`` on those pair segments. ADR 0278 names persisted leftover
- * observed ``Y`` on those pair segments. Every badge still
+ * observed ``Y`` on those pair segments. ADR 0279 names persisted leftover
+ * expected ``E`` on those pair segments. ADR 0280 names persisted leftover-map
+ * rank on those pair segments. ADR 0281 names persisted leftover-map
+ * complete-case coverage on the graphic. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
   leftoverMapAxes,
+  leftoverMapCoverage,
   criterionLabel,
   onSelectPost,
 }: LeftoverPairListProps) {
@@ -86,6 +91,7 @@ export function LeftoverPairList({
       <LeftoverMapPlot
         pairs={pairs}
         leftoverMapAxes={leftoverMapAxes}
+        leftoverMapCoverage={leftoverMapCoverage}
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />

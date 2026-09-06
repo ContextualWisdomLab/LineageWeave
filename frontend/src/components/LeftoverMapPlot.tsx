@@ -1,6 +1,11 @@
-import type { LeftoverMapAxis, LeftoverPair } from "../api";
+import type { LeftoverMapAxis, LeftoverMapCoverage, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
+import {
+  leftoverMapCoverageCounts,
+  LEFTOVER_MAP_PLOT_COVERAGE,
+  LEFTOVER_MAP_PLOT_COVERAGE_LABEL,
+} from "../leftoverMapCoverage";
 import {
   formatLeftoverMapPlotAxisShare,
   leftoverShareForAxis,
@@ -28,6 +33,7 @@ import "./LeftoverMapPlot.css";
 export type LeftoverMapPlotProps = {
   pairs: LeftoverPair[];
   leftoverMapAxes?: LeftoverMapAxis[];
+  leftoverMapCoverage?: LeftoverMapCoverage | null;
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
 };
@@ -62,7 +68,8 @@ function leftoverMapPlotAxisText(
  * share ``s``, leftover-map cross share ``x``, leftover-map
  * unexplained leftover ``U``, leftover residual ``R``, leftover
  * observed ``Y``, leftover expected ``E``, and leftover-map rank so the
- * pair-row badges match the graphic.
+ * pair-row badges match the graphic. Name leftover-map complete-case
+ * coverage on the figure when those persisted post counts are usable.
  * Omit that distance caption when ``d`` is missing or non-finite. Omit
  * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
  * that explained leftover share caption when ``e`` is missing or
@@ -73,7 +80,9 @@ function leftoverMapPlotAxisText(
  * caption when ``R`` is missing or non-finite. Omit that leftover observed
  * caption when ``Y`` is missing or non-finite. Omit that leftover expected
  * caption when ``E`` is missing or non-finite. Omit that leftover-map rank
- * caption when rank is missing, negative, or not an integer. Omit that axis badge when share is
+ * caption when rank is missing, negative, or not an integer. Omit that leftover-map
+ * coverage caption when coverage is missing or not usable complete-case integers.
+ * Omit that axis badge when share is
  * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * Never invent a leftover score.
@@ -81,6 +90,7 @@ function leftoverMapPlotAxisText(
 export function LeftoverMapPlot({
   pairs,
   leftoverMapAxes,
+  leftoverMapCoverage,
   criterionLabel,
   onSelectPost,
 }: LeftoverMapPlotProps) {
@@ -88,6 +98,7 @@ export function LeftoverMapPlot({
   if (layout === null) {
     return null;
   }
+  const coverageCounts = leftoverMapCoverageCounts(leftoverMapCoverage);
 
   const openPost = (postId: string) => {
     const pair = firstPlottablePairForPost(pairs, postId);
@@ -99,6 +110,15 @@ export function LeftoverMapPlot({
   return (
     <figure className="leftover-map-plot" aria-label={t("Leftover-map graphic display")}>
       <figcaption className="leftover-map-plot-caption">{t(LEFTOVER_MAP_PLOT_CAPTION)}</figcaption>
+      {coverageCounts !== null ? (
+        <p
+          className="leftover-map-plot-coverage"
+          role="note"
+          aria-label={t(LEFTOVER_MAP_PLOT_COVERAGE_LABEL)}
+        >
+          {tf(LEFTOVER_MAP_PLOT_COVERAGE, coverageCounts)}
+        </p>
+      ) : null}
       <ul className="leftover-map-plot-legend">
         <li>
           <span className="leftover-map-plot-legend-swatch person" aria-hidden="true" />
