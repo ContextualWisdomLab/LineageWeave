@@ -1,0 +1,96 @@
+name: Temporary 812 current-parent convergence r3
+
+on:
+  push:
+    branches:
+      - "automation/812-parent-convergence-r3-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-812-parent-convergence-r3
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact convergence branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/812-parent-convergence-r3-20260906
+          fetch-depth: 0
+
+      - name: Verify exact product and parent heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=aea06ad7c70f4542a1413b6003d414c0c42d59a7
+          parent=4dcd789385f67c76a4e479194f566f35bb5d2d76
+          git fetch origin feat/leftover-map-plot-coverage-v2380 feat/leftover-map-segment-rank-v2370
+          test "$(git rev-parse origin/feat/leftover-map-plot-coverage-v2380)" = "$product"
+          test "$(git rev-parse origin/feat/leftover-map-segment-rank-v2370)" = "$parent"
+          test "$(git rev-parse HEAD^)" = "$product"
+          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-812-parent-convergence-r3.yml"
+
+      - name: Merge exact current parent without rewriting child history
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=4dcd789385f67c76a4e479194f566f35bb5d2d76
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-commit --no-ff "$parent"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          test "$(git diff --name-only HEAD | sort)" = "frontend/src/leftoverMapPlotLayout.test.ts"
+
+      - name: Verify inherited rank boundary contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'expect(segment.rankLabel).toBe("rank 1")' frontend/src/leftoverMapPlotLayout.test.ts
+          grep -q 'expect(segment.rankY).toBeGreaterThan(segment.expectedY)' frontend/src/leftoverMapPlotLayout.test.ts
+          grep -q 'expect(segment.rankY).toBeLessThanOrEqual(layout!.height - 4)' frontend/src/leftoverMapPlotLayout.test.ts
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Verify current-parent layout and inherited presentation contracts
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/leftoverMapPlotLayout.test.ts
+          src/leftoverMapPlotSmallCanvas.test.ts
+          src/leftoverMapPlotVietnameseCopy.test.ts
+          src/leftoverMapCoverage.test.ts
+          src/components/LeftoverMapPlot.test.tsx
+
+      - name: Verify frontend lint
+        working-directory: frontend
+        run: pnpm exec oxlint
+
+      - name: Commit workflow-free converged tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-812-parent-convergence-r3.yml
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-812-parent-convergence-r3\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-812-parent-convergence-r3.yml'
+          test "$(git diff --cached --name-only | grep -v '^\.github/workflows/temporary-812-parent-convergence-r3\.yml$' | sort)" = "frontend/src/leftoverMapPlotLayout.test.ts"
+          git commit -m "merge: converge #812 with current #811"
+          git push origin HEAD:automation/812-parent-convergence-r3-20260906
