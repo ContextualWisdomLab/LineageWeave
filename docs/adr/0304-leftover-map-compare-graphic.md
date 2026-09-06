@@ -1,6 +1,6 @@
 # ADR 0304 — Show leftover-map graphic display on grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0305](0305-leftover-map-compare-plot-axis-share.md)
