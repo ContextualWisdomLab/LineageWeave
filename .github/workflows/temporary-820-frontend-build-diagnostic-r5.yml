@@ -90,33 +90,59 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Verify oxlint
+      - name: Verify oxlint before repair
         working-directory: frontend
         run: pnpm exec oxlint
 
-      - name: Capture TypeScript diagnostic
-        id: tsc
+      - name: Verify exact TypeScript RED
         working-directory: frontend
         shell: bash
         run: |
+          set -euo pipefail
           set +e
           pnpm exec tsc -b > ../tsc-diagnostic.txt 2>&1
           status=$?
+          set -e
           cat ../tsc-diagnostic.txt
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
+          test "$status" -ne 0
+          grep -Fq "src/components/LeftoverMapPlot.tsx" ../tsc-diagnostic.txt
+          grep -Fq "Type 'string | null' is not assignable to type 'string | number'" ../tsc-diagnostic.txt
 
-      - name: Upload TypeScript diagnostic
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsc-diagnostic
-          path: tsc-diagnostic.txt
-          if-no-files-found: error
-          retention-days: 1
+      - name: Apply minimal TypeScript control-flow fix
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("frontend/src/components/LeftoverMapPlot.tsx")
+          text = path.read_text(encoding="utf-8")
+          old = '''  if (singular === null && percent === null) {
+    return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+  }
+  if (singular === null) {
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  }
+'''
+          new = '''  if (singular === null) {
+    if (percent === null) {
+      return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+    }
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  }
+'''
+          if text.count(old) != 1:
+              raise SystemExit("expected singular/share control-flow block was not unique")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
-      - name: Enforce TypeScript result
-        shell: bash
-        run: test "${{ steps.tsc.outputs.status }}" = "0"
+      - name: Verify TypeScript GREEN
+        working-directory: frontend
+        run: pnpm exec tsc -b
+
+      - name: Verify focused component contracts
+        working-directory: frontend
+        run: pnpm exec vitest run src/leftoverMapPlotAxisSingular.test.ts src/components/LeftoverMapPlot.test.tsx
+
+      - name: Verify oxlint after repair
+        working-directory: frontend
+        run: pnpm exec oxlint
 
       - name: Verify Vite production build
         working-directory: frontend
