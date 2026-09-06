@@ -73,4 +73,33 @@ describe("k6 diagnostic confidentiality", () => {
       body: `data: ${JSON.stringify({ result: { structuredContent: payload } })}`,
     })).toEqual(payload);
   });
+
+  it.each([null, [], "synthetic-private-response-marker", 7].map(value => [value]))("rejects invalid envelopes (%j)", (envelope) => {
+    expect(() => harness("k6_mcp_e2e.js").result({
+      status: 200, body: `data: ${JSON.stringify(envelope)}`,
+    })).toThrow(/^MCP response envelope was invalid: HTTP 200$/);
+  });
+
+  it("rejects an envelope without a result", () => {
+    expect(() => harness("k6_mcp_e2e.js").result({
+      status: 200, body: "data: {}",
+    })).toThrow(/^MCP response omitted result: HTTP 200$/);
+  });
+
+  it.each([null, [], privatePayload].map(value => [value]))("rejects invalid tool results (%j)", (result) => {
+    expect(() => harness("k6_mcp_e2e.js").structured({
+      status: 200, body: `data: ${JSON.stringify({ result })}`,
+    })).toThrow(/^MCP tool result was invalid: HTTP 200$/);
+  });
+
+  it.each([undefined, null, [], privatePayload].map(value => [value]))("rejects invalid structured content (%j)", (structuredContent) => {
+    expect(() => harness("k6_mcp_e2e.js").structured({
+      status: 200, body: `data: ${JSON.stringify({ result: { structuredContent } })}`,
+    })).toThrow(/^MCP structured content was invalid: HTTP 200$/);
+  });
+
+  it("contains a missing response body", () => {
+    expect(() => harness("k6_mcp_e2e.js").result({ status: 0, body: null }))
+      .toThrow(/^MCP response omitted a data event: HTTP 0$/);
+  });
 });

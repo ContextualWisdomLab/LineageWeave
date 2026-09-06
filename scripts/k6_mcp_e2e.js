@@ -35,7 +35,9 @@ function authenticate() {
 }
 
 function result(response) {
-  const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
+  const line = typeof response.body === "string"
+    ? response.body.split("\n").find((entry) => entry.startsWith("data: "))
+    : undefined;
   if (!line) fail(`MCP response omitted a data event: HTTP ${response.status}`);
   let envelope;
   try {
@@ -43,7 +45,13 @@ function result(response) {
   } catch {
     fail(`MCP response was unreadable: HTTP ${response.status}`);
   }
+  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
+    fail(`MCP response envelope was invalid: HTTP ${response.status}`);
+  }
   if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);
+  if (!Object.prototype.hasOwnProperty.call(envelope, "result")) {
+    fail(`MCP response omitted result: HTTP ${response.status}`);
+  }
   return envelope.result;
 }
 
@@ -87,8 +95,15 @@ function callTool(token, session, id, name, args) {
 
 function structured(response) {
   const toolResult = result(response);
+  if (!toolResult || typeof toolResult !== "object" || Array.isArray(toolResult)) {
+    fail(`MCP tool result was invalid: HTTP ${response.status}`);
+  }
   if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);
-  return toolResult.structuredContent;
+  const content = toolResult.structuredContent;
+  if (!content || typeof content !== "object" || Array.isArray(content)) {
+    fail(`MCP structured content was invalid: HTTP ${response.status}`);
+  }
+  return content;
 }
 
 export function setup() {

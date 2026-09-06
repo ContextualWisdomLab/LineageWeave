@@ -47,10 +47,10 @@ observation. Existing auto-merge remained enabled.
 | #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Review required; auto-merge enabled |
 | #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Review required; auto-merge enabled |
 
-#914's exact-head OpenCode run 33979625980 failed because it lacked an
+PR #914 exact-head OpenCode run 33979625980 failed because it lacked an
 `opencode-agent` current-head verdict; this is not a product-test failure or
 an approval. Other failed central workflows remain failed, without a blanket
-rerun or suppression. #780's cancelled CodeQL run 33903233347 was verified
+rerun or suppression. PR #780 cancelled CodeQL run 33903233347 was verified
 against its still-open current head and its failed jobs were re-requested.
 A retry request is not passing evidence. Running #959 run 34031208996 matched
 its open current head and was retained; no run was cancelled in this audit.
