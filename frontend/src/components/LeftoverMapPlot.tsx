@@ -6,6 +6,7 @@ import {
   leftoverMapIncompleteItemCount,
   leftoverMapIncompletePostCount,
   leftoverMapItemCoverageCounts,
+  LEFTOVER_MAP_COMPARE_PLOT_COVERAGE_LABEL,
   LEFTOVER_MAP_PLOT_COVERAGE,
   LEFTOVER_MAP_PLOT_COVERAGE_LABEL,
   LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM,
@@ -118,10 +119,13 @@ function leftoverMapPlotAxisText(
  * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * ADR 0304 reuses this graphic on the grouping comparison strip from
- * already-named leftover-map coordinates and does not caption leftover-map
- * coverage on that comparison plot. ADR 0305 captions leftover-map axis
+ * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis
  * share on that comparison graphic from already-named leftover-map axes
- * with distinct leftover map comparison axis labels.
+ * with distinct leftover map comparison axis labels. ADR 0306 captions leftover-map
+ * complete-case coverage on that comparison graphic from already-named
+ * leftover-map coverage with distinct leftover map comparison graphic coverage
+ * labels and does not caption leftover-map item coverage or leftover-map
+ * incomplete coverage on that comparison plot.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -160,12 +164,16 @@ export function LeftoverMapPlot({
         <p
           className="leftover-map-plot-coverage"
           role="note"
-          aria-label={t(LEFTOVER_MAP_PLOT_COVERAGE_LABEL)}
+          aria-label={t(
+            variant === "comparison"
+              ? LEFTOVER_MAP_COMPARE_PLOT_COVERAGE_LABEL
+              : LEFTOVER_MAP_PLOT_COVERAGE_LABEL,
+          )}
         >
           {tf(LEFTOVER_MAP_PLOT_COVERAGE, coverageCounts)}
         </p>
       ) : null}
-      {itemCoverageCounts !== null ? (
+      {variant !== "comparison" && itemCoverageCounts !== null ? (
         <p
           className="leftover-map-plot-item-coverage"
           role="note"
@@ -174,7 +182,7 @@ export function LeftoverMapPlot({
           {tf(LEFTOVER_MAP_PLOT_ITEM_COVERAGE, itemCoverageCounts)}
         </p>
       ) : null}
-      {incompletePostCount !== null ? (
+      {variant !== "comparison" && incompletePostCount !== null ? (
         <p
           className="leftover-map-plot-incomplete-posts"
           role="note"
@@ -183,7 +191,7 @@ export function LeftoverMapPlot({
           {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, incompletePostCount)}
         </p>
       ) : null}
-      {incompleteItemCount !== null ? (
+      {variant !== "comparison" && incompleteItemCount !== null ? (
         <p
           className="leftover-map-plot-incomplete-items"
           role="note"

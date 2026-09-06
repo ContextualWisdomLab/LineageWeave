@@ -137,3 +137,16 @@ export const MissingAxisShare: Story = {
     ],
   },
 };
+
+export const Comparison: Story = {
+  args: {
+    variant: "comparison",
+  },
+};
+
+export const ComparisonMissingCoverage: Story = {
+  args: {
+    variant: "comparison",
+    leftoverMapCoverage: undefined,
+  },
+};

@@ -107,7 +107,9 @@ export type LeftoverPairListProps = {
  * grouping comparison leftover pairs, not this pair list. ADR 0304 draws
  * the leftover-map graphic display on the grouping comparison strip, not
  * this pair list. ADR 0305 captions leftover-map axis share on that
- * grouping comparison leftover-map graphic, not this pair list. Every badge still
+ * grouping comparison leftover-map graphic, not this pair list. ADR 0306
+ * captions leftover-map complete-case coverage on that grouping comparison
+ * leftover-map graphic, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

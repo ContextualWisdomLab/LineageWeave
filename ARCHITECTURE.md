@@ -704,6 +704,10 @@ ADR 0305 returns persisted leftover-map axes on
 `GET /api/reports/compare/{period}` and captions leftover-map axis share
 on that grouping comparison leftover-map graphic when the persisted share
 is finite.
+ADR 0306 captions leftover-map complete-case coverage on that grouping
+comparison leftover-map graphic when leftoverMapCoverageCounts returns usable
+complete-case integers and does not caption leftover-map item coverage or
+leftover-map incomplete coverage on that comparison plot.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -736,8 +740,9 @@ incomplete item coverage (ADR 0292), leftover-map reconstruction `R̂`
 (ADR 0301), leftover-map coordinates `ξ` / `ζ`
 (ADR 0302), leftover-map coordinates on the compare leftover-pair payload
 (ADR 0303), leftover-map graphic display on the grouping comparison strip
-(ADR 0304), and leftover-map axis share on the grouping comparison leftover-map
-graphic (ADR 0305);
+(ADR 0304), leftover-map axis share on the grouping comparison leftover-map
+graphic (ADR 0305), and leftover-map complete-case coverage on the grouping
+comparison leftover-map graphic (ADR 0306);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

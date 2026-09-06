@@ -4094,6 +4094,7 @@ function ReportsPanel({
                   <LeftoverMapPlot
                     pairs={row.leftover_pairs}
                     leftoverMapAxes={row.leftover_map_axes}
+                    leftoverMapCoverage={row.leftover_map_coverage}
                     criterionLabel={criterionShortLabel}
                     variant="comparison"
                     onSelectPost={(pair) => {

@@ -4219,6 +4219,9 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
+    expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
     expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
       "Leftover map used 2 of 2 scored criteria (complete-case)",
     );
@@ -4342,6 +4345,21 @@ describe("App, authenticated", () => {
         "Leftover map comparison coverage",
       ),
     ).toHaveLength(1);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison graphic coverage",
+      ),
+    ).toHaveTextContent("Leftover map used 2 of 3 scored posts (complete-case)");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison graphic coverage",
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic coverage",
+      ),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map item coverage"),
     ).not.toBeInTheDocument();
