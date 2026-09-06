@@ -1,0 +1,8 @@
+reapply_status=conflict
+AGENTS.md
+ARCHITECTURE.md
+CHANGELOG.md
+CLAUDE.md
+docs/product-technical-gap-baseline.md
+frontend/package.json
+pyproject.toml
