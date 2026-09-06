@@ -18,6 +18,8 @@ const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
+// Persisted Global Ask states: migrations/0165_global_ask_job.sql.
+const jobStates = new Set(["queued", "running", "succeeded", "failed"]);
 
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
 const readDuration = new Trend("lineageweave_read_duration", true);
@@ -100,8 +102,15 @@ export default function (data) {
   readDuration.add(responses[1].timings.duration, { endpoint: "lineage" });
   askPollDuration.add(responses[2].timings.duration);
   if (responses[2].status === 200) {
+    let status;
+    try {
+      status = responses[2].json("job_status_code");
+    } catch {
+      // Parser exceptions may include response content; keep the observation bounded.
+    }
+    check(status, { "Ask state is declared": (value) => jobStates.has(value) });
     askStateObservations.add(1, {
-      job_status: String(responses[2].json("job_status_code") || "unknown"),
+      job_status: jobStates.has(status) ? status : "unknown",
     });
   }
   check(responses[0], { "posts read succeeds": (response) => response.status === 200 });

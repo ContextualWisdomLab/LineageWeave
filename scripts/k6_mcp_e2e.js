@@ -14,6 +14,8 @@ const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const keycloakHost = __ENV.KEYCLOAK_HOST;
 const protocolVersion = "2025-11-25";
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
+// Persisted Global Ask states: migrations/0165_global_ask_job.sql.
+const jobStates = new Set(["queued", "running", "succeeded", "failed"]);
 
 const initializeDuration = new Trend("lineageweave_mcp_initialize_duration", true);
 const submitDuration = new Trend("lineageweave_mcp_submit_duration", true);
@@ -140,6 +142,7 @@ export default function (data) {
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });
   if (ok) {
     const payload = structured(response, 3);
-    jobStateObservations.add(1, { job_status: String(payload.job_status_code || "unknown") });
+    check(payload.job_status_code, { "MCP Ask state is declared": (value) => jobStates.has(value) });
+    jobStateObservations.add(1, { job_status: jobStates.has(payload.job_status_code) ? payload.job_status_code : "unknown" });
   }
 }

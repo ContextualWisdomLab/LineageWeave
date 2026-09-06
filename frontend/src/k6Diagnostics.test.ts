@@ -119,3 +119,53 @@ describe("k6 diagnostic confidentiality", () => {
       .toThrow(/^MCP response omitted a data event: HTTP 0$/);
   });
 });
+
+
+describe("k6 job-state metric confidentiality", () => {
+  function iteration(name: string, status: unknown, unreadable = false) {
+    const source = readFileSync(new URL(`../../scripts/${name}`, import.meta.url), "utf8")
+      .replace(/^import .*;$/gm, "")
+      .replace(/export default function/g, "function iteration")
+      .replace(/export function/g, "function");
+    const observations: unknown[] = [];
+    const checks: Record<string, boolean> = {};
+    const response = {
+      status: 200, timings: { duration: 1 },
+      json: () => { if (unreadable) throw new Error(privatePayload); return status; },
+      body: `data: ${JSON.stringify(rpcResult({ structuredContent: { job_status_code: status } }, 3))}`,
+    };
+    const run = runInNewContext(`${source}\n${name.includes("mcp") ? 'vuSession = "synthetic-session";' : ""} iteration`, {
+      __ENV: { REQUEST_TIMEOUT: "1s" },
+      http: { batch: () => [response, response, response], post: () => response },
+      check: (value: unknown, predicates: Record<string, (value: unknown) => boolean>) => {
+        for (const [name, predicate] of Object.entries(predicates)) checks[name] = predicate(value);
+        return Object.keys(predicates).every(name => checks[name]);
+      },
+      fail: (message: string) => { throw new Error(message); },
+      Counter: class { add(_value: number, tags: unknown) { observations.push(tags); } },
+      Trend: class { add() {} },
+    });
+    return { run: () => run({ token: "synthetic-token", askJobId: "synthetic-job" }), observations, checks };
+  }
+
+  for (const name of ["k6_http_e2e.js", "k6_mcp_e2e.js"]) {
+    it.each(["queued", "running", "succeeded", "failed"])(`${name} retains declared state %s`, (status) => {
+      const test = iteration(name, status);
+      test.run();
+      expect(test.observations).toEqual([{ job_status: status }]);
+      expect(test.checks[name.includes("mcp") ? "MCP Ask state is declared" : "Ask state is declared"]).toBe(true);
+    });
+    it.each([privatePayload, null, [], { body: privatePayload }, 7].map(value => [value]))(`${name} contains undeclared state %j`, (status) => {
+      const test = iteration(name, status);
+      test.run();
+      expect(test.observations).toEqual([{ job_status: "unknown" }]);
+      expect(test.checks[name.includes("mcp") ? "MCP Ask state is declared" : "Ask state is declared"]).toBe(false);
+    });
+  }
+
+  it("contains HTTP poll parser errors without discarding successful read observations", () => {
+    const test = iteration("k6_http_e2e.js", null, true);
+    expect(test.run).not.toThrow();
+    expect(test.observations).toEqual([{ job_status: "unknown" }]);
+  });
+});

@@ -1,5 +1,77 @@
 # Product & Technical Gap Baseline
 
+## Bounded observation — 2026-09-07 08:20 KST
+
+Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e`.
+The [dated metadata](development-loop-20260907.json) records 124 open PRs
+(117 Draft, 7 Ready) and 19 open issues. These separate requests are not an
+atomic snapshot. Every Ready PR had zero unresolved threads in the first 100
+queried threads and required independent approval; no merge is claimed.
+Current-head Check runs also retain failed/cancelled central gates, separately
+from passing local product checks. Normal squash auto-merge was enabled for
+#964 and retained for the other six. No running Actions runs were returned by
+the current in-progress query; no run or container was cancelled or deleted.
+
+| PR | Observed head | Protected delivery |
+|---|---|---|
+| #964 | `209582b309ac4cb0e8dca306fc41a9324a980b22` | Review required; auto-merge enabled |
+| #961 | `3bdec0504a65e63f44bd49ba15de37182a1672cc` | Review required; auto-merge enabled |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | Review required; auto-merge enabled |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | Review required; auto-merge enabled |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | Review required; auto-merge enabled |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Review required; auto-merge enabled |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Review required; auto-merge enabled |
+
+### Authority, implementation, and research remain separate
+
+Read this checkout's current PRD and contextual-orchestrator's remote
+`docs/product_planning.md` and `docs/architecture.md` before this repair.
+ADRs 0122/0213 and the four persisted Global Ask states in migration 0165 govern
+the bounded diagnostic change. The official
+[k6 tag contract](https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/)
+confirms tags enter metric results; it establishes no capacity or SLO.
+Canonical remote names were verified for `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and `disksage`.
+DeepWiki returned no indexed entry. Sequential Thinking, Context7, and Memory
+MCP tools were not callable in this session; no successful invocation is claimed.
+
+The repair extends #964 at parent `209582b309ac4cb0e8dca306fc41a9324a980b22`:
+HTTP/MCP polling previously copied arbitrary response status values into metric
+tags, and HTTP parsing could emit response excerpts in an exception. Nine
+failing regressions reproduced the defect. Both scripts now emit only the four
+persisted states or `unknown`; a malformed HTTP response records unknown without
+losing the request-duration observations. An undeclared state also fails a named
+check, so HTTP 200 does not disguise malformed job evidence. All 42 diagnostic
+regressions pass.
+There is no new model, heuristic, estimator, numerical implementation, schema,
+API, release number, or customer UI policy in this change.
+
+The largest remaining buyer gap is still authenticated Voice evidence continuity,
+owned by #780, #934/#935, #936, and #937. The diagnostic repair does **not** close
+that acceptance. ADR 0246 defines the twelve atomic Voices; the current composition
+record is ADR 0256, while ADR 0251 in this checkout describes the FJA I/O-psychology
+ontology. Do not renumber or reinterpret either from an ambiguous reference.
+Keep carrying Post and derivation evidence separate, preserve truth/cutoff/PROV-O,
+and protect-merge #780 before retargeting its children.
+
+### Integration and runtime limits
+
+The exact-ref file scan covered 120 of 124 candidates. Its linked
+metadata distinguishes candidate ADR identities, migration identities, and
+release-version overlaps. Shared API paths require semantic review after each
+parent merge; overlapping files alone do not prove a schema or API conflict.
+No conflicting candidate was silently renumbered, deleted, or force-rebased.
+
+The formal `lineageweave` PostgreSQL read returned 43,189 Posts, 130 Ask jobs,
+zero running Ask jobs, nine connections, and zero lock waits. These are current
+operational aggregates, not probability-sample inference, semantic correctness,
+or candidate deployment evidence. The mixed/private source was not load-tested.
+Synthetic-only authenticated k6 latency/concurrency/error/throughput and correlated
+PostgreSQL/worker/Valkey/gateway saturation remain unavailable. No performance
+change is justified by this idle snapshot. Candidate authenticated API, desktop
+and mobile rendering, and Voice acceptance remain unverified. No historical
+screenshots or load observations are promoted to current-head acceptance.
+
 ## Bounded observation — 2026-09-06 23:39 KST
 
 This is a dated observation of protected `main` at `83eba56149eb802cd63642c507c324c9976ec78e` and
