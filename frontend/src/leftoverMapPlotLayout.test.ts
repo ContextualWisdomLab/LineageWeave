@@ -405,6 +405,9 @@ describe("layoutLeftoverMapPlot", () => {
           leftover_map_person_axis_2: -1,
           leftover_map_item_axis_1: 1,
           leftover_map_item_axis_2: -1,
+          observed_response: 2.4,
+          expected_response: 2.0,
+          leftover_map_rank: 1,
         }),
         pair({
           pair_kind: "farthest",
@@ -414,14 +417,20 @@ describe("layoutLeftoverMapPlot", () => {
           leftover_map_person_axis_2: 1,
           leftover_map_item_axis_1: -1,
           leftover_map_item_axis_2: 1,
+          observed_response: 2.4,
+          expected_response: 2.0,
+          leftover_map_rank: 1,
         }),
       ],
       criterionLabel,
     );
 
-    for (const segment of layout?.segments ?? []) {
+    expect(layout?.segments).toHaveLength(2);
+    for (const segment of layout!.segments) {
       expect(segment.labelY).toBeGreaterThanOrEqual(12);
-      expect(segment.explainedShareY).toBeLessThanOrEqual((layout?.height ?? 0) - 4);
+      expect(segment.rankLabel).toBe("rank 1");
+      expect(segment.rankY).toBeGreaterThan(segment.expectedY);
+      expect(segment.rankY).toBeLessThanOrEqual(layout!.height - 4);
     }
   });
 
