@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BackendError,
   fetchOntologyNeighborhood,
@@ -103,6 +103,7 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const deniedPayloads = useRef(new WeakSet<OntologyNeighborhoodPayload>());
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -122,6 +123,14 @@ export function OntologyExplorer({
   useEffect(() => {
     const useProvided = Boolean(provided) && !liveFocus;
     if (useProvided && provided) {
+      if (providedStatus === "denied") deniedPayloads.current.add(provided);
+      // A status change is not a newly authorized projection.
+      if (deniedPayloads.current.has(provided)) {
+        setLoaded(null);
+        clearSelection();
+        setStatus("denied");
+        return;
+      }
       setLoaded(provided);
       setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));
       return;
@@ -165,8 +174,9 @@ export function OntologyExplorer({
   }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
 
   const visible = useMemo(
-    () => status === "denied" ? null : filterNeighborhood(loaded, query),
-    [loaded, query, status],
+    () => status === "denied" || (!liveFocus && providedStatus === "denied")
+      ? null : filterNeighborhood(loaded, query),
+    [loaded, query, status, liveFocus, providedStatus],
   );
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;

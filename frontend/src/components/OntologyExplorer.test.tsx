@@ -266,7 +266,32 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
   });
 
-  it("denies exports even when a supplied denied state retains an earlier payload", () => {
+  it.each(["ready", undefined] as const)("does not restore a denied supplied payload on status-only recovery (%s)", async (recoveredStatus) => {
+    const payload = neighborhood();
+    const { rerender } = render(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "Demo");
+    rerender(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} status="denied" />,
+    );
+    expect(screen.queryByRole("complementary", { name: "Node evidence" })).not.toBeInTheDocument();
+    rerender(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} status={recoveredStatus} />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+    rerender(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} status="ready" />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+    expect(screen.queryByRole("complementary", { name: "Node evidence" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
+  });
+
+  it("denies exports when initially supplied a denied payload", () => {
     render(
       <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} status="denied" />,
     );
