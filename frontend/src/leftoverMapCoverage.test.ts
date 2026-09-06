@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { LeftoverMapCoverage } from "./api";
-import { leftoverMapCoverageCounts, leftoverMapItemCoverageCounts } from "./leftoverMapCoverage";
+import {
+  leftoverMapCoverageCounts,
+  leftoverMapIncompletePostCount,
+  leftoverMapItemCoverageCounts,
+} from "./leftoverMapCoverage";
 
 function coverage(overrides: Partial<LeftoverMapCoverage> = {}): LeftoverMapCoverage {
   return {
@@ -87,6 +91,41 @@ describe("leftoverMapItemCoverageCounts", () => {
     expect(leftoverMapItemCoverageCounts(coverage({ map_item_count: 1, scored_item_count: 2 }))).not.toEqual({
       used: 2,
       scored: 2,
+    });
+  });
+});
+
+describe("leftoverMapIncompletePostCount", () => {
+  it("names persisted leftover-map incomplete post coverage without inventing a leftover score", () => {
+    expect(leftoverMapIncompletePostCount(coverage())).toEqual({ dropped: 1 });
+    expect(
+      leftoverMapIncompletePostCount(coverage({ map_post_count: 0, incomplete_post_count: 3 })),
+    ).toEqual({ dropped: 3 });
+    expect(
+      leftoverMapIncompletePostCount(coverage({ map_post_count: 3, incomplete_post_count: 0 })),
+    ).toEqual({ dropped: 0 });
+  });
+
+  it("omits incomplete post coverage when the dropped count is missing or not a usable integer", () => {
+    expect(leftoverMapIncompletePostCount(null)).toBeNull();
+    expect(leftoverMapIncompletePostCount(undefined)).toBeNull();
+    expect(leftoverMapIncompletePostCount(coverage({ incomplete_post_count: -1 }))).toBeNull();
+    expect(leftoverMapIncompletePostCount(coverage({ incomplete_post_count: 1.5 }))).toBeNull();
+    expect(leftoverMapIncompletePostCount(coverage({ incomplete_post_count: Number.NaN }))).toBeNull();
+  });
+
+  it("does not invent leftover-map incomplete posts from scored minus used or from plotted marker count", () => {
+    expect(
+      leftoverMapIncompletePostCount(
+        coverage({
+          map_post_count: 2,
+          scored_post_count: 3,
+          incomplete_post_count: 2,
+        }),
+      ),
+    ).toBeNull();
+    expect(leftoverMapIncompletePostCount(coverage({ incomplete_post_count: 1 }))).not.toEqual({
+      dropped: 2,
     });
   });
 });

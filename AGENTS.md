@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -348,6 +348,12 @@ coverage so two criterion diamonds are not read as the scored-criterion census;
 a missing, non-integer, negative-used, non-positive-scored, or
 used-greater-than-scored item coverage omits that leftover-map item coverage
 caption and does not invent item coverage from plotted criterion marker count.
+ADR 0283 captions the leftover-map graphic display with persisted leftover-map
+incomplete post coverage so a `used N of M` caption is not read as every
+scored post entering the map; a missing, non-integer, or negative dropped
+count, or a dropped count that contradicts usable complete-case integers,
+omits that leftover-map incomplete post caption and does not invent dropped
+posts from scored minus used or from plotted marker count.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -362,7 +368,8 @@ and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list and the leftover-map
 graphic with how many scored posts entered the map. Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
-entered the map.
+entered the map. Incomplete post coverage (ADR 0283) captions the leftover-map
+graphic with how many scored posts stayed out of the factorization.
 
 Authorized occupational construct catalog search (ADR 0257) matches official
 O*NET preferred labels or descriptions only when a source-eligible, ABAC-visible
