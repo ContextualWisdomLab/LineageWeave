@@ -1,0 +1,121 @@
+name: Temporary 843 parent reconstruction
+
+on:
+  push:
+    branches:
+      - "automation/843-parent-reconstruction-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-843-parent-reconstruction
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact reconstruction branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/843-parent-reconstruction-20260906
+          fetch-depth: 0
+
+      - name: Verify current parent ancestry and isolated harness delta
+        run: |
+          git merge-base --is-ancestor f013dfb53b255e8e0be1dfb783cb41dca7eeb83e HEAD
+          test "$(git diff --name-only f013dfb53b255e8e0be1dfb783cb41dca7eeb83e...HEAD)" = ".github/workflows/temporary-843-parent-reconstruction.yml"
+
+      - name: Reapply exact rank-payload child delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git cherry-pick --no-commit 2a5ab4d735a1240997150578b151c6b6492e2f43; then
+            exit 0
+          fi
+          mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+          printf 'conflicts:\n%s\n' "${conflicts[@]}"
+          allowed='AGENTS.md ARCHITECTURE.md CHANGELOG.md CLAUDE.md docs/product-technical-gap-baseline.md docs/storybook-inventory.md frontend/src/components/LeftoverPairList.tsx frontend/src/leftoverMapPlotLayout.ts'
+          for path in "${conflicts[@]}"; do
+            case " $allowed " in
+              *" $path "*) git checkout --theirs -- "$path"; git add "$path" ;;
+              *) echo "unexpected conflict outside reviewed parent/child overlap: $path" >&2; exit 1 ;;
+            esac
+          done
+          test -z "$(git diff --name-only --diff-filter=U)"
+
+      - name: Converge parent ADR authority and Draft decision state
+        shell: python
+        run: |
+          from pathlib import Path
+
+          changed = [
+              Path("AGENTS.md"),
+              Path("ARCHITECTURE.md"),
+              Path("CHANGELOG.md"),
+              Path("CLAUDE.md"),
+              Path("docs/adr/0305-leftover-map-compare-rank-payload.md"),
+              Path("docs/product-technical-gap-baseline.md"),
+              Path("docs/storybook-inventory.md"),
+              Path("frontend/src/components/LeftoverPairList.tsx"),
+              Path("frontend/src/leftoverMapPlotLayout.ts"),
+          ]
+          for path in changed:
+              text = path.read_text(encoding="utf-8")
+              text = text.replace("0304-leftover-map-compare-axis-share", "0368-leftover-map-compare-axis-share")
+              text = text.replace("ADR 0304", "ADR 0368")
+              path.write_text(text, encoding="utf-8")
+
+          adr = Path("docs/adr/0305-leftover-map-compare-rank-payload.md")
+          text = adr.read_text(encoding="utf-8")
+          if text.count("**Decision status:** Accepted") != 1:
+              raise SystemExit("expected one premature Accepted status in ADR 0305")
+          adr.write_text(text.replace("**Decision status:** Accepted", "**Decision status:** Proposed", 1), encoding="utf-8")
+
+      - name: Verify reconstructed authority and release identity
+        run: |
+          test -e docs/adr/0368-leftover-map-compare-axis-share.md
+          test ! -e docs/adr/0304-leftover-map-compare-axis-share.md
+          grep -q '^\*\*Decision status:\*\* Proposed$' docs/adr/0305-leftover-map-compare-rank-payload.md
+          ! grep -R --line-number --fixed-strings '0304-leftover-map-compare-axis-share' \
+            AGENTS.md ARCHITECTURE.md CHANGELOG.md CLAUDE.md docs/adr/0305-leftover-map-compare-rank-payload.md \
+            docs/product-technical-gap-baseline.md docs/storybook-inventory.md frontend/src/components/LeftoverPairList.tsx frontend/src/leftoverMapPlotLayout.ts
+          grep -q 'version = "2.62.0"' pyproject.toml
+          grep -q '"version": "2.62.0"' frontend/package.json
+          git diff --check
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Validate backend rank-payload contract
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q backend/tests/test_api.py -k 'period_comparison'
+          uv run --frozen python -m py_compile backend/app/report_ingestion.py
+
+      - name: Validate frontend composition contract
+        run: |
+          npm ci --prefix frontend
+          npm --prefix frontend test -- --run
+          npm --prefix frontend run typecheck
+          npm --prefix frontend run lint
+
+      - name: Commit clean reconstructed product tree
+        run: |
+          rm .github/workflows/temporary-843-parent-reconstruction.yml
+          git diff --check
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(reports): reconstruct rank payload on repaired axis-share parent"
+          git push origin HEAD:automation/843-parent-reconstruction-20260906
