@@ -1,0 +1,113 @@
+name: Temporary release identity v2.28 validation
+
+on:
+  push:
+    branches:
+      - "automation/release-identity-v2280-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-release-identity-v2280
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact validation branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/release-identity-v2280-20260906
+          fetch-depth: 0
+
+      - name: Verify exact protected base and candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=83eba56149eb802cd63642c507c324c9976ec78e
+          candidate=3bdec0504a65e63f44bd49ba15de37182a1672cc
+          red=b99bb931b86ade0e42dc5497df7abe754016f593
+          git fetch origin main fix/release-identity-v2280
+          test "$(git rev-parse origin/main)" = "$base"
+          test "$(git rev-parse origin/fix/release-identity-v2280)" = "$candidate"
+          git merge-base --is-ancestor "$base" "$red"
+          git merge-base --is-ancestor "$red" "$candidate"
+          test "$(git diff --name-only "$candidate"..HEAD)" = ".github/workflows/temporary-release-identity-v2280.yml"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Reproduce exact protected-main release RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          red=b99bb931b86ade0e42dc5497df7abe754016f593
+          git worktree add --detach /tmp/release-red "$red"
+          cd /tmp/release-red
+          uv sync --frozen --extra dev
+          set +e
+          uv run --frozen python -m pytest -q tests/test_package_version.py >/tmp/release-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/release-red.log
+          test "$status" -ne 0
+          grep -q 'test_release_versions_are_synchronized' /tmp/release-red.log
+
+      - name: Verify exact candidate GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev
+          uv run --frozen python -m pytest -q tests/test_package_version.py
+
+      - name: Verify release identity values
+        shell: python
+        run: |
+          import json
+          import re
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          frontend = json.loads(Path("frontend/package.json").read_text(encoding="utf-8"))
+          init_text = Path("lineageweave/__init__.py").read_text(encoding="utf-8")
+          runtime = re.search(r'^__version__ = "([^"]+)"$', init_text, re.MULTILINE)
+          versions = (project["project"]["version"], frontend["version"], runtime.group(1) if runtime else None)
+          assert versions == ("2.28.0", "2.28.0", "2.28.0"), versions
+          assert Path("CHANGELOG.d/2.28.0-release-identity.md").is_file()
+
+      - name: Verify clean candidate diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          base=83eba56149eb802cd63642c507c324c9976ec78e
+          expected=$'CHANGELOG.d/2.28.0-release-identity.md\nlineageweave/__init__.py\ntests/test_package_version.py'
+          actual="$(git diff --name-only "$base"..3bdec0504a65e63f44bd49ba15de37182a1672cc)"
+          test "$actual" = "$expected"
+
+      - name: Commit workflow-free validation tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-release-identity-v2280.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm "$workflow"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' | grep -v '^\.github/workflows/temporary-release-identity-v2280\.yml$' || true)"
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-release-identity-v2280.yml'
+          git diff --cached --check
+          git commit -m "ci(release): record v2.28 identity validation"
+          git push origin HEAD:automation/release-identity-v2280-20260906
