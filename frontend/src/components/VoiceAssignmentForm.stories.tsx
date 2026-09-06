@@ -44,3 +44,21 @@ export const Completed: Story = {
 export const NarrowViewport: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
+
+export const PostNoLongerAvailable: Story = {
+  args: {
+    onSave: async () => {
+      throw new Error(
+        "The post or its evidence is no longer available. Reopen the post and try again.",
+      );
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(canvas.getByLabelText("Perspective"), "vops");
+    await userEvent.selectOptions(canvas.getByLabelText("Evidence status"), "truth_proposed");
+    await userEvent.click(canvas.getByRole("button", { name: "Connect perspective" }));
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Reopen the post and try again.");
+    await expect(canvas.queryByRole("status")).not.toBeInTheDocument();
+  },
+};

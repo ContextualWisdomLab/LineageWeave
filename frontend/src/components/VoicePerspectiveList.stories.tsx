@@ -42,6 +42,16 @@ export const NarrowViewport: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
 
+export const EvidenceNoLongerVisible: Story = {
+  args: { voices: [meta.args.voices[0]] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Imported from source")).toBeVisible();
+    await expect(canvas.queryByText("Evidence connected")).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/Voice of Process/)).not.toBeInTheDocument();
+  },
+};
+
 export const RejectedEvidence: Story = {
   args: {
     voices: [

@@ -1,0 +1,1862 @@
+{
+  "observed_at": "2026-09-06T07:47:19.562984+00:00",
+  "implementation_head": "0969855cb30ba20fbe28a1a529999ecd71b9cd09",
+  "protected_main": "83eba56149eb802cd63642c507c324c9976ec78e",
+  "open_pr_count": 120,
+  "open_issue_count": null,
+  "issue_count_limitation": "Current REST issue listing unavailable after rate exhaustion; older count is not promoted.",
+  "ready_prs": [
+    {
+      "number": 780,
+      "head": "1d8fa267b059289e77301a09985dfac70a439814",
+      "base": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "unresolved_threads": 0,
+      "workflow_runs": [
+        {
+          "id": 33952504679,
+          "name": "Ontology Pages",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33952504686,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33903233491,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 33903233393,
+          "name": "Ontology Pages",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 33903233503,
+          "name": "SAST Semgrep",
+          "status": "completed",
+          "conclusion": "cancelled"
+        },
+        {
+          "id": 33903233347,
+          "name": "CodeQL PR",
+          "status": "completed",
+          "conclusion": "cancelled"
+        },
+        {
+          "id": 33903233493,
+          "name": "Security Scan",
+          "status": "completed",
+          "conclusion": "cancelled"
+        }
+      ],
+      "current_head_independent_approval": false
+    },
+    {
+      "number": 929,
+      "head": "2a8ed5d02f4a3082b346d923d754c1ff37ebff52",
+      "base": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "unresolved_threads": 0,
+      "workflow_runs": [
+        {
+          "id": 33943899021,
+          "name": "SAST Semgrep",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33943899007,
+          "name": "CodeQL PR",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 33943898985,
+          "name": "Security Scan",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 33943898956,
+          "name": "Ontology Pages",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33943899031,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33943898948,
+          "name": "PROV-O contract",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "current_head_independent_approval": false
+    },
+    {
+      "number": 914,
+      "head": "61ed3a3712d252e3c179a71d297c52f05e1bac20",
+      "base": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "unresolved_threads": 0,
+      "workflow_runs": [
+        {
+          "id": 33979633195,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33979627205,
+          "name": "SAST Semgrep",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33979627218,
+          "name": "Security Scan",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33979627142,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 33979627116,
+          "name": "CodeQL PR",
+          "status": "completed",
+          "conclusion": "failure"
+        }
+      ],
+      "current_head_independent_approval": false
+    },
+    {
+      "number": 911,
+      "head": "5d40eed35a0b6e0d182397f8d02b29c38e9bdd17",
+      "base": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "unresolved_threads": 0,
+      "workflow_runs": [
+        {
+          "id": 33924523697,
+          "name": "Ontology Pages",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33924523750,
+          "name": "Security Scan",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 33924523702,
+          "name": "SAST Semgrep",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33924523622,
+          "name": "CodeQL PR",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 33924523650,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33924523708,
+          "name": "PROV-O contract",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "current_head_independent_approval": false
+    },
+    {
+      "number": 907,
+      "head": "847a15e73e69bfc768d517a83fa8706aecfafe7e",
+      "base": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "unresolved_threads": 0,
+      "workflow_runs": [
+        {
+          "id": 33891872385,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33889532585,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 33889532559,
+          "name": "CodeQL PR",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 33889532520,
+          "name": "SAST Semgrep",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33889532558,
+          "name": "Security Scan",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "current_head_independent_approval": false
+    },
+    {
+      "number": 802,
+      "head": "32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6",
+      "base": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "unresolved_threads": 0,
+      "workflow_runs": [
+        {
+          "id": 33953039688,
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33953039614,
+          "name": "Security Scan",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 33953039536,
+          "name": "PROV-O contract",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33953039546,
+          "name": "Ontology Pages",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33953039573,
+          "name": "SAST Semgrep",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 33953039547,
+          "name": "CodeQL PR",
+          "status": "completed",
+          "conclusion": "failure"
+        }
+      ],
+      "current_head_independent_approval": false
+    }
+  ],
+  "open_prs": [
+    {
+      "number": 937,
+      "head": "406944473209c5d9124ab7605a5c8baa484f693b",
+      "base": "fix/voice-export-authority-20260828",
+      "base_sha": "1d8fa267b059289e77301a09985dfac70a439814",
+      "draft": true
+    },
+    {
+      "number": 936,
+      "head": "e6c1d157dad9f0d26ee703de455b2106a77b34d9",
+      "base": "fix/voice-export-authority-20260828",
+      "base_sha": "1d8fa267b059289e77301a09985dfac70a439814",
+      "draft": true
+    },
+    {
+      "number": 935,
+      "head": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
+      "base": "codex/voice-gap-20260905",
+      "base_sha": "3060dd7000791160c2bcc98351af129899ff32ff",
+      "draft": true
+    },
+    {
+      "number": 934,
+      "head": "3060dd7000791160c2bcc98351af129899ff32ff",
+      "base": "fix/voice-export-authority-20260828",
+      "base_sha": "1d8fa267b059289e77301a09985dfac70a439814",
+      "draft": true
+    },
+    {
+      "number": 933,
+      "head": "de4e6cf9a48b042af0bb1128fa9b194abd1952a5",
+      "base": "docs/public-surface-deepwiki",
+      "base_sha": "00e90e03ae1afb7f13ae843dd578694d0f72b325",
+      "draft": true
+    },
+    {
+      "number": 932,
+      "head": "846ec4700666188a281940b99ac4edf776e904ca",
+      "base": "feat/i18n-versioned-translation-ledger",
+      "base_sha": "2a8ed5d02f4a3082b346d923d754c1ff37ebff52",
+      "draft": true
+    },
+    {
+      "number": 929,
+      "head": "2a8ed5d02f4a3082b346d923d754c1ff37ebff52",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": false
+    },
+    {
+      "number": 928,
+      "head": "322b58247e933592ceb6d6eab6cac258ee5335cd",
+      "base": "feat/leftover-map-axis-origin-badge-v21150",
+      "base_sha": "34595e41ee65b89a468efeebf64fee86eff881d9",
+      "draft": true
+    },
+    {
+      "number": 927,
+      "head": "34595e41ee65b89a468efeebf64fee86eff881d9",
+      "base": "feat/leftover-map-compare-axis-origin-badge-v21140",
+      "base_sha": "ede308929b20f24a56c5ff3ae2211dd84d20f3ae",
+      "draft": true
+    },
+    {
+      "number": 926,
+      "head": "ede308929b20f24a56c5ff3ae2211dd84d20f3ae",
+      "base": "feat/leftover-map-compare-plot-origin-badge-v21130",
+      "base_sha": "76ebcb10a72955a68c616c02e6e0732db0800f93",
+      "draft": true
+    },
+    {
+      "number": 925,
+      "head": "8cbaad528c9aaa8d4e356db1577b932fa85ac686",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 921,
+      "head": "76ebcb10a72955a68c616c02e6e0732db0800f93",
+      "base": "feat/leftover-map-plot-origin-badge-v21120",
+      "base_sha": "d54c5611cc693bb7a85e9164814761417ccb563e",
+      "draft": true
+    },
+    {
+      "number": 920,
+      "head": "d54c5611cc693bb7a85e9164814761417ccb563e",
+      "base": "feat/leftover-map-compare-list-criterion-origin-badge-v21110",
+      "base_sha": "a91d2ec56bad922f9159e17649f77d229a0f98d3",
+      "draft": true
+    },
+    {
+      "number": 919,
+      "head": "caf8ee0f576eb23dc80d907fccfdcd6a4cecb232",
+      "base": "fix/contextual-orchestrator-owner-boundary",
+      "base_sha": "e5711282c48cc20d0a88fb56a9e382d500989c72",
+      "draft": true
+    },
+    {
+      "number": 918,
+      "head": "a91d2ec56bad922f9159e17649f77d229a0f98d3",
+      "base": "feat/leftover-map-compare-list-post-origin-badge-v21100",
+      "base_sha": "8192b48560a919c800ec47927adc966179a2b572",
+      "draft": true
+    },
+    {
+      "number": 917,
+      "head": "8192b48560a919c800ec47927adc966179a2b572",
+      "base": "feat/leftover-map-list-criterion-origin-badge-v21090",
+      "base_sha": "7978e92561e16a3ea4e2837fef1f35fe0bec3f3c",
+      "draft": true
+    },
+    {
+      "number": 916,
+      "head": "7978e92561e16a3ea4e2837fef1f35fe0bec3f3c",
+      "base": "feat/leftover-map-list-post-origin-badge-v21080",
+      "base_sha": "371bb82cea8437f907249d6e8b166f63dfe5bb8e",
+      "draft": true
+    },
+    {
+      "number": 915,
+      "head": "8c74712f2af4acf76871c71a9fd72c6aa2912f4a",
+      "base": "feat/dichotomous-measurement-policy",
+      "base_sha": "c316bfbde8644feda7e49579d43cc162e99b0bad",
+      "draft": true
+    },
+    {
+      "number": 914,
+      "head": "61ed3a3712d252e3c179a71d297c52f05e1bac20",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": false
+    },
+    {
+      "number": 913,
+      "head": "371bb82cea8437f907249d6e8b166f63dfe5bb8e",
+      "base": "feat/leftover-map-compare-plot-criterion-origin-badge-v21070",
+      "base_sha": "2ac677bae522eb1925edc6bd105f1f57a287f73e",
+      "draft": true
+    },
+    {
+      "number": 912,
+      "head": "2ac677bae522eb1925edc6bd105f1f57a287f73e",
+      "base": "feat/leftover-map-compare-plot-post-origin-badge-v21060",
+      "base_sha": "f2a1860185714d2921162a754425065d867bcce6",
+      "draft": true
+    },
+    {
+      "number": 911,
+      "head": "5d40eed35a0b6e0d182397f8d02b29c38e9bdd17",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": false
+    },
+    {
+      "number": 909,
+      "head": "e82aed38c0997588529e21fe0e1bf4159f3c198c",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 908,
+      "head": "00e90e03ae1afb7f13ae843dd578694d0f72b325",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 907,
+      "head": "847a15e73e69bfc768d517a83fa8706aecfafe7e",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": false
+    },
+    {
+      "number": 904,
+      "head": "09d7be51a6b599769fb78371c9995a99d7df6974",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 903,
+      "head": "e325b3f63fdb9c34a7c62ae58045ec36e34b1879",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 902,
+      "head": "c316bfbde8644feda7e49579d43cc162e99b0bad",
+      "base": "fix/contextual-orchestrator-owner-boundary",
+      "base_sha": "e5711282c48cc20d0a88fb56a9e382d500989c72",
+      "draft": true
+    },
+    {
+      "number": 901,
+      "head": "308ebdfae50606127316fa8c51d772ea93327f64",
+      "base": "fix/voice-export-authority-20260828",
+      "base_sha": "1d8fa267b059289e77301a09985dfac70a439814",
+      "draft": true
+    },
+    {
+      "number": 899,
+      "head": "e5711282c48cc20d0a88fb56a9e382d500989c72",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 897,
+      "head": "c4194085f7bc0c7383f994da81d6a8146b695dc8",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 893,
+      "head": "f2a1860185714d2921162a754425065d867bcce6",
+      "base": "feat/leftover-map-plot-post-origin-badge-v21050",
+      "base_sha": "c941929c7244f64e31e5ceca8b3c6f6bcb1e3541",
+      "draft": true
+    },
+    {
+      "number": 892,
+      "head": "c941929c7244f64e31e5ceca8b3c6f6bcb1e3541",
+      "base": "feat/leftover-map-plot-criterion-origin-badge-v21040",
+      "base_sha": "47dd988d6b5cdea713b163b40702235b65af5ffe",
+      "draft": true
+    },
+    {
+      "number": 891,
+      "head": "47dd988d6b5cdea713b163b40702235b65af5ffe",
+      "base": "feat/leftover-map-axis-tick-origin-badge-v21030",
+      "base_sha": "4bfb490d3e2bd8dd74caabaf2922ac3f6755749a",
+      "draft": true
+    },
+    {
+      "number": 889,
+      "head": "4bfb490d3e2bd8dd74caabaf2922ac3f6755749a",
+      "base": "feat/leftover-map-compare-axis-tick-origin-badge-v21020",
+      "base_sha": "7637fc8bbe165be297794a74187aa1065e82486c",
+      "draft": true
+    },
+    {
+      "number": 888,
+      "head": "e5f38f3bda1caa1d48975204918c994a6a3dff3f",
+      "base": "feat/dashboard-case-metrics",
+      "base_sha": "f40e4ed8020a7db4099730d558da942a0f331614",
+      "draft": true
+    },
+    {
+      "number": 887,
+      "head": "7637fc8bbe165be297794a74187aa1065e82486c",
+      "base": "feat/leftover-map-compare-plot-tick-origin-badge-v21010",
+      "base_sha": "4a31a41f9036cad4ba35ed16b8fdf1c1212e4847",
+      "draft": true
+    },
+    {
+      "number": 886,
+      "head": "4a31a41f9036cad4ba35ed16b8fdf1c1212e4847",
+      "base": "feat/leftover-map-plot-tick-origin-badge-v21000",
+      "base_sha": "7a6c0384f4d82544541b6af70cf178c51ed60d62",
+      "draft": true
+    },
+    {
+      "number": 885,
+      "head": "7a6c0384f4d82544541b6af70cf178c51ed60d62",
+      "base": "feat/leftover-map-compare-list-criterion-coordinates-v2990",
+      "base_sha": "bcbb7ce03f92304ccdc34fb014a8db8e3bf8a659",
+      "draft": true
+    },
+    {
+      "number": 884,
+      "head": "bcbb7ce03f92304ccdc34fb014a8db8e3bf8a659",
+      "base": "feat/leftover-map-compare-list-post-coordinates-v2980",
+      "base_sha": "bdd48e23a16358b91a652e45c4373c6f45e389fa",
+      "draft": true
+    },
+    {
+      "number": 883,
+      "head": "bdd48e23a16358b91a652e45c4373c6f45e389fa",
+      "base": "feat/leftover-map-list-criterion-coordinates-v2970",
+      "base_sha": "094d1a0c8bcfd4b351f9665c47a84c510cbab94d",
+      "draft": true
+    },
+    {
+      "number": 882,
+      "head": "094d1a0c8bcfd4b351f9665c47a84c510cbab94d",
+      "base": "feat/leftover-map-list-post-coordinates-v2960",
+      "base_sha": "167888d669ba1b44c7dd0209ab26c9be9f19bf93",
+      "draft": true
+    },
+    {
+      "number": 881,
+      "head": "167888d669ba1b44c7dd0209ab26c9be9f19bf93",
+      "base": "feat/leftover-map-plot-post-coordinates-v2950",
+      "base_sha": "c69459a3597a8a8af618417ce2c2a57a3114930b",
+      "draft": true
+    },
+    {
+      "number": 880,
+      "head": "c69459a3597a8a8af618417ce2c2a57a3114930b",
+      "base": "feat/leftover-map-compare-plot-post-coordinates-v2940",
+      "base_sha": "d9972c260b1864e0b6391cbf050686e0bdd73359",
+      "draft": true
+    },
+    {
+      "number": 879,
+      "head": "d9972c260b1864e0b6391cbf050686e0bdd73359",
+      "base": "feat/leftover-map-compare-plot-criterion-coordinates-v2930",
+      "base_sha": "617b97126a14337a4848f2b5663ada381ae693c0",
+      "draft": true
+    },
+    {
+      "number": 878,
+      "head": "617b97126a14337a4848f2b5663ada381ae693c0",
+      "base": "feat/leftover-map-plot-criterion-coordinates-v2920",
+      "base_sha": "89ed56b17acec187fd8e5f756c6b9a6a8f00438c",
+      "draft": true
+    },
+    {
+      "number": 877,
+      "head": "86b8eaab48a4b47610d539bb941b97eb24b7e951",
+      "base": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "base_sha": "d19f1fdc18cf16bac0e80bf6ae4257b831a4a619",
+      "draft": true
+    },
+    {
+      "number": 876,
+      "head": "89ed56b17acec187fd8e5f756c6b9a6a8f00438c",
+      "base": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "base_sha": "d19f1fdc18cf16bac0e80bf6ae4257b831a4a619",
+      "draft": true
+    },
+    {
+      "number": 875,
+      "head": "d19f1fdc18cf16bac0e80bf6ae4257b831a4a619",
+      "base": "feat/leftover-map-compare-axis-tick-share-badge-v2900",
+      "base_sha": "ba58c21a92966fe098988e528020d5528978d06c",
+      "draft": true
+    },
+    {
+      "number": 874,
+      "head": "ba58c21a92966fe098988e528020d5528978d06c",
+      "base": "feat/leftover-map-plot-tick-share-badge-v2890",
+      "base_sha": "923bcfe8a9146286ec3098adb784f55ffe32a78e",
+      "draft": true
+    },
+    {
+      "number": 873,
+      "head": "923bcfe8a9146286ec3098adb784f55ffe32a78e",
+      "base": "feat/leftover-map-compare-plot-tick-share-badge-v2880",
+      "base_sha": "7bdc562b222ab7681ff6b929a7b3fb2cd8068a3c",
+      "draft": true
+    },
+    {
+      "number": 872,
+      "head": "7bdc562b222ab7681ff6b929a7b3fb2cd8068a3c",
+      "base": "feat/leftover-map-axis-tick-badge-v2870",
+      "base_sha": "e9e4c2a622219bfbddfe71c74b14483f7b36aa5c",
+      "draft": true
+    },
+    {
+      "number": 871,
+      "head": "e9e4c2a622219bfbddfe71c74b14483f7b36aa5c",
+      "base": "feat/leftover-map-compare-axis-tick-badge-v2860",
+      "base_sha": "b086d97675586ee83f5478d7b4e3bf84b0a5da8c",
+      "draft": true
+    },
+    {
+      "number": 870,
+      "head": "b086d97675586ee83f5478d7b4e3bf84b0a5da8c",
+      "base": "feat/leftover-map-compare-plot-tick-axis-badge-v2850",
+      "base_sha": "98a29e4adf0daad8bd30c945e41d45922051312d",
+      "draft": true
+    },
+    {
+      "number": 869,
+      "head": "98a29e4adf0daad8bd30c945e41d45922051312d",
+      "base": "feat/leftover-map-plot-tick-axis-badge-v2840",
+      "base_sha": "5218a5c0e6821451efdfac0c1286ef7273081af7",
+      "draft": true
+    },
+    {
+      "number": 868,
+      "head": "5218a5c0e6821451efdfac0c1286ef7273081af7",
+      "base": "feat/leftover-map-compare-plot-axis-badge-v2830",
+      "base_sha": "cf7bb55db1ba098e4ab264605634a686e4664d56",
+      "draft": true
+    },
+    {
+      "number": 867,
+      "head": "cf7bb55db1ba098e4ab264605634a686e4664d56",
+      "base": "feat/leftover-map-axis-singular-only-v2820",
+      "base_sha": "593b8d8246c73226e224d2a9d251668649cbb54f",
+      "draft": true
+    },
+    {
+      "number": 866,
+      "head": "593b8d8246c73226e224d2a9d251668649cbb54f",
+      "base": "feat/leftover-map-plot-axis-singular-v2810",
+      "base_sha": "a3613acf8cafac056850ec7ebc45f6d77f77a074",
+      "draft": true
+    },
+    {
+      "number": 865,
+      "head": "a3613acf8cafac056850ec7ebc45f6d77f77a074",
+      "base": "feat/leftover-map-compare-axis-singular-v2800",
+      "base_sha": "52b3597e5c6b825f988a9c8a7c68ae1653535982",
+      "draft": true
+    },
+    {
+      "number": 863,
+      "head": "52b3597e5c6b825f988a9c8a7c68ae1653535982",
+      "base": "feat/leftover-map-axis-singular-v2790",
+      "base_sha": "f24b664ce88bb2b3898fcaa0fd0ee7f69c5e12f7",
+      "draft": true
+    },
+    {
+      "number": 862,
+      "head": "f24b664ce88bb2b3898fcaa0fd0ee7f69c5e12f7",
+      "base": "feat/leftover-map-compare-plot-singular-v2780",
+      "base_sha": "3aac452eef781f3c1a5da258cd1c0c548e4930e6",
+      "draft": true
+    },
+    {
+      "number": 861,
+      "head": "3aac452eef781f3c1a5da258cd1c0c548e4930e6",
+      "base": "feat/leftover-map-compare-plot-ticks-v2770",
+      "base_sha": "40fa5bdbfb9223a7ca89fccea47451a419d81048",
+      "draft": true
+    },
+    {
+      "number": 860,
+      "head": "40fa5bdbfb9223a7ca89fccea47451a419d81048",
+      "base": "feat/leftover-map-compare-plot-distance-v2760",
+      "base_sha": "9ba8535327bb2d42d5305d84017e6cd08a110c68",
+      "draft": true
+    },
+    {
+      "number": 859,
+      "head": "9ba8535327bb2d42d5305d84017e6cd08a110c68",
+      "base": "feat/leftover-map-compare-plot-rank-v2750",
+      "base_sha": "4b9184fd83f6749e25384d7bcf5d9d7721437b77",
+      "draft": true
+    },
+    {
+      "number": 858,
+      "head": "4b9184fd83f6749e25384d7bcf5d9d7721437b77",
+      "base": "feat/leftover-map-compare-plot-expected-v2740",
+      "base_sha": "549441180e713aba5c4199efc15a44f1c3c11a29",
+      "draft": true
+    },
+    {
+      "number": 857,
+      "head": "549441180e713aba5c4199efc15a44f1c3c11a29",
+      "base": "feat/leftover-map-compare-plot-observed-v2730",
+      "base_sha": "974109a055573e3534f4e653fc9929ffad1ac8d8",
+      "draft": true
+    },
+    {
+      "number": 856,
+      "head": "974109a055573e3534f4e653fc9929ffad1ac8d8",
+      "base": "feat/leftover-map-compare-plot-residual-v2720",
+      "base_sha": "e8f0ca2c10584fad578c4cd7e6493025bd565020",
+      "draft": true
+    },
+    {
+      "number": 855,
+      "head": "e8f0ca2c10584fad578c4cd7e6493025bd565020",
+      "base": "feat/leftover-map-compare-plot-unexplained-leftover-v2710",
+      "base_sha": "eb4ffef04677d6e1d67fe1325cfdf1bbb2db2245",
+      "draft": true
+    },
+    {
+      "number": 854,
+      "head": "eb4ffef04677d6e1d67fe1325cfdf1bbb2db2245",
+      "base": "feat/leftover-map-compare-plot-cross-share-v2700",
+      "base_sha": "fab1cfd587bc6495c9d1084e86774b1378b411c6",
+      "draft": true
+    },
+    {
+      "number": 853,
+      "head": "fab1cfd587bc6495c9d1084e86774b1378b411c6",
+      "base": "feat/leftover-map-compare-plot-unexplained-share-v2690",
+      "base_sha": "80b9254aea2177f2bb506acf0370688df424a036",
+      "draft": true
+    },
+    {
+      "number": 852,
+      "head": "80b9254aea2177f2bb506acf0370688df424a036",
+      "base": "feat/leftover-map-compare-plot-explained-share-v2680",
+      "base_sha": "72df615a8fb1350217039c6a62007243a6322ccc",
+      "draft": true
+    },
+    {
+      "number": 851,
+      "head": "72df615a8fb1350217039c6a62007243a6322ccc",
+      "base": "feat/leftover-map-compare-plot-reconstruction-v2670",
+      "base_sha": "40a6b04c1a1fe81dbb6297aadea9158b9b644955",
+      "draft": true
+    },
+    {
+      "number": 850,
+      "head": "40a6b04c1a1fe81dbb6297aadea9158b9b644955",
+      "base": "feat/leftover-map-compare-plot-incomplete-item-v2660",
+      "base_sha": "b83479b7063f3a3a7e880ed6869bb940bb470508",
+      "draft": true
+    },
+    {
+      "number": 849,
+      "head": "b83479b7063f3a3a7e880ed6869bb940bb470508",
+      "base": "feat/leftover-map-compare-plot-incomplete-post-v2650",
+      "base_sha": "4fd48d00e0473160ed05ecd5d168598ba5d688f5",
+      "draft": true
+    },
+    {
+      "number": 848,
+      "head": "4fd48d00e0473160ed05ecd5d168598ba5d688f5",
+      "base": "feat/leftover-map-compare-plot-item-coverage-v2640",
+      "base_sha": "e80832830fed438451e9f2785b7a75b2fd1745a6",
+      "draft": true
+    },
+    {
+      "number": 847,
+      "head": "9bb4f07a61a9275953974ef276a4af81940ba883",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 846,
+      "head": "e80832830fed438451e9f2785b7a75b2fd1745a6",
+      "base": "feat/leftover-map-compare-plot-coverage-v2630",
+      "base_sha": "8d37896a5246cd0045a9c210b504b95941a78f84",
+      "draft": true
+    },
+    {
+      "number": 845,
+      "head": "8d37896a5246cd0045a9c210b504b95941a78f84",
+      "base": "feat/leftover-map-compare-plot-axis-share-v2620",
+      "base_sha": "0882cc90a1af545d9d67e0965134c7686a119671",
+      "draft": true
+    },
+    {
+      "number": 844,
+      "head": "0882cc90a1af545d9d67e0965134c7686a119671",
+      "base": "feat/leftover-map-compare-graphic-v2610",
+      "base_sha": "87979568b36219ae99631e88f32d0af1a9247923",
+      "draft": true
+    },
+    {
+      "number": 843,
+      "head": "2a5ab4d735a1240997150578b151c6b6492e2f43",
+      "base": "feat/leftover-map-compare-axis-share-v2610",
+      "base_sha": "f013dfb53b255e8e0be1dfb783cb41dca7eeb83e",
+      "draft": true
+    },
+    {
+      "number": 842,
+      "head": "f013dfb53b255e8e0be1dfb783cb41dca7eeb83e",
+      "base": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "base_sha": "b5732ba2a6de25595989db0b5fb74308b8eae75a",
+      "draft": true
+    },
+    {
+      "number": 841,
+      "head": "87979568b36219ae99631e88f32d0af1a9247923",
+      "base": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "base_sha": "b5732ba2a6de25595989db0b5fb74308b8eae75a",
+      "draft": true
+    },
+    {
+      "number": 840,
+      "head": "b5732ba2a6de25595989db0b5fb74308b8eae75a",
+      "base": "feat/leftover-map-compare-coordinates-v2590",
+      "base_sha": "14453e71b3871cd726e14ac6e19462a66695b5db",
+      "draft": true
+    },
+    {
+      "number": 839,
+      "head": "14453e71b3871cd726e14ac6e19462a66695b5db",
+      "base": "feat/leftover-map-compare-rank-v2580",
+      "base_sha": "3d40d04db30e54138efb6f734b47e72965093572",
+      "draft": true
+    },
+    {
+      "number": 838,
+      "head": "3d40d04db30e54138efb6f734b47e72965093572",
+      "base": "feat/leftover-map-compare-expected-v2570",
+      "base_sha": "d40cdf5847c3844acd54a952691fba69b18d6f7c",
+      "draft": true
+    },
+    {
+      "number": 837,
+      "head": "d40cdf5847c3844acd54a952691fba69b18d6f7c",
+      "base": "feat/leftover-map-compare-observed-v2560",
+      "base_sha": "9f9cc71324d3197bf582bb30a935105803517d75",
+      "draft": true
+    },
+    {
+      "number": 836,
+      "head": "9f9cc71324d3197bf582bb30a935105803517d75",
+      "base": "feat/leftover-map-compare-residual-v2550",
+      "base_sha": "f0da90928f0a01ba46ad82f3c53104edc910a630",
+      "draft": true
+    },
+    {
+      "number": 835,
+      "head": "f0da90928f0a01ba46ad82f3c53104edc910a630",
+      "base": "feat/leftover-map-compare-unexplained-v2540",
+      "base_sha": "dbff5bf47b06eded0cff64b292815861d7f514f6",
+      "draft": true
+    },
+    {
+      "number": 833,
+      "head": "dbff5bf47b06eded0cff64b292815861d7f514f6",
+      "base": "feat/leftover-map-compare-cross-share-v2530",
+      "base_sha": "8a12062cd8efef0c99abe794ef3e9f8dcbc31617",
+      "draft": true
+    },
+    {
+      "number": 831,
+      "head": "8a12062cd8efef0c99abe794ef3e9f8dcbc31617",
+      "base": "feat/leftover-map-compare-unexplained-share-v2520",
+      "base_sha": "118500f73251eaaf717d5329b8fb6d9895196fe7",
+      "draft": true
+    },
+    {
+      "number": 829,
+      "head": "118500f73251eaaf717d5329b8fb6d9895196fe7",
+      "base": "feat/leftover-map-compare-explained-share-v2510",
+      "base_sha": "8b3011b03777822a23af831b4fddcc06e7837019",
+      "draft": true
+    },
+    {
+      "number": 828,
+      "head": "f28b5da6f92984483fbe1e9a0fc82f0bb24ecf57",
+      "base": "feat/leftover-map-compare-incomplete-item-v2490",
+      "base_sha": "342f78b3ce37724caf66f43b2b9010dbeb4a1e26",
+      "draft": true
+    },
+    {
+      "number": 827,
+      "head": "8b3011b03777822a23af831b4fddcc06e7837019",
+      "base": "feat/leftover-map-compare-reconstruction-v2500",
+      "base_sha": "1418d0dfecd240c5ac6b9f09111c732700330986",
+      "draft": true
+    },
+    {
+      "number": 826,
+      "head": "1418d0dfecd240c5ac6b9f09111c732700330986",
+      "base": "feat/leftover-map-compare-incomplete-item-v2490",
+      "base_sha": "342f78b3ce37724caf66f43b2b9010dbeb4a1e26",
+      "draft": true
+    },
+    {
+      "number": 825,
+      "head": "342f78b3ce37724caf66f43b2b9010dbeb4a1e26",
+      "base": "feat/leftover-map-compare-incomplete-post-v2480",
+      "base_sha": "41d65a82ef0f0397714f4876093aee0acc66357a",
+      "draft": true
+    },
+    {
+      "number": 824,
+      "head": "41d65a82ef0f0397714f4876093aee0acc66357a",
+      "base": "feat/leftover-map-compare-item-coverage-v2470",
+      "base_sha": "c5f9653a889841da7b524e8763d1aae8f6eb2c46",
+      "draft": true
+    },
+    {
+      "number": 823,
+      "head": "eb172c40d8ecd08f3e1c220cbf3117b488cddb30",
+      "base": "feat/leftover-map-plot-singular-v2460",
+      "base_sha": "b7222713a69acdf3d32bbce992001a2433946d21",
+      "draft": true
+    },
+    {
+      "number": 822,
+      "head": "c5f9653a889841da7b524e8763d1aae8f6eb2c46",
+      "base": "feat/leftover-map-compare-coverage-v2460",
+      "base_sha": "5d9ed038a8525736ba47d5a80e4ff04edfbab28c",
+      "draft": true
+    },
+    {
+      "number": 821,
+      "head": "5d9ed038a8525736ba47d5a80e4ff04edfbab28c",
+      "base": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "base_sha": "84a6006598b77824f048f2f41d1000b07a5ef7f7",
+      "draft": true
+    },
+    {
+      "number": 820,
+      "head": "b7222713a69acdf3d32bbce992001a2433946d21",
+      "base": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "base_sha": "a2c965511d26923bd878ec56d655fb8a0183c4d7",
+      "draft": true
+    },
+    {
+      "number": 819,
+      "head": "84a6006598b77824f048f2f41d1000b07a5ef7f7",
+      "base": "feat/leftover-map-list-incomplete-item-v2440",
+      "base_sha": "5d844a53d56cb21a93f4d414b61f4b261fca7a86",
+      "draft": true
+    },
+    {
+      "number": 818,
+      "head": "5d844a53d56cb21a93f4d414b61f4b261fca7a86",
+      "base": "feat/leftover-map-list-incomplete-post-v2430",
+      "base_sha": "aec85c32ccaf66140d5d3b0e2eaea365cf3becf5",
+      "draft": true
+    },
+    {
+      "number": 817,
+      "head": "aec85c32ccaf66140d5d3b0e2eaea365cf3becf5",
+      "base": "feat/leftover-map-list-item-coverage-v2420",
+      "base_sha": "7e8653d89c77c3cb6771dcf592517baf691eeebc",
+      "draft": true
+    },
+    {
+      "number": 816,
+      "head": "7e8653d89c77c3cb6771dcf592517baf691eeebc",
+      "base": "feat/leftover-map-plot-incomplete-item-v2410",
+      "base_sha": "dd26eaf2169408af41e226164247949a29c69b6e",
+      "draft": true
+    },
+    {
+      "number": 815,
+      "head": "dd26eaf2169408af41e226164247949a29c69b6e",
+      "base": "feat/leftover-map-plot-incomplete-v2400",
+      "base_sha": "9e8a79ca97e3fa8467b2614fbf3959eb099f930f",
+      "draft": true
+    },
+    {
+      "number": 814,
+      "head": "9e8a79ca97e3fa8467b2614fbf3959eb099f930f",
+      "base": "feat/leftover-map-plot-item-coverage-v2390",
+      "base_sha": "11250fbe25a9beecbf6fcbb5b1e6a01d4b8e5686",
+      "draft": true
+    },
+    {
+      "number": 813,
+      "head": "11250fbe25a9beecbf6fcbb5b1e6a01d4b8e5686",
+      "base": "feat/leftover-map-plot-coverage-v2380",
+      "base_sha": "aea06ad7c70f4542a1413b6003d414c0c42d59a7",
+      "draft": true
+    },
+    {
+      "number": 812,
+      "head": "aea06ad7c70f4542a1413b6003d414c0c42d59a7",
+      "base": "feat/leftover-map-segment-rank-v2370",
+      "base_sha": "e0fad9af9d8fe446769474bd5fc8300c902a052f",
+      "draft": true
+    },
+    {
+      "number": 811,
+      "head": "e0fad9af9d8fe446769474bd5fc8300c902a052f",
+      "base": "feat/leftover-map-segment-explained-share-v2300",
+      "base_sha": "32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6",
+      "draft": true
+    },
+    {
+      "number": 808,
+      "head": "ef38ddc9cf4f81c6a30050fa2409d294779fbd93",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 802,
+      "head": "32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": false
+    },
+    {
+      "number": 780,
+      "head": "1d8fa267b059289e77301a09985dfac70a439814",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": false
+    },
+    {
+      "number": 774,
+      "head": "0e4ba4e00a1578aba6f80fa25d7d779516b9af96",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 772,
+      "head": "781ebb11a00b50bf1956ff3536eef46160271931",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 771,
+      "head": "9a4dbfcd46d955cd758148cf55cfd5ee795b02cd",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 770,
+      "head": "101cd8acc1d510382ea928d4f6bb9c84b199349d",
+      "base": "main",
+      "base_sha": "83eba56149eb802cd63642c507c324c9976ec78e",
+      "draft": true
+    },
+    {
+      "number": 702,
+      "head": "93e7b81d096ddfc1fda9080c9c6a9784cbfbcec2",
+      "base": "main",
+      "base_sha": "ff7431bd1851c03e737808d22c6a2d43968582f9",
+      "draft": true
+    },
+    {
+      "number": 679,
+      "head": "135dfe7c4266c7a2098c622b7c9976eaf7304cdd",
+      "base": "main",
+      "base_sha": "ff7431bd1851c03e737808d22c6a2d43968582f9",
+      "draft": true
+    },
+    {
+      "number": 672,
+      "head": "a3e87a89185fae03c5f18c79e2d97d12c73e8af9",
+      "base": "main",
+      "base_sha": "ff7431bd1851c03e737808d22c6a2d43968582f9",
+      "draft": true
+    },
+    {
+      "number": 667,
+      "head": "0c0f4af572a94e63cc8ea4545e48f5eda32a389c",
+      "base": "main",
+      "base_sha": "ff7431bd1851c03e737808d22c6a2d43968582f9",
+      "draft": true
+    }
+  ],
+  "collision_audit": {
+    "adr": {
+      "0355": [
+        [
+          920,
+          "docs/adr/0355-leftover-map-plot-origin-badge.md"
+        ],
+        [
+          915,
+          "docs/adr/0355-dynamic-evaluation-lineage.md"
+        ]
+      ],
+      "0301": [
+        [
+          902,
+          "docs/adr/0301-dichotomous-measurement-policy.md"
+        ],
+        [
+          838,
+          "docs/adr/0301-leftover-map-compare-rank.md"
+        ]
+      ],
+      "0300": [
+        [
+          899,
+          "docs/adr/0300-contextual-orchestrator-owner-boundary.md"
+        ],
+        [
+          837,
+          "docs/adr/0300-leftover-map-compare-expected.md"
+        ]
+      ],
+      "0279": [
+        [
+          888,
+          "docs/adr/0279-global-ask-exact-semantic-index.md"
+        ],
+        [
+          811,
+          "docs/adr/0279-leftover-map-segment-expected.md"
+        ]
+      ],
+      "0335": [
+        [
+          877,
+          "docs/adr/0335-leftover-map-compare-plot-tick-origin-badge.md"
+        ],
+        [
+          876,
+          "docs/adr/0335-leftover-map-plot-criterion-coordinates.md"
+        ]
+      ],
+      "0305": [
+        [
+          844,
+          "docs/adr/0305-leftover-map-compare-plot-axis-share.md"
+        ],
+        [
+          843,
+          "docs/adr/0305-leftover-map-compare-rank-payload.md"
+        ]
+      ],
+      "0290": [
+        [
+          823,
+          "docs/adr/0290-leftover-map-axis-singular.md"
+        ],
+        [
+          822,
+          "docs/adr/0290-leftover-map-compare-item-coverage.md"
+        ]
+      ],
+      "0289": [
+        [
+          821,
+          "docs/adr/0289-leftover-map-compare-coverage.md"
+        ],
+        [
+          820,
+          "docs/adr/0289-leftover-map-plot-singular.md"
+        ]
+      ]
+    },
+    "migration": {},
+    "unavailable_pr_diffs": [],
+    "shared_contract_files": {
+      "backend/app/main.py": [
+        937,
+        929,
+        914,
+        911,
+        904,
+        888,
+        842,
+        828,
+        780,
+        702,
+        679,
+        672,
+        667
+      ],
+      "frontend/src/api.ts": [
+        932,
+        909,
+        844,
+        842,
+        828,
+        821,
+        808,
+        679,
+        667
+      ],
+      "pyproject.toml": [
+        929,
+        928,
+        927,
+        926,
+        921,
+        920,
+        918,
+        917,
+        916,
+        913,
+        912,
+        911,
+        897,
+        893,
+        892,
+        891,
+        889,
+        887,
+        886,
+        885,
+        884,
+        883,
+        882,
+        881,
+        880,
+        879,
+        878,
+        877,
+        876,
+        875,
+        874,
+        873,
+        872,
+        871,
+        870,
+        869,
+        868,
+        867,
+        866,
+        865,
+        863,
+        862,
+        861,
+        860,
+        859,
+        858,
+        857,
+        856,
+        855,
+        854,
+        853,
+        852,
+        851,
+        850,
+        849,
+        848,
+        846,
+        845,
+        844,
+        843,
+        842,
+        841,
+        840,
+        839,
+        838,
+        837,
+        836,
+        835,
+        833,
+        831,
+        829,
+        828,
+        827,
+        826,
+        825,
+        824,
+        823,
+        822,
+        821,
+        820,
+        819,
+        818,
+        817,
+        816,
+        815,
+        814,
+        813,
+        812,
+        811,
+        808,
+        802,
+        702,
+        679
+      ],
+      "frontend/package.json": [
+        928,
+        927,
+        926,
+        921,
+        920,
+        918,
+        917,
+        916,
+        913,
+        912,
+        897,
+        893,
+        892,
+        891,
+        889,
+        887,
+        886,
+        885,
+        884,
+        883,
+        882,
+        881,
+        880,
+        879,
+        878,
+        877,
+        876,
+        875,
+        874,
+        873,
+        872,
+        871,
+        870,
+        869,
+        868,
+        867,
+        866,
+        865,
+        863,
+        862,
+        861,
+        860,
+        859,
+        858,
+        857,
+        856,
+        855,
+        854,
+        853,
+        852,
+        851,
+        850,
+        849,
+        848,
+        846,
+        845,
+        844,
+        843,
+        842,
+        841,
+        840,
+        839,
+        838,
+        837,
+        836,
+        835,
+        833,
+        831,
+        829,
+        828,
+        827,
+        826,
+        825,
+        824,
+        823,
+        822,
+        821,
+        820,
+        819,
+        818,
+        817,
+        816,
+        815,
+        814,
+        813,
+        812,
+        811,
+        808,
+        802
+      ],
+      "lineageweave/__init__.py": [
+        915,
+        897,
+        815,
+        814,
+        813,
+        812,
+        811,
+        802
+      ]
+    }
+  },
+  "proposed_release_title_collisions": {
+    "2.92.0": [
+      877,
+      876
+    ],
+    "2.62.0": [
+      844,
+      843
+    ],
+    "2.61.0": [
+      842,
+      841
+    ],
+    "2.50.0": [
+      828,
+      826
+    ],
+    "2.47.0": [
+      823,
+      822
+    ],
+    "2.46.0": [
+      821,
+      820
+    ]
+  },
+  "current_nonidentifying_census": {
+    "source_posts": 43189,
+    "current_voice_assignments": 43189,
+    "current_additional_assignments": 0,
+    "closed_voice_intervals": 0
+  },
+  "local_validation": {
+    "backend_focused_with_live": 17,
+    "ontology_and_schema": 59,
+    "documentation_cutoff_visibility_ontology": 35,
+    "frontend_focused": 32,
+    "live_after_copy_assertion": 1,
+    "lint": "passed",
+    "frontend_build": "passed",
+    "storybook_build": "passed"
+  },
+  "synthetic_k6": [
+    {
+      "vus": 1,
+      "duration": "10s",
+      "http_requests": 1442,
+      "requests_per_second": 141.36577177819615,
+      "http_p95_ms": 41.280099999999976,
+      "http_error_rate": 0,
+      "ask_enqueue_ms": 53.684
+    },
+    {
+      "vus": 4,
+      "duration": "10s",
+      "http_requests": 5921,
+      "requests_per_second": 576.071501749619,
+      "http_p95_ms": 26.284,
+      "http_error_rate": 0,
+      "ask_enqueue_ms": 49.625
+    }
+  ],
+  "saturation_samples": [
+    {
+      "at": 1788680373.524051,
+      "ask_states": {},
+      "database_active_and_lock_waits": [
+        1,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 4,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 6
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "26.20%",
+          "MemUsage": "217.3MiB / 7.737GiB",
+          "PIDs": "15"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "60.56%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "7"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.17%",
+          "MemUsage": "3.359MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "28.8"
+    },
+    {
+      "at": 1788680376.920458,
+      "ask_states": {
+        "running": 1
+      },
+      "database_active_and_lock_waits": [
+        1,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 5,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 2
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "34.49%",
+          "MemUsage": "217.5MiB / 7.737GiB",
+          "PIDs": "15"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "35.51%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "7"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.16%",
+          "MemUsage": "3.371MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "6.0"
+    },
+    {
+      "at": 1788680380.16334,
+      "ask_states": {
+        "running": 1
+      },
+      "database_active_and_lock_waits": [
+        1,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 5,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 2
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "37.74%",
+          "MemUsage": "221MiB / 7.737GiB",
+          "PIDs": "15"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "13.50%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "6"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.32%",
+          "MemUsage": "3.371MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "29.4"
+    },
+    {
+      "at": 1788680383.4207628,
+      "ask_states": {
+        "succeeded": 1
+      },
+      "database_active_and_lock_waits": [
+        2,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 5,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 2
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "17.22%",
+          "MemUsage": "227MiB / 7.737GiB",
+          "PIDs": "21"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "0.03%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "6"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.22%",
+          "MemUsage": "3.375MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "46.3"
+    },
+    {
+      "at": 1788680386.590678,
+      "ask_states": {
+        "running": 1,
+        "succeeded": 1
+      },
+      "database_active_and_lock_waits": [
+        2,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 5,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 2
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "61.35%",
+          "MemUsage": "249.2MiB / 7.737GiB",
+          "PIDs": "21"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "0.01%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "7"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.08%",
+          "MemUsage": "3.375MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "70.4"
+    },
+    {
+      "at": 1788680389.743659,
+      "ask_states": {
+        "running": 1,
+        "succeeded": 1
+      },
+      "database_active_and_lock_waits": [
+        1,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 5,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 2
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "68.98%",
+          "MemUsage": "249.3MiB / 7.737GiB",
+          "PIDs": "21"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "13.32%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "7"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.09%",
+          "MemUsage": "3.375MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "65.9"
+    },
+    {
+      "at": 1788680392.898498,
+      "ask_states": {
+        "succeeded": 2
+      },
+      "database_active_and_lock_waits": [
+        4,
+        0
+      ],
+      "valkey": {
+        "connected_clients": 5,
+        "blocked_clients": 3,
+        "rejected_connections": 0,
+        "instantaneous_ops_per_sec": 2
+      },
+      "containers": [
+        {
+          "Name": "lineageweave-postgres-1",
+          "CPUPerc": "78.16%",
+          "MemUsage": "249.7MiB / 7.737GiB",
+          "PIDs": "21"
+        },
+        {
+          "Name": "lineageweave-orchestrator-1",
+          "CPUPerc": "0.03%",
+          "MemUsage": "130.5MiB / 7.737GiB",
+          "PIDs": "6"
+        },
+        {
+          "Name": "lineageweave-voice-admission-test-valkey-1",
+          "CPUPerc": "0.25%",
+          "MemUsage": "3.375MiB / 7.737GiB",
+          "PIDs": "5"
+        }
+      ],
+      "api_with_workers_cpu": "5.3"
+    }
+  ],
+  "screenshots": [
+    {
+      "viewport": "desktop",
+      "width": 1440,
+      "alert": "The post or its evidence is no longer available. Reopen the post and try again.",
+      "overflow": false,
+      "successCount": 0,
+      "selection": "vops"
+    },
+    {
+      "viewport": "mobile",
+      "width": 390,
+      "alert": "The post or its evidence is no longer available. Reopen the post and try again.",
+      "overflow": false,
+      "successCount": 0,
+      "selection": "vops"
+    }
+  ],
+  "authority_documents": [
+    {
+      "repository": "TEPP",
+      "artifact": "TEPP-docs_product_prd-v0.4-approved.md",
+      "sha256": "a82c85f08e83ad848571519990808625fe699a98ba615f9cae4c10321888f87b"
+    },
+    {
+      "repository": "LineageWeave",
+      "artifact": "LineageWeave-docs_product-requirements.md",
+      "sha256": "1427bfed2776627cbe149c17213864f3e9aa9c30eabaf6238cf09402d8756c97"
+    },
+    {
+      "repository": "fast-mlsirm",
+      "artifact": "fast-mlsirm-docs_PRD.md",
+      "sha256": "89c08eb1b8dd8c0d2ed9e72491858d0a0583d3d5b831b50d3b77f4e57f63962e"
+    },
+    {
+      "repository": "ThreadWeave",
+      "artifact": "ThreadWeave-docs_PRD.md",
+      "sha256": "2cadb00ec683ca148a283e7c0702cbf488f123925ad41ad63e23eea67339a094"
+    },
+    {
+      "repository": "disksage",
+      "artifact": "disksage-docs_superpowers_specs_2026-07-10-disksage-design.md",
+      "sha256": "5df21039c1e9ecb6873ce601b396496a80055d55d2755a8177ed9cae91f4c3c6"
+    },
+    {
+      "repository": "RankWeave",
+      "artifact": "RankWeave-ARCHITECTURE.md",
+      "sha256": "1e1a61e075c60c677913c199bc05581d3fceaded738c4f84293ab2f7225c2a96"
+    },
+    {
+      "repository": "contextual-orchestrator",
+      "artifact": "contextual-orchestrator-docs_product_planning.md",
+      "sha256": "40803c4dd9b7f77ba19bb36204457d2fe95c7a0ec8f742117e8f940aca1707f0"
+    }
+  ],
+  "limitations": [
+    "No protected merge or deployed full-application acceptance claimed.",
+    "Short synthetic sequential runs with shared-host snapshots are not SLO, causal bottleneck, or population evidence.",
+    "All 120 exact base/head changed-path inventories audited offline; REST check/review sweep was partial before connector refreshed the six Ready lanes.",
+    "No active-run inventory after REST rate exhaustion; no run cancelled."
+  ],
+  "cleanup": {
+    "synthetic_database_removed": true,
+    "synthetic_api_stopped": true,
+    "exact_test_valkey_container_removed": true,
+    "formal_volumes_removed": false
+  },
+  "pr": 937,
+  "predecessor_head": "406944473209c5d9124ab7605a5c8baa484f693b",
+  "base_pr": 780,
+  "base_head": "1d8fa267b059289e77301a09985dfac70a439814",
+  "read_only_merge_simulations": [
+    {
+      "other_pr": 936,
+      "other_head": "e6c1d157dad9f0d26ee703de455b2106a77b34d9",
+      "clean_textual_merge": false,
+      "conflicts": [
+        "CONFLICT (content): Merge conflict in docs/product-technical-gap-baseline.md",
+        "CONFLICT (content): Merge conflict in docs/storybook-inventory.md",
+        "CONFLICT (content): Merge conflict in frontend/src/components/VoicePerspectiveList.stories.tsx"
+      ]
+    },
+    {
+      "other_pr": 935,
+      "other_head": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
+      "clean_textual_merge": false,
+      "conflicts": [
+        "CONFLICT (content): Merge conflict in docs/product-technical-gap-baseline.md"
+      ]
+    },
+    {
+      "other_pr": 929,
+      "other_head": "2a8ed5d02f4a3082b346d923d754c1ff37ebff52",
+      "clean_textual_merge": false,
+      "conflicts": [
+        "CONFLICT (content): Merge conflict in docs/product-technical-gap-baseline.md"
+      ]
+    }
+  ],
+  "queue_observed_at": "2026-09-06T07:32:33.865112+00:00",
+  "sibling_export_validation": {
+    "pr": 935,
+    "head": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
+    "local_tests_passed": 45,
+    "protected_delivery": false
+  },
+  "implementation_documentation_head_checked": "1b64f07debf97218b01522b5fc6560e9c2a25edf",
+  "implementation_documentation_head_workflow": {
+    "run_id": 34020254308,
+    "status": "completed",
+    "conclusion": "skipped",
+    "reason": "Draft admission, not acceptance"
+  }
+}

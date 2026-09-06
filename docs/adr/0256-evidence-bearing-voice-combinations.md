@@ -88,6 +88,27 @@ compound lookup codes.
   merged and multi-value Voice relations are unioned instead of one page
   replacing another.
 
+## Write-admission implementation clarification (2026-09-06)
+
+In the context of an additional Voice write whose carrying Post or evidence
+Post can become inaccessible after HTTP preflight, facing the need to keep
+authorization and the committed derivation consistent, we decided to recheck
+both source rows with the existing scope and eligibility predicates under
+ordered PostgreSQL `FOR SHARE` locks in the assignment transaction, and
+neglected preflight-only admission and `FOR KEY SHARE`, to achieve admission
+that remains stable through commit, accepting that a concurrent source-row
+update may briefly wait for this bounded database-only transaction.
+
+This implements the existing authorized-Post contract; it adds no Voice,
+inference policy, schema, or release identity. Preflight alone permits a
+withdrawn target to receive an assignment. `FOR KEY SHARE` does not block
+non-key visibility/lifecycle updates. Both rows are acquired in UUID order;
+ordinary readers remain unblocked. No external inference or activity publication
+runs while these locks are held. A rejected candidate rolls back; previously
+committed assignments retain their history and are filtered at read time.
+PostgreSQL's [row-lock contract](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-ROWS)
+defines the conflict behavior; synthetic two-session tests verify it.
+
 ## Data model
 
 ```mermaid
