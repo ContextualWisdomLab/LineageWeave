@@ -1,0 +1,73 @@
+name: Temporary 855 ADR status repair
+
+on:
+  push:
+    branches:
+      - "automation/855-adr-status-repair-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-855-adr-status-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/855-adr-status-repair-20260906
+          fetch-depth: 0
+
+      - name: Verify exact product ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=e8f0ca2c10584fad578c4cd7e6493025bd565020
+          test "$(git rev-parse HEAD^)" = "$product"
+          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-855-adr-status-repair.yml"
+          grep -q '^\*\*Decision status:\*\* Accepted$' docs/adr/0315-leftover-map-compare-plot-residual.md
+
+      - name: Make draft decision status Proposed
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("docs/adr/0315-leftover-map-compare-plot-residual.md")
+          text = path.read_text(encoding="utf-8")
+          old = "**Decision status:** Accepted"
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one Accepted marker, found {text.count(old)}")
+          path.write_text(text.replace(old, "**Decision status:** Proposed", 1), encoding="utf-8")
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify governance RED turns GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_adr_0315_governance.py
+          grep -q '^\*\*Decision status:\*\* Proposed$' docs/adr/0315-leftover-map-compare-plot-residual.md
+          ! grep -q '^\*\*Decision status:\*\* Accepted$' docs/adr/0315-leftover-map-compare-plot-residual.md
+          git diff --check
+
+      - name: Commit clean product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/temporary-855-adr-status-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/temporary-855-adr-status-repair.yml$' || true)"
+          expected="$(printf '%s\n' docs/adr/0315-leftover-map-compare-plot-residual.md tests/test_adr_0315_governance.py | sort)"
+          actual="$(git diff --cached --name-only | sort)"
+          test "$actual" = "$expected"
+          git commit -m "docs(adr): keep ADR 0315 proposed while draft"
+          git push origin HEAD:automation/855-adr-status-repair-20260906
