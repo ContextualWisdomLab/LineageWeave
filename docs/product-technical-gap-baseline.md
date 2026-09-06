@@ -1,5 +1,12 @@
 # Product & Technical Gap Baseline
 
+> #820 exact-current-parent reconstruction: persisted singular-value axis badges
+> are reconstructed from #819 `f37ca315e3c48fa37bbcafe96e46c5d7dab991b7`.
+> Preserve finite, non-negative persisted `σ_k`, including rank-0 `σ 0.00`; omit missing,
+> non-finite, or negative singular values independently of axis share. Parent share-only
+> regressions run with singular value unavailable so the contracts remain orthogonal.
+> ADR 0289 stays Proposed while Draft; package/frontend/runtime identity is 2.46.0.
+
 > #819 current-parent reconstruction: v2.45 pair-list post coverage fail-close
 > is being rebuilt from exact #818 `bc971a402ef9faecb2f0b4ffd743092f4779d76b`.
 > Preserve only feature delta `a2c965511d26923bd878ec56d655fb8a0183c4d7`;

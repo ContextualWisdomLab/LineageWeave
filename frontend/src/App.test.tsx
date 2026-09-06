@@ -4144,8 +4144,8 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(await screen.findByLabelText("Leftover pairs")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
