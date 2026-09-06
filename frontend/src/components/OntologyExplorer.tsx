@@ -152,6 +152,8 @@ export function OntologyExplorer({
         if (cancelled) return;
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -162,11 +164,14 @@ export function OntologyExplorer({
     };
   }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
 
-  const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
+  const visible = useMemo(
+    () => status === "denied" ? null : filterNeighborhood(loaded, query),
+    [loaded, query, status],
+  );
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
-  const canLoadNextPage = Boolean(loaded?.next_cursor && accessToken && !provided);
+  const canLoadNextPage = Boolean(status !== "denied" && loaded?.next_cursor && accessToken && !provided);
 
   function resetFocus() {
     setFocusType(focusNodeType);

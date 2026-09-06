@@ -246,6 +246,35 @@ describe("OntologyExplorer", () => {
     ).toBeInTheDocument();
   });
 
+  it.each([403, 404])("discards prior evidence and exports after continuation denial (%s)", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status));
+    render(
+      <OntologyExplorer accessToken="synthetic-access-token" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(await screen.findByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByRole("region", { name: "Exact values" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: "Node evidence" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+  });
+
+  it("denies exports even when a supplied denied state retains an earlier payload", () => {
+    render(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} status="denied" />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+  });
+
   it("lets keyboard users open node and edge evidence", async () => {
     const onSelectPost = vi.fn();
     const onOpenEvidence = vi.fn();

@@ -1,5 +1,134 @@
 # Product & Technical Gap Baseline
 
+## Current audit — 2026-09-06
+
+This section supersedes the dated queue snapshots below. Audited protected
+`main`: `83eba56149eb802cd63642c507c324c9976ec78e`.
+The pre-change remote inventory contains 120 open PRs (114 Draft, 6 Ready)
+and 16 open issues. No Ready PR has a qualifying exact-head approval.
+All six retain normal squash auto-merge. Their first 100 review threads were
+fully paginated (no additional page) and contain zero unresolved threads.
+Required workflows remain mandatory even where ordinary local tests pass.
+
+| Ready PR | Exact head | Current-head approvals / unresolved threads | Auto-merge | Non-green check names |
+| --- | --- | --- | --- | --- |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | 0 / 0 | enabled | Admit current pull request head, CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), Detect changed scope, admit-current-head, cancel-superseded-opencode-review-runs, cancel-superseded-pr-runs, required-workflow-bootstrap |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), dependency-review, noema-review, opencode-review, strix |
+| #907 | `847a15e73e69bfc768d517a83fa8706aecfafe7e` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), noema-review, opencode-review, publish-manual-pr-evidence-status, strix |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), dependency-review, noema-review, opencode-review, strix |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), noema-review, opencode-review |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), dependency-review, noema-review, opencode-review |
+
+Current branch rules require one independent approval, dismissal of stale
+reviews, resolved review threads, and the central workflow suite. Last-push
+approval is currently false; do not replace live rules with historical notes.
+No self-approval, force push, admin bypass, stack retarget, or merge occurred
+in this audit. No in-progress repository run was returned during the initial
+runner inventory, so no run was cancelled. Cancelled checks above remain
+non-passing evidence and do not authorize cancelling a current open-PR run.
+
+### Authority, implementation, and acceptance are separate
+
+- **Authority read:** current LineageWeave `docs/product-requirements.md`,
+  ADR 0184, ADR 0246 and the actual main ADR 0251; current upstream TEPP
+  `docs/product/prd-v0.4-approved.md`, contextual-orchestrator
+  `docs/product_planning.md` and `docs/architecture.md`. Main's ADR 0251 is
+  the FJA/I-O taxonomy, while Voice composition is ADR 0256; an ADR number
+  alone does not resolve the competing historical identities.
+- **Canonical remote names verified:** `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `TEPP`, and `ContextualWisdomLab/disksage`.
+  The mixed-case DiskSage row in the historical authority register is not
+  the canonical repository name.
+- **Research boundary:** no new scientific claim, weight, inference policy,
+  model selector, or arithmetic was introduced. Existing ADR literature is
+  supporting authority for its stated scope, not proof that implementation
+  or runtime acceptance is complete.
+- **Current implementation gap selected:** after an authenticated continuation
+  returned 403/404, the ontology graph disappeared but previously loaded
+  CSV/JSON-LD remained downloadable and a selected record drawer survived.
+  This directly violated ADR 0184's same-authorized-content export contract.
+  Three new regressions failed before the fix. The minimal repair clears
+  denied response data/selection and prevents every visible projection from
+  using data in the denied state, including supplied Storybook payloads.
+  Ordinary 500 continuation retries retain the earlier authorized pages.
+- **Local candidate evidence:** 36 focused and 533 total frontend tests pass;
+  lint, TypeScript/Vite build and Storybook build pass. `DeniedAfterLoaded`
+  reuses the existing controls, copy, layout and tokens. Inspected 1440px and
+  390px screenshots show disabled CSV/JSON-LD controls, no old evidence table
+  or drawer, and no horizontal document overflow. Existing build chunk-size
+  warnings were not suppressed.
+- **Current aggregate only:** official Compose project `lineageweave` has
+  43,189 source Posts and a Voice-assignment store. These counts disclose no
+  record identity and are not a probability sample or population inference.
+  The inspected worker, PostgreSQL and orchestrator containers report healthy;
+  this is not exact-candidate deployment evidence.
+- **Still unaccepted:** full Voice API/UI truth/cutoff/PROV-O parity,
+  authenticated rendering of this candidate against PostgreSQL, and full
+  asynchronous Ask end-to-end saturation/capacity. The current stack is a
+  private-data runtime; its existence does not authorize presenting synthetic
+  Storybook or a missing-focus probe as full real-runtime acceptance.
+
+### Bounded authenticated denial probe
+
+Synthetic `demo.analyst` OIDC authentication succeeded without printing its
+credential or token. PostgreSQL confirmed the synthetic focus identifier had
+zero rows. A 4-VU, 10-second k6 probe against the official authenticated
+ontology route returned the expected 404 on all 18,939 focus reads (0 failed
+checks); explicit expected-status classification produced 0% HTTP error rate.
+Including one setup token request, observed throughput was 1,757.53 requests/s,
+mean latency 2.04ms and p95 2.60ms. This intentionally bounded observation is
+not an SLO, probability sample, full Ask workflow, or saturation test.
+Point-in-time observations showed one active diagnostic PostgreSQL connection
+and six idle clients; sampled CPU percentages for PostgreSQL, Ask processing,
+Valkey, and the gateway were 0.00%, 0.14%, 0.23%, and 0.02%. These samples do
+not measure peak saturation. No performance bottleneck or numerical repair is
+claimed. The first probe classified expected 404s as HTTP errors; the reported
+probe corrected only expected-response classification, without hiding failed
+checks or changing the application.
+
+The UI design contract is unchanged in layout: evidence reviewers retain the
+existing next-action notice and navigation; denial removes prior record
+content and disables export controls at desktop and mobile widths. Existing
+tokens and Storybook scenes are the visual authority. No new layout, color,
+spacing, or decorative component was introduced. Screenshots are synthetic:
+[desktop](screenshots/ontology-denial-desktop-20260906.png) and
+[mobile](screenshots/ontology-denial-mobile-20260906.png).
+
+### PR overlap and identity collisions
+
+All 120 open PR file lists were retrieved successfully. Added ADR filenames
+reuse eight numeric identities for distinct decisions:
+
+- `docs/adr/0279`: #888 `docs/adr/0279-global-ask-exact-semantic-index.md`; #811 `docs/adr/0279-leftover-map-segment-expected.md`.
+- `docs/adr/0289`: #821 `docs/adr/0289-leftover-map-compare-coverage.md`; #820 `docs/adr/0289-leftover-map-plot-singular.md`.
+- `docs/adr/0290`: #823 `docs/adr/0290-leftover-map-axis-singular.md`; #822 `docs/adr/0290-leftover-map-compare-item-coverage.md`.
+- `docs/adr/0300`: #899 `docs/adr/0300-contextual-orchestrator-owner-boundary.md`; #837 `docs/adr/0300-leftover-map-compare-expected.md`.
+- `docs/adr/0301`: #902 `docs/adr/0301-dichotomous-measurement-policy.md`; #838 `docs/adr/0301-leftover-map-compare-rank.md`.
+- `docs/adr/0305`: #844 `docs/adr/0305-leftover-map-compare-plot-axis-share.md`; #843 `docs/adr/0305-leftover-map-compare-rank-payload.md`.
+- `docs/adr/0335`: #877 `docs/adr/0335-leftover-map-compare-plot-tick-origin-badge.md`; #876 `docs/adr/0335-leftover-map-plot-criterion-coordinates.md`.
+- `docs/adr/0355`: #920 `docs/adr/0355-leftover-map-plot-origin-badge.md`; #915 `docs/adr/0355-dynamic-evaluation-lineage.md`.
+
+No distinct added migration filenames reused a number in that inventory.
+This filename check does not prove SQL/API compatibility across all stacked
+branches. Release-title duplicates remain candidates requiring actual version
+reconciliation: v2.92.0 (#877/#876), v2.62.0 (#844/#843), v2.61.0 (#842/#841),
+v2.50.0 (#828/#826), v2.47.0 (#823/#822), v2.46.0 (#821/#820).
+Do not merge these child branches onto an unprotected parent; protect the
+parent first, retarget, and gather new head/base/review/check evidence.
+
+Existing owner PRs remain intact: #780 carries Voice export authority;
+#934 singleton JSON-LD page relations; #935 filtered export parity;
+#936 correction history; #937 evidence visibility/write admission; #929
+versioned translations. The denial fix changes `OntologyExplorer.tsx` and its
+regressions only; shared Storybook/inventory/baseline edits need reconciliation
+when those PRs reach main. API, schema, ADR identity, and release number are
+unchanged by this slice.
+
+## Historical audit snapshots
+
+The remaining dated entries are historical supporting evidence, not a current
+queue, deployment, or acceptance claim.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
