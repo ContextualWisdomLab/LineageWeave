@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Grouping comparison rows now name persisted leftover-map item complete-case coverage (ADR 0291 / v2.48.0) only when the caller can see the full persisted grouping population; partial-visibility rows omit the aggregate rather than leaking a denominator or recomputing subset coverage.
+
 - Grouping comparison rows now expose persisted leftover-map post complete-case coverage through `leftoverMapCoverageCounts` (ADR 0290 / v2.47.0) only for fully visible grouping populations. Partial-visibility rows omit the aggregate instead of leaking the full-group denominator or recomputing psychometric coverage from the visible subset.
 
 - Period leftover pairs now caption leftover-map graphic axes with persisted

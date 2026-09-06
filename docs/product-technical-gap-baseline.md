@@ -1,5 +1,7 @@
 # Product & Technical Gap Baseline
 
+> 2026-09-07 #822 reconstruction: exact #821 `93eaa40f...` owns ADR 0290/v2.47.0 and the full-visible-grouping coverage boundary. Preserve historical item-coverage composition as ADR 0291/v2.48.0; partial-visibility rows omit the shared persisted coverage aggregate. #963 remains owner of broader current-vs-historical baseline governance.
+>
 > #821 current-parent reconstruction: preserve grouping-comparison leftover-map post complete-case coverage from historical `11a78553...` on exact #820 `503d043e...`, but move the decision to ADR 0290 / v2.47.0 and fail closed persisted coverage whenever ABAC hides any grouping member. Review 5126637582 is the authorization RED authority; #963 still owns the broader current-vs-historical baseline cleanup.
 >
 > #820 exact-current-parent reconstruction: persisted singular-value axis badges

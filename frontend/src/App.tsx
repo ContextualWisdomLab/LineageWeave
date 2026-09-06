@@ -3988,9 +3988,7 @@ function ReportsPanel({
         <ul className="ticket-list" aria-label="Grouping comparison">
           {comparison.groupings.map((row) => {
             const comparisonCoverageCounts = leftoverMapCoverageCounts(row.leftover_map_coverage);
-            const comparisonItemCoverageCounts = leftoverMapItemCoverageCounts(
-              row.leftover_map_coverage,
-            );
+            const comparisonItemCoverageCounts = leftoverMapItemCoverageCounts(row.leftover_map_coverage);
             return (
             <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
               <button
