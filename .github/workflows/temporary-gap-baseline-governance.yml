@@ -1,0 +1,149 @@
+name: Temporary gap baseline governance repair
+
+on:
+  push:
+    branches:
+      - "automation/gap-baseline-current-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-gap-baseline-governance
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact documentation lane
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/gap-baseline-current-20260906
+          fetch-depth: 0
+
+      - name: Verify exact branch and protected base
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=83eba56149eb802cd63642c507c324c9976ec78e
+          product=456685f30f83f33554e2a34f5d0bb5bd735c0803
+          workflow=.github/workflows/temporary-gap-baseline-governance.yml
+          git fetch origin main automation/gap-baseline-current-20260906
+          test "$(git rev-parse origin/main)" = "$base"
+          git merge-base --is-ancestor "$product" HEAD
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+          test "$(git diff --name-only "$base".."$product")" = "docs/product-technical-gap-baseline.md"
+
+      - name: Add documentation-governance regression
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("tests/test_documentation_hygiene.py")
+          text = path.read_text(encoding="utf-8")
+          marker = "\n\ndef test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:\n"
+          assert marker in text
+          test = r'''
+
+          def test_product_gap_baseline_separates_current_authority_from_historical_evidence() -> None:
+              """Current buyer authority is singular; dated loop snapshots remain historical evidence."""
+              baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+              current_heading = "## Current authority"
+              history_heading = "## Historical dated evidence"
+
+              assert baseline.count(current_heading) == 1
+              assert baseline.count(history_heading) == 1
+              current_offset = baseline.index(current_heading)
+              history_offset = baseline.index(history_heading)
+              assert current_offset < history_offset
+
+              current = baseline[current_offset:history_offset]
+              historical = baseline[history_offset:]
+              assert "Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`" in current
+              assert "immutable release" in current
+              assert "#814" in current
+              assert "Exact-head loop overlay" not in current
+              assert "> Exact-head loop overlay: 2026-" in historical
+              assert "This overlay supersedes every older queue count below" not in historical
+          '''
+          path.write_text(text.replace(marker, test + marker, 1), encoding="utf-8")
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install locked Python dev dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Demonstrate documentation-authority RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          if uv run --frozen python -m pytest -q tests/test_documentation_hygiene.py -k product_gap_baseline_separates_current_authority_from_historical_evidence; then
+            echo "expected structural documentation-governance RED before baseline repair" >&2
+            exit 1
+          fi
+
+      - name: Apply minimal current-versus-history repair
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          title = "# Product & Technical Gap Baseline\n"
+          assert text.startswith(title)
+          current_start = text.index("> Current authority snapshot: 2026-09-06.")
+          history_start = text.index("> Exact-head loop overlay: 2026-08-29 13:20 KST.")
+          assert current_start < history_start
+          current = '''## Current authority
+
+This section is a dated authority projection for 2026-09-07. Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. Python package and frontend metadata declare v2.28.0 while the protected runtime still declares v2.20.0; PR #961 owns the minimal version-identity repair. Its candidate and exact-head Tests/SAST/Security evidence do not constitute an immutable release: tag/GitHub Release, package artifact, SBOM/provenance, reproducibility, rollback evidence, required CodeQL verdict, and qualifying independent approval remain separate delivery gates.
+
+The leftover-map stack has converged the latest #811 rank-boundary regression through #812 `df419c5a2f75782fa883915806d8cada7a78ff78` and #813 `44ace39111664a9b39a81e575a8dbdf06506050f`. #814 is the earliest structurally stale descendant and owns the next exact-parent convergence. Later locally repaired successors remain provisional until reconstructed in order. The #820/#821 ADR0289/v2.46 collision and the analogous #822/#823 collision must be repaired by preserving both valid product deltas under unique decision/release identities, not by closing or collapsing work.
+
+Canonical-owner truth remains external where owned elsewhere. RankWeave publication remains owned by `ContextualWisdomLab/RankWeave#35`; LineageWeave #962 is a consumer migration only after verified package publication. LineageWeave does not copy RankWeave, TEPP, ThreadWeave, contextual-orchestrator, or ingestion-owner source truth.
+
+'''
+          historical = text[history_start:]
+          historical = historical.replace(
+              "This overlay supersedes every older queue count below.",
+              "At that dated snapshot, this overlay superseded the older queue count recorded below.",
+          )
+          path.write_text(
+              title + "\n" + current + "## Historical dated evidence\n\n" + historical,
+              encoding="utf-8",
+          )
+
+      - name: Verify documentation-governance GREEN
+        run: uv run --frozen python -m pytest -q tests/test_documentation_hygiene.py
+
+      - name: Verify no private evidence or malformed diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          ! grep -n '^#914' docs/product-technical-gap-baseline.md
+          ! grep -n '^#780' docs/product-technical-gap-baseline.md
+
+      - name: Commit workflow-free documentation tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-gap-baseline-governance.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm "$workflow"
+          git add -A
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-gap-baseline-governance.yml'
+          test "$(git diff --cached --name-only | grep -v '^\.github/workflows/temporary-gap-baseline-governance\.yml$' | sort)" = $'docs/product-technical-gap-baseline.md\ntests/test_documentation_hygiene.py'
+          git diff --cached --check
+          git commit -m "docs(product): separate current authority from historical evidence"
+          git push origin HEAD:automation/gap-baseline-current-20260906
