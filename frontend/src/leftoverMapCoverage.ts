@@ -1,4 +1,4 @@
-/** Leftover-map complete-case coverage after IRT main effects (ADR 0168 / ADR 0281 / ADR 0282 / ADR 0283). */
+/** Leftover-map complete-case coverage after IRT main effects (ADR 0168 / ADR 0281 / ADR 0282 / ADR 0283 / ADR 0284). */
 
 import type { LeftoverMapCoverage } from "./api";
 
@@ -17,14 +17,23 @@ export const LEFTOVER_MAP_PLOT_INCOMPLETE_POST_LABEL = "Leftover-map graphic inc
 export const LEFTOVER_MAP_PLOT_INCOMPLETE_POST =
   "Leftover map dropped {dropped} incomplete posts";
 
+export const LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM_LABEL = "Leftover-map graphic incomplete items";
+
+export const LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM =
+  "Leftover map dropped {dropped} incomplete criteria";
+
 export type LeftoverMapCoverageCounts = {
   used: number;
   scored: number;
 };
 
-export type LeftoverMapIncompletePostCount = {
+export type LeftoverMapIncompleteCount = {
   dropped: number;
 };
+
+export type LeftoverMapIncompletePostCount = LeftoverMapIncompleteCount;
+
+export type LeftoverMapIncompleteItemCount = LeftoverMapIncompleteCount;
 
 function leftoverMapCompleteCaseCounts(
   used: number,
@@ -37,6 +46,21 @@ function leftoverMapCompleteCaseCounts(
     return null;
   }
   return { used, scored };
+}
+
+function leftoverMapDroppedCount(
+  dropped: number,
+  used: number,
+  scored: number,
+): LeftoverMapIncompleteCount | null {
+  if (!Number.isInteger(dropped) || dropped < 0) {
+    return null;
+  }
+  const completeCase = leftoverMapCompleteCaseCounts(used, scored);
+  if (completeCase !== null && dropped !== completeCase.scored - completeCase.used) {
+    return null;
+  }
+  return { dropped };
 }
 
 export function leftoverMapCoverageCounts(
@@ -63,16 +87,22 @@ export function leftoverMapIncompletePostCount(
   if (coverage == null) {
     return null;
   }
-  const dropped = coverage.incomplete_post_count;
-  if (!Number.isInteger(dropped) || dropped < 0) {
-    return null;
-  }
-  const completeCase = leftoverMapCompleteCaseCounts(
+  return leftoverMapDroppedCount(
+    coverage.incomplete_post_count,
     coverage.map_post_count,
     coverage.scored_post_count,
   );
-  if (completeCase !== null && dropped !== completeCase.scored - completeCase.used) {
+}
+
+export function leftoverMapIncompleteItemCount(
+  coverage: LeftoverMapCoverage | null | undefined,
+): LeftoverMapIncompleteItemCount | null {
+  if (coverage == null) {
     return null;
   }
-  return { dropped };
+  return leftoverMapDroppedCount(
+    coverage.incomplete_item_count,
+    coverage.map_item_count,
+    coverage.scored_item_count,
+  );
 }
