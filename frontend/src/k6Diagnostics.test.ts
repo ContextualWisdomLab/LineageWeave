@@ -84,10 +84,10 @@ describe("k6 diagnostic confidentiality", () => {
     }, 2)).toThrow(/^MCP response envelope was invalid: HTTP 200$/);
   });
 
-  it("rejects an envelope without a result", () => {
+  it("rejects an envelope without result or error", () => {
     expect(() => harness("k6_mcp_e2e.js").result({
       status: 200, body: `data: ${JSON.stringify({ jsonrpc: "2.0", id: 2 })}`,
-    }, 2)).toThrow(/^MCP response omitted result: HTTP 200$/);
+    }, 2)).toThrow(/^MCP response result\/error shape was invalid: HTTP 200$/);
   });
 
   it.each([
