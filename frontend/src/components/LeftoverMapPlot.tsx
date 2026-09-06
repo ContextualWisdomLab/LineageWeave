@@ -3,8 +3,11 @@ import { t, tf } from "../i18n";
 import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
 import {
   leftoverMapCoverageCounts,
+  leftoverMapItemCoverageCounts,
   LEFTOVER_MAP_PLOT_COVERAGE,
   LEFTOVER_MAP_PLOT_COVERAGE_LABEL,
+  LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
+  LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL,
 } from "../leftoverMapCoverage";
 import {
   formatLeftoverMapPlotAxisShare,
@@ -69,7 +72,8 @@ function leftoverMapPlotAxisText(
  * unexplained leftover ``U``, leftover residual ``R``, leftover
  * observed ``Y``, leftover expected ``E``, and leftover-map rank so the
  * pair-row badges match the graphic. Name leftover-map complete-case
- * coverage on the figure when those persisted post counts are usable.
+ * coverage and leftover-map item complete-case coverage on the figure when
+ * those persisted post and criterion counts are usable.
  * Omit that distance caption when ``d`` is missing or non-finite. Omit
  * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
  * that explained leftover share caption when ``e`` is missing or
@@ -82,6 +86,8 @@ function leftoverMapPlotAxisText(
  * caption when ``E`` is missing or non-finite. Omit that leftover-map rank
  * caption when rank is missing, negative, or not an integer. Omit that leftover-map
  * coverage caption when coverage is missing or not usable complete-case integers.
+ * Omit that leftover-map item coverage caption when item coverage is missing or
+ * not usable complete-case integers.
  * Omit that axis badge when share is
  * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
@@ -99,6 +105,7 @@ export function LeftoverMapPlot({
     return null;
   }
   const coverageCounts = leftoverMapCoverageCounts(leftoverMapCoverage);
+  const itemCoverageCounts = leftoverMapItemCoverageCounts(leftoverMapCoverage);
 
   const openPost = (postId: string) => {
     const pair = firstPlottablePairForPost(pairs, postId);
@@ -117,6 +124,15 @@ export function LeftoverMapPlot({
           aria-label={t(LEFTOVER_MAP_PLOT_COVERAGE_LABEL)}
         >
           {tf(LEFTOVER_MAP_PLOT_COVERAGE, coverageCounts)}
+        </p>
+      ) : null}
+      {itemCoverageCounts !== null ? (
+        <p
+          className="leftover-map-plot-item-coverage"
+          role="note"
+          aria-label={t(LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL)}
+        >
+          {tf(LEFTOVER_MAP_PLOT_ITEM_COVERAGE, itemCoverageCounts)}
         </p>
       ) : null}
       <ul className="leftover-map-plot-legend">

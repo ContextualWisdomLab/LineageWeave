@@ -1,5 +1,7 @@
 # Product & Technical Gap Baseline
 
+> Exact-head convergence note: v2.39.0 / ADR 0282 adds persisted item complete-case coverage to the leftover-map graphic on current #812 while inheriting #811/#812 Vietnamese explained-share terminology. Item coverage remains persisted-only and distinct from post coverage; no criterion-count, rank, distance, or unused-axis inference is allowed. This Draft child inherits no predecessor checks or approval.
+
 > Exact-head convergence note: the v2.37 leftover-map successor composition keeps the #802 explained-share foundation while retaining persisted unexplained-share, cross-share, unexplained-U, residual-R, observed-Y, expected-E, and rank captions plus the Vietnamese explained-share terminology regression. This branch remains review-gated; no predecessor check or approval is inherited.
 
 > Exact-head rendered-UX overlay: 2026-08-31 12:16 KST. PR #802

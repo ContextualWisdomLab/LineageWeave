@@ -209,6 +209,9 @@ describe("LeftoverPairList", () => {
     expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
     expect(onSelectPost).toHaveBeenCalledWith(
       expect.objectContaining({
         post_id: "post-demo-public",

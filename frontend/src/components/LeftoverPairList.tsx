@@ -73,7 +73,8 @@ export type LeftoverPairListProps = {
  * observed ``Y`` on those pair segments. ADR 0279 names persisted leftover
  * expected ``E`` on those pair segments. ADR 0280 names persisted leftover-map
  * rank on those pair segments. ADR 0281 names persisted leftover-map
- * complete-case coverage on the graphic. Every badge still
+ * complete-case coverage on the graphic. ADR 0282 names persisted leftover-map
+ * item complete-case coverage on the graphic. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
