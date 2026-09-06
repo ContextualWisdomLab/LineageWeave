@@ -84,11 +84,16 @@ jobs:
 
           tests = Path("frontend/src/i18n.test.ts")
           text = tests.read_text(encoding="utf-8")
-          old = "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e,"
-          new = "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e,"
-          if text.count(old) != 1:
+          caption_old = "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e,"
+          caption_new = "Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e,"
+          if text.count(caption_old) != 1:
               raise SystemExit("expected one stale Vietnamese caption fixture")
-          tests.write_text(text.replace(old, new, 1), encoding="utf-8")
+          text = text.replace(caption_old, caption_new, 1)
+          label_old = '"phần dư giải thích bản đồ phần dư R̂²/R² 0.76"'
+          label_new = '"tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"'
+          if text.count(label_old) != 1:
+              raise SystemExit("expected one stale Vietnamese explained-share label fixture")
+          tests.write_text(text.replace(label_old, label_new, 1), encoding="utf-8")
 
           baseline = Path("docs/product-technical-gap-baseline.md")
           text = baseline.read_text(encoding="utf-8")
