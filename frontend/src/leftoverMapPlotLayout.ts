@@ -1,5 +1,8 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
+ *  Leftover-map singular values caption axes 1 and 2 when finite and
+ *  non-negative (ADR 0289). Do not invent ``σ_k`` from leftover-map axis
+ *  share.
  *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
  *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271),
  *  persisted leftover-map reconstruction ``R̂`` (ADR 0272), persisted
@@ -16,9 +19,8 @@
  *  complete-case coverage fail-closed through leftoverMapCoverageCounts
  *  (ADR 0288), pair-list item complete-case coverage (ADR 0285), pair-list
  *  incomplete post coverage (ADR 0286), pair-list incomplete item
- *  coverage (ADR 0287), grouping comparison complete-case coverage
- *  (ADR 0289), and grouping comparison item complete-case coverage
- *  (ADR 0290) caption the pair list or the grouping comparison strip,
+ *  coverage (ADR 0287), and grouping comparison complete-case coverage (ADR 0290), and grouping comparison item
+ *  complete-case coverage (ADR 0291) caption the pair list or the grouping comparison strip,
  *  not this graphic layout.
  */
 
@@ -82,7 +84,10 @@ export const PLOT_TICK_LENGTH = 6;
 const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
+const SEGMENT_LABEL_OFFSET = 24;
 const RECONSTRUCTION_LABEL_OFFSET = 12;
+const SEGMENT_LABEL_TOP_INSET = 12;
+const SEGMENT_LABEL_BOTTOM_INSET = 4;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
@@ -221,17 +226,17 @@ function toSvg(
 }
 
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
-  const byLabel = new Map<string, number>();
+  const seen = new Set<number>();
+  const ticks: { value: number; label: string }[] = [];
   for (const value of values) {
     const label = formatSignedLeftoverValue(value);
-    if (label === null) {
+    if (label === null || seen.has(value)) {
       continue;
     }
-    if (!byLabel.has(label)) {
-      byLabel.set(label, value);
-    }
+    seen.add(value);
+    ticks.push({ value, label });
   }
-  return [...byLabel.entries()].map(([label, value]) => ({ value, label }));
+  return ticks;
 }
 
 function leftoverMapCoordinateTicks(
@@ -278,14 +283,43 @@ function leftoverMapSegmentLabelPosition(
   y2: number,
 ): { labelX: number; labelY: number } {
   const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+  const midpointX = (x1 + x2) / 2;
+  const midpointY = (y1 + y2) / 2;
+  if (coincident) {
+    return {
+      labelX: midpointX,
+      labelY: midpointY - COINCIDENT_LABEL_OFFSET,
+    };
+  }
+  const deltaX = x2 - x1;
+  const deltaY = y2 - y1;
+  const length = Math.hypot(deltaX, deltaY);
   return {
-    labelX: (x1 + x2) / 2,
-    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+    labelX: midpointX - (deltaY / length) * SEGMENT_LABEL_OFFSET,
+    labelY: midpointY + (deltaX / length) * SEGMENT_LABEL_OFFSET,
   };
 }
 
-function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
-  return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+function leftoverMapStackedCaptionY(
+  labelY: number,
+  stackedAbove: number,
+  captionSpacing = RECONSTRUCTION_LABEL_OFFSET,
+): number {
+  return stackedAbove > 0 ? labelY + stackedAbove * captionSpacing : labelY;
+}
+
+function leftoverMapCaptionSpacing(height: number, captionCount: number): number {
+  if (captionCount <= 1) {
+    return 0;
+  }
+  const availableStackHeight = Math.max(
+    0,
+    height - SEGMENT_LABEL_TOP_INSET - SEGMENT_LABEL_BOTTOM_INSET,
+  );
+  return Math.min(
+    RECONSTRUCTION_LABEL_OFFSET,
+    availableStackHeight / (captionCount - 1),
+  );
 }
 
 export function layoutLeftoverMapPlot(
@@ -393,46 +427,75 @@ export function layoutLeftoverMapPlot(
       itemPos.x,
       itemPos.y,
     );
+    const captionCount = [
+      distanceLabel,
+      reconstructionLabel,
+      explainedShareLabel,
+      unexplainedShareLabel,
+      crossShareLabel,
+      unexplainedLeftoverLabel,
+      residualLabel,
+      observedLabel,
+      expectedLabel,
+      rankLabel,
+    ].filter((label) => label !== null).length;
+    const captionSpacing = leftoverMapCaptionSpacing(height, captionCount);
+    const maximumLabelY = Math.max(
+      SEGMENT_LABEL_TOP_INSET,
+      height -
+        SEGMENT_LABEL_BOTTOM_INSET -
+        Math.max(0, captionCount - 1) * captionSpacing,
+    );
+    const labelY = Math.min(
+      Math.max(labelPosition.labelY, SEGMENT_LABEL_TOP_INSET),
+      maximumLabelY,
+    );
     const reconstructionY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+      captionSpacing,
     );
     const explainedShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const unexplainedShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const crossShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
         (unexplainedShareLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const unexplainedLeftoverY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
         (unexplainedShareLabel !== null ? 1 : 0) +
         (crossShareLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const residualY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
         (unexplainedShareLabel !== null ? 1 : 0) +
         (crossShareLabel !== null ? 1 : 0) +
         (unexplainedLeftoverLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const observedY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
@@ -440,9 +503,10 @@ export function layoutLeftoverMapPlot(
         (crossShareLabel !== null ? 1 : 0) +
         (unexplainedLeftoverLabel !== null ? 1 : 0) +
         (residualLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const expectedY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
@@ -451,9 +515,10 @@ export function layoutLeftoverMapPlot(
         (unexplainedLeftoverLabel !== null ? 1 : 0) +
         (residualLabel !== null ? 1 : 0) +
         (observedLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     const rankY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
+      labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
@@ -463,6 +528,7 @@ export function layoutLeftoverMapPlot(
         (residualLabel !== null ? 1 : 0) +
         (observedLabel !== null ? 1 : 0) +
         (expectedLabel !== null ? 1 : 0),
+      captionSpacing,
     );
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
@@ -501,6 +567,7 @@ export function layoutLeftoverMapPlot(
       rankX: labelPosition.labelX,
       rankY,
       ...labelPosition,
+      labelY,
     });
   }
 
