@@ -1,6 +1,6 @@
 # ADR 0304 — Show leftover-map graphic display on grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 **Amended by:** [ADR 0305](0305-leftover-map-compare-plot-axis-share.md)
@@ -208,8 +208,7 @@ leftover share on pair segments, leftover-map unexplained leftover share
 persistence, leftover-map explained leftover share on pair segments,
 leftover-map explained leftover share persistence, leftover-map reconstruction
 on pair segments, leftover-map reconstruction persistence, leftover-map item
-complete-case coverage on the graphic display, leftover-map item complete-case
-coverage on the pair list, leftover-map incomplete post coverage on the graphic
+complete-case coverage on the graphic display, leftover-map item complete-case coverage on the pair list, leftover-map incomplete post coverage on the graphic
 display, leftover-map incomplete post coverage on the pair list, leftover-map
 incomplete item coverage on the graphic display, leftover-map incomplete item
 coverage on the pair list, leftover-map post complete-case coverage fail-closed
