@@ -8,39 +8,35 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Period leftover pairs now caption the grouping comparison strip with
-  persisted leftover-map post complete-case coverage through
-  leftoverMapCoverageCounts (ADR 0289 / v2.46.0). After `make seed`,
+- Grouping comparison rows now expose persisted leftover-map post complete-case coverage through `leftoverMapCoverageCounts` (ADR 0290 / v2.47.0) only for fully visible grouping populations. Partial-visibility rows omit the aggregate instead of leaking the full-group denominator or recomputing psychometric coverage from the visible subset.
+
+- Period leftover pairs now caption leftover-map graphic axes with persisted
+  leftover-map singular values `σ_k` (ADR 0289 / v2.46.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, and a grouping
-  comparison note that matches leftover-map post complete-case coverage;
-  click a post marker or a pair button opens that post. A missing,
-  non-integer, negative used, non-positive scored, or used-greater-than-scored
-  coverage omits that leftover-map comparison coverage note. Coverage `0 of
-  M` is shown when that persisted used count is a non-negative integer and
-  scored is a positive integer. Do not invent post coverage from leftover
-  pair count, plotted marker count, leftover-map distance, leftover-map
-  rank, leftover-map item coverage, leftover-map incomplete post coverage,
-  leftover-map incomplete item coverage, or the count of unused axes. The
-  strip does not gain leftover-map item coverage, leftover-map incomplete
-  post coverage, leftover-map incomplete item coverage, or the leftover-map
-  graphic. Never invent a leftover score or a theta. No new columns.
+  Gabriel biplot of already-named coordinates, leftover-map singular values
+  when finite, leftover-map axis share when finite, axis ticks that match
+  `ξ (x, y) ζ (x, y)` on the pair row, pair segments that match `d` on
+  the pair row, pair segments that match `R̂` on the pair row, pair
+  segments that match `R̂²/R²` on the pair row, pair segments that match
+  `U²/R²` on the pair row, pair segments that match `2R̂U/R²` on the pair
+  row, pair segments that match `U` on the pair row, pair segments that
+  match `R` on the pair row, pair segments that match `Y` on the pair
+  row, pair segments that match `E` on the pair row, pair segments that
+  match leftover-map rank on the pair row, a plot caption that matches
+  leftover-map complete-case coverage above the pair list, a plot caption
+  that matches leftover-map item complete-case coverage, a plot caption
+  that matches leftover-map incomplete post coverage, a plot caption that
+  matches leftover-map incomplete item coverage, a pair-list note that
+  matches leftover-map post complete-case coverage, a pair-list note that
+  matches leftover-map item complete-case coverage, a pair-list note that
+  matches leftover-map incomplete post coverage, and a pair-list note
+  that matches leftover-map incomplete item coverage; click a post marker
+  or a pair button opens that post. A missing, non-finite, or negative
+  singular value omits that `σ` badge independently of leftover-map axis
+  share. Rank-0 unused axes still name `σ 0.00`. Do not invent `σ_k` from
+  leftover-map axis share, leftover-map distance, leftover-map rank, or
+  plotted coordinates. Never invent a leftover score or a theta. No new
+  columns.
 
 - Period leftover pairs now fail-close leftover-map post complete-case
   coverage on the leftover pair list through leftoverMapCoverageCounts
