@@ -1,0 +1,101 @@
+name: Temporary 964 Semgrep literal-regexp repair
+
+on:
+  push:
+    branches:
+      - "automation/964-semgrep-literal-regexp-repair-20260907"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/964-semgrep-literal-regexp-repair-20260907
+          fetch-depth: 0
+
+      - name: Verify exact product head and reproduce source shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=0e90ffe7cbc3b1b0866c0c3f5d043e8f874c42a2
+          workflow=.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml
+          git fetch origin fix/load-observation-evidence-20260906
+          test "$(git rev-parse origin/fix/load-observation-evidence-20260906)" = "$product"
+          git merge-base --is-ancestor "$product" HEAD
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
+          grep -F 'toThrow(new RegExp(`^${message}: HTTP 200$`));' frontend/src/k6Diagnostics.test.ts
+
+      - name: Apply minimal test-only causal fix
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/k6Diagnostics.test.ts")
+          text = path.read_text(encoding="utf-8")
+          old = '''  it.each([\n    [{ id: 2, result: {} }, "MCP response protocol was invalid"],\n    [{ jsonrpc: "1.0", id: 2, result: {} }, "MCP response protocol was invalid"],\n    [{ jsonrpc: "2.0", result: {} }, "MCP response id mismatch"],\n    [{ jsonrpc: "2.0", id: 7, result: {} }, "MCP response id mismatch"],\n    [{ jsonrpc: "2.0", id: 2, result: {}, error: null }, "MCP response result/error shape was invalid"],\n  ])("rejects malformed or unrelated JSON-RPC responses (%j)", (envelope, message) => {\n    expect(() => harness("k6_mcp_e2e.js").result({\n      status: 200, body: `data: ${JSON.stringify(envelope)}`,\n    }, 2)).toThrow(new RegExp(`^${message}: HTTP 200$`));\n  });'''
+          new = '''  it.each([\n    [{ id: 2, result: {} }, /^MCP response protocol was invalid: HTTP 200$/],\n    [{ jsonrpc: "1.0", id: 2, result: {} }, /^MCP response protocol was invalid: HTTP 200$/],\n    [{ jsonrpc: "2.0", result: {} }, /^MCP response id mismatch: HTTP 200$/],\n    [{ jsonrpc: "2.0", id: 7, result: {} }, /^MCP response id mismatch: HTTP 200$/],\n    [{ jsonrpc: "2.0", id: 2, result: {}, error: null }, /^MCP response result\\/error shape was invalid: HTTP 200$/],\n  ])("rejects malformed or unrelated JSON-RPC responses (%j)", (envelope, expectedError) => {\n    expect(() => harness("k6_mcp_e2e.js").result({\n      status: 200, body: `data: ${JSON.stringify(envelope)}`,\n    }, 2)).toThrow(expectedError);\n  });'''
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one dynamic RegExp block, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify focused confidentiality diagnostics
+        working-directory: frontend
+        run: pnpm exec vitest run src/k6Diagnostics.test.ts
+
+      - name: Verify frontend lint and production build
+        working-directory: frontend
+        run: |
+          pnpm exec oxlint
+          pnpm run build
+
+      - name: Verify Semgrep finding is removed
+        shell: bash
+        run: |
+          set -euo pipefail
+          image=semgrep/semgrep@sha256:2b33f46ba66cf8cc2ad59ccfa7d22951fd00c632c38f1339e84ec8e6e641a942
+          docker manifest inspect "$image" >/dev/null
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            -w /src \
+            -e SEMGREP_SEND_METRICS=off \
+            --entrypoint semgrep \
+            "$image" scan \
+            --config=p/default \
+            --severity=WARNING \
+            --severity=ERROR \
+            --error \
+            --metrics=off \
+            frontend/src/k6Diagnostics.test.ts
+
+      - name: Commit workflow-free repair tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test "$(git diff --cached --name-only | sort)" = $'frontend/src/k6Diagnostics.test.ts\n.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml'
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-964-semgrep-literal-regexp-repair.yml'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(k6): use literal regex expectations"
+          git push origin HEAD:automation/964-semgrep-literal-regexp-repair-20260907
