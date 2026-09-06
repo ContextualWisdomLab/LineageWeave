@@ -49,18 +49,28 @@ describe("backendFetch provider-error boundary", () => {
       { status, headers: { "Content-Type": "application/json" } },
     )));
 
-    for (const request of [
-      () => fetchMe("synthetic-token"),
-      () => updateTenantConfig("synthetic-token", "Example tenant"),
-    ]) {
-      const error = await request().catch((reason: unknown) => reason);
-      expect(error).toBeInstanceOf(BackendError);
-      expect(error).toMatchObject({
-        status,
-        message: "The service could not complete this request. Try again later.",
-      });
-      expect(String(error)).not.toContain("synthetic-private-body");
-    }
+    const error = await fetchMe("synthetic-token").catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(BackendError);
+    expect(error).toMatchObject({
+      status,
+      message: "The service could not complete this request. Try again later.",
+    });
+    expect(String(error)).not.toContain("synthetic-private-body");
+  });
+
+  it("does not retry an unreadable successful write response", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(
+      'synthetic-private-body {"unfinished":',
+      { status: 201, headers: { "Content-Type": "application/json" } },
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await updateTenantConfig("synthetic-token", "Example tenant")
+      .catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(BackendError);
+    expect(error).toMatchObject({ status: 201, message: "The service could not complete this request. Try again later." });
+    expect(String(error)).not.toContain("synthetic-private-body");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("hides body-stream failures after successful response headers", async () => {
