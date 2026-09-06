@@ -27,10 +27,11 @@ jobs:
         run: |
           set -euo pipefail
           product=529d616e34d959715d2ece7a59bb99c8acbb5a4a
+          workflow=.github/workflows/temporary-964-review-repair.yml
           git fetch origin fix/load-observation-evidence-20260906
           test "$(git rev-parse origin/fix/load-observation-evidence-20260906)" = "$product"
-          test "$(git rev-parse HEAD^)" = "$product"
-          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-964-review-repair.yml"
+          git merge-base --is-ancestor "$product" HEAD
+          test "$(git diff --name-only "$product"..HEAD)" = "$workflow"
 
       - name: Add review regressions
         shell: bash
@@ -97,22 +98,45 @@ jobs:
 
           script = Path("scripts/k6_mcp_e2e.js")
           text = script.read_text()
-          old = '''  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);\n  return envelope.result;\n'''
-          new = '''  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {\n    fail(`MCP response envelope was invalid: HTTP ${response.status}`);\n  }\n  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);\n  if (!Object.prototype.hasOwnProperty.call(envelope, "result")) {\n    fail(`MCP response omitted result: HTTP ${response.status}`);\n  }\n  return envelope.result;\n'''
-          assert old in text
-          text = text.replace(old, new, 1)
-          old_structured = '''function structured(response) {\n  const toolResult = result(response);\n  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);\n  return toolResult.structuredContent;\n}\n'''
-          new_structured = '''function structured(response) {\n  const toolResult = result(response);\n  if (!toolResult || typeof toolResult !== "object" || Array.isArray(toolResult)) {\n    fail(`MCP tool result was invalid: HTTP ${response.status}`);\n  }\n  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);\n  if (!Object.prototype.hasOwnProperty.call(toolResult, "structuredContent")) {\n    fail(`MCP tool result omitted structured content: HTTP ${response.status}`);\n  }\n  return toolResult.structuredContent;\n}\n'''
-          assert old_structured in text
-          script.write_text(text.replace(old_structured, new_structured, 1))
+          result_anchor = '  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);\n  return envelope.result;'
+          result_repair = '''  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
+            fail(`MCP response envelope was invalid: HTTP ${response.status}`);
+          }
+          if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);
+          if (!("result" in envelope)) {
+            fail(`MCP response omitted result: HTTP ${response.status}`);
+          }
+          return envelope.result;'''
+          assert result_anchor in text
+          text = text.replace(result_anchor, result_repair, 1)
+
+          structured_anchor = '  const toolResult = result(response);\n  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);\n  return toolResult.structuredContent;'
+          structured_repair = '''  const toolResult = result(response);
+          if (!toolResult || typeof toolResult !== "object" || Array.isArray(toolResult)) {
+            fail(`MCP tool result was invalid: HTTP ${response.status}`);
+          }
+          if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);
+          if (!("structuredContent" in toolResult)) {
+            fail(`MCP tool result omitted structured content: HTTP ${response.status}`);
+          }
+          return toolResult.structuredContent;'''
+          assert structured_anchor in text
+          text = text.replace(structured_anchor, structured_repair, 1)
+          script.write_text(text)
 
           baseline = Path("docs/product-technical-gap-baseline.md")
-          docs = baseline.read_text()
-          assert "\n#914's exact-head OpenCode" in docs
-          assert "\n#780's cancelled CodeQL" in docs
-          docs = docs.replace("\n#914's exact-head OpenCode", "\nPR #914 exact-head OpenCode", 1)
-          docs = docs.replace("\n#780's cancelled CodeQL", "\nPR #780 cancelled CodeQL", 1)
-          baseline.write_text(docs)
+          lines = baseline.read_text().splitlines(keepends=True)
+          replacements = {"#914's exact-head OpenCode": "PR #914 exact-head OpenCode", "#780's cancelled CodeQL": "PR #780 cancelled CodeQL"}
+          seen = {prefix: 0 for prefix in replacements}
+          out = []
+          for line in lines:
+            for prefix, replacement in replacements.items():
+              if line.startswith(prefix):
+                line = replacement + line[len(prefix):]
+                seen[prefix] += 1
+            out.append(line)
+          assert seen == {"#914's exact-head OpenCode": 1, "#780's cancelled CodeQL": 1}, seen
+          baseline.write_text("".join(out))
           PY
 
       - name: Verify GREEN and confidentiality boundary
