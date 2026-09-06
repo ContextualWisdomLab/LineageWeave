@@ -1,0 +1,82 @@
+name: Temporary 841 ADR status repair
+
+on:
+  push:
+    branches:
+      - "automation/841-adr-status-repair-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-841-adr-status-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/841-adr-status-repair-20260906
+          fetch-depth: 0
+
+      - name: Add governance regression and restore Proposed status
+        shell: python
+        run: |
+          from pathlib import Path
+
+          adr = Path("docs/adr/0304-leftover-map-compare-graphic.md")
+          text = adr.read_text(encoding="utf-8")
+          accepted = "**Decision status:** Accepted"
+          proposed = "**Decision status:** Proposed"
+          if text.count(accepted) != 1:
+              raise SystemExit(f"expected one Accepted status, found {text.count(accepted)}")
+          if proposed in text:
+              raise SystemExit("ADR is already Proposed")
+          adr.write_text(text.replace(accepted, proposed, 1), encoding="utf-8")
+
+          test = Path("tests/test_compare_graphic_adr_status.py")
+          if test.exists():
+              raise SystemExit("governance regression already exists on product head")
+          test.write_text(
+              '"""Governance contract for the grouping-comparison graphic ADR state."""\n\n'
+              'from pathlib import Path\n\n\n'
+              '_ADR = (\n'
+              '    Path(__file__).parents[1]\n'
+              '    / "docs"\n'
+              '    / "adr"\n'
+              '    / "0304-leftover-map-compare-graphic.md"\n'
+              ')\n\n\n'
+              'def test_compare_graphic_adr_remains_proposed_until_independent_acceptance() -> None:\n'
+              '    """A Draft candidate cannot claim an accepted architecture decision."""\n'
+              '    text = _ADR.read_text(encoding="utf-8")\n'
+              '    assert text.startswith("# ADR 0304")\n'
+              '    assert "**Decision status:** Proposed" in text\n'
+              '    assert "**Decision status:** Accepted" not in text\n',
+              encoding="utf-8",
+          )
+
+      - name: Run exact governance contract
+        shell: python
+        run: |
+          import runpy
+          namespace = runpy.run_path("tests/test_compare_graphic_adr_status.py")
+          namespace["test_compare_graphic_adr_remains_proposed_until_independent_acceptance"]()
+
+      - name: Verify causal delta
+        run: |
+          git diff --check
+          test "$(git diff --name-only | sort)" = $'docs/adr/0304-leftover-map-compare-graphic.md\ntests/test_compare_graphic_adr_status.py'
+
+      - name: Commit clean product tree
+        run: |
+          rm .github/workflows/temporary-841-adr-status-repair.yml
+          git diff --check
+          test "$(git diff --name-only | sort)" = $'docs/adr/0304-leftover-map-compare-graphic.md\ntests/test_compare_graphic_adr_status.py'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/adr/0304-leftover-map-compare-graphic.md tests/test_compare_graphic_adr_status.py .github/workflows/temporary-841-adr-status-repair.yml
+          git commit -m "fix(governance): keep comparison graphic ADR proposed"
+          git push origin HEAD:automation/841-adr-status-repair-20260906
