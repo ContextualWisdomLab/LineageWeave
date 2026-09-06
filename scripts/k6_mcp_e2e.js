@@ -34,7 +34,7 @@ function authenticate() {
   return response.json("access_token");
 }
 
-function result(response) {
+function result(response, expectedId) {
   const line = typeof response.body === "string"
     ? response.body.split("\n").find((entry) => entry.startsWith("data: "))
     : undefined;
@@ -48,10 +48,18 @@ function result(response) {
   if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
     fail(`MCP response envelope was invalid: HTTP ${response.status}`);
   }
-  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);
-  if (!Object.prototype.hasOwnProperty.call(envelope, "result")) {
-    fail(`MCP response omitted result: HTTP ${response.status}`);
+  if (envelope.jsonrpc !== "2.0") {
+    fail(`MCP response protocol was invalid: HTTP ${response.status}`);
   }
+  if (!Object.prototype.hasOwnProperty.call(envelope, "id") || envelope.id !== expectedId) {
+    fail(`MCP response id mismatch: HTTP ${response.status}`);
+  }
+  const hasResult = Object.prototype.hasOwnProperty.call(envelope, "result");
+  const hasError = Object.prototype.hasOwnProperty.call(envelope, "error");
+  if (hasResult === hasError) {
+    fail(`MCP response result/error shape was invalid: HTTP ${response.status}`);
+  }
+  if (hasError) fail(`MCP request failed: HTTP ${response.status}`);
   return envelope.result;
 }
 
@@ -81,7 +89,7 @@ function initialize(token) {
   });
   initializeDuration.add(response.timings.duration);
   if (response.status !== 200) fail(`MCP initialize failed with HTTP ${response.status}`);
-  result(response);
+  result(response, 1);
   const session = response.headers["Mcp-Session-Id"];
   if (!session) fail("MCP initialize omitted Mcp-Session-Id");
   const initialized = request(token, session, null, "notifications/initialized", undefined);
@@ -93,8 +101,8 @@ function callTool(token, session, id, name, args) {
   return request(token, session, id, "tools/call", { name, arguments: args });
 }
 
-function structured(response) {
-  const toolResult = result(response);
+function structured(response, expectedId) {
+  const toolResult = result(response, expectedId);
   if (!toolResult || typeof toolResult !== "object" || Array.isArray(toolResult)) {
     fail(`MCP tool result was invalid: HTTP ${response.status}`);
   }
@@ -116,7 +124,7 @@ export function setup() {
   });
   submitDuration.add(response.timings.duration);
   if (response.status !== 200) fail(`MCP Ask submit failed with HTTP ${response.status}`);
-  return { token, askJobId: structured(response).ask_job_id };
+  return { token, askJobId: structured(response, 2).ask_job_id };
 }
 
 export default function (data) {
@@ -131,7 +139,7 @@ export default function (data) {
   readDuration.add(response.timings.duration);
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });
   if (ok) {
-    const payload = structured(response);
+    const payload = structured(response, 3);
     jobStateObservations.add(1, { job_status: String(payload.job_status_code || "unknown") });
   }
 }
