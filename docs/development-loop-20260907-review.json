@@ -3434,20 +3434,5 @@
     "candidate_authenticated_runtime": false,
     "synthetic_k6": false,
     "desktop_mobile_ui": false
-  },
-  "voice_candidate_validation": {
-    "pr": 935,
-    "head": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
-    "frontend_tests_passed": 45,
-    "backend_tests_passed": 53,
-    "authenticated_postgresql_api": false,
-    "rendered_desktop_mobile": false
-  },
-  "post_repair_actions": {
-    "pr964_threads_resolved": 2,
-    "pr964_ready": true,
-    "pr964_squash_auto_merge": true,
-    "pr961_squash_auto_merge": true,
-    "merged_prs": []
   }
 }
