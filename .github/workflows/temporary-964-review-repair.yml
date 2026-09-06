@@ -1,0 +1,153 @@
+name: Temporary 964 review repair
+
+on:
+  push:
+    branches:
+      - "automation/964-review-repair-20260906"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-964-review-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/964-review-repair-20260906
+          fetch-depth: 0
+
+      - name: Verify exact product head before mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          product=529d616e34d959715d2ece7a59bb99c8acbb5a4a
+          git fetch origin fix/load-observation-evidence-20260906
+          test "$(git rev-parse origin/fix/load-observation-evidence-20260906)" = "$product"
+          test "$(git rev-parse HEAD^)" = "$product"
+          test "$(git diff --name-only "$product"..HEAD)" = ".github/workflows/temporary-964-review-repair.yml"
+
+      - name: Add review regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("frontend/src/k6Diagnostics.test.ts")
+          text = path.read_text()
+          marker = "\n});\n"
+          assert text.endswith(marker)
+          tests = r'''
+
+            it("contains a null MCP envelope without exposing response content", () => {
+              expect(() => harness("k6_mcp_e2e.js").result({
+                status: 200, body: "data: null",
+              })).toThrow(/^MCP response envelope was invalid: HTTP 200$/);
+            });
+
+            it("contains an empty MCP envelope with a status-only diagnostic", () => {
+              expect(() => harness("k6_mcp_e2e.js").result({
+                status: 200, body: "data: {}",
+              })).toThrow(/^MCP response omitted result: HTTP 200$/);
+            });
+
+            it("contains a null MCP tool result with a status-only diagnostic", () => {
+              expect(() => harness("k6_mcp_e2e.js").structured({
+                status: 200, body: 'data: {"result":null}',
+              })).toThrow(/^MCP tool result was invalid: HTTP 200$/);
+            });
+          '''
+          path.write_text(text[:-len(marker)] + tests + marker)
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Demonstrate realistic RED
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if pnpm exec vitest run src/k6Diagnostics.test.ts; then
+            echo "expected new MCP shape regressions to fail before production repair" >&2
+            exit 1
+          fi
+
+      - name: Apply minimal MCP shape and markdown repairs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          script = Path("scripts/k6_mcp_e2e.js")
+          text = script.read_text()
+          old = '''  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);\n  return envelope.result;\n'''
+          new = '''  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {\n    fail(`MCP response envelope was invalid: HTTP ${response.status}`);\n  }\n  if (envelope.error) fail(`MCP request failed: HTTP ${response.status}`);\n  if (!Object.prototype.hasOwnProperty.call(envelope, "result")) {\n    fail(`MCP response omitted result: HTTP ${response.status}`);\n  }\n  return envelope.result;\n'''
+          assert old in text
+          text = text.replace(old, new, 1)
+          old_structured = '''function structured(response) {\n  const toolResult = result(response);\n  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);\n  return toolResult.structuredContent;\n}\n'''
+          new_structured = '''function structured(response) {\n  const toolResult = result(response);\n  if (!toolResult || typeof toolResult !== "object" || Array.isArray(toolResult)) {\n    fail(`MCP tool result was invalid: HTTP ${response.status}`);\n  }\n  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);\n  if (!Object.prototype.hasOwnProperty.call(toolResult, "structuredContent")) {\n    fail(`MCP tool result omitted structured content: HTTP ${response.status}`);\n  }\n  return toolResult.structuredContent;\n}\n'''
+          assert old_structured in text
+          script.write_text(text.replace(old_structured, new_structured, 1))
+
+          baseline = Path("docs/product-technical-gap-baseline.md")
+          docs = baseline.read_text()
+          assert "\n#914's exact-head OpenCode" in docs
+          assert "\n#780's cancelled CodeQL" in docs
+          docs = docs.replace("\n#914's exact-head OpenCode", "\nPR #914 exact-head OpenCode", 1)
+          docs = docs.replace("\n#780's cancelled CodeQL", "\nPR #780 cancelled CodeQL", 1)
+          baseline.write_text(docs)
+          PY
+
+      - name: Verify GREEN and confidentiality boundary
+        working-directory: frontend
+        run: pnpm exec vitest run src/k6Diagnostics.test.ts
+
+      - name: Verify lint and production build
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec oxlint
+          pnpm run build
+
+      - name: Verify markdown repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -n '^#914' docs/product-technical-gap-baseline.md
+          ! grep -n '^#780' docs/product-technical-gap-baseline.md
+          grep -q '^PR #914 exact-head OpenCode' docs/product-technical-gap-baseline.md
+          grep -q '^PR #780 cancelled CodeQL' docs/product-technical-gap-baseline.md
+
+      - name: Commit workflow-free repair tree
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/temporary-964-review-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --check
+          rm "$workflow"
+          git add -A
+          test "$(git diff --cached --name-status -- "$workflow")" = $'D\t.github/workflows/temporary-964-review-repair.yml'
+          test "$(git diff --cached --name-only | grep -v '^\.github/workflows/temporary-964-review-repair\.yml$' | sort)" = $'docs/product-technical-gap-baseline.md\nfrontend/src/k6Diagnostics.test.ts\nscripts/k6_mcp_e2e.js'
+          git commit -m "fix(k6): validate MCP diagnostic envelopes"
+          git push origin HEAD:automation/964-review-repair-20260906
