@@ -50,7 +50,7 @@
 > be requested from this token.
 >
 > Next buyer increment on this cycle: leftover-map axis share on the
-> grouping comparison strip (ADR 0293 / v2.50.0) delivered locally on
+> grouping comparison strip (ADR 0367 / v2.50.0) delivered locally on
 > `feat/leftover-map-compare-axis-share-v2500`. Include persisted
 > leftover_map_axes on GET /api/reports/compare/{period} and caption each
 > grouping row through leftoverMapCompareAxisShare with distinct
