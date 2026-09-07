@@ -7,7 +7,7 @@
 > `test_dead_heartbeat_aborts_live_ask_operation`). The wrapper now
 > aborts as a lost claim. Parent #974 Tests GREEN, BLOCKED on
 > independent APPROVE. #979 has no independent APPROVE. Do not merge.
-> ADR 0370 Proposed.
+> ADR 0371 Proposed. Leftover-map #980 already holds ADR 0370.
 >
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map

@@ -1,11 +1,12 @@
-# ADR 0370 — Global Ask claim-generation liveness
+# ADR 0371 — Global Ask claim-generation liveness
 
 **Decision status:** Proposed
 **Date:** 2026-09-08
 
 Amends the Global Ask worker settlement path. Independent of leftover-map
-ADRs 0272+ on other stacks and of the versioned translation ledger
-([ADR 0362](0362-versioned-ui-translation-ledger.md)).
+ADRs 0272–0370 on other stacks (ADR 0370 is leftover-map comparison
+axis-singular on the #830 validation lane) and of the versioned
+translation ledger ([ADR 0362](0362-versioned-ui-translation-ledger.md)).
 
 ## Context
 
