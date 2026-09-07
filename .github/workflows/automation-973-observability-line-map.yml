@@ -1,0 +1,22 @@
+name: automation-973-observability-line-map
+on:
+  push:
+    branches: [automation/973-observability-line-map-20260907-1455]
+permissions:
+  contents: read
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 2
+      - name: Verify exact #973 product parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "da5509598807a70b599839bd0d904f8c3a7b116f"
+      - name: Print coverage line neighborhoods
+        shell: bash
+        run: |
+          nl -ba lineageweave/observability.py | sed -n '95,150p;285,340p;375,405p'
