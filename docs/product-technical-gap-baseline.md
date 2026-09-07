@@ -10,6 +10,13 @@
 > checks and independent review complete. Status: implementation and AST
 > regression GREEN locally; GitHub verification pending.
 
+> Thread-group-key naming overlay: the separate bounded backfill command on the
+> same exact protected head also used `_run`, `args`, `conn`, `pool`, `row`, and
+> `rows`. Action: carry the same semantic naming rule through that complete
+> private caller surface while preserving `--dry-run`, aggregate JSON fields,
+> SQL, transaction rollback, and persistence behavior. Status: implementation,
+> behavior tests, and AST regression GREEN locally; GitHub verification pending.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
