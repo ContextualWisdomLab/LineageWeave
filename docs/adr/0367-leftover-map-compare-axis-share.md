@@ -85,7 +85,7 @@ product, cosine, or length as separate columns. Do not invent a leftover
 score. Do not invent a theta.
 
 The dashboard stack already used neighbouring leftover facts under other
-numbers. This protected increment uses **0293** so it does not collide with
+numbers. This protected increment uses **0367** so it does not collide with
 leftover-map incomplete item coverage on the grouping comparison strip (0292),
 leftover-map incomplete post coverage on the grouping comparison strip (0291),
 leftover-map item complete-case coverage on the grouping comparison strip
