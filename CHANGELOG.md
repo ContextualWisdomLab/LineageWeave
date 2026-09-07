@@ -262,6 +262,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The post-content queue backfill now uses semantic command, database, Valkey,
+  source-record, job-request, and aggregate-result identifiers while preserving
+  CLI flags, JSON result keys, selection SQL, transaction boundaries, and event
+  publication behavior.
+
 - The ADR 0250 occupational catalog synchronization command now uses semantic
   catalog, database, payload, configuration, and result identifiers while
   preserving the fixed O*NET URL, `--target-dsn`, release/result output, digest

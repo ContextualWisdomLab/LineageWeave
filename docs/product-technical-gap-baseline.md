@@ -1,5 +1,17 @@
 # Product & Technical Gap Baseline
 
+> Post-content queue backfill naming overlay: 2026-09-07 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The private
+> operator used generic package-owned command, database, queue, record, request,
+> and result identifiers (`_parser`, `args`, `connection`, `client`, `rows`,
+> `row`, `complete`, `request`, `result`, `settings`, `limit`) plus generic SQL
+> aliases. Action: translate the complete repository-local surface to
+> post-content queue language while preserving CLI flags, JSON result keys,
+> source-selection SQL semantics, transaction boundaries, Valkey publication,
+> and resource close behavior. Status: RED naming/contract regression followed
+> by production GREEN locally; GitHub exact-head checks and independent review
+> remain pending.
+
 > Occupational catalog synchronizer naming overlay: 2026-09-07 KST. Protected
 > `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The ADR 0250
 > operator used generic package-owned command, database, payload,
