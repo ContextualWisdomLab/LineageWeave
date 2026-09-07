@@ -436,3 +436,7 @@ Register provider ownership immediately after allocation, before attaching
 processors or handlers. A later optional-telemetry setup failure must still
 leave the provider reachable by normal shutdown; test that failure path using
 a real provider and verify shutdown rather than only catching the exception.
+
+Optional telemetry failure boundaries must cover instrument acquisition as well
+as recording. A failed meter/counter constructor must not replace the original
+application failure or leak its exception message into bounded diagnostic logs.

@@ -225,3 +225,26 @@ def test_failed_handler_keeps_provider_owned_for_shutdown(monkeypatch: pytest.Mo
         observability.shutdown_telemetry()
         if not shutdown.called:
             provider.shutdown()
+
+
+def test_metric_initialization_failure_preserves_bounded_failure_log(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A broken metric provider cannot replace the original application failure."""
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    monkeypatch.setattr(observability, "_FAILURE_COUNTER", None)
+    monkeypatch.setattr(observability, "metrics", SimpleNamespace(
+        get_meter=Mock(side_effect=RuntimeError("synthetic private metric detail")),
+    ))
+    monkeypatch.setattr(observability, "trace", None)
+    with caplog.at_level(logging.WARNING, logger=observability.__name__):
+        observability.record_server_failure(
+            "global_ask", ValueError("synthetic private request detail"),
+            outcome="provider_unavailable",
+        )
+    failure = next(record for record in caplog.records if record.msg == "lineageweave.server_failure")
+    assert failure.error_type == "ValueError"
+    assert failure.failure_outcome == "provider_unavailable"
+    assert "synthetic private" not in caplog.text

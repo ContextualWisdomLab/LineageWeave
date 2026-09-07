@@ -985,3 +985,22 @@ All 31 observability/server-diagnostic tests passed in 1.97 s without warnings.
 The same module coverage increased from 92% to 95% (197 statements, 68 branches);
 100% remains unmet. This is local failure-path evidence, not live collector or
 protected-merge acceptance.
+
+
+### Metric initialization failure boundary (2026-09-07)
+
+The counter add operation was guarded, but acquiring the counter was outside
+the guard. A synthetic metrics-provider failure escaped record_server_failure
+and replaced the application's original failure. The regression failed with
+the injected RuntimeError before the repair.
+
+Counter acquisition now belongs to the existing metric-recording exception
+boundary. The original ValueError classification and provider-unavailable
+outcome still reach bounded logs, while neither the injected metric exception
+message nor the original request exception message appears. No fallback metric
+value, alternate provider, or additional wrapper is introduced.
+
+The complete three-file observability/server-diagnostic selection passed 32
+tests in 34.74 s without warnings. Module statement/branch coverage increased
+from 95% to 96%; the remaining paths are not claimed covered. This is local
+failure-isolation evidence, not protected deployment or full-goal completion.

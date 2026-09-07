@@ -317,9 +317,9 @@ def record_server_failure(
         bounded_operation = "unknown"
     error_type = type(exc).__name__[:128]
     session_id = current_session_id() or ""
-    counter = _failure_counter()
-    if counter is not None:
-        try:
+    try:
+        counter = _failure_counter()
+        if counter is not None:
             counter.add(
                 1,
                 {
@@ -327,8 +327,8 @@ def record_server_failure(
                     "lineageweave.failure_outcome": outcome,
                 },
             )
-        except Exception:  # noqa: BLE001  # telemetry failure must not mask API failure
-            _LOGGER.warning("telemetry.metric_recording_failed")
+    except Exception:  # noqa: BLE001  # telemetry failure must not mask API failure
+        _LOGGER.warning("telemetry.metric_recording_failed")
 
     stack_trace = (
         _stack_trace_without_exception(exc) if outcome == "internal_error" else ""
