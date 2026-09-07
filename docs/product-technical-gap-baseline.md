@@ -1,5 +1,13 @@
 # Product & Technical Gap Baseline
 
+> Leftover-pair accessible-name overlay: 2026-09-07 KST. Issue #976 stacks
+> onto leftover-map single-writer `#802` at `32f1cda10` so pair-button
+> names include the same finite leftover evidence badges already rendered
+> (`R`, `Y/E`, rank, unexplained, shares, reconstruction, coordinates,
+> distance). Grouping-comparison pair actions stay on `#829`/`#830` and
+> are not expanded here. This branch is Draft; it is not protected-main
+> or independently approved evidence.
+>
 > Exact-head rendered-UX overlay: 2026-08-31 12:16 KST. PR #802
 > implementation revision `1e972d7f6` retains persisted-only `d`, `R̂`, and
 > `e` projection while moving dense segment captions off their plot segments
