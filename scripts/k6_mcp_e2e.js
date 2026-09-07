@@ -33,7 +33,16 @@ function authenticate() {
     { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
   );
   if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
-  return response.json("access_token");
+  let token;
+  try {
+    token = response.json("access_token");
+  } catch {
+    // Parser errors can include response content; validation below stays bounded.
+  }
+  if (typeof token !== "string" || !token.trim()) {
+    fail("synthetic OIDC login returned an invalid token response");
+  }
+  return token;
 }
 
 function result(response, expectedId) {
@@ -126,7 +135,11 @@ export function setup() {
   });
   submitDuration.add(response.timings.duration);
   if (response.status !== 200) fail(`MCP Ask submit failed with HTTP ${response.status}`);
-  return { token, askJobId: structured(response, 2).ask_job_id };
+  const askJobId = structured(response, 2).ask_job_id;
+  if (typeof askJobId !== "string" || !askJobId.trim()) {
+    fail("MCP Ask submit returned an invalid job identifier");
+  }
+  return { token, askJobId };
 }
 
 export default function (data) {

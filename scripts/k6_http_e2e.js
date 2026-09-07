@@ -42,7 +42,16 @@ function authenticate() {
   if (response.status !== 200) {
     fail(`synthetic OIDC login failed with HTTP ${response.status}`);
   }
-  return response.json("access_token");
+  let token;
+  try {
+    token = response.json("access_token");
+  } catch {
+    // Parser errors can include response content; validation below stays bounded.
+  }
+  if (typeof token !== "string" || !token.trim()) {
+    fail("synthetic OIDC login returned an invalid token response");
+  }
+  return token;
 }
 
 function readBatch(token, askJobId) {
@@ -87,7 +96,16 @@ export function setup() {
   if (submitted.status !== 202) {
     fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}`);
   }
-  return { token, askJobId: submitted.json("ask_job_id") };
+  let askJobId;
+  try {
+    askJobId = submitted.json("ask_job_id");
+  } catch {
+    fail("synthetic Ask enqueue returned an unreadable response");
+  }
+  if (typeof askJobId !== "string" || !askJobId.trim()) {
+    fail("synthetic Ask enqueue returned an invalid job identifier");
+  }
+  return { token, askJobId };
 }
 
 export default function (data) {

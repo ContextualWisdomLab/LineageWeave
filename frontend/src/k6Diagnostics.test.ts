@@ -61,6 +61,34 @@ describe("k6 diagnostic confidentiality", () => {
     expect(calls).toBe(2);
   });
 
+  for (const name of ["k6_http_e2e.js", "k6_mcp_e2e.js"]) {
+    it.each([undefined, null, "", " ", 7, [], "synthetic-job"].map(value => [value]))(`${name} validates the accepted job identifier (%j)`, (askJobId) => {
+      let calls = 0;
+      const test = harness(name, () => {
+        calls++;
+        if (calls === 1) return { status: 200, json: () => "synthetic-token" };
+        if (name.includes("mcp") && calls === 2) return {
+          status: 200, timings: { duration: 1 }, headers: { "Mcp-Session-Id": "synthetic-session" },
+          body: `data: ${JSON.stringify(rpcResult({}, 1))}`,
+        };
+        if (name.includes("mcp") && calls === 3) return { status: 202 };
+        return {
+          status: name.includes("mcp") ? 200 : 202, timings: { duration: 1 },
+          json: () => askJobId,
+          body: `data: ${JSON.stringify(rpcResult({ structuredContent: { ask_job_id: askJobId } }))}`,
+        };
+      });
+      if (askJobId === "synthetic-job") {
+        expect(test.setup()).toEqual({ token: "synthetic-token", askJobId });
+      } else {
+        expect(test.setup).toThrow(name.includes("mcp")
+          ? /^MCP Ask submit returned an invalid job identifier$/
+          : /^synthetic Ask enqueue returned an invalid job identifier$/);
+      }
+      expect(calls).toBe(name.includes("mcp") ? 4 : 2);
+    });
+  }
+
   it("omits a rejected Ask response body", () => {
     const source = readFileSync(new URL("../../scripts/k6_http_e2e.js", import.meta.url), "utf8")
       .replace(/^import .*;$/gm, "")
