@@ -163,14 +163,13 @@ async def _run_with_ask_claim_heartbeat(
     try:
         await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
         if lost.is_set():
-            worker.cancel()
-            await asyncio.gather(worker, return_exceptions=True)
             raise _LostAskClaim()
         return await worker
     finally:
         stop.set()
+        worker.cancel()
         beater.cancel()
-        await asyncio.gather(beater, return_exceptions=True)
+        await asyncio.gather(worker, beater, return_exceptions=True)
 
 
 async def enqueue_global_ask_job(
