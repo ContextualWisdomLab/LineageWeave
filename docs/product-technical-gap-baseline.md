@@ -1,5 +1,63 @@
 # Product & Technical Gap Baseline
 
+## 2026-09-07: Recover interrupted sign-in without losing the destination
+
+This dated observation supersedes earlier loop summaries for this scope only.
+Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e` at inspection.
+The repair is proposed on `codex/signin-recovery-20260907`; the original
+translation-ledger checkout and its uncommitted work were left intact.
+
+**Observed failure.** In an isolated browser session, an unavailable loopback
+issuer reduced the entire login screen to `Failed to fetch`, with no action
+to recover. The other incomplete-session branch exposed credential plumbing.
+The shared return-path helper also retained authorization error parameters
+and accepted malformed paths that browser URL parsing interpreted as another
+authority. This helper serves callback restoration, login, and shared post
+links, so the correction belongs at that common boundary (ADR 0109).
+
+**Repair and KPI.** Test revision `fb4d11435` reproduced six failing URL cases
+out of twelve and two failing App recovery cases out of four. The first
+combined baseline encountered a worker-start timeout; a separate App run with
+the installed thread pool reproduced both failures. Implementation
+`4f17693b9` passes all sixteen focused cases: failure count **8 → 0**.
+It reuses ADR 0220's retry notice, existing translated copy, and the real OIDC
+redirect. A retry consumes and re-saves the sanitized destination; it does
+not replace a remembered post with a failed callback. Loading retains its
+single live region. No new dependency, issuer, or translation catalog is added.
+
+```sh
+corepack pnpm --dir frontend exec vitest run src/App.test.tsx src/oidcReturnUrl.test.ts --pool=threads --maxWorkers=1 -t 'App, unauthenticated|OIDC return URL|stripOidcCallbackParams'
+```
+
+**Browser and design evidence.** The local frontend ran on port 15274 with
+`VITE_KEYVERSE_ISSUER=http://127.0.0.1:15999` intentionally unavailable. No
+credentials or source records were supplied. After the correction, the Korean
+retry notice remained available after repeated failures; Tab reached Log in
+and Enter retried. At 390px, geometry inspection found the existing login card
+clipped eight pixels on each side despite no document-level horizontal
+overflow. Revision `5970c4270` includes padding and borders in the card width.
+At 320px, its bounds are 21–299px, with readable wrapping and no horizontal
+overflow. Desktop and narrow screenshots were inspected in the actual browser.
+The existing Figma page has no sign-in frame (ADR 0220 records the file/page
+IDs); no sign-in design-parity claim is made. `Chrome/StatusNotice/SignInRetry`
+records the recovery action. Full App regression, five-current-locale keyboard
+checks, lint, production build, and Storybook build remain pending at this
+documentation checkpoint; final results belong on the exact PR head.
+
+**Remaining acceptance gaps.** This failure-path browser check does not prove
+successful authentication, deployed behavior, eight-locale database delivery,
+or the all-page p95 ≤20ms goal. None is claimed. Keyverse protected `main`
+`7d9151cd2da260e118020c938c7358e2ee75d541` had no published release or tag at
+inspection. It implements an authorization-code/PKCE flow and server-mediated
+signup enrollment, but no verified product-facing recovery contract. The
+adjacent [Keyverse #128](https://github.com/ContextualWisdomLab/keyverse/pull/128)
+remains a draft authentication migration; its fail-closed password endpoint
+does not fulfill product-owned forms.
+[Keyverse #100](https://github.com/ContextualWisdomLab/keyverse/pull/100) is the
+separate LineageWeave claims prerequisite. Complete and release those owner
+contracts before consumer adoption. The existing eight-locale translation
+ledger work remains separate from this recovery repair.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
