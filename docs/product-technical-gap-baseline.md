@@ -1,5 +1,124 @@
 # Product & Technical Gap Baseline
 
+## Current export-integrity review — 2026-09-07T04:44:55+00:00
+
+This observation supersedes older current-state claims below. GitHub and runtime
+observations are separate reads, not one atomic snapshot. Protected main was
+`83eba56149eb802cd63642c507c324c9976ec78e`; inspected PR #971 head was
+`52cd655196a20907f4c8e9e678cebb360cb8d3fb`, stacked on PR #780 at
+`1d8fa267b059289e77301a09985dfac70a439814`. The implementation accompanying
+this section extends that exact inspected head; hosted evidence does not transfer.
+
+| Evidence class | Observation and acceptance boundary |
+| --- | --- |
+| Product authority | Read LineageWeave FR-2/FR-3 and release gates, contextual-orchestrator `conductor/product.md`, and TEPP `docs/product/prd-v0.4-approved.md`. This repair invokes no inference or arithmetic and changes no owner contract. |
+| Normative authority | ADR 0246 retains twelve atomic Voices. ADR 0256 requires omission of additional assignments without admitted evidence; ADR 0252 preserves cutoff history. ADR 0251 in this tree concerns I/O psychology, not Voice composition. |
+| Research | No new research claim or priority score. Existing cited research does not establish runtime completion. DeepWiki structure, contents, and question requests returned repository-not-found; local ADRs remain the authority. |
+| Reproduced defect | A direct export with an additional Voice lacking evidence still emitted a CSV row and a qualified JSON-LD assignment, violating the existing evidence minimum. The synthetic regression failed before repair. |
+| Minimal implementation | Both export projections now omit the unsupported additional assignment, its relationship, and its otherwise unused concept. Imported primary and evidence-bearing assignments keep their existing contract. No carrying Post is substituted for hidden derivation evidence. |
+| Local verification | 78 ontology neighborhood, ingestion, Voice authority, and SHACL tests passed after repair. The regression checks absence of the CSV row, assignment subject, carrying relation, and concept. Existing admitted-endpoint rejection remains covered. |
+| Current runtime aggregate | Read-only official `lineageweave` PostgreSQL count: 43,189 assignments, 43,189 primary, zero additional. This is an exact table count, not a population inference or additional-Voice acceptance. No identifying values were collected. |
+| Outstanding acceptance | Candidate authenticated PostgreSQL API, rendered desktop/mobile evidence, paged UI accumulation, and authenticated synthetic k6 concurrency/latency/error/throughput plus service saturation remain unverified for this head. No completion or deployed fix is claimed. |
+
+The complete inventory returned 131 open PRs (120 Draft), 100 stacked children,
+31 `REVIEW_REQUIRED`, 100 without a review decision, and no `APPROVED` decision.
+The separate paginated issue query returned 20 non-PR issues. Six PRs retained
+auto-merge. #780 still has normal squash auto-merge and requires independent
+approval. #971 is Draft with zero review threads at its inspected head. Parent
+protection must complete before retargeting; no stack has been retargeted here.
+The recent 100-run query showed active runs for open PRs #972, #966, and #959
+at their inventoried heads; none was cancelled. This is not a full runner audit.
+Required central workflow failures on #929/#964 remain failures, not pending
+Checks or permission to bypass. No merge SHA is claimed.
+
+Remote metadata reconfirmed canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase
+`disksage`. The PRD still contains duplicate occupational requirement identifiers;
+#847 owns that reconciliation. The #971 delta adds no API shape, schema, ADR
+number, or release identity. Earlier cross-PR collisions listed below remain
+unresolved; #934/#968 page-merge overlap and #936/#937 history/read authorization
+remain with their owners. No claim of complete queue-wide conflict resolution.
+The primary checkout's three existing edits were preserved.
+
+## Earlier bounded review — 2026-09-07T03:30:53+00:00
+
+This section supersedes the queue/runtime claims in the historical observations
+below. It records separately fetched observations, not a transactional snapshot
+of GitHub and the running stack. The inspected protected-main commit is
+`83eba56149eb802cd63642c507c324c9976ec78e`. The implementation parent is open
+PR #780 at `1d8fa267b059289e77301a09985dfac70a439814`.
+
+### Authority, implementation, and acceptance
+
+| Evidence class | Current observation and limit |
+| --- | --- |
+| Product authority | Read this tree's `docs/product-requirements.md` FR-2/FR-3 and release requirements. Read remote contextual-orchestrator `docs/product_planning.md` and `docs/architecture.md`; inference remains upstream-owned. |
+| Normative authority | ADR 0246 governs 12 atomic Voices; ADR 0256 governs extensible evidence-bearing composition and authorized projections. ADR 0251 is the I/O-Psychology layer in this tree. No compound codes or new inference policy were introduced. |
+| Research | No new empirical or theoretical claim. Existing ADR references remain supporting research; they do not prove implementation, authorization, capacity, or release acceptance. DeepWiki has no index for this repository. |
+| Reproduced defect | Direct Voice projection admitted an evidence identifier absent from the bounded Post node set; JSON-LD also admitted an absent carrying Post. A Person sharing the supplied identifier did not establish Post authorization. Three of four synthetic regression cases failed before repair. |
+| Candidate implementation | `3acf4c6f9ad90b1af077f4a00c5fa1254b51a521` reuses the existing typed endpoint validator in both exports. Missing admitted endpoints fail closed. Optional absent evidence stays absent; carrying Post is never substituted. No API shape, migration, ADR number, package pin, or release number changes. |
+| Local verification | 78 tests passed across ontology neighborhood, ingestion, Voice authority, and SHACL suites. The four new cases cover carrying/evidence endpoints in exact-value and JSON-LD exports. No warning suppression was added. |
+| Running stack | Existing `lineageweave` Compose services were running. A synthetic account authenticated through OIDC; existing Posts and Lineage APIs returned 200. Response bodies and credentials were not retained. A direct PostgreSQL aggregate found 43,189 Voice assignments, all primary, and zero additional assignments; it does not prove an additional-Voice workflow. These observations do not establish that the candidate is deployed. |
+| Required acceptance | Candidate authenticated PostgreSQL/API proof, desktop/mobile rendered Voice evidence, and synthetic authenticated k6 end-to-end saturation measurements remain unverified. No production population inference, latency target, capacity threshold, or measured-largest-gap claim is made. |
+
+The selected increment protects evidence export fidelity. Its priority follows
+the explicit authorized-evidence requirement; no invented score ranks the gaps.
+The existing loader already filters Posts; this change independently enforces
+the same typed endpoint invariant at the reusable export boundary. It adds no
+UI layout or copy. Existing #937 owns Post read reauthorization, #936 owns
+assignment correction history, and #934/#968 own overlapping page accumulation
+changes. Those implementations were not copied or overwritten.
+
+### Protected delivery observation
+
+The complete PR inventory contained 129 open PRs, 121 Drafts,
+and 99 stacked children. A separate full issue inventory
+contained 20 open issues. All eight inspected ready PRs required independent
+review; their first-100 thread connections had no unresolved threads and no
+additional page. A bot COMMENT is not approval.
+
+| PR | Exact inspected head | Checks rollup |
+| --- | --- | --- |
+| #969 | `583157c5d007d4903a78b2e30c0caac224f6460e` | PENDING |
+| #964 | `1cced397600b15258b36e221a33beb62c4cca4cd` | FAILURE |
+| #961 | `3bdec0504a65e63f44bd49ba15de37182a1672cc` | FAILURE |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | FAILURE |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | FAILURE |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | FAILURE |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | FAILURE |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | FAILURE |
+
+The active organization ruleset requires one approval, resolved review threads,
+and seven central workflows; stale approvals are dismissed on push. Last-push
+approval is false in the observed rule. Organization and repository rules both
+prohibit force pushes. #780 retains normal squash auto-merge, remains open, and
+has no qualifying independent approval. No merge or merge SHA is claimed.
+No in-progress Actions run was returned by the current query; none was cancelled.
+Pending Checks were not used to stop this independent regression repair.
+
+This candidate stays stacked on #780. Merge the parent under protection before
+retargeting the child to main, then collect fresh head/base/check/review evidence.
+Draft PRs have not all received full code review in this bounded observation.
+
+### Cross-PR conflicts and canonical names
+
+Release titles collide at 2.61.0 (#841/#842), 2.62.0 (#843/#844), and 2.92.0
+(#876/#877); title overlap is a review signal, not proof of conflicting release
+files. #934 and #968 both edit page accumulation in `ontologyLayout.ts` and need
+owner reconciliation before protected delivery. This candidate changes only the
+Python export boundary and its regression tests plus this evidence document;
+it introduces no schema/API/version identity. Complete cross-PR ADR, migration,
+API, and release-file reconciliation remains outstanding.
+
+Live remote repository metadata confirms `ContextualWisdomLab/LineageWeave`,
+`ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`, and
+`ContextualWisdomLab/TEPP`. The canonical storage repository is
+`ContextualWisdomLab/disksage`. Earlier `DiskSage` spelling is not canonical.
+The primary worktree's existing translation-ledger and baseline edits were
+preserved; this candidate uses a separate checkout of the exact parent head.
+
+## Historical observations — not current acceptance
+
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence

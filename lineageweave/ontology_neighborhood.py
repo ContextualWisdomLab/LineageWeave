@@ -317,11 +317,15 @@ class OntologyNeighborhood:
             if node.node_type_code == NODE_POST
         }
         for assignment in self.voice_assignments:
+            if not assignment.is_primary and assignment.evidence_post_id is None:
+                continue
             source_label = post_labels.get(assignment.post_id)
             if source_label is None:
                 raise OntologyNeighborhoodError(
                     "dangling_endpoint", "voice assignment references a missing post"
                 )
+            if assignment.evidence_post_id is not None:
+                _node_type_for(self.nodes, NODE_POST, assignment.evidence_post_id)
             rows.append(
                 {
                     "edge_id": _voice_assignment_id(assignment),
@@ -400,6 +404,11 @@ class OntologyNeighborhood:
             graph.append(item)
         assignments_by_post: dict[str, list[OntologyVoiceAssignment]] = {}
         for assignment in self.voice_assignments:
+            if not assignment.is_primary and assignment.evidence_post_id is None:
+                continue
+            _node_type_for(self.nodes, NODE_POST, assignment.post_id)
+            if assignment.evidence_post_id is not None:
+                _node_type_for(self.nodes, NODE_POST, assignment.evidence_post_id)
             assignments_by_post.setdefault(assignment.post_id, []).append(assignment)
         for post_id, assignments in assignments_by_post.items():
             graph.append(
@@ -412,6 +421,8 @@ class OntologyNeighborhood:
                 }
             )
         for assignment in self.voice_assignments:
+            if not assignment.is_primary and assignment.evidence_post_id is None:
+                continue
             assignment_iri = _voice_assignment_iri(assignment)
             evidence_post_id = assignment.evidence_post_id
             evidence_iri = (

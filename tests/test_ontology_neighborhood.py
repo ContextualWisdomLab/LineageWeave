@@ -945,19 +945,12 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     }
 
     hidden_evidence = replace(assignment, evidence_post_id=None)
-    hidden_row = replace(
-        neighborhood, voice_assignments=(hidden_evidence,)
-    ).exact_value_rows()[0]
-    assert hidden_row["evidence_post_id"] == ""
-    assert hidden_row["evidence_count"] == "0"
-    hidden_projection = next(
-        item
-        for item in replace(neighborhood, voice_assignments=(hidden_evidence,))
-        .jsonld_document()["@graph"]
-        if item.get("@id") == assignment_iri
-    )
-    assert str(LW.voiceAssignmentEvidence) not in hidden_projection
-    assert "prov:wasDerivedFrom" not in hidden_projection
+    hidden_neighborhood = replace(neighborhood, voice_assignments=(hidden_evidence,))
+    assert hidden_neighborhood.exact_value_rows() == ()
+    hidden_graph = hidden_neighborhood.jsonld_document()["@graph"]
+    assert all(item.get("@id") != assignment_iri for item in hidden_graph)
+    assert all(str(LW.hasVoiceAssignment) not in item for item in hidden_graph)
+    assert all(item.get("@id") != assignment.voice_type_iri for item in hidden_graph)
 
     imported_primary = replace(assignment, is_primary=True, evidence_post_id=None)
     primary_projection = next(
@@ -1140,3 +1133,36 @@ def test_unlabeled_source_is_skipped_and_unknown_fact_node_type_fails_closed() -
             labels=_labels(),
         )
     assert node_type.value.code == "unknown_node_type"
+
+
+@pytest.mark.parametrize("projection", ["exact_value_rows", "jsonld_document"])
+@pytest.mark.parametrize("missing_endpoint", ["carrying", "evidence"])
+def test_voice_exports_reject_posts_outside_admitted_neighborhood(
+    projection: str,
+    missing_endpoint: str,
+) -> None:
+    """Neither export may disclose a Voice endpoint absent from admitted Posts."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=_mention_affiliation(),
+        labels=_labels(),
+        maximum_depth=2,
+    )
+    # This identifier is admitted as a Person, never as a Post.
+    assignment = OntologyVoiceAssignment(
+        post_id=PERSON_ID if missing_endpoint == "carrying" else POST_ID,
+        voice_type_code="vops",
+        voice_type_iri=str(LW.voiceOfProcessType),
+        voice_type_label="Voice of Process",
+        is_primary=False,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        effective_from=T0,
+        provenance_reference="Evidence-backed additional voice",
+        evidence_post_id=PERSON_ID if missing_endpoint == "evidence" else POST_ID,
+    )
+    neighborhood = replace(neighborhood, voice_assignments=(assignment,))
+    with pytest.raises(OntologyNeighborhoodError) as error:
+        getattr(neighborhood, projection)()
+    assert error.value.code == "dangling_endpoint"
