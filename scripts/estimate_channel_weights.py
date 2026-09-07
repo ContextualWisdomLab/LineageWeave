@@ -58,9 +58,9 @@ def estimator_version() -> str:
     """The installed fast-mlsirm version, for the persisted provenance."""
     from importlib.metadata import PackageNotFoundError, version
 
-    for name in ("fast-mlsirm", "fast_mlsirm"):
+    for distribution_name in ("fast-mlsirm", "fast_mlsirm"):
         try:
-            return version(name)
+            return version(distribution_name)
         except PackageNotFoundError:
             continue
     import fast_mlsirm
@@ -68,21 +68,22 @@ def estimator_version() -> str:
     return str(getattr(fast_mlsirm, "__version__", "unknown"))
 
 
-def source_snapshot_digest(rows: list) -> str:
+def source_snapshot_digest(source_post_rows: list) -> str:
     """Reproducible SHA-256 over the ordered sampled (post_id, created_at).
 
     Two runs that sampled the same posts in the same order produce the
     same digest, so the provenance row names exactly which corpus slice
     supported the estimate without storing any post content.
     """
-    material = "\n".join(
-        f"{row['post_id']}\t{row['created_at'].isoformat()}" for row in rows
+    digest_material = "\n".join(
+        f"{source_post_row['post_id']}\t{source_post_row['created_at'].isoformat()}"
+        for source_post_row in source_post_rows
     )
-    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+    return hashlib.sha256(digest_material.encode("utf-8")).hexdigest()
 
 
 def sample_pair_scores(
-    records: list, *, window: int = DEFAULT_CANDIDATE_WINDOW
+    lineage_records: list, *, candidate_window: int = DEFAULT_CANDIDATE_WINDOW
 ) -> tuple[list[dict[str, float]], list[int], list[tuple[str, str]]]:
     """Score every in-window candidate pair, grouped as reconstruct groups.
 
@@ -93,45 +94,54 @@ def sample_pair_scores(
     (candidate_label, record_label) so the queued llm judging pass can
     score the same candidate geometry without re-deriving it.
     """
-    groups: dict[str, list] = {}
-    for record in records:
-        groups.setdefault(record.group_key, []).append(record)
+    channel_groups: dict[str, list] = {}
+    for lineage_record in lineage_records:
+        channel_groups.setdefault(lineage_record.group_key, []).append(lineage_record)
 
     pair_scores: list[dict[str, float]] = []
     group_ids: list[int] = []
     pair_labels: list[tuple[str, str]] = []
-    for group_index, group_records in enumerate(groups.values()):
-        ordered = sorted(group_records, key=lambda r: r.occurred_at)
-        for index, record in enumerate(ordered):
-            for candidate in ordered[max(0, index - window) : index]:
+    for group_index, group_records in enumerate(channel_groups.values()):
+        ordered_records = sorted(
+            group_records, key=lambda grouped_record: grouped_record.occurred_at
+        )
+        for record_index, lineage_record in enumerate(ordered_records):
+            for candidate_record in ordered_records[
+                max(0, record_index - candidate_window) : record_index
+            ]:
                 pair_scores.append(
                     {
-                        "temporal": temporal_score(candidate, record),
-                        "secondary_key": secondary_key_match_score(candidate, record),
-                        "text": text_similarity_score(candidate, record),
+                        "temporal": temporal_score(candidate_record, lineage_record),
+                        "secondary_key": secondary_key_match_score(
+                            candidate_record, lineage_record
+                        ),
+                        "text": text_similarity_score(candidate_record, lineage_record),
                     }
                 )
                 group_ids.append(group_index)
-                pair_labels.append((candidate.label, record.label))
+                pair_labels.append((candidate_record.label, lineage_record.label))
     return pair_scores, group_ids, pair_labels
 
 
-def subsample_stride(total: int, limit: int) -> list[int]:
+def subsample_stride(sample_pair_total: int, sample_pair_limit: int) -> list[int]:
     """Deterministic, evenly-spread pair indices for the bounded llm pass.
 
     A stride subsample keeps every reconstruction group represented in
     proportion (pairs are ordered group-by-group) without any randomness
     that would make re-runs incomparable.
     """
-    if total <= limit:
-        return list(range(total))
-    stride = total / limit
-    return [min(int(index * stride), total - 1) for index in range(limit)]
+    if sample_pair_total <= sample_pair_limit:
+        return list(range(sample_pair_total))
+    sample_stride = sample_pair_total / sample_pair_limit
+    return [
+        min(int(sample_index * sample_stride), sample_pair_total - 1)
+        for sample_index in range(sample_pair_limit)
+    ]
 
 
 async def persist_estimate(
-    conn: asyncpg.Connection,
-    estimate: ChannelWeightEstimate,
+    database_connection: asyncpg.Connection,
+    channel_weight_estimate: ChannelWeightEstimate,
     *,
     channel_set_code: str,
     snapshot_sha256: str,
@@ -142,14 +152,14 @@ async def persist_estimate(
     Returns the estimation run id stamped on every row of the set.
     """
     estimation_run_id = str(uuid.uuid4())
-    version = estimator_version()
-    async with conn.transaction():
-        await conn.execute(
+    installed_estimator_version = estimator_version()
+    async with database_connection.transaction():
+        await database_connection.execute(
             "delete from lineage_channel_weight where channel_set_code = $1",
             channel_set_code,
         )
-        for channel, weight in estimate.weights.items():
-            await conn.execute(
+        for channel_code, weight_value in channel_weight_estimate.weights.items():
+            await database_connection.execute(
                 """
                 insert into lineage_channel_weight
                     (channel_set_code, channel_code, weight_value,
@@ -160,45 +170,49 @@ async def persist_estimate(
                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 """,
                 channel_set_code,
-                channel,
-                weight,
+                channel_code,
+                weight_value,
                 estimation_run_id,
-                estimate.estimation_method_code,
-                version,
+                channel_weight_estimate.estimation_method_code,
+                installed_estimator_version,
                 UNANCHORED_METHOD_CODE,
                 snapshot_sha256,
-                estimate.sample_pair_count,
+                channel_weight_estimate.sample_pair_count,
                 knowledge_cutoff,
             )
     return estimation_run_id
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
-    settings = load_settings()
+async def _run_channel_weight_estimation(
+    command_arguments: argparse.Namespace,
+) -> dict[str, object]:
+    runtime_settings = load_settings()
     # Short-lived fetch connection; nothing stays open while fitting.
-    conn = await asyncpg.connect(settings.database_url)
+    database_connection = await asyncpg.connect(runtime_settings.database_url)
     try:
-        rows = await conn.fetch(
+        source_post_rows = await database_connection.fetch(
             "select post_id, post_title, voc_type_code, created_at, "
             "corporate_entity_id, process_unit_id, thread_group_key, "
             "secondary_grouping_key "
             f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_id limit $1::bigint",
-            args.post_limit,
+            command_arguments.post_limit,
         )
     finally:
-        await conn.close()
-    if not rows:
+        await database_connection.close()
+    if not source_post_rows:
         raise RuntimeError(
             "no eligible source posts exist; import a corpus before estimating"
         )
-    snapshot_sha256 = source_snapshot_digest(rows)
-    knowledge_cutoff = max(row["created_at"] for row in rows)
-    records = records_from_source_posts(rows)
-    pair_scores, group_ids, _pair_labels = sample_pair_scores(records)
+    snapshot_sha256 = source_snapshot_digest(source_post_rows)
+    knowledge_cutoff = max(
+        source_post_row["created_at"] for source_post_row in source_post_rows
+    )
+    lineage_records = records_from_source_posts(source_post_rows)
+    pair_scores, group_ids, _pair_labels = sample_pair_scores(lineage_records)
 
-    estimate = estimate_channel_weights(pair_scores, group_ids)
-    if estimate is None:
+    channel_weight_estimate = estimate_channel_weights(pair_scores, group_ids)
+    if channel_weight_estimate is None:
         raise RuntimeError(
             "no grounded estimate was produced (fast_mlsirm unavailable, "
             "sample too small, a channel degenerate, or the fit did not "
@@ -206,28 +220,28 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             "named condition"
         )
     estimation_run_id = None
-    if not args.dry_run:
-        conn = await asyncpg.connect(settings.database_url)
+    if not command_arguments.dry_run:
+        database_connection = await asyncpg.connect(runtime_settings.database_url)
         try:
             estimation_run_id = await persist_estimate(
-                conn,
-                estimate,
+                database_connection,
+                channel_weight_estimate,
                 channel_set_code=DETERMINISTIC_SET_CODE,
                 snapshot_sha256=snapshot_sha256,
                 knowledge_cutoff=knowledge_cutoff,
             )
         finally:
-            await conn.close()
+            await database_connection.close()
     return {
-        "weights": estimate.weights,
+        "weights": channel_weight_estimate.weights,
         "channel_set_code": DETERMINISTIC_SET_CODE,
-        "sample_pair_count": estimate.sample_pair_count,
-        "estimation_method_code": estimate.estimation_method_code,
+        "sample_pair_count": channel_weight_estimate.sample_pair_count,
+        "estimation_method_code": channel_weight_estimate.estimation_method_code,
         "anchor_method_code": UNANCHORED_METHOD_CODE,
         "estimation_run_id": estimation_run_id,
         "source_snapshot_sha256": snapshot_sha256,
         "knowledge_cutoff": knowledge_cutoff.isoformat(),
-        "persisted": not args.dry_run,
+        "persisted": not command_arguments.dry_run,
         "activation": (
             "blocked_until_anchor_authorized (ADR 0200 point 3): the "
             "product loader refuses every anchor method today, so these "
@@ -238,22 +252,28 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
 
 def main() -> None:
     """Validate operator inputs and run the estimation."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument(
         "--post-limit",
         type=int,
         default=5000,
         help="Maximum eligible posts to sample pairs from (default: 5000)",
     )
-    parser.add_argument(
+    argument_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Estimate and report, but persist nothing",
     )
-    args = parser.parse_args()
-    if args.post_limit < 1:
-        parser.error("--post-limit must be positive")
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    command_arguments = argument_parser.parse_args()
+    if command_arguments.post_limit < 1:
+        argument_parser.error("--post-limit must be positive")
+    print(
+        json.dumps(
+            asyncio.run(_run_channel_weight_estimation(command_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
