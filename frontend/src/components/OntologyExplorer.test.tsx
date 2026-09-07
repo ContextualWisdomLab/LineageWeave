@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
@@ -161,8 +161,54 @@ describe("OntologyExplorer", () => {
     expect(container.querySelector('polygon[points="0,-16 20,0 0,16 -20,0"]')).not.toBeNull();
   });
 
+  it.each([
+    ["credential", { accessToken: "token-b" }],
+    ["cutoff", { knowledgeCutoff: "2026-01-01T00:00:00Z" }],
+    ["focus", { focusNodeId: EVIDENCE_POST_ID }],
+    ["focus type", { focusNodeType: "node_person" }],
+  ] as const)("retires old pages before a changed %s loads", async (_name, change) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
+    let releaseOld!: (value: OntologyNeighborhoodPayload) => void;
+    let releaseCurrent!: (value: OntologyNeighborhoodPayload) => void;
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseOld = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseCurrent = resolve; }));
+    const initial = {
+      accessToken: "token-a", focusNodeType: "node_post", focusNodeId: POST_ID,
+      knowledgeCutoff: undefined,
+    };
+    const { rerender } = render(<OntologyExplorer {...initial} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    fireEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(2);
+
+    const current = { ...initial, ...change };
+    rerender(<OntologyExplorer {...current} />);
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(3, current.accessToken, {
+      focusNodeType: current.focusNodeType, focusNodeId: current.focusNodeId,
+      knowledgeCutoff: current.knowledgeCutoff, cursor: undefined,
+    });
+
+    await act(async () => { releaseOld(neighborhood()); });
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    await act(async () => { releaseCurrent(neighborhood({
+      focus_node_id: current.focusNodeId, focus_node_type_code: current.focusNodeType,
+      nodes: [{ ...neighborhood().nodes[0], node_id: current.focusNodeId,
+        node_type_code: current.focusNodeType, display_label: "Current scope record" }],
+      edges: [], exact_value_rows: [],
+    })); });
+    expect(screen.getByRole("button", { name: /Select node: .*Current scope record/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+  });
+
   it("keeps loaded pages visible when a continuation page fails", async () => {
-    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
     let rejectContinuation!: (error: BackendError) => void;
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))

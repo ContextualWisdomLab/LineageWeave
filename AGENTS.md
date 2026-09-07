@@ -422,3 +422,20 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Verified maintenance practices
+
+- Bind authorization-sensitive asynchronous UI results to the request lifecycle,
+  not token equality alone. Exercise deferred success and failure across A → B → A
+  and unmounts; retired requests must not update data, errors, loading state, or
+  trigger follow-up reads. Use behavioral tests rather than source-text guards.
+- A test deadline failure is not a causal RED assertion. Record timeouts separately
+  and diagnose the driver or runtime before claiming a regression is reproduced.
+- Validate local login from the documented `http://localhost:15173` origin. An IP
+  alias can fail the issuer redirect allowlist even when the canonical origin works;
+  do not broaden redirect permissions to accommodate a test-only alias.
+- Release eligible changes through the existing protected owner workflow and its
+  GitHub Secrets. Verify the revision, checks, approval, published version, and
+  runtime outcome separately. Inspect secret metadata only; never expose values.
+  Preserve reusable lessons here as work proceeds, without transient logs or real
+  source records.

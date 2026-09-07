@@ -1136,3 +1136,34 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+
+### Ontology external scope retirement (2026-09-07, PR #959)
+
+Changing the credential, cutoff, or external focus while a continuation is pending
+left the prior node visible. All four behavioral cases failed the absence assertion
+on the prior implementation; earlier deadline-only failures were not counted as
+causal reproduction. A guarded input-state reset now discards the loaded projection,
+selection, and cursor before committing the changed scope, while preserving the
+existing denial bookkeeping. Deferred prior responses remain inadmissible.
+
+The implementation follows the existing ADR 0124 cursor-scope and ADR 0184
+authorized-projection contracts. React's guarded same-component state adjustment
+avoids a stale committed child render without remounting and losing denial state.
+Reference: React. (n.d.). *You might not need an Effect*.
+https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+
+Automatic eligible deployment and continuous AGENTS.md maintenance are now part
+of the existing hourly loop. Protected main currently exposes ontology Pages
+publication; this Draft UI repair is not a released artifact. The fast-mlsirm
+publication workflow consumes `PIPY_TOKEN`; its last observed failed run stopped
+at control-plane provenance verification before any package publication. Secret
+availability was not established by the repository metadata query, and the
+environment metadata endpoint returned 404; neither result establishes missing
+organization credentials. No secret value was accessed.
+
+Validation: all four new scope cases passed after the repair. The complete two-file
+Ontology suite included 35 tests: 33 passed and two existing keyboard/Voice cases
+exceeded their unchanged five-second deadlines. This is not a green suite or
+authenticated runtime acceptance. TypeScript and the production Vite build passed;
+the existing 500 kB chunk warning remains. No package or runtime was deployed.

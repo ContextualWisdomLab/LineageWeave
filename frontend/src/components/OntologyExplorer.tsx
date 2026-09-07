@@ -103,6 +103,7 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const [inputScope, setInputScope] = useState({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff });
   const deniedPayloads = useRef(new WeakSet<OntologyNeighborhoodPayload>());
   const deniedLiveRequest = useRef<{
     accessToken: string;
@@ -117,14 +118,20 @@ export function OntologyExplorer({
     setQuery("");
   }
 
-  useEffect(() => {
+  if (
+    inputScope.accessToken !== accessToken || inputScope.focusNodeType !== focusNodeType ||
+    inputScope.focusNodeId !== focusNodeId || inputScope.knowledgeCutoff !== knowledgeCutoff
+  ) {
+    setInputScope({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff });
+    setLoaded(null);
+    setStatus("loading");
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
     setPageRetry(0);
     setLiveFocus(false);
     clearSelection();
-  }, [focusNodeType, focusNodeId]);
+  }
 
   useEffect(() => {
     const useProvided = Boolean(provided) && !liveFocus;
