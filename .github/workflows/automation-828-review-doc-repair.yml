@@ -1,0 +1,48 @@
+name: automation-828-review-doc-repair
+on:
+  push:
+    branches: [automation/828-review-doc-repair-20260907-1505]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    env:
+      OLD_HEAD: f28b5da6f92984483fbe1e9a0fc82f0bb24ecf57
+      PRODUCT_BRANCH: feat/leftover-map-compare-axis-share-v2500
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 2
+      - name: Verify bounded harness and live head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$OLD_HEAD"
+          test "$(git diff --name-only HEAD^..HEAD)" = ".github/workflows/automation-828-review-doc-repair.yml"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+      - name: Repair valid markdown review finding without carrying workflow history
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "lineageweave-automation@users.noreply.github.com"
+          git checkout -B product-repair "$OLD_HEAD"
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("docs/product-technical-gap-baseline.md")
+          lines = path.read_text(encoding="utf-8").splitlines()
+          repaired = [line for line in lines if line != ">"]
+          if len(repaired) == len(lines):
+              raise SystemExit("expected blank blockquote rows were not found")
+          path.write_text("\n".join(repaired) + "\n", encoding="utf-8")
+          PY
+          test -z "$(grep -n '^>$' docs/product-technical-gap-baseline.md || true)"
+          grep -q 'names the same persisted share as leftover-axis report badges but uses' CHANGELOG.d/2.50.0-leftover-map-compare-axis-share.md
+          grep -q 'axis-share label is independent' docs/storybook-inventory.md
+          git diff --check
+          git add docs/product-technical-gap-baseline.md
+          git commit -m "docs(reports): remove blank quoted gap-baseline separators"
+          remote_head="$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)"
+          test "$remote_head" = "$OLD_HEAD"
+          git push origin HEAD:"refs/heads/$PRODUCT_BRANCH"
