@@ -195,6 +195,7 @@ jobs:
         id: product
         run: |
           set -euo pipefail
+          git reset --mixed "$PRODUCT_HEAD"
           git add backend/app/report_ingestion.py backend/tests/test_report_ingestion_unexplained_share.py
           changed="$(git diff --cached --name-only "$PRODUCT_HEAD" | sort)"
           expected="$(printf '%s\n' backend/app/report_ingestion.py backend/tests/test_report_ingestion_unexplained_share.py | sort)"
