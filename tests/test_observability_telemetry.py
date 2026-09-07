@@ -192,3 +192,36 @@ def test_shutdown_telemetry_removes_handler_and_nulls_providers(
     assert observability._METER_PROVIDER is None
     assert observability._LOG_PROVIDER is None
     assert fake_handler not in logging.getLogger().handlers
+
+def test_failed_handler_keeps_provider_owned_for_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A handler failure must not orphan the log provider's batch worker."""
+    from unittest.mock import Mock
+
+    import opentelemetry._logs as otel_logs
+    import opentelemetry.instrumentation.logging.handler as handler_module
+    import opentelemetry.sdk._logs as sdk_logs
+    import opentelemetry.trace as otel_trace
+
+    provider = sdk_logs.LoggerProvider()
+    shutdown = Mock(wraps=provider.shutdown)
+    monkeypatch.setattr(provider, "shutdown", shutdown)
+    monkeypatch.setattr(sdk_logs, "LoggerProvider", lambda **kwargs: provider)
+    monkeypatch.setattr(handler_module, "LoggingHandler", Mock(side_effect=RuntimeError("synthetic handler failure")))
+    monkeypatch.setattr(otel_logs, "set_logger_provider", lambda provider: None)
+    monkeypatch.setattr(otel_trace, "set_tracer_provider", lambda provider: None)
+    monkeypatch.setattr(observability, "metrics", None)
+    monkeypatch.setattr(observability, "_CONFIGURED", False)
+    monkeypatch.setattr(observability, "_LOG_PROVIDER", None)
+    monkeypatch.setattr(observability, "_LOG_HANDLER", None)
+    monkeypatch.delenv("OTEL_SDK_DISABLED", raising=False)
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:9")
+    try:
+        observability.configure_telemetry()
+        observability.shutdown_telemetry()
+        shutdown.assert_called_once_with()
+        assert observability._LOG_PROVIDER is None
+        assert observability._LOG_HANDLER is None
+    finally:
+        observability.shutdown_telemetry()
+        if not shutdown.called:
+            provider.shutdown()

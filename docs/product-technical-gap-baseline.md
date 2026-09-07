@@ -967,3 +967,21 @@ https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/lo
 
 OpenTelemetry Authors. (2026). *LoggingHandler implementation (v0.65b0)*.
 https://github.com/open-telemetry/opentelemetry-python-contrib/blob/v0.65b0/instrumentation/opentelemetry-instrumentation-logging/src/opentelemetry/instrumentation/logging/handler.py
+
+
+### Partial telemetry initialization ownership (2026-09-07)
+
+Handler initialization could fail after the log provider acquired a batch worker
+but before the module saved the provider for shutdown. A regression with a real
+LoggerProvider and a deliberately failing handler proved normal shutdown called
+the provider zero times. Test cleanup explicitly closed the orphan afterward.
+
+The provider is now registered with module ownership immediately after creation.
+The same failure remains fail-open, while normal shutdown closes the partially
+initialized provider exactly once and clears module state. This moves one
+existing assignment and introduces no new lifecycle abstraction.
+
+All 31 observability/server-diagnostic tests passed in 1.97 s without warnings.
+The same module coverage increased from 92% to 95% (197 statements, 68 branches);
+100% remains unmet. This is local failure-path evidence, not live collector or
+protected-merge acceptance.

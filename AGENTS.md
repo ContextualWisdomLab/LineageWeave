@@ -431,3 +431,8 @@ instrumentation to silence a deprecation warning. Verify the root logger and
 LogRecord factory are unchanged, retain the intended severity threshold, and
 check warning absence after real provider setup and teardown. Backend diagnostic
 tests require both the dev and backend extras in the isolated uv environment.
+
+Register provider ownership immediately after allocation, before attaching
+processors or handlers. A later optional-telemetry setup failure must still
+leave the provider reachable by normal shutdown; test that failure path using
+a real provider and verify shutdown rather than only catching the exception.

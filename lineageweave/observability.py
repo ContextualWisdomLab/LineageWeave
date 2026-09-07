@@ -213,6 +213,7 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         return
     try:
         log_provider = LoggerProvider(resource=resource)
+        _LOG_PROVIDER = log_provider
         log_provider.add_log_record_processor(
             BatchLogRecordProcessor(
                 OTLPLogExporter(endpoint=_otlp_log_endpoint(endpoint))
@@ -221,7 +222,6 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         set_logger_provider(log_provider)
         handler = LoggingHandler(level=logging.WARNING, logger_provider=log_provider)
         _LOGGER.addHandler(handler)
-        _LOG_PROVIDER = log_provider
         _LOG_HANDLER = handler
     except Exception:  # noqa: BLE001 - export must stay fail-open
         _LOGGER.warning("OpenTelemetry log exporter is unavailable")
