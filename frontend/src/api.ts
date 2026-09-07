@@ -574,11 +574,17 @@ async function backendFetch<T>(
         detail = body.detail;
       }
     } catch {
+      init?.signal?.throwIfAborted();
       detail = undefined;
     }
     throw new BackendError(path, response.status, detail);
   }
-  return response.json() as Promise<T>;
+  try {
+    return (await response.json()) as T;
+  } catch (error) {
+    init?.signal?.throwIfAborted();
+    throw error;
+  }
 }
 
 export interface LineageGraphNode {
