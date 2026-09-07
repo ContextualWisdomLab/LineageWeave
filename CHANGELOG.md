@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Grouping comparison pair buttons now expose persisted explained-leftover share `e = R̂²/R²` (ADR 0296 / v2.53.0). The visible duplicate badge is accessibility-hidden while the actionable button name includes the localized label and formatted persisted value. Missing/non-finite `e` omits only the suffix; finite zero and values above 1 remain explicit without clamping or client-side derivation.
+
 - Grouping comparison leftover-pair buttons now expose persisted leftover-map reconstruction `R̂` (ADR 0295 / v2.52.0). The visible badge is decorative to accessibility APIs; the button accessible name carries the reconstruction label and value, so the explicit button `aria-label` cannot suppress the metric. Missing/non-finite `R̂` omits only that value and no client-side proxy is invented.
 
 - Grouping comparison rows now show persisted leftover-map incomplete-item count through `leftoverMapIncompleteItemCount` (ADR 0294 / v2.51.0) only for fully caller-visible persisted groupings. Partial visibility remains omitted by the API; valid zero stays visible, and the UI never derives dropped criteria from scored-minus-used.

@@ -1093,3 +1093,5 @@ the rare creation branch serializes.
 ADR 0294 adds persisted incomplete-item coverage to grouping comparison presentation while the API remains the full-group visibility authority; the frontend formats only an admitted persisted count.
 
 ADR 0295 adds persisted `R̂` to grouping-comparison pair buttons. The explicit button accessible name carries the reconstruction label/value; the visible duplicate badge is presentation-only. Psychometric computation remains owned by fast-mlsirm.
+
+ADR 0296 adds persisted explained-leftover share `e = R̂²/R²` to grouping-comparison pair actions; the button accessible name is authoritative for assistive technology and fast-mlsirm remains psychometric owner.

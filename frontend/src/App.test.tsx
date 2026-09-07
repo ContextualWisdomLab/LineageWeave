@@ -923,6 +923,7 @@ describe("App, authenticated", () => {
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
                     leftover_map_reconstruction: 0.248,
+                    leftover_map_explained_share: 0.76,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4342,6 +4343,10 @@ describe("App, authenticated", () => {
       name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25/i,
     });
     expect(reconstructionPair).toHaveTextContent("R̂ +0.25");
+    const explainedSharePair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25.*leftover map comparison explained leftover share R̂²\/R² 0\.76/i,
+    });
+    expect(explainedSharePair).toHaveTextContent("R̂²/R² 0.76");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),
