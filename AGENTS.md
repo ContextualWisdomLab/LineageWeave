@@ -437,3 +437,7 @@ authenticated screen. Preserve the abort reason instead of reporting a network
 failure, and clear delay timers/listeners. Result-admission guards remain necessary
 for already-resolved work. Verify both transport cancellation and A → B → A
 state admission; neither establishes server-job cancellation.
+
+Keep transport exceptions at the diagnostic boundary. Buyer-facing error copy
+must not use String(error) or provider detail; reuse existing localized recovery
+guidance and preserve explicitly supported status-specific behavior.

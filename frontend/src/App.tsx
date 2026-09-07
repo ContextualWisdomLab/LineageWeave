@@ -160,7 +160,7 @@ function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
     return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
   }
-  return String(err);
+  return t("This view is unavailable. Refresh once; if it fails again, contact your administrator.");
 }
 
 function LanguageSwitcher({ accessToken }: { accessToken?: string }) {

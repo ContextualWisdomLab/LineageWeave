@@ -999,3 +999,32 @@ pre-submission abort, in-flight fetch abort, and delay cancellation without anot
 request. Lint and TypeScript/production build passed with the existing chunk
 warning. This supersedes the earlier focused timeout result, not the outstanding
 full-suite, hosted, real-account, or page-latency acceptance requirements.
+
+
+### Shared operation-error copy (2026-09-07)
+
+Ask's current-error leak came from the shared orchestratorUnavailableMessage
+fallback used by Chat, Keymen extraction, Evaluation, Commitment derivation,
+and Ask. Non-503 errors were stringified into buyer copy. Three negative cases
+(network failure, HTTP 403, HTTP 500) reproduced missing recovery guidance and
+visible transport details. The fallback now reuses the existing translated
+view-recovery sentence; the existing 503 saved-evidence guidance is unchanged.
+No second catalog or dependency was introduced. This covers this formatter's
+five callers, not every error path in the application.
+
+The Ask/API run passed 17/18 cases, including all three new error-copy checks;
+the existing cutoff/public-verification test exceeded its unchanged deadline.
+A subsequent sibling-test invocation failed before test execution because the
+Vitest forks worker did not respond. Neither is labeled a green suite.
+
+Separately, hosted Tests run 34082387676 on ontology PR #959 commit
+`96ce3de6190f1f66f140663f034427fd4d78d3a4` passed the frontend's 544 tests across
+58 files and its lint/build, plus 1768 backend tests (147 skipped, one warning).
+Skipped tests and repository-job success do not prove independent review,
+all required central checks, private runtime acceptance, or deployment.
+
+The correctly selected four existing 503 sibling tests passed in 6.86 s:
+Chat, Evaluation, Keymen extraction, and Commitment derivation retained their
+saved-evidence guidance. Lint and production build passed; the existing chunk
+warning remains. The earlier worker-start failure ran no tests and is not
+counted as a sibling assertion failure or success.

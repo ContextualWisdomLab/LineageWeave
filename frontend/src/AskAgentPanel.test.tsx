@@ -8,6 +8,19 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
+  it.each([0, 403, 500])("shows recovery guidance instead of transport details for %s", async (status) => {
+    const fetchMock = status === 0
+      ? vi.fn().mockRejectedValue(new Error("synthetic private transport detail"))
+      : vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: "synthetic private transport detail" }), { status }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<AskAgentPanel accessToken="token" onOpenPost={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByText("This view is unavailable. Refresh once; if it fails again, contact your administrator.")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/BackendError|HTTP|\/api\/ask|synthetic private/);
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+  });
+
   it.each(["credential", "unmount"])("aborts transport on %s retirement", async (retirement) => {
     const fetchMock = vi.fn().mockImplementation(() => new Promise(() => {}));
     vi.stubGlobal("fetch", fetchMock);
