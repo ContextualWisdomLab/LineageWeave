@@ -46,9 +46,13 @@ describe("LeftoverPairList", () => {
 
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
     const closest = screen.getByRole("button", {
-      name: "Open leftover closest pair: Public post · sales-lead",
+      name: /Open leftover closest pair: Public post · sales-lead/,
     });
     expect(closest).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    expect(closest).toHaveAccessibleName(/R \+0\.40/);
+    expect(closest).toHaveAccessibleName(/Y 2\.40 · E 2\.00/);
+    expect(closest).toHaveAccessibleName(/rank 1/);
+    expect(closest).toHaveAccessibleName(/d 0\.12/);
     expect(closest).toHaveTextContent(
       "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
     );
@@ -58,8 +62,9 @@ describe("LeftoverPairList", () => {
     expect(closest).toHaveTextContent("d 0.12");
 
     const farthest = screen.getByRole("button", {
-      name: "Open leftover farthest pair: Specification revision requested · negative",
+      name: /Open leftover farthest pair: Specification revision requested · negative/,
     });
+    expect(farthest).toHaveAccessibleName(/R −1\.10/);
     expect(farthest).toHaveTextContent("R −1.10");
     expect(farthest).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthest).toHaveTextContent("rank 1");
@@ -76,6 +81,31 @@ describe("LeftoverPairList", () => {
         criterion_code: "sales_lead_quality",
       }),
     );
+  });
+
+  it("omits non-finite leftover residual and distance from the pair action", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_residual: Number.NaN,
+            leftover_distance: Number.NaN,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button", {
+      name: /Open leftover closest pair: Public post · sales-lead/,
+    });
+    expect(closest).toHaveAccessibleName(/rank 1/);
+    expect(closest).not.toHaveAccessibleName(/R /);
+    expect(closest).not.toHaveAccessibleName(/\bd /);
+    expect(closest).not.toHaveTextContent("R —");
+    expect(closest).not.toHaveTextContent("d NaN");
   });
 
   it("keeps residual guidance for an older payload without rank or Y/E", () => {
@@ -148,8 +178,11 @@ describe("LeftoverPairList", () => {
     );
 
     const closest = screen.getByRole("button", {
-      name: "Open leftover closest pair: Public post · sales-lead",
+      name: /Open leftover closest pair: Public post · sales-lead/,
     });
+    expect(closest).toHaveAccessibleName(/R \+0\.40/);
+    expect(closest).toHaveAccessibleName(/R̂²\/R² 0\.76/);
+    expect(closest).toHaveAccessibleName(/ξ \(\+0\.50, \+0\.10\) ζ \(\+0\.50, −0\.02\)/);
     expect(closest).toHaveTextContent(
       "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
     );

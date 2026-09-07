@@ -33,6 +33,7 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
 } from "../leftoverMapUnexplainedShare";
+import { formatLeftoverMapDistance } from "../leftoverMapPlotLayout";
 import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 export type LeftoverPairListProps = {
@@ -41,6 +42,11 @@ export type LeftoverPairListProps = {
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
 };
+
+/** Join finite leftover evidence already selected by the pair-row formatters. */
+function leftoverPairAccessibleName(parts: Array<string | null | undefined>): string {
+  return parts.filter((part): part is string => typeof part === "string" && part.length > 0).join(" ");
+}
 
 /**
  * Closest and farthest leftover post–criterion pairs after IRT main effects.
@@ -89,6 +95,8 @@ export function LeftoverPairList({
           pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
         const criterion = criterionLabel(pair.criterion_code);
         const residual = formatLeftoverResidual(pair.leftover_residual);
+        const residualBadge = Number.isFinite(pair.leftover_residual) ? `R ${residual}` : null;
+        const distanceBadge = formatLeftoverMapDistance(pair.leftover_distance);
         const observedExpected = formatLeftoverObservedExpected(
           pair.observed_response,
           pair.expected_response,
@@ -216,11 +224,23 @@ export function LeftoverPairList({
             <button
               type="button"
               className="post-list-item"
-              aria-label={tf("Open leftover {kind} pair: {title} · {criterion}", {
-                kind: pair.pair_kind,
-                title: pair.post_title,
-                criterion,
-              })}
+              aria-label={leftoverPairAccessibleName([
+                tf("Open leftover {kind} pair: {title} · {criterion}", {
+                  kind: pair.pair_kind,
+                  title: pair.post_title,
+                  criterion,
+                }),
+                residualBadge,
+                observedExpected,
+                rankBadge,
+                unexplained,
+                unexplainedShareBadge,
+                explainedShareBadge,
+                crossShareBadge,
+                reconstruction,
+                coordinatesBadge,
+                distanceBadge,
+              ])}
               title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
             >
@@ -228,7 +248,7 @@ export function LeftoverPairList({
                 {kindLabel}: {pair.post_title} · {criterion}
               </span>
               <span className="post-badge">{nextAction}</span>
-              <span className="post-badge">R {residual}</span>
+              {residualBadge ? <span className="post-badge">{residualBadge}</span> : null}
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
@@ -241,7 +261,7 @@ export function LeftoverPairList({
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               {coordinatesBadge ? <span className="post-badge">{coordinatesBadge}</span> : null}
-              <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+              {distanceBadge ? <span className="post-badge">{distanceBadge}</span> : null}
             </button>
           </li>
         );
