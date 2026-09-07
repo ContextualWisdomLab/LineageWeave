@@ -40,12 +40,16 @@ class _Pool:
         yield self.connection
 
 
+_CLAIMED_AT = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
+
+
 def _queued_row() -> dict[str, object]:
     return {
         "requesting_account_id": "00000000-0000-0000-0000-000000000001",
         "question_text": "What happened last week?",
         "verify_external_requested": False,
         "knowledge_cutoff": None,
+        "updated_at": _CLAIMED_AT,
     }
 
 
@@ -398,7 +402,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
 
     settle_query, settle_args = connection.executed[-1]
     assert "failure_detail" in settle_query
-    failure_detail = settle_args[-1]
+    failure_detail = settle_args[2]
     assert secret_bearing_message not in failure_detail
     assert failure_detail == (
         "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
@@ -434,7 +438,8 @@ def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == "account lacks the post_read permission"
+    assert settle_args[2] == "account lacks the post_read permission"
+    assert settle_args[3:] == (global_ask_queue.RUNNING, _CLAIMED_AT)
 
 
 @pytest.mark.parametrize("timeout_source", ["provider", "worker", "shutdown"])
@@ -480,12 +485,78 @@ def test_timeout_detail_identifies_only_an_expired_worker_deadline(
 
     _settle_query, settle_args = connection.executed[-1]
     if timeout_source == "worker":
-        assert settle_args[-1] == "job exceeded the 0s deadline"
+        assert settle_args[2] == "job exceeded the 0s deadline"
     else:
-        assert settle_args[-1] == (
+        assert settle_args[2] == (
             "Ask Agent is unavailable: contextual-orchestrator returned "
             "no complete evidence object"
         )
+    assert settle_args[3:] == (global_ask_queue.RUNNING, _CLAIMED_AT)
+
+
+def test_orphan_reclaim_prevents_stale_owner_from_settling(monkeypatch) -> None:
+    """After recovery reclaims a running job, the previous owner cannot settle it."""
+    reclaimed_at = datetime(2026, 1, 2, 9, 0, tzinfo=UTC)
+
+    class _RaceConnection(_Connection):
+        def __init__(self) -> None:
+            super().__init__(_queued_row())
+            self.status = global_ask_queue.QUEUED
+            self.generation = _CLAIMED_AT
+            self.applied: list[str] = []
+
+        async def fetchrow(self, query: str, *_args: object):
+            if "job_status_code = $3" in query and self.status == global_ask_queue.QUEUED:
+                self.status = global_ask_queue.RUNNING
+                return self.row
+            return None
+
+        async def execute(self, query: str, *args: object) -> str:
+            self.executed.append((query, args))
+            if "answer_payload" in query:
+                claimed = args[4] if len(args) > 4 else None
+                if (
+                    "updated_at = $5" in query
+                    and args[3] == global_ask_queue.RUNNING
+                    and claimed == self.generation
+                    and self.status == global_ask_queue.RUNNING
+                ):
+                    self.status = str(args[1])
+                    self.applied.append("accepted")
+                    return "UPDATE 1"
+                self.applied.append("rejected")
+                return "UPDATE 0"
+            return "OK"
+
+    connection = _RaceConnection()
+    pool = _Pool(connection)
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **_kwargs):
+        connection.status = global_ask_queue.RUNNING
+        connection.generation = reclaimed_at
+        return {"answer_text": "stale-owner-payload"}
+
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    settle_query, settle_args = connection.executed[-1]
+    assert "updated_at = $5" in settle_query
+    assert settle_args[3:] == (global_ask_queue.RUNNING, _CLAIMED_AT)
+    assert connection.applied == ["rejected"]
+    assert connection.status == global_ask_queue.RUNNING
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:

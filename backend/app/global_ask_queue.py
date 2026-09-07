@@ -520,8 +520,10 @@ async def process_global_ask_job(
 
     Claiming flips ``queued`` → ``running`` atomically so a duplicate
     stream wake-up (recovery republish racing the original entry) is a
-    no-op. Every failure path settles the row as ``failed`` with a
-    bounded detail string rather than leaving it stuck ``running``.
+    no-op. Settlement is compare-and-set on that claim's ``updated_at``
+    so an orphan reclaim cannot be overwritten by the previous owner.
+    Every failure path settles the row as ``failed`` with a bounded
+    detail string rather than leaving it stuck ``running``.
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -529,7 +531,7 @@ async def process_global_ask_job(
             update global_ask_job set job_status_code = $2, updated_at = now()
             where global_ask_job_id = $1 and job_status_code = $3
             returning requesting_account_id, question_text, verify_external_requested,
-                      knowledge_cutoff
+                      knowledge_cutoff, updated_at
             """,
             job_id,
             RUNNING,
@@ -537,6 +539,7 @@ async def process_global_ask_job(
         )
     if row is None:
         return
+    claimed_at = row["updated_at"]
     answer_timeout: asyncio.Timeout | None = None
     try:
         async with pool.acquire() as conn:
@@ -607,10 +610,14 @@ async def process_global_ask_job(
                 update global_ask_job set job_status_code = $2,
                     failure_detail = $3, updated_at = now()
                 where global_ask_job_id = $1
+                  and job_status_code = $4
+                  and updated_at = $5
                 """,
                 job_id,
                 FAILED,
                 detail[:1000],
+                RUNNING,
+                claimed_at,
             )
         return
     async with pool.acquire() as conn:
@@ -619,10 +626,14 @@ async def process_global_ask_job(
             update global_ask_job set job_status_code = $2,
                 answer_payload = $3::jsonb, updated_at = now()
             where global_ask_job_id = $1
+              and job_status_code = $4
+              and updated_at = $5
             """,
             job_id,
             SUCCEEDED,
             _to_json(payload),
+            RUNNING,
+            claimed_at,
         )
 
 
