@@ -323,8 +323,8 @@ async def lifespan(app: FastAPI):
         app.state.post_content_worker = content_worker
         # Late-bound lambda so tests that monkeypatch _post_chat_client reach
         # the worker too (the name resolves in module globals at call time).
-        # Only this worker gets the long answer timeout; the per-post chat
-        # endpoint keeps the client's interactive default.
+        # This worker still has an explicit answer socket limit; per-post
+        # chat retains the default null transport timeout.
         global_ask_worker = asyncio.create_task(
             run_global_ask_worker(
                 valkey,
@@ -508,19 +508,16 @@ def _post_structure_client():
 def _post_chat_client(timeout: float | None = None):
     """Live orchestrator client when configured; otherwise the unavailable null.
 
-    ``timeout`` overrides the client's socket timeout. Only the Ask worker
-    passes the long answer timeout — the synchronous per-post chat endpoint
-    keeps the client default so an interactive request never hangs a reader
-    for the worker's full budget.
+    Preserve an omitted or explicit null timeout through the transport boundary.
+    The Ask worker still supplies its separately configured answer socket limit.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
-    kwargs = {} if timeout is None else {"timeout": timeout}
     return ContextualOrchestratorPostChatClient(
         base_url=settings.orchestrator_base_url,
         api_key=settings.orchestrator_api_key,
-        **kwargs,
+        timeout=timeout,
     )
 
 

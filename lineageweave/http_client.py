@@ -148,7 +148,7 @@ def _request(
     *,
     body: bytes | None,
     headers: dict[str, str],
-    timeout: float,
+    timeout: float | None,
     maximum_response_bytes: int | None = None,
     expected_response_media_type: str | None = None,
 ) -> tuple[int, bytes]:
@@ -248,7 +248,7 @@ def post_json(
     payload: dict,
     *,
     headers: dict[str, str],
-    timeout: float,
+    timeout: float | None,
     service_peer_name: str = "contextual-orchestrator",
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.

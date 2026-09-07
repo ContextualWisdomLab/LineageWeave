@@ -932,3 +932,40 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### Ask timeout attribution repair (2026-09-07)
+
+The queue worker treated every `asyncio.TimeoutError` as proof its 600-second
+execution deadline expired. A provider that terminated immediately therefore
+produced an incorrect durable deadline explanation. A paired synthetic regression
+reproduced that mismatch (provider case failed; actual zero-duration worker timer
+passed). The worker now uses the standard asyncio timeout context's expiration
+state to attribute only its own expiry. Other failures retain ADR 0123's existing
+bounded unavailable message; provider exception content is not persisted.
+
+The focused queue/service suite passed 22 tests in 1.59 s, including provider
+failure, actual timer expiry, and shutdown cancellation with no failed settlement.
+Compilation and diff checks passed. This does not remove the execution deadline,
+change model policy, or repair age-based orphan recovery: default-null execution
+still requires worker liveness and claim fencing. No database migration, new
+container, provider call, deployment, or protected merge was performed.
+
+Python Software Foundation. (2026). *Coroutines and tasks: Timeouts*.
+https://docs.python.org/3/library/asyncio-task.html#timeouts
+
+### Post-chat null timeout propagation (2026-09-07; proposed ADR 0083 amendment)
+
+Three synthetic assertions reproduced an implicit 180-second limit: direct
+construction with no timeout, factory construction with no timeout, and factory
+construction with explicit null. The post-chat client now defaults to null and
+the factory passes the value unchanged. The shared HTTP request and JSON POST
+annotations accept the native transport's null timeout without a new adapter.
+Explicit caller seconds remain intact. The runtime pin is unchanged.
+
+Focused post-chat, HTTP, queue, and service tests passed 69 cases with two
+real-provider cases skipped in 13.84 s. The existing local HTTP server test covers
+both null and numeric limits. Compilation and diff checks passed. These results
+do not prove blocking-socket cancellation, upstream policy enforcement, or
+unlimited Ask execution: the explicit 570-second Ask socket setting, 600-second
+worker deadline, and age-based recovery remain unresolved. The policy amendment
+is Proposed, not a protected acceptance or release claim.

@@ -537,6 +537,7 @@ async def process_global_ask_job(
         )
     if row is None:
         return
+    answer_timeout: asyncio.Timeout | None = None
     try:
         async with pool.acquire() as conn:
             (
@@ -554,8 +555,8 @@ async def process_global_ask_job(
             raise _SafeJobError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
-        payload = await asyncio.wait_for(
-            compute_global_ask_answer(
+        async with asyncio.timeout(JOB_DEADLINE_SECONDS) as answer_timeout:
+            payload = await compute_global_ask_answer(
                 pool,
                 question_text=str(row["question_text"]),
                 corporate_entity_ids=entity_ids,
@@ -567,9 +568,7 @@ async def process_global_ask_job(
                 verify_external=bool(row["verify_external_requested"]),
                 claim_verification_client=claim_verification_factory(),
                 knowledge_cutoff=row["knowledge_cutoff"],
-            ),
-            timeout=JOB_DEADLINE_SECONDS,
-        )
+            )
     except asyncio.CancelledError:
         # Shutdown: leave the row `running`; the recovery sweep re-queues
         # it after the orphan window on the next process start.
@@ -587,7 +586,11 @@ async def process_global_ask_job(
             # Raised locally with a pre-authored, safe message (permission
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
-        elif isinstance(exc, asyncio.TimeoutError):
+        elif (
+            isinstance(exc, asyncio.TimeoutError)
+            and answer_timeout is not None
+            and answer_timeout.expired()
+        ):
             detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
         else:
             # Provider responses/exceptions can carry credentials, gateway
