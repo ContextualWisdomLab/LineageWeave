@@ -1,0 +1,274 @@
+name: automation-829-current-828-reconstruction-r1
+on:
+  push:
+    branches: [automation/829-current-828-reconstruction-r1-20260907-1605]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      PARENT: 7b6dbbb99a09d0523bce43c6872bbd9fa382a43a
+      OLD_HEAD: 118500f73251eaaf717d5329b8fb6d9895196fe7
+      FEATURE_ORIGIN: 4d82c2872cc27e08c0357cb4b7cf071ab81ab9d7
+      PRODUCT_BRANCH: feat/leftover-map-compare-unexplained-share-v2520
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact parent, feature origin, and live product head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PARENT"
+          test "$(git diff --name-only HEAD^..HEAD)" = ".github/workflows/automation-829-current-828-reconstruction-r1.yml"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+          git fetch origin "$FEATURE_ORIGIN" "$OLD_HEAD" "$PARENT"
+          test "$(git rev-parse "$FEATURE_ORIGIN^")" = "ead81bd3f51005f083871dc0bd49148a42a351b2"
+          git diff --name-only "$FEATURE_ORIGIN^" "$FEATURE_ORIGIN" | grep -qx 'frontend/src/leftoverMapUnexplainedShare.ts'
+          git diff --name-only "$FEATURE_ORIGIN^" "$FEATURE_ORIGIN" | grep -qx 'frontend/src/App.tsx'
+      - name: Reconstruct historical valid delta in current-parent form
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "lineageweave-automation@users.noreply.github.com"
+          git checkout -B reconstructed "$PARENT"
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"anchor missing in {path}: {old[:140]!r}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          # Preserve the historical formatter contract but add only the comparison label.
+          replace_once(
+              "frontend/src/leftoverMapUnexplainedShare.ts",
+              'export const LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION =\n  "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.";\n\nexport function formatLeftoverMapUnexplainedShare(',
+              'export const LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION =\n  "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.";\n\nexport const LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL =\n  "Leftover map comparison unexplained leftover share";\n\nexport function formatLeftoverMapUnexplainedShare(',
+          )
+          replace_once(
+              "frontend/src/leftoverMapUnexplainedShare.test.ts",
+              'import { formatLeftoverMapUnexplainedShare } from "./leftoverMapUnexplainedShare";',
+              'import {\n  formatLeftoverMapUnexplainedShare,\n  LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,\n} from "./leftoverMapUnexplainedShare";',
+          )
+          p = Path("frontend/src/leftoverMapUnexplainedShare.test.ts")
+          text = p.read_text(encoding="utf-8")
+          tail = '''\n  it("keeps the grouping comparison unexplained leftover share label distinct", () => {\n    expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL).toBe(\n      "Leftover map comparison unexplained leftover share",\n    );\n  });\n'''
+          if not text.rstrip().endswith("});"):
+              raise SystemExit("unexplained-share test suite closing anchor changed")
+          text = text.rstrip()[:-3] + tail + "});\n"
+          p.write_text(text, encoding="utf-8")
+
+          # Reconstruct the historical UI first, intentionally retaining its accessibility defect for RED.
+          replace_once(
+              "frontend/src/App.tsx",
+              '} from "./leftoverMapExplainedShare";\nimport {\n  leftoverMapCompareAxisShare,',
+              '} from "./leftoverMapExplainedShare";\nimport {\n  formatLeftoverMapUnexplainedShare,\n  LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,\n} from "./leftoverMapUnexplainedShare";\nimport {\n  leftoverMapCompareAxisShare,',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''                    const explainedShare = formatLeftoverMapExplainedShare(\n                      pair.leftover_map_explained_share,\n                    );\n                    const pairAccessibleName =''',
+              '''                    const explainedShare = formatLeftoverMapExplainedShare(\n                      pair.leftover_map_explained_share,\n                    );\n                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    const pairAccessibleName =''',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''                          {explainedShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {explainedShare}\n                            </span>\n                          ) : null}\n                        </button>''',
+              '''                          {explainedShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {explainedShare}\n                            </span>\n                          ) : null}\n                          {unexplainedShare ? (\n                            <span\n                              className="post-badge"\n                              aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)}\n                            >\n                              {unexplainedShare}\n                            </span>\n                          ) : null}\n                        </button>''',
+          )
+
+          # Synthetic comparison fixture and a realistic actionable-name regression.
+          replace_once(
+              "frontend/src/App.test.tsx",
+              '                    leftover_map_reconstruction: 0.248,\n                    leftover_map_explained_share: 0.76,\n                  },',
+              '                    leftover_map_reconstruction: 0.248,\n                    leftover_map_explained_share: 0.76,\n                    leftover_map_unexplained_share: 0.02,\n                  },',
+          )
+          replace_once(
+              "frontend/src/App.test.tsx",
+              '''    expect(explainedSharePair).toHaveTextContent("R̂²/R² 0.76");\n    await waitFor(() =>''',
+              '''    expect(explainedSharePair).toHaveTextContent("R̂²/R² 0.76");\n    const unexplainedSharePair = screen.getByRole("button", {\n      name: /open leftover closest pair from comparison: public post.*leftover map comparison unexplained leftover share U²\\/R² 0\\.02/i,\n    });\n    expect(unexplainedSharePair).toHaveTextContent("U²/R² 0.02");\n    await waitFor(() =>''',
+          )
+
+          # Preserve the current five-locale compatibility copy without claiming it as canonical ledger authority.
+          i18n = Path("frontend/src/i18n.ts")
+          text = i18n.read_text(encoding="utf-8")
+          rows = [
+              ('    "Leftover map comparison explained leftover share": "잔여 지도 비교 설명 잔여 점유율",', '    "Leftover map comparison unexplained leftover share": "잔여 지도 비교 미설명 잔여 점유율",'),
+              ('    "Leftover map comparison explained leftover share": "残差地图比较已解释残差份额",', '    "Leftover map comparison unexplained leftover share": "残差地图比较未解释残差份额",'),
+              ('    "Leftover map comparison explained leftover share": "残差マップの比較説明済み残差割合",', '    "Leftover map comparison unexplained leftover share": "残差マップの比較未説明残差割合",'),
+              ('    "Leftover map comparison explained leftover share": "Phần dư giải thích so sánh bản đồ phần dư",', '    "Leftover map comparison unexplained leftover share": "Phần dư chưa giải thích so sánh bản đồ phần dư",'),
+          ]
+          for anchor, row in rows:
+              if anchor not in text:
+                  raise SystemExit(f"i18n anchor missing: {anchor}")
+              text = text.replace(anchor, anchor + "\n" + row, 1)
+          i18n.write_text(text, encoding="utf-8")
+          replace_once(
+              "frontend/src/i18n.test.ts",
+              '    "Leftover map comparison explained leftover share",',
+              '    "Leftover map comparison explained leftover share",\n    "Leftover map comparison unexplained leftover share",',
+          )
+
+          # Allocate the next current serialized identity only after live authority showed ADR0369 unclaimed.
+          replace_once("pyproject.toml", 'version = "2.54.0"', 'version = "2.55.0"')
+          replace_once("frontend/package.json", '"version": "2.54.0"', '"version": "2.55.0"')
+          replace_once("lineageweave/__init__.py", '__version__ = "2.54.0"', '__version__ = "2.55.0"')
+
+          adr = Path("docs/adr/0369-leftover-map-compare-unexplained-share.md")
+          adr.write_text('''# ADR 0369 — Persisted unexplained leftover share in grouping comparison pair actions\n\n**Decision status:** Proposed\n\n## Problem\n\nThe grouping-comparison read model already carries a persisted `leftover_map_unexplained_share` (`s = U² / R²`) for authorized leftover pairs, but the current serialized UI does not surface it on comparison pair actions. The historical implementation proved the buyer-visible delta, but its old ADR0295/v2.52.0 identity and parent ancestry are no longer current. It also placed the metric only in a descendant badge while the parent button supplied an explicit accessible name, so assistive technology could miss a buyer-visible value.\n\n## Constraints\n\n- LineageWeave consumes persisted psychometric truth; it does not derive `s` from `U`, `R`, reconstruction, distance, geometry, rank, coverage, or other shares.\n- Missing/non-finite values are omitted. Persisted zero and finite values above 1 remain explicit and are not clamped.\n- Current-parent whole-population authorization remains authoritative. No visible-subset recomputation is allowed.\n- The actionable pair button and the visible badge must communicate the same finite persisted value.\n- The current inline KO/ZH/JA/VI copy remains compatibility presentation only; canonical KO/EN/JA/ZH/VI/ES/DE/FR versioned translation-ledger authority remains #922/#929/#932.\n\n## Alternatives\n\n1. Hide `s` from grouping comparison. Rejected because it drops an already-persisted buyer-relevant diagnostic available on the pair read model.\n2. Recompute `s` from other visible values. Rejected because it would duplicate psychometric authority and can diverge under missingness/authorization.\n3. Render a child badge only. Rejected because the explicit parent `aria-label` would omit the visible metric from the actionable accessible name.\n4. Consume persisted finite `s`, include its localized label/value in the button accessible name, and mark the duplicate visual badge `aria-hidden`. Chosen.\n\n## Decision\n\n`frontend/src/App.tsx` formats `pair.leftover_map_unexplained_share` through `formatLeftoverMapUnexplainedShare`. When finite, the pair button accessible name appends the localized comparison label plus formatted `U²/R²` value; the visual badge displays the same text and is `aria-hidden` to avoid duplicate naming. Missing/non-finite values produce neither suffix nor badge.\n\nThis is the serialized successor of exact #828 `7b6dbbb99a09d0523bce43c6872bbd9fa382a43a`, adopts the distinct valid historical #829 delta, and uses release identity v2.55.0. ADR0295/v2.52.0 remains historical evidence only.\n\n## Verification and traceability\n\nA focused current-parent test must first reproduce the historical accessible-name failure, then pass only after the parent accessible name includes `U²/R² 0.02`. Full backend, frontend lint/test/build/Storybook, runtime/distribution/project/frontend version parity, clean-tree authority, and non-force promotion are required before this Draft can claim reconstructed GREEN. Hosted exact-product-head checks, browser/keyboard/focus/a11y evidence, and qualifying independent approval remain separate merge gates.\n\n## Evidence\n\nGabriel, K. R. (1971). The biplot graphic display of matrices with application to principal component analysis. *Biometrika, 58*(3), 453–467.\n\nJeon, M., Jin, I. H., Schweinberger, M., & Baugh, S. (2021). Mapping unobserved item–respondent interactions: A latent space item response model with interaction map. *Psychometrika, 86*(2), 378–403.\n''', encoding="utf-8")
+          Path("CHANGELOG.d/2.55.0-leftover-map-compare-unexplained-share.md").write_text('''## 2.55.0 — Grouping comparison unexplained leftover share\n\n- Show persisted finite `U²/R²` on grouping-comparison leftover-pair actions through `formatLeftoverMapUnexplainedShare` (ADR 0369). Zero and values above 1 remain explicit; missing/non-finite values are omitted.\n- The actionable button accessible name includes the localized persisted metric. The duplicate visible badge is hidden from the accessibility tree.\n- Do not derive, clamp, or recompute psychometric truth from caller-visible subsets. Historical ADR0295/v2.52.0 is evidence only.\n''', encoding="utf-8")
+
+          for path, note in {
+              "AGENTS.md": "\nADR 0369 adds persisted grouping-comparison `U²/R²` only as a presentation/read-model consumer on exact #828. Never derive or clamp it, never recompute it from a visible subset, and include every finite buyer-visible comparison metric in the actionable pair button accessible name.\n",
+              "ARCHITECTURE.md": "\nADR 0369 composes persisted finite grouping-comparison `leftover_map_unexplained_share` into pair actions. The parent button accessible name and visual badge share one formatter result; the visual duplicate is `aria-hidden`. Authorization and psychometric ownership remain upstream/current-parent contracts.\n",
+              "CLAUDE.md": "\nGrouping-comparison unexplained-share presentation is ADR 0369: consume persisted finite `leftover_map_unexplained_share`, never derive it, and keep its value in the actionable button accessible name.\n",
+          }.items():
+              p = Path(path)
+              p.write_text(p.read_text(encoding="utf-8") + note, encoding="utf-8")
+
+          changelog = Path("CHANGELOG.md")
+          c = changelog.read_text(encoding="utf-8")
+          marker = "### Added\n"
+          if marker not in c:
+              raise SystemExit("CHANGELOG Added anchor missing")
+          entry = "\n- Grouping comparison pair actions now surface persisted finite unexplained leftover share `U²/R²` under ADR 0369 / v2.55.0, including the metric in the button accessible name and never deriving it from other psychometric values.\n"
+          changelog.write_text(c.replace(marker, marker + entry, 1), encoding="utf-8")
+
+          baseline = Path("docs/product-technical-gap-baseline.md")
+          b = "\n".join(line for line in baseline.read_text(encoding="utf-8").splitlines() if line != ">") + "\n"
+          title = "# Product & Technical Gap Baseline\n"
+          if not b.startswith(title):
+              raise SystemExit("gap baseline title changed")
+          overlay = "> Current serialized repair (2026-09-07): #829 consumes exact promoted #828 `7b6dbbb99a09d0523bce43c6872bbd9fa382a43a` and preserves the historical persisted `U²/R²` comparison delta as ADR 0369 / v2.55.0. Finite values are present in the actionable button name and visible badge; missing/non-finite values are absent, values are never derived/clamped, and current-parent whole-population authorization remains intact. Historical ADR0295/v2.52.0 is evidence only. Five-locale inline copy is compatibility presentation while #922/#929/#932 remain the eight-locale translation-ledger owner path.\n\n"
+          baseline.write_text(b.replace(title, title + "\n" + overlay, 1), encoding="utf-8")
+          PY
+          git add -A
+          git diff --cached --check
+          grep -q '^# ADR 0369 ' docs/adr/0369-leftover-map-compare-unexplained-share.md
+          grep -q '^\*\*Decision status:\*\* Proposed' docs/adr/0369-leftover-map-compare-unexplained-share.md
+          grep -q '"version": "2.55.0"' frontend/package.json
+          grep -q 'version = "2.55.0"' pyproject.toml
+          grep -q '__version__ = "2.55.0"' lineageweave/__init__.py
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.11.28"
+          enable-cache: false
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24"
+      - name: Install frozen graphs
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          cd frontend
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Realistic accessibility RED on reconstructed historical behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          set +e
+          pnpm exec vitest run src/App.test.tsx -t "shows the grouping comparison strip and switches grouping on click" > /tmp/829-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/829-red.log
+          test "$rc" -ne 0
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('src/App.tsx').read_text(encoding='utf-8')
+          start = text.index('const pairAccessibleName =')
+          end = text.index('return (', start)
+          block = text[start:end]
+          if 'unexplainedShare' in block:
+              raise SystemExit('RED invalid: parent accessible name already includes unexplained share')
+          if 'aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)}' not in text:
+              raise SystemExit('RED invalid: historical child-only accessible label not reconstructed')
+          PY
+      - name: Minimal causal accessibility fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('frontend/src/App.tsx')
+          text = p.read_text(encoding='utf-8')
+          old = '''                    }${\n                      explainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL)} ${explainedShare}`\n                        : ""\n                    }`;'''
+          new = '''                    }${\n                      explainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL)} ${explainedShare}`\n                        : ""\n                    }${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }`;'''
+          if old not in text:
+              raise SystemExit('accessible-name composition anchor changed')
+          text = text.replace(old, new, 1)
+          old_badge = '''                            <span\n                              className="post-badge"\n                              aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)}\n                            >'''
+          new_badge = '''                            <span className="post-badge" aria-hidden="true">'''
+          if old_badge not in text:
+              raise SystemExit('historical child badge anchor changed')
+          p.write_text(text.replace(old_badge, new_badge, 1), encoding='utf-8')
+          PY
+          cd frontend
+          pnpm exec vitest run src/App.test.tsx -t "shows the grouping comparison strip and switches grouping on click"
+      - name: Exact reconstructed GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q
+          cd frontend
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+      - name: Verify current authority and promote product branch non-force
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m compileall -q lineageweave backend tests
+          runtime_version="$(uv run --frozen python - <<'PY'
+          import lineageweave
+          print(lineageweave.__version__)
+          PY
+          )"
+          distribution_version="$(uv run --frozen python - <<'PY'
+          import importlib.metadata
+          print(importlib.metadata.version('lineageweave'))
+          PY
+          )"
+          project_version="$(python - <<'PY'
+          import tomllib
+          print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])
+          PY
+          )"
+          test "$runtime_version" = "2.55.0"
+          test "$distribution_version" = "2.55.0"
+          test "$project_version" = "2.55.0"
+          grep -q '"version": "2.55.0"' frontend/package.json
+          grep -q '^# ADR 0369 ' docs/adr/0369-leftover-map-compare-unexplained-share.md
+          grep -q '^\*\*Decision status:\*\* Proposed' docs/adr/0369-leftover-map-compare-unexplained-share.md
+          test -z "$(grep -n '^>$' docs/product-technical-gap-baseline.md || true)"
+          git diff --check "$PARENT"
+          git add -A
+          tree="$(git write-tree)"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+          product_commit="$(printf '%s\n\n%s\n' 'feat(reports): reconstruct grouping comparison unexplained share on current stack' 'Preserve the valid historical #829 delta on exact #828, repair actionable accessible naming, and allocate ADR0369/v2.55.0 without rewriting history.' | git commit-tree "$tree" -p "$OLD_HEAD" -p "$PARENT")"
+          git push origin "$product_commit:refs/heads/$PRODUCT_BRANCH"
