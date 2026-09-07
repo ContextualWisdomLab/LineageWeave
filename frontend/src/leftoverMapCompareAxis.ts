@@ -1,4 +1,4 @@
-/** Caption leftover-map axis share and singular values on the grouping comparison strip (ADR 0293 / ADR 0294). */
+/** Caption persisted leftover-map axis share and singular values on the grouping comparison strip. */
 
 import type { LeftoverMapAxis } from "./api";
 
@@ -46,6 +46,13 @@ export function leftoverMapCompareAxisShare(
   };
 }
 
+/**
+ * Format the canonical persisted singular value for one comparison axis.
+ *
+ * This deliberately does not derive a singular value from share, pair count,
+ * marker count, rank, distance, or coverage. Missing/invalid persisted values
+ * are omitted so the UI cannot invent psychometric output.
+ */
 export function leftoverMapCompareAxisSingular(
   axis: Pick<LeftoverMapAxis, "axis_index" | "leftover_singular_value"> | null | undefined,
 ): LeftoverMapCompareAxisSingular | null {
