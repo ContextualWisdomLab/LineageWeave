@@ -1,4 +1,4 @@
-name: Automation 829 unexplained-share API repair r2
+name: Automation 829 unexplained-share API repair r3
 
 on:
   push:
@@ -32,17 +32,18 @@ jobs:
       PRODUCT_HEAD: 0e4fd5815686120ec66203cb6848834b56bdf289
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - name: Checkout exact staging branch
+      - name: Checkout staging authority
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Verify product authority has not moved
+      - name: Pin exact product parent
         run: |
           set -euo pipefail
           live="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
           test "$live" = "$PRODUCT_HEAD"
           test "$(git merge-base "$PRODUCT_HEAD" HEAD)" = "$PRODUCT_HEAD"
+          git checkout --detach "$PRODUCT_HEAD"
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
@@ -63,7 +64,7 @@ jobs:
       - name: Install committed backend graph
         run: uv sync --frozen --extra dev --extra backend
 
-      - name: Add transport and authenticated endpoint regressions
+      - name: Add transport regression and capture realistic RED
         run: |
           cat > backend/tests/test_report_ingestion_unexplained_share.py <<'PY'
           """Regression for persisted grouping-comparison unexplained-share transport."""
@@ -81,21 +82,11 @@ jobs:
 
               async def fetch(self, query: str, *_args: object) -> list[dict[str, object]]:
                   if "from report_period_score" in query:
-                      return [
-                          {
-                              "grouping_kind": "thread_group",
-                              "grouping_key": "synthetic-thread",
-                              "mean_theta": 0.1,
-                              "post_count": 2,
-                              "link_method": "synthetic",
-                          }
-                      ]
+                      return [{"grouping_kind": "thread_group", "grouping_key": "synthetic-thread", "mean_theta": 0.1, "post_count": 2, "link_method": "synthetic"}]
                   if "from report_member_score" in query:
                       return []
                   if "from report_leftover_pair" in query:
-                      assert "lp.leftover_map_unexplained_share" in query, (
-                          "leftover_map_unexplained_share is absent from comparison SELECT"
-                      )
+                      assert "lp.leftover_map_unexplained_share" in query, "leftover_map_unexplained_share is absent from comparison SELECT"
                       common = {
                           "grouping_kind": "thread_group",
                           "grouping_key": "synthetic-thread",
@@ -113,72 +104,18 @@ jobs:
                           {**common, "pair_kind": "closest", "leftover_map_unexplained_share": Decimal("0.02")},
                           {**common, "pair_kind": "farthest", "leftover_map_unexplained_share": None},
                       ]
-                  if "from report_leftover_map_coverage" in query:
-                      return []
-                  if "from report_leftover_map_axis" in query:
+                  if "from report_leftover_map_coverage" in query or "from report_leftover_map_axis" in query:
                       return []
                   raise AssertionError(f"unexpected comparison query: {query}")
 
 
           def test_fetch_period_comparison_transports_persisted_unexplained_share() -> None:
               """Persisted finite values reach the read model while SQL NULL remains unknown."""
-              payload = asyncio.run(
-                  report_ingestion.fetch_period_comparison(_ComparisonConnection(), "2026-W02")  # type: ignore[arg-type]
-              )
-
+              payload = asyncio.run(report_ingestion.fetch_period_comparison(_ComparisonConnection(), "2026-W02"))  # type: ignore[arg-type]
               pairs = payload[0]["leftover_pairs"]
               assert pairs[0]["leftover_map_unexplained_share"] == 0.02
               assert pairs[1]["leftover_map_unexplained_share"] is None
           PY
-
-          python - <<'PY'
-          from pathlib import Path
-
-          test_path = Path("backend/tests/test_api.py")
-          text = test_path.read_text()
-          marker = '''    assert all(\n        pair.get("leftover_map_reconstruction") is None\n        or isinstance(pair["leftover_map_reconstruction"], (int, float))\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n'''
-          addition = marker + '''    assert all(\n        "leftover_map_unexplained_share" in pair\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n    assert any(\n        pair["leftover_map_unexplained_share"] is not None\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n    assert all(\n        pair["leftover_map_unexplained_share"] is None\n        or isinstance(pair["leftover_map_unexplained_share"], (int, float))\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n'''
-          assert text.count(marker) == 1, "comparison API assertion marker drifted"
-          test_path.write_text(text.replace(marker, addition, 1))
-
-          adr_path = Path("docs/adr/0369-leftover-map-compare-unexplained-share.md")
-          adr = adr_path.read_text()
-          problem_old = (
-              "The grouping-comparison read model already carries persisted "
-              "`leftover_map_unexplained_share` (`s = U² / R²`) for authorized leftover pairs, "
-              "but exact #828 does not surface it on comparison pair actions."
-          )
-          problem_new = (
-              "The period-report pair model persists `leftover_map_unexplained_share` "
-              "(`s = U² / R²`) for authorized leftover pairs, but exact #828's "
-              "grouping-comparison read path omits that field, so the frontend cannot "
-              "receive it from `GET /api/reports/compare/{period_code}`."
-          )
-          assert adr.count(problem_old) == 1, "ADR problem statement drifted"
-          adr = adr.replace(problem_old, problem_new, 1)
-          verification_old = (
-              "The focused current-parent test must first RED while the parent name omits "
-              "`U²/R² 0.02`, then GREEN after only the accessible-name/duplicate-badge fix. "
-              "Full backend, frontend lint/test/build/Storybook, version parity, clean-tree "
-              "authority, and non-force promotion are required."
-          )
-          verification_new = (
-              "The accessibility test must RED while the parent name omits `U²/R² 0.02`, "
-              "then GREEN after only the accessible-name/duplicate-badge fix. The transport "
-              "regression must independently RED while the comparison SELECT omits the "
-              "persisted field, then GREEN without deriving or clamping it. A real authenticated "
-              "PostgreSQL/Keycloak/Valkey `GET /api/reports/compare/2026-W02` acceptance must "
-              "prove the persisted key/value reaches authorized leftover pairs. Full backend, "
-              "frontend lint/test/build/Storybook, version parity, clean-tree authority, and "
-              "non-force promotion are required."
-          )
-          assert adr.count(verification_old) == 1, "ADR verification statement drifted"
-          adr_path.write_text(adr.replace(verification_old, verification_new, 1))
-          PY
-
-      - name: Reproduce exact RED before production repair
-        run: |
-          set -euo pipefail
           set +e
           output="$(uv run --frozen python -m pytest -q backend/tests/test_report_ingestion_unexplained_share.py 2>&1)"
           status=$?
@@ -187,38 +124,49 @@ jobs:
           test "$status" -ne 0
           grep -q "leftover_map_unexplained_share is absent from comparison SELECT" <<<"$output"
 
-      - name: Apply minimal persisted-field transport repair
+      - name: Apply minimum causal transport repair and code-current evidence
         run: |
           python - <<'PY'
           from pathlib import Path
 
           path = Path("backend/app/report_ingestion.py")
           text = path.read_text()
-
           query_old = """               lp.criterion_code, lp.leftover_distance, lp.leftover_residual,\n               lp.leftover_map_reconstruction,\n               p.post_title, p.visibility_code, p.corporate_entity_id,"""
           query_new = """               lp.criterion_code, lp.leftover_distance, lp.leftover_residual,\n               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,\n               p.post_title, p.visibility_code, p.corporate_entity_id,"""
-          assert text.count(query_old) == 1, "comparison SELECT marker drifted"
+          assert text.count(query_old) == 1
           text = text.replace(query_old, query_new, 1)
-
           payload_old = '''                        "leftover_map_reconstruction": (\n                            None\n                            if pair["leftover_map_reconstruction"] is None\n                            else float(pair["leftover_map_reconstruction"])\n                        ),\n                        "visibility_code": pair["visibility_code"],'''
           payload_new = '''                        "leftover_map_reconstruction": (\n                            None\n                            if pair["leftover_map_reconstruction"] is None\n                            else float(pair["leftover_map_reconstruction"])\n                        ),\n                        "leftover_map_unexplained_share": (\n                            None\n                            if pair["leftover_map_unexplained_share"] is None\n                            else float(pair["leftover_map_unexplained_share"])\n                        ),\n                        "visibility_code": pair["visibility_code"],'''
-          assert text.count(payload_old) == 1, "comparison payload marker drifted"
+          assert text.count(payload_old) == 1
           path.write_text(text.replace(payload_old, payload_new, 1))
+
+          test_path = Path("backend/tests/test_api.py")
+          text = test_path.read_text()
+          marker = '''    assert all(\n        pair.get("leftover_map_reconstruction") is None\n        or isinstance(pair["leftover_map_reconstruction"], (int, float))\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n'''
+          addition = marker + '''    assert all(\n        "leftover_map_unexplained_share" in pair\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n    assert any(\n        pair["leftover_map_unexplained_share"] is not None\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n    assert all(\n        pair["leftover_map_unexplained_share"] is None\n        or isinstance(pair["leftover_map_unexplained_share"], (int, float))\n        for pair in leftover_thread.get("leftover_pairs", [])\n    )\n'''
+          assert text.count(marker) == 1
+          test_path.write_text(text.replace(marker, addition, 1))
+
+          adr_path = Path("docs/adr/0369-leftover-map-compare-unexplained-share.md")
+          adr = adr_path.read_text()
+          old = "The grouping-comparison read model already carries persisted `leftover_map_unexplained_share` (`s = U² / R²`) for authorized leftover pairs, but exact #828 does not surface it on comparison pair actions."
+          new = "The period-report pair model persists `leftover_map_unexplained_share` (`s = U² / R²`) for authorized leftover pairs, but exact #828's grouping-comparison read path omits that field, so the frontend cannot receive it from `GET /api/reports/compare/{period_code}`."
+          assert adr.count(old) == 1
+          adr = adr.replace(old, new, 1)
+          verification_old = "The focused current-parent test must first RED while the parent name omits `U²/R² 0.02`, then GREEN after only the accessible-name/duplicate-badge fix. Full backend, frontend lint/test/build/Storybook, version parity, clean-tree authority, and non-force promotion are required."
+          verification_new = "The accessibility test must RED while the parent name omits `U²/R² 0.02`, then GREEN after only the accessible-name/duplicate-badge fix. The transport regression must independently RED while the comparison SELECT omits the persisted field, then GREEN without deriving or clamping it. A real authenticated PostgreSQL/Keycloak/Valkey `GET /api/reports/compare/2026-W02` acceptance must prove the persisted key/value reaches authorized leftover pairs. Full backend, frontend lint/test/build/Storybook, version parity, clean-tree authority, and non-force promotion are required."
+          assert adr.count(verification_old) == 1
+          adr_path.write_text(adr.replace(verification_old, verification_new, 1))
           PY
 
-      - name: Focused transport GREEN
-        run: uv run --frozen python -m pytest -q backend/tests/test_report_ingestion_unexplained_share.py
+      - name: Focused and full backend GREEN
+        run: |
+          uv run --frozen python -m pytest -q backend/tests/test_report_ingestion_unexplained_share.py
+          uv run --frozen python -m pytest -q
 
-      - name: Full PostgreSQL-backed GREEN
-        run: uv run --frozen python -m pytest -q
-
-      - name: Authenticated comparison endpoint GREEN
+      - name: Authenticated PostgreSQL Keycloak Valkey acceptance GREEN
         run: |
           set -euo pipefail
-          # `docker compose down` parses all services, including the canonical
-          # orchestrator's ${HOME}/.env boundary. This runner-local empty file
-          # contains no provider credential; it exists only to make teardown
-          # use the same valid Compose model as startup and is then removed.
           test ! -e "$HOME/.env"
           install -m 600 /dev/null "$HOME/.env"
           docker compose up -d postgres valkey keycloak
@@ -236,65 +184,37 @@ jobs:
             sleep 2
           done
           test "$ready" = 1
-          uv run --frozen python -m pytest -q \
-            backend/tests/test_api.py::test_seed_period_report_surfaces_on_get_reports
+          uv run --frozen python -m pytest -q backend/tests/test_api.py::test_seed_period_report_surfaces_on_get_reports
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
         with:
           node-version: "24"
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install frozen frontend graph
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
-
       - name: Frontend exact-tree GREEN
         working-directory: frontend
         run: |
+          corepack enable
+          pnpm install --frozen-lockfile
           pnpm run lint
           pnpm run test
           pnpm run build
           pnpm run build-storybook
 
-      - name: Verify minimal product delta and create workflow-free commit
-        id: product
+      - name: Verify narrow product delta and promote non-force
         run: |
           set -euo pipefail
-          git reset --mixed "$PRODUCT_HEAD"
-          git add \
-            backend/app/report_ingestion.py \
-            backend/tests/test_api.py \
-            backend/tests/test_report_ingestion_unexplained_share.py \
-            docs/adr/0369-leftover-map-compare-unexplained-share.md
-          changed="$(git diff --cached --name-only "$PRODUCT_HEAD" | sort)"
-          expected="$(printf '%s\n' \
-            backend/app/report_ingestion.py \
-            backend/tests/test_api.py \
-            backend/tests/test_report_ingestion_unexplained-share.py \
-            docs/adr/0369-leftover-map-compare-unexplained-share.md | sort)"
+          changed="$(git status --short | awk '{print $2}' | sort)"
+          expected="$(printf '%s\n' backend/app/report_ingestion.py backend/tests/test_api.py backend/tests/test_report_ingestion_unexplained_share.py docs/adr/0369-leftover-map-compare-unexplained-share.md | sort)"
           test "$changed" = "$expected"
-          git diff --cached --check
-          tree="$(git write-tree)"
+          git diff --check
+          git add backend/app/report_ingestion.py backend/tests/test_api.py backend/tests/test_report_ingestion_unexplained_share.py docs/adr/0369-leftover-map-compare-unexplained-share.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          commit="$(printf '%s\n\n%s\n' \
-            'fix(reports): deliver grouping comparison unexplained share' \
-            'Carry persisted leftover_map_unexplained_share through the authorized comparison API, keep ADR0369 code-current, and retain exact endpoint regression evidence.' \
-            | git commit-tree "$tree" -p "$PRODUCT_HEAD")"
-          test "$(git rev-parse "${commit}^{tree}")" = "$tree"
-          test "$(git rev-parse "${commit}^")" = "$PRODUCT_HEAD"
-          printf 'commit=%s\n' "$commit" >> "$GITHUB_OUTPUT"
-
-      - name: Promote exact repaired tree non-force
-        env:
-          PRODUCT_COMMIT: ${{ steps.product.outputs.commit }}
-        run: |
-          set -euo pipefail
+          git commit -m "fix(reports): deliver grouping comparison unexplained share"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_HEAD"
           live="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
           test "$live" = "$PRODUCT_HEAD"
-          git push origin "${PRODUCT_COMMIT}:refs/heads/${PRODUCT_BRANCH}"
+          git push origin "HEAD:refs/heads/${PRODUCT_BRANCH}"
           promoted="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
-          test "$promoted" = "$PRODUCT_COMMIT"
+          test "$promoted" = "$(git rev-parse HEAD)"
