@@ -214,6 +214,22 @@ describe("layoutLeftoverMapPlot", () => {
     );
   });
 
+  it("keeps distinct persisted coordinates that share a rounded tick label", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0.001,
+          leftover_map_item_axis_1: 0.004,
+        }),
+      ],
+      criterionLabel,
+    );
+    const axis1 = layout?.ticks.filter((tick) => tick.axis === 1);
+    expect(axis1?.map((tick) => tick.value)).toEqual([0, 0.001, 0.004]);
+    expect(axis1?.map((tick) => tick.label)).toEqual(["0.00", "+0.00", "+0.00"]);
+    expect(new Set(axis1?.map((tick) => tick.x))).toHaveProperty("size", 3);
+  });
+
   it("names persisted leftover-map distance on pair segments without inventing a leftover score", () => {
     const layout = layoutLeftoverMapPlot(
       [
@@ -232,10 +248,11 @@ describe("layoutLeftoverMapPlot", () => {
       criterionLabel,
     );
     expect(layout?.segments.map((segment) => segment.distanceLabel)).toEqual(["d 0.12", "d 1.84"]);
-    expect(layout?.segments[0]?.labelX).toBeCloseTo(
-      ((layout?.segments[0]?.x1 ?? 0) + (layout?.segments[0]?.x2 ?? 0)) / 2,
-      5,
-    );
+    const segment = layout?.segments[0];
+    const midpointX = ((segment?.x1 ?? 0) + (segment?.x2 ?? 0)) / 2;
+    const midpointY = ((segment?.y1 ?? 0) + (segment?.y2 ?? 0)) / 2;
+    expect(Math.hypot((segment?.labelX ?? 0) - midpointX, (segment?.labelY ?? 0) - midpointY))
+      .toBeCloseTo(24, 5);
   });
 
   it("omits a leftover-map distance caption when d is missing or non-finite", () => {
@@ -378,6 +395,43 @@ describe("layoutLeftoverMapPlot", () => {
     expect(layout?.segments[0]?.explainedShareY).toBeGreaterThan(
       layout?.segments[0]?.reconstructionY ?? 0,
     );
+  });
+
+  it("keeps complete caption stacks inside top and bottom plot edges", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: -1,
+          leftover_map_person_axis_2: -1,
+          leftover_map_item_axis_1: 1,
+          leftover_map_item_axis_2: -1,
+          observed_response: 2.4,
+          expected_response: 2.0,
+          leftover_map_rank: 1,
+        }),
+        pair({
+          pair_kind: "farthest",
+          post_id: "post-demo-spec",
+          criterion_code: "negative_sentiment",
+          leftover_map_person_axis_1: 1,
+          leftover_map_person_axis_2: 1,
+          leftover_map_item_axis_1: -1,
+          leftover_map_item_axis_2: 1,
+          observed_response: 2.4,
+          expected_response: 2.0,
+          leftover_map_rank: 1,
+        }),
+      ],
+      criterionLabel,
+    );
+
+    expect(layout?.segments).toHaveLength(2);
+    for (const segment of layout!.segments) {
+      expect(segment.labelY).toBeGreaterThanOrEqual(12);
+      expect(segment.rankLabel).toBe("rank 1");
+      expect(segment.rankY).toBeGreaterThan(segment.expectedY);
+      expect(segment.rankY).toBeLessThanOrEqual(layout!.height - 4);
+    }
   });
 
   it("omits a leftover-map explained leftover share caption when e is missing or non-finite", () => {
