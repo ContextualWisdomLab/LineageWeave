@@ -1,0 +1,39 @@
+name: automation-825-reconstruct-r3
+
+on:
+  push:
+    branches:
+      - automation/825-current-824-reconstruction-r3-20260907-1155
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-delta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact current parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd"
+          git merge-base --is-ancestor 499d653ed6e9206249e3f3a07518ad3fc01f14bd HEAD
+      - name: Reapply historical #825 unique commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git cherry-pick --no-commit bca6baabd917478bf4f6b688ec2755cde95e3575; then
+            echo "HISTORICAL_DELTA_APPLIES_CLEANLY"
+            git diff --check
+            exit 0
+          fi
+          echo "CONFLICT_PATHS_BEGIN"
+          git diff --name-only --diff-filter=U
+          echo "CONFLICT_PATHS_END"
+          git status --short
+          exit 1
