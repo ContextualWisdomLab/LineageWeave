@@ -3,7 +3,7 @@
 **Decision status:** Proposed
 
 ## Problem
-The grouping-comparison read model persists `leftover_singular_value` for each Gabriel leftover-map axis, but exact predecessor #829 (`0e4fd5815686120ec66203cb6848834b56bdf289`, ADR 0369 / v2.55.0) does not expose that scale on the comparison strip. Historical #830 demonstrated the buyer-visible delta on stale ancestry and historical ADR 0294 / v2.51.0, which are evidence only because those identities now belong to different serialized decisions.
+The grouping-comparison read model persists `leftover_singular_value` for each Gabriel leftover-map axis, but exact predecessor #829 (`07301271f813b8bb0e40f57aa22373baf5efbf01`, ADR 0369 / v2.55.0) does not expose that scale on the comparison strip. Historical #830 demonstrated the buyer-visible delta on stale ancestry and historical ADR 0294 / v2.51.0, which are evidence only because those identities now belong to different serialized decisions.
 
 ## Constraints
 - Consume only persisted `leftover_singular_value`; LineageWeave must not derive `σ_k` from axis share, pair or marker counts, coordinates, distance, rank, coverage, incomplete counts, reconstruction, or any other psychometric value.
@@ -16,7 +16,7 @@ The grouping-comparison read model persists `leftover_singular_value` for each G
 ## Alternatives and decision
 Omitting `σ_k` hides persisted Gabriel scale that is already available in the authorized read model. Recomputing it in the client would duplicate psychometric authority and can diverge from the persisted factorization. Coupling singular display to axis-share validity would also discard valid evidence. Therefore the grouping-comparison strip consumes the persisted scalar directly, formats finite non-negative values independently from axis share, preserves zero, and fail-closes only the invalid singular caption.
 
-This is the serialized successor of exact #829 and allocates v2.56.0. Historical #830 ADR 0294 / v2.51.0 remains provenance only; current ADR 0294 continues to govern grouping-comparison incomplete-item coverage.
+This is the serialized successor of exact #829 `07301271f813b8bb0e40f57aa22373baf5efbf01` and allocates v2.56.0. Historical #830 ADR 0294 / v2.51.0 remains provenance only; current ADR 0294 continues to govern grouping-comparison incomplete-item coverage.
 
 ## Verification
 A current-parent test must first RED because exact #829 lacks the grouping-comparison singular formatter. The causal implementation then requires focused formatter/render/API regressions, the full PostgreSQL-backed backend suite, frontend lint/test/build/Storybook, release-version parity, and a clean exact-head tree. Material UI completion additionally requires current-head responsive, keyboard, focus, and accessibility evidence. Hosted security gates and qualifying independent review remain separate merge gates; this ADR stays Proposed until the protected-main release is actually accepted.
