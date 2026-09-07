@@ -32,6 +32,12 @@ type LeftoverMapCompareAxisSingularInput =
   Pick<LeftoverMapAxis, "axis_index"> &
   Partial<Pick<LeftoverMapAxis, "leftover_singular_value">>;
 
+const LARGE_FIXED_TWO_DECIMAL = new Intl.NumberFormat("en-US", {
+  useGrouping: false,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export function leftoverMapCompareAxisShare(
   axis: Pick<LeftoverMapAxis, "axis_index" | "leftover_share"> | null | undefined,
 ): LeftoverMapCompareAxisShare | null {
@@ -74,8 +80,10 @@ export function leftoverMapCompareAxisSingular(
   ) {
     return null;
   }
+  const value = axis.leftover_singular_value;
   return {
     axis: axis.axis_index,
-    value: axis.leftover_singular_value.toFixed(2),
+    // ECMAScript toFixed switches to exponential notation at 1e21.
+    value: value >= 1e21 ? LARGE_FIXED_TWO_DECIMAL.format(value) : value.toFixed(2),
   };
 }
