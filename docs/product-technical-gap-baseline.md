@@ -48,9 +48,13 @@ at `221df2281` completed with **53 passed, 73 failed (126 total)**: the failures
 are in existing authenticated journeys, predominantly test deadlines, with
 additional element-lookup failures. The run took 938 seconds; concurrent host
 load exceeded 60 and swap use exceeded 44 GB. Contention is a hypothesis, not
-proof that the failures are harmless. Keep the PR draft until unchanged
-required checks verify the authenticated journeys; do not raise their limits,
-skip them, or claim a full regression pass.
+proof that the failures are harmless. A four-case recheck passed three and
+retained one timeout. That remaining case also failed in a paired experiment
+using protected-main App and return-path source; temporary experiment files
+were removed. The repository skips Tests jobs for drafts and has no manual
+dispatch, so the ready-for-review event admits the normal checks. It does not
+establish merge readiness. Required checks must verify the authenticated
+journeys; do not raise their limits, skip them, or claim a full regression pass.
 
 **Remaining acceptance gaps.** This failure-path browser check does not prove
 successful authentication, deployed behavior, eight-locale database delivery,
