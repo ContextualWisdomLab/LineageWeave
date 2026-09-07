@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -398,6 +398,7 @@ axis share and does not invent `σ_k` from leftover-map axis share.
 ADR 0292 captions leftover-axis report badges with persisted leftover-map singular values `σ_k` when finite and non-negative, including rank-0 zero singular values; missing, non-finite, or negative singular values omit only the `σ` caption and never derive `σ_k` from leftover-map axis share.
 ADR 0290 captions the grouping comparison strip with persisted leftover-map post complete-case coverage only when the caller can see the full persisted grouping population. Partial-visibility groupings omit that aggregate; never reconstruct the psychometric denominator from visible members, leftover pairs, or plotted markers.
 ADR 0291 captions the grouping comparison strip with persisted leftover-map item complete-case coverage through leftoverMapItemCoverageCounts only when the caller can see the full persisted grouping population. Partial-visibility rows inherit ADR 0290's fail-closed coverage boundary and never recompute psychometric coverage from visible members, leftover pairs, or plotted criterion markers.
+ADR 0293 captions the grouping comparison strip with persisted leftover-map incomplete-post count only under the same full-visible-grouping authorization boundary. Partial-visibility groupings omit the aggregate and never derive dropped posts from the visible subset or scored-minus-used. Persisted valid dropped `0` remains visible.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are

@@ -4286,6 +4286,26 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete posts"),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete posts",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete posts",
+      )[0],
+    ).toHaveTextContent("Leftover map dropped 0 incomplete posts");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete posts",
+      )[1],
+    ).toHaveTextContent("Leftover map dropped 1 incomplete posts");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic incomplete posts",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete items"),
     ).not.toBeInTheDocument();
     expect(
