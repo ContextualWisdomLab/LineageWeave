@@ -59,3 +59,5 @@ changing code, tests, or runtime policy rather than restating anything
 here.
 
 ADR 0294 is the Proposed grouping-comparison incomplete-item presentation contract; preserve server-side full-group visibility gating and do not infer dropped criteria in the frontend.
+
+ADR 0295 is the Proposed grouping-comparison reconstruction contract: persisted `R̂` only, no client inference, accessible-name exposure required despite the button's explicit aria-label.

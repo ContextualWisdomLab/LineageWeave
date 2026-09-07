@@ -922,6 +922,7 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    leftover_map_reconstruction: 0.248,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4337,6 +4338,10 @@ describe("App, authenticated", () => {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    const reconstructionPair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25/i,
+    });
+    expect(reconstructionPair).toHaveTextContent("R̂ +0.25");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

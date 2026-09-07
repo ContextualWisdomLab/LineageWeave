@@ -538,3 +538,5 @@ closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
 
 ADR 0294 keeps grouping-comparison incomplete-item coverage in the LineageWeave read-model boundary: consume only authorization-filtered persisted coverage for a full grouping, omit partial visibility, and never recompute psychometrics in the client.
+
+ADR 0295 keeps grouping-comparison reconstruction in the LineageWeave read-model/UI boundary: format only persisted `R̂`, expose the value in the pair button accessible name, and never derive psychometric reconstruction from UI-visible proxies.
