@@ -173,3 +173,28 @@ it("keeps reading a live queued job after fifteen minutes", async () => {
   await vi.advanceTimersByTimeAsync(4000);
   expect(await result).toEqual(answer);
 });
+
+
+it.each([200, 503])("preserves custom cancellation reason while parsing a %i response body", async (status) => {
+  const controller = new AbortController();
+  const retirement = new Error("authorized screen retired");
+  let rejectBody: (reason: unknown) => void = () => undefined;
+  const body = new Promise<unknown>((_resolve, reject) => {
+    rejectBody = reject;
+  });
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    json: vi.fn().mockImplementation(() => body),
+  } as unknown as Response);
+  vi.stubGlobal("fetch", fetchMock);
+
+  const result = askAgent("token", "Question", false, undefined, controller.signal).catch(
+    (error: unknown) => error,
+  );
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  controller.abort(retirement);
+  rejectBody(new DOMException("The operation was aborted.", "AbortError"));
+
+  expect(await result).toBe(retirement);
+});
