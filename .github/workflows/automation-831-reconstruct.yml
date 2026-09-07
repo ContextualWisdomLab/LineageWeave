@@ -1,0 +1,373 @@
+name: Reconstruct PR 831 on exact 830
+
+on:
+  push:
+    branches:
+      - automation/831-current-830-reconstruction-r1-20260908-0215
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reconstruct-831-current-830
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PARENT_SHA: b36b2534c9b3a63b66c56ae22ff3dcad40ae5c67
+      HISTORICAL_SHA: 8a12062cd8efef0c99abe794ef3e9f8dcbc31617
+      PRODUCT_BRANCH: feat/leftover-map-compare-cross-share-v2530
+      STAGING_BRANCH: automation/831-current-830-reconstruction-r1-20260908-0215
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout staging authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact parent and live historical product head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          LIVE_PRODUCT="$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)"
+          test "$LIVE_PRODUCT" = "$HISTORICAL_SHA"
+          git merge-base --is-ancestor "$PARENT_SHA" HEAD
+          git switch --detach "$PARENT_SHA"
+          test ! -e .github/workflows/automation-831-reconstruct.yml
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack and install frozen frontend graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Add realistic current-parent accessibility RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text()
+          marker = '''    const unexplainedSharePair = screen.getByRole("button", {
+                name: /open leftover closest pair from comparison: public post.*leftover map comparison unexplained leftover share U²\\/R² 0\\.02/i,
+              });
+              expect(unexplainedSharePair).toHaveTextContent("U²/R² 0.02");'''
+          addition = marker + '''
+              const crossSharePair = screen.getByRole("button", {
+                name: /open leftover closest pair from comparison: public post.*leftover map comparison cross share 2R̂U\\/R² 0\\.12/i,
+              });
+              expect(crossSharePair).toHaveTextContent("2R̂U/R² 0.12");
+              expect(within(crossSharePair).getByText("2R̂U/R² 0.12")).toHaveAttribute(
+                "aria-hidden",
+                "true",
+              );'''
+          if marker not in text:
+              raise SystemExit("current-parent App accessibility assertion marker not found")
+          path.write_text(text.replace(marker, addition, 1))
+          PY
+          set +e
+          (cd frontend && pnpm exec vitest run src/App.test.tsx) > /tmp/pr831-red.log 2>&1
+          RED_STATUS=$?
+          set -e
+          cat /tmp/pr831-red.log
+          test "$RED_STATUS" -ne 0
+          grep -Eqi 'cross share|Unable to find.*button|accessible' /tmp/pr831-red.log
+
+      - name: Apply smallest current-parent cross-share repair and release authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path}: expected exactly one repair marker, found {text.count(old)}")
+              target.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "frontend/src/App.tsx",
+              '''import {
+            formatLeftoverMapUnexplainedShare,
+            LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
+          } from "./leftoverMapUnexplainedShare";
+          import {
+            leftoverMapCompareAxisShare,''',
+              '''import {
+            formatLeftoverMapUnexplainedShare,
+            LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
+          } from "./leftoverMapUnexplainedShare";
+          import {
+            formatLeftoverMapCrossShare,
+            LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,
+          } from "./leftoverMapCrossShare";
+          import {
+            leftoverMapCompareAxisShare,''',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(
+                        pair.leftover_map_unexplained_share,
+                      );
+                      const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${''',
+              '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(
+                        pair.leftover_map_unexplained_share,
+                      );
+                      const crossShare = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
+                      const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${''',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''                      unexplainedShare
+                          ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
+                          : ""
+                      }`;''',
+              '''                      unexplainedShare
+                          ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
+                          : ""
+                      }${
+                        crossShare
+                          ? ` · ${t(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL)} ${crossShare}`
+                          : ""
+                      }`;''',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''                          {unexplainedShare ? (
+                              <span className="post-badge" aria-hidden="true">
+                                {unexplainedShare}
+                              </span>
+                            ) : null}
+                          </button>''',
+              '''                          {unexplainedShare ? (
+                              <span className="post-badge" aria-hidden="true">
+                                {unexplainedShare}
+                              </span>
+                            ) : null}
+                            {crossShare ? (
+                              <span className="post-badge" aria-hidden="true">
+                                {crossShare}
+                              </span>
+                            ) : null}
+                          </button>''',
+          )
+
+          helper = Path("frontend/src/leftoverMapCrossShare.ts")
+          helper_text = helper.read_text()
+          old_helper = '''export const LEFTOVER_MAP_CROSS_SHARE_ACTION =
+            "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.";
+
+          export function formatLeftoverMapCrossShare(
+            value: number | null | undefined,
+          ): string | null {
+            if (value == null || !Number.isFinite(value)) {
+              return null;
+            }
+            return `2R\\u0302U/R\\u00b2 ${value.toFixed(2)}`;
+          }
+          '''
+          new_helper = '''export const LEFTOVER_MAP_CROSS_SHARE_ACTION =
+            "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.";
+
+          export const LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL =
+            "Leftover map comparison cross share";
+
+          const LARGE_FIXED_TWO_DECIMAL = new Intl.NumberFormat("en-US", {
+            useGrouping: false,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+
+          export function formatLeftoverMapCrossShare(
+            value: number | null | undefined,
+          ): string | null {
+            if (value == null || !Number.isFinite(value)) {
+              return null;
+            }
+            const formatted = Math.abs(value) >= 1e21 ? LARGE_FIXED_TWO_DECIMAL.format(value) : value.toFixed(2);
+            return `2R\\u0302U/R\\u00b2 ${formatted}`;
+          }
+          '''
+          if helper_text != old_helper:
+              raise SystemExit("leftoverMapCrossShare.ts current-parent authority changed")
+          helper.write_text(new_helper)
+
+          helper_test = Path("frontend/src/leftoverMapCrossShare.test.ts")
+          helper_test_text = helper_test.read_text()
+          helper_test_marker = '''  it("omits the badge when leftover-map cross share is missing or non-finite", () => {'''
+          helper_test_addition = '''  it("keeps large finite cross share in fixed two-decimal notation", () => {
+              expect(formatLeftoverMapCrossShare(1e21)).toBe("2R\\u0302U/R\\u00b2 1000000000000000000000.00");
+              expect(formatLeftoverMapCrossShare(-1e21)).toBe("2R\\u0302U/R\\u00b2 -1000000000000000000000.00");
+            });
+
+          ''' + helper_test_marker
+          if helper_test_text.count(helper_test_marker) != 1:
+              raise SystemExit("cross-share edge-test marker changed")
+          helper_test.write_text(helper_test_text.replace(helper_test_marker, helper_test_addition, 1))
+
+          versions = {
+              "pyproject.toml": ('version = "2.56.0"', 'version = "2.57.0"'),
+              "lineageweave/__init__.py": ('__version__ = "2.56.0"', '__version__ = "2.57.0"'),
+              "frontend/package.json": ('"version": "2.56.0"', '"version": "2.57.0"'),
+          }
+          for path, (old, new) in versions.items():
+              replace_once(path, old, new)
+
+          Path("docs/adr/0371-leftover-map-compare-cross-share.md").write_text('''# ADR 0371 — Persisted leftover-map cross share in grouping-comparison pair actions
+
+**Decision status:** Proposed
+
+## Problem
+Exact predecessor #830 (`b36b2534c9b3a63b66c56ae22ff3dcad40ae5c67`, ADR 0370 / v2.56.0) gives grouping-comparison pair buttons an explicit accessible name containing persisted reconstruction, explained-share, and unexplained-share evidence. Persisted leftover-map cross share `x = 2R̂U/R²` already exists in the authorized read model, but the comparison action omits it. Historical #831 displayed a separately labelled descendant badge, which leaves the actionable button name incomplete and can double-announce nested text.
+
+## Constraints
+- Consume only persisted `leftover_map_cross_share`; never derive `x` from `R̂`, `U`, `R`, distance, coordinates, rank, coverage, or any other UI-visible proxy.
+- Missing or non-finite `x` omits only the cross-share suffix and badge. Finite zero and negative values remain explicit.
+- The button accessible name carries the comparison label and formatted value. The duplicate visible badge is `aria-hidden` so it is not announced twice.
+- Keep whole-population authorization and evidence boundaries inherited from the predecessor; never recompute hidden-population psychometric truth from visible members.
+- Psychometric estimation remains owned by the released `fast-mlsirm` boundary. LineageWeave owns only this read-model/action composition.
+- The comparison label is a translation key, not a new inline locale ledger. Canonical KO/EN/JA/ZH/VI/ES/DE/FR resources remain owned by the versioned translation-ledger path (#922/#929/#932).
+
+## Decision
+Use the existing persisted cross-share formatter in the grouping-comparison pair action. Append the formatted value to the button's explicit accessible name and render the same value as an `aria-hidden` visual badge. Retain finite values across the JavaScript fixed-point threshold by using non-exponential two-decimal formatting at `|x| >= 1e21`.
+
+Historical ADR 0296 / v2.53.0 remains provenance only. This serialized successor allocates ADR 0371 / v2.57.0 and remains Proposed until the unchanged protected-main release is accepted.
+
+## Verification
+A current-parent role/name regression must fail before production changes because exact #830 lacks the cross-share suffix. GREEN requires the focused App/helper regressions, full frontend lint/test/build/Storybook, full PostgreSQL-backed Python suite, synchronized release versions and regenerated universal lock, plus a clean workflow-free product tree. Hosted security checks, current browser/responsive/keyboard/focus evidence, canonical eight-locale ledger consumption, and qualifying independent approval remain separate promotion gates.
+
+## Evidence
+Gabriel, K. R. (1971). The biplot graphic display of matrices with application to principal component analysis. *Biometrika, 58*(3), 453–467.
+
+Jeon, M., Jin, I. H., Schweinberger, M., & Baugh, S. (2021). Mapping unobserved item–respondent interactions: A latent space item response model with interaction map. *Psychometrika, 86*(2), 378–403.
+''')
+          Path("CHANGELOG.d/2.57.0-leftover-map-compare-cross-share.md").write_text('''# v2.57.0 — grouping-comparison leftover-map cross share
+
+Grouping-comparison pair actions now surface the persisted finite leftover-map cross share `x = 2R̂U/R²` in the action's accessible name and an `aria-hidden` visual badge under Proposed ADR 0371. Missing/non-finite values omit only this metric; finite zero and negative values remain explicit. The read model consumes persisted authority and does not recompute psychometric truth.
+''')
+          Path("tests/test_leftover_map_compare_cross_share_release_authority.py").write_text('''from __future__ import annotations
+
+import json
+import tomllib
+from pathlib import Path
+
+import lineageweave
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_cross_share_release_authority_is_proposed_and_version_synchronized() -> None:
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    frontend = json.loads((ROOT / "frontend/package.json").read_text())
+    adr = (ROOT / "docs/adr/0371-leftover-map-compare-cross-share.md").read_text()
+
+    assert project["project"]["version"] == "2.57.0"
+    assert lineageweave.__version__ == "2.57.0"
+    assert frontend["version"] == "2.57.0"
+    assert "# ADR 0371" in adr
+    assert "**Decision status:** Proposed" in adr
+    assert "leftover_map_cross_share" in adr
+''')
+          PY
+
+      - name: Set up Python and locked dependency manager
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Regenerate universal lock from current dependency authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv lock
+          uv sync --frozen --extra dev --extra backend
+
+      - name: Exact reconstructed GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_leftover_map_compare_cross_share_release_authority.py
+          uv run --frozen python -m pytest -q
+          cd frontend
+          pnpm exec vitest run src/App.test.tsx src/leftoverMapCrossShare.test.ts
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Verify clean product boundary and promote non-force
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .github/workflows/automation-831-reconstruct.yml
+          test -f docs/adr/0371-leftover-map-compare-cross-share.md
+          test -f CHANGELOG.d/2.57.0-leftover-map-compare-cross-share.md
+          ! git diff --name-only | grep -E '^\.github/workflows/'
+          ! git diff --name-only | grep -E '(^|/)(i18n\.ts|i18n\.test\.ts|LeftoverPairList\.tsx|leftoverMapPlotLayout\.ts)$'
+          git diff --check
+          git config user.name "LineageWeave hourly maintainer"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            pyproject.toml uv.lock lineageweave/__init__.py frontend/package.json \
+            frontend/src/App.tsx frontend/src/App.test.tsx \
+            frontend/src/leftoverMapCrossShare.ts frontend/src/leftoverMapCrossShare.test.ts \
+            docs/adr/0371-leftover-map-compare-cross-share.md \
+            CHANGELOG.d/2.57.0-leftover-map-compare-cross-share.md \
+            tests/test_leftover_map_compare_cross_share_release_authority.py
+          TREE_SHA="$(git write-tree)"
+          PRODUCT_SHA="$(printf '%s\n\n%s\n' \
+            'feat(reports): expose persisted cross share in comparison actions' \
+            'Reconstruct #831 on exact #830 with role/name accessibility, Proposed ADR 0371, v2.57.0, and regenerated lock authority.' \
+            | git commit-tree "$TREE_SHA" -p "$HISTORICAL_SHA" -p "$PARENT_SHA")"
+          test "$(git rev-parse "$PRODUCT_SHA^1")" = "$HISTORICAL_SHA"
+          test "$(git rev-parse "$PRODUCT_SHA^2")" = "$PARENT_SHA"
+          LIVE_PRODUCT="$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)"
+          test "$LIVE_PRODUCT" = "$HISTORICAL_SHA"
+          git push origin "$PRODUCT_SHA:refs/heads/$PRODUCT_BRANCH"
+          echo "Promoted #831 product head: $PRODUCT_SHA"
+
+      - name: Remove staging authority branch
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin --delete "$STAGING_BRANCH"
