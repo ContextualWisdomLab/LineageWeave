@@ -1,0 +1,111 @@
+name: automation-830-current-829-reconstruction-r1
+on:
+  push:
+    branches: [automation/830-current-829-reconstruction-r1-20260907-1758]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      PARENT: 0e4fd5815686120ec66203cb6848834b56bdf289
+      OLD_HEAD: ef5fcf63b6bcc2f6b451cb22b277116fb10fe138
+      FEATURE_PARENT: e79137611f0d3041ad836c21e49a95bf7ef1001e
+      PRODUCT_BRANCH: feat/leftover-map-compare-axis-singular-v2510
+    steps:
+      - name: Checkout exact diagnostic lane
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact parent and live product authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PARENT"
+          test "$(git diff --name-only HEAD^..HEAD)" = ".github/workflows/automation-830-current-829-reconstruction-r1.yml"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+          git fetch origin "$PARENT" "$OLD_HEAD" "$FEATURE_PARENT"
+          test "$(git rev-parse "$OLD_HEAD^")" = "$FEATURE_PARENT"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24"
+
+      - name: Install frozen frontend graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Realistic RED for missing persisted singular-value formatter
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > frontend/src/automation830AxisSingular.red.test.ts <<'EOF'
+          import { describe, expect, it } from "vitest";
+          import { leftoverMapCompareAxisSingular } from "./leftoverMapCompareAxis";
+
+          describe("serialized grouping comparison axis singular value", () => {
+            it("preserves persisted zero and rejects negative singular values", () => {
+              expect(
+                leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: 0 }),
+              ).toEqual({ axis: 1, value: "0.00" });
+              expect(
+                leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: -0.01 }),
+              ).toBeNull();
+            });
+          });
+          EOF
+          set +e
+          (cd frontend && pnpm exec vitest run src/automation830AxisSingular.red.test.ts) > /tmp/830-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/830-red.log
+          rm frontend/src/automation830AxisSingular.red.test.ts
+          if [ "$rc" -eq 0 ]; then
+            echo "Expected exact #829 to RED before #830 singular-value reconstruction, but test passed" >&2
+            exit 41
+          fi
+          echo "Expected RED observed with exit=$rc"
+
+      - name: Reapply only historical #830 feature-origin source and test delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B candidate "$PARENT"
+          paths=(
+            backend/tests/test_api.py
+            frontend/src/App.test.tsx
+            frontend/src/App.tsx
+            frontend/src/components/LeftoverPairList.tsx
+            frontend/src/i18n.test.ts
+            frontend/src/i18n.ts
+            frontend/src/leftoverMapCompareAxis.test.ts
+            frontend/src/leftoverMapCompareAxis.ts
+            frontend/src/leftoverMapPlotLayout.ts
+          )
+          git diff --binary "$FEATURE_PARENT" "$OLD_HEAD" -- "${paths[@]}" > /tmp/830-product.patch
+          set +e
+          git apply --3way --index /tmp/830-product.patch
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "PRODUCT_PATCH_CONFLICTS"
+            git diff --name-only --diff-filter=U | sort
+            exit "$rc"
+          fi
+          echo "PRODUCT_PATCH_APPLIED"
+          git diff --cached --name-only | sort
+
+      - name: Focused GREEN for singular-value domain/presentation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          pnpm exec vitest run src/leftoverMapCompareAxis.test.ts
+          pnpm exec oxlint src/leftoverMapCompareAxis.ts src/leftoverMapCompareAxis.test.ts
