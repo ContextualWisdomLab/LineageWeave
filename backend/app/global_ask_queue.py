@@ -134,7 +134,11 @@ async def _run_with_ask_claim_heartbeat(
     lease: list[object],
     operation: Any,
 ) -> Any:
-    """Renew the claim generation while ``operation`` runs; abort on reclaim."""
+    """Renew the claim generation while ``operation`` runs; abort on reclaim.
+
+    If the heartbeat task ends while compute is still running, treat the
+    owner as lost instead of continuing without renewals.
+    """
     lost = asyncio.Event()
     stop = asyncio.Event()
 
@@ -154,7 +158,7 @@ async def _run_with_ask_claim_heartbeat(
     worker = asyncio.create_task(operation)
     try:
         await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
-        if lost.is_set():
+        if lost.is_set() or (beater.done() and not worker.done()):
             raise _LostAskClaim()
         return await worker
     finally:

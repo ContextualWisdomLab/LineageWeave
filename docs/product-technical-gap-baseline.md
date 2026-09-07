@@ -1,13 +1,13 @@
 # Product & Technical Gap Baseline
 
 > Ask ownership-fence overlay: 2026-09-08 KST. Issue #975 / #979 exact
-> head `29d226529` cleared the settings-collection ImportError (Tests
-> run `34152472692`). Follow-up Tests run `34153018910` then failed
-> the public-docstring gate on a nested Ask heartbeat helper named
-> without a leading underscore. That helper is now private. Frontend
-> on that run was GREEN. Explicit 900 s transport timeouts remain
-> valid. ADR 0370 Proposed. Not protected-main or independently
-> approved.
+> head `262d496a9` Tests run `34156704752` was GREEN. Follow-up: a dead
+> heartbeat while compute still ran used to leave the owner live without
+> renewals (RED `TimeoutError` in
+> `test_dead_heartbeat_aborts_live_ask_operation`). The wrapper now
+> aborts as a lost claim. Parent #974 Tests GREEN, BLOCKED on
+> independent APPROVE. #979 has no independent APPROVE. Do not merge.
+> ADR 0370 Proposed.
 >
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map

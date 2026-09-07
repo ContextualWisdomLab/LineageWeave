@@ -29,6 +29,8 @@ the original worker could still settle by job id alone.
   bounded by the removed 600 s worker deadline.
 - Live compute is not cancelled when 600 s elapse. Age-based orphan
   recovery uses three missed heartbeats, not the old 660 s reaper.
+- If the heartbeat task ends while compute is still running, abort as a
+  lost claim rather than continuing without renewals.
 - Provider `TimeoutError` stays an unavailable Ask failure.
 
 ## Consequences
