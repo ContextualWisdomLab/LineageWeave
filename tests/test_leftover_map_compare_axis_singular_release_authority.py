@@ -28,9 +28,15 @@ def test_axis_singular_release_identity_is_2560_everywhere() -> None:
     project = tomllib.loads((_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     frontend = json.loads((_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
     runtime = (_ROOT / "lineageweave" / "__init__.py").read_text(encoding="utf-8")
+    lock = tomllib.loads((_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    locked_lineageweave = [
+        package for package in lock["package"] if package.get("name") == "lineageweave"
+    ]
     match = re.search(r'^__version__ = "([^"]+)"$', runtime, flags=re.MULTILINE)
 
     assert match is not None
     assert project["project"]["version"] == "2.56.0"
     assert frontend["version"] == "2.56.0"
     assert match.group(1) == "2.56.0"
+    assert len(locked_lineageweave) == 1
+    assert locked_lineageweave[0]["version"] == "2.56.0"
