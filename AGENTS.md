@@ -439,3 +439,8 @@ published beside the ontology.
   runtime outcome separately. Inspect secret metadata only; never expose values.
   Preserve reusable lessons here as work proceeds, without transient logs or real
   source records.
+
+- Keyboard acceptance must send keyboard input to focused controls; a pointer-click
+  test with a keyboard title proves neither Enter nor Space activation. Keep both
+  native-button and custom SVG-control activation covered. Programmatic focus in
+  a unit test does not establish browser Tab-order acceptance.

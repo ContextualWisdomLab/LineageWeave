@@ -376,7 +376,8 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
   });
 
-  it("lets keyboard users open node and edge evidence", async () => {
+  it.each(["{Enter}", " "])("opens node and edge evidence with %s", async (activationKey) => {
+    const user = userEvent.setup();
     const onSelectPost = vi.fn();
     const onOpenEvidence = vi.fn();
     render(
@@ -394,14 +395,22 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    const nodeButton = screen.getByRole("button", { name: "Select node: Post Demo public post" });
+    nodeButton.focus();
+    expect(nodeButton).toHaveFocus();
+    await user.keyboard(activationKey);
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
+    screen.getByRole("button", { name: "Open evidence post" }).focus();
+    await user.keyboard(activationKey);
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
     expect(onOpenEvidence).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
+    const edgeButton = screen.getByRole("button", { name: /Select edge: mentions from/ });
+    edgeButton.focus();
+    expect(edgeButton).toHaveFocus();
+    await user.keyboard(activationKey);
     expect(screen.getByText(/Property IRI/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
+    screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }).focus();
+    await user.keyboard(activationKey);
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });

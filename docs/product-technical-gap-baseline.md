@@ -1167,3 +1167,32 @@ Ontology suite included 35 tests: 33 passed and two existing keyboard/Voice case
 exceeded their unchanged five-second deadlines. This is not a green suite or
 authenticated runtime acceptance. TypeScript and the production Vite build passed;
 the existing 500 kB chunk warning remains. No package or runtime was deployed.
+
+
+### Keyboard acceptance and publication eligibility follow-up (2026-09-07)
+
+The ontology test named keyboard acceptance used pointer clicks only. It now
+exercises both Enter and Space on focused SVG node/edge controls and their native
+evidence buttons, preserving the evidence destination assertions. This proves
+activation, not real-browser Tab ordering. The complete two-file suite included
+36 cases: 35 passed, including both keyboard cases and the previously timed-out
+Voice case; one credential-transition case hit the unchanged five-second limit.
+The suite therefore remains non-green.
+
+A separate diagnostic CPU-profile run of that credential case passed in 1.15 s
+(test body; 4.13 s total). Of 4082.7 ms sampled, 475.8 ms was idle, 451.5 ms
+readFileUtf8, 423.3 ms module wrapSafe, and 111.8 ms garbage collection. These
+process-wide import/runtime samples do not establish the cause of earlier
+intermittent timeouts or prove the authenticated page-latency target. No timeout,
+assertion, or required test was relaxed.
+
+Colima still has 14 running containers; the three previously retired duplicate
+services have not reappeared. No new stack or service was started.
+
+The fast-mlsirm v0.9.1 release tag still resolves to
+`09f762ded35786dd1078222a4577ff09d649816f` and its GitHub release has no assets.
+Publication run 32966867962 stopped because its control-plane revision had moved.
+Fresh source checks also contain failed Rust study shards 3, 5, 7, 8, and 9.
+Existing release work includes PR #1471 (v0.9.2, Draft) and PR #1692 (SBOM and
+provenance); do not create a competing release path or re-dispatch v0.9.1 as
+verified merely because core CI passed. No publication was dispatched.
