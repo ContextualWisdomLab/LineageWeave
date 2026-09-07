@@ -24,6 +24,17 @@ the entire product. The regression covers all three singleton/array directions,
 replay idempotency, input immutability, and retained subject labels. It does not
 establish authenticated authorization, cutoff, or persisted provenance acceptance.
 
+Candidate #968 implementation head
+`82b7e71d84e51d1ca1c60431867849dd77de86fa`: the three direct Node regression
+cases passed after failing before repair; lint passed. Vitest could not start
+its process/thread pool before the startup timeout, including after frozen,
+offline project-local dependency installation. No test cases executed in those
+failed Vitest attempts. The production build did not reach a terminal result
+during the bounded local audit. Storybook started, but browser evidence failed
+with navigation/control-wait timeouts; no desktop/mobile screenshot acceptance
+is claimed. Draft-policy skipped hosted Tests are not successful validation.
+These limits leave #968 Draft and the product acceptance incomplete.
+
 The complete initial queue observation contained 125 open PRs: 118 Drafts and
 97 targeting a branch other than main. A later GraphQL observation counted 126
 open PRs and 19 open issues; these are separate observations, not one atomic
