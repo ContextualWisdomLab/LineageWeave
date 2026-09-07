@@ -1,0 +1,150 @@
+name: Reconstruct PR 831 on exact 830 r2
+
+on:
+  push:
+    branches:
+      - automation/831-current-830-reconstruction-r2-20260908-0246
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reconstruct-831-current-830
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PARENT_SHA: b36b2534c9b3a63b66c56ae22ff3dcad40ae5c67
+      HISTORICAL_SHA: 8a12062cd8efef0c99abe794ef3e9f8dcbc31617
+      PRODUCT_BRANCH: feat/leftover-map-compare-cross-share-v2530
+      STAGING_BRANCH: automation/831-current-830-reconstruction-r2-20260908-0246
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout staging authority
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+
+      - name: Verify authority and detach exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$PARENT_SHA" HEAD
+          LIVE_PRODUCT="$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)"
+          test "$LIVE_PRODUCT" = "$HISTORICAL_SHA"
+          cp .automation/pr831_reconstruct.py /tmp/pr831_reconstruct.py
+          git switch --detach "$PARENT_SHA"
+          test ! -e .github/workflows/automation-831-reconstruct.yml
+          test ! -e .automation/pr831_reconstruct.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24"
+
+      - name: Install frozen frontend graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Reproduce current-parent accessibility RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/pr831_reconstruct.py red
+          set +e
+          (cd frontend && pnpm exec vitest run src/App.test.tsx) > /tmp/pr831-red.log 2>&1
+          RED_STATUS=$?
+          set -e
+          cat /tmp/pr831-red.log
+          test "$RED_STATUS" -ne 0
+          grep -Eqi 'cross share|Unable to find.*button|accessible' /tmp/pr831-red.log
+
+      - name: Apply causal repair and release authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/pr831_reconstruct.py apply
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Regenerate universal lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv lock
+          uv sync --frozen --extra dev --extra backend
+
+      - name: Exact reconstructed GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_leftover_map_compare_cross_share_release_authority.py
+          uv run --frozen python -m pytest -q
+          cd frontend
+          pnpm exec vitest run src/App.test.tsx src/leftoverMapCrossShare.test.ts
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Promote product branch non-force
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .github/workflows/automation-831-reconstruct.yml
+          test ! -e .automation/pr831_reconstruct.py
+          test -f docs/adr/0371-leftover-map-compare-cross-share.md
+          test -f CHANGELOG.d/2.57.0-leftover-map-compare-cross-share.md
+          git diff --check
+          git config user.name "LineageWeave hourly maintainer"
+          git config user.email "actions@users.noreply.github.com"
+          git add pyproject.toml uv.lock lineageweave/__init__.py frontend/package.json frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/leftoverMapCrossShare.ts frontend/src/leftoverMapCrossShare.test.ts docs/adr/0371-leftover-map-compare-cross-share.md CHANGELOG.d/2.57.0-leftover-map-compare-cross-share.md tests/test_leftover_map_compare_cross_share_release_authority.py
+          TREE_SHA="$(git write-tree)"
+          PRODUCT_SHA="$(printf '%s\n\n%s\n' 'feat(reports): expose persisted cross share in comparison actions' 'Reconstruct #831 on exact #830 with role/name accessibility, Proposed ADR 0371, v2.57.0, and regenerated lock authority.' | git commit-tree "$TREE_SHA" -p "$HISTORICAL_SHA" -p "$PARENT_SHA")"
+          test "$(git rev-parse "$PRODUCT_SHA^1")" = "$HISTORICAL_SHA"
+          test "$(git rev-parse "$PRODUCT_SHA^2")" = "$PARENT_SHA"
+          LIVE_PRODUCT="$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)"
+          test "$LIVE_PRODUCT" = "$HISTORICAL_SHA"
+          git push origin "$PRODUCT_SHA:refs/heads/$PRODUCT_BRANCH"
+          echo "Promoted #831 product head: $PRODUCT_SHA"
+
+      - name: Remove staging authority branch
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin --delete "$STAGING_BRANCH"
