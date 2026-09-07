@@ -1,0 +1,44 @@
+name: automation-970-lock-source-binding-red
+
+on:
+  push:
+    branches:
+      - automation/970-lock-source-binding-red-20260907-1157
+
+permissions:
+  contents: read
+
+jobs:
+  prove-weak-lock-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Verify exact product parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "58730389eb55e4aa8d44ae4852a248d1a2b42dfd"
+      - name: Tamper only fast-mlsirm package source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('uv.lock')
+          text = p.read_text()
+          old = 'source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=09f762ded35786dd1078222a4577ff09d649816f#09f762ded35786dd1078222a4577ff09d649816f" }'
+          new = 'source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=1111111111111111111111111111111111111111#1111111111111111111111111111111111111111" }'
+          assert text.count(old) == 1, text.count(old)
+          p.write_text(text.replace(old, new, 1))
+          PY
+      - name: RED current contract accepts a mismatched package source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if uv run --extra dev pytest -q tests/test_fast_mlsirm_release_dependency.py; then
+            echo 'RED_CONFIRMED: current contract accepted tampered fast-mlsirm package source because expected commit remained elsewhere in uv.lock'
+            exit 1
+          fi
+          echo 'Existing contract already rejects the tampered source; review finding is not reproduced.'
+          exit 2
