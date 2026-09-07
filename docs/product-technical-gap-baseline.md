@@ -48,7 +48,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map axis share on the
 > grouping comparison strip (ADR 0367 / v2.50.0) delivered locally on
 > `feat/leftover-map-compare-axis-share-v2500`. Include persisted
@@ -69,7 +68,6 @@
 > #825; leave the PR open for independent review. Do not squash-merge onto
 > the leftover base. Do not persist leftover-map inner product, cosine, or
 > length as separate columns.
->
 > Exact-head loop overlay: 2026-08-30 23:28 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
@@ -117,7 +115,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map incomplete item
 > coverage on the grouping comparison strip (ADR 0292 / v2.49.0) delivered
 > locally on `feat/leftover-map-compare-incomplete-item-v2490`. Caption each
@@ -185,7 +182,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map incomplete post
 > coverage on the grouping comparison strip (ADR 0291 / v2.48.0) delivered
 > locally on `feat/leftover-map-compare-incomplete-post-v2480`. Caption each
@@ -250,7 +246,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map item complete-case
 > coverage on the grouping comparison strip (ADR 0290 / v2.47.0) delivered
 > locally on `feat/leftover-map-compare-item-coverage-v2470`. Caption each
@@ -268,7 +263,6 @@
 > `feat/leftover-map-compare-coverage-v2460` / #821; leave the PR open for
 > independent review. Do not squash-merge onto the leftover base. Do not
 > persist leftover-map inner product, cosine, or length as separate columns.
->
 > Exact-head loop overlay: 2026-08-30 22:52 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
@@ -310,7 +304,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map complete-case coverage
 > on the grouping comparison strip (ADR 0289 / v2.46.0) delivered
 > locally on `feat/leftover-map-compare-coverage-v2460`. Include persisted
@@ -330,7 +323,6 @@
 > / #819; leave the PR open for independent review. Do not squash-merge
 > onto the leftover base. Do not persist leftover-map inner product, cosine,
 > or length as separate columns.
->
 > Exact-head loop overlay: 2026-08-30 22:30 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1` after unauthorized squash
 > of leftover-map coordinates (v2.24.0 / #782). Revert #808
@@ -370,7 +362,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map post complete-case
 > coverage fail-closed on the pair list (ADR 0288 / v2.45.0) delivered
 > locally on `feat/leftover-map-list-post-coverage-helper-v2450`. Caption
@@ -427,7 +418,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map incomplete item
 > coverage on the pair list (ADR 0287 / v2.44.0) delivered locally on
 > `feat/leftover-map-list-incomplete-item-v2440`. Caption the pair-list
@@ -483,7 +473,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map incomplete post
 > coverage on the pair list (ADR 0286 / v2.43.0) delivered locally on
 > `feat/leftover-map-list-incomplete-post-v2430`. Caption the pair-list
@@ -537,7 +526,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map item complete-case
 > coverage on the pair list (ADR 0285 / v2.42.0) delivered locally on
 > `feat/leftover-map-list-item-coverage-v2420`. Caption the pair-list
@@ -588,7 +576,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map incomplete item
 > coverage on the graphic display (ADR 0284 / v2.41.0) delivered locally on
 > `feat/leftover-map-plot-incomplete-item-v2410`. Caption the leftover-map
@@ -641,7 +628,6 @@
 > not independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map incomplete post
 > coverage on the graphic display (ADR 0283 / v2.40.0) delivered locally on
 > `feat/leftover-map-plot-incomplete-v2400`. Caption the leftover-map
@@ -691,7 +677,6 @@
 > independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map item complete-case
 > coverage on the graphic display (ADR 0282 / v2.39.0) delivered locally on
 > `feat/leftover-map-plot-item-coverage-v2390`. Caption the leftover-map
@@ -737,7 +722,6 @@
 > independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map complete-case coverage
 > on the graphic display (ADR 0281 / v2.38.0) delivered locally on
 > `feat/leftover-map-plot-coverage-v2380`. Caption the leftover-map graphic
@@ -782,7 +766,6 @@
 > independent APPROVE. Issues #79 and #87 stay open. #96 is already
 > closed. Only collaborator is `seonghobae`; no independent reviewer can
 > be requested from this token.
->
 > Next buyer increment on this cycle: leftover-map rank on
 > graphic-display pair segments (ADR 0280 / v2.37.0) delivered locally on
 > `feat/leftover-map-segment-rank-v2370`. Caption each closest/farthest
@@ -824,7 +807,6 @@
 > independent APPROVE. Issues #79 and #87 stay open. #96 does not exist
 > on this repository. Only collaborator is `seonghobae`; no independent
 > reviewer can be requested from this token.
->
 > Next buyer increment on this cycle: leftover expected `E` on
 > graphic-display pair segments (ADR 0279 / v2.36.0) delivered locally on
 > `feat/leftover-map-segment-expected-v2360`. Caption each
@@ -864,7 +846,6 @@
 > Copilot review is not independent APPROVE. Issues #79 and #87 stay open.
 > #96 closed as weaker duplicate of #91. Only collaborator is
 > `seonghobae`; no independent reviewer can be requested from this token.
->
 > Next buyer increment on this cycle: leftover observed `Y` on
 > graphic-display pair segments (ADR 0278 / v2.35.0) delivered locally on
 > `feat/leftover-map-segment-observed-v2350`. Caption each
@@ -898,7 +879,6 @@
 > classifier is already on ContextualWisdomLab/.github. Copilot review is
 > not independent APPROVE. Issues #79 and #87 stay open. Only collaborator
 > is `seonghobae`; no independent reviewer can be requested from this token.
->
 > Next buyer increment on this cycle: leftover residual `R` on
 > graphic-display pair segments (ADR 0277 / v2.34.0) delivered locally on
 > `feat/leftover-map-segment-residual-v2340`. Caption each
@@ -931,7 +911,6 @@
 > `Vulnerabilities [1-9]`. Org Strix `ModelBehaviorError` classifier is
 > already on ContextualWisdomLab/.github. Copilot review is not
 > independent APPROVE. Issues #79 and #87 stay open.
->
 > Next buyer increment on this cycle: leftover-map unexplained leftover
 > `U` on graphic-display pair segments (ADR 0276 / v2.33.0) delivered
 > locally on `feat/leftover-map-segment-unexplained-leftover-v2330`.
@@ -966,7 +945,6 @@
 > with the number of 96`). GitHub writes through `gh`/MCP succeed
 > (comment/create-PR/auto-merge). Copilot review is not independent
 > APPROVE. Do not self-approve.
->
 > Next buyer increment on this cycle: leftover-map cross share `x` on
 > graphic-display pair segments (ADR 0275 / v2.32.0) delivered locally on
 > `feat/leftover-map-segment-cross-share-v2320`. Caption each
@@ -999,7 +977,6 @@
 > (`state_reason` still 403). GitHub writes through `gh`/MCP succeed
 > (comment/create-PR/auto-merge). Copilot review is not independent
 > APPROVE. Do not self-approve.
->
 > Next buyer increment on this cycle: leftover-map unexplained leftover
 > share `s` on graphic-display pair segments (ADR 0274 / v2.31.0)
 > delivered locally on
@@ -1032,7 +1009,6 @@
 > 403). GitHub writes through `gh`/MCP succeed (comment/create-PR/
 > auto-merge). Copilot review is not independent APPROVE. Do not
 > self-approve.
->
 > Next buyer increment on this cycle: leftover-map explained leftover
 > share `e` on graphic-display pair segments (ADR 0273 / v2.30.0)
 > delivered locally on
@@ -1062,7 +1038,6 @@
 > `gh`/MCP succeed (comment/create-branch/auto-merge). Copilot review is
 > not independent APPROVE. Do not self-approve. Do not `gh pr merge`
 > stacked leftover PRs onto an unprotected leftover base.
->
 > Next buyer increment on this cycle: leftover-map reconstruction `R̂`
 > on graphic-display pair segments (ADR 0272 / v2.29.0). Caption each
 > closest/farthest segment with persisted leftover-map reconstruction
@@ -1086,7 +1061,6 @@
 > `gh`/MCP succeed. Copilot review is not independent APPROVE. Do not
 > self-approve. Do not `gh pr merge` stacked leftover PRs onto an
 > unprotected leftover base.
->
 > Next buyer increment on this cycle: leftover-map distance on
 > graphic-display pair segments (ADR 0271 / v2.28.0). Caption each
 > closest/farthest segment with persisted leftover-map distance `d` so
@@ -1108,7 +1082,6 @@
 > `gh`/MCP succeed (comment/create-branch/auto-merge). `git push` HTTPS
 > still fails (empty `X-OAuth-Scopes`). Copilot review is not
 > independent APPROVE. Do not self-approve.
->
 > Next buyer increment on this cycle: leftover-map coordinate ticks
 > (ADR 0270 / v2.27.0). Tick leftover-map axes at the origin and at each
 > unique finite persisted `ξ` / `ζ` so pair-row `ξ (x, y) ζ (x, y)`
@@ -1127,7 +1100,6 @@
 > closed as a weaker duplicate of #91. GitHub writes through MCP succeed
 > (comment/create-branch/git push/auto-merge). Copilot review is not
 > independent APPROVE. Do not self-approve.
->
 > Next buyer increment on this cycle: leftover-map axis share on the
 > graphic display (ADR 0269 / v2.26.0). Caption plot axes with persisted
 > ADR 0148 `leftover_map_axes` inertia `σ_k² / Σ_j σ_j²`. UI-only; no
@@ -1143,7 +1115,6 @@
 > `e2d13019004a5d8c019fecf7a39ceeef4093b8dd`; Strix fail-closed and no
 > independent APPROVE. Drafts remain dirty against `main`. #96 stays
 > closed as a weaker duplicate of #91. GitHub writes through MCP succeed.
->
 > Next buyer increment on this cycle: leftover-map graphic display
 > of already-persisted `ξ_{1:2}` / `ζ_{1:2}` (ADR 0268 / v2.25.0).
 > UI-only; no new columns. `R̂` and `d` already are inner product and
@@ -1155,7 +1126,6 @@
 > explained leftover share, #775). Open ready PRs still lack independent
 > APPROVE. Drafts remain dirty against `main`. #96 stays closed as a
 > weaker duplicate of #91. GitHub writes through `gh` succeed.
->
 > Next buyer increment on this cycle: leftover-map coordinates
 > `ξ_{1:2}` / `ζ_{1:2}` (ADR 0267 / migration 0245 / v2.24.0) so
 > `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
@@ -1171,7 +1141,6 @@
 > the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
 > despite empty `X-OAuth-Scopes`; git push is the remaining probe this
 > cycle. This overlay supersedes every older queue count below.
->
 > Next buyer increment on this cycle: leftover-map explained leftover
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
 > `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
@@ -1187,7 +1156,6 @@
 > `main`. Central ruleset 18156473 and repository no-force-push ruleset
 > 21065108 remain active. This overlay supersedes every older queue count below.
 > Checks from older heads, stacked bases, or merged PRs are not transferred.
->
 > Current-runtime boundary: the official Compose project was healthy at the
 > HTTP health route, but its PostgreSQL schema did not yet contain
 > `source_post_voice`; therefore no current Voice-history aggregate,
