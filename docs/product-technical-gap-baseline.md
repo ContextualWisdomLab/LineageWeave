@@ -1,5 +1,17 @@
 # Product & Technical Gap Baseline
 
+> Deterministic channel-weight estimator naming overlay: 2026-09-07 KST.
+> Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
+> The ADR 0200 operator used generic package-owned sampling, database,
+> estimate, and command identifiers (`rows`, `record`, `window`, `conn`,
+> `estimate`, `_run`, `args`). Action: translate those private identifiers to
+> source-post, candidate-window, channel-weight, and command language while
+> preserving pair geometry, weight fitting, CLI flags, JSON fields, SQL, and
+> persisted provenance. The immutable fast-mlsirm `v0.9.1` consumer cutover is
+> owned separately by #967; this naming slice adds no source fallback or
+> dependency change. Status: implementation, behavioral tests, and AST
+> regression GREEN locally; GitHub exact-head verification pending.
+
 > Exact-head naming overlay: 2026-09-07 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded post-Keyman
 > operator still used generic package-owned command, database, record, and
