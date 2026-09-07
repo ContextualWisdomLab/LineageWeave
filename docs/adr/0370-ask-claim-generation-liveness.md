@@ -36,9 +36,10 @@ Positive: a renewing owner can outlive the former hard deadline; a
 reclaimed job cannot be overwritten by the previous owner.
 
 Negative: crashed workers wait three heartbeat intervals to reclaim.
-PostgreSQL-backed claim/settlement evidence for the race remains a
-follow-up; current REDs use deterministic fake pools plus exact SQL
-contracts.
+
+`tests/test_schema.py` proves the settlement compare-and-set against a
+throwaway database that replayed the real `0001` and `0165` migrations.
+In-memory queue tests remain for elapsed-time and cancellation contracts.
 
 ## Alternatives considered
 

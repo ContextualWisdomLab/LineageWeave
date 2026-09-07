@@ -325,6 +325,106 @@ def test_migration_applies_cleanly(schema_db) -> None:
     assert expected <= tables
 
 
+def test_postgres_stale_ask_owner_cannot_settle_after_reclaim(schema_db) -> None:
+    """#975: real PostgreSQL compare-and-set blocks the previous Ask owner."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into user_account (external_subject_id, display_name, email_address)
+            values ('ask-claim-generation', 'Ask claim generation', 'ask-claim@example.test')
+            returning user_account_id
+            """
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            """
+            insert into global_ask_job
+                (requesting_account_id, question_text, job_status_code)
+            values (%s, 'reclaim settlement', 'queued')
+            returning global_ask_job_id
+            """,
+            (account_id,),
+        )
+        job_id = cur.fetchone()[0]
+    schema_db.commit()
+
+    parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+    db_dsn = urlunsplit(
+        parsed_admin_dsn._replace(path=f"/{schema_db.get_dsn_parameters()['dbname']}")
+    )
+
+    async def race() -> None:
+        owner = await asyncpg.connect(db_dsn)
+        reclaim = await asyncpg.connect(db_dsn)
+        try:
+            claimed = await owner.fetchrow(
+                """
+                update global_ask_job set job_status_code = $2, updated_at = now()
+                where global_ask_job_id = $1 and job_status_code = $3
+                returning updated_at
+                """,
+                job_id,
+                "running",
+                "queued",
+            )
+            assert claimed is not None
+            await reclaim.execute(
+                """
+                update global_ask_job set job_status_code = $1, updated_at = now()
+                where global_ask_job_id = $2 and job_status_code = $3
+                """,
+                "queued",
+                job_id,
+                "running",
+            )
+            reclaimed = await reclaim.fetchrow(
+                """
+                update global_ask_job set job_status_code = $2, updated_at = now()
+                where global_ask_job_id = $1 and job_status_code = $3
+                returning updated_at
+                """,
+                job_id,
+                "running",
+                "queued",
+            )
+            assert reclaimed is not None
+            stale = await owner.execute(
+                """
+                update global_ask_job set job_status_code = $2,
+                    answer_payload = $3::jsonb, updated_at = now()
+                where global_ask_job_id = $1
+                  and job_status_code = $4
+                  and updated_at = $5
+                """,
+                job_id,
+                "succeeded",
+                '{"answer_text":"stale-owner"}',
+                "running",
+                claimed["updated_at"],
+            )
+            live = await reclaim.execute(
+                """
+                update global_ask_job set job_status_code = $2,
+                    answer_payload = $3::jsonb, updated_at = now()
+                where global_ask_job_id = $1
+                  and job_status_code = $4
+                  and updated_at = $5
+                """,
+                job_id,
+                "succeeded",
+                '{"answer_text":"live-owner"}',
+                "running",
+                reclaimed["updated_at"],
+            )
+            assert stale == "UPDATE 0"
+            assert live == "UPDATE 1"
+        finally:
+            await owner.close()
+            await reclaim.close()
+
+    asyncio.run(race())
+
+
 def test_occupational_catalog_metadata_columns_exist(schema_db) -> None:
     """The real schema preserves catalog descriptions and release integrity."""
     with schema_db.cursor() as cur:
