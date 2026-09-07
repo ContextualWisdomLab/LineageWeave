@@ -54,7 +54,6 @@ from lineageweave.post_chat import (
 from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
-from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
 from .post_chat_ingestion import (
@@ -79,9 +78,6 @@ _RECOVERY_INTERVAL_SECONDS = 30.0
 # Live workers renew the claim generation on this interval so age-based
 # orphan recovery cannot reclaim a job that is still owned.
 _CLAIM_HEARTBEAT_SECONDS = _RECOVERY_INTERVAL_SECONDS
-# Optional explicit Ask HTTP hang-up still has to stay below this bound.
-# Live compute is no longer cancelled when this many seconds elapse.
-JOB_DEADLINE_SECONDS = GLOBAL_ASK_JOB_DEADLINE_SECONDS
 # A `running` row whose claim generation has not been renewed for this
 # many seconds is an orphan. Live workers heartbeat more often, so age
 # alone does not reclaim a current owner.
@@ -720,10 +716,9 @@ async def republish_queued_global_ask_jobs(
 
     A ``queued`` row older than the republish window lost its stream
     entry (crash or trim between insert and XADD). A ``running`` row
-    older than the orphan window belongs to a worker that died mid-job —
-    the per-job deadline guarantees a live worker settles sooner — so it
-    is flipped back to ``queued`` and re-woken for at-least-once
-    delivery.
+    whose claim generation stays stale beyond the orphan window belongs
+    to a worker that stopped heartbeating, so it is flipped back to
+    ``queued`` and re-woken for at-least-once delivery.
     """
     async with pool.acquire() as conn:
         # Fully parameterized ($1..$3 with module constants); the rule
