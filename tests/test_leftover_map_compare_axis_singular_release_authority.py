@@ -23,6 +23,15 @@ def test_axis_singular_decision_uses_unclaimed_proposed_adr_0370() -> None:
     assert "v2.56.0" in content
 
 
+def test_axis_singular_decision_names_exact_current_predecessor() -> None:
+    """Keep ADR 0370 bound to the live #829 product head used for convergence."""
+    canonical = _ADR_DIRECTORY / "0370-leftover-map-compare-axis-singular.md"
+    content = canonical.read_text(encoding="utf-8")
+
+    assert "07301271f813b8bb0e40f57aa22373baf5efbf01" in content
+    assert "0e4fd5815686120ec66203cb6848834b56bdf289" not in content
+
+
 def test_axis_singular_release_identity_is_2560_everywhere() -> None:
     """Keep the reconstructed feature on one unreleased product identity."""
     project = tomllib.loads((_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
