@@ -1,0 +1,49 @@
+name: automation-970-lock-source-binding-green-r2
+
+on:
+  push:
+    branches:
+      - automation/970-lock-source-binding-green-r2-20260907-1212
+
+permissions:
+  contents: read
+
+jobs:
+  validate-source-binding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: astral-sh/setup-uv@v6
+      - name: Verify exact product parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "50807d1e7484fd0aa65bdbf6af015bbe8d739d80"
+      - name: Install focused test environment
+        run: uv sync --frozen --extra dev
+      - name: GREEN exact released source
+        run: uv run --no-sync pytest -q tests/test_fast_mlsirm_release_dependency.py
+      - name: Reject package-source substitution even when expected commit remains elsewhere
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp uv.lock /tmp/uv.lock.good
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('uv.lock')
+          text = p.read_text()
+          old = 'source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=09f762ded35786dd1078222a4577ff09d649816f#09f762ded35786dd1078222a4577ff09d649816f" }'
+          new = 'source = { git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=1111111111111111111111111111111111111111#1111111111111111111111111111111111111111" }'
+          assert text.count(old) == 1, text.count(old)
+          p.write_text(text.replace(old, new, 1))
+          PY
+          if uv run --no-sync pytest -q tests/test_fast_mlsirm_release_dependency.py; then
+            echo 'Contract incorrectly accepted a substituted package source.'
+            exit 1
+          fi
+          echo 'NEGATIVE_CONTRACT_GREEN: substituted package source rejected'
+          mv /tmp/uv.lock.good uv.lock
+      - name: GREEN restored exact source
+        run: uv run --no-sync pytest -q tests/test_fast_mlsirm_release_dependency.py
