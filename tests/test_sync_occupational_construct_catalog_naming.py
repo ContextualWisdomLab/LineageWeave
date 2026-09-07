@@ -64,6 +64,5 @@ def test_catalog_sync_preserves_cli_and_output_contracts() -> None:
         assert contract_literal in script_source
     assert (
         "asyncio.run(\n"
-        "        synchronize_occupational_construct_catalog("
-        in script_source
+        "        synchronize_occupational_construct_catalog(" in script_source
     )

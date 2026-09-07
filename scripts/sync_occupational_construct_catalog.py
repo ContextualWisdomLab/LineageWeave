@@ -21,18 +21,18 @@ from lineageweave.occupational_construct_catalog import (
 )
 
 
-def _parser() -> argparse.ArgumentParser:
+def _catalog_sync_parser() -> argparse.ArgumentParser:
     """Build the operator-only catalog synchronization parser."""
-    parser = argparse.ArgumentParser(
+    catalog_sync_parser = argparse.ArgumentParser(
         description="Synchronize the governed O*NET occupational construct catalog."
     )
-    parser.add_argument("--target-dsn")
-    return parser
+    catalog_sync_parser.add_argument("--target-dsn")
+    return catalog_sync_parser
 
 
-async def synchronize_catalog(target_dsn: str) -> int:
+async def synchronize_occupational_construct_catalog(target_dsn: str) -> int:
     """Download the fixed release and persist it without exposing credentials."""
-    payload = await asyncio.to_thread(
+    catalog_payload = await asyncio.to_thread(
         get_json,
         ONET_CONTENT_MODEL_URL,
         timeout=30.0,
@@ -40,19 +40,23 @@ async def synchronize_catalog(target_dsn: str) -> int:
         maximum_response_bytes=8 * 1024 * 1024,
         expected_response_media_type="application/json",
     )
-    conn = await asyncpg.connect(target_dsn)
+    database_connection = await asyncpg.connect(target_dsn)
     try:
-        return await sync_onet_construct_catalog(conn, payload)
+        return await sync_onet_construct_catalog(database_connection, catalog_payload)
     finally:
-        await conn.close()
+        await database_connection.close()
 
 
 def main() -> None:
     """Parse configuration, synchronize the catalog, and print only its count."""
-    args = _parser().parse_args()
-    settings = load_settings()
-    count = asyncio.run(synchronize_catalog(args.target_dsn or settings.database_url))
-    print({"release": "31.0", "construct_count": count})
+    command_arguments = _catalog_sync_parser().parse_args()
+    runtime_settings = load_settings()
+    synchronized_construct_count = asyncio.run(
+        synchronize_occupational_construct_catalog(
+            command_arguments.target_dsn or runtime_settings.database_url
+        )
+    )
+    print({"release": "31.0", "construct_count": synchronized_construct_count})
 
 
 if __name__ == "__main__":
