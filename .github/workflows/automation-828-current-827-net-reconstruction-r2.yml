@@ -1,0 +1,46 @@
+name: automation-828-current-827-net-reconstruction-r2
+on:
+  push:
+    branches: [automation/828-current-827-net-reconstruction-r2-20260907-1428]
+permissions:
+  contents: read
+jobs:
+  reconstruct-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact #827 product parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0f9e9c8db37948041f39b4e68e4bbd808fa83752"
+      - name: Reapply complete historical #828 net product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin 342f78b3ce37724caf66f43b2b9010dbeb4a1e26 f28b5da6f92984483fbe1e9a0fc82f0bb24ecf57
+          git diff --binary 342f78b3ce37724caf66f43b2b9010dbeb4a1e26..f28b5da6f92984483fbe1e9a0fc82f0bb24ecf57 > /tmp/828-net.patch
+          git reset --hard HEAD^
+          set +e
+          git apply --3way --index /tmp/828-net.patch
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "CURRENT_PARENT_CONFLICTS"
+            git diff --name-only --diff-filter=U
+            exit "$rc"
+          fi
+          echo "CURRENT_PARENT_DELTA"
+          git diff --cached --name-status
+          git diff --cached --check
+      - name: Fail closed on obsolete release identity or Accepted ADR
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --cached | grep -Eq '2\.50\.0|Decision status:\*\* Accepted'; then
+            echo "historical release/status identity requires serialized repair"
+            exit 1
+          fi
+          test -f docs/adr/0367-leftover-map-compare-axis-share.md
