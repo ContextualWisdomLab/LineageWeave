@@ -1,13 +1,13 @@
-# ADR 0290 — Name leftover-map item complete-case coverage on the grouping comparison strip
+# ADR 0291 — Name leftover-map item complete-case coverage on the grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
 
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 complete-case coverage ([ADR 0168](0168-leftover-map-complete-case-coverage.md)),
 and leftover-map complete-case coverage on the grouping comparison strip
-([ADR 0289](0289-leftover-map-compare-coverage.md)). Independent of leftover-map
+([ADR 0290](0290-leftover-map-compare-coverage.md)). Independent of leftover-map
 post complete-case coverage fail-closed on the pair list
 ([ADR 0288](0288-leftover-map-list-post-coverage-helper.md)), leftover-map
 incomplete item coverage on the pair list
@@ -57,7 +57,7 @@ share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
 ## Context
 
 ADR 0168 already persists `map_item_count` / `scored_item_count` on
-`report_leftover_map_coverage`. ADR 0289 already captions leftover-map post
+`report_leftover_map_coverage`. ADR 0290 already captions leftover-map post
 complete-case coverage on the grouping comparison strip. The strip still does
 not name how many scored criteria entered each grouping's Gabriel factorization,
 so a buyer who compares leftover pairs can treat a 2-of-5 complete-case criterion
@@ -71,8 +71,8 @@ It does not persist leftover-map inner product, cosine, or length as separate
 columns. Do not invent a leftover score. Do not invent a theta.
 
 The dashboard stack already used neighbouring leftover facts under other
-numbers. This protected increment uses **0290** so it does not collide with
-leftover-map complete-case coverage on the grouping comparison strip (0289),
+numbers. This protected increment uses **0291** so it does not collide with
+leftover-map complete-case coverage on the grouping comparison strip (0290),
 leftover-map post complete-case coverage fail-closed on the pair list (0288),
 leftover-map incomplete item coverage on the pair list (0287), leftover-map
 incomplete post coverage on the pair list (0286), leftover-map item
@@ -118,7 +118,7 @@ leftoverMapItemCoverageCounts return usable integers, then names leftover pairs
 with leftover-map distance `d`. Closest and farthest leftover pairs still sit
 above the member list with the leftover-map graphic display; click a post
 marker or a pair button opens that post.
-Hidden posts stay hidden.
+Hidden posts stay hidden. Persisted item coverage is returned only when the caller can see the full persisted grouping population; partial-visibility groupings omit the entire persisted coverage aggregate instead of disclosing a hidden denominator or recomputing psychometric coverage from the visible subset.
 
 ## Related
 
