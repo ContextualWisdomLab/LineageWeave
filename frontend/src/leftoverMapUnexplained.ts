@@ -3,6 +3,9 @@
 export const LEFTOVER_MAP_UNEXPLAINED_ACTION =
   "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.";
 
+export const LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL =
+  "Leftover map comparison unexplained leftover";
+
 export function formatSignedLeftoverValue(value: number): string | null {
   if (!Number.isFinite(value)) {
     return null;
