@@ -1,0 +1,39 @@
+name: automation-825-reconstruct-r1
+
+on:
+  push:
+    branches:
+      - automation/825-current-824-reconstruction-r1-20260907-0907
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-merge:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "d9db46353c4a5ca5298b1376d27570b7091b59b3"
+          test "$(git rev-parse HEAD)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd" || test "$(git rev-parse HEAD^)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd"
+      - name: Inspect historical child merge conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-commit --no-ff 342f78b3ce37724caf66f43b2b9010dbeb4a1e26 || {
+            echo 'UNMERGED_FILES_BEGIN'
+            git diff --name-only --diff-filter=U
+            echo 'UNMERGED_FILES_END'
+            git status --short
+            exit 1
+          }
+          echo 'MERGE_APPLIED_WITHOUT_CONFLICT'
+          git status --short
+          exit 1
