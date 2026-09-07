@@ -1,0 +1,34 @@
+name: automation-973-observability-coverage-r4
+on:
+  push:
+    branches: [automation/973-observability-coverage-r4-20260907-1448]
+permissions:
+  contents: read
+jobs:
+  coverage-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 2
+      - name: Verify exact #973 product parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "cf09d6dd6f6e92f5dedb17c49bcccf81db2b61f9"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.11.28"
+          enable-cache: false
+      - name: Install frozen dev backend graph
+        run: uv sync --frozen --extra dev --extra backend
+      - name: RED observability module must reach 100% branch coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch --source=lineageweave.observability -m pytest -q tests/test_observability_telemetry.py tests/test_server_diagnostics.py
+          uv run --frozen coverage report --show-missing --fail-under=100 lineageweave/observability.py
