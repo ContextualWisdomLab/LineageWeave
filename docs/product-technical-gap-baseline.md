@@ -1,6 +1,46 @@
 # Product & Technical Gap Baseline
 
-## Current bounded review — 2026-09-07T03:30:53+00:00
+## Current export-integrity review — 2026-09-07T04:44:55+00:00
+
+This observation supersedes older current-state claims below. GitHub and runtime
+observations are separate reads, not one atomic snapshot. Protected main was
+`83eba56149eb802cd63642c507c324c9976ec78e`; inspected PR #971 head was
+`52cd655196a20907f4c8e9e678cebb360cb8d3fb`, stacked on PR #780 at
+`1d8fa267b059289e77301a09985dfac70a439814`. The implementation accompanying
+this section extends that exact inspected head; hosted evidence does not transfer.
+
+| Evidence class | Observation and acceptance boundary |
+| --- | --- |
+| Product authority | Read LineageWeave FR-2/FR-3 and release gates, contextual-orchestrator `conductor/product.md`, and TEPP `docs/product/prd-v0.4-approved.md`. This repair invokes no inference or arithmetic and changes no owner contract. |
+| Normative authority | ADR 0246 retains twelve atomic Voices. ADR 0256 requires omission of additional assignments without admitted evidence; ADR 0252 preserves cutoff history. ADR 0251 in this tree concerns I/O psychology, not Voice composition. |
+| Research | No new research claim or priority score. Existing cited research does not establish runtime completion. DeepWiki structure, contents, and question requests returned repository-not-found; local ADRs remain the authority. |
+| Reproduced defect | A direct export with an additional Voice lacking evidence still emitted a CSV row and a qualified JSON-LD assignment, violating the existing evidence minimum. The synthetic regression failed before repair. |
+| Minimal implementation | Both export projections now omit the unsupported additional assignment, its relationship, and its otherwise unused concept. Imported primary and evidence-bearing assignments keep their existing contract. No carrying Post is substituted for hidden derivation evidence. |
+| Local verification | 78 ontology neighborhood, ingestion, Voice authority, and SHACL tests passed after repair. The regression checks absence of the CSV row, assignment subject, carrying relation, and concept. Existing admitted-endpoint rejection remains covered. |
+| Current runtime aggregate | Read-only official `lineageweave` PostgreSQL count: 43,189 assignments, 43,189 primary, zero additional. This is an exact table count, not a population inference or additional-Voice acceptance. No identifying values were collected. |
+| Outstanding acceptance | Candidate authenticated PostgreSQL API, rendered desktop/mobile evidence, paged UI accumulation, and authenticated synthetic k6 concurrency/latency/error/throughput plus service saturation remain unverified for this head. No completion or deployed fix is claimed. |
+
+The complete inventory returned 131 open PRs (120 Draft), 100 stacked children,
+31 `REVIEW_REQUIRED`, 100 without a review decision, and no `APPROVED` decision.
+The separate paginated issue query returned 20 non-PR issues. Six PRs retained
+auto-merge. #780 still has normal squash auto-merge and requires independent
+approval. #971 is Draft with zero review threads at its inspected head. Parent
+protection must complete before retargeting; no stack has been retargeted here.
+The recent 100-run query showed active runs for open PRs #972, #966, and #959
+at their inventoried heads; none was cancelled. This is not a full runner audit.
+Required central workflow failures on #929/#964 remain failures, not pending
+Checks or permission to bypass. No merge SHA is claimed.
+
+Remote metadata reconfirmed canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase
+`disksage`. The PRD still contains duplicate occupational requirement identifiers;
+#847 owns that reconciliation. The #971 delta adds no API shape, schema, ADR
+number, or release identity. Earlier cross-PR collisions listed below remain
+unresolved; #934/#968 page-merge overlap and #936/#937 history/read authorization
+remain with their owners. No claim of complete queue-wide conflict resolution.
+The primary checkout's three existing edits were preserved.
+
+## Earlier bounded review — 2026-09-07T03:30:53+00:00
 
 This section supersedes the queue/runtime claims in the historical observations
 below. It records separately fetched observations, not a transactional snapshot

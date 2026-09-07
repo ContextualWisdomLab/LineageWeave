@@ -945,19 +945,12 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     }
 
     hidden_evidence = replace(assignment, evidence_post_id=None)
-    hidden_row = replace(
-        neighborhood, voice_assignments=(hidden_evidence,)
-    ).exact_value_rows()[0]
-    assert hidden_row["evidence_post_id"] == ""
-    assert hidden_row["evidence_count"] == "0"
-    hidden_projection = next(
-        item
-        for item in replace(neighborhood, voice_assignments=(hidden_evidence,))
-        .jsonld_document()["@graph"]
-        if item.get("@id") == assignment_iri
-    )
-    assert str(LW.voiceAssignmentEvidence) not in hidden_projection
-    assert "prov:wasDerivedFrom" not in hidden_projection
+    hidden_neighborhood = replace(neighborhood, voice_assignments=(hidden_evidence,))
+    assert hidden_neighborhood.exact_value_rows() == ()
+    hidden_graph = hidden_neighborhood.jsonld_document()["@graph"]
+    assert all(item.get("@id") != assignment_iri for item in hidden_graph)
+    assert all(str(LW.hasVoiceAssignment) not in item for item in hidden_graph)
+    assert all(item.get("@id") != assignment.voice_type_iri for item in hidden_graph)
 
     imported_primary = replace(assignment, is_primary=True, evidence_post_id=None)
     primary_projection = next(
