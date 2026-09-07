@@ -5,16 +5,15 @@ import { describe, expect, it } from "vitest";
 
 const privatePayload = "synthetic-private-response-marker";
 
-function harness(name: string) {
+function harness(name: string, post: () => object = () => ({
+  status: 503,
+  body: privatePayload,
+  timings: { duration: 1 },
+})) {
   const source = readFileSync(new URL(`../../scripts/${name}`, import.meta.url), "utf8")
     .replace(/^import .*;$/gm, "")
     .replace(/export default function/g, "function iteration")
     .replace(/export function/g, "function");
-  const post = () => ({
-    status: 503,
-    body: privatePayload,
-    timings: { duration: 1 },
-  });
   const context = {
     __ENV: { REQUEST_TIMEOUT: "1s" },
     http: { post },
@@ -31,6 +30,37 @@ function rpcResult(result: unknown, id = 2) {
 }
 
 describe("k6 diagnostic confidentiality", () => {
+  for (const name of ["k6_http_e2e.js", "k6_mcp_e2e.js"]) {
+    it(`${name} contains sign-in parser errors before sending another request`, () => {
+      let calls = 0;
+      const test = harness(name, () => {
+        calls++;
+        return { status: 200, json: () => { throw new Error(privatePayload); } };
+      });
+      expect(test.setup).toThrow(/^synthetic OIDC login returned an invalid token response$/);
+      expect(calls).toBe(1);
+    });
+
+    it.each([undefined, null, "", " ", 7, []].map(value => [value]))(`${name} rejects an invalid access token (%j)`, (token) => {
+      let calls = 0;
+      const test = harness(name, () => {
+        calls++;
+        return { status: 200, json: () => token };
+      });
+      expect(test.setup).toThrow(/^synthetic OIDC login returned an invalid token response$/);
+      expect(calls).toBe(1);
+    });
+  }
+
+  it("contains an accepted Ask response parser error", () => {
+    let calls = 0;
+    const test = harness("k6_http_e2e.js", () => ++calls === 1
+      ? { status: 200, json: () => "synthetic-token" }
+      : { status: 202, timings: { duration: 1 }, json: () => { throw new Error(privatePayload); } });
+    expect(test.setup).toThrow(/^synthetic Ask enqueue returned an unreadable response$/);
+    expect(calls).toBe(2);
+  });
+
   it("omits a rejected Ask response body", () => {
     const source = readFileSync(new URL("../../scripts/k6_http_e2e.js", import.meta.url), "utf8")
       .replace(/^import .*;$/gm, "")
