@@ -18,6 +18,8 @@ const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
+// Persisted Global Ask states: migrations/0165_global_ask_job.sql.
+const jobStates = new Set(["queued", "running", "succeeded", "failed"]);
 
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
 const readDuration = new Trend("lineageweave_read_duration", true);
@@ -40,7 +42,16 @@ function authenticate() {
   if (response.status !== 200) {
     fail(`synthetic OIDC login failed with HTTP ${response.status}`);
   }
-  return response.json("access_token");
+  let token;
+  try {
+    token = response.json("access_token");
+  } catch {
+    // Parser errors can include response content; validation below stays bounded.
+  }
+  if (typeof token !== "string" || !token.trim()) {
+    fail("synthetic OIDC login returned an invalid token response");
+  }
+  return token;
 }
 
 function readBatch(token, askJobId) {
@@ -83,9 +94,18 @@ export function setup() {
   );
   askEnqueueDuration.add(submitted.timings.duration);
   if (submitted.status !== 202) {
-    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}: ${submitted.body}`);
+    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}`);
   }
-  return { token, askJobId: submitted.json("ask_job_id") };
+  let askJobId;
+  try {
+    askJobId = submitted.json("ask_job_id");
+  } catch {
+    fail("synthetic Ask enqueue returned an unreadable response");
+  }
+  if (typeof askJobId !== "string" || !askJobId.trim()) {
+    fail("synthetic Ask enqueue returned an invalid job identifier");
+  }
+  return { token, askJobId };
 }
 
 export default function (data) {
@@ -100,8 +120,15 @@ export default function (data) {
   readDuration.add(responses[1].timings.duration, { endpoint: "lineage" });
   askPollDuration.add(responses[2].timings.duration);
   if (responses[2].status === 200) {
+    let status;
+    try {
+      status = responses[2].json("job_status_code");
+    } catch {
+      // Parser exceptions may include response content; keep the observation bounded.
+    }
+    check(status, { "Ask state is declared": (value) => jobStates.has(value) });
     askStateObservations.add(1, {
-      job_status: String(responses[2].json("job_status_code") || "unknown"),
+      job_status: jobStates.has(status) ? status : "unknown",
     });
   }
   check(responses[0], { "posts read succeeds": (response) => response.status === 200 });

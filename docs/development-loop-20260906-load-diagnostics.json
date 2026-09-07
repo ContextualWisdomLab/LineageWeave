@@ -1,0 +1,1522 @@
+{
+  "scope": "Dated read-only observations; not atomic or release authority",
+  "main": "83eba56149eb802cd63642c507c324c9976ec78e",
+  "pull_requests": [
+    {
+      "number": 961,
+      "headRefOid": "3bdec0504a65e63f44bd49ba15de37182a1672cc",
+      "headRefName": "fix/release-identity-v2280",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 960,
+      "headRefOid": "e173c1b7b18daf4f19ce83ef1397a9aa58fb56b3",
+      "headRefName": "codex/voice-export-loop-20260906",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 959,
+      "headRefOid": "cb5569b96f124f2789ca80b1ac6c2e996bba5aad",
+      "headRefName": "codex/loop-gap-20260906-audit",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 937,
+      "headRefOid": "1d81617b26d1edc5cedd1285770098e6d93a786c",
+      "headRefName": "codex/voice-evidence-cutoff-audit",
+      "baseRefName": "fix/voice-export-authority-20260828",
+      "isDraft": true
+    },
+    {
+      "number": 936,
+      "headRefOid": "e6c1d157dad9f0d26ee703de455b2106a77b34d9",
+      "headRefName": "codex/evidence-loop-20260905",
+      "baseRefName": "fix/voice-export-authority-20260828",
+      "isDraft": true
+    },
+    {
+      "number": 935,
+      "headRefOid": "7c5f9c11c2b9a4bef4aa2e6d3c7926d92b7d15d3",
+      "headRefName": "codex/ontology-filter-export-parity-20260905",
+      "baseRefName": "codex/voice-gap-20260905",
+      "isDraft": true
+    },
+    {
+      "number": 934,
+      "headRefOid": "3060dd7000791160c2bcc98351af129899ff32ff",
+      "headRefName": "codex/voice-gap-20260905",
+      "baseRefName": "fix/voice-export-authority-20260828",
+      "isDraft": true
+    },
+    {
+      "number": 933,
+      "headRefOid": "de4e6cf9a48b042af0bb1128fa9b194abd1952a5",
+      "headRefName": "codex/avoid-draft-transition-runs",
+      "baseRefName": "docs/public-surface-deepwiki",
+      "isDraft": true
+    },
+    {
+      "number": 932,
+      "headRefOid": "846ec4700666188a281940b99ac4edf776e904ca",
+      "headRefName": "feat/i18n-ledger-frontend-consumer",
+      "baseRefName": "feat/i18n-versioned-translation-ledger",
+      "isDraft": true
+    },
+    {
+      "number": 929,
+      "headRefOid": "2a8ed5d02f4a3082b346d923d754c1ff37ebff52",
+      "headRefName": "feat/i18n-versioned-translation-ledger",
+      "baseRefName": "main",
+      "isDraft": false
+    },
+    {
+      "number": 928,
+      "headRefOid": "322b58247e933592ceb6d6eab6cac258ee5335cd",
+      "headRefName": "feat/leftover-map-list-origin-badge-v21160",
+      "baseRefName": "feat/leftover-map-axis-origin-badge-v21150",
+      "isDraft": true
+    },
+    {
+      "number": 927,
+      "headRefOid": "34595e41ee65b89a468efeebf64fee86eff881d9",
+      "headRefName": "feat/leftover-map-axis-origin-badge-v21150",
+      "baseRefName": "feat/leftover-map-compare-axis-origin-badge-v21140",
+      "isDraft": true
+    },
+    {
+      "number": 926,
+      "headRefOid": "ede308929b20f24a56c5ff3ae2211dd84d20f3ae",
+      "headRefName": "feat/leftover-map-compare-axis-origin-badge-v21140",
+      "baseRefName": "feat/leftover-map-compare-plot-origin-badge-v21130",
+      "isDraft": true
+    },
+    {
+      "number": 925,
+      "headRefOid": "8cbaad528c9aaa8d4e356db1577b932fa85ac686",
+      "headRefName": "feat/immutable-release-supply-chain",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 921,
+      "headRefOid": "76ebcb10a72955a68c616c02e6e0732db0800f93",
+      "headRefName": "feat/leftover-map-compare-plot-origin-badge-v21130",
+      "baseRefName": "feat/leftover-map-plot-origin-badge-v21120",
+      "isDraft": true
+    },
+    {
+      "number": 920,
+      "headRefOid": "d54c5611cc693bb7a85e9164814761417ccb563e",
+      "headRefName": "feat/leftover-map-plot-origin-badge-v21120",
+      "baseRefName": "feat/leftover-map-compare-list-criterion-origin-badge-v21110",
+      "isDraft": true
+    },
+    {
+      "number": 919,
+      "headRefOid": "caf8ee0f576eb23dc80d907fccfdcd6a4cecb232",
+      "headRefName": "refactor/post-keymen-backfill-semantic-identifiers",
+      "baseRefName": "fix/contextual-orchestrator-owner-boundary",
+      "isDraft": true
+    },
+    {
+      "number": 918,
+      "headRefOid": "a91d2ec56bad922f9159e17649f77d229a0f98d3",
+      "headRefName": "feat/leftover-map-compare-list-criterion-origin-badge-v21110",
+      "baseRefName": "feat/leftover-map-compare-list-post-origin-badge-v21100",
+      "isDraft": true
+    },
+    {
+      "number": 917,
+      "headRefOid": "8192b48560a919c800ec47927adc966179a2b572",
+      "headRefName": "feat/leftover-map-compare-list-post-origin-badge-v21100",
+      "baseRefName": "feat/leftover-map-list-criterion-origin-badge-v21090",
+      "isDraft": true
+    },
+    {
+      "number": 916,
+      "headRefOid": "7978e92561e16a3ea4e2837fef1f35fe0bec3f3c",
+      "headRefName": "feat/leftover-map-list-criterion-origin-badge-v21090",
+      "baseRefName": "feat/leftover-map-list-post-origin-badge-v21080",
+      "isDraft": true
+    },
+    {
+      "number": 915,
+      "headRefOid": "8c74712f2af4acf76871c71a9fd72c6aa2912f4a",
+      "headRefName": "feat/dynamic-evaluation-lineage-20260902",
+      "baseRefName": "feat/dichotomous-measurement-policy",
+      "isDraft": true
+    },
+    {
+      "number": 914,
+      "headRefOid": "61ed3a3712d252e3c179a71d297c52f05e1bac20",
+      "headRefName": "fix/activity-stream-semantic-identifiers",
+      "baseRefName": "main",
+      "isDraft": false
+    },
+    {
+      "number": 913,
+      "headRefOid": "371bb82cea8437f907249d6e8b166f63dfe5bb8e",
+      "headRefName": "feat/leftover-map-list-post-origin-badge-v21080",
+      "baseRefName": "feat/leftover-map-compare-plot-criterion-origin-badge-v21070",
+      "isDraft": true
+    },
+    {
+      "number": 912,
+      "headRefOid": "2ac677bae522eb1925edc6bd105f1f57a287f73e",
+      "headRefName": "feat/leftover-map-compare-plot-criterion-origin-badge-v21070",
+      "baseRefName": "feat/leftover-map-compare-plot-post-origin-badge-v21060",
+      "isDraft": true
+    },
+    {
+      "number": 911,
+      "headRefOid": "5d40eed35a0b6e0d182397f8d02b29c38e9bdd17",
+      "headRefName": "fix/remove-psycopg2-commercial-license",
+      "baseRefName": "main",
+      "isDraft": false
+    },
+    {
+      "number": 909,
+      "headRefOid": "e82aed38c0997588529e21fe0e1bf4159f3c198c",
+      "headRefName": "fix/customer-master-malformed-hierarchy",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 908,
+      "headRefOid": "00e90e03ae1afb7f13ae843dd578694d0f72b325",
+      "headRefName": "docs/public-surface-deepwiki",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 907,
+      "headRefOid": "847a15e73e69bfc768d517a83fa8706aecfafe7e",
+      "headRefName": "fix/affiliate-tree-cycle-safe-forest",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 904,
+      "headRefOid": "09d7be51a6b599769fb78371c9995a99d7df6974",
+      "headRefName": "fix/remove-obsolete-caldav-adapter",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 903,
+      "headRefOid": "e325b3f63fdb9c34a7c62ae58045ec36e34b1879",
+      "headRefName": "fix/lineage-layout-locale-determinism",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 902,
+      "headRefOid": "c316bfbde8644feda7e49579d43cc162e99b0bad",
+      "headRefName": "feat/dichotomous-measurement-policy",
+      "baseRefName": "fix/contextual-orchestrator-owner-boundary",
+      "isDraft": true
+    },
+    {
+      "number": 901,
+      "headRefOid": "308ebdfae50606127316fa8c51d772ea93327f64",
+      "headRefName": "docs/gap-baseline-current-20260901",
+      "baseRefName": "fix/voice-export-authority-20260828",
+      "isDraft": true
+    },
+    {
+      "number": 899,
+      "headRefOid": "e5711282c48cc20d0a88fb56a9e382d500989c72",
+      "headRefName": "fix/contextual-orchestrator-owner-boundary",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 897,
+      "headRefOid": "c4194085f7bc0c7383f994da81d6a8146b695dc8",
+      "headRefName": "feat/tepp-accepted-seed-running-v2290",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 893,
+      "headRefOid": "f2a1860185714d2921162a754425065d867bcce6",
+      "headRefName": "feat/leftover-map-compare-plot-post-origin-badge-v21060",
+      "baseRefName": "feat/leftover-map-plot-post-origin-badge-v21050",
+      "isDraft": true
+    },
+    {
+      "number": 892,
+      "headRefOid": "c941929c7244f64e31e5ceca8b3c6f6bcb1e3541",
+      "headRefName": "feat/leftover-map-plot-post-origin-badge-v21050",
+      "baseRefName": "feat/leftover-map-plot-criterion-origin-badge-v21040",
+      "isDraft": true
+    },
+    {
+      "number": 891,
+      "headRefOid": "47dd988d6b5cdea713b163b40702235b65af5ffe",
+      "headRefName": "feat/leftover-map-plot-criterion-origin-badge-v21040",
+      "baseRefName": "feat/leftover-map-axis-tick-origin-badge-v21030",
+      "isDraft": true
+    },
+    {
+      "number": 889,
+      "headRefOid": "4bfb490d3e2bd8dd74caabaf2922ac3f6755749a",
+      "headRefName": "feat/leftover-map-axis-tick-origin-badge-v21030",
+      "baseRefName": "feat/leftover-map-compare-axis-tick-origin-badge-v21020",
+      "isDraft": true
+    },
+    {
+      "number": 888,
+      "headRefOid": "e5f38f3bda1caa1d48975204918c994a6a3dff3f",
+      "headRefName": "codex/global-ask-exact-index",
+      "baseRefName": "feat/dashboard-case-metrics",
+      "isDraft": true
+    },
+    {
+      "number": 887,
+      "headRefOid": "7637fc8bbe165be297794a74187aa1065e82486c",
+      "headRefName": "feat/leftover-map-compare-axis-tick-origin-badge-v21020",
+      "baseRefName": "feat/leftover-map-compare-plot-tick-origin-badge-v21010",
+      "isDraft": true
+    },
+    {
+      "number": 886,
+      "headRefOid": "4a31a41f9036cad4ba35ed16b8fdf1c1212e4847",
+      "headRefName": "feat/leftover-map-compare-plot-tick-origin-badge-v21010",
+      "baseRefName": "feat/leftover-map-plot-tick-origin-badge-v21000",
+      "isDraft": true
+    },
+    {
+      "number": 885,
+      "headRefOid": "7a6c0384f4d82544541b6af70cf178c51ed60d62",
+      "headRefName": "feat/leftover-map-plot-tick-origin-badge-v21000",
+      "baseRefName": "feat/leftover-map-compare-list-criterion-coordinates-v2990",
+      "isDraft": true
+    },
+    {
+      "number": 884,
+      "headRefOid": "bcbb7ce03f92304ccdc34fb014a8db8e3bf8a659",
+      "headRefName": "feat/leftover-map-compare-list-criterion-coordinates-v2990",
+      "baseRefName": "feat/leftover-map-compare-list-post-coordinates-v2980",
+      "isDraft": true
+    },
+    {
+      "number": 883,
+      "headRefOid": "bdd48e23a16358b91a652e45c4373c6f45e389fa",
+      "headRefName": "feat/leftover-map-compare-list-post-coordinates-v2980",
+      "baseRefName": "feat/leftover-map-list-criterion-coordinates-v2970",
+      "isDraft": true
+    },
+    {
+      "number": 882,
+      "headRefOid": "094d1a0c8bcfd4b351f9665c47a84c510cbab94d",
+      "headRefName": "feat/leftover-map-list-criterion-coordinates-v2970",
+      "baseRefName": "feat/leftover-map-list-post-coordinates-v2960",
+      "isDraft": true
+    },
+    {
+      "number": 881,
+      "headRefOid": "167888d669ba1b44c7dd0209ab26c9be9f19bf93",
+      "headRefName": "feat/leftover-map-list-post-coordinates-v2960",
+      "baseRefName": "feat/leftover-map-plot-post-coordinates-v2950",
+      "isDraft": true
+    },
+    {
+      "number": 880,
+      "headRefOid": "c69459a3597a8a8af618417ce2c2a57a3114930b",
+      "headRefName": "feat/leftover-map-plot-post-coordinates-v2950",
+      "baseRefName": "feat/leftover-map-compare-plot-post-coordinates-v2940",
+      "isDraft": true
+    },
+    {
+      "number": 879,
+      "headRefOid": "d9972c260b1864e0b6391cbf050686e0bdd73359",
+      "headRefName": "feat/leftover-map-compare-plot-post-coordinates-v2940",
+      "baseRefName": "feat/leftover-map-compare-plot-criterion-coordinates-v2930",
+      "isDraft": true
+    },
+    {
+      "number": 878,
+      "headRefOid": "617b97126a14337a4848f2b5663ada381ae693c0",
+      "headRefName": "feat/leftover-map-compare-plot-criterion-coordinates-v2930",
+      "baseRefName": "feat/leftover-map-plot-criterion-coordinates-v2920",
+      "isDraft": true
+    },
+    {
+      "number": 877,
+      "headRefOid": "86b8eaab48a4b47610d539bb941b97eb24b7e951",
+      "headRefName": "feat/leftover-map-compare-plot-tick-origin-badge-v2920",
+      "baseRefName": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "isDraft": true
+    },
+    {
+      "number": 876,
+      "headRefOid": "89ed56b17acec187fd8e5f756c6b9a6a8f00438c",
+      "headRefName": "feat/leftover-map-plot-criterion-coordinates-v2920",
+      "baseRefName": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "isDraft": true
+    },
+    {
+      "number": 875,
+      "headRefOid": "d19f1fdc18cf16bac0e80bf6ae4257b831a4a619",
+      "headRefName": "feat/leftover-map-axis-tick-share-badge-v2910",
+      "baseRefName": "feat/leftover-map-compare-axis-tick-share-badge-v2900",
+      "isDraft": true
+    },
+    {
+      "number": 874,
+      "headRefOid": "ba58c21a92966fe098988e528020d5528978d06c",
+      "headRefName": "feat/leftover-map-compare-axis-tick-share-badge-v2900",
+      "baseRefName": "feat/leftover-map-plot-tick-share-badge-v2890",
+      "isDraft": true
+    },
+    {
+      "number": 873,
+      "headRefOid": "923bcfe8a9146286ec3098adb784f55ffe32a78e",
+      "headRefName": "feat/leftover-map-plot-tick-share-badge-v2890",
+      "baseRefName": "feat/leftover-map-compare-plot-tick-share-badge-v2880",
+      "isDraft": true
+    },
+    {
+      "number": 872,
+      "headRefOid": "7bdc562b222ab7681ff6b929a7b3fb2cd8068a3c",
+      "headRefName": "feat/leftover-map-compare-plot-tick-share-badge-v2880",
+      "baseRefName": "feat/leftover-map-axis-tick-badge-v2870",
+      "isDraft": true
+    },
+    {
+      "number": 871,
+      "headRefOid": "e9e4c2a622219bfbddfe71c74b14483f7b36aa5c",
+      "headRefName": "feat/leftover-map-axis-tick-badge-v2870",
+      "baseRefName": "feat/leftover-map-compare-axis-tick-badge-v2860",
+      "isDraft": true
+    },
+    {
+      "number": 870,
+      "headRefOid": "b086d97675586ee83f5478d7b4e3bf84b0a5da8c",
+      "headRefName": "feat/leftover-map-compare-axis-tick-badge-v2860",
+      "baseRefName": "feat/leftover-map-compare-plot-tick-axis-badge-v2850",
+      "isDraft": true
+    },
+    {
+      "number": 869,
+      "headRefOid": "98a29e4adf0daad8bd30c945e41d45922051312d",
+      "headRefName": "feat/leftover-map-compare-plot-tick-axis-badge-v2850",
+      "baseRefName": "feat/leftover-map-plot-tick-axis-badge-v2840",
+      "isDraft": true
+    },
+    {
+      "number": 868,
+      "headRefOid": "5218a5c0e6821451efdfac0c1286ef7273081af7",
+      "headRefName": "feat/leftover-map-plot-tick-axis-badge-v2840",
+      "baseRefName": "feat/leftover-map-compare-plot-axis-badge-v2830",
+      "isDraft": true
+    },
+    {
+      "number": 867,
+      "headRefOid": "cf7bb55db1ba098e4ab264605634a686e4664d56",
+      "headRefName": "feat/leftover-map-compare-plot-axis-badge-v2830",
+      "baseRefName": "feat/leftover-map-axis-singular-only-v2820",
+      "isDraft": true
+    },
+    {
+      "number": 866,
+      "headRefOid": "593b8d8246c73226e224d2a9d251668649cbb54f",
+      "headRefName": "feat/leftover-map-axis-singular-only-v2820",
+      "baseRefName": "feat/leftover-map-plot-axis-singular-v2810",
+      "isDraft": true
+    },
+    {
+      "number": 865,
+      "headRefOid": "a3613acf8cafac056850ec7ebc45f6d77f77a074",
+      "headRefName": "feat/leftover-map-plot-axis-singular-v2810",
+      "baseRefName": "feat/leftover-map-compare-axis-singular-v2800",
+      "isDraft": true
+    },
+    {
+      "number": 863,
+      "headRefOid": "52b3597e5c6b825f988a9c8a7c68ae1653535982",
+      "headRefName": "feat/leftover-map-compare-axis-singular-v2800",
+      "baseRefName": "feat/leftover-map-axis-singular-v2790",
+      "isDraft": true
+    },
+    {
+      "number": 862,
+      "headRefOid": "f24b664ce88bb2b3898fcaa0fd0ee7f69c5e12f7",
+      "headRefName": "feat/leftover-map-axis-singular-v2790",
+      "baseRefName": "feat/leftover-map-compare-plot-singular-v2780",
+      "isDraft": true
+    },
+    {
+      "number": 861,
+      "headRefOid": "3aac452eef781f3c1a5da258cd1c0c548e4930e6",
+      "headRefName": "feat/leftover-map-compare-plot-singular-v2780",
+      "baseRefName": "feat/leftover-map-compare-plot-ticks-v2770",
+      "isDraft": true
+    },
+    {
+      "number": 860,
+      "headRefOid": "40fa5bdbfb9223a7ca89fccea47451a419d81048",
+      "headRefName": "feat/leftover-map-compare-plot-ticks-v2770",
+      "baseRefName": "feat/leftover-map-compare-plot-distance-v2760",
+      "isDraft": true
+    },
+    {
+      "number": 859,
+      "headRefOid": "9ba8535327bb2d42d5305d84017e6cd08a110c68",
+      "headRefName": "feat/leftover-map-compare-plot-distance-v2760",
+      "baseRefName": "feat/leftover-map-compare-plot-rank-v2750",
+      "isDraft": true
+    },
+    {
+      "number": 858,
+      "headRefOid": "4b9184fd83f6749e25384d7bcf5d9d7721437b77",
+      "headRefName": "feat/leftover-map-compare-plot-rank-v2750",
+      "baseRefName": "feat/leftover-map-compare-plot-expected-v2740",
+      "isDraft": true
+    },
+    {
+      "number": 857,
+      "headRefOid": "549441180e713aba5c4199efc15a44f1c3c11a29",
+      "headRefName": "feat/leftover-map-compare-plot-expected-v2740",
+      "baseRefName": "feat/leftover-map-compare-plot-observed-v2730",
+      "isDraft": true
+    },
+    {
+      "number": 856,
+      "headRefOid": "974109a055573e3534f4e653fc9929ffad1ac8d8",
+      "headRefName": "feat/leftover-map-compare-plot-observed-v2730",
+      "baseRefName": "feat/leftover-map-compare-plot-residual-v2720",
+      "isDraft": true
+    },
+    {
+      "number": 855,
+      "headRefOid": "e8f0ca2c10584fad578c4cd7e6493025bd565020",
+      "headRefName": "feat/leftover-map-compare-plot-residual-v2720",
+      "baseRefName": "feat/leftover-map-compare-plot-unexplained-leftover-v2710",
+      "isDraft": true
+    },
+    {
+      "number": 854,
+      "headRefOid": "eb4ffef04677d6e1d67fe1325cfdf1bbb2db2245",
+      "headRefName": "feat/leftover-map-compare-plot-unexplained-leftover-v2710",
+      "baseRefName": "feat/leftover-map-compare-plot-cross-share-v2700",
+      "isDraft": true
+    },
+    {
+      "number": 853,
+      "headRefOid": "fab1cfd587bc6495c9d1084e86774b1378b411c6",
+      "headRefName": "feat/leftover-map-compare-plot-cross-share-v2700",
+      "baseRefName": "feat/leftover-map-compare-plot-unexplained-share-v2690",
+      "isDraft": true
+    },
+    {
+      "number": 852,
+      "headRefOid": "80b9254aea2177f2bb506acf0370688df424a036",
+      "headRefName": "feat/leftover-map-compare-plot-unexplained-share-v2690",
+      "baseRefName": "feat/leftover-map-compare-plot-explained-share-v2680",
+      "isDraft": true
+    },
+    {
+      "number": 851,
+      "headRefOid": "72df615a8fb1350217039c6a62007243a6322ccc",
+      "headRefName": "feat/leftover-map-compare-plot-explained-share-v2680",
+      "baseRefName": "feat/leftover-map-compare-plot-reconstruction-v2670",
+      "isDraft": true
+    },
+    {
+      "number": 850,
+      "headRefOid": "40a6b04c1a1fe81dbb6297aadea9158b9b644955",
+      "headRefName": "feat/leftover-map-compare-plot-reconstruction-v2670",
+      "baseRefName": "feat/leftover-map-compare-plot-incomplete-item-v2660",
+      "isDraft": true
+    },
+    {
+      "number": 849,
+      "headRefOid": "b83479b7063f3a3a7e880ed6869bb940bb470508",
+      "headRefName": "feat/leftover-map-compare-plot-incomplete-item-v2660",
+      "baseRefName": "feat/leftover-map-compare-plot-incomplete-post-v2650",
+      "isDraft": true
+    },
+    {
+      "number": 848,
+      "headRefOid": "4fd48d00e0473160ed05ecd5d168598ba5d688f5",
+      "headRefName": "feat/leftover-map-compare-plot-incomplete-post-v2650",
+      "baseRefName": "feat/leftover-map-compare-plot-item-coverage-v2640",
+      "isDraft": true
+    },
+    {
+      "number": 847,
+      "headRefOid": "9bb4f07a61a9275953974ef276a4af81940ba883",
+      "headRefName": "fix/prd-authority-unique-ids-20260831",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 846,
+      "headRefOid": "e80832830fed438451e9f2785b7a75b2fd1745a6",
+      "headRefName": "feat/leftover-map-compare-plot-item-coverage-v2640",
+      "baseRefName": "feat/leftover-map-compare-plot-coverage-v2630",
+      "isDraft": true
+    },
+    {
+      "number": 845,
+      "headRefOid": "8d37896a5246cd0045a9c210b504b95941a78f84",
+      "headRefName": "feat/leftover-map-compare-plot-coverage-v2630",
+      "baseRefName": "feat/leftover-map-compare-plot-axis-share-v2620",
+      "isDraft": true
+    },
+    {
+      "number": 844,
+      "headRefOid": "0882cc90a1af545d9d67e0965134c7686a119671",
+      "headRefName": "feat/leftover-map-compare-plot-axis-share-v2620",
+      "baseRefName": "feat/leftover-map-compare-graphic-v2610",
+      "isDraft": true
+    },
+    {
+      "number": 843,
+      "headRefOid": "2a5ab4d735a1240997150578b151c6b6492e2f43",
+      "headRefName": "feat/leftover-map-compare-rank-payload-v2620",
+      "baseRefName": "feat/leftover-map-compare-axis-share-v2610",
+      "isDraft": true
+    },
+    {
+      "number": 842,
+      "headRefOid": "f013dfb53b255e8e0be1dfb783cb41dca7eeb83e",
+      "headRefName": "feat/leftover-map-compare-axis-share-v2610",
+      "baseRefName": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "isDraft": true
+    },
+    {
+      "number": 841,
+      "headRefOid": "87979568b36219ae99631e88f32d0af1a9247923",
+      "headRefName": "feat/leftover-map-compare-graphic-v2610",
+      "baseRefName": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "isDraft": true
+    },
+    {
+      "number": 840,
+      "headRefOid": "b5732ba2a6de25595989db0b5fb74308b8eae75a",
+      "headRefName": "feat/leftover-map-compare-coordinates-payload-v2600",
+      "baseRefName": "feat/leftover-map-compare-coordinates-v2590",
+      "isDraft": true
+    },
+    {
+      "number": 839,
+      "headRefOid": "14453e71b3871cd726e14ac6e19462a66695b5db",
+      "headRefName": "feat/leftover-map-compare-coordinates-v2590",
+      "baseRefName": "feat/leftover-map-compare-rank-v2580",
+      "isDraft": true
+    },
+    {
+      "number": 838,
+      "headRefOid": "3d40d04db30e54138efb6f734b47e72965093572",
+      "headRefName": "feat/leftover-map-compare-rank-v2580",
+      "baseRefName": "feat/leftover-map-compare-expected-v2570",
+      "isDraft": true
+    },
+    {
+      "number": 837,
+      "headRefOid": "d40cdf5847c3844acd54a952691fba69b18d6f7c",
+      "headRefName": "feat/leftover-map-compare-expected-v2570",
+      "baseRefName": "feat/leftover-map-compare-observed-v2560",
+      "isDraft": true
+    },
+    {
+      "number": 836,
+      "headRefOid": "9f9cc71324d3197bf582bb30a935105803517d75",
+      "headRefName": "feat/leftover-map-compare-observed-v2560",
+      "baseRefName": "feat/leftover-map-compare-residual-v2550",
+      "isDraft": true
+    },
+    {
+      "number": 835,
+      "headRefOid": "f0da90928f0a01ba46ad82f3c53104edc910a630",
+      "headRefName": "feat/leftover-map-compare-residual-v2550",
+      "baseRefName": "feat/leftover-map-compare-unexplained-v2540",
+      "isDraft": true
+    },
+    {
+      "number": 833,
+      "headRefOid": "dbff5bf47b06eded0cff64b292815861d7f514f6",
+      "headRefName": "feat/leftover-map-compare-unexplained-v2540",
+      "baseRefName": "feat/leftover-map-compare-cross-share-v2530",
+      "isDraft": true
+    },
+    {
+      "number": 831,
+      "headRefOid": "8a12062cd8efef0c99abe794ef3e9f8dcbc31617",
+      "headRefName": "feat/leftover-map-compare-cross-share-v2530",
+      "baseRefName": "feat/leftover-map-compare-unexplained-share-v2520",
+      "isDraft": true
+    },
+    {
+      "number": 829,
+      "headRefOid": "118500f73251eaaf717d5329b8fb6d9895196fe7",
+      "headRefName": "feat/leftover-map-compare-unexplained-share-v2520",
+      "baseRefName": "feat/leftover-map-compare-explained-share-v2510",
+      "isDraft": true
+    },
+    {
+      "number": 828,
+      "headRefOid": "f28b5da6f92984483fbe1e9a0fc82f0bb24ecf57",
+      "headRefName": "feat/leftover-map-compare-axis-share-v2500",
+      "baseRefName": "feat/leftover-map-compare-incomplete-item-v2490",
+      "isDraft": true
+    },
+    {
+      "number": 827,
+      "headRefOid": "8b3011b03777822a23af831b4fddcc06e7837019",
+      "headRefName": "feat/leftover-map-compare-explained-share-v2510",
+      "baseRefName": "feat/leftover-map-compare-reconstruction-v2500",
+      "isDraft": true
+    },
+    {
+      "number": 826,
+      "headRefOid": "1418d0dfecd240c5ac6b9f09111c732700330986",
+      "headRefName": "feat/leftover-map-compare-reconstruction-v2500",
+      "baseRefName": "feat/leftover-map-compare-incomplete-item-v2490",
+      "isDraft": true
+    },
+    {
+      "number": 825,
+      "headRefOid": "342f78b3ce37724caf66f43b2b9010dbeb4a1e26",
+      "headRefName": "feat/leftover-map-compare-incomplete-item-v2490",
+      "baseRefName": "feat/leftover-map-compare-incomplete-post-v2480",
+      "isDraft": true
+    },
+    {
+      "number": 824,
+      "headRefOid": "41d65a82ef0f0397714f4876093aee0acc66357a",
+      "headRefName": "feat/leftover-map-compare-incomplete-post-v2480",
+      "baseRefName": "feat/leftover-map-compare-item-coverage-v2470",
+      "isDraft": true
+    },
+    {
+      "number": 823,
+      "headRefOid": "eb172c40d8ecd08f3e1c220cbf3117b488cddb30",
+      "headRefName": "feat/leftover-map-axis-singular-v2470",
+      "baseRefName": "feat/leftover-map-plot-singular-v2460",
+      "isDraft": true
+    },
+    {
+      "number": 822,
+      "headRefOid": "c5f9653a889841da7b524e8763d1aae8f6eb2c46",
+      "headRefName": "feat/leftover-map-compare-item-coverage-v2470",
+      "baseRefName": "feat/leftover-map-compare-coverage-v2460",
+      "isDraft": true
+    },
+    {
+      "number": 821,
+      "headRefOid": "5d9ed038a8525736ba47d5a80e4ff04edfbab28c",
+      "headRefName": "feat/leftover-map-compare-coverage-v2460",
+      "baseRefName": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "isDraft": true
+    },
+    {
+      "number": 820,
+      "headRefOid": "b7222713a69acdf3d32bbce992001a2433946d21",
+      "headRefName": "feat/leftover-map-plot-singular-v2460",
+      "baseRefName": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "isDraft": true
+    },
+    {
+      "number": 819,
+      "headRefOid": "e6e3c5d0bad22292005f49c07b1c97944b0442d6",
+      "headRefName": "feat/leftover-map-list-post-coverage-helper-v2450",
+      "baseRefName": "feat/leftover-map-list-incomplete-item-v2440",
+      "isDraft": true
+    },
+    {
+      "number": 818,
+      "headRefOid": "bc971a402ef9faecb2f0b4ffd743092f4779d76b",
+      "headRefName": "feat/leftover-map-list-incomplete-item-v2440",
+      "baseRefName": "feat/leftover-map-list-incomplete-post-v2430",
+      "isDraft": true
+    },
+    {
+      "number": 817,
+      "headRefOid": "9604ace428681de963519d058e39c01e41e3c73f",
+      "headRefName": "feat/leftover-map-list-incomplete-post-v2430",
+      "baseRefName": "feat/leftover-map-list-item-coverage-v2420",
+      "isDraft": true
+    },
+    {
+      "number": 816,
+      "headRefOid": "8ac4f2677ac90bbcc7609d87135f4efcae28d506",
+      "headRefName": "feat/leftover-map-list-item-coverage-v2420",
+      "baseRefName": "feat/leftover-map-plot-incomplete-item-v2410",
+      "isDraft": true
+    },
+    {
+      "number": 815,
+      "headRefOid": "4b72f872c32c1188134f1f276af08c62c632c9b8",
+      "headRefName": "feat/leftover-map-plot-incomplete-item-v2410",
+      "baseRefName": "feat/leftover-map-plot-incomplete-v2400",
+      "isDraft": true
+    },
+    {
+      "number": 814,
+      "headRefOid": "7f96f013d6de50a80120a74b06e72bc4fc8c338d",
+      "headRefName": "feat/leftover-map-plot-incomplete-v2400",
+      "baseRefName": "feat/leftover-map-plot-item-coverage-v2390",
+      "isDraft": true
+    },
+    {
+      "number": 813,
+      "headRefOid": "11250fbe25a9beecbf6fcbb5b1e6a01d4b8e5686",
+      "headRefName": "feat/leftover-map-plot-item-coverage-v2390",
+      "baseRefName": "feat/leftover-map-plot-coverage-v2380",
+      "isDraft": true
+    },
+    {
+      "number": 812,
+      "headRefOid": "aea06ad7c70f4542a1413b6003d414c0c42d59a7",
+      "headRefName": "feat/leftover-map-plot-coverage-v2380",
+      "baseRefName": "feat/leftover-map-segment-rank-v2370",
+      "isDraft": true
+    },
+    {
+      "number": 811,
+      "headRefOid": "4dcd789385f67c76a4e479194f566f35bb5d2d76",
+      "headRefName": "feat/leftover-map-segment-rank-v2370",
+      "baseRefName": "feat/leftover-map-segment-explained-share-v2300",
+      "isDraft": true
+    },
+    {
+      "number": 808,
+      "headRefOid": "ef38ddc9cf4f81c6a30050fa2409d294779fbd93",
+      "headRefName": "revert-pr782-unauthorized",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 802,
+      "headRefOid": "32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6",
+      "headRefName": "feat/leftover-map-segment-explained-share-v2300",
+      "baseRefName": "main",
+      "isDraft": false
+    },
+    {
+      "number": 780,
+      "headRefOid": "1d8fa267b059289e77301a09985dfac70a439814",
+      "headRefName": "fix/voice-export-authority-20260828",
+      "baseRefName": "main",
+      "isDraft": false
+    },
+    {
+      "number": 774,
+      "headRefOid": "0e4ba4e00a1578aba6f80fa25d7d779516b9af96",
+      "headRefName": "feat/dashboard-status-notice-20260828",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 772,
+      "headRefOid": "781ebb11a00b50bf1956ff3536eef46160271931",
+      "headRefName": "test/ask-time-axis-coverage",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 771,
+      "headRefOid": "9a4dbfcd46d955cd758148cf55cfd5ee795b02cd",
+      "headRefName": "test/fixtures-vision-coverage",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 770,
+      "headRefOid": "101cd8acc1d510382ea928d4f6bb9c84b199349d",
+      "headRefName": "feat/project-history-runtime-proof-20260828",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 702,
+      "headRefOid": "93e7b81d096ddfc1fda9080c9c6a9784cbfbcec2",
+      "headRefName": "feat/source-semantic-coverage-audit",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 679,
+      "headRefOid": "135dfe7c4266c7a2098c622b7c9976eaf7304cdd",
+      "headRefName": "feat/public-claim-envelope-v2220",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 672,
+      "headRefOid": "a3e87a89185fae03c5f18c79e2d97d12c73e8af9",
+      "headRefName": "feat/global-ask-semantic-public-current",
+      "baseRefName": "main",
+      "isDraft": true
+    },
+    {
+      "number": 667,
+      "headRefOid": "0c0f4af572a94e63cc8ea4545e48f5eda32a389c",
+      "headRefName": "chore/refresh-gap-baseline-20260826",
+      "baseRefName": "main",
+      "isDraft": true
+    }
+  ],
+  "overlapping_paths": {
+    "lineageweave/__init__.py": [
+      961,
+      915,
+      897,
+      819,
+      818,
+      817,
+      816,
+      815,
+      814,
+      813,
+      812,
+      811,
+      802
+    ],
+    "frontend/src/api.ts": [
+      960,
+      932,
+      909,
+      844,
+      842,
+      828,
+      821,
+      808
+    ],
+    "backend/app/main.py": [
+      937,
+      929,
+      914,
+      911,
+      904,
+      888,
+      842,
+      828,
+      780
+    ],
+    "docs/adr/0256-evidence-bearing-voice-combinations.md": [
+      937,
+      936,
+      934,
+      780
+    ],
+    "docs/adr/0362-versioned-ui-translation-ledger.md": [
+      932,
+      929
+    ],
+    "pyproject.toml": [
+      929,
+      928,
+      927,
+      926,
+      921,
+      920,
+      918,
+      917,
+      916,
+      913,
+      912,
+      911,
+      897,
+      893,
+      892,
+      891,
+      889,
+      887,
+      886,
+      885,
+      884,
+      883,
+      882,
+      881,
+      880,
+      879,
+      878,
+      877,
+      876,
+      875,
+      874,
+      873,
+      872,
+      871,
+      870,
+      869,
+      868,
+      867,
+      866,
+      865,
+      863,
+      862,
+      861,
+      860,
+      859,
+      858,
+      857,
+      856,
+      855,
+      854,
+      853,
+      852,
+      851,
+      850,
+      849,
+      848,
+      846,
+      845,
+      844,
+      843,
+      842,
+      841,
+      840,
+      839,
+      838,
+      837,
+      836,
+      835,
+      833,
+      831,
+      829,
+      828,
+      827,
+      826,
+      825,
+      824,
+      823,
+      822,
+      821,
+      820,
+      819,
+      818,
+      817,
+      816,
+      815,
+      814,
+      813,
+      812,
+      811,
+      808,
+      802
+    ],
+    "docs/adr/0358-leftover-map-axis-origin-badge.md": [
+      928,
+      927
+    ],
+    "frontend/package.json": [
+      928,
+      927,
+      926,
+      921,
+      920,
+      918,
+      917,
+      916,
+      913,
+      912,
+      897,
+      893,
+      892,
+      891,
+      889,
+      887,
+      886,
+      885,
+      884,
+      883,
+      882,
+      881,
+      880,
+      879,
+      878,
+      877,
+      876,
+      875,
+      874,
+      873,
+      872,
+      871,
+      870,
+      869,
+      868,
+      867,
+      866,
+      865,
+      863,
+      862,
+      861,
+      860,
+      859,
+      858,
+      857,
+      856,
+      855,
+      854,
+      853,
+      852,
+      851,
+      850,
+      849,
+      848,
+      846,
+      845,
+      844,
+      843,
+      842,
+      841,
+      840,
+      839,
+      838,
+      837,
+      836,
+      835,
+      833,
+      831,
+      829,
+      828,
+      827,
+      826,
+      825,
+      824,
+      823,
+      822,
+      821,
+      820,
+      819,
+      818,
+      817,
+      816,
+      815,
+      814,
+      813,
+      812,
+      811,
+      808,
+      802
+    ],
+    "docs/adr/0346-leftover-map-axis-tick-origin-badge.md": [
+      927,
+      891,
+      889
+    ],
+    "docs/adr/0357-leftover-map-compare-axis-origin-badge.md": [
+      927,
+      926
+    ],
+    "docs/adr/0345-leftover-map-compare-axis-tick-origin-badge.md": [
+      926,
+      889,
+      887
+    ],
+    "docs/adr/0356-leftover-map-compare-plot-origin-badge.md": [
+      926,
+      921
+    ],
+    "docs/adr/README.md": [
+      925,
+      914,
+      909,
+      888,
+      780
+    ],
+    "docs/adr/0344-leftover-map-compare-plot-tick-origin-badge.md": [
+      921,
+      887,
+      886
+    ],
+    "docs/adr/0343-leftover-map-plot-tick-origin-badge.md": [
+      920,
+      886,
+      885
+    ],
+    "docs/adr/0354-leftover-map-compare-list-criterion-origin-badge.md": [
+      920,
+      918
+    ],
+    "docs/adr/0342-leftover-map-compare-list-criterion-coordinates.md": [
+      918,
+      885,
+      884
+    ],
+    "docs/adr/0341-leftover-map-compare-list-post-coordinates.md": [
+      917,
+      884,
+      883
+    ],
+    "docs/adr/0340-leftover-map-list-criterion-coordinates.md": [
+      916,
+      883,
+      882
+    ],
+    "docs/adr/0339-leftover-map-list-post-coordinates.md": [
+      913,
+      882,
+      881
+    ],
+    "docs/adr/0336-leftover-map-compare-plot-criterion-coordinates.md": [
+      912,
+      879,
+      878
+    ],
+    "docs/adr/0337-leftover-map-compare-plot-post-coordinates.md": [
+      893,
+      881,
+      880,
+      879
+    ],
+    "docs/adr/0338-leftover-map-plot-post-coordinates.md": [
+      892,
+      881,
+      880
+    ],
+    "docs/adr/0335-leftover-map-plot-criterion-coordinates.md": [
+      891,
+      878,
+      876
+    ],
+    "docs/adr/0330-leftover-map-axis-tick-badge.md": [
+      889,
+      875,
+      874,
+      873,
+      872,
+      871
+    ],
+    "docs/adr/0334-leftover-map-axis-tick-share-badge.md": [
+      889,
+      881,
+      880,
+      879,
+      878,
+      876,
+      875
+    ],
+    "docs/adr/0329-leftover-map-compare-axis-tick-badge.md": [
+      887,
+      874,
+      873,
+      872,
+      871,
+      870
+    ],
+    "docs/adr/0333-leftover-map-compare-axis-tick-share-badge.md": [
+      887,
+      875,
+      874
+    ],
+    "docs/adr/0328-leftover-map-compare-plot-tick-axis-badge.md": [
+      886,
+      873,
+      872,
+      870,
+      869
+    ],
+    "docs/adr/0331-leftover-map-compare-plot-tick-share-badge.md": [
+      886,
+      875,
+      874,
+      873,
+      872
+    ],
+    "docs/adr/0327-leftover-map-plot-tick-axis-badge.md": [
+      885,
+      873,
+      872,
+      869,
+      868
+    ],
+    "docs/adr/0332-leftover-map-plot-tick-share-badge.md": [
+      885,
+      875,
+      874,
+      873
+    ],
+    "docs/adr/0267-leftover-map-coordinates.md": [
+      884,
+      883,
+      882,
+      881,
+      880,
+      879,
+      878,
+      876,
+      808
+    ],
+    "docs/adr/0302-leftover-map-compare-coordinates.md": [
+      884,
+      883,
+      839
+    ],
+    "docs/adr/0268-leftover-map-graphic-display.md": [
+      881,
+      880,
+      879,
+      878,
+      876,
+      841,
+      811,
+      808,
+      802
+    ],
+    "docs/adr/0304-leftover-map-compare-graphic.md": [
+      881,
+      880,
+      879,
+      878,
+      849,
+      848,
+      846,
+      845,
+      844,
+      841
+    ],
+    "docs/adr/0148-leftover-map-axis-share.md": [
+      875,
+      874,
+      873,
+      872,
+      871,
+      870,
+      869,
+      868,
+      867,
+      866,
+      865,
+      863,
+      862,
+      842,
+      823,
+      820,
+      808
+    ],
+    "docs/adr/0320-leftover-map-compare-plot-ticks.md": [
+      873,
+      872,
+      869,
+      861,
+      860
+    ],
+    "docs/adr/0324-leftover-map-plot-axis-singular.md": [
+      873,
+      867,
+      866,
+      865
+    ],
+    "docs/adr/0326-leftover-map-compare-plot-axis-badge.md": [
+      872,
+      869,
+      868,
+      867
+    ],
+    "docs/adr/0321-leftover-map-compare-plot-singular.md": [
+      867,
+      862,
+      861
+    ],
+    "docs/adr/0322-leftover-map-axis-singular.md": [
+      867,
+      866,
+      865,
+      863,
+      862
+    ],
+    "docs/adr/0323-leftover-map-compare-axis-singular.md": [
+      867,
+      866,
+      865,
+      863
+    ],
+    "docs/adr/0325-leftover-map-axis-singular-only.md": [
+      867,
+      866
+    ],
+    "docs/adr/0319-leftover-map-compare-plot-distance.md": [
+      860,
+      859
+    ],
+    "docs/adr/0318-leftover-map-compare-plot-rank.md": [
+      859,
+      858
+    ],
+    "docs/adr/0315-leftover-map-compare-plot-residual.md": [
+      858,
+      856,
+      855
+    ],
+    "docs/adr/0316-leftover-map-compare-plot-observed.md": [
+      858,
+      857,
+      856
+    ],
+    "docs/adr/0317-leftover-map-compare-plot-expected.md": [
+      858,
+      857
+    ],
+    "docs/adr/0279-leftover-map-segment-expected.md": [
+      857,
+      811
+    ],
+    "docs/adr/0300-leftover-map-compare-expected.md": [
+      857,
+      837
+    ],
+    "docs/adr/0278-leftover-map-segment-observed.md": [
+      856,
+      811
+    ],
+    "docs/adr/0299-leftover-map-compare-observed.md": [
+      856,
+      836
+    ],
+    "docs/adr/0277-leftover-map-segment-residual.md": [
+      855,
+      811
+    ],
+    "docs/adr/0298-leftover-map-compare-residual.md": [
+      855,
+      835
+    ],
+    "docs/adr/0314-leftover-map-compare-plot-unexplained-leftover.md": [
+      855,
+      854
+    ],
+    "docs/adr/0276-leftover-map-segment-unexplained-leftover.md": [
+      854,
+      811
+    ],
+    "docs/adr/0297-leftover-map-compare-unexplained.md": [
+      854,
+      833
+    ],
+    "docs/adr/0313-leftover-map-compare-plot-cross-share.md": [
+      854,
+      853
+    ],
+    "docs/adr/0275-leftover-map-segment-cross-share.md": [
+      853,
+      811
+    ],
+    "docs/adr/0296-leftover-map-compare-cross-share.md": [
+      853,
+      831
+    ],
+    "docs/adr/0312-leftover-map-compare-plot-unexplained-share.md": [
+      853,
+      852
+    ],
+    "docs/adr/0274-leftover-map-segment-unexplained-share.md": [
+      852,
+      811
+    ],
+    "docs/adr/0295-leftover-map-compare-unexplained-share.md": [
+      852,
+      829
+    ],
+    "docs/adr/0311-leftover-map-compare-plot-explained-share.md": [
+      852,
+      851
+    ],
+    "docs/adr/0273-leftover-map-segment-explained-share.md": [
+      851,
+      811,
+      802
+    ],
+    "docs/adr/0294-leftover-map-compare-explained-share.md": [
+      851,
+      827
+    ],
+    "docs/adr/0310-leftover-map-compare-plot-reconstruction.md": [
+      851,
+      850
+    ],
+    "docs/adr/0272-leftover-map-segment-reconstruction.md": [
+      850,
+      802
+    ],
+    "docs/adr/0293-leftover-map-compare-reconstruction.md": [
+      850,
+      826
+    ],
+    "docs/adr/0309-leftover-map-compare-plot-incomplete-item.md": [
+      850,
+      849
+    ],
+    "docs/adr/0284-leftover-map-plot-incomplete-item.md": [
+      849,
+      815
+    ],
+    "docs/adr/0292-leftover-map-compare-incomplete-item.md": [
+      849,
+      825
+    ],
+    "docs/adr/0307-leftover-map-compare-plot-item-coverage.md": [
+      849,
+      848,
+      846
+    ],
+    "docs/adr/0308-leftover-map-compare-plot-incomplete-post.md": [
+      849,
+      848
+    ],
+    "docs/adr/0283-leftover-map-plot-incomplete.md": [
+      848,
+      814
+    ],
+    "docs/adr/0291-leftover-map-compare-incomplete-post.md": [
+      848,
+      824
+    ],
+    "docs/adr/0282-leftover-map-plot-item-coverage.md": [
+      846,
+      813
+    ],
+    "docs/adr/0290-leftover-map-compare-item-coverage.md": [
+      846,
+      822
+    ],
+    "docs/adr/0306-leftover-map-compare-plot-coverage.md": [
+      846,
+      845
+    ],
+    "docs/adr/0281-leftover-map-plot-coverage.md": [
+      845,
+      812
+    ],
+    "docs/adr/0305-leftover-map-compare-plot-axis-share.md": [
+      845,
+      844
+    ],
+    "docs/adr/0269-leftover-map-axis-share-plot.md": [
+      844,
+      820,
+      808
+    ],
+    "docs/adr/0048-persist-lsirm-leftover-pairs.md": [
+      811,
+      808,
+      802
+    ],
+    "docs/adr/0049-leftover-pair-report-ui.md": [
+      811,
+      808,
+      802
+    ],
+    "docs/adr/0201-leftover-map-reconstruction.md": [
+      808,
+      802
+    ],
+    "docs/adr/0266-leftover-map-explained-share.md": [
+      808,
+      802
+    ],
+    "docs/adr/0271-leftover-map-segment-distance.md": [
+      808,
+      802
+    ]
+  }
+}

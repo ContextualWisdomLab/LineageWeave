@@ -1,5 +1,269 @@
 # Product & Technical Gap Baseline
 
+## Setup evidence validation — 2026-09-07 09:35 KST
+
+This repair extends PR #964 from `da29d2cd38178b0aa57a9701972fdccfd4f9d03c`.
+ADRs 0001, 0122, and 0213 govern data confidentiality, bounded failure
+diagnostics, and the distinction between load observations and capacity claims.
+The existing HTTP and MCP authentication functions accepted missing, empty, or
+non-string tokens; accepted Ask responses also admitted invalid job identifiers.
+A malformed successful response could therefore continue into a meaningless
+observation. A parser exception could expose response content in a diagnostic.
+The repair validates both setup values and confines parser errors before the next
+request, including authentication renewal through the same functions.
+
+The diagnostic KPI at test commit `3bcb135d3` was **15 failing / 57 cases**.
+At fix commit `523988884`, all **71 / 71 cases pass**, including 14 additional
+job-identifier and successful-setup cases. Reproduce from `frontend` with
+`corepack pnpm exec vitest run src/k6Diagnostics.test.ts --maxWorkers=1`.
+The two Python harness contracts and five documentation checks also pass (7/7),
+and frontend TypeScript compilation passes. No dependency, production runtime,
+schema, model policy, UI component, or capacity threshold changed.
+
+Review discussion `3945636063` identified an ambiguous `implementation_parent`
+in the older evidence JSON. Its value was the experiment baseline, not the
+recorded head's Git parent. The field is now `implementation_base_commit`, and
+`implementation_commit` names `ff8010f109d64217e3db61fa501e8009a96ffe37`, the first
+commit matching all three recorded source hashes. All three hashes were checked
+against Git objects; the historical snapshot and its hash values are preserved.
+
+Native k6 was also exercised against an ephemeral loopback test server using
+only synthetic unit-test responses. All service URLs pointed at that server;
+this is a harness correctness check, not product or private-source load evidence.
+The four invalid-setup cases previously exited successfully; all now stop with
+exit 107 before the next phase. Both valid scenarios still exit successfully.
+
+| Native k6 case | Before: requests / exit | After: requests / exit |
+|---|---|---|
+| HTTP invalid token | 5 / 0 | 1 / 107 |
+| MCP invalid token | 7 / 0 | 1 / 107 |
+| HTTP missing job identifier | 5 / 0 | 2 / 107 |
+| MCP missing job identifier | 7 / 0 | 4 / 107 |
+| HTTP valid setup | 5 / 0 | 5 / 0 |
+| MCP valid setup | 7 / 0 | 7 / 0 |
+
+The real browser rendered the deployed sign-in screen and followed its sign-in
+button to the configured identity form. No credentials were submitted; callback,
+authenticated pages, logout, and the user-requested p95 <= 20 ms target remain
+unverified. This deployed UI is not evidence of the candidate commit. GitHub's
+paginated read returned 124 open PRs (117 Draft / 7 Ready); a later REST refresh
+hit the shared account's API rate limit. The real GitHub Checks page subsequently showed frontend success and other
+checks running or queued at parent `da29d2cd3`; none applies to this new fix.
+Current-head checks and merge eligibility must be re-fetched; neither an older
+passing check nor a test-server result establishes protected delivery. The existing hourly heartbeat now follows the
+current goal file while preserving independent approval and owner boundaries.
+
+Grafana Labs. (n.d.). *Response.json([selector])*. Retrieved September 7, 2026,
+from https://grafana.com/docs/k6/latest/javascript-api/k6-http/response/response-json/
+
+## Bounded k6 contract repair — 2026-09-07 09:12 KST
+
+At PR #964 parent `107c8cc89e9c5f292a88a8fdd786607fa91b0c30`,
+[Tests run 34067029164](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34067029164)
+reported one failure, 1,767 passes, and 147 skips. The failing Python contract
+still required arbitrary job-state text in metric tags, contradicting the
+bounded diagnostic behavior already covered by ADR 0122 and the existing
+JavaScript regression suite. The authentication-renewal and timeout assertions
+remain intact; the stale assertion now requires the declared-state/unknown tag.
+
+The local KPI is failing tests in `tests/test_k6_http_e2e_contract.py`:
+**1/2 before, 0/2 after** at repair commit `94bcfc680`. Reproduce with
+`uv run --frozen --extra dev python -m pytest -q tests/test_k6_http_e2e_contract.py`.
+From `frontend`, `corepack pnpm exec vitest run src/k6Diagnostics.test.ts --maxWorkers=1`
+also passes all 42 behavioral cases. An earlier `pnpm test -- ...` invocation
+unexpectedly selected the full frontend suite, reported timeouts, and was
+interrupted; it is not full-suite success evidence. Fresh hosted full-suite
+validation, independent approval, protected merge, and runtime acceptance remain
+unverified. This test correction establishes no latency or capacity result.
+
+## Bounded observation — 2026-09-07 08:20 KST
+
+Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e`.
+The [dated metadata](development-loop-20260907.json) records 124 open PRs
+(117 Draft, 7 Ready) and 19 open issues. These separate requests are not an
+atomic snapshot. Every Ready PR had zero unresolved threads in the first 100
+queried threads and required independent approval; no merge is claimed.
+Current-head Check runs also retain failed/cancelled central gates, separately
+from passing local product checks. Normal squash auto-merge was enabled for
+#964 and retained for the other six. No running Actions runs were returned by
+the current in-progress query; no run or container was cancelled or deleted.
+
+| PR | Observed head | Protected delivery |
+|---|---|---|
+| #964 | `209582b309ac4cb0e8dca306fc41a9324a980b22` | Review required; auto-merge enabled |
+| #961 | `3bdec0504a65e63f44bd49ba15de37182a1672cc` | Review required; auto-merge enabled |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | Review required; auto-merge enabled |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | Review required; auto-merge enabled |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | Review required; auto-merge enabled |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Review required; auto-merge enabled |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Review required; auto-merge enabled |
+
+### Authority, implementation, and research remain separate
+
+Read this checkout's current PRD and contextual-orchestrator's remote
+`docs/product_planning.md` and `docs/architecture.md` before this repair.
+ADRs 0122/0213 and the four persisted Global Ask states in migration 0165 govern
+the bounded diagnostic change. The official
+[k6 tag contract](https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/)
+confirms tags enter metric results; it establishes no capacity or SLO.
+Canonical remote names were verified for `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and `disksage`.
+DeepWiki returned no indexed entry. Sequential Thinking, Context7, and Memory
+MCP tools were not callable in this session; no successful invocation is claimed.
+
+The repair extends #964 at parent `209582b309ac4cb0e8dca306fc41a9324a980b22`:
+HTTP/MCP polling previously copied arbitrary response status values into metric
+tags, and HTTP parsing could emit response excerpts in an exception. Nine
+failing regressions reproduced the defect. Both scripts now emit only the four
+persisted states or `unknown`; a malformed HTTP response records unknown without
+losing the request-duration observations. An undeclared state also fails a named
+check, so HTTP 200 does not disguise malformed job evidence. All 42 diagnostic
+regressions pass.
+There is no new model, heuristic, estimator, numerical implementation, schema,
+API, release number, or customer UI policy in this change.
+
+The largest remaining buyer gap is still authenticated Voice evidence continuity,
+owned by #780, #934/#935, #936, and #937. The diagnostic repair does **not** close
+that acceptance. ADR 0246 defines the twelve atomic Voices; the current composition
+record is ADR 0256, while ADR 0251 in this checkout describes the FJA I/O-psychology
+ontology. Do not renumber or reinterpret either from an ambiguous reference.
+Keep carrying Post and derivation evidence separate, preserve truth/cutoff/PROV-O,
+and protect-merge #780 before retargeting its children.
+
+### Integration and runtime limits
+
+The exact-ref file scan covered 120 of 124 candidates. Its linked
+metadata distinguishes candidate ADR identities, migration identities, and
+release-version overlaps. Shared API paths require semantic review after each
+parent merge; overlapping files alone do not prove a schema or API conflict.
+No conflicting candidate was silently renumbered, deleted, or force-rebased.
+
+The formal `lineageweave` PostgreSQL read returned 43,189 Posts, 130 Ask jobs,
+zero running Ask jobs, nine connections, and zero lock waits. These are current
+operational aggregates, not probability-sample inference, semantic correctness,
+or candidate deployment evidence. The mixed/private source was not load-tested.
+Synthetic-only authenticated k6 latency/concurrency/error/throughput and correlated
+PostgreSQL/worker/Valkey/gateway saturation remain unavailable. No performance
+change is justified by this idle snapshot. Candidate authenticated API, desktop
+and mobile rendering, and Voice acceptance remain unverified. Follow-on verification at #780 exact head
+`1d8fa267b059289e77301a09985dfac70a439814` passed seven Voice authority/history
+tests; its authenticated PostgreSQL API case skipped because the local-stack
+availability precondition was not satisfied. A skip is not API evidence.
+No historical screenshots or load observations are promoted to current-head acceptance.
+
+## Bounded observation — 2026-09-06 23:39 KST
+
+This is a dated observation of protected `main` at `83eba56149eb802cd63642c507c324c9976ec78e` and
+of the PR heads below. It is supporting evidence, not architecture authority,
+a live queue registry, or a release claim. Re-fetch remote state before any
+merge decision. The older observations below retain their original dates;
+none establishes the present runtime or queue.
+
+### Authority and research
+
+The current LineageWeave `docs/product-requirements.md` and the remote
+TEPP `docs/product/prd-v0.4-approved.md`, contextual-orchestrator
+`docs/product_planning.md` / `docs/architecture.md`, RankWeave
+`ARCHITECTURE.md`, and ThreadWeave `docs/PRD.md` were read before selecting
+this change. ADRs remain normative. Existing ownership of inference,
+measurement, Rust arithmetic, and shared post-scoped orchestration sessions
+is unchanged; no model/weight/estimator policy is inferred from this audit.
+
+The GitHub repository API confirms canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, `fast-mlsirm`, and
+lowercase `ContextualWisdomLab/disksage`. The latter is only a naming check;
+no DiskSage integration or product-authority review is claimed in this slice.
+DeepWiki had no indexed LineageWeave entry. Context7 was quota-unavailable;
+[Grafana's k6 fail contract](https://grafana.com/docs/k6/latest/javascript-api/k6/fail/)
+confirms that the supplied error text is printed to stderr. This supports the
+specific diagnostic repair; it establishes no load or capacity conclusion.
+
+### Exact implementation and open work
+
+The [captured PR heads and overlapping paths](development-loop-20260906-load-diagnostics.json)
+contained 123 open PRs (118 Draft, 5 Ready); the issue query returned 18 open issues.
+These requests were collected during the audit and are not an atomic snapshot.
+All five Ready PRs had zero unresolved review threads after complete thread
+pagination, but none had an independent approval on its listed head.
+Classic branch protection returned 404; active ruleset 18156473 still requires
+one approval, stale-review dismissal, resolved threads, and seven central
+workflows. Ruleset 21065108 prohibits force pushes. No merge occurred in this
+observation. Existing auto-merge remained enabled.
+
+| PR | Observed head | Delivery state at observation |
+|---|---|---|
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | Review required; auto-merge enabled |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | Review required; auto-merge enabled |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | Review required; auto-merge enabled |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Review required; auto-merge enabled |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Review required; auto-merge enabled |
+
+PR #914 exact-head OpenCode run 33979625980 failed because it lacked an
+`opencode-agent` current-head verdict; this is not a product-test failure or
+an approval. Other failed central workflows remain failed, without a blanket
+rerun or suppression. PR #780 cancelled CodeQL run 33903233347 was verified
+against its still-open current head and its failed jobs were re-requested.
+A retry request is not passing evidence. Running #959 run 34031208996 matched
+its open current head and was retained; no run was cancelled in this audit.
+
+Voice work remains owned by #780, #934/#935 (paged exports), #936 (correction
+history), and #937 (evidence reauthorization/atomic write). They retain the
+12 atomic Voices and extensible evidence-bearing associations. No fixed
+combination codes, replacement evidence, or new Voice inference is added.
+Children remain Draft until their parent merges normally; only then may they
+retarget to main and gather fresh evidence. Existing uncommitted translation
+ledger code, tests, and baseline changes in the primary checkout were preserved.
+
+The bounded repair in this branch contains four confirmed load-harness error
+leaks: failed HTTP Ask body, MCP JSON-RPC error, failed MCP tool body, and
+malformed MCP JSON parser excerpt. They now report the operation and numeric
+HTTP status only. Five executable JavaScript tests reproduced four failures
+before the repair and passed afterward, including preservation of a successful
+structured result. This closes a diagnostic confidentiality defect; it does
+not close the largest remaining buyer acceptance gap, which is authenticated
+end-to-end evidence continuity across the Voice and asynchronous-work surfaces.
+
+### Cross-PR integration risks
+
+An exact-ref added-file scan found eight conflicting ADR numbers among open
+candidates: 0279 (#888/#811), 0289 (#821/#820), 0290 (#823/#822),
+0300 (#899/#837), 0301 (#902/#838), 0305 (#844/#843),
+0335 (#877/#876), and 0355 (#920/#915). These are different filenames sharing
+an identity; they require convergence before protected delivery.
+ADR 0256 is also edited by #780/#934/#936/#937: preserve both export and
+history/authorization contracts during parent-first integration.
+
+Release-title candidates duplicate 2.46.0 (#821/#820), 2.47.0 (#823/#822),
+2.50.0 (#828/#826), 2.61.0 (#842/#841), 2.62.0 (#844/#843), and
+2.92.0 (#877/#876). Titles alone do not prove package/release collisions;
+package metadata and changelogs must be revalidated after convergence.
+The same scan found no duplicate newly added migration identity, which is
+not proof of SQL compatibility. Eight candidates modify `frontend/src/api.ts`
+(#960/#932/#909/#844/#842/#828/#821/#808); preserve #909's transport/abort
+boundary and #960's diagnostic/no-retry boundary rather than replacing files.
+This repair adds no ADR number, schema, API, or release identity.
+
+### Current non-identifying runtime observation and unavailable acceptance
+
+A read-only census of the formal `lineageweave` PostgreSQL runtime observed
+43,189 Posts and 130 persisted Ask jobs (105 succeeded, 25 failed). These are
+whole-table operational counts at observation time, not this candidate's
+results, a latency sample, semantic correctness, or population inference.
+The source-post, Voice, and Ask tables exist. The formal backend, Ask worker,
+frontend, MCP, orchestrator, identity, PostgreSQL, search, and Valkey containers
+were running. Container state does not prove candidate deployment or API health.
+
+This run did not submit load to the mixed/private formal data source.
+Synthetic-only authenticated k6 concurrency, latency, error-rate, throughput,
+and correlated PostgreSQL/worker/Valkey/gateway saturation evidence remain
+unavailable for this head. No observed bottleneck justifies a performance change.
+No formal volume or container was removed and no Compose expansion was printed.
+Authenticated candidate PostgreSQL API, desktop/mobile full-application rendering,
+Voice cutoff/hidden-evidence acceptance, and protected-main delivery remain
+unverified. Historical Storybook/API/k6 results are not transferred to this head.
+
+## Historical observations (dated; not current authority)
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
