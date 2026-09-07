@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## 2026-09-07 full-suite recheck on the published candidate
+
+On clean `afe7f8f212c0219ee19069d7177a4a35d77c04c2`, the complete frontend
+suite was rerun without a concurrent build and with one worker. All 59 files
+and 550 tests remained included, with committed test deadlines unchanged.
+The result was 57 files passing / 2 failing and 546 tests passing / 4 timing
+out in 493.43 seconds. The failures covered governed Voice selection, Ask
+cutoff conversion, Ask delivery localization, and ontology continuation-error
+retention. These differ from the earlier three timeout cases; reducing test
+parallelism did not establish local suite GREEN. No worker setting, deadline,
+or assertion was changed in the repository to turn this result green.
+
+The local suite target remains all 550 passing. Host scheduling varied during
+these experiments, but that observation alone does not prove the cause or
+repair the failing gate. No further unchanged full-suite rerun is justified
+without diagnosis or a changed execution condition. Hosted Draft-skip policy
+is separately tracked by #933; this consumer change does not override it.
+
+## 2026-09-07 live entry-path verification
+
+A fresh browser inspected the existing Compose frontend without credentials or
+source-record queries. The documented `http://localhost:15173/` address showed
+one login button and no product-owned login, signup, or recovery form. Clicking
+login reached the existing issuer at `http://localhost:18080/` and displayed a
+password input. No credentials were entered, so authenticated success, claim
+admission, account recovery, and page p95 remain unverified. This existing
+runtime does not establish delivery of the open consumer or identity PRs.
+
+The frontend container reported image
+`sha256:2728a7896e4ccf5770567b98c8c6c23903f58b9a0ed7157377bf80a15e43a06a`
+and start time `2026-09-01T05:03:13.413298609Z`. Its issuer container reported
+`sha256:ede94b77ed55af002280a39d5be4ba8fb0231b525a2e1f9740310b7777395ea0`.
+The browser navigation is direct evidence that this issuer is still consumed;
+it must not be stopped merely because another identity engine is running.
+The three previously verified inactive duplicate-stack containers remain
+stopped, with containers and data volumes retained.
+
+Using `127.0.0.1:15173` instead of the documented hostname reached a callback
+validation error, whereas the documented localhost origin reached the issuer
+form. That difference is not evidence that the documented login path is
+broken, and no callback allowlist or issuer configuration was broadened.
+The temporary browser tab was closed after the read-only check.
+
 ## 2026-09-07 authorization lifecycle repair (PR #932)
 
 The current candidate extends the existing auth-bound Customer Master guard to
