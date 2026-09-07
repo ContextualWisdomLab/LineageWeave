@@ -156,3 +156,20 @@ describe("Ask polling cancellation", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+it("keeps reading a live queued job after fifteen minutes", async () => {
+  vi.useFakeTimers();
+  const startedAt = Date.now();
+  const answer = { answer: "Completed source-grounded answer", citations: [] };
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "queued" })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "running" })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "succeeded", answer })));
+  vi.stubGlobal("fetch", fetchMock);
+  const result = askAgent("synthetic-token", "Synthetic question").catch((error: unknown) => error);
+  await vi.advanceTimersByTimeAsync(0);
+  vi.setSystemTime(startedAt + 16 * 60 * 1000);
+  await vi.advanceTimersByTimeAsync(4000);
+  expect(await result).toEqual(answer);
+});

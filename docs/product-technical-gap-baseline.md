@@ -1046,3 +1046,22 @@ review, central required checks, product-owned authentication, eight-language
 database resources, deployment, and authenticated all-page p95 remain separate
 acceptance obligations. Subsequent documentation commits require their own
 current-head checks; this run remains evidence for the cited code revision.
+
+### Ask observation lifetime (2026-09-07; proposed ADR 0039 amendment)
+
+A synthetic API regression moved the browser clock sixteen minutes forward
+after a queued response. The next status was running, with a succeeded answer
+available afterward. The client threw its fixed fifteen-minute timeout instead
+of fetching that answer: 1 failed, 10 passed before repair. Removing the elapsed
+observation ceiling from the shared askAgent poller preserved terminal responses
+and native cancellation. The correctly selected API and Ask panel suites passed
+19/19 in 11.65 s. An initial selection named a nonexistent panel file and ran
+only the API suite (11/11); it is not counted as panel coverage.
+
+The backend still enforces a 600-second execution deadline and a shorter answer
+socket timeout. Recovery requeues running rows after 660 seconds because it
+assumes the deadline ended any live computation. Removing that deadline alone
+would invalidate the recovery assumption and could duplicate work. Worker
+liveness, claim fencing, crash recovery, and the contextual-orchestrator model
+administrator contract remain required before claiming the requested default-null
+end-to-end model lifetime. No provider or private-runtime call was made here.

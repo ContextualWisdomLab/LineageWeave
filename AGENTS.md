@@ -443,6 +443,11 @@ failure, and clear delay timers/listeners. Result-admission guards remain necess
 for already-resolved work. Verify both transport cancellation and A → B → A
 state admission; neither establishes server-job cancellation.
 
+Do not infer Ask job failure from browser observation age. Queue wait and model
+execution are distinct; follow durable terminal status or native cancellation.
+Before removing a worker execution deadline, inspect orphan recovery: an
+age-only requeue rule can duplicate a still-live computation without claim fencing.
+
 Keep transport exceptions at the diagnostic boundary. Buyer-facing error copy
 must not use String(error) or provider detail; reuse existing localized recovery
 guidance and preserve explicitly supported status-specific behavior.
