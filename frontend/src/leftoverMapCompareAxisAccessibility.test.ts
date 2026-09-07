@@ -1,8 +1,11 @@
+/// <reference types="node" />
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const appSource = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
+const here = dirname(fileURLToPath(import.meta.url));
+const appSource = readFileSync(join(here, "App.tsx"), "utf8");
 
 describe("grouping comparison axis-share accessibility", () => {
   it("keeps persisted axis-share text visible without naming a generic span", () => {
