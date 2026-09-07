@@ -1,7 +1,9 @@
-# ADR 0289 — Name leftover-map complete-case coverage on the grouping comparison strip
+# ADR 0290 — Name leftover-map complete-case coverage on the grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
+
+Parent decision: [ADR 0289](0289-leftover-map-plot-singular.md) names persisted leftover-map singular values on the graphic display; this comparison-coverage decision is independent of that axis-caption contract.
 
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)) and leftover-map
@@ -74,7 +76,7 @@ distance stays two-axis Euclidean. Do not invent a leftover score. Do not invent
 a theta.
 
 The dashboard stack already used neighbouring leftover facts under other
-numbers. This protected increment uses **0289** so it does not collide with
+numbers. This protected increment uses **0290** so it does not collide with
 leftover-map post complete-case coverage fail-closed on the pair list (0288),
 leftover-map incomplete item coverage on the pair list (0287), leftover-map
 incomplete post coverage on the pair list (0286), leftover-map item
@@ -159,7 +161,7 @@ pair list names persisted leftover-map item complete-case coverage, the pair
 list names persisted leftover-map incomplete post coverage, and the pair list
 names persisted leftover-map incomplete item coverage; click a post marker
 or a pair button opens that post.
-Hidden posts stay hidden. Rank-0 unused axes still plot at the origin and still
+Hidden posts stay hidden; partial-visibility groupings omit the comparison coverage aggregate rather than disclosing or recomputing it. Rank-0 unused axes still plot at the origin and still
 name post coverage on the comparison strip when that coverage is persisted as
 usable complete-case integers.
 

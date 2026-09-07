@@ -3052,6 +3052,16 @@ async def compare_period_groupings(
                 **row,
                 "members": [],
                 "leftover_pairs": leftover_pairs,
+                "leftover_map_axes": (
+                    row.get("leftover_map_axes", [])
+                    if len(members) == len(row["members"])
+                    else []
+                ),
+                "leftover_map_coverage": (
+                    row.get("leftover_map_coverage")
+                    if len(members) == len(row["members"])
+                    else None
+                ),
                 "post_count": len(members),
             }
         )

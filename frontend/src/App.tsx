@@ -138,6 +138,12 @@ import {
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
 } from "./leftoverMapCoverage";
 import {
+  leftoverMapAxisBadgeShare,
+  leftoverMapAxisBadgeSingular,
+  LEFTOVER_MAP_AXIS_BADGE_SHARE,
+  LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
+} from "./leftoverMapAxisBadge";
+import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
 } from "./leftoverMapReconstruction";
@@ -149,6 +155,11 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
 } from "./leftoverMapUnexplainedShare";
+import {
+  leftoverMapCompareAxisShare,
+  LEFTOVER_MAP_COMPARE_AXIS_SHARE,
+  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,
+} from "./leftoverMapCompareAxis";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -3896,18 +3907,25 @@ function ReportsPanel({
                 {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, incompleteItemCount)}
               </p>
             ) : null}
-            {report.leftover_map_axes?.map((axis) => (
-              <span key={axis.axis_index} className="post-badge">
-                {tf("leftover axis {axis} {share}%", {
-                  axis: axis.axis_index,
-                  share: (axis.leftover_share * 100).toFixed(0),
-                })}
-              </span>
-            ))}
+            {report.leftover_map_axes?.map((axis) => {
+              const singular = leftoverMapAxisBadgeSingular(axis);
+              const share = leftoverMapAxisBadgeShare(axis.leftover_share);
+              return (
+                <span key={axis.axis_index} className="post-badge">
+                  {singular === null
+                    ? tf(LEFTOVER_MAP_AXIS_BADGE_SHARE, { axis: axis.axis_index, share })
+                    : tf(LEFTOVER_MAP_AXIS_BADGE_SINGULAR, {
+                        axis: axis.axis_index,
+                        value: singular,
+                        share,
+                      })}
+                </span>
+              );
+            })}
             {report.leftover_map_axes && report.leftover_map_axes.length > 0 && (
               <p aria-label={t("Leftover-map axis share")}>
                 {t(
-                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
+                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
                 )}
               </p>
             )}
@@ -4002,15 +4020,9 @@ function ReportsPanel({
         <ul className="ticket-list" aria-label="Grouping comparison">
           {comparison.groupings.map((row) => {
             const comparisonCoverageCounts = leftoverMapCoverageCounts(row.leftover_map_coverage);
-            const comparisonItemCoverageCounts = leftoverMapItemCoverageCounts(
-              row.leftover_map_coverage,
-            );
-            const comparisonIncompletePostCount = leftoverMapIncompletePostCount(
-              row.leftover_map_coverage,
-            );
-            const comparisonIncompleteItemCount = leftoverMapIncompleteItemCount(
-              row.leftover_map_coverage,
-            );
+            const comparisonItemCoverageCounts = leftoverMapItemCoverageCounts(row.leftover_map_coverage);
+            const comparisonIncompletePostCount = leftoverMapIncompletePostCount(row.leftover_map_coverage);
+            const comparisonIncompleteItemCount = leftoverMapIncompleteItemCount(row.leftover_map_coverage);
             return (
             <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
               <button
@@ -4061,6 +4073,21 @@ function ReportsPanel({
                   {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}
                 </p>
               ) : null}
+              {row.leftover_map_axes?.map((axis) => {
+                const comparisonAxisShare = leftoverMapCompareAxisShare(axis);
+                if (comparisonAxisShare === null) {
+                  return null;
+                }
+                return (
+                  <span
+                    key={axis.axis_index}
+                    className="post-badge"
+                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}
+                  >
+                    {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}
+                  </span>
+                );
+              })}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (
                 <ul className="ticket-list" aria-label={`Leftover pairs for ${row.grouping_label}`}>
                   {row.leftover_pairs.map((pair) => {
@@ -4080,6 +4107,19 @@ function ReportsPanel({
                     const unexplainedShare = formatLeftoverMapUnexplainedShare(
                       pair.leftover_map_unexplained_share,
                     );
+                    const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${
+                      reconstruction
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)} ${reconstruction}`
+                        : ""
+                    }${
+                      explainedShare
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL)} ${explainedShare}`
+                        : ""
+                    }${
+                      unexplainedShare
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
+                        : ""
+                    }`;
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4087,7 +4127,7 @@ function ReportsPanel({
                       >
                         <button
                           className="post-list-item"
-                          aria-label={`Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`}
+                          aria-label={pairAccessibleName}
                           onClick={() =>
                             // Same promise, same landing: the badge tells the
                             // reader the criterion will be current in Post
@@ -4107,26 +4147,17 @@ function ReportsPanel({
                           <span className="post-badge">{nextAction}</span>
                           <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
                           {reconstruction ? (
-                            <span
-                              className="post-badge"
-                              aria-label={t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)}
-                            >
+                            <span className="post-badge" aria-hidden="true">
                               {reconstruction}
                             </span>
                           ) : null}
                           {explainedShare ? (
-                            <span
-                              className="post-badge"
-                              aria-label={t(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL)}
-                            >
+                            <span className="post-badge" aria-hidden="true">
                               {explainedShare}
                             </span>
                           ) : null}
                           {unexplainedShare ? (
-                            <span
-                              className="post-badge"
-                              aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)}
-                            >
+                            <span className="post-badge" aria-hidden="true">
                               {unexplainedShare}
                             </span>
                           ) : null}

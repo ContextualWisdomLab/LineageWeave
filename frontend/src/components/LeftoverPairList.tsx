@@ -59,7 +59,10 @@ export type LeftoverPairListProps = {
  * next action. When four finite coordinates exist, ADR 0268 draws the
  * leftover-map graphic display above the pair buttons; click a post
  * marker opens that post. ADR 0269 captions those leftover-map axes with
- * persisted leftover-map axis share when finite. ADR 0270 ticks those
+ * persisted leftover-map axis share when finite. ADR 0289 captions those
+ * leftover-map axes with persisted leftover-map singular values when
+ * finite and non-negative, independently of leftover-map axis share, and
+ * does not invent ``σ_k`` from leftover-map axis share. ADR 0270 ticks those
  * leftover-map axes at persisted ``ξ`` / ``ζ`` so the pair-row badge matches
  * the plot. ADR 0271 names persisted leftover-map distance ``d`` on those
  * pair segments. ADR 0272 names persisted leftover-map reconstruction
@@ -81,18 +84,11 @@ export type LeftoverPairListProps = {
  * incomplete post coverage on the pair-list note. ADR 0287 names persisted leftover-map
  * incomplete item coverage on the pair-list note. ADR 0288 fail-closes pair-list
  * leftover-map post complete-case coverage through leftoverMapCoverageCounts so
- * used-greater-than-scored, negative, or non-integer counts omit that note. ADR 0289
+ * used-greater-than-scored, negative, or non-integer counts omit that note. ADR 0290
  * names persisted leftover-map post complete-case coverage on the grouping
- * comparison strip, not this pair list. ADR 0290 names persisted leftover-map
+ * comparison strip, not this pair list. ADR 0291 names persisted leftover-map
  * item complete-case coverage on the grouping comparison strip, not this pair
- * list. ADR 0291 names persisted leftover-map incomplete post coverage on the
- * grouping comparison strip, not this pair list. ADR 0292 names persisted leftover-map
- * incomplete item coverage on the grouping comparison strip, not this pair list. ADR 0293
- * names persisted leftover-map reconstruction on grouping comparison leftover-pair
- * buttons, not this pair list. ADR 0294 names persisted leftover-map explained leftover
- * share on grouping comparison leftover-pair buttons, not this pair list. ADR 0295 names
- * persisted leftover-map unexplained leftover share on grouping comparison leftover-pair
- * buttons, not this pair list. Every badge still
+ * list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

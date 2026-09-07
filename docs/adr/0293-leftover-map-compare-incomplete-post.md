@@ -1,6 +1,6 @@
-# ADR 0291 — Name leftover-map incomplete post coverage on the grouping comparison strip
+# ADR 0293 — Name leftover-map incomplete post coverage on the grouping comparison strip
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
 
 Amends leftover pairs on the grouping comparison strip
@@ -55,6 +55,9 @@ leftover-map cross share persistence
 persistence ([ADR 0182](0182-leftover-map-unexplained.md)), leftover-map rank
 persistence ([ADR 0164](0164-leftover-map-rank.md)), and leftover-map axis
 share persistence ([ADR 0148](0148-leftover-map-axis-share.md)).
+
+
+This aggregate inherits ADR 0290's full-visible-grouping authorization boundary. Persisted incomplete-post count is shown only when the caller can see the full persisted grouping population; partial-visibility groupings omit it. Never recalculate a psychometric dropped-post count from the visible subset.
 
 ## Context
 
