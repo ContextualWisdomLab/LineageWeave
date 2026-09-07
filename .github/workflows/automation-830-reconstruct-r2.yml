@@ -1,0 +1,265 @@
+name: Reconstruct #830 on exact #829
+
+on:
+  push:
+    branches:
+      - automation/830-current-829-reconstruct-r2-20260907-2013
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reconstruct-830-r2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout reconstruction branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Verify exact current predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0e4fd5815686120ec66203cb6848834b56bdf289"
+          test "$(git show -s --format=%T HEAD^)" = "f814e6889e5d7674a9f8b65fcccb4f61cbb95662"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install frozen frontend graph
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Realistic current-parent RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > frontend/src/leftoverMapCompareAxis.reconstruction-red.test.ts <<'EOF'
+          import { expect, it } from "vitest";
+          import { leftoverMapCompareAxisSingular } from "./leftoverMapCompareAxis";
+
+          it("exposes persisted grouping-comparison singular value on current parent", () => {
+            expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: 1.84 })).toEqual({
+              axis: 1,
+              value: "1.84",
+            });
+          });
+          EOF
+          set +e
+          (cd frontend && pnpm exec vitest run src/leftoverMapCompareAxis.reconstruction-red.test.ts) > /tmp/830-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/830-red.log
+          test "$rc" -ne 0
+          grep -q "leftoverMapCompareAxisSingular" /tmp/830-red.log
+          rm frontend/src/leftoverMapCompareAxis.reconstruction-red.test.ts
+
+      - name: Apply minimal current-parent causal fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement target, found {text.count(old)}")
+              p.write_text(text.replace(old, new, 1))
+
+          # Keep share and singular formatters independent. No i18n.ts / translation-store edit here:
+          # canonical eight-locale resources remain owned by the translation-ledger path.
+          Path("frontend/src/leftoverMapCompareAxis.ts").write_text('''/** Caption persisted leftover-map axis share and singular values on the grouping comparison strip (ADR 0367 / ADR 0370). */
+
+import type { LeftoverMapAxis } from "./api";
+
+export const LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL = "Leftover map comparison axis share";
+export const LEFTOVER_MAP_COMPARE_AXIS_SHARE = "leftover map comparison axis {axis} {share}%";
+export const LEFTOVER_MAP_LIST_AXIS_SHARE = "leftover axis {axis} {share}%";
+export const LEFTOVER_MAP_PLOT_AXIS_SHARE = "leftover-map axis {axis} ({share}%)";
+
+export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL = "Leftover map comparison axis singular";
+export const LEFTOVER_MAP_COMPARE_AXIS_SINGULAR = "leftover map comparison axis {axis} σ {value}";
+
+export type LeftoverMapCompareAxisShare = {
+  axis: number;
+  share: string;
+};
+
+export type LeftoverMapCompareAxisSingular = {
+  axis: number;
+  value: string;
+};
+
+export function leftoverMapCompareAxisShare(
+  axis: Pick<LeftoverMapAxis, "axis_index" | "leftover_share"> | null | undefined,
+): LeftoverMapCompareAxisShare | null {
+  if (axis == null) return null;
+  if (!Number.isInteger(axis.axis_index) || axis.axis_index < 1) return null;
+  if (axis.leftover_share == null || !Number.isFinite(axis.leftover_share)) return null;
+  return { axis: axis.axis_index, share: (axis.leftover_share * 100).toFixed(0) };
+}
+
+export function leftoverMapCompareAxisSingular(
+  axis: Pick<LeftoverMapAxis, "axis_index" | "leftover_singular_value"> | null | undefined,
+): LeftoverMapCompareAxisSingular | null {
+  if (axis == null) return null;
+  if (!Number.isInteger(axis.axis_index) || axis.axis_index < 1) return null;
+  if (
+    axis.leftover_singular_value == null ||
+    !Number.isFinite(axis.leftover_singular_value) ||
+    axis.leftover_singular_value < 0
+  ) {
+    return null;
+  }
+  return { axis: axis.axis_index, value: axis.leftover_singular_value.toFixed(2) };
+}
+''')
+
+          replace_once(
+              "frontend/src/leftoverMapCompareAxis.test.ts",
+              '''  leftoverMapCompareAxisShare,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n  LEFTOVER_MAP_LIST_AXIS_SHARE,\n  LEFTOVER_MAP_PLOT_AXIS_SHARE,\n''',
+              '''  leftoverMapCompareAxisShare,\n  leftoverMapCompareAxisSingular,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,\n  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL,\n  LEFTOVER_MAP_LIST_AXIS_SHARE,\n  LEFTOVER_MAP_PLOT_AXIS_SHARE,\n''',
+          )
+          test_path = Path("frontend/src/leftoverMapCompareAxis.test.ts")
+          test_path.write_text(test_path.read_text() + '''\n\ndescribe("leftoverMapCompareAxisSingular", () => {\n  it("names persisted finite non-negative singular values, including zero", () => {\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: 1.84 })).toEqual({ axis: 1, value: "1.84" });\n    expect(leftoverMapCompareAxisSingular({ axis_index: 2, leftover_singular_value: 0.86 })).toEqual({ axis: 2, value: "0.86" });\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: 0 })).toEqual({ axis: 1, value: "0.00" });\n  });\n\n  it("omits missing, invalid-axis, non-finite, and negative singular values", () => {\n    expect(leftoverMapCompareAxisSingular(null)).toBeNull();\n    expect(leftoverMapCompareAxisSingular(undefined)).toBeNull();\n    expect(leftoverMapCompareAxisSingular({ axis_index: 0, leftover_singular_value: 1.84 })).toBeNull();\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1 })).toBeNull();\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: Number.NaN })).toBeNull();\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: Number.POSITIVE_INFINITY })).toBeNull();\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: -0.01 })).toBeNull();\n  });\n\n  it("keeps singular presentation distinct from axis share", () => {\n    expect(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL).toBe("Leftover map comparison axis singular");\n    expect(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL).not.toBe(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL);\n    expect(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR).toBe("leftover map comparison axis {axis} σ {value}");\n    expect(leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: 1.84 })).not.toEqual({ axis: 1, value: "82" });\n  });\n});\n''')
+
+          replace_once(
+              "frontend/src/App.tsx",
+              'import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";',
+              'import { Component, Fragment, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''import {\n  leftoverMapCompareAxisShare,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n} from "./leftoverMapCompareAxis";''',
+              '''import {\n  leftoverMapCompareAxisShare,\n  leftoverMapCompareAxisSingular,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE,\n  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,\n  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL,\n} from "./leftoverMapCompareAxis";''',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '''              {row.leftover_map_axes?.map((axis) => {\n                const comparisonAxisShare = leftoverMapCompareAxisShare(axis);\n                if (comparisonAxisShare === null) {\n                  return null;\n                }\n                return (\n                  <span\n                    key={axis.axis_index}\n                    className="post-badge"\n                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}\n                  >\n                    {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}\n                  </span>\n                );\n              })}''',
+              '''              {row.leftover_map_axes?.map((axis) => {\n                const comparisonAxisShare = leftoverMapCompareAxisShare(axis);\n                const comparisonAxisSingular = leftoverMapCompareAxisSingular(axis);\n                if (comparisonAxisShare === null && comparisonAxisSingular === null) {\n                  return null;\n                }\n                return (\n                  <Fragment key={axis.axis_index}>\n                    {comparisonAxisShare !== null ? (\n                      <span\n                        className="post-badge"\n                        aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}\n                      >\n                        {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}\n                      </span>\n                    ) : null}\n                    {comparisonAxisSingular !== null ? (\n                      <span\n                        className="post-badge"\n                        aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_LABEL)}\n                      >\n                        {tf(LEFTOVER_MAP_COMPARE_AXIS_SINGULAR, comparisonAxisSingular)}\n                      </span>\n                    ) : null}\n                  </Fragment>\n                );\n              })}''',
+          )
+
+          replace_once(
+              "frontend/src/App.test.tsx",
+              '''    expect(\n      within(screen.getByLabelText("Grouping comparison")).queryByText(/σ 1\\.84/),\n    ).not.toBeInTheDocument();''',
+              '''    expect(\n      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(\n        "Leftover map comparison axis singular",\n      ),\n    ).toHaveLength(4);\n    expect(\n      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(\n        "Leftover map comparison axis singular",\n      )[0],\n    ).toHaveTextContent("leftover map comparison axis 1 σ 0.00");\n    expect(\n      within(screen.getByLabelText("Grouping comparison")).getByText(\n        "leftover map comparison axis 1 σ 1.84",\n      ),\n    ).toBeInTheDocument();\n    expect(\n      within(screen.getByLabelText("Grouping comparison")).getByText(\n        "leftover map comparison axis 2 σ 0.86",\n      ),\n    ).toBeInTheDocument();''',
+          )
+
+          replace_once(
+              "backend/tests/test_api.py",
+              '''    assert leftover_compare_axes[0]["leftover_share"] != leftover_compare_axes[0][\n        "leftover_singular_value"\n    ] or leftover_compare_axes[0]["leftover_share"] in {0, 1}\n''',
+              '''    assert leftover_compare_axes[0]["leftover_share"] != leftover_compare_axes[0][\n        "leftover_singular_value"\n    ] or leftover_compare_axes[0]["leftover_share"] in {0, 1}\n    assert all(\n        isinstance(axis["leftover_singular_value"], (int, float)) for axis in leftover_compare_axes\n    )\n    assert all(\n        axis["leftover_singular_value"] == axis["leftover_singular_value"]\n        and axis["leftover_singular_value"] >= 0\n        for axis in leftover_compare_axes\n    )\n''',
+          )
+
+          replace_once("pyproject.toml", 'version = "2.55.0"', 'version = "2.56.0"')
+          replace_once("lineageweave/__init__.py", '__version__ = "2.55.0"', '__version__ = "2.56.0"')
+          replace_once("frontend/package.json", '"version": "2.55.0"', '"version": "2.56.0"')
+
+          Path("docs/adr/0370-leftover-map-compare-axis-singular.md").write_text('''# ADR 0370 — Name persisted leftover-map singular values on grouping comparison axes\n\n**Decision status:** Proposed  \n**Date:** 2026-09-07\n\n## Context\n\nADR 0367 exposes persisted grouping-comparison axis share only under the read-model authorization boundary. The same report axis already carries persisted `leftover_singular_value`, but the current grouping comparison strip does not name that Gabriel scale. Axis share and singular value are different persisted quantities; reconstructing one from the other or from visible pairs, markers, counts, rank, coverage, or a caller-visible subset would manufacture psychometric truth.\n\nThe eight-locale resource system is owned by the PostgreSQL translation-ledger path (#922/#929/#932). This increment must not create or extend a competing source-code translation store.\n\n## Decision\n\nLineageWeave may present `leftover_singular_value` on each authorized grouping-comparison axis through `leftoverMapCompareAxisSingular` only when the persisted value is finite and non-negative and `axis_index` is a positive integer. Persisted zero is rendered as `0.00`. Missing, non-finite, negative, or invalid-axis data omits only the singular badge; axis-share presentation remains independent.\n\nThe buyer-facing caption is `leftover map comparison axis {axis} σ {value}` with the distinct accessible name `Leftover map comparison axis singular`. No SQL migration, local psychometric calculation, cross-service SQL, provider call, or new translation store is introduced. Partial-visibility grouping aggregates continue to fail closed under the existing authorization contract; the client never recomputes a hidden denominator.\n\n## Alternatives\n\n- **Derive `σ` from axis share:** rejected because share loses the residual scale and cannot identify `σ` without additional persisted information.\n- **Replay historical #830 wholesale:** rejected because five cumulative files conflict with the current serialized parent and would overwrite later authority.\n- **Add strings to legacy `i18n.ts`:** rejected because the canonical database-backed translation ledger is the product translation authority.\n\n## Consequences and verification\n\nThe grouping strip can name both share and singular value independently. Formatter tests cover positive, zero, missing, non-finite, negative, and invalid-axis values; authenticated report UI tests verify independent badges; PostgreSQL-backed API regression verifies the serialized singular values are finite and non-negative. This ADR remains Proposed while #830 is Draft.\n\n## References\n\nGabriel, K. R. (1971). The biplot graphic display of matrices with application to principal component analysis. *Biometrika, 58*(3), 453–467. https://doi.org/10.1093/biomet/58.3.453\n\nJeon, M., Jin, I. H., Schweinberger, M., & Baugh, S. (2021). Mapping unobserved item–respondent interactions: A latent space item response model with interaction map. *Psychometrika, 86*(2), 378–403. https://doi.org/10.1007/s11336-021-09762-5\n''')
+          Path("CHANGELOG.d/2.56.0-leftover-map-compare-axis-singular.md").write_text('''### Added\n\n- Grouping-comparison leftover-map axes now name the persisted finite, non-negative singular value independently of axis share, including persisted zero; invalid or unavailable singular evidence fails closed without manufacturing a value.\n''')
+          PY
+
+      - name: Regenerate universal lock after package version bump
+        run: uv lock
+
+      - name: Install committed universal graph
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Focused GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd frontend && pnpm exec vitest run src/leftoverMapCompareAxis.test.ts src/App.test.tsx)
+          uv run --frozen python -m pytest -q backend/tests/test_api.py::test_seed_period_report_surfaces_on_get_reports
+
+      - name: Exact reconstructed GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q
+          (cd frontend && pnpm run lint)
+          (cd frontend && pnpm run test)
+          (cd frontend && pnpm run build)
+          (cd frontend && pnpm run build-storybook)
+
+      - name: Verify bounded product diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          test ! -e frontend/src/leftoverMapCompareAxis.reconstruction-red.test.ts
+          python - <<'PY'
+          import subprocess
+          allowed = {
+              "backend/tests/test_api.py",
+              "CHANGELOG.d/2.56.0-leftover-map-compare-axis-singular.md",
+              "docs/adr/0370-leftover-map-compare-axis-singular.md",
+              "frontend/package.json",
+              "frontend/src/App.test.tsx",
+              "frontend/src/App.tsx",
+              "frontend/src/leftoverMapCompareAxis.test.ts",
+              "frontend/src/leftoverMapCompareAxis.ts",
+              "lineageweave/__init__.py",
+              "pyproject.toml",
+              "uv.lock",
+          }
+          paths = set(subprocess.check_output(["git", "diff", "--name-only", "HEAD^"], text=True).splitlines())
+          paths.discard(".github/workflows/automation-830-reconstruct-r2.yml")
+          unexpected = paths - allowed
+          if unexpected:
+              raise SystemExit(f"unexpected product paths: {sorted(unexpected)}")
+          PY
+
+      - name: Remove purpose-complete workflow and publish clean staging commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/automation-830-reconstruct-r2.yml
+          git add -A
+          test -z "$(git diff --cached --name-only | grep '^\.github/workflows/' || true)"
+          git config user.name "LineageWeave automation"
+          git config user.email "lineageweave-automation@users.noreply.github.com"
+          git commit -m "feat(reports): reconstruct grouping comparison axis singular on current stack"
+          git push origin HEAD:automation/830-current-829-reconstruct-r2-20260907-2013
