@@ -422,3 +422,12 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Bounded telemetry maintenance
+
+When replacing an OpenTelemetry handler, preserve explicit OTLP opt-in and
+attach it only to the product's bounded logger. Do not enable global automatic
+instrumentation to silence a deprecation warning. Verify the root logger and
+LogRecord factory are unchanged, retain the intended severity threshold, and
+check warning absence after real provider setup and teardown. Backend diagnostic
+tests require both the dev and backend extras in the isolated uv environment.

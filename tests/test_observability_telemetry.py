@@ -107,6 +107,10 @@ def test_configure_telemetry_success_installs_providers(
     import opentelemetry.metrics as otel_metrics
     import opentelemetry.trace as otel_trace
 
+    import warnings
+
+    root_handlers = list(logging.getLogger().handlers)
+    record_factory = logging.getLogRecordFactory()
     trace_providers: list[object] = []
     metric_providers: list[object] = []
     log_providers: list[object] = []
@@ -118,7 +122,9 @@ def test_configure_telemetry_success_installs_providers(
     monkeypatch.setattr(otel_metrics, "set_meter_provider", metric_providers.append)
     monkeypatch.setattr(otel_logs, "set_logger_provider", log_providers.append)
 
-    observability.configure_telemetry("services/synthetic")
+    with warnings.catch_warnings(record=True) as notices:
+        warnings.simplefilter("always", DeprecationWarning)
+        observability.configure_telemetry("services/synthetic")
 
     assert observability._CONFIGURED is True
     assert observability._TRACE_PROVIDER is not None
@@ -126,6 +132,10 @@ def test_configure_telemetry_success_installs_providers(
     assert metric_providers == [observability._METER_PROVIDER]
     assert log_providers == [observability._LOG_PROVIDER]
     assert isinstance(observability._LOG_HANDLER, logging.Handler)
+    assert observability._LOG_HANDLER.level == logging.WARNING
+    assert observability._LOG_HANDLER in observability._LOGGER.handlers
+    assert logging.getLogger().handlers == root_handlers
+    assert logging.getLogRecordFactory() is record_factory
 
     # Restore the module to a clean, unconfigured state for the rest of the suite.
     observability.shutdown_telemetry()
@@ -134,6 +144,7 @@ def test_configure_telemetry_success_installs_providers(
     monkeypatch.setattr(observability, "_METER_PROVIDER", None)
     monkeypatch.setattr(observability, "_LOG_PROVIDER", None)
     monkeypatch.setattr(observability, "_LOG_HANDLER", None)
+    assert not [notice for notice in notices if issubclass(notice.category, DeprecationWarning)]
 
 
 def test_configure_telemetry_returns_when_sdk_disabled(

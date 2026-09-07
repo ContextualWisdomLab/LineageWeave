@@ -932,3 +932,38 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+
+## OpenTelemetry log-handler compatibility (2026-09-07)
+
+Hosted Tests run 34082387676 reported a deprecated SDK LoggingHandler during
+provider configuration. The existing provider test was strengthened to capture
+DeprecationWarning, then assert that none occurred after shutdown; it failed
+on the SDK handler. It also checks the WARNING threshold, dedicated logger
+attachment, unchanged root handlers, and unchanged global LogRecord factory.
+
+The adapter now imports LoggingHandler from the official
+opentelemetry-instrumentation-logging package and retains manual construction
+with its existing LoggerProvider. The lock pins 0.65b0 alongside SDK 1.44.0
+and semantic conventions 0.65b0. Only the new instrumentation package, its base
+instrumentation dependency, and wrapt are added; no existing locked versions
+were changed. No LoggingInstrumentor, global record-factory patch, root handler,
+or new exporter setting is enabled. ADR 0122 remains the governing opt-in and
+bounded-content contract. The replacement's default omits optional code-location
+attributes; the ADR-defined operation/session/error evidence remains unchanged.
+
+Final local verification used the frozen dev and backend extras on Python 3.14.6:
+30 observability and server-diagnostic tests passed without warnings. Module
+statement/branch coverage is 92%, not 100%; uncovered paths remain a tracked
+gap. The first combined run lacked backend extras and stopped during collection
+on missing asyncpg; its 15% coverage report is not test acceptance evidence.
+No warning suppression, real-record fixture, collector deployment, or protected
+merge is claimed.
+
+References:
+
+OpenTelemetry Authors. (n.d.). *OpenTelemetry logging instrumentation*.
+https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/logging/logging.html
+
+OpenTelemetry Authors. (2026). *LoggingHandler implementation (v0.65b0)*.
+https://github.com/open-telemetry/opentelemetry-python-contrib/blob/v0.65b0/instrumentation/opentelemetry-instrumentation-logging/src/opentelemetry/instrumentation/logging/handler.py
