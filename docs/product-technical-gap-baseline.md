@@ -1,5 +1,16 @@
 # Product & Technical Gap Baseline
 
+> Synchronous post-content backfill naming overlay: 2026-09-07 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The operator used
+> generic package-owned command, database, record, normalized-content, image,
+> result, and limit identifiers (`_parser`, `args`, `conn`, `row`, `item`,
+> `result`, `limit`) plus generic SQL aliases. Action: translate the complete
+> private caller surface to post-content backfill language while preserving CLI
+> flags, JSON result keys, source-selection semantics, persistence and
+> transaction boundaries, and connection close. Status: RED naming/contract
+> regression followed by production GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+
 > Post-content queue backfill naming overlay: 2026-09-07 KST. Protected
 > `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The private
 > operator used generic package-owned command, database, queue, record, request,

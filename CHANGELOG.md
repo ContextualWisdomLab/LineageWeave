@@ -262,6 +262,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The synchronous post-content backfill now uses semantic command, database,
+  source-post, normalized-content, image-result, aggregate-result, and SQL
+  aliases while preserving CLI flags, JSON result keys, source selection,
+  persistence, transaction, and connection-close behavior.
+
 - The post-content queue backfill now uses semantic command, database, Valkey,
   source-record, job-request, and aggregate-result identifiers while preserving
   CLI flags, JSON result keys, selection SQL, transaction boundaries, and event
