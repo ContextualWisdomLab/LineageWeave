@@ -16,7 +16,7 @@ describe("ScreenTranslationGate", () => {
   it("keeps an unclassified projection failure cause-neutral", () => {
     render(<ScreenTranslationGate state="retry" onRetry={() => undefined} />);
     expect(screen.getByText("We could not load this screen in your selected language.")).toBeInTheDocument();
-    expect(screen.getByText("Retry the translation request. If it still fails, ask an administrator to check access and publication status.")).toBeInTheDocument();
+    expect(screen.getByText("Try again. If the problem continues, contact your administrator.")).toBeInTheDocument();
     expect(screen.queryByText(/not available in your selected language yet/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/ask an administrator to publish this screen/i)).not.toBeInTheDocument();
   });

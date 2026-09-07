@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+## 2026-09-07 bootstrap recovery follow-up (PR #932)
+
+The candidate based on `846ec4700666188a281940b99ac4edf776e904ca`
+removes access/publication troubleshooting from the eight-locale recovery
+instruction. Readers can retry and contact their administrator if the problem
+continues; an unclassified load failure still does not assert a cause.
+Seven additional locale stories reuse the existing gate and status notice.
+The earlier snapshot below remains historical evidence.
+
+The existing English recovery assertion failed before the copy change
+(1 failed / 10 passed); the repaired gate and shared notice passed all 17
+focused tests. Lint, production build, and Storybook build also passed; the
+existing production chunk-size warning remains. An actual browser displayed each of the eight retry stories at
+320 × 640: document width and scroll width were both 320 pixels in all eight,
+and Tab focused the correctly localized retry button in all eight. English,
+German, and French screenshots were visually inspected. This verifies the
+isolated bootstrap shell only: no authenticated source records were loaded,
+and it does not establish PostgreSQL translation delivery, native-speaker
+review, screen-reader acceptance, all-page latency, protected merge, or release.
+
 > Snapshot refreshed 2026-09-05 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head

@@ -24,7 +24,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "다시 시도 필요",
     retryDescription: "요청이 실패했습니다. 같은 작업을 다시 시도하세요.",
     failure: "선택한 언어로 이 화면을 불러오지 못했습니다.",
-    nextAction: "번역 요청을 다시 시도하세요. 계속 실패하면 관리자에게 접근 권한과 게시 상태를 확인해 달라고 요청하세요.",
+    nextAction: "다시 시도하세요. 문제가 계속되면 관리자에게 문의하세요.",
     retryAction: "다시 시도",
   },
   en: {
@@ -32,7 +32,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "Retry needed",
     retryDescription: "This request failed. Retry the same action.",
     failure: "We could not load this screen in your selected language.",
-    nextAction: "Retry the translation request. If it still fails, ask an administrator to check access and publication status.",
+    nextAction: "Try again. If the problem continues, contact your administrator.",
     retryAction: "Retry",
   },
   ja: {
@@ -40,7 +40,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "再試行が必要です",
     retryDescription: "リクエストに失敗しました。同じ操作をもう一度お試しください。",
     failure: "選択した言語でこの画面を読み込めませんでした。",
-    nextAction: "翻訳の取得を再試行してください。引き続き失敗する場合は、管理者にアクセス権と公開状態の確認を依頼してください。",
+    nextAction: "もう一度お試しください。問題が続く場合は、管理者にお問い合わせください。",
     retryAction: "再試行",
   },
   zh: {
@@ -48,7 +48,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "需要重试",
     retryDescription: "请求失败。请重试同一操作。",
     failure: "无法以所选语言加载此页面。",
-    nextAction: "请重试翻译请求。如果仍然失败，请让管理员检查访问权限和发布状态。",
+    nextAction: "请重试。如果问题仍然存在，请联系管理员。",
     retryAction: "重试",
   },
   vi: {
@@ -56,7 +56,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "Cần thử lại",
     retryDescription: "Yêu cầu không thành công. Hãy thử lại cùng thao tác.",
     failure: "Không thể tải màn hình này bằng ngôn ngữ đã chọn.",
-    nextAction: "Hãy thử lại yêu cầu bản dịch. Nếu vẫn thất bại, hãy nhờ quản trị viên kiểm tra quyền truy cập và trạng thái xuất bản.",
+    nextAction: "Hãy thử lại. Nếu sự cố vẫn tiếp diễn, hãy liên hệ với quản trị viên.",
     retryAction: "Thử lại",
   },
   es: {
@@ -64,7 +64,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "Es necesario reintentar",
     retryDescription: "La solicitud ha fallado. Vuelva a intentar la misma acción.",
     failure: "No se pudo cargar esta pantalla en el idioma seleccionado.",
-    nextAction: "Vuelva a intentar la solicitud de traducción. Si sigue fallando, pida a un administrador que compruebe el acceso y el estado de publicación.",
+    nextAction: "Vuelva a intentarlo. Si el problema persiste, póngase en contacto con su administrador.",
     retryAction: "Reintentar",
   },
   de: {
@@ -72,7 +72,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "Erneuter Versuch erforderlich",
     retryDescription: "Die Anfrage ist fehlgeschlagen. Versuchen Sie dieselbe Aktion erneut.",
     failure: "Dieser Bildschirm konnte in der ausgewählten Sprache nicht geladen werden.",
-    nextAction: "Versuchen Sie die Übersetzungsanfrage erneut. Wenn der Fehler weiterhin auftritt, lassen Sie Zugriffsrechte und Veröffentlichungsstatus durch die Administration prüfen.",
+    nextAction: "Versuchen Sie es erneut. Wenn das Problem weiterhin besteht, wenden Sie sich an die Administration.",
     retryAction: "Erneut versuchen",
   },
   fr: {
@@ -80,7 +80,7 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     retryLabel: "Nouvelle tentative requise",
     retryDescription: "La demande a échoué. Réessayez la même action.",
     failure: "Impossible de charger cet écran dans la langue sélectionnée.",
-    nextAction: "Réessayez la demande de traduction. Si l’échec persiste, demandez à un administrateur de vérifier l’accès et l’état de publication.",
+    nextAction: "Réessayez. Si le problème persiste, contactez votre administrateur.",
     retryAction: "Réessayer",
   },
 };
