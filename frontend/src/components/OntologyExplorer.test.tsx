@@ -207,6 +207,37 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
   });
 
+  it.each(["success", "denial"])("ignores retired %s after credential re-entry", async (outcome) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
+    let resolveRetired!: (value: OntologyNeighborhoodPayload) => void;
+    let rejectRetired!: (error: BackendError) => void;
+    fetchNeighborhood
+      .mockImplementationOnce(() => new Promise((resolve, reject) => {
+        resolveRetired = resolve;
+        rejectRetired = reject;
+      }))
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce(neighborhood());
+    const props = { focusNodeType: "node_post", focusNodeId: POST_ID };
+    const { rerender } = render(<OntologyExplorer {...props} accessToken="token-a" />);
+    rerender(<OntologyExplorer {...props} accessToken="token-b" />);
+    rerender(<OntologyExplorer {...props} accessToken="token-a" />);
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      if (outcome === "denial") {
+        rejectRetired(new BackendError("/api/ontology/neighborhood", 403));
+      } else {
+        resolveRetired(neighborhood({ nodes: [], edges: [], exact_value_rows: [] }));
+      }
+    });
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeEnabled();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps loaded pages visible when a continuation page fails", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
     let rejectContinuation!: (error: BackendError) => void;

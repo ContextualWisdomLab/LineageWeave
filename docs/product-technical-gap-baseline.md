@@ -1196,3 +1196,18 @@ Fresh source checks also contain failed Rust study shards 3, 5, 7, 8, and 9.
 Existing release work includes PR #1471 (v0.9.2, Draft) and PR #1692 (SBOM and
 provenance); do not create a competing release path or re-dispatch v0.9.1 as
 verified merely because core CI passed. No publication was dispatched.
+
+
+### Ontology request re-entry verification (2026-09-07)
+
+Deferred success and 403 denial from the retired first A request cannot replace
+or hide the current authorized projection after A → B → A. Two behavioral
+cases now assert the current graph and both exports survive, without another
+request. Existing per-request effect cleanup already satisfies this contract;
+no second lifecycle mechanism was added.
+
+The latest complete OntologyExplorer plus stabilization suite passed 38/38
+cases in 16.66 s, with all existing deadlines unchanged. This supersedes the
+previous non-green focused-suite result, while preserving its timeout history.
+It does not establish a green full frontend suite, browser Tab order, current-head
+hosted CI, or authenticated all-page performance.
