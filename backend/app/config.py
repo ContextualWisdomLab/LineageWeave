@@ -8,6 +8,11 @@ import math
 import os
 from dataclasses import dataclass, field
 
+# Compatibility sentinel for the stacked worker module while its obsolete
+# deadline import is removed. It is deliberately non-operative: Global Ask
+# liveness is claim-heartbeat/generation based and has no elapsed worker cap.
+GLOBAL_ASK_JOB_DEADLINE_SECONDS = None
+
 
 @dataclass(frozen=True)
 class Settings:
