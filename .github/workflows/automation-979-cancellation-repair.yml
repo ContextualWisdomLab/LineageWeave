@@ -1,0 +1,154 @@
+name: Automation 979 cancellation repair
+
+on:
+  push:
+    branches:
+      - feat/ask-ownership-fenced-liveness-20260907
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: automation-979-cancellation-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      EXPECTED_PRODUCT_PARENT: ee4430fa20f5cfe9c0d623061d92bc662c3353b8
+      PRODUCT_BRANCH: feat/ask-ownership-fenced-liveness-20260907
+    steps:
+      - name: Checkout exact automation head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify authority before repair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PRODUCT_PARENT"
+          live_head="$(gh api repos/${GITHUB_REPOSITORY}/pulls/979 --jq .head.sha)"
+          test "$live_head" = "$GITHUB_SHA"
+          test "$(git status --porcelain)" = ""
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed dependency graph
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Reproduce external-cancellation RED
+        run: |
+          set -euo pipefail
+          set +e
+          uv run --frozen python -m pytest -q tests/test_global_ask_claim_cancellation.py > /tmp/red.log 2>&1
+          red_status=$?
+          set -e
+          cat /tmp/red.log
+          test "$red_status" -ne 0
+          grep -F "owner cancellation left compute_global_ask_answer detached" /tmp/red.log
+
+      - name: Apply minimum causal cancellation repair
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("backend/app/global_ask_queue.py")
+          text = path.read_text()
+          old = '''    beater = asyncio.create_task(beat())
+              worker = asyncio.create_task(operation)
+              try:
+                  await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
+                  if lost.is_set():
+                      worker.cancel()
+                      await asyncio.gather(worker, return_exceptions=True)
+                      raise _LostAskClaim()
+                  return await worker
+              finally:
+                  stop.set()
+                  beater.cancel()
+                  await asyncio.gather(beater, return_exceptions=True)
+          '''
+          new = '''    beater = asyncio.create_task(beat())
+              worker = asyncio.create_task(operation)
+              try:
+                  await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
+                  if lost.is_set():
+                      worker.cancel()
+                      await asyncio.gather(worker, return_exceptions=True)
+                      raise _LostAskClaim()
+                  return await worker
+              finally:
+                  stop.set()
+                  for task in (beater, worker):
+                      if not task.done():
+                          task.cancel()
+                  await asyncio.gather(beater, worker, return_exceptions=True)
+          '''
+          # The literals above are indented inside this workflow script; normalize
+          # only that script indentation, not repository source indentation.
+          old = old.replace("          ", "")
+          new = new.replace("          ", "")
+          if text.count(old) != 1:
+              raise SystemExit("expected heartbeat cleanup block exactly once")
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- backend/app/global_ask_queue.py
+
+      - name: Focused GREEN
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q \
+            tests/test_global_ask_claim_cancellation.py \
+            tests/test_global_ask_queue.py
+
+      - name: Full PostgreSQL-backed GREEN
+        run: uv run --frozen python -m pytest -q
+
+      - name: Remove temporary repair workflow and promote non-force
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          live_head="$(gh api repos/${GITHUB_REPOSITORY}/pulls/979 --jq .head.sha)"
+          test "$live_head" = "$GITHUB_SHA"
+          git rm .github/workflows/automation-979-cancellation-repair.yml
+          git add backend/app/global_ask_queue.py
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(ask): cancel active operation with claim owner"
+          git push origin HEAD:"$PRODUCT_BRANCH"
