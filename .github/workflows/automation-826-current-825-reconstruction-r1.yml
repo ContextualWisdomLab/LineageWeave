@@ -36,9 +36,11 @@ jobs:
           one('frontend/src/leftoverMapReconstruction.ts','export const LEFTOVER_MAP_RECONSTRUCTION_ACTION =\n  "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.";\n','export const LEFTOVER_MAP_RECONSTRUCTION_ACTION =\n  "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.";\n\nexport const LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL =\n  "Leftover map comparison reconstruction";\n')
           one('frontend/src/App.tsx','import "./App.css";\n','import { formatLeftoverMapReconstruction, LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL } from "./leftoverMapReconstruction";\nimport "./App.css";\n')
           one('frontend/src/App.tsx','                    const criterion = criterionShortLabel(pair.criterion_code);\n                    return (\n','                    const criterion = criterionShortLabel(pair.criterion_code);\n                    const reconstruction = formatLeftoverMapReconstruction(pair.leftover_map_reconstruction);\n                    return (\n')
-          one('frontend/src/App.tsx','                          <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>\n','                          <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>\n                          {reconstruction ? (\n                            <span className="post-badge" aria-label={t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)}>{reconstruction}</span>\n                          ) : null}\n')
+          one('frontend/src/App.tsx','                          <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>\n','                          <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>\n                          {reconstruction ? (<span className="post-badge" aria-label={t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)}>{reconstruction}</span>) : null}\n')
           fixture_old='''                    post_id: "post-1",\n                    post_title: "Public post",\n                    criterion_code: "sales_lead_specificity",\n                    leftover_distance: 0.12,\n                    leftover_residual: 0.4,\n'''
-          one('frontend/src/App.test.tsx',fixture_old,fixture_old+'                    leftover_map_reconstruction: 0.248,\n')
+          p=Path('frontend/src/App.test.tsx'); text=p.read_text(); c=text.count(fixture_old)
+          if c < 1: raise SystemExit('comparison fixture missing')
+          p.write_text(text.replace(fixture_old,fixture_old+'                    leftover_map_reconstruction: 0.248,\n'))
           one('frontend/src/App.test.tsx','    ).toHaveTextContent("Closest leftover: Public post · sales-lead");\n','    ).toHaveTextContent("Closest leftover: Public post · sales-lead");\n    expect(screen.getByRole("button", { name: /open leftover closest pair from comparison: public post.*R̂ \\+0\\.25/i })).toBeInTheDocument();\n')
           PY
           cd frontend
@@ -51,15 +53,23 @@ jobs:
           grep -F "Unable to find an accessible element with the role \"button\"" /tmp/826-red.log
           cd ..
           git reset --hard HEAD
+      - name: Prepatch one repeated fixture for deterministic product script
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('frontend/src/App.test.tsx'); text=p.read_text()
+          old='''                    post_id: "post-1",\n                    post_title: "Public post",\n                    criterion_code: "sales_lead_specificity",\n                    leftover_distance: 0.12,\n                    leftover_residual: 0.4,\n'''
+          if text.count(old) != 2: raise SystemExit(f'unexpected repeated fixture count={text.count(old)}')
+          p.write_text(text.replace(old,old+'                    leftover_map_reconstruction: 0.248,\n',1))
+          PY
       - name: Apply causal reconstruction and accessibility repair
         run: python .github/automation/826-r1.py
       - name: Diff integrity
         run: git diff --check
       - name: Focused UI and i18n GREEN
         working-directory: frontend
-        run: |
-          pnpm exec vitest run src/App.test.tsx -t "shows the grouping comparison strip and switches grouping on click"
-          pnpm exec vitest run src/i18n.test.ts src/leftoverMapReconstruction.test.ts
+        run: pnpm exec vitest run src/App.test.tsx -t "shows the grouping comparison strip and switches grouping on click" && pnpm exec vitest run src/i18n.test.ts src/leftoverMapReconstruction.test.ts
       - name: Frontend lint build Storybook GREEN
         working-directory: frontend
         run: pnpm run lint && pnpm run build && pnpm run build-storybook
