@@ -1,5 +1,15 @@
 # Product & Technical Gap Baseline
 
+> Exact-head naming overlay: 2026-09-07 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded post-Keyman
+> operator still used generic package-owned command, database, record, and
+> result identifiers (`_run`, `args`, `conn`, `row`, `rows`, `settings`).
+> Action: rename the complete private caller surface to the Keyman-backfill
+> ubiquitous language, preserve CLI flags, JSON result fields, SQL, and
+> persistence contracts, and keep the change Proposed until fresh exact-head
+> checks and independent review complete. Status: implementation and AST
+> regression GREEN locally; GitHub verification pending.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
