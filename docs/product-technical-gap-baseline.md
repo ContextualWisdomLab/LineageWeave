@@ -40,9 +40,17 @@ At 320px, its bounds are 21–299px, with readable wrapping and no horizontal
 overflow. Desktop and narrow screenshots were inspected in the actual browser.
 The existing Figma page has no sign-in frame (ADR 0220 records the file/page
 IDs); no sign-in design-parity claim is made. `Chrome/StatusNotice/SignInRetry`
-records the recovery action. Full App regression, five-current-locale keyboard
-checks, lint, production build, and Storybook build remain pending at this
-documentation checkpoint; final results belong on the exact PR head.
+records the recovery action; its three interaction steps passed in the built
+Storybook browser. Lint, production build, Storybook build, and five
+documentation checks passed. The expanded recovery checks pass in all five
+current locales, including keyboard activation. The three-file regression run
+at `221df2281` completed with **53 passed, 73 failed (126 total)**: the failures
+are in existing authenticated journeys, predominantly test deadlines, with
+additional element-lookup failures. The run took 938 seconds; concurrent host
+load exceeded 60 and swap use exceeded 44 GB. Contention is a hypothesis, not
+proof that the failures are harmless. Keep the PR draft until unchanged
+required checks verify the authenticated journeys; do not raise their limits,
+skip them, or claim a full regression pass.
 
 **Remaining acceptance gaps.** This failure-path browser check does not prove
 successful authentication, deployed behavior, eight-locale database delivery,
