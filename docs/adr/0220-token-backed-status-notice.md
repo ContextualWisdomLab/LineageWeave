@@ -51,6 +51,8 @@ authentication continues into the authorized workspace.
 Reuse the login layout and `StatusNotice` tokens, semantic alert, native
 button, keyboard behavior, and minimum control size. Storybook records the
 sign-in retry variant, and browser checks cover desktop and narrow layouts.
+The login card includes padding and borders in its declared width, so the
+page's overflow rule cannot hide clipped card edges on narrow screens.
 The existing Figma file `1Su3lDRmiZdcUs47t1QwIX`, page `0:1`, was inspected on
 2026-09-07: its Event Lineage and Ask Agent frames do not define a sign-in
 screen. This repair therefore makes no sign-in Figma parity claim.
