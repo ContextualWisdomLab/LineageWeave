@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+## Setup evidence validation — 2026-09-07 09:35 KST
+
+This repair extends PR #964 from `da29d2cd38178b0aa57a9701972fdccfd4f9d03c`.
+ADRs 0001, 0122, and 0213 govern data confidentiality, bounded failure
+diagnostics, and the distinction between load observations and capacity claims.
+The existing HTTP and MCP authentication functions accepted missing, empty, or
+non-string tokens; accepted Ask responses also admitted invalid job identifiers.
+A malformed successful response could therefore continue into a meaningless
+observation. A parser exception could expose response content in a diagnostic.
+The repair validates both setup values and confines parser errors before the next
+request, including authentication renewal through the same functions.
+
+The diagnostic KPI at test commit `3bcb135d3` was **15 failing / 57 cases**.
+At fix commit `523988884`, all **71 / 71 cases pass**, including 14 additional
+job-identifier and successful-setup cases. Reproduce from `frontend` with
+`corepack pnpm exec vitest run src/k6Diagnostics.test.ts --maxWorkers=1`.
+The two Python harness contracts and five documentation checks also pass (7/7),
+and frontend TypeScript compilation passes. No dependency, production runtime,
+schema, model policy, UI component, or capacity threshold changed.
+
+Review discussion `3945636063` identified an ambiguous `implementation_parent`
+in the older evidence JSON. Its value was the experiment baseline, not the
+recorded head's Git parent. The field is now `implementation_base_commit`, and
+`implementation_commit` names `ff8010f109d64217e3db61fa501e8009a96ffe37`, the first
+commit matching all three recorded source hashes. All three hashes were checked
+against Git objects; the historical snapshot and its hash values are preserved.
+
+Native k6 was also exercised against an ephemeral loopback test server using
+only synthetic unit-test responses. All service URLs pointed at that server;
+this is a harness correctness check, not product or private-source load evidence.
+The four invalid-setup cases previously exited successfully; all now stop with
+exit 107 before the next phase. Both valid scenarios still exit successfully.
+
+| Native k6 case | Before: requests / exit | After: requests / exit |
+|---|---|---|
+| HTTP invalid token | 5 / 0 | 1 / 107 |
+| MCP invalid token | 7 / 0 | 1 / 107 |
+| HTTP missing job identifier | 5 / 0 | 2 / 107 |
+| MCP missing job identifier | 7 / 0 | 4 / 107 |
+| HTTP valid setup | 5 / 0 | 5 / 0 |
+| MCP valid setup | 7 / 0 | 7 / 0 |
+
+The real browser rendered the deployed sign-in screen and followed its sign-in
+button to the configured identity form. No credentials were submitted; callback,
+authenticated pages, logout, and the user-requested p95 <= 20 ms target remain
+unverified. This deployed UI is not evidence of the candidate commit. GitHub's
+paginated read returned 124 open PRs (117 Draft / 7 Ready); a later REST refresh
+hit the shared account's API rate limit. The real GitHub Checks page subsequently showed frontend success and other
+checks running or queued at parent `da29d2cd3`; none applies to this new fix.
+Current-head checks and merge eligibility must be re-fetched; neither an older
+passing check nor a test-server result establishes protected delivery. The existing hourly heartbeat now follows the
+current goal file while preserving independent approval and owner boundaries.
+
+Grafana Labs. (n.d.). *Response.json([selector])*. Retrieved September 7, 2026,
+from https://grafana.com/docs/k6/latest/javascript-api/k6-http/response/response-json/
+
 ## Bounded k6 contract repair — 2026-09-07 09:12 KST
 
 At PR #964 parent `107c8cc89e9c5f292a88a8fdd786607fa91b0c30`,

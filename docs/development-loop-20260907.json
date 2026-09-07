@@ -143,7 +143,8 @@
   "file_scan_available": 120,
   "open_issue_count": 19,
   "runtime_aggregate": {"posts": 43189, "ask_jobs": 130, "running_ask_jobs": 0, "connections": 9, "lock_wait_connections": 0, "scope": "Whole-table operational diagnostics, not candidate acceptance or population inference"},
-  "implementation_parent": "209582b309ac4cb0e8dca306fc41a9324a980b22",
+  "implementation_base_commit": "209582b309ac4cb0e8dca306fc41a9324a980b22",
+  "implementation_commit": "ff8010f109d64217e3db61fa501e8009a96ffe37",
   "implementation_sha256": {"scripts/k6_http_e2e.js": "21a05d0e4e9c1a405b1e1ec127160423d9275cfd6d6033c9472601bd44a8127b", "scripts/k6_mcp_e2e.js": "16c77e527e749acc94f29d677fe28afa2da09c2be4d24a83baef06309ecc6fcc", "frontend/src/k6Diagnostics.test.ts": "92997a2dfc22236e5e9041627104421a09fd22d8fb285fb11e9cf1427606782e"}
 ,
   "follow_on_voice_validation": {"pr": 780, "head": "1d8fa267b059289e77301a09985dfac70a439814", "passed": 7, "skipped": 1, "authenticated_api": "skipped; acceptance unavailable"}
