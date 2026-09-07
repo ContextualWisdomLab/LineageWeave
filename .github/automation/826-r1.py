@@ -42,8 +42,15 @@ fixture_old = '''                    post_id: "post-1",
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                  },
+                ],
+                leftover_map_coverage: {
 '''
-fixture_new = fixture_old + '                    leftover_map_reconstruction: 0.248,\n'
+fixture_new = fixture_old.replace(
+    '                    leftover_residual: 0.4,\n',
+    '                    leftover_residual: 0.4,\n                    leftover_map_reconstruction: 0.248,\n',
+    1,
+)
 replace_once("frontend/src/App.test.tsx", fixture_old, fixture_new)
 replace_once(
     "frontend/src/App.test.tsx",
