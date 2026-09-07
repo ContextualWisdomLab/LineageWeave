@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -559,6 +559,87 @@ def test_orphan_reclaim_prevents_stale_owner_from_settling(monkeypatch) -> None:
     assert connection.status == global_ask_queue.RUNNING
     assert global_ask_queue._claim_generation_retained("UPDATE 0") is False
     assert global_ask_queue._claim_generation_retained("UPDATE 1") is True
+
+
+def test_claim_heartbeat_advances_generation_used_at_settle(monkeypatch) -> None:
+    """A live worker renews updated_at so settlement matches the current generation."""
+    renewed_at = _CLAIMED_AT + timedelta(seconds=30)
+
+    class _HeartbeatConnection(_Connection):
+        async def fetchrow(self, query: str, *_args: object):
+            if "knowledge_cutoff, updated_at" in query:
+                return self.row
+            if "returning updated_at" in query:
+                assert self.row is not None
+                self.row = {**self.row, "updated_at": renewed_at}
+                return {"updated_at": renewed_at}
+            return self.row
+
+    connection = _HeartbeatConnection(_queued_row())
+    pool = _Pool(connection)
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **_kwargs):
+        await asyncio.sleep(0.05)
+        return {"answer_text": "live-owner"}
+
+    monkeypatch.setattr(global_ask_queue, "_CLAIM_HEARTBEAT_SECONDS", 0.01)
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    settle_query, settle_args = connection.executed[-1]
+    assert "answer_payload" in settle_query
+    assert settle_args[4] == renewed_at
+
+
+def test_lost_heartbeat_does_not_settle_a_reclaimed_job(monkeypatch) -> None:
+    """A failed claim renew leaves the reclaimed owner in place."""
+
+    class _LostHeartbeatConnection(_Connection):
+        async def fetchrow(self, query: str, *_args: object):
+            if "knowledge_cutoff, updated_at" in query:
+                return self.row
+            if "returning updated_at" in query:
+                return None
+            return self.row
+
+    connection = _LostHeartbeatConnection(_queued_row())
+    pool = _Pool(connection)
+
+    async def _fake_load_job_visibility(_conn, _job_id, _account_id):
+        return {"corp-1"}, set(), False, True
+
+    async def _fake_compute_global_ask_answer(*_args, **_kwargs):
+        await asyncio.Event().wait()
+        return {"answer_text": "should-not-settle"}
+
+    monkeypatch.setattr(global_ask_queue, "_CLAIM_HEARTBEAT_SECONDS", 0.01)
+    monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=_AvailableClient,
+        )
+    )
+
+    assert all("answer_payload" not in query for query, _args in connection.executed)
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:

@@ -94,6 +94,9 @@ _STREAM_MAX_LENGTH = 1000
 # LLM round-trips, so serial consumption would head-of-line block every
 # later question behind the slowest one.
 _WORKER_CONCURRENCY = 4
+# Live workers renew the claim generation on this interval so age-based
+# orphan recovery cannot reclaim a job that is still owned.
+_CLAIM_HEARTBEAT_SECONDS = _RECOVERY_INTERVAL_SECONDS
 
 _logger = logging.getLogger(__name__)
 
@@ -105,6 +108,69 @@ class _SafeJobError(Exception):
 def _claim_generation_retained(command_status: object) -> bool:
     """Return True when PostgreSQL reports the compare-and-set updated one row."""
     return str(command_status) == "UPDATE 1"
+
+
+class _LostAskClaim(Exception):
+    """Raised when orphan recovery reclaims the running claim generation."""
+
+
+async def _renew_ask_claim(
+    pool: asyncpg.Pool, job_id: str, claimed_at: object
+) -> object | None:
+    """Advance ``updated_at`` only for the current running claim generation."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            update global_ask_job set updated_at = now()
+            where global_ask_job_id = $1
+              and job_status_code = $2
+              and updated_at = $3
+            returning updated_at
+            """,
+            job_id,
+            RUNNING,
+            claimed_at,
+        )
+    if row is None:
+        return None
+    return row["updated_at"]
+
+
+async def _run_with_ask_claim_heartbeat(
+    pool: asyncpg.Pool,
+    job_id: str,
+    lease: list[object],
+    operation: Any,
+) -> Any:
+    """Renew the claim generation while ``operation`` runs; abort on reclaim."""
+    lost = asyncio.Event()
+    stop = asyncio.Event()
+
+    async def beat() -> None:
+        while not stop.is_set() and not lost.is_set():
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=_CLAIM_HEARTBEAT_SECONDS)
+                return
+            except TimeoutError:
+                renewed = await _renew_ask_claim(pool, job_id, lease[0])
+                if renewed is None:
+                    lost.set()
+                    return
+                lease[0] = renewed
+
+    beater = asyncio.create_task(beat())
+    worker = asyncio.create_task(operation)
+    try:
+        await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
+        if lost.is_set():
+            worker.cancel()
+            await asyncio.gather(worker, return_exceptions=True)
+            raise _LostAskClaim()
+        return await worker
+    finally:
+        stop.set()
+        beater.cancel()
+        await asyncio.gather(beater, return_exceptions=True)
 
 
 async def enqueue_global_ask_job(
@@ -544,7 +610,7 @@ async def process_global_ask_job(
         )
     if row is None:
         return
-    claimed_at = row["updated_at"]
+    lease = [row["updated_at"]]
     answer_timeout: asyncio.Timeout | None = None
     try:
         async with pool.acquire() as conn:
@@ -564,19 +630,26 @@ async def process_global_ask_job(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
         async with asyncio.timeout(JOB_DEADLINE_SECONDS) as answer_timeout:
-            payload = await compute_global_ask_answer(
+            payload = await _run_with_ask_claim_heartbeat(
                 pool,
-                question_text=str(row["question_text"]),
-                corporate_entity_ids=entity_ids,
-                process_unit_ids=process_unit_ids,
-                process_scope_limited=process_scope_limited,
-                chat_client=chat_client,
-                embedding_client=embedding_factory(),
-                semantic_query_client=semantic_query_factory(),
-                verify_external=bool(row["verify_external_requested"]),
-                claim_verification_client=claim_verification_factory(),
-                knowledge_cutoff=row["knowledge_cutoff"],
+                job_id,
+                lease,
+                compute_global_ask_answer(
+                    pool,
+                    question_text=str(row["question_text"]),
+                    corporate_entity_ids=entity_ids,
+                    process_unit_ids=process_unit_ids,
+                    process_scope_limited=process_scope_limited,
+                    chat_client=chat_client,
+                    embedding_client=embedding_factory(),
+                    semantic_query_client=semantic_query_factory(),
+                    verify_external=bool(row["verify_external_requested"]),
+                    claim_verification_client=claim_verification_factory(),
+                    knowledge_cutoff=row["knowledge_cutoff"],
+                ),
             )
+    except _LostAskClaim:
+        return
     except asyncio.CancelledError:
         # Shutdown: leave the row `running`; the recovery sweep re-queues
         # it after the orphan window on the next process start.
@@ -622,7 +695,7 @@ async def process_global_ask_job(
                 FAILED,
                 detail[:1000],
                 RUNNING,
-                claimed_at,
+                lease[0],
             )
         if not _claim_generation_retained(command_status):
             return
@@ -640,7 +713,7 @@ async def process_global_ask_job(
             SUCCEEDED,
             _to_json(payload),
             RUNNING,
-            claimed_at,
+            lease[0],
         )
     if not _claim_generation_retained(command_status):
         return

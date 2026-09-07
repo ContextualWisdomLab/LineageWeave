@@ -4,8 +4,10 @@
 > #974 so Global Ask settlement is compare-and-set on the claim
 > generation (`updated_at`). A PostgreSQL `UPDATE 0` means the previous
 > owner lost the generation and is not a buyer-visible failure. Orphan
-> recovery can still reclaim by age. The 600 s worker deadline remains
-> until liveness heartbeat lands. Draft; not protected-main or
+> recovery can still reclaim by age. Live workers renew ``updated_at``
+> on the recovery interval so a current owner is not reclaimed by
+> elapsed time. The 600 s worker deadline remains until that heartbeat
+> evidence is independently approved. Draft; not protected-main or
 > independently approved evidence.
 >
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
