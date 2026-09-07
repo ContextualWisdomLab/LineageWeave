@@ -1,0 +1,45 @@
+name: automation-825-anchor-diagnostic-r7
+on:
+  push:
+    branches: [automation/825-anchor-diagnostic-r7-20260907-1300]
+permissions:
+  contents: read
+jobs:
+  anchors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 2
+      - name: Verify exact parent
+        run: test "$(git rev-parse HEAD^)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd"
+      - name: Check App test anchor
+        run: python - <<'PY'
+          from pathlib import Path
+          s=Path('frontend/src/App.test.tsx').read_text(); a='''    expect(\n      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete items"),\n    ).not.toBeInTheDocument();\n'''; assert s.count(a)==1, s.count(a)
+          PY
+      - name: Check coverage constant anchor
+        run: python - <<'PY'
+          from pathlib import Path
+          s=Path('frontend/src/leftoverMapCoverage.ts').read_text(); a='export const LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL = "Leftover map comparison incomplete posts";\n'; assert s.count(a)==1, s.count(a)
+          PY
+      - name: Check coverage header anchor
+        run: python - <<'PY'
+          from pathlib import Path
+          s=Path('frontend/src/leftoverMapCoverage.ts').read_text(); a='ADR 0288 / ADR 0290 / ADR 0291).'; assert s.count(a)==1, s.count(a)
+          PY
+      - name: Check App import anchor
+        run: python - <<'PY'
+          from pathlib import Path
+          s=Path('frontend/src/App.tsx').read_text(); a='  LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL,\n  LEFTOVER_MAP_LIST_COVERAGE_LABEL,'; assert s.count(a)==1, s.count(a)
+          PY
+      - name: Check App count anchor
+        run: python - <<'PY'
+          from pathlib import Path
+          s=Path('frontend/src/App.tsx').read_text(); a='''            const comparisonIncompletePostCount = leftoverMapIncompletePostCount(\n              row.leftover_map_coverage,\n            );\n            return ('''; assert s.count(a)==1, s.count(a)
+          PY
+      - name: Check App render anchor
+        run: python - <<'PY'
+          from pathlib import Path
+          s=Path('frontend/src/App.tsx').read_text(); a='''              {comparisonIncompletePostCount !== null ? (\n                <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL)}>\n                  {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, comparisonIncompletePostCount)}\n                </p>\n              ) : null}\n              {row.leftover_pairs && row.leftover_pairs.length > 0 && ('''; assert s.count(a)==1, s.count(a)
+          PY
