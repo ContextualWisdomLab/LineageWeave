@@ -4360,15 +4360,15 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByText(/leftover-map axis 1/),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover map comparison axis singular",
+      within(screen.getByLabelText("Grouping comparison")).getAllByText(
+        /leftover map comparison axis \d σ /,
       ),
     ).toHaveLength(4);
     expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover map comparison axis singular",
-      )[0],
-    ).toHaveTextContent("leftover map comparison axis 1 σ 0.00");
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 1 σ 0.00",
+      ),
+    ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByText(
         "leftover map comparison axis 1 σ 1.84",
