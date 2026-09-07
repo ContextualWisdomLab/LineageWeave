@@ -262,6 +262,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The deterministic channel-weight estimator now uses semantic source-post,
+  candidate-window, database, estimate, and command identifiers while
+  preserving pair sampling, fitting, CLI, JSON, SQL, and persisted provenance
+  contracts. The fast-mlsirm `v0.9.1` consumer cutover remains isolated in
+  #967.
+
 - The bounded thread-group-key backfill now uses semantic command, database,
   record, and count identifiers while preserving `--dry-run`, aggregate JSON,
   SQL, transaction rollback, and persistence behavior.
