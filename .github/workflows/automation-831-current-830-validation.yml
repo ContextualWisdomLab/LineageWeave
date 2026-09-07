@@ -11,8 +11,166 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      EXPECTED_PARENT: b36b2534c9b3a63b66c56ae22ff3dcad40ae5c67
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout validation lane
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD^)" = "b36b2534c9b3a63b66c56ae22ff3dcad40ae5c67"
+
+      - name: Verify exact product ancestry and scratch-only delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$EXPECTED_PARENT" HEAD
+          test "$(git diff --name-only "$EXPECTED_PARENT"..HEAD | sort -u)" = ".github/workflows/automation-831-current-830-validation.yml"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Write realistic accessible-name RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text()
+          fixture_old = "                    leftover_map_unexplained_share: 0.02,\n"
+          fixture_new = fixture_old + "                    leftover_map_cross_share: 0.12,\n"
+          if text.count(fixture_old) < 1:
+              raise SystemExit("fixture anchor missing")
+          text = text.replace(fixture_old, fixture_new, 1)
+          anchor = '''    const unexplainedSharePair = screen.getByRole("button", {\n      name: /open leftover closest pair from comparison: public post.*leftover map comparison unexplained leftover share U²\\/R² 0\\.02/i,\n    });\n    expect(unexplainedSharePair).toHaveTextContent("U²/R² 0.02");\n'''
+          addition = anchor + '''    const crossSharePair = screen.getByRole("button", {\n      name: /open leftover closest pair from comparison: public post.*leftover map comparison cross share/i,\n    });\n    expect(crossSharePair.getAttribute("aria-label")).toContain(\n      "Leftover map comparison cross share 2R̂U/R² 0.12",\n    );\n    expect(within(crossSharePair).getByText("2R̂U/R² 0.12")).toHaveAttribute(\n      "aria-hidden",\n      "true",\n    );\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit(f"accessible-name anchor count {text.count(anchor)}")
+          path.write_text(text.replace(anchor, addition, 1))
+          PY
+          set +e
+          (cd frontend && pnpm exec vitest run src/App.test.tsx -t "shows the grouping comparison strip and switches grouping on click")
+          status=$?
+          set -e
+          test "$status" -ne 0
+          echo "EXPECTED_RED_CONFIRMED"
+
+      - name: Apply minimum causal repair in validation worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          cross = Path("frontend/src/leftoverMapCrossShare.ts")
+          text = cross.read_text()
+          anchor = 'export const LEFTOVER_MAP_CROSS_SHARE_ACTION =\n  "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.";\n'
+          replacement = anchor + '\nexport const LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL =\n  "Leftover map comparison cross share";\n'
+          if text.count(anchor) != 1:
+              raise SystemExit("cross-share anchor missing")
+          cross.write_text(text.replace(anchor, replacement, 1))
+
+          cross_test = Path("frontend/src/leftoverMapCrossShare.test.ts")
+          text = cross_test.read_text()
+          old = 'import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";\n'
+          new = 'import {\n  formatLeftoverMapCrossShare,\n  LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,\n} from "./leftoverMapCrossShare";\n'
+          if text.count(old) != 1:
+              raise SystemExit("cross-share test import anchor missing")
+          text = text.replace(old, new, 1)
+          before = '''  it("omits the badge when leftover-map cross share is missing or non-finite", () => {\n    expect(formatLeftoverMapCrossShare(null)).toBeNull();\n    expect(formatLeftoverMapCrossShare(undefined)).toBeNull();\n    expect(formatLeftoverMapCrossShare(Number.NaN)).toBeNull();\n    expect(formatLeftoverMapCrossShare(Number.POSITIVE_INFINITY)).toBeNull();\n    expect(formatLeftoverMapCrossShare(Number.NEGATIVE_INFINITY)).toBeNull();\n  });\n'''
+          after = before + '''\n  it("keeps the grouping-comparison label distinct from the graphic label", () => {\n    expect(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL).toBe(\n      "Leftover map comparison cross share",\n    );\n  });\n'''
+          if text.count(before) != 1:
+              raise SystemExit("cross-share test anchor missing")
+          cross_test.write_text(text.replace(before, after, 1))
+
+          app = Path("frontend/src/App.tsx")
+          text = app.read_text()
+          old = '''import {\n  formatLeftoverMapUnexplainedShare,\n  LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,\n} from "./leftoverMapUnexplainedShare";\n'''
+          new = old + '''import {\n  formatLeftoverMapCrossShare,\n  LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,\n} from "./leftoverMapCrossShare";\n'''
+          if text.count(old) != 1:
+              raise SystemExit("App import anchor missing")
+          text = text.replace(old, new, 1)
+
+          old = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${\n'''
+          new = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    const crossShare = formatLeftoverMapCrossShare(\n                      pair.leftover_map_cross_share,\n                    );\n                    const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${\n'''
+          if text.count(old) != 1:
+              raise SystemExit("App formatter anchor missing")
+          text = text.replace(old, new, 1)
+
+          old = '''                    ${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }`;\n'''
+          new = '''                    ${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }${\n                      crossShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL)} ${crossShare}`\n                        : ""\n                    }`;\n'''
+          if text.count(old) != 1:
+              raise SystemExit("App accessible-name anchor missing")
+          text = text.replace(old, new, 1)
+
+          old = '''                          {unexplainedShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {unexplainedShare}\n                            </span>\n                          ) : null}\n'''
+          new = old + '''                          {crossShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {crossShare}\n                            </span>\n                          ) : null}\n'''
+          if text.count(old) != 1:
+              raise SystemExit("App badge anchor missing")
+          app.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Focused GREEN
+        working-directory: frontend
+        run: pnpm exec vitest run src/App.test.tsx src/leftoverMapCrossShare.test.ts -t "grouping comparison|cross share|formatLeftoverMapCrossShare"
+
+      - name: Frontend lint test build and Storybook GREEN
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed dependency graph
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Full PostgreSQL-backed GREEN
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify stale cumulative files remain untouched
+        run: |
+          git diff --check
+          test -z "$(git diff --name-only | grep '^frontend/src/i18n' || true)"
+          test -z "$(git diff --name-only | grep '^frontend/src/components/LeftoverPairList' || true)"
+          test -z "$(git diff --name-only | grep '^frontend/src/leftoverMapPlotLayout' || true)"
+          git diff --stat
