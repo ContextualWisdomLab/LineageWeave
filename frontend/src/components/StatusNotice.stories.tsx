@@ -63,3 +63,18 @@ export const Retry: Story = {
     await expect(args.onRetry).toHaveBeenCalledTimes(1);
   },
 };
+
+export const SignInRetry: Story = {
+  args: {
+    kind: "retry",
+    message: "This request failed. Retry the same action.",
+    retryLabel: "Log in",
+    onRetry: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Retry needed");
+    await userEvent.click(canvas.getByRole("button", { name: "Log in" }));
+    await expect(args.onRetry).toHaveBeenCalledTimes(1);
+  },
+};
