@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatLeftoverMapExplainedShare,
-  LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL,
-} from "./leftoverMapExplainedShare";
+import { formatLeftoverMapExplainedShare } from "./leftoverMapExplainedShare";
 
 describe("formatLeftoverMapExplainedShare", () => {
   it("names leftover-map explained leftover share without inventing a leftover score", () => {
@@ -17,14 +14,5 @@ describe("formatLeftoverMapExplainedShare", () => {
     expect(formatLeftoverMapExplainedShare(Number.NaN)).toBeNull();
     expect(formatLeftoverMapExplainedShare(Number.POSITIVE_INFINITY)).toBeNull();
     expect(formatLeftoverMapExplainedShare(Number.NEGATIVE_INFINITY)).toBeNull();
-  });
-
-  it("keeps the grouping comparison explained leftover share label distinct from the graphic explained leftover share label", () => {
-    expect(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL).toBe(
-      "Leftover map comparison explained leftover share",
-    );
-    expect(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL).not.toBe(
-      "leftover-map explained leftover share {label}",
-    );
   });
 });

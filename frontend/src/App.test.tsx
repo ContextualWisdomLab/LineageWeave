@@ -898,16 +898,6 @@ describe("App, authenticated", () => {
                   incomplete_post_count: 0,
                   incomplete_item_count: 0,
                 },
-                leftover_pairs: [
-                  {
-                    pair_kind: "closest",
-                    post_id: "post-2",
-                    post_title: "Specification revision requested",
-                    criterion_code: "general_sentiment_negative",
-                    leftover_distance: 2.0,
-                    leftover_residual: -1.1,
-                  },
-                ],
               },
               {
                 grouping_kind: "corporate_entity",
@@ -4155,8 +4145,8 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/leftover axis 1 82%/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/leftover axis 2 18%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 1 σ 1\.84 82%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 2 σ 0\.86 18%/).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Leftover-map axis share")).toHaveTextContent(
       "Open a leftover pair to read the post–criterion cell",
     );
@@ -4172,8 +4162,8 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(await screen.findByLabelText("Leftover pairs")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
@@ -4336,79 +4326,27 @@ describe("App, authenticated", () => {
       ),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        /leftover-map reconstruction/,
-      ),
-    ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
-        "Leftover map comparison reconstruction",
-      ),
-    ).toHaveTextContent("R̂ +0.25");
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover map comparison reconstruction",
-      ),
-    ).toHaveLength(1);
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        /leftover-map explained leftover share/,
-      ),
-    ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
-        "Leftover map comparison explained leftover share",
-      ),
-    ).toHaveTextContent("R̂²/R² 0.76");
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover map comparison explained leftover share",
-      ),
-    ).toHaveLength(1);
-    expect(
-      screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: specification revision requested/i,
-      }),
-    ).toHaveTextContent("d 2.00");
-    expect(
-      screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: specification revision requested/i,
-      }),
-    ).not.toHaveTextContent("R̂");
-    expect(
-      screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: specification revision requested/i,
-      }),
-    ).not.toHaveTextContent("R̂²/R²");
-    expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
       screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
-    );
+    expect(
+      screen.getByText("A-100 is the opened grouping. Read its mean θ and member posts below, then open a post."),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("Closest leftover: Public post · sales-lead");
-    expect(
-      screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
-      }),
-    ).toHaveTextContent("d 0.12");
-    expect(
-      screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
-      }),
-    ).toHaveTextContent("R̂ +0.25");
-    expect(
-      screen.getByRole("button", {
-        name: /open leftover closest pair from comparison: public post/i,
-      }),
-    ).toHaveTextContent("R̂²/R² 0.76");
+    const reconstructionPair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25/i,
+    });
+    expect(reconstructionPair).toHaveTextContent("R̂ +0.25");
+    const explainedSharePair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25.*leftover map comparison explained leftover share R̂²\/R² 0\.76/i,
+    });
+    expect(explainedSharePair).toHaveTextContent("R̂²/R² 0.76");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

@@ -49,7 +49,7 @@ cutoff. Global Ask optional `knowledge_cutoff` uses the same cover
 
 Create/start endpoint rules (ADR 0017 / 0021), tie-vs-miss similarity
 (ADR 0026), R&R catalog ids (ADR 0019 / 0027), leftover pairs
-(ADR 0048–0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294), occupational construct catalog search
+(ADR 0048–0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293), occupational construct catalog search
 (ADR 0257), the text-channel embedding swap and cosine
 clamp (ADR 0190), per-edge channel-score persistence (ADR 0195),
 token-backed status notices (ADR 0220),
@@ -57,3 +57,9 @@ migration replay (ADR 0166), docstring coverage, and the measurement
 boundary are all stated in [AGENTS.md](AGENTS.md) -- read it before
 changing code, tests, or runtime policy rather than restating anything
 here.
+
+ADR 0294 is the Proposed grouping-comparison incomplete-item presentation contract; preserve server-side full-group visibility gating and do not infer dropped criteria in the frontend.
+
+ADR 0295 is the Proposed grouping-comparison reconstruction contract: persisted `R̂` only, no client inference, accessible-name exposure required despite the button's explicit aria-label.
+
+ADR 0296 is the Proposed grouping-comparison explained-share contract: persisted `e` only, accessible-name exposure required, no client derivation or clamping.
