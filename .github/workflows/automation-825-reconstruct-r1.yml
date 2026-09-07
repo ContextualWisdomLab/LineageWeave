@@ -19,8 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "d9db46353c4a5ca5298b1376d27570b7091b59b3"
-          test "$(git rev-parse HEAD)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd" || test "$(git rev-parse HEAD^)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd"
+          test "$(git rev-parse HEAD^)" = "499d653ed6e9206249e3f3a07518ad3fc01f14bd"
       - name: Inspect historical child merge conflicts
         shell: bash
         run: |
