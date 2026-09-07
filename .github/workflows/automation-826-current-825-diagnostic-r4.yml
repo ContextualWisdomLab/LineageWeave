@@ -1,0 +1,45 @@
+name: automation-826-current-825-diagnostic-r4
+on:
+  push:
+    branches: [automation/826-current-825-diagnostic-r4-20260907-1343]
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact current parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "b73b10e3079e77f3e62235b2b709dc8a3f450292"
+      - name: Replay and persist exact conflict report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git cherry-pick --no-commit a4bf239f1cf07ea29bd49b28300f252be0ca7a19
+          rc=$?
+          {
+            echo "CHERRY_PICK_RC=$rc"
+            echo "UNMERGED:"
+            git diff --name-only --diff-filter=U
+            echo "STATUS:"
+            git status --short
+          } > /tmp/826-replay-report.txt
+          content=$(base64 -w0 /tmp/826-replay-report.txt)
+          payload=$(CONTENT="$content" python -c 'import json,os; print(json.dumps({"message":"test(stack): record #826 current-parent replay surface","content":os.environ["CONTENT"],"branch":"automation/826-current-825-diagnostic-report-r4-20260907-1343"}))')
+          curl --fail-with-body -sS -L -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/ContextualWisdomLab/LineageWeave/contents/.github/automation/826-replay-report.txt \
+            -d "$payload"
+          echo
+          exit "$rc"
