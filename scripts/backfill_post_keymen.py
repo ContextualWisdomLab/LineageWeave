@@ -36,25 +36,39 @@ from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
 
-def _first_env(*names: str) -> str:
-    return next((os.environ.get(name, "").strip() for name in names if os.environ.get(name, "").strip()), "")
+def _first_env(*variable_names: str) -> str:
+    return next(
+        (
+            os.environ.get(variable_name, "").strip()
+            for variable_name in variable_names
+            if os.environ.get(variable_name, "").strip()
+        ),
+        "",
+    )
 
 
 def _orchestrator_config() -> tuple[str, str]:
-    base_url = _first_env("ORCHESTRATOR_BASE_URL", "LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL")
+    base_url = _first_env(
+        "ORCHESTRATOR_BASE_URL", "LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL"
+    )
     api_key = _first_env("ORCHESTRATOR_API_KEY", "LLM_GATEWAY_API_KEY")
     if not base_url or not api_key:
-        raise RuntimeError("contextual-orchestrator gateway configuration is unavailable")
+        raise RuntimeError(
+            "contextual-orchestrator gateway configuration is unavailable"
+        )
     return base_url, api_key
 
 
 async def _select_posts(
-    conn: asyncpg.Connection, *, limit: int, post_id: str | None
+    database_connection: asyncpg.Connection,
+    *,
+    post_limit: int,
+    post_id: str | None,
 ) -> list[asyncpg.Record]:
     """Select one explicit post or one bounded unprojected batch."""
     if post_id:
         return list(
-            await conn.fetch(
+            await database_connection.fetch(
                 """
                 select post_id, post_title, post_body, author_account_id,
                        source_author_code, source_company_code,
@@ -103,7 +117,7 @@ async def _select_posts(
             )
         )
     return list(
-        await conn.fetch(
+        await database_connection.fetch(
             """
             select post_id, post_title, post_body, author_account_id,
                    source_author_code, source_company_code,
@@ -154,16 +168,18 @@ async def _select_posts(
              order by post.created_at, post.post_id
              limit $1::bigint
             """,
-            limit,
+            post_limit,
         )
     )
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
-    if args.post_id and args.all:
+async def _run_post_keyman_backfill(
+    command_arguments: argparse.Namespace,
+) -> dict[str, object]:
+    if command_arguments.post_id and command_arguments.all:
         raise ValueError("--post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
-    settings = load_settings()
+    runtime_settings = load_settings()
     keyman_client = ContextualOrchestratorKeymanExtractionClient(
         base_url=base_url, api_key=api_key, timeout=180.0
     )
@@ -171,68 +187,100 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
     resolution_client = _organization_name_resolution_client()
     verification_client = _relation_verification_client()
     hierarchy_client = _corporate_hierarchy_inference_client()
-    limit = 1 if args.post_id or not args.all else args.limit
+    post_limit = (
+        1
+        if command_arguments.post_id or not command_arguments.all
+        else command_arguments.limit
+    )
 
-    pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
+    database_pool = await asyncpg.create_pool(
+        runtime_settings.database_url, min_size=1, max_size=1
+    )
     try:
-        async with pool.acquire() as conn:
-            rows = await _select_posts(conn, limit=limit, post_id=args.post_id)
-            failures: Counter[str] = Counter()
-            processed = 0
-            mention_count = 0
-            for row in rows:
-                post_id = str(row["post_id"])
+        async with database_pool.acquire() as database_connection:
+            post_records = await _select_posts(
+                database_connection,
+                post_limit=post_limit,
+                post_id=command_arguments.post_id,
+            )
+            failure_counts: Counter[str] = Counter()
+            processed_post_count = 0
+            persisted_mention_count = 0
+            for post_record in post_records:
+                post_id = str(post_record["post_id"])
                 try:
-                    async with asyncio.timeout(args.post_timeout):
-                        with use_llm_metadata(build_post_llm_metadata(post_id, dict(row))):
-                            normalized = normalize_post_body(row["post_body"] or "", vision_client)
-                            context_hints = await _load_post_semantic_hints(conn, post_id)
-                            mentions = await ingest_post_keymen(
-                                conn,
+                    async with asyncio.timeout(command_arguments.post_timeout):
+                        with use_llm_metadata(
+                            build_post_llm_metadata(post_id, dict(post_record))
+                        ):
+                            normalized_post_content = normalize_post_body(
+                                post_record["post_body"] or "", vision_client
+                            )
+                            context_hints = await _load_post_semantic_hints(
+                                database_connection, post_id
+                            )
+                            persisted_mentions = await ingest_post_keymen(
+                                database_connection,
                                 keyman_client,
                                 post_id,
-                                row["post_title"] or "",
-                                normalized.text,
+                                post_record["post_title"] or "",
+                                normalized_post_content.text,
                                 resolution_client=resolution_client,
                                 verification_client=verification_client,
                                 hierarchy_inference_client=hierarchy_client,
                                 context_hints=context_hints,
                             )
-                    processed += 1
-                    mention_count += len(mentions)
+                    processed_post_count += 1
+                    persisted_mention_count += len(persisted_mentions)
                 except TimeoutError:
-                    failures["TimeoutError"] += 1
-                except (HttpClientError, OSError, RuntimeError, ValueError, asyncpg.PostgresError) as exc:
-                    failures[type(exc).__name__] += 1
+                    failure_counts["TimeoutError"] += 1
+                except (
+                    HttpClientError,
+                    OSError,
+                    RuntimeError,
+                    ValueError,
+                    asyncpg.PostgresError,
+                ) as backfill_error:
+                    failure_counts[type(backfill_error).__name__] += 1
         return {
-            "failed_posts": sum(failures.values()),
-            "failure_types": dict(sorted(failures.items())),
-            "mentions_persisted": mention_count,
-            "processed_posts": processed,
-            "requested_posts": len(rows),
+            "failed_posts": sum(failure_counts.values()),
+            "failure_types": dict(sorted(failure_counts.items())),
+            "mentions_persisted": persisted_mention_count,
+            "processed_posts": processed_post_count,
+            "requested_posts": len(post_records),
         }
     finally:
-        await pool.close()
+        await database_pool.close()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    selector = parser.add_mutually_exclusive_group()
-    selector.add_argument("--post-id", help="Re-extract one eligible post")
-    selector.add_argument("--all", action="store_true", help="Process the explicit --limit batch")
-    parser.add_argument("--limit", type=int, default=1, help="Maximum posts for --all (default: 1)")
-    parser.add_argument(
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    post_selector = argument_parser.add_mutually_exclusive_group()
+    post_selector.add_argument("--post-id", help="Re-extract one eligible post")
+    post_selector.add_argument(
+        "--all", action="store_true", help="Process the explicit --limit batch"
+    )
+    argument_parser.add_argument(
+        "--limit", type=int, default=1, help="Maximum posts for --all (default: 1)"
+    )
+    argument_parser.add_argument(
         "--post-timeout",
         type=float,
         default=240.0,
         help="Maximum seconds per post including provider calls (default: 240)",
     )
-    args = parser.parse_args()
-    if args.limit < 1:
-        parser.error("--limit must be positive")
-    if args.post_timeout <= 0:
-        parser.error("--post-timeout must be positive")
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    command_arguments = argument_parser.parse_args()
+    if command_arguments.limit < 1:
+        argument_parser.error("--limit must be positive")
+    if command_arguments.post_timeout <= 0:
+        argument_parser.error("--post-timeout must be positive")
+    print(
+        json.dumps(
+            asyncio.run(_run_post_keyman_backfill(command_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
