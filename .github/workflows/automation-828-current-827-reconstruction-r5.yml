@@ -1,0 +1,214 @@
+name: automation-828-current-827-reconstruction-r5
+on:
+  push:
+    branches: [automation/828-current-827-reconstruction-r5-20260907-1522]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      PARENT: 0f9e9c8db37948041f39b4e68e4bbd808fa83752
+      OLD_HEAD: 78a464806f275bc5afc7012455a066b83f34d420
+      FEATURE_ORIGIN: e79137611f0d3041ad836c21e49a95bf7ef1001e
+      PRODUCT_BRANCH: feat/leftover-map-compare-axis-share-v2500
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact parent and repaired live product head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PARENT"
+          test "$(git diff --name-only HEAD^..HEAD)" = ".github/workflows/automation-828-current-827-reconstruction-r5.yml"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+      - name: Reconstruct valid delta and preserve current stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "lineageweave-automation@users.noreply.github.com"
+          git fetch origin "$FEATURE_ORIGIN" "$OLD_HEAD" "$PARENT"
+          git checkout -B reconstructed "$PARENT"
+          set +e
+          git cherry-pick --no-commit "$FEATURE_ORIGIN"
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            while IFS= read -r path; do
+              case "$path" in
+                AGENTS.md|ARCHITECTURE.md|CHANGELOG.md|docs/product-technical-gap-baseline.md|docs/storybook-inventory.md|frontend/package.json|frontend/src/App.tsx|frontend/src/components/LeftoverPairList.tsx|frontend/src/i18n.test.ts|frontend/src/i18n.ts|frontend/src/leftoverMapPlotLayout.ts|pyproject.toml)
+                  git checkout --ours -- "$path"
+                  git add "$path"
+                  ;;
+                *) echo "unexpected current-parent conflict: $path" >&2; exit 1 ;;
+              esac
+            done < <(git diff --name-only --diff-filter=U)
+          fi
+          test -z "$(git diff --name-only --diff-filter=U)"
+          rm -f docs/adr/0293-leftover-map-compare-axis-share.md CHANGELOG.d/2.50.0-leftover-map-compare-axis-share.md
+          mkdir -p docs/adr CHANGELOG.d tests
+          git show "$OLD_HEAD:docs/adr/0367-leftover-map-compare-axis-share.md" > docs/adr/0367-leftover-map-compare-axis-share.md
+          git show "$OLD_HEAD:tests/test_compare_axis_share_visibility.py" > tests/test_compare_axis_share_visibility.py
+          git show "$OLD_HEAD:tests/test_leftover_map_axis_share_adr_authority.py" > tests/test_leftover_map_axis_share_adr_authority.py
+          git show "$OLD_HEAD:CHANGELOG.d/2.50.0-leftover-map-compare-axis-share.md" | sed 's/2\.50\.0/2.54.0/g' > CHANGELOG.d/2.54.0-leftover-map-compare-axis-share.md
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"anchor missing in {path}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "backend/app/main.py",
+              '                "leftover_pairs": leftover_pairs,\n                "leftover_map_coverage": (',
+              '                "leftover_pairs": leftover_pairs,\n'
+              '                "leftover_map_axes": (\n'
+              '                    row.get("leftover_map_axes", [])\n'
+              '                    if len(members) == len(row["members"])\n'
+              '                    else []\n'
+              '                ),\n'
+              '                "leftover_map_coverage": (',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '} from "./leftoverMapExplainedShare";\nimport "./App.css";',
+              '} from "./leftoverMapExplainedShare";\n'
+              'import {\n'
+              '  leftoverMapCompareAxisShare,\n'
+              '  LEFTOVER_MAP_COMPARE_AXIS_SHARE,\n'
+              '  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n'
+              '} from "./leftoverMapCompareAxis";\n'
+              'import "./App.css";',
+          )
+          render_anchor = '''              {comparisonIncompleteItemCount !== null ? (\n                <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL)}>\n                  {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}\n                </p>\n              ) : null}\n'''
+          replace_once(
+              "frontend/src/App.tsx",
+              render_anchor,
+              render_anchor + '''              {row.leftover_map_axes?.map((axis) => {\n                const comparisonAxisShare = leftoverMapCompareAxisShare(axis);\n                if (comparisonAxisShare === null) {\n                  return null;\n                }\n                return (\n                  <span\n                    key={axis.axis_index}\n                    className="post-badge"\n                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}\n                  >\n                    {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}\n                  </span>\n                );\n              })}\n''',
+          )
+          replace_once("pyproject.toml", 'version = "2.53.0"', 'version = "2.54.0"')
+          replace_once("frontend/package.json", '"version": "2.53.0"', '"version": "2.54.0"')
+
+          helper = Path("frontend/src/leftoverMapCompareAxis.ts")
+          helper.write_text(helper.read_text(encoding="utf-8").replace("ADR 0293", "ADR 0367"), encoding="utf-8")
+          adr = Path("docs/adr/0367-leftover-map-compare-axis-share.md")
+          adr.write_text(adr.read_text(encoding="utf-8").replace("ADR 0293", "ADR 0367").replace("**0293**", "**0367**"), encoding="utf-8")
+
+          i18n = Path("frontend/src/i18n.ts")
+          text = i18n.read_text(encoding="utf-8")
+          locale_rows = [
+              ('    "Leftover map comparison incomplete items": "잔여 지도 비교 불완전 기준",', '    "Leftover map comparison axis share": "잔여 지도 비교 축 비율",\n    "leftover map comparison axis {axis} {share}%": "잔여 지도 비교 축 {axis} {share}%",'),
+              ('    "Leftover map comparison incomplete items": "残差地图比较不完整准则",', '    "Leftover map comparison axis share": "残差地图比较轴占比",\n    "leftover map comparison axis {axis} {share}%": "残差地图比较轴 {axis} {share}%",'),
+              ('    "Leftover map comparison incomplete items": "残差マップの比較不完全基準",', '    "Leftover map comparison axis share": "残差マップの比較軸の比率",\n    "leftover map comparison axis {axis} {share}%": "残差マップの比較軸 {axis} {share}%",'),
+              ('    "Leftover map comparison incomplete items": "Tiêu chí không đầy đủ so sánh trên bản đồ phần dư",', '    "Leftover map comparison axis share": "Tỷ trọng trục so sánh bản đồ phần dư",\n    "leftover map comparison axis {axis} {share}%": "trục so sánh bản đồ phần dư {axis} {share}%",'),
+          ]
+          for existing, additions in locale_rows:
+              if existing not in text:
+                  raise SystemExit(f"i18n locale anchor missing: {existing}")
+              text = text.replace(existing, existing + "\n" + additions, 1)
+          i18n.write_text(text, encoding="utf-8")
+
+          replace_once(
+              "frontend/src/i18n.test.ts",
+              '    "Leftover map comparison incomplete items",\n    "Leftover map comparison reconstruction",',
+              '    "Leftover map comparison incomplete items",\n'
+              '    "Leftover map comparison axis share",\n'
+              '    "leftover map comparison axis {axis} {share}%",\n'
+              '    "Leftover map comparison reconstruction",',
+          )
+
+          Path("AGENTS.md").write_text(Path("AGENTS.md").read_text(encoding="utf-8") + "\nADR 0367 exposes persisted grouping-comparison leftover-map axis share only for a fully caller-visible persisted grouping. Partial visibility returns no axis aggregate; never recompute it from visible members. Missing/non-finite share omits only the badge; persisted zero and finite negative values remain explicit.\n", encoding="utf-8")
+          Path("ARCHITECTURE.md").write_text(Path("ARCHITECTURE.md").read_text(encoding="utf-8") + "\nADR 0367 adds persisted `leftover_map_axes` to the grouping-comparison read model under the same whole-population authorization rule as other psychometric aggregates. The UI consumes persisted `leftover_share` through `leftoverMapCompareAxisShare`; no subset recomputation or singular-value derivation is permitted.\n", encoding="utf-8")
+
+          baseline = Path("docs/product-technical-gap-baseline.md")
+          body = "\n".join(line for line in baseline.read_text(encoding="utf-8").splitlines() if line != ">") + "\n"
+          overlay = "> Current serialized repair (2026-09-07): #828 is reconstructed from exact #827 `0f9e9c8db37948041f39b4e68e4bbd808fa83752` as ADR 0367 / v2.54.0. The valid delta carries persisted grouping-comparison `leftover_map_axes` but exposes them only when the caller can see the entire persisted grouping population; partial visibility returns no aggregate and never recomputes psychometrics from the visible subset. Presentation consumes persisted `leftover_share` only, with zero and finite negative values explicit and missing/non-finite values omitted. Historical v2.50.0/ADR0293 identity is evidence only. Existing five-locale compatibility copy is preserved while the database-backed eight-locale translation-ledger authority remains #922/#929/#932; this Draft does not create a competing translation source.\n\n"
+          title = "# Product & Technical Gap Baseline\n"
+          if not body.startswith(title):
+              raise SystemExit("gap baseline title changed")
+          baseline.write_text(body.replace(title, title + "\n" + overlay, 1), encoding="utf-8")
+
+          story = Path("docs/storybook-inventory.md")
+          s = story.read_text(encoding="utf-8")
+          current = "The grouping comparison strip also names persisted item complete-case coverage only for fully visible grouping populations."
+          addition = " The comparison axis-share label is independent of the coverage helpers: it appears only for a finite persisted `leftover_share`, including zero and finite negative values, and is omitted for missing/non-finite share. Partial-visibility grouping rows expose no persisted axis aggregate."
+          if current not in s:
+              raise SystemExit("current #827 Storybook comparison anchor changed")
+          story.write_text(s.replace(current, current + addition, 1), encoding="utf-8")
+          PY
+          git add -A
+          test ! -e docs/adr/0293-leftover-map-compare-axis-share.md
+          test ! -e CHANGELOG.d/2.50.0-leftover-map-compare-axis-share.md
+          test -z "$(grep -n '^>$' docs/product-technical-gap-baseline.md || true)"
+          grep -q 'distinct comparison copy and accessible naming' CHANGELOG.d/2.54.0-leftover-map-compare-axis-share.md
+          grep -q 'comparison axis-share label is independent' docs/storybook-inventory.md
+          grep -q 'Leftover map comparison axis share' frontend/src/i18n.ts
+          git diff --cached --check
+          git commit -m "feat(reports): reconstruct grouping comparison axis share on current stack"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.11.28"
+          enable-cache: false
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+      - name: Install frozen backend graph
+        run: uv sync --frozen --extra dev --extra backend
+      - name: Backend exact GREEN
+        run: uv run --frozen python -m pytest -q
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24"
+      - name: Frontend exact GREEN
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+      - name: Verify authority and promote non-force only if live head is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m compileall -q lineageweave backend tests
+          git diff --check "$PARENT"..HEAD
+          test "$(python - <<'PY'
+          import tomllib
+          print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])
+          PY
+          )" = "2.54.0"
+          grep -q '^# ADR 0367 ' docs/adr/0367-leftover-map-compare-axis-share.md
+          grep -q '^\*\*Decision status:\*\* Proposed' docs/adr/0367-leftover-map-compare-axis-share.md
+          test -z "$(grep -n '^>$' docs/product-technical-gap-baseline.md || true)"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+          tree="$(git rev-parse HEAD^{tree})"
+          merge_commit="$(printf '%s\n\n%s\n' 'feat(reports): converge grouping comparison axis share on #827' 'Preserve repaired historical #828 as first parent and exact #827 as second parent; validated reconstructed tree, no force.' | git commit-tree "$tree" -p "$OLD_HEAD" -p "$PARENT")"
+          test "$(git rev-parse "$merge_commit^1")" = "$OLD_HEAD"
+          test "$(git rev-parse "$merge_commit^2")" = "$PARENT"
+          test "$(git rev-parse "$merge_commit^{tree}")" = "$tree"
+          git push origin "$merge_commit:refs/heads/$PRODUCT_BRANCH"
+          echo "PRODUCT_COMMIT=$merge_commit"
+          echo "PRODUCT_TREE=$tree"
