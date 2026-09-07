@@ -262,6 +262,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The bounded thread-group-key backfill now uses semantic command, database,
+  record, and count identifiers while preserving `--dry-run`, aggregate JSON,
+  SQL, transaction rollback, and persistence behavior.
+
 - The bounded post-Keyman operator now uses semantic package-owned command,
   database, record, and result identifiers while preserving every CLI flag,
   JSON result field, SQL statement, and persistence boundary.
