@@ -22,7 +22,7 @@ one('frontend/src/App.tsx',
 
 fixture='''                    post_id: "post-1",\n                    post_title: "Public post",\n                    criterion_code: "sales_lead_specificity",\n                    leftover_distance: 0.12,\n                    leftover_residual: 0.4,\n                    leftover_map_reconstruction: 0.248,\n'''
 p=Path('frontend/src/App.test.tsx'); text=p.read_text(); c=text.count(fixture)
-if c != 2: raise SystemExit(f'comparison fixture count={c}')
+if c != 1: raise SystemExit(f'comparison fixture count={c}')
 p.write_text(text.replace(fixture, fixture+'                    leftover_map_explained_share: 0.76,\n'))
 one('frontend/src/App.test.tsx',
     '    expect(reconstructionPair).toHaveTextContent("R̂ +0.25");\n',
