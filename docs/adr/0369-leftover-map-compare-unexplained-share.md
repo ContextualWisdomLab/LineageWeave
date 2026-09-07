@@ -3,7 +3,7 @@
 **Decision status:** Proposed
 
 ## Problem
-The grouping-comparison read model already carries persisted `leftover_map_unexplained_share` (`s = U² / R²`) for authorized leftover pairs, but exact #828 does not surface it on comparison pair actions. Historical #829 proved the buyer-visible delta but used stale ancestry/identity and put the metric only in a child badge while the parent button supplied an explicit accessible name.
+The period-report pair model persists `leftover_map_unexplained_share` (`s = U² / R²`) for authorized leftover pairs, but exact #828's grouping-comparison read path omits that field, so the frontend cannot receive it from `GET /api/reports/compare/{period_code}`. Historical #829 proved the buyer-visible delta but used stale ancestry/identity and put the metric only in a child badge while the parent button supplied an explicit accessible name.
 
 ## Constraints
 - Consume persisted psychometric truth; never derive `s` from `U`, `R`, reconstruction, distance, geometry, rank, coverage, or other shares.
@@ -18,7 +18,7 @@ Hiding `s` loses persisted buyer evidence. Recomputing it duplicates psychometri
 This is the serialized successor of exact #828 `7b6dbbb99a09d0523bce43c6872bbd9fa382a43a`, adopts the distinct historical #829 delta, and allocates v2.55.0. ADR0295/v2.52.0 is historical evidence only.
 
 ## Verification
-The focused current-parent test must first RED while the parent name omits `U²/R² 0.02`, then GREEN after only the accessible-name/duplicate-badge fix. Full backend, frontend lint/test/build/Storybook, version parity, clean-tree authority, and non-force promotion are required. Hosted exact-product-head checks, browser/keyboard/focus/a11y evidence, and qualifying independent approval remain separate merge gates.
+The accessibility test must RED while the parent name omits `U²/R² 0.02`, then GREEN after only the accessible-name/duplicate-badge fix. The transport regression must independently RED while the comparison SELECT omits the persisted field, then GREEN without deriving or clamping it. A real authenticated PostgreSQL/Keycloak/Valkey `GET /api/reports/compare/2026-W02` acceptance must prove the persisted key/value reaches authorized leftover pairs. Full backend, frontend lint/test/build/Storybook, version parity, clean-tree authority, and non-force promotion are required. Hosted exact-product-head checks, browser/keyboard/focus/a11y evidence, and qualifying independent approval remain separate merge gates.
 
 ## Evidence
 Gabriel, K. R. (1971). The biplot graphic display of matrices with application to principal component analysis. *Biometrika, 58*(3), 453–467.

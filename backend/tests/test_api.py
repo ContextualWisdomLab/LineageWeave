@@ -5860,6 +5860,19 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         or isinstance(pair["leftover_map_reconstruction"], (int, float))
         for pair in leftover_thread.get("leftover_pairs", [])
     )
+    assert all(
+        "leftover_map_unexplained_share" in pair
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert any(
+        pair["leftover_map_unexplained_share"] is not None
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert all(
+        pair["leftover_map_unexplained_share"] is None
+        or isinstance(pair["leftover_map_unexplained_share"], (int, float))
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
 
 
 def test_seed_period_report_includes_fixture_event_lineage_posts(
