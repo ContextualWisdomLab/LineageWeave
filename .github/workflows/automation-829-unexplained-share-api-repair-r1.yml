@@ -1,0 +1,225 @@
+name: Automation 829 unexplained-share API repair r1
+
+on:
+  push:
+    branches:
+      - automation/829-unexplained-share-api-repair-r1-20260908-0343
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-829-unexplained-share-api-repair-r1
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PRODUCT_BRANCH: feat/leftover-map-compare-unexplained-share-v2520
+      PRODUCT_HEAD: 0e4fd5815686120ec66203cb6848834b56bdf289
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify product authority has not moved
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          live="$(git ls-remote "$remote" "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          test "$live" = "$PRODUCT_HEAD"
+          test "$(git merge-base "$PRODUCT_HEAD" HEAD)" = "$PRODUCT_HEAD"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed backend graph
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Add realistic persisted-field transport regression
+        run: |
+          cat > backend/tests/test_report_ingestion_unexplained_share.py <<'PY'
+          """Regression for persisted grouping-comparison unexplained-share transport."""
+
+          from __future__ import annotations
+
+          import asyncio
+          from decimal import Decimal
+
+          from backend.app import report_ingestion
+
+
+          class _ComparisonConnection:
+              """Minimal asyncpg-compatible read boundary for one comparison row."""
+
+              async def fetch(self, query: str, *_args: object) -> list[dict[str, object]]:
+                  if "from report_period_score" in query:
+                      return [
+                          {
+                              "grouping_kind": "thread_group",
+                              "grouping_key": "synthetic-thread",
+                              "mean_theta": 0.1,
+                              "post_count": 2,
+                              "link_method": "synthetic",
+                          }
+                      ]
+                  if "from report_member_score" in query:
+                      return []
+                  if "from report_leftover_pair" in query:
+                      assert "lp.leftover_map_unexplained_share" in query, (
+                          "leftover_map_unexplained_share is absent from comparison SELECT"
+                      )
+                      common = {
+                          "grouping_kind": "thread_group",
+                          "grouping_key": "synthetic-thread",
+                          "post_id": "00000000-0000-0000-0000-000000000001",
+                          "post_title": "Synthetic comparison post",
+                          "criterion_code": "synthetic_criterion",
+                          "leftover_distance": 0.5,
+                          "leftover_residual": 0.4,
+                          "leftover_map_reconstruction": Decimal("0.25"),
+                          "visibility_code": "public",
+                          "corporate_entity_id": "00000000-0000-0000-0000-000000000002",
+                          "has_real_source_context": False,
+                      }
+                      return [
+                          {**common, "pair_kind": "closest", "leftover_map_unexplained_share": Decimal("0.02")},
+                          {**common, "pair_kind": "farthest", "leftover_map_unexplained_share": None},
+                      ]
+                  if "from report_leftover_map_coverage" in query:
+                      return []
+                  if "from report_leftover_map_axis" in query:
+                      return []
+                  raise AssertionError(f"unexpected comparison query: {query}")
+
+
+          def test_fetch_period_comparison_transports_persisted_unexplained_share() -> None:
+              """Persisted finite values reach the read model while SQL NULL remains unknown."""
+              payload = asyncio.run(
+                  report_ingestion.fetch_period_comparison(_ComparisonConnection(), "2026-W02")  # type: ignore[arg-type]
+              )
+
+              pairs = payload[0]["leftover_pairs"]
+              assert pairs[0]["leftover_map_unexplained_share"] == 0.02
+              assert pairs[1]["leftover_map_unexplained_share"] is None
+          PY
+
+      - name: Reproduce exact RED before production repair
+        run: |
+          set -euo pipefail
+          set +e
+          output="$(uv run --frozen python -m pytest -q backend/tests/test_report_ingestion_unexplained_share.py 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$status" -ne 0
+          grep -q "leftover_map_unexplained_share is absent from comparison SELECT" <<<"$output"
+
+      - name: Apply minimal persisted-field transport repair
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("backend/app/report_ingestion.py")
+          text = path.read_text()
+
+          query_old = """               lp.criterion_code, lp.leftover_distance, lp.leftover_residual,\n               lp.leftover_map_reconstruction,\n               p.post_title, p.visibility_code, p.corporate_entity_id,"""
+          query_new = """               lp.criterion_code, lp.leftover_distance, lp.leftover_residual,\n               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,\n               p.post_title, p.visibility_code, p.corporate_entity_id,"""
+          assert text.count(query_old) == 1, "comparison SELECT marker drifted"
+          text = text.replace(query_old, query_new, 1)
+
+          payload_old = '''                        "leftover_map_reconstruction": (\n                            None\n                            if pair["leftover_map_reconstruction"] is None\n                            else float(pair["leftover_map_reconstruction"])\n                        ),\n                        "visibility_code": pair["visibility_code"],'''
+          payload_new = '''                        "leftover_map_reconstruction": (\n                            None\n                            if pair["leftover_map_reconstruction"] is None\n                            else float(pair["leftover_map_reconstruction"])\n                        ),\n                        "leftover_map_unexplained_share": (\n                            None\n                            if pair["leftover_map_unexplained_share"] is None\n                            else float(pair["leftover_map_unexplained_share"])\n                        ),\n                        "visibility_code": pair["visibility_code"],'''
+          assert text.count(payload_old) == 1, "comparison payload marker drifted"
+          path.write_text(text.replace(payload_old, payload_new, 1))
+          PY
+
+      - name: Focused GREEN
+        run: uv run --frozen python -m pytest -q backend/tests/test_report_ingestion_unexplained_share.py
+
+      - name: Full PostgreSQL-backed GREEN
+        run: uv run --frozen python -m pytest -q
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frozen frontend graph
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend exact-tree GREEN
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Verify minimal product delta and create workflow-free commit
+        id: product
+        run: |
+          set -euo pipefail
+          git add backend/app/report_ingestion.py backend/tests/test_report_ingestion_unexplained_share.py
+          changed="$(git diff --cached --name-only "$PRODUCT_HEAD" | sort)"
+          expected="$(printf '%s\n' backend/app/report_ingestion.py backend/tests/test_report_ingestion_unexplained_share.py | sort)"
+          test "$changed" = "$expected"
+          git diff --cached --check
+          tree="$(git write-tree)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          commit="$(printf '%s\n\n%s\n' \
+            'fix(reports): serialize grouping comparison unexplained share' \
+            'Carry persisted leftover_map_unexplained_share through fetch_period_comparison without derivation or clamping.' \
+            | git commit-tree "$tree" -p "$PRODUCT_HEAD")"
+          test "$(git rev-parse "${commit}^{tree}")" = "$tree"
+          test "$(git rev-parse "${commit}^")" = "$PRODUCT_HEAD"
+          printf 'commit=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+
+      - name: Promote exact repaired tree non-force
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCT_COMMIT: ${{ steps.product.outputs.commit }}
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          live="$(git ls-remote "$remote" "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          test "$live" = "$PRODUCT_HEAD"
+          git push "$remote" "${PRODUCT_COMMIT}:refs/heads/${PRODUCT_BRANCH}"
+          promoted="$(git ls-remote "$remote" "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          test "$promoted" = "$PRODUCT_COMMIT"
