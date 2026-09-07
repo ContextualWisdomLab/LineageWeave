@@ -17,21 +17,24 @@ import scripts.estimate_llm_channel_weights as script
 
 
 def test_batch_requests_carry_caller_custom_ids_for_every_pair() -> None:
-    labels = [("a", "b"), ("c", "d"), ("e", "f")]
-    requests = script.batch_requests_for_pairs([0, 2], labels)
-    assert [request["custom_id"] for request in requests] == ["pair-0", "pair-2"]
+    candidate_pair_labels = [("a", "b"), ("c", "d"), ("e", "f")]
+    batch_requests = script.batch_requests_for_pairs([0, 2], candidate_pair_labels)
+    assert [batch_request["custom_id"] for batch_request in batch_requests] == [
+        "pair-0",
+        "pair-2",
+    ]
     # Never mix caller ids with generated ids in one batch (upstream
     # guidance on contextual-orchestrator #832): every request has one.
-    assert all("custom_id" in request for request in requests)
-    assert requests[0]["messages"][0]["content"] == judge_prompt("a", "b")
-    assert requests[1]["messages"][0]["content"] == judge_prompt("e", "f")
-    assert all(request["mode"] == "auto" for request in requests)
+    assert all("custom_id" in batch_request for batch_request in batch_requests)
+    assert batch_requests[0]["messages"][0]["content"] == judge_prompt("a", "b")
+    assert batch_requests[1]["messages"][0]["content"] == judge_prompt("e", "f")
+    assert all(batch_request["mode"] == "auto" for batch_request in batch_requests)
 
 
 def test_shared_judge_prompt_and_confidence_parse_round_trip() -> None:
-    prompt = judge_prompt("Record about pricing", "Follow-up record")
-    assert "Record A: Record about pricing" in prompt
-    assert "Record B: Follow-up record" in prompt
+    judgment_prompt = judge_prompt("Record about pricing", "Follow-up record")
+    assert "Record A: Record about pricing" in judgment_prompt
+    assert "Record B: Follow-up record" in judgment_prompt
     assert parse_confidence("0.85") == 0.85
     assert parse_confidence("confidence: 0.4 maybe") == 0.4
     with pytest.raises(HttpClientError):
@@ -44,7 +47,7 @@ def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
     0.0 -- the pair stays unjudged and the incomplete-run path reports it.
     Mapping is by custom_id only; foreign or malformed ids are ignored.
     """
-    updates = script.judgment_updates_from_results(
+    judgment_updates = script.judgment_updates_from_results(
         [
             {"custom_id": "pair-3", "answer": "0.7"},
             {"custom_id": "pair-4", "answer": ""},
@@ -54,7 +57,7 @@ def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
             {"custom_id": "pair-not-a-number", "answer": "0.9"},
         ]
     )
-    assert updates == [(3, 0.7), (6, 0.0)]
+    assert judgment_updates == [(3, 0.7), (6, 0.0)]
 
 
 def test_batch_completion_is_detected_from_flag_or_status() -> None:
