@@ -74,6 +74,33 @@ it("announces a lazy surface load failure with a recovery action", () => {
 
 
 describe("App, unauthenticated", () => {
+  it("offers a safe sign-in retry and retains the pre-callback destination", async () => {
+    const privateError = "synthetic-private-auth-response";
+    window.history.replaceState({}, "", `/?error=access_denied&error_description=${privateError}&state=stale`);
+    window.sessionStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, "/?post=remembered#evidence");
+    mockAuth = { ...mockAuth, error: new Error(privateError) };
+
+    render(<App />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This request failed. Retry the same action.");
+    expect(screen.queryByText(privateError)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledWith({ state: { returnUrl: "/?post=remembered#evidence" } });
+    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toBe("/?post=remembered#evidence");
+  });
+
+  it("offers sign-in recovery when an authenticated session has no access token", async () => {
+    window.history.replaceState({}, "", "/?post=abc&error=access_denied#evidence");
+    mockAuth = { ...mockAuth, isAuthenticated: true };
+
+    render(<App />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This request failed. Retry the same action.");
+    expect(screen.queryByText(/access token/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledWith({ state: { returnUrl: "/?post=abc#evidence" } });
+  });
+
   it("shows a login button that starts the real OIDC redirect", async () => {
     window.history.replaceState({}, "", "/?post=abc#evidence");
     render(<App showLabPanels />);
