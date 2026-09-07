@@ -12,6 +12,16 @@
 > dependency change. Status: implementation, behavioral tests, and AST
 > regression GREEN locally; GitHub exact-head verification pending.
 
+> Queued LLM channel-weight estimator overlay: the ADR 0200 batch adapter on
+> the same protected head used generic owned submit/collect, database, run,
+> result, score, and command identifiers (`_submit`, `_collect`, `conn`, `run`,
+> `results`, `score`, `args`). Action: translate the private operator surface to
+> batch-estimation, estimation-run, pair-judgment, and orchestrator language
+> while preserving provider request/response fields, CLI flags, JSON output,
+> SQL, transaction boundaries, and fail-closed incomplete judgment behavior.
+> Status: implementation, behavioral tests, and AST regression GREEN locally;
+> GitHub exact-head verification pending.
+
 > Exact-head naming overlay: 2026-09-07 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded post-Keyman
 > operator still used generic package-owned command, database, record, and
