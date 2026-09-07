@@ -28,7 +28,7 @@ class _Connection:
 
     async def execute(self, query: str, *args: object) -> str:
         self.executed.append((query, args))
-        return "OK"
+        return "UPDATE 1"
 
 
 class _Pool:
@@ -557,6 +557,8 @@ def test_orphan_reclaim_prevents_stale_owner_from_settling(monkeypatch) -> None:
     assert settle_args[3:] == (global_ask_queue.RUNNING, _CLAIMED_AT)
     assert connection.applied == ["rejected"]
     assert connection.status == global_ask_queue.RUNNING
+    assert global_ask_queue._claim_generation_retained("UPDATE 0") is False
+    assert global_ask_queue._claim_generation_retained("UPDATE 1") is True
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:

@@ -102,6 +102,11 @@ class _SafeJobError(Exception):
     """Failure whose bounded message is safe to persist for the requester."""
 
 
+def _claim_generation_retained(command_status: object) -> bool:
+    """Return True when PostgreSQL reports the compare-and-set updated one row."""
+    return str(command_status) == "UPDATE 1"
+
+
 async def enqueue_global_ask_job(
     conn: asyncpg.Connection,
     client: redis.Redis,
@@ -605,7 +610,7 @@ async def process_global_ask_job(
                 "no complete evidence object"
             )
         async with pool.acquire() as conn:
-            await conn.execute(
+            command_status = await conn.execute(
                 """
                 update global_ask_job set job_status_code = $2,
                     failure_detail = $3, updated_at = now()
@@ -619,9 +624,11 @@ async def process_global_ask_job(
                 RUNNING,
                 claimed_at,
             )
+        if not _claim_generation_retained(command_status):
+            return
         return
     async with pool.acquire() as conn:
-        await conn.execute(
+        command_status = await conn.execute(
             """
             update global_ask_job set job_status_code = $2,
                 answer_payload = $3::jsonb, updated_at = now()
@@ -635,6 +642,8 @@ async def process_global_ask_job(
             RUNNING,
             claimed_at,
         )
+    if not _claim_generation_retained(command_status):
+        return
 
 
 def _to_json(payload: dict[str, Any]) -> str:
