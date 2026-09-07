@@ -268,6 +268,11 @@ All notable changes to this project are documented here. Format follows
   contracts. The fast-mlsirm `v0.9.1` consumer cutover remains isolated in
   #967.
 
+- The queued LLM channel-weight estimator now uses semantic batch-submission,
+  estimation-run, pair-judgment, orchestrator, and command identifiers while
+  preserving provider payload fields, CLI and JSON contracts, SQL, transaction
+  boundaries, and incomplete-judgment behavior.
+
 - The bounded thread-group-key backfill now uses semantic command, database,
   record, and count identifiers while preserving `--dry-run`, aggregate JSON,
   SQL, transaction rollback, and persistence behavior.
