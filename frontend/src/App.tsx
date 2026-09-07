@@ -96,6 +96,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
+import { StatusNotice } from "./components/StatusNotice";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
@@ -107,6 +108,7 @@ import { isFocusableVisible } from "./focusVisibility";
 import { subgraphForPost } from "./lineageLayout";
 import {
   rememberOidcReturnUrl,
+  restoreOidcReturnUrl,
   returnUrlFromLocation,
   stripOidcCallbackParams,
 } from "./oidcReturnUrl";
@@ -5301,11 +5303,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return <p role="status">{t("Loading authentication state...")}</p>;
   }
 
-  if (auth.error) {
-    return <p className="error">{t(auth.error.message)}</p>;
-  }
-
-  if (!auth.isAuthenticated) {
+  if (auth.error || !auth.isAuthenticated || !accessToken) {
+    const needsRetry = Boolean(auth.error || auth.isAuthenticated);
+    const signIn = () => {
+      const returnUrl = needsRetry ? restoreOidcReturnUrl(undefined) : returnUrlFromLocation();
+      rememberOidcReturnUrl(returnUrl);
+      void auth.signinRedirect({ state: { returnUrl } });
+    };
     return (
       <div className="app-shell">
         <main className="login-screen">
@@ -5315,13 +5319,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
             </div>
             <div className="login-controls">
-              <button className="btn-primary" onClick={() => {
-                const returnUrl = returnUrlFromLocation();
-                rememberOidcReturnUrl(returnUrl);
-                void auth.signinRedirect({ state: { returnUrl } });
-              }}>
-                {t("Log in")}
-              </button>
+              {needsRetry ? (
+                <StatusNotice
+                  kind="retry"
+                  message={t("This request failed. Retry the same action.")}
+                  retryLabel={t("Log in")}
+                  onRetry={signIn}
+                />
+              ) : (
+                <button className="btn-primary" onClick={signIn}>{t("Log in")}</button>
+              )}
             </div>
             <div className="login-help">
               <small>Enterprise SSO Authentication</small>
@@ -5338,10 +5345,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         </footer>
       </div>
     );
-  }
-
-  if (!accessToken) {
-    return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
   return (

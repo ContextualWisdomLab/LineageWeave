@@ -1,11 +1,13 @@
 export const OIDC_RETURN_URL_STORAGE_KEY = "lineageweave.oidc.returnUrl";
 const MAX_OIDC_RETURN_URL_LENGTH = 4096;
 
-/** Authorization-code response params Keycloak appends to the redirect URI
- * (RFC 6749 sec. 4.1.2; `session_state` per OIDC Session Management). Any
+/** Authorization response params Keycloak appends to the redirect URI
+ * (RFC 6749 sec. 4.1.2 and 4.1.2.1; `session_state` per OIDC Session Management). Any
  * link built from `window.location` must strip these -- they're a one-time
  * auth exchange, never part of a shareable URL. */
-const OIDC_CALLBACK_PARAMS = ["code", "state", "session_state", "iss"] as const;
+const OIDC_CALLBACK_PARAMS = [
+  "code", "state", "session_state", "iss", "error", "error_description", "error_uri",
+] as const;
 
 /** Removes OIDC callback artifacts from `url` in place -- call before turning
  * `window.location` into a link a user can copy or share. */
@@ -16,11 +18,14 @@ export function stripOidcCallbackParams(url: URL): void {
 type UrlLike = Pick<Location, "pathname" | "search" | "hash">;
 
 function isSafeReturnUrl(value: string): boolean {
-  return (
-    value.length <= MAX_OIDC_RETURN_URL_LENGTH &&
-    value.startsWith("/") &&
-    !value.startsWith("//")
-  );
+  if (value.length > MAX_OIDC_RETURN_URL_LENGTH || !value.startsWith("/") || value.startsWith("//")) {
+    return false;
+  }
+  try {
+    return new URL(value, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }
 
 export function returnUrlFromLocation(location: UrlLike = window.location): string {
@@ -37,13 +42,14 @@ export function returnUrlFromLocation(location: UrlLike = window.location): stri
 
 export function rememberOidcReturnUrl(value: string): void {
   if (!isSafeReturnUrl(value)) return;
+  const returnUrl = returnUrlFromLocation(new URL(value, window.location.origin));
   try {
-    window.sessionStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, value);
+    window.sessionStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, returnUrl);
   } catch {
     // OIDC state remains the fallback when session storage is unavailable.
   }
   try {
-    window.localStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, value);
+    window.localStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, returnUrl);
   } catch {
     // The OIDC state and session storage remain the fallbacks.
   }
@@ -83,9 +89,8 @@ export function restoreOidcReturnUrl(state: unknown): string {
   } catch {
     // Fall through to the current path.
   }
-  if (fromState) return fromState;
-  if (isSafeReturnUrl(sessionStored)) return sessionStored;
-  if (isSafeReturnUrl(localStored)) return localStored;
+  const returnUrl = [fromState, sessionStored, localStored].find(isSafeReturnUrl);
+  if (returnUrl) return returnUrlFromLocation(new URL(returnUrl, window.location.origin));
   return new URLSearchParams(window.location.search).has("post")
     ? returnUrlFromLocation()
     : window.location.pathname;
