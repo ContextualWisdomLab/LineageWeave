@@ -422,3 +422,32 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Bounded telemetry maintenance
+
+When replacing an OpenTelemetry handler, preserve explicit OTLP opt-in and
+attach it only to the product's bounded logger. Do not enable global automatic
+instrumentation to silence a deprecation warning. Verify the root logger and
+LogRecord factory are unchanged, retain the intended severity threshold, and
+check warning absence after real provider setup and teardown. Backend diagnostic
+tests require both the dev and backend extras in the isolated uv environment.
+
+Register provider ownership immediately after allocation, before attaching
+processors or handlers. A later optional-telemetry setup failure must still
+leave the provider reachable by normal shutdown; test that failure path using
+a real provider and verify shutdown rather than only catching the exception.
+
+Optional telemetry failure boundaries must cover instrument acquisition as well
+as recording. A failed meter/counter constructor must not replace the original
+application failure or leak its exception message into bounded diagnostic logs.
+
+Telemetry privacy tests must use allowed attribute names with disallowed values;
+unlisted names are rejected earlier and cannot prove scalar-value filtering.
+Inspect structured LogRecord fields as well as formatted text when checking
+content exclusion. Preserve the full coverage denominator and record harness
+failures separately from product assertions.
+
+When testing degraded telemetry support, verify that the original application
+exception survives and that exported events plus structured logs omit its value.
+A coverage percentage alone does not prove either invariant; retain the same
+statement/branch denominator when comparing improvements.

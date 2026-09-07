@@ -205,13 +205,15 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         from opentelemetry.exporter.otlp.proto.http._log_exporter import (
             OTLPLogExporter,
         )
-        from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+        from opentelemetry.instrumentation.logging.handler import LoggingHandler
+        from opentelemetry.sdk._logs import LoggerProvider
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
     except ImportError:  # pragma: no cover - guarded by the runtime extra
         _LOGGER.warning("OpenTelemetry log SDK/exporter is unavailable")
         return
     try:
         log_provider = LoggerProvider(resource=resource)
+        _LOG_PROVIDER = log_provider
         log_provider.add_log_record_processor(
             BatchLogRecordProcessor(
                 OTLPLogExporter(endpoint=_otlp_log_endpoint(endpoint))
@@ -220,7 +222,6 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         set_logger_provider(log_provider)
         handler = LoggingHandler(level=logging.WARNING, logger_provider=log_provider)
         _LOGGER.addHandler(handler)
-        _LOG_PROVIDER = log_provider
         _LOG_HANDLER = handler
     except Exception:  # noqa: BLE001 - export must stay fail-open
         _LOGGER.warning("OpenTelemetry log exporter is unavailable")
@@ -316,9 +317,9 @@ def record_server_failure(
         bounded_operation = "unknown"
     error_type = type(exc).__name__[:128]
     session_id = current_session_id() or ""
-    counter = _failure_counter()
-    if counter is not None:
-        try:
+    try:
+        counter = _failure_counter()
+        if counter is not None:
             counter.add(
                 1,
                 {
@@ -326,8 +327,8 @@ def record_server_failure(
                     "lineageweave.failure_outcome": outcome,
                 },
             )
-        except Exception:  # noqa: BLE001  # telemetry failure must not mask API failure
-            _LOGGER.warning("telemetry.metric_recording_failed")
+    except Exception:  # noqa: BLE001  # telemetry failure must not mask API failure
+        _LOGGER.warning("telemetry.metric_recording_failed")
 
     stack_trace = (
         _stack_trace_without_exception(exc) if outcome == "internal_error" else ""

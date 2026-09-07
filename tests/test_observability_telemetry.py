@@ -10,10 +10,50 @@ attribute-safety paths runs against synthetic values only.
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 
 import pytest
 
 import lineageweave.observability as observability
+
+
+@pytest.mark.parametrize("current_span", [None, object()])
+def test_missing_span_context_does_not_invent_correlation(monkeypatch, current_span) -> None:
+    """An absent or incomplete span has no valid correlation identifiers."""
+    monkeypatch.setattr(observability, "trace", SimpleNamespace(get_current_span=lambda: current_span))
+    assert observability._current_trace_ids() == ("", "")
+
+
+def test_unavailable_propagator_preserves_request_headers(monkeypatch) -> None:
+    """Missing propagation support must not change existing transport headers."""
+    monkeypatch.setattr(observability, "_otel_inject", None)
+    carrier = {"content-type": "application/json"}
+    observability.inject_trace_context(carrier)
+    assert carrier == {"content-type": "application/json"}
+
+
+def test_unlisted_failure_outcome_is_rejected_before_metric_creation(monkeypatch) -> None:
+    """Unlisted outcomes cannot create a new metric classification."""
+    def unexpected_counter():
+        pytest.fail("invalid classification reached metric creation")
+
+    monkeypatch.setattr(observability, "_failure_counter", unexpected_counter)
+    with pytest.raises(ValueError, match="unsupported server failure outcome"):
+        observability.record_server_failure("post_chat", ValueError(), outcome="invented")
+
+
+def test_failure_log_drops_unknown_operation_without_a_metric_counter(monkeypatch, caplog) -> None:
+    """An unavailable metric channel must not admit unlisted operation content."""
+    monkeypatch.setattr(observability, "_failure_counter", lambda: None)
+    monkeypatch.setattr(observability, "trace", None)
+    with caplog.at_level(logging.WARNING, logger=observability.__name__):
+        observability.record_server_failure(
+            "synthetic-private-operation", ValueError("private payload"), outcome="provider_unavailable"
+        )
+    record = next(record for record in caplog.records if record.message == "lineageweave.server_failure")
+    assert record.operation_code == "unknown"
+    assert "synthetic-private-operation" not in str(vars(record))
+    assert "private payload" not in str(vars(record))
 
 
 def _signal_endpoint(endpoint: str, signal: str) -> str:
@@ -68,7 +108,8 @@ def test_metric_and_log_endpoint_helpers_route_to_their_signals() -> None:
     )
 
 
-def test_safe_attributes_skips_container_values_and_unknown_keys() -> None:
+@pytest.mark.parametrize("invalid_value", [{"private": "content"}, ["content"], ("content",), {"content"}, None, object()])
+def test_safe_attributes_skips_container_values_and_unknown_keys(invalid_value) -> None:
     """Composite and unlisted attribute values never reach a span."""
     sanitized = observability._safe_attributes(
         {
@@ -77,11 +118,13 @@ def test_safe_attributes_skips_container_values_and_unknown_keys() -> None:
             "nested": {"a": 1},
             "items": [1, 2, 3],
             "unlisted_key": "should-not-appear",
+            "http.response.status_code": invalid_value,
         }
     )
     assert sanitized["lineageweave.operation_code"] == "http_post_json"
     assert sanitized["lineageweave.session_id"] == "post-123"
     assert "nested" not in sanitized
+    assert "http.response.status_code" not in sanitized
     assert "items" not in sanitized
     assert "unlisted_key" not in sanitized
 
@@ -107,6 +150,10 @@ def test_configure_telemetry_success_installs_providers(
     import opentelemetry.metrics as otel_metrics
     import opentelemetry.trace as otel_trace
 
+    import warnings
+
+    root_handlers = list(logging.getLogger().handlers)
+    record_factory = logging.getLogRecordFactory()
     trace_providers: list[object] = []
     metric_providers: list[object] = []
     log_providers: list[object] = []
@@ -118,7 +165,9 @@ def test_configure_telemetry_success_installs_providers(
     monkeypatch.setattr(otel_metrics, "set_meter_provider", metric_providers.append)
     monkeypatch.setattr(otel_logs, "set_logger_provider", log_providers.append)
 
-    observability.configure_telemetry("services/synthetic")
+    with warnings.catch_warnings(record=True) as notices:
+        warnings.simplefilter("always", DeprecationWarning)
+        observability.configure_telemetry("services/synthetic")
 
     assert observability._CONFIGURED is True
     assert observability._TRACE_PROVIDER is not None
@@ -126,6 +175,10 @@ def test_configure_telemetry_success_installs_providers(
     assert metric_providers == [observability._METER_PROVIDER]
     assert log_providers == [observability._LOG_PROVIDER]
     assert isinstance(observability._LOG_HANDLER, logging.Handler)
+    assert observability._LOG_HANDLER.level == logging.WARNING
+    assert observability._LOG_HANDLER in observability._LOGGER.handlers
+    assert logging.getLogger().handlers == root_handlers
+    assert logging.getLogRecordFactory() is record_factory
 
     # Restore the module to a clean, unconfigured state for the rest of the suite.
     observability.shutdown_telemetry()
@@ -134,6 +187,7 @@ def test_configure_telemetry_success_installs_providers(
     monkeypatch.setattr(observability, "_METER_PROVIDER", None)
     monkeypatch.setattr(observability, "_LOG_PROVIDER", None)
     monkeypatch.setattr(observability, "_LOG_HANDLER", None)
+    assert not [notice for notice in notices if issubclass(notice.category, DeprecationWarning)]
 
 
 def test_configure_telemetry_returns_when_sdk_disabled(
@@ -181,3 +235,59 @@ def test_shutdown_telemetry_removes_handler_and_nulls_providers(
     assert observability._METER_PROVIDER is None
     assert observability._LOG_PROVIDER is None
     assert fake_handler not in logging.getLogger().handlers
+
+def test_failed_handler_keeps_provider_owned_for_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A handler failure must not orphan the log provider's batch worker."""
+    from unittest.mock import Mock
+
+    import opentelemetry._logs as otel_logs
+    import opentelemetry.instrumentation.logging.handler as handler_module
+    import opentelemetry.sdk._logs as sdk_logs
+    import opentelemetry.trace as otel_trace
+
+    provider = sdk_logs.LoggerProvider()
+    shutdown = Mock(wraps=provider.shutdown)
+    monkeypatch.setattr(provider, "shutdown", shutdown)
+    monkeypatch.setattr(sdk_logs, "LoggerProvider", lambda **kwargs: provider)
+    monkeypatch.setattr(handler_module, "LoggingHandler", Mock(side_effect=RuntimeError("synthetic handler failure")))
+    monkeypatch.setattr(otel_logs, "set_logger_provider", lambda provider: None)
+    monkeypatch.setattr(otel_trace, "set_tracer_provider", lambda provider: None)
+    monkeypatch.setattr(observability, "metrics", None)
+    monkeypatch.setattr(observability, "_CONFIGURED", False)
+    monkeypatch.setattr(observability, "_LOG_PROVIDER", None)
+    monkeypatch.setattr(observability, "_LOG_HANDLER", None)
+    monkeypatch.delenv("OTEL_SDK_DISABLED", raising=False)
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:9")
+    try:
+        observability.configure_telemetry()
+        observability.shutdown_telemetry()
+        shutdown.assert_called_once_with()
+        assert observability._LOG_PROVIDER is None
+        assert observability._LOG_HANDLER is None
+    finally:
+        observability.shutdown_telemetry()
+        if not shutdown.called:
+            provider.shutdown()
+
+
+def test_metric_initialization_failure_preserves_bounded_failure_log(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A broken metric provider cannot replace the original application failure."""
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    monkeypatch.setattr(observability, "_FAILURE_COUNTER", None)
+    monkeypatch.setattr(observability, "metrics", SimpleNamespace(
+        get_meter=Mock(side_effect=RuntimeError("synthetic private metric detail")),
+    ))
+    monkeypatch.setattr(observability, "trace", None)
+    with caplog.at_level(logging.WARNING, logger=observability.__name__):
+        observability.record_server_failure(
+            "global_ask", ValueError("synthetic private request detail"),
+            outcome="provider_unavailable",
+        )
+    failure = next(record for record in caplog.records if record.msg == "lineageweave.server_failure")
+    assert failure.error_type == "ValueError"
+    assert failure.failure_outcome == "provider_unavailable"
+    assert "synthetic private" not in caplog.text
