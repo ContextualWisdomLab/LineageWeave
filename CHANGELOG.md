@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Grouping comparison rows now show persisted leftover-map incomplete-item count through `leftoverMapIncompleteItemCount` (ADR 0294 / v2.51.0) only for a fully caller-visible persisted grouping. Partial visibility omits the aggregate; valid persisted zero remains visible.
+
 - Grouping comparison rows now show persisted leftover-map incomplete-post count through `leftoverMapIncompletePostCount` (ADR 0293 / v2.50.0) only for a fully caller-visible persisted grouping. Partial visibility omits the aggregate; valid persisted zero remains visible, and the UI never derives dropped posts from scored-minus-used.
 
 - Period leftover pairs now caption leftover-axis report badges with persisted leftover-map singular values `σ_k` (ADR 0292 / v2.49.0). Missing, non-finite, or negative singular values omit only that `σ` caption; rank-0 zero remains `σ 0.00`, and axis share remains distinct.

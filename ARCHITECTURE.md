@@ -673,6 +673,7 @@ graphic axes with persisted leftover-map singular values `σ_k`. ADR 0290 captio
 ADR 0291 captions grouping-comparison persisted item complete-case coverage through leftoverMapItemCoverageCounts only under ADR 0290's full-visible-grouping authorization boundary.
 ADR 0292 captions leftover-axis report badges with persisted finite, non-negative leftover-map singular values `σ_k`; missing or invalid singular values omit only that caption, and axis share remains a distinct persisted measure.
 ADR 0293 captions grouping-comparison persisted incomplete-post count only for a fully caller-visible persisted grouping; partial visibility omits the aggregate rather than disclosing or recomputing a hidden-population count.
+ADR 0294 captions grouping-comparison persisted incomplete-item count only for a fully caller-visible persisted grouping; partial visibility omits it rather than disclosing or recomputing a hidden-population criterion count.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share

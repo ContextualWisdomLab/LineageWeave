@@ -12,6 +12,8 @@ export const LEFTOVER_MAP_COMPARE_ITEM_COVERAGE_LABEL = "Leftover map comparison
 
 export const LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL = "Leftover map comparison incomplete posts";
 
+export const LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL = "Leftover map comparison incomplete items";
+
 export const LEFTOVER_MAP_PLOT_COVERAGE =
   "Leftover map used {used} of {scored} scored posts (complete-case)";
 

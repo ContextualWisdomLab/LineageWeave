@@ -4309,6 +4309,21 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete items"),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete items",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete items",
+      )[0],
+    ).toHaveTextContent("Leftover map dropped 0 incomplete criteria");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic incomplete items",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
