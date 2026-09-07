@@ -386,6 +386,11 @@ exist on the post.
 
 ## CI gates
 
+Record hosted results with their exact commit and run URL, including skipped
+tests and warnings. Counts from independent PRs are not evidence that their
+changes were integrated. Preserve local failures alongside later hosted success;
+an evidence-only commit still needs its own current-head required checks.
+
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,

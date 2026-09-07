@@ -1028,3 +1028,21 @@ Chat, Evaluation, Keymen extraction, and Commitment derivation retained their
 saved-evidence guidance. Lint and production build passed; the existing chunk
 warning remains. The earlier worker-start failure ran no tests and is not
 counted as a sibling assertion failure or success.
+
+### Ask hosted integration evidence (2026-09-07)
+
+[Tests run 34084171460](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34084171460)
+completed successfully on PR #972 code revision
+`2242ef05cbd9cc61e836d87e1a838e7a8edd2589`. The frontend job passed 540 tests
+across 58 files, lint, and production build. The backend job passed 1768 tests
+with 147 skipped and one warning in 1251.00 s. This is the first full hosted
+success recorded here for the combined Ask authorization, transport retirement,
+and shared error-copy changes; the earlier local timeout evidence remains above.
+
+The 540-test result belongs to this Ask revision; the 544-test result above
+belongs to the independent ontology revision. Neither test count proves that
+the other PR's changes were integrated. Skipped integration cases, independent
+review, central required checks, product-owned authentication, eight-language
+database resources, deployment, and authenticated all-page p95 remain separate
+acceptance obligations. Subsequent documentation commits require their own
+current-head checks; this run remains evidence for the cited code revision.
