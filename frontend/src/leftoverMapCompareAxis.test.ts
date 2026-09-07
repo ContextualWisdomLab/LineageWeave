@@ -85,6 +85,12 @@ describe("leftoverMapCompareAxisSingular", () => {
     ).toEqual({ axis: 1, value: "0.00" });
   });
 
+  it("formats a finite 1e21 singular value to two decimals without exponential notation", () => {
+    expect(
+      leftoverMapCompareAxisSingular({ axis_index: 1, leftover_singular_value: 1e21 }),
+    ).toEqual({ axis: 1, value: "1000000000000000000000.00" });
+  });
+
   it("omits leftover-map singular values that are missing, non-finite, or negative", () => {
     expect(leftoverMapCompareAxisSingular(null)).toBeNull();
     expect(leftoverMapCompareAxisSingular(undefined)).toBeNull();
