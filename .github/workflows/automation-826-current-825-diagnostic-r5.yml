@@ -1,0 +1,46 @@
+name: automation-826-current-825-diagnostic-r5
+on:
+  push:
+    branches: [automation/826-current-825-diagnostic-r5-20260907-1343]
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact current parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "b73b10e3079e77f3e62235b2b709dc8a3f450292"
+      - name: Replay and publish exact conflict surface
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git cherry-pick --no-commit a4bf239f1cf07ea29bd49b28300f252be0ca7a19
+          rc=$?
+          {
+            echo "# #826 exact-current-parent replay diagnostic"
+            echo
+            echo "base: b73b10e3079e77f3e62235b2b709dc8a3f450292"
+            echo "historical delta: a4bf239f1cf07ea29bd49b28300f252be0ca7a19"
+            echo "cherry-pick rc: $rc"
+            echo
+            echo '```text'
+            echo "UNMERGED:"
+            git diff --name-only --diff-filter=U
+            echo "STATUS:"
+            git status --short
+            echo '```'
+          } > /tmp/826-replay-report.md
+          gh api repos/ContextualWisdomLab/LineageWeave/issues/826/comments -f body="$(cat /tmp/826-replay-report.md)"
+          exit "$rc"
