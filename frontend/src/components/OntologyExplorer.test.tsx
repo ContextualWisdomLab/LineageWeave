@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
@@ -161,8 +161,85 @@ describe("OntologyExplorer", () => {
     expect(container.querySelector('polygon[points="0,-16 20,0 0,16 -20,0"]')).not.toBeNull();
   });
 
+  it.each([
+    ["credential", { accessToken: "token-b" }],
+    ["cutoff", { knowledgeCutoff: "2026-01-01T00:00:00Z" }],
+    ["focus", { focusNodeId: EVIDENCE_POST_ID }],
+    ["focus type", { focusNodeType: "node_person" }],
+  ] as const)("retires old pages before a changed %s loads", async (_name, change) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
+    let releaseOld!: (value: OntologyNeighborhoodPayload) => void;
+    let releaseCurrent!: (value: OntologyNeighborhoodPayload) => void;
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseOld = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseCurrent = resolve; }));
+    const initial = {
+      accessToken: "token-a", focusNodeType: "node_post", focusNodeId: POST_ID,
+      knowledgeCutoff: undefined,
+    };
+    const { rerender } = render(<OntologyExplorer {...initial} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    fireEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(2);
+
+    const current = { ...initial, ...change };
+    rerender(<OntologyExplorer {...current} />);
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(3, current.accessToken, {
+      focusNodeType: current.focusNodeType, focusNodeId: current.focusNodeId,
+      knowledgeCutoff: current.knowledgeCutoff, cursor: undefined,
+    });
+
+    await act(async () => { releaseOld(neighborhood()); });
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    await act(async () => { releaseCurrent(neighborhood({
+      focus_node_id: current.focusNodeId, focus_node_type_code: current.focusNodeType,
+      nodes: [{ ...neighborhood().nodes[0], node_id: current.focusNodeId,
+        node_type_code: current.focusNodeType, display_label: "Current scope record" }],
+      edges: [], exact_value_rows: [],
+    })); });
+    expect(screen.getByRole("button", { name: /Select node: .*Current scope record/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+  });
+
+  it.each(["success", "denial"])("ignores retired %s after credential re-entry", async (outcome) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
+    let resolveRetired!: (value: OntologyNeighborhoodPayload) => void;
+    let rejectRetired!: (error: BackendError) => void;
+    fetchNeighborhood
+      .mockImplementationOnce(() => new Promise((resolve, reject) => {
+        resolveRetired = resolve;
+        rejectRetired = reject;
+      }))
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce(neighborhood());
+    const props = { focusNodeType: "node_post", focusNodeId: POST_ID };
+    const { rerender } = render(<OntologyExplorer {...props} accessToken="token-a" />);
+    rerender(<OntologyExplorer {...props} accessToken="token-b" />);
+    rerender(<OntologyExplorer {...props} accessToken="token-a" />);
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      if (outcome === "denial") {
+        rejectRetired(new BackendError("/api/ontology/neighborhood", 403));
+      } else {
+        resolveRetired(neighborhood({ nodes: [], edges: [], exact_value_rows: [] }));
+      }
+    });
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeEnabled();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps loaded pages visible when a continuation page fails", async () => {
-    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
     let rejectContinuation!: (error: BackendError) => void;
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
@@ -246,7 +323,92 @@ describe("OntologyExplorer", () => {
     ).toBeInTheDocument();
   });
 
-  it("lets keyboard users open node and edge evidence", async () => {
+  it.each([403, 404])("discards prior evidence and exports after continuation denial (%s)", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status));
+    render(
+      <OntologyExplorer accessToken="synthetic-access-token" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(await screen.findByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByRole("region", { name: "Exact values" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: "Node evidence" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+  });
+
+  it.each([403, 404])("restarts at the first page after continuation denial and credential refresh (%s)", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status))
+      .mockResolvedValueOnce(neighborhood({ next_cursor: null }));
+
+    const { rerender } = render(
+      <OntologyExplorer accessToken="synthetic-token-a" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+    expect(
+      await screen.findByText("Related information is unavailable for this record. Open a visible post next."),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(2));
+
+    rerender(
+      <OntologyExplorer accessToken="synthetic-token-b" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(
+      3,
+      "synthetic-token-b",
+      expect.objectContaining({ cursor: undefined }),
+    );
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+  });
+
+  it.each(["ready", undefined] as const)("does not restore a denied supplied payload on status-only recovery (%s)", (recoveredStatus) => {
+    const payload = neighborhood();
+    const { rerender } = render(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    fireEvent.change(screen.getByLabelText("Search within this neighborhood"), { target: { value: "Demo" } });
+    rerender(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} status="denied" />,
+    );
+    expect(screen.queryByRole("complementary", { name: "Node evidence" })).not.toBeInTheDocument();
+    rerender(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={payload} status={recoveredStatus} />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+    rerender(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} status="ready" />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+    expect(screen.queryByRole("complementary", { name: "Node evidence" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
+  });
+
+  it("denies exports when initially supplied a denied payload", () => {
+    render(
+      <OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} status="denied" />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+  });
+
+  it.each(["{Enter}", " "])("opens node and edge evidence with %s", async (activationKey) => {
+    const user = userEvent.setup();
     const onSelectPost = vi.fn();
     const onOpenEvidence = vi.fn();
     render(
@@ -264,14 +426,22 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    const nodeButton = screen.getByRole("button", { name: "Select node: Post Demo public post" });
+    nodeButton.focus();
+    expect(nodeButton).toHaveFocus();
+    await user.keyboard(activationKey);
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
+    screen.getByRole("button", { name: "Open evidence post" }).focus();
+    await user.keyboard(activationKey);
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
     expect(onOpenEvidence).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
+    const edgeButton = screen.getByRole("button", { name: /Select edge: mentions from/ });
+    edgeButton.focus();
+    expect(edgeButton).toHaveFocus();
+    await user.keyboard(activationKey);
     expect(screen.getByText(/Property IRI/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
+    screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }).focus();
+    await user.keyboard(activationKey);
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });

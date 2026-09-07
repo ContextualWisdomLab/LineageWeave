@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BackendError,
   fetchOntologyNeighborhood,
@@ -103,6 +103,14 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const [inputScope, setInputScope] = useState({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff });
+  const deniedPayloads = useRef(new WeakSet<OntologyNeighborhoodPayload>());
+  const deniedLiveRequest = useRef<{
+    accessToken: string;
+    focusNodeType: string;
+    focusNodeId: string;
+    knowledgeCutoff?: string;
+  } | null>(null);
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -110,18 +118,32 @@ export function OntologyExplorer({
     setQuery("");
   }
 
-  useEffect(() => {
+  if (
+    inputScope.accessToken !== accessToken || inputScope.focusNodeType !== focusNodeType ||
+    inputScope.focusNodeId !== focusNodeId || inputScope.knowledgeCutoff !== knowledgeCutoff
+  ) {
+    setInputScope({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff });
+    setLoaded(null);
+    setStatus("loading");
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
     setPageRetry(0);
     setLiveFocus(false);
     clearSelection();
-  }, [focusNodeType, focusNodeId]);
+  }
 
   useEffect(() => {
     const useProvided = Boolean(provided) && !liveFocus;
     if (useProvided && provided) {
+      if (providedStatus === "denied") deniedPayloads.current.add(provided);
+      // A status change is not a newly authorized projection.
+      if (deniedPayloads.current.has(provided)) {
+        setLoaded(null);
+        clearSelection();
+        setStatus("denied");
+        return;
+      }
       setLoaded(provided);
       setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));
       return;
@@ -131,6 +153,17 @@ export function OntologyExplorer({
       setCursor(undefined);
       clearSelection();
       setStatus(providedStatus ?? "empty");
+      return;
+    }
+    const deniedRequest = deniedLiveRequest.current;
+    if (
+      deniedRequest?.accessToken === accessToken &&
+      deniedRequest.focusNodeType === focusType &&
+      deniedRequest.focusNodeId === focusId &&
+      deniedRequest.knowledgeCutoff === knowledgeCutoff
+    ) {
+      setLoaded(null);
+      setStatus("denied");
       return;
     }
     let cancelled = false;
@@ -143,6 +176,7 @@ export function OntologyExplorer({
     })
       .then((payload) => {
         if (cancelled) return;
+        deniedLiveRequest.current = null;
         setLoaded((current) =>
           cursor && current ? accumulateNeighborhoodPages(current, payload) : payload,
         );
@@ -152,6 +186,15 @@ export function OntologyExplorer({
         if (cancelled) return;
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+          deniedLiveRequest.current = {
+            accessToken,
+            focusNodeType: focusType,
+            focusNodeId: focusId,
+            knowledgeCutoff,
+          };
+          setCursor(undefined);
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -162,11 +205,15 @@ export function OntologyExplorer({
     };
   }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
 
-  const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
+  const visible = useMemo(
+    () => status === "denied" || (!liveFocus && providedStatus === "denied")
+      ? null : filterNeighborhood(loaded, query),
+    [loaded, query, status, liveFocus, providedStatus],
+  );
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
-  const canLoadNextPage = Boolean(loaded?.next_cursor && accessToken && !provided);
+  const canLoadNextPage = Boolean(status !== "denied" && loaded?.next_cursor && accessToken && !provided);
 
   function resetFocus() {
     setFocusType(focusNodeType);

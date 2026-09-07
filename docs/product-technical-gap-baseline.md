@@ -1,5 +1,209 @@
 # Product & Technical Gap Baseline
 
+## Review repair audit — 2026-09-06 19:20 KST
+
+This update supersedes queue and acceptance claims in the earlier audit below.
+Remote `main` remains `83eba56149eb802cd63642c507c324c9976ec78e`.
+The fully paginated inventory has **121 open PRs (114 draft, 7 ready)** and
+**16 open issues**. The six previously ready heads listed below are unchanged;
+PR #959 entered review at `3db3a477bebd15ca335ec29a0eff65664db613c9`.
+REST exact-head checks were re-read for all seven ready PRs. Queued and
+cancelled checks are not success. GraphQL CLI quota was exhausted; review
+thread lookup through the connector found one unresolved #959 documentation
+thread. No new independent approval or protected merge is claimed.
+The existing six squash auto-merge settings remain enabled.
+
+### Selected user-visible repair and evidence boundary
+
+PR #959's supplied-data path still retained a denied neighborhood, and changing
+only its status to ready made the same records exportable again. Two new
+rerender regressions reproduced this defect before repair. The component now
+discards loaded data and selection/search state, remembers denied object
+identities weakly, and requires a replacement projection before showing data
+again. The immediate denied-prop render also omits the old projection. No
+source record, Voice, inference, API, schema, release version, or owner-engine
+contract changes. Existing controls, notices, tokens and Storybook scenes are
+reused; fresh projections do not restore a previously selected evidence drawer.
+
+Implementation commit: `c6b272ae7542c1f686a5178259463252c9d7f243`.
+Lint, TypeScript/Vite build, and Storybook build passed. Chromium rendering at
+1440px and 390px confirmed disabled CSV/JSON-LD exports, zero old evidence
+tables/drawers, and no horizontal overflow; both screenshots were inspected:
+[desktop](screenshots/ontology-denial-repair-desktop-20260906.png) and
+[mobile](screenshots/ontology-denial-repair-mobile-20260906.png).
+The new status-recovery regressions failed twice before repair and passed in
+the bounded full-file attempt; that attempt also had six existing UI failures.
+Subsequent isolated execution hit test-process startup timeouts under observed
+host load averages around 28–36. A separate layout file passed nine tests, but
+the combined run had one process-startup error. These are not a green full
+suite. The final state-transition regression uses synchronous click/change
+events instead of per-keystroke simulation; its two cases pass in isolation
+with every assertion and the original timeout retained. Lint and production
+build evidence concerns the unchanged production component. Full-suite
+acceptance still requires a clean run. No timeout, warning filter, test
+assertion, or CI gate was weakened.
+
+At remote repair head `25688661c05e48f2b95470ce23add24b8827ef30`,
+GitHub's authenticated browser confirmed normal squash auto-merge enabled,
+the documentation thread resolved, and independent approval still required.
+Fourteen exact-head Checks were queued and two were skipped; none of those
+states is terminal success. CLI/connector GraphQL mutations had failed on
+quota, so the standard web auto-merge control was used with bypass unchecked.
+No merge SHA is claimed. The following test/documentation-only update
+requires fresh Checks on its own head; predecessor results do not transfer.
+
+The current LineageWeave PRD, ADR 0184 and ADR 0256, and the upstream
+contextual-orchestrator product/architecture authority were read before this
+repair. Canonical remote names were rechecked: `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase
+`ContextualWisdomLab/disksage`. No research-derived policy is added. Context7
+returned a quota error and DeepWiki had no indexed LineageWeave documentation;
+neither is presented as verified authority. React's official reference supplied
+the effect/ref lifecycle contract.
+
+All **121 current PR file lists** were retrieved. The eight distinct ADR-number
+collisions listed below remain present; no distinct added migration filenames
+share a numeric prefix. This is filename/ownership evidence, not complete
+cross-branch SQL or API compatibility. Existing Voice/export PRs remain the
+owners of their respective changes, and no child was retargeted before its
+parent's protected merge. No in-progress repository Actions run was returned,
+so no runner job was cancelled.
+
+The earlier runtime counts and k6 probe below are dated evidence from the
+previous candidate, not measurements of this repair. Authenticated PostgreSQL
+API/rendered UI acceptance, full asynchronous end-to-end load and saturation,
+and all Voice truth/cutoff/PROV-O acceptance remain **unverified**. Synthetic
+rendering and local regression tests must not promote those conditions to done.
+
+## Current audit — 2026-09-06
+
+This section supersedes the dated queue snapshots below. Audited protected
+`main`: `83eba56149eb802cd63642c507c324c9976ec78e`.
+The pre-change remote inventory contains 120 open PRs (114 Draft, 6 Ready)
+and 16 open issues. No Ready PR has a qualifying exact-head approval.
+All six retain normal squash auto-merge. Their first 100 review threads were
+fully paginated (no additional page) and contain zero unresolved threads.
+Required workflows remain mandatory even where ordinary local tests pass.
+
+| Ready PR | Exact head | Current-head approvals / unresolved threads | Auto-merge | Non-green check names |
+| --- | --- | --- | --- | --- |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | 0 / 0 | enabled | Admit current pull request head, CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), Detect changed scope, admit-current-head, cancel-superseded-opencode-review-runs, cancel-superseded-pr-runs, required-workflow-bootstrap |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), dependency-review, noema-review, opencode-review, strix |
+| #907 | `847a15e73e69bfc768d517a83fa8706aecfafe7e` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), noema-review, opencode-review, publish-manual-pr-evidence-status, strix |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), dependency-review, noema-review, opencode-review, strix |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), noema-review, opencode-review |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | 0 / 0 | enabled | CodeQL compatibility analysis (actions), CodeQL compatibility analysis (javascript-typescript), CodeQL compatibility analysis (python), dependency-review, noema-review, opencode-review |
+
+Current branch rules require one independent approval, dismissal of stale
+reviews, resolved review threads, and the central workflow suite. Last-push
+approval is currently false; do not replace live rules with historical notes.
+No self-approval, force push, admin bypass, stack retarget, or merge occurred
+in this audit. No in-progress repository run was returned during the initial
+runner inventory, so no run was cancelled. Cancelled checks above remain
+non-passing evidence and do not authorize cancelling a current open-PR run.
+
+### Authority, implementation, and acceptance are separate
+
+- **Authority read:** current LineageWeave `docs/product-requirements.md`,
+  ADR 0184, ADR 0246 and the actual main ADR 0251; current upstream TEPP
+  `docs/product/prd-v0.4-approved.md`, contextual-orchestrator
+  `docs/product_planning.md` and `docs/architecture.md`. Main's ADR 0251 is
+  the FJA/I-O taxonomy, while Voice composition is ADR 0256; an ADR number
+  alone does not resolve the competing historical identities.
+- **Canonical remote names verified:** `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `TEPP`, and `ContextualWisdomLab/disksage`.
+  The mixed-case DiskSage row in the historical authority register is not
+  the canonical repository name.
+- **Research boundary:** no new scientific claim, weight, inference policy,
+  model selector, or arithmetic was introduced. Existing ADR literature is
+  supporting authority for its stated scope, not proof that implementation
+  or runtime acceptance is complete.
+- **Current implementation gap selected:** after an authenticated continuation
+  returned 403/404, the ontology graph disappeared but previously loaded
+  CSV/JSON-LD remained downloadable and a selected record drawer survived.
+  This directly violated ADR 0184's same-authorized-content export contract.
+  Three new regressions failed before the fix. The minimal repair clears
+  denied response data/selection and prevents every visible projection from
+  using data in the denied state, including supplied Storybook payloads.
+  Ordinary 500 continuation retries retain the earlier authorized pages.
+- **Local candidate evidence:** 36 focused and 533 total frontend tests pass;
+  lint, TypeScript/Vite build and Storybook build pass. `DeniedAfterLoaded`
+  reuses the existing controls, copy, layout and tokens. Inspected 1440px and
+  390px screenshots show disabled CSV/JSON-LD controls, no old evidence table
+  or drawer, and no horizontal document overflow. Existing build chunk-size
+  warnings were not suppressed.
+- **Current aggregate only:** official Compose project `lineageweave` has
+  43,189 source Posts and a Voice-assignment store. These counts disclose no
+  record identity and are not a probability sample or population inference.
+  The inspected worker, PostgreSQL and orchestrator containers report healthy;
+  this is not exact-candidate deployment evidence.
+- **Still unaccepted:** full Voice API/UI truth/cutoff/PROV-O parity,
+  authenticated rendering of this candidate against PostgreSQL, and full
+  asynchronous Ask end-to-end saturation/capacity. The current stack is a
+  private-data runtime; its existence does not authorize presenting synthetic
+  Storybook or a missing-focus probe as full real-runtime acceptance.
+
+### Bounded authenticated denial probe
+
+Synthetic `demo.analyst` OIDC authentication succeeded without printing its
+credential or token. PostgreSQL confirmed the synthetic focus identifier had
+zero rows. A 4-VU, 10-second k6 probe against the official authenticated
+ontology route returned the expected 404 on all 18,939 focus reads (0 failed
+checks); explicit expected-status classification produced 0% HTTP error rate.
+Including one setup token request, observed throughput was 1,757.53 requests/s,
+mean latency 2.04ms and p95 2.60ms. This intentionally bounded observation is
+not an SLO, probability sample, full Ask workflow, or saturation test.
+Point-in-time observations showed one active diagnostic PostgreSQL connection
+and six idle clients; sampled CPU percentages for PostgreSQL, Ask processing,
+Valkey, and the gateway were 0.00%, 0.14%, 0.23%, and 0.02%. These samples do
+not measure peak saturation. No performance bottleneck or numerical repair is
+claimed. The first probe classified expected 404s as HTTP errors; the reported
+probe corrected only expected-response classification, without hiding failed
+checks or changing the application.
+
+The UI design contract is unchanged in layout: evidence reviewers retain the
+existing next-action notice and navigation; denial removes prior record
+content and disables export controls at desktop and mobile widths. Existing
+tokens and Storybook scenes are the visual authority. No new layout, color,
+spacing, or decorative component was introduced. Screenshots are synthetic:
+[desktop](screenshots/ontology-denial-desktop-20260906.png) and
+[mobile](screenshots/ontology-denial-mobile-20260906.png).
+
+### PR overlap and identity collisions
+
+All 120 open PR file lists were retrieved successfully. Added ADR filenames
+reuse eight numeric identities for distinct decisions:
+
+- `docs/adr/0279`: #888 `docs/adr/0279-global-ask-exact-semantic-index.md`; #811 `docs/adr/0279-leftover-map-segment-expected.md`.
+- `docs/adr/0289`: #821 `docs/adr/0289-leftover-map-compare-coverage.md`; #820 `docs/adr/0289-leftover-map-plot-singular.md`.
+- `docs/adr/0290`: #823 `docs/adr/0290-leftover-map-axis-singular.md`; #822 `docs/adr/0290-leftover-map-compare-item-coverage.md`.
+- `docs/adr/0300`: #899 `docs/adr/0300-contextual-orchestrator-owner-boundary.md`; #837 `docs/adr/0300-leftover-map-compare-expected.md`.
+- `docs/adr/0301`: #902 `docs/adr/0301-dichotomous-measurement-policy.md`; #838 `docs/adr/0301-leftover-map-compare-rank.md`.
+- `docs/adr/0305`: #844 `docs/adr/0305-leftover-map-compare-plot-axis-share.md`; #843 `docs/adr/0305-leftover-map-compare-rank-payload.md`.
+- `docs/adr/0335`: #877 `docs/adr/0335-leftover-map-compare-plot-tick-origin-badge.md`; #876 `docs/adr/0335-leftover-map-plot-criterion-coordinates.md`.
+- `docs/adr/0355`: #920 `docs/adr/0355-leftover-map-plot-origin-badge.md`; #915 `docs/adr/0355-dynamic-evaluation-lineage.md`.
+
+No distinct added migration filenames reused a number in that inventory.
+This filename check does not prove SQL/API compatibility across all stacked
+branches. Release-title duplicates remain candidates requiring actual version
+reconciliation: v2.92.0 (#877/#876), v2.62.0 (#844/#843), v2.61.0 (#842/#841),
+v2.50.0 (#828/#826), v2.47.0 (#823/#822), v2.46.0 (#821/#820).
+Do not merge these child branches onto an unprotected parent; protect the
+parent first, retarget, and gather new head/base/review/check evidence.
+
+Existing owner PRs remain intact: #780 carries Voice export authority;
+PR #934 singleton JSON-LD page relations; #935 filtered export parity;
+PR #936 correction history; #937 evidence visibility/write admission; #929
+versioned translations. The denial fix changes `OntologyExplorer.tsx` and its
+regressions only; shared Storybook/inventory/baseline edits need reconciliation
+when those PRs reach main. API, schema, ADR identity, and release number are
+unchanged by this slice.
+
+## Historical audit snapshots
+
+The remaining dated entries are historical supporting evidence, not a current
+queue, deployment, or acceptance claim.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -932,3 +1136,78 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+
+### Ontology external scope retirement (2026-09-07, PR #959)
+
+Changing the credential, cutoff, or external focus while a continuation is pending
+left the prior node visible. All four behavioral cases failed the absence assertion
+on the prior implementation; earlier deadline-only failures were not counted as
+causal reproduction. A guarded input-state reset now discards the loaded projection,
+selection, and cursor before committing the changed scope, while preserving the
+existing denial bookkeeping. Deferred prior responses remain inadmissible.
+
+The implementation follows the existing ADR 0124 cursor-scope and ADR 0184
+authorized-projection contracts. React's guarded same-component state adjustment
+avoids a stale committed child render without remounting and losing denial state.
+Reference: React. (n.d.). *You might not need an Effect*.
+https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+
+Automatic eligible deployment and continuous AGENTS.md maintenance are now part
+of the existing hourly loop. Protected main currently exposes ontology Pages
+publication; this Draft UI repair is not a released artifact. The fast-mlsirm
+publication workflow consumes `PIPY_TOKEN`; its last observed failed run stopped
+at control-plane provenance verification before any package publication. Secret
+availability was not established by the repository metadata query, and the
+environment metadata endpoint returned 404; neither result establishes missing
+organization credentials. No secret value was accessed.
+
+Validation: all four new scope cases passed after the repair. The complete two-file
+Ontology suite included 35 tests: 33 passed and two existing keyboard/Voice cases
+exceeded their unchanged five-second deadlines. This is not a green suite or
+authenticated runtime acceptance. TypeScript and the production Vite build passed;
+the existing 500 kB chunk warning remains. No package or runtime was deployed.
+
+
+### Keyboard acceptance and publication eligibility follow-up (2026-09-07)
+
+The ontology test named keyboard acceptance used pointer clicks only. It now
+exercises both Enter and Space on focused SVG node/edge controls and their native
+evidence buttons, preserving the evidence destination assertions. This proves
+activation, not real-browser Tab ordering. The complete two-file suite included
+36 cases: 35 passed, including both keyboard cases and the previously timed-out
+Voice case; one credential-transition case hit the unchanged five-second limit.
+The suite therefore remains non-green.
+
+A separate diagnostic CPU-profile run of that credential case passed in 1.15 s
+(test body; 4.13 s total). Of 4082.7 ms sampled, 475.8 ms was idle, 451.5 ms
+readFileUtf8, 423.3 ms module wrapSafe, and 111.8 ms garbage collection. These
+process-wide import/runtime samples do not establish the cause of earlier
+intermittent timeouts or prove the authenticated page-latency target. No timeout,
+assertion, or required test was relaxed.
+
+Colima still has 14 running containers; the three previously retired duplicate
+services have not reappeared. No new stack or service was started.
+
+The fast-mlsirm v0.9.1 release tag still resolves to
+`09f762ded35786dd1078222a4577ff09d649816f` and its GitHub release has no assets.
+Publication run 32966867962 stopped because its control-plane revision had moved.
+Fresh source checks also contain failed Rust study shards 3, 5, 7, 8, and 9.
+Existing release work includes PR #1471 (v0.9.2, Draft) and PR #1692 (SBOM and
+provenance); do not create a competing release path or re-dispatch v0.9.1 as
+verified merely because core CI passed. No publication was dispatched.
+
+
+### Ontology request re-entry verification (2026-09-07)
+
+Deferred success and 403 denial from the retired first A request cannot replace
+or hide the current authorized projection after A → B → A. Two behavioral
+cases now assert the current graph and both exports survive, without another
+request. Existing per-request effect cleanup already satisfies this contract;
+no second lifecycle mechanism was added.
+
+The latest complete OntologyExplorer plus stabilization suite passed 38/38
+cases in 16.66 s, with all existing deadlines unchanged. This supersedes the
+previous non-green focused-suite result, while preserving its timeout history.
+It does not establish a green full frontend suite, browser Tab order, current-head
+hosted CI, or authenticated all-page performance.
