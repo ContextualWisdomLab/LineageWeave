@@ -2,7 +2,30 @@
 
 from __future__ import annotations
 
-from backend.app.config import load_settings
+import pytest
+
+from backend.app.config import GLOBAL_ASK_JOB_DEADLINE_SECONDS, load_settings
+
+
+def test_ask_answer_timeout_defaults_to_no_elapsed_socket_limit(monkeypatch) -> None:
+    """Omitted Ask socket timeout is not a hidden 570-second hang-up."""
+    monkeypatch.delenv("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", raising=False)
+    assert load_settings().orchestrator_answer_timeout_seconds is None
+
+
+def test_ask_answer_timeout_keeps_an_explicit_finite_value_under_the_deadline(
+    monkeypatch,
+) -> None:
+    """An operator-set Ask socket timeout must stay below the job deadline."""
+    monkeypatch.setenv("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
+    assert load_settings().orchestrator_answer_timeout_seconds == 570
+
+    monkeypatch.setenv(
+        "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS",
+        str(GLOBAL_ASK_JOB_DEADLINE_SECONDS),
+    )
+    with pytest.raises(ValueError, match="less than"):
+        load_settings()
 
 
 def test_frontend_origins_are_parsed_from_comma_separated_env(monkeypatch) -> None:

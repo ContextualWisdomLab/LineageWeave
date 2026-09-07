@@ -7,9 +7,11 @@
 > recovery can still reclaim by age. Live workers renew ``updated_at``
 > on the recovery interval so a current owner is not reclaimed by
 > elapsed time. Cancelling the owner task also cancels the inner Ask
-> operation so compute cannot continue detached. The 600 s worker
-> deadline remains until that heartbeat evidence is independently
-> approved. Draft; not protected-main or independently approved evidence.
+> operation so compute cannot continue detached. Ask HTTP no longer
+> invents a 570 s socket hang-up when the operator omits a timeout; the
+> 600 s worker deadline remains until that heartbeat evidence is
+> independently approved. Not protected-main or independently approved
+> evidence.
 >
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
