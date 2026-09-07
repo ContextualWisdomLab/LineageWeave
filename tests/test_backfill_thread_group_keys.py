@@ -34,7 +34,9 @@ class _Connection:
     whose live scope match the rewrite would orphan.
     """
 
-    def __init__(self, rows: list[bool], anchored_runs: list[str] | None = None) -> None:
+    def __init__(
+        self, rows: list[bool], anchored_runs: list[str] | None = None
+    ) -> None:
         self._rows = rows
         self._anchored_runs = anchored_runs or []
         self.executed: list[str] = []
@@ -50,7 +52,9 @@ class _Connection:
                 {"analysis_run_id": run_id, "scope_key": f"key-{run_id}"}
                 for run_id in self._anchored_runs
             ]
-        return [{"had_project_code": had_project_code} for had_project_code in self._rows]
+        return [
+            {"had_project_code": had_project_code} for had_project_code in self._rows
+        ]
 
 
 def test_backfill_clears_placeholders_and_routes_project_codes_to_secondary() -> None:
@@ -72,14 +76,19 @@ def test_backfill_clears_placeholders_and_routes_project_codes_to_secondary() ->
     # related posts that lack a project code, exactly the links the
     # reconstruction library exists to find.
     assert "thread_group_key = ''" in update
-    assert "secondary_grouping_key = coalesce(nullif(btrim(source_project_code), ''), '')" in update
+    assert (
+        "secondary_grouping_key = coalesce(nullif(btrim(source_project_code), ''), '')"
+        in update
+    )
     assert "source_thread_group_key = coalesce(" in update
     assert "source_thread_group_key, thread_group_key" in update
     assert "source_secondary_grouping_key = coalesce(" in update
     assert "source_secondary_grouping_key, secondary_grouping_key" in update
 
 
-def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned() -> None:
+def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned() -> (
+    None
+):
     # analysis_scope_thread_group runs resolve `thread_group_key =
     # scope_key` live on every read (ABAC visibility) -- their member
     # posts are snapshot-frozen but the scope match is not. Rewriting
@@ -110,8 +119,8 @@ def test_dry_run_reports_counts_but_raises_to_force_a_rollback() -> None:
     try:
         asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=True))
     except backfill._RollbackDryRun as rolled_back:
-        assert rolled_back.project_evidence == 1
-        assert rolled_back.cleared == 2
+        assert rolled_back.project_evidence_post_count == 1
+        assert rolled_back.cleared_post_count == 2
     else:
         raise AssertionError("expected _RollbackDryRun")
 
@@ -139,12 +148,16 @@ def _patch_pool(monkeypatch, conn: _Connection) -> None:
     monkeypatch.setattr(backfill, "load_settings", fake_load_settings)
 
 
-def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(monkeypatch) -> None:
+def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(
+    monkeypatch,
+) -> None:
     import argparse
 
     conn = _Connection([True, True, False])
     _patch_pool(monkeypatch, conn)
-    result = asyncio.run(backfill._run(argparse.Namespace(dry_run=True)))
+    result = asyncio.run(
+        backfill._run_thread_group_key_backfill(argparse.Namespace(dry_run=True))
+    )
     assert result == {
         "cleared_placeholder_posts": 3,
         "project_secondary_evidence_posts": 2,
@@ -157,7 +170,9 @@ def test_run_reports_write_counts_when_not_a_dry_run(monkeypatch) -> None:
 
     conn = _Connection([True, False, False])
     _patch_pool(monkeypatch, conn)
-    result = asyncio.run(backfill._run(argparse.Namespace(dry_run=False)))
+    result = asyncio.run(
+        backfill._run_thread_group_key_backfill(argparse.Namespace(dry_run=False))
+    )
     assert result == {
         "cleared_placeholder_posts": 3,
         "project_secondary_evidence_posts": 1,
