@@ -1,15 +1,20 @@
 # Product & Technical Gap Baseline
 
-> Snapshot refreshed 2026-09-05 KST. Protected `main` is
+> Snapshot refreshed 2026-09-07 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
-> validation. Required current-head checks are not yet accepted as terminal GREEN
+> validation at `2a8ed5d02`. Required current-head checks are not yet accepted as terminal GREEN
 > and the delivery boundary still requires qualifying independent review. The
-> live non-identifying queue snapshot contains 120 open PRs and 16 open issues;
-> those counts describe coordination load, not product maturity or release
-> readiness. The authenticated `GET /api/translations/{screen_key}` API is
-> implemented on the candidate branch. That is candidate implementation
-> evidence, not protected-main, deployed, or release evidence.
+> live non-identifying queue snapshot contains 134 open PRs (13 ready / 121
+> draft) and 22 open issues; those counts describe coordination load, not product
+> maturity or release readiness. No open PR currently shows independent
+> `reviewDecision=APPROVED`. Ready main-targeting PRs
+> `#974`/`#973`/`#972` still have pending hosted review or security jobs;
+> do not poll those jobs and do not treat CodeQL compatibility `pending`
+> dispatch handshakes as product scan failures. The authenticated
+> `GET /api/translations/{screen_key}` API is implemented on the candidate
+> branch. That is candidate implementation evidence, not protected-main,
+> deployed, or release evidence.
 >
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
@@ -119,7 +124,9 @@
 5. Keep #929 in the Ready validation lane while this exact head is evaluated.
    Normal merge or release still requires terminal required/security gates and
    the qualifying independent review; do not bypass or inherit predecessor
-   evidence.
+   evidence. Stacked consumer PR #932 remains Draft on this parent and is not
+   protected-main cutover evidence. Leftover-pair accessible-name gap #976
+   waits for leftover-map single-writer `#802` rather than racing that file.
 
 ## Adjacent delivery and collision audit
 
