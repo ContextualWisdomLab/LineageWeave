@@ -1,18 +1,13 @@
 # Product & Technical Gap Baseline
 
-> Ask ownership-fence overlay: 2026-09-07 KST. Issue #975 stacks onto
-> #974 so Global Ask settlement is compare-and-set on the claim
-> generation (`updated_at`). A PostgreSQL `UPDATE 0` means the previous
-> owner lost the generation and is not a buyer-visible failure. Orphan
-> recovery can still reclaim by age. Live workers renew ``updated_at``
-> on the recovery interval so a current owner is not reclaimed by
-> elapsed time. Cancelling the owner task also cancels the inner Ask
-> operation so compute cannot continue detached. Ask HTTP no longer
-> invents a 570 s socket hang-up when the operator omits a timeout; the
-> 600 s compute hang-up is removed on this branch (ADR 0370 Proposed):
-> live heartbeat owners are not cancelled by elapsed time. Real
-> PostgreSQL compare-and-set reclaim is covered in `test_schema.py`.
-> Not protected-main or independently approved evidence.
+> Ask ownership-fence overlay: 2026-09-08 KST. Issue #975 / #979 exact
+> head `aecb873a` removed the 600 s worker deadline, then Tests run
+> `34152472692` failed at collection: `backend/tests/test_config.py`
+> still imported `GLOBAL_ASK_JOB_DEADLINE_SECONDS`. That import is gone;
+> `load_settings()` now accepts an explicit 900 s transport timeout and
+> still rejects zero, negative, and non-finite values. ADR 0370
+> Proposed no longer requires an explicit timeout below 600 s. Frontend
+> on that run was GREEN. Not protected-main or independently approved.
 >
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map

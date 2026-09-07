@@ -24,8 +24,9 @@ the original worker could still settle by job id alone.
   interval. A failed renew aborts without settling as failed.
 - Cancelling the owner task cancels the inner compute task.
 - LineageWeave does not invent an Ask socket hang-up when
-  `ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS` is omitted. An explicit finite
-  value must stay below 600 s.
+  `ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS` is omitted or blank. An
+  explicit value must be finite and strictly positive; it is not
+  bounded by the removed 600 s worker deadline.
 - Live compute is not cancelled when 600 s elapse. Age-based orphan
   recovery uses three missed heartbeats, not the old 660 s reaper.
 - Provider `TimeoutError` stays an unavailable Ask failure.
