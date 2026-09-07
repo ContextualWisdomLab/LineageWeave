@@ -147,6 +147,10 @@ import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
 } from "./leftoverMapReconstruction";
+import {
+  formatLeftoverMapExplainedShare,
+  LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL,
+} from "./leftoverMapExplainedShare";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4073,9 +4077,16 @@ function ReportsPanel({
                     const reconstruction = formatLeftoverMapReconstruction(
                       pair.leftover_map_reconstruction,
                     );
+                    const explainedShare = formatLeftoverMapExplainedShare(
+                      pair.leftover_map_explained_share,
+                    );
                     const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${
                       reconstruction
                         ? ` · ${t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)} ${reconstruction}`
+                        : ""
+                    }${
+                      explainedShare
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL)} ${explainedShare}`
                         : ""
                     }`;
                     return (
@@ -4107,6 +4118,11 @@ function ReportsPanel({
                           {reconstruction ? (
                             <span className="post-badge" aria-hidden="true">
                               {reconstruction}
+                            </span>
+                          ) : null}
+                          {explainedShare ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {explainedShare}
                             </span>
                           ) : null}
                         </button>

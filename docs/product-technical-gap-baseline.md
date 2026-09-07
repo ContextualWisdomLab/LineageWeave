@@ -1397,3 +1397,7 @@ Exact parent `#824@499d653ed6e9206249e3f3a07518ad3fc01f14bd` lacks the grouping-
 ### 2026-09-07 — #826 exact-parent reconstruction candidate
 
 Exact parent `#825@b73b10e3079e77f3e62235b2b709dc8a3f450292` omits persisted `R̂` from grouping-comparison pair rows. ADR 0295 / v2.52.0 restores that valid read-model delta and repairs the historical accessibility defect by carrying the label/value in the button accessible name. Candidate evidence is not protected-main/release evidence; current-head browser/screen-reader/a11y, canonical eight-locale ledger consumption, independent review, and normal protected merge remain outstanding.
+
+### 2026-09-07 — #827 exact-parent reconstruction candidate
+
+Exact parent `#826@66a7750a10ad0e9526716d382707f99528a75d90` omits persisted grouping-comparison explained-leftover share. ADR 0296 / v2.53.0 restores that valid delta and fixes its historical accessible-name defect. Candidate evidence is not protected-main/release evidence; current-head browser/screen-reader/a11y, canonical eight-locale ledger consumption, independent review, and normal protected merge remain outstanding.
