@@ -138,7 +138,7 @@ async def _run_with_ask_claim_heartbeat(
     lost = asyncio.Event()
     stop = asyncio.Event()
 
-    async def beat() -> None:
+    async def _beat() -> None:
         while not stop.is_set() and not lost.is_set():
             try:
                 await asyncio.wait_for(stop.wait(), timeout=_CLAIM_HEARTBEAT_SECONDS)
@@ -150,7 +150,7 @@ async def _run_with_ask_claim_heartbeat(
                     return
                 lease[0] = renewed
 
-    beater = asyncio.create_task(beat())
+    beater = asyncio.create_task(_beat())
     worker = asyncio.create_task(operation)
     try:
         await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
