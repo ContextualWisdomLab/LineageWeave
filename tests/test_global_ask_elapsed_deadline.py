@@ -50,7 +50,7 @@ class _Pool:
 
 
 def test_live_heartbeat_operation_is_not_cancelled_by_elapsed_time(monkeypatch) -> None:
-    """A renewing owner may outlive the former hard worker deadline."""
+    """A renewing owner remains live until completion, cancellation, or claim loss."""
     connection = _Connection()
     pool = _Pool(connection)
 
@@ -61,7 +61,6 @@ def test_live_heartbeat_operation_is_not_cancelled_by_elapsed_time(monkeypatch) 
         await asyncio.sleep(0.03)
         return {"answer_text": "completed by live owner"}
 
-    monkeypatch.setattr(global_ask_queue, "JOB_DEADLINE_SECONDS", 0.01)
     monkeypatch.setattr(global_ask_queue, "_CLAIM_HEARTBEAT_SECONDS", 0.005)
     monkeypatch.setattr(global_ask_queue, "load_job_visibility", _load_visibility)
     monkeypatch.setattr(
