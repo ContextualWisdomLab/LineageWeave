@@ -1004,3 +1004,21 @@ The complete three-file observability/server-diagnostic selection passed 32
 tests in 34.74 s without warnings. Module statement/branch coverage increased
 from 95% to 96%; the remaining paths are not claimed covered. This is local
 failure-isolation evidence, not protected deployment or full-goal completion.
+
+### Telemetry attribute privacy coverage follow-up (2026-09-07)
+
+Hosted run 34087122183 actually executed 32 tests successfully and reported 96%
+statement/branch coverage for observability; earlier harness failures were not
+coverage measurements. The container-value test had used only unlisted keys,
+which bypassed the allowed-key scalar filter it purported to test. It now checks
+an allowed key with dictionary, list, tuple, set, null, and unsupported-object
+values. A separate unavailable-metric test verifies unknown operation content and
+exception payload stay out of structured log fields.
+
+The corrected focused suite passes 38 tests in 2.43 s and reports 97% (197
+statements, 68 branches, 2 missed statements and 5 partial branches). No exclusion
+or denominator change was made. Initial new-test failures were harness mistakes
+(keyword-only outcome called positionally, then checking formatted text instead
+of structured LogRecord attributes); neither is claimed as a product bug.
+The 100% target, current-head hosted tests, independent review, and deployment
+remain incomplete; keep the PR Draft.

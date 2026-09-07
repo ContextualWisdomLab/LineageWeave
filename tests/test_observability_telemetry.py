@@ -16,6 +16,20 @@ import pytest
 import lineageweave.observability as observability
 
 
+def test_failure_log_drops_unknown_operation_without_a_metric_counter(monkeypatch, caplog) -> None:
+    """An unavailable metric channel must not admit unlisted operation content."""
+    monkeypatch.setattr(observability, "_failure_counter", lambda: None)
+    monkeypatch.setattr(observability, "trace", None)
+    with caplog.at_level(logging.WARNING, logger=observability.__name__):
+        observability.record_server_failure(
+            "synthetic-private-operation", ValueError("private payload"), outcome="provider_unavailable"
+        )
+    record = next(record for record in caplog.records if record.message == "lineageweave.server_failure")
+    assert record.operation_code == "unknown"
+    assert "synthetic-private-operation" not in str(vars(record))
+    assert "private payload" not in str(vars(record))
+
+
 def _signal_endpoint(endpoint: str, signal: str) -> str:
     """Thin wrapper so callers pass one helper under test."""
     return observability._otlp_signal_endpoint(endpoint, signal)
@@ -68,7 +82,8 @@ def test_metric_and_log_endpoint_helpers_route_to_their_signals() -> None:
     )
 
 
-def test_safe_attributes_skips_container_values_and_unknown_keys() -> None:
+@pytest.mark.parametrize("invalid_value", [{"private": "content"}, ["content"], ("content",), {"content"}, None, object()])
+def test_safe_attributes_skips_container_values_and_unknown_keys(invalid_value) -> None:
     """Composite and unlisted attribute values never reach a span."""
     sanitized = observability._safe_attributes(
         {
@@ -77,11 +92,13 @@ def test_safe_attributes_skips_container_values_and_unknown_keys() -> None:
             "nested": {"a": 1},
             "items": [1, 2, 3],
             "unlisted_key": "should-not-appear",
+            "http.response.status_code": invalid_value,
         }
     )
     assert sanitized["lineageweave.operation_code"] == "http_post_json"
     assert sanitized["lineageweave.session_id"] == "post-123"
     assert "nested" not in sanitized
+    assert "http.response.status_code" not in sanitized
     assert "items" not in sanitized
     assert "unlisted_key" not in sanitized
 

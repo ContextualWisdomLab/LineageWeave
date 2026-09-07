@@ -440,3 +440,9 @@ a real provider and verify shutdown rather than only catching the exception.
 Optional telemetry failure boundaries must cover instrument acquisition as well
 as recording. A failed meter/counter constructor must not replace the original
 application failure or leak its exception message into bounded diagnostic logs.
+
+Telemetry privacy tests must use allowed attribute names with disallowed values;
+unlisted names are rejected earlier and cannot prove scalar-value filtering.
+Inspect structured LogRecord fields as well as formatted text when checking
+content exclusion. Preserve the full coverage denominator and record harness
+failures separately from product assertions.
