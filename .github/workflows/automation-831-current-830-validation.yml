@@ -88,10 +88,9 @@ jobs:
           cross = Path("frontend/src/leftoverMapCrossShare.ts")
           text = cross.read_text()
           anchor = 'export const LEFTOVER_MAP_CROSS_SHARE_ACTION =\n  "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.";\n'
-          replacement = anchor + '\nexport const LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL =\n  "Leftover map comparison cross share";\n'
           if text.count(anchor) != 1:
-              raise SystemExit("cross-share anchor missing")
-          cross.write_text(text.replace(anchor, replacement, 1))
+              raise SystemExit("cross-share source anchor missing")
+          cross.write_text(text.replace(anchor, anchor + '\nexport const LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL =\n  "Leftover map comparison cross share";\n', 1))
 
           cross_test = Path("frontend/src/leftoverMapCrossShare.test.ts")
           text = cross_test.read_text()
@@ -100,37 +99,37 @@ jobs:
           if text.count(old) != 1:
               raise SystemExit("cross-share test import anchor missing")
           text = text.replace(old, new, 1)
-          before = '''  it("omits the badge when leftover-map cross share is missing or non-finite", () => {\n    expect(formatLeftoverMapCrossShare(null)).toBeNull();\n    expect(formatLeftoverMapCrossShare(undefined)).toBeNull();\n    expect(formatLeftoverMapCrossShare(Number.NaN)).toBeNull();\n    expect(formatLeftoverMapCrossShare(Number.POSITIVE_INFINITY)).toBeNull();\n    expect(formatLeftoverMapCrossShare(Number.NEGATIVE_INFINITY)).toBeNull();\n  });\n'''
-          after = before + '''\n  it("keeps the grouping-comparison label distinct from the graphic label", () => {\n    expect(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL).toBe(\n      "Leftover map comparison cross share",\n    );\n  });\n'''
-          if text.count(before) != 1:
-              raise SystemExit("cross-share test anchor missing")
-          cross_test.write_text(text.replace(before, after, 1))
+          marker = '\n});\n'
+          addition = '''\n  it("keeps the grouping-comparison label distinct from the graphic label", () => {\n    expect(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL).toBe(\n      "Leftover map comparison cross share",\n    );\n  });\n'''
+          if not text.endswith(marker):
+              raise SystemExit("cross-share test closing anchor missing")
+          cross_test.write_text(text[:-len(marker)] + addition + marker)
 
           app = Path("frontend/src/App.tsx")
           text = app.read_text()
-          old = '''import {\n  formatLeftoverMapUnexplainedShare,\n  LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,\n} from "./leftoverMapUnexplainedShare";\n'''
-          new = old + '''import {\n  formatLeftoverMapCrossShare,\n  LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,\n} from "./leftoverMapCrossShare";\n'''
-          if text.count(old) != 1:
+          import_anchor = '''import {\n  formatLeftoverMapUnexplainedShare,\n  LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,\n} from "./leftoverMapUnexplainedShare";\n'''
+          import_add = '''import {\n  formatLeftoverMapCrossShare,\n  LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,\n} from "./leftoverMapCrossShare";\n'''
+          if text.count(import_anchor) != 1:
               raise SystemExit("App import anchor missing")
-          text = text.replace(old, new, 1)
+          text = text.replace(import_anchor, import_anchor + import_add, 1)
 
-          old = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${\n'''
-          new = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    const crossShare = formatLeftoverMapCrossShare(\n                      pair.leftover_map_cross_share,\n                    );\n                    const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${\n'''
-          if text.count(old) != 1:
+          formatter_anchor = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n'''
+          formatter_add = '''                    const crossShare = formatLeftoverMapCrossShare(\n                      pair.leftover_map_cross_share,\n                    );\n'''
+          if text.count(formatter_anchor) != 1:
               raise SystemExit("App formatter anchor missing")
-          text = text.replace(old, new, 1)
+          text = text.replace(formatter_anchor, formatter_anchor + formatter_add, 1)
 
-          old = '''                    ${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }`;\n'''
-          new = '''                    ${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }${\n                      crossShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL)} ${crossShare}`\n                        : ""\n                    }`;\n'''
-          if text.count(old) != 1:
-              raise SystemExit("App accessible-name anchor missing")
-          text = text.replace(old, new, 1)
+          name_anchor = '''${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }`;'''
+          name_new = '''${\n                      unexplainedShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : ""\n                    }${\n                      crossShare\n                        ? ` · ${t(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL)} ${crossShare}`\n                        : ""\n                    }`;'''
+          if text.count(name_anchor) != 1:
+              raise SystemExit(f"App accessible-name anchor count {text.count(name_anchor)}")
+          text = text.replace(name_anchor, name_new, 1)
 
-          old = '''                          {unexplainedShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {unexplainedShare}\n                            </span>\n                          ) : null}\n'''
-          new = old + '''                          {crossShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {crossShare}\n                            </span>\n                          ) : null}\n'''
-          if text.count(old) != 1:
+          badge_anchor = '''                          {unexplainedShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {unexplainedShare}\n                            </span>\n                          ) : null}\n'''
+          badge_add = '''                          {crossShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {crossShare}\n                            </span>\n                          ) : null}\n'''
+          if text.count(badge_anchor) != 1:
               raise SystemExit("App badge anchor missing")
-          app.write_text(text.replace(old, new, 1))
+          app.write_text(text.replace(badge_anchor, badge_anchor + badge_add, 1))
           PY
 
       - name: Focused GREEN
@@ -167,10 +166,17 @@ jobs:
       - name: Full PostgreSQL-backed GREEN
         run: uv run --frozen python -m pytest -q
 
-      - name: Verify stale cumulative files remain untouched
+      - name: Verify causal scope
+        shell: bash
         run: |
+          set -euo pipefail
           git diff --check
-          test -z "$(git diff --name-only | grep '^frontend/src/i18n' || true)"
-          test -z "$(git diff --name-only | grep '^frontend/src/components/LeftoverPairList' || true)"
-          test -z "$(git diff --name-only | grep '^frontend/src/leftoverMapPlotLayout' || true)"
-          git diff --stat
+          changed="$(git diff --name-only | sort)"
+          printf '%s\n' "$changed"
+          test -z "$(printf '%s\n' "$changed" | grep '^frontend/src/i18n' || true)"
+          test -z "$(printf '%s\n' "$changed" | grep '^frontend/src/components/LeftoverPairList' || true)"
+          test -z "$(printf '%s\n' "$changed" | grep '^frontend/src/leftoverMapPlotLayout' || true)"
+          test -n "$(printf '%s\n' "$changed" | grep '^frontend/src/App.tsx$')"
+          test -n "$(printf '%s\n' "$changed" | grep '^frontend/src/App.test.tsx$')"
+          test -n "$(printf '%s\n' "$changed" | grep '^frontend/src/leftoverMapCrossShare.ts$')"
+          test -n "$(printf '%s\n' "$changed" | grep '^frontend/src/leftoverMapCrossShare.test.ts$')"
