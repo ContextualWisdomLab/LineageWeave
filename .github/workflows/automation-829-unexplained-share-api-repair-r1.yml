@@ -1,4 +1,4 @@
-name: Automation 829 unexplained-share API repair r1
+name: Automation 829 unexplained-share API repair r2
 
 on:
   push:
@@ -36,15 +36,11 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           fetch-depth: 0
-          persist-credentials: false
 
       - name: Verify product authority has not moved
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          live="$(git ls-remote "$remote" "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          live="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
           test "$live" = "$PRODUCT_HEAD"
           test "$(git merge-base "$PRODUCT_HEAD" HEAD)" = "$PRODUCT_HEAD"
 
@@ -219,8 +215,17 @@ jobs:
       - name: Authenticated comparison endpoint GREEN
         run: |
           set -euo pipefail
+          # `docker compose down` parses all services, including the canonical
+          # orchestrator's ${HOME}/.env boundary. This runner-local empty file
+          # contains no provider credential; it exists only to make teardown
+          # use the same valid Compose model as startup and is then removed.
+          test ! -e "$HOME/.env"
+          install -m 600 /dev/null "$HOME/.env"
           docker compose up -d postgres valkey keycloak
-          cleanup() { docker compose down -v; }
+          cleanup() {
+            docker compose down -v
+            rm -f "$HOME/.env"
+          }
           trap cleanup EXIT
           ready=0
           for _ in $(seq 1 90); do
@@ -268,7 +273,7 @@ jobs:
           expected="$(printf '%s\n' \
             backend/app/report_ingestion.py \
             backend/tests/test_api.py \
-            backend/tests/test_report_ingestion_unexplained_share.py \
+            backend/tests/test_report_ingestion_unexplained-share.py \
             docs/adr/0369-leftover-map-compare-unexplained-share.md | sort)"
           test "$changed" = "$expected"
           git diff --cached --check
@@ -285,13 +290,11 @@ jobs:
 
       - name: Promote exact repaired tree non-force
         env:
-          GH_TOKEN: ${{ github.token }}
           PRODUCT_COMMIT: ${{ steps.product.outputs.commit }}
         run: |
           set -euo pipefail
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          live="$(git ls-remote "$remote" "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          live="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
           test "$live" = "$PRODUCT_HEAD"
-          git push "$remote" "${PRODUCT_COMMIT}:refs/heads/${PRODUCT_BRANCH}"
-          promoted="$(git ls-remote "$remote" "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
+          git push origin "${PRODUCT_COMMIT}:refs/heads/${PRODUCT_BRANCH}"
+          promoted="$(git ls-remote origin "refs/heads/${PRODUCT_BRANCH}" | cut -f1)"
           test "$promoted" = "$PRODUCT_COMMIT"
