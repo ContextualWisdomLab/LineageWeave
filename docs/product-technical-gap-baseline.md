@@ -1,5 +1,16 @@
 # Product & Technical Gap Baseline
 
+> Occupational catalog synchronizer naming overlay: 2026-09-07 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The ADR 0250
+> operator used generic package-owned command, database, payload,
+> configuration, and result identifiers (`_parser`, `synchronize_catalog`,
+> `args`, `conn`, `payload`, `settings`, `count`). Action: translate that
+> complete private caller surface to occupational-catalog language while
+> preserving the fixed O*NET release URL, CLI flag, output keys, digest gate,
+> transactional UPSERT, and connection close. Status: RED naming/contract
+> regression followed by production GREEN locally; GitHub exact-head checks
+> and independent review remain pending.
+
 > Deterministic channel-weight estimator naming overlay: 2026-09-07 KST.
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
 > The ADR 0200 operator used generic package-owned sampling, database,

@@ -262,6 +262,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The ADR 0250 occupational catalog synchronization command now uses semantic
+  catalog, database, payload, configuration, and result identifiers while
+  preserving the fixed O*NET URL, `--target-dsn`, release/result output, digest
+  validation, transactional UPSERT, and connection-close behavior.
+
 - The deterministic channel-weight estimator now uses semantic source-post,
   candidate-window, database, estimate, and command identifiers while
   preserving pair sampling, fitting, CLI, JSON, SQL, and persisted provenance
