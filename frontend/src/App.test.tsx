@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { SurfaceBoundary } from "./App";
 import { optionalKnowledgeCutoffIso } from "./api";
-import { setLocale } from "./i18n";
+import { setLocale, SUPPORTED_LOCALES, t } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
@@ -74,6 +74,36 @@ it("announces a lazy surface load failure with a recovery action", () => {
 
 
 describe("App, unauthenticated", () => {
+  it.each(SUPPORTED_LOCALES)("offers a safe sign-in retry and retains the pre-callback destination (%s)", async (locale) => {
+    setLocale(locale);
+    const privateError = "synthetic-private-auth-response";
+    window.history.replaceState({}, "", `/?error=access_denied&error_description=${privateError}&state=stale`);
+    window.sessionStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, "/?post=remembered#evidence");
+    mockAuth = { ...mockAuth, error: new Error(privateError) };
+
+    render(<App />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(t("This request failed. Retry the same action."));
+    expect(screen.queryByText(privateError)).not.toBeInTheDocument();
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: t("Log in") })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(signinRedirect).toHaveBeenCalledWith({ state: { returnUrl: "/?post=remembered#evidence" } });
+    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toBe("/?post=remembered#evidence");
+  });
+
+  it("offers sign-in recovery when an authenticated session has no access token", async () => {
+    window.history.replaceState({}, "", "/?post=abc&error=access_denied#evidence");
+    mockAuth = { ...mockAuth, isAuthenticated: true };
+
+    render(<App />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("This request failed. Retry the same action.");
+    expect(screen.queryByText(/access token/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledWith({ state: { returnUrl: "/?post=abc#evidence" } });
+  });
+
   it("shows a login button that starts the real OIDC redirect", async () => {
     window.history.replaceState({}, "", "/?post=abc#evidence");
     render(<App showLabPanels />);
@@ -93,9 +123,10 @@ describe("App, unauthenticated", () => {
   });
 
   it("announces the app-root auth loading gate as a live region", () => {
-    mockAuth = { ...mockAuth, isLoading: true };
+    mockAuth = { ...mockAuth, isLoading: true, error: new Error("previous failure") };
     render(<App showLabPanels />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });
 
