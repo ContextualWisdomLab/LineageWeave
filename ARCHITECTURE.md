@@ -637,14 +637,15 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
 leftover, ADR 0201 reconstruction evidence, ADR 0185 cross-share evidence,
 ADR 0233 unexplained leftover share `s`, ADR 0266 explained leftover
 share `e`, and ADR 0267 leftover-map coordinates `ξ_{1:2}` / `ζ_{1:2}`.
 ADR 0268 draws those persisted coordinates as the leftover-map graphic
 display above the pair buttons. ADR 0269 captions leftover-map axes 1
-and 2 with persisted leftover-map axis share. ADR 0270 ticks those
+and 2 with persisted leftover-map axis share. ADR 0289 captions leftover-map
+axes 1 and 2 with persisted leftover-map singular values `σ_k`. ADR 0270 ticks those
 leftover-map axes at persisted `ξ` / `ζ` coordinates so the pair-row
 badge matches the plot. ADR 0271 captions leftover-map pair segments
 with persisted leftover-map distance `d`. ADR 0272 captions leftover-map
@@ -667,12 +668,11 @@ item coverage. ADR 0285 captions the leftover pair list with persisted leftover-
 item complete-case coverage. ADR 0286 captions the leftover pair list with persisted leftover-map
 incomplete post coverage. ADR 0287 captions the leftover pair list with persisted leftover-map
 incomplete item coverage. ADR 0288 fail-closes leftover-map post complete-case coverage
-on the leftover pair list through leftoverMapCoverageCounts. ADR 0289 captions the
-grouping comparison strip with persisted leftover-map post complete-case coverage
-through leftoverMapCoverageCounts. ADR 0290 captions the grouping comparison strip
-with persisted leftover-map item complete-case coverage through leftoverMapItemCoverageCounts.
-ADR 0291 captions the grouping comparison strip with persisted leftover-map incomplete
-post coverage through leftoverMapIncompletePostCount.
+on the leftover pair list through leftoverMapCoverageCounts. ADR 0289 captions leftover-map
+graphic axes with persisted leftover-map singular values `σ_k`. ADR 0290 captions the grouping comparison strip with persisted leftover-map post complete-case coverage under a full-visible-grouping rule; partial-visibility groupings fail closed that aggregate to avoid disclosing a hidden population denominator.
+ADR 0291 captions grouping-comparison persisted item complete-case coverage through leftoverMapItemCoverageCounts only under ADR 0290's full-visible-grouping authorization boundary.
+ADR 0292 captions leftover-axis report badges with persisted finite, non-negative leftover-map singular values `σ_k`; missing or invalid singular values omit only that caption, and axis share remains a distinct persisted measure.
+ADR 0293 captions grouping-comparison persisted incomplete-post count only for a fully caller-visible persisted grouping; partial visibility omits the aggregate rather than disclosing or recomputing a hidden-population count.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -690,9 +690,7 @@ including on the pair list. Results persist to
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
 `GET /api/reports/compare/{period}` is the home-page grouping strip
-and carries the same ABAC-filtered leftover pairs (ADR 0149) plus persisted
-leftover-map complete-case coverage (ADR 0289), leftover-map item complete-case
-coverage (ADR 0290), and leftover-map incomplete post coverage (ADR 0291);
+and carries the same ABAC-filtered leftover pairs (ADR 0149) plus persisted leftover-map post complete-case coverage (ADR 0290) and item complete-case coverage (ADR 0291) only when the caller-visible member population equals the persisted grouping population;
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

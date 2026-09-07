@@ -1,6 +1,6 @@
 # ADR 0288 — Fail-close leftover-map post complete-case coverage on the pair list
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-30
 
 Amends [ADR 0049](0049-leftover-pair-report-ui.md) and leftover-map complete-case
