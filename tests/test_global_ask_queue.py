@@ -442,7 +442,7 @@ def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
     assert settle_args[3:] == (global_ask_queue.RUNNING, _CLAIMED_AT)
 
 
-@pytest.mark.parametrize("timeout_source", ["provider", "worker", "shutdown"])
+@pytest.mark.parametrize("timeout_source", ["provider", "shutdown"])
 def test_timeout_detail_identifies_only_an_expired_worker_deadline(
     monkeypatch, timeout_source,
 ) -> None:
@@ -456,12 +456,8 @@ def test_timeout_detail_identifies_only_an_expired_worker_deadline(
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
         if timeout_source == "shutdown":
             raise asyncio.CancelledError()
-        if timeout_source == "worker":
-            await asyncio.Event().wait()
         raise asyncio.TimeoutError("synthetic private upstream detail")
 
-    if timeout_source == "worker":
-        monkeypatch.setattr(global_ask_queue, "JOB_DEADLINE_SECONDS", 0)
     monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
     monkeypatch.setattr(
         global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
@@ -484,13 +480,10 @@ def test_timeout_detail_identifies_only_an_expired_worker_deadline(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    if timeout_source == "worker":
-        assert settle_args[2] == "job exceeded the 0s deadline"
-    else:
-        assert settle_args[2] == (
-            "Ask Agent is unavailable: contextual-orchestrator returned "
-            "no complete evidence object"
-        )
+    assert settle_args[2] == (
+        "Ask Agent is unavailable: contextual-orchestrator returned "
+        "no complete evidence object"
+    )
     assert settle_args[3:] == (global_ask_queue.RUNNING, _CLAIMED_AT)
 
 

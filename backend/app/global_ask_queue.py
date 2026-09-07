@@ -76,17 +76,16 @@ FAILED = "failed"
 # trimmed stream) and are republished by the worker's recovery sweep.
 _REPUBLISH_AFTER_SECONDS = 60
 _RECOVERY_INTERVAL_SECONDS = 30.0
-# Hard ceiling on one job's answer computation. Without it a hung
-# orchestrator round-trip kept a job `running` indefinitely (observed:
-# 17+ minutes) and, before concurrent processing, stalled every job
-# behind it. Shared through config so the client-timeout validation and
-# this reaper can never disagree.
+# Live workers renew the claim generation on this interval so age-based
+# orphan recovery cannot reclaim a job that is still owned.
+_CLAIM_HEARTBEAT_SECONDS = _RECOVERY_INTERVAL_SECONDS
+# Optional explicit Ask HTTP hang-up still has to stay below this bound.
+# Live compute is no longer cancelled when this many seconds elapse.
 JOB_DEADLINE_SECONDS = GLOBAL_ASK_JOB_DEADLINE_SECONDS
-# A `running` row older than this is an orphan: a live worker's deadline
-# settles every job within JOB_DEADLINE_SECONDS, so one sweep interval of
-# slack past that is enough — recovering sooner shortens how long a
-# crashed worker's job stays invisible to a polling reader.
-_ORPHAN_RUNNING_AFTER_SECONDS = JOB_DEADLINE_SECONDS + 60
+# A `running` row whose claim generation has not been renewed for this
+# many seconds is an orphan. Live workers heartbeat more often, so age
+# alone does not reclaim a current owner.
+_ORPHAN_RUNNING_AFTER_SECONDS = 3 * _CLAIM_HEARTBEAT_SECONDS
 # Wake-up stream cap, mirroring the post-content stream: the durable rows
 # are the source of truth, so trimming old wake-ups loses nothing.
 _STREAM_MAX_LENGTH = 1000
@@ -94,9 +93,6 @@ _STREAM_MAX_LENGTH = 1000
 # LLM round-trips, so serial consumption would head-of-line block every
 # later question behind the slowest one.
 _WORKER_CONCURRENCY = 4
-# Live workers renew the claim generation on this interval so age-based
-# orphan recovery cannot reclaim a job that is still owned.
-_CLAIM_HEARTBEAT_SECONDS = _RECOVERY_INTERVAL_SECONDS
 
 _logger = logging.getLogger(__name__)
 
@@ -610,7 +606,6 @@ async def process_global_ask_job(
     if row is None:
         return
     lease = [row["updated_at"]]
-    answer_timeout: asyncio.Timeout | None = None
     try:
         async with pool.acquire() as conn:
             (
@@ -628,25 +623,24 @@ async def process_global_ask_job(
             raise _SafeJobError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
-        async with asyncio.timeout(JOB_DEADLINE_SECONDS) as answer_timeout:
-            payload = await _run_with_ask_claim_heartbeat(
+        payload = await _run_with_ask_claim_heartbeat(
+            pool,
+            job_id,
+            lease,
+            compute_global_ask_answer(
                 pool,
-                job_id,
-                lease,
-                compute_global_ask_answer(
-                    pool,
-                    question_text=str(row["question_text"]),
-                    corporate_entity_ids=entity_ids,
-                    process_unit_ids=process_unit_ids,
-                    process_scope_limited=process_scope_limited,
-                    chat_client=chat_client,
-                    embedding_client=embedding_factory(),
-                    semantic_query_client=semantic_query_factory(),
-                    verify_external=bool(row["verify_external_requested"]),
-                    claim_verification_client=claim_verification_factory(),
-                    knowledge_cutoff=row["knowledge_cutoff"],
-                ),
-            )
+                question_text=str(row["question_text"]),
+                corporate_entity_ids=entity_ids,
+                process_unit_ids=process_unit_ids,
+                process_scope_limited=process_scope_limited,
+                chat_client=chat_client,
+                embedding_client=embedding_factory(),
+                semantic_query_client=semantic_query_factory(),
+                verify_external=bool(row["verify_external_requested"]),
+                claim_verification_client=claim_verification_factory(),
+                knowledge_cutoff=row["knowledge_cutoff"],
+            ),
+        )
     except _LostAskClaim:
         return
     except asyncio.CancelledError:
@@ -666,12 +660,6 @@ async def process_global_ask_job(
             # Raised locally with a pre-authored, safe message (permission
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
-        elif (
-            isinstance(exc, asyncio.TimeoutError)
-            and answer_timeout is not None
-            and answer_timeout.expired()
-        ):
-            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
         else:
             # Provider responses/exceptions can carry credentials, gateway
             # diagnostics, or model output (ADR 0123): never persist the
