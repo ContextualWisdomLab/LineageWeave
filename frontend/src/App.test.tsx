@@ -4309,14 +4309,29 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete items"),
     ).not.toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete items",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete items",
+      )[0],
+    ).toHaveTextContent("Leftover map dropped 0 incomplete criteria");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic incomplete items",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
       screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
-    );
+    expect(
+      screen.getByText("A-100 is the opened grouping. Read its mean θ and member posts below, then open a post."),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: public post/i,

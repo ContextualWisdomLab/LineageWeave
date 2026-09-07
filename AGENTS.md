@@ -536,3 +536,5 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+ADR 0294 keeps grouping-comparison incomplete-item coverage in the LineageWeave read-model boundary: consume only authorization-filtered persisted coverage for a full grouping, omit partial visibility, and never recompute psychometrics in the client.

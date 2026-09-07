@@ -1389,3 +1389,7 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### 2026-09-07 — #825 current-parent reconstruction candidate
+
+Exact parent `#824@499d653ed6e9206249e3f3a07518ad3fc01f14bd` lacks the grouping-comparison incomplete-item note while carrying authorization-filtered persisted coverage. ADR 0294 / v2.51.0 adds that buyer-visible read-model presentation and regression. Candidate evidence is not protected-main/release evidence; current-head browser/a11y, canonical eight-locale ledger consumption, independent review, and normal protected merge remain outstanding.

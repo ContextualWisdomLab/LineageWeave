@@ -57,3 +57,5 @@ migration replay (ADR 0166), docstring coverage, and the measurement
 boundary are all stated in [AGENTS.md](AGENTS.md) -- read it before
 changing code, tests, or runtime policy rather than restating anything
 here.
+
+ADR 0294 is the Proposed grouping-comparison incomplete-item presentation contract; preserve server-side full-group visibility gating and do not infer dropped criteria in the frontend.
