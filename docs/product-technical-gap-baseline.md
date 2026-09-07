@@ -952,3 +952,20 @@ container, provider call, deployment, or protected merge was performed.
 
 Python Software Foundation. (2026). *Coroutines and tasks: Timeouts*.
 https://docs.python.org/3/library/asyncio-task.html#timeouts
+
+### Post-chat null timeout propagation (2026-09-07; proposed ADR 0083 amendment)
+
+Three synthetic assertions reproduced an implicit 180-second limit: direct
+construction with no timeout, factory construction with no timeout, and factory
+construction with explicit null. The post-chat client now defaults to null and
+the factory passes the value unchanged. The shared HTTP request and JSON POST
+annotations accept the native transport's null timeout without a new adapter.
+Explicit caller seconds remain intact. The runtime pin is unchanged.
+
+Focused post-chat, HTTP, queue, and service tests passed 69 cases with two
+real-provider cases skipped in 13.84 s. The existing local HTTP server test covers
+both null and numeric limits. Compilation and diff checks passed. These results
+do not prove blocking-socket cancellation, upstream policy enforcement, or
+unlimited Ask execution: the explicit 570-second Ask socket setting, 600-second
+worker deadline, and age-based recovery remain unresolved. The policy amendment
+is Proposed, not a protected acceptance or release claim.

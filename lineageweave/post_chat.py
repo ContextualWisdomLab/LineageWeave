@@ -377,7 +377,7 @@ class ContextualOrchestratorPostChatClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float | None = None
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key

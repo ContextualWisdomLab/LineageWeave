@@ -391,6 +391,11 @@ Use the owning timer's expiration state and keep shutdown cancellation distinct
 from failure settlement. Test upstream failure, actual timer expiry, and shutdown
 independently; exception names alone do not identify the terminating boundary.
 
+For optional model timeouts, verify omission, explicit null, and explicit seconds
+through factories and transport. Dropping a null keyword can silently restore a
+downstream default; keep null intact and distinguish remaining worker limits
+from a client's default. Null transport timeouts do not prove socket cancellation.
+
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
