@@ -5778,7 +5778,11 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
             assert explained_share + unexplained_share + share == pytest.approx(1.0)
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
-    assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
+    assert all(
+        math.isfinite(axis["leftover_singular_value"])
+        and axis["leftover_singular_value"] >= 0
+        for axis in leftover_axes
+    )
     assert all(0.0 <= axis["leftover_share"] <= 1.0 for axis in leftover_axes)
     leftover_coverage = high_report.get("leftover_map_coverage")
     assert leftover_coverage is not None
@@ -5849,7 +5853,7 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         isinstance(axis["leftover_singular_value"], (int, float)) for axis in leftover_compare_axes
     )
     assert all(
-        axis["leftover_singular_value"] == axis["leftover_singular_value"]
+        math.isfinite(axis["leftover_singular_value"])
         and axis["leftover_singular_value"] >= 0
         for axis in leftover_compare_axes
     )
