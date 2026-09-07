@@ -1,0 +1,188 @@
+name: automation-825-current-824-reconstruction-r6
+on:
+  push:
+    branches: [automation/825-current-824-reconstruction-r6-20260907-1232]
+permissions:
+  contents: write
+concurrency:
+  group: automation-825-current-824-reconstruction-r6
+  cancel-in-progress: true
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_PARENT: 499d653ed6e9206249e3f3a07518ad3fc01f14bd
+      HISTORICAL_FEATURE: bca6baabd917478bf4f6b688ec2755cde95e3575
+      STAGING_BRANCH: automation/825-product-staging-r6-20260907-1232
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with: {fetch-depth: 0, persist-credentials: true}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with: {python-version: "3.12"}
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with: {version: "0.11.28", enable-cache: false}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with: {node-version: "24"}
+      - name: Verify exact parent and reconstruct historical semantic delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$STAGING_BRANCH" "$EXPECTED_PARENT"
+          set +e
+          git cherry-pick --no-commit "$HISTORICAL_FEATURE"
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          expected=$(cat <<'EOF' | sort
+          AGENTS.md
+          ARCHITECTURE.md
+          CHANGELOG.md
+          CLAUDE.md
+          docs/product-technical-gap-baseline.md
+          docs/storybook-inventory.md
+          frontend/package.json
+          frontend/src/App.tsx
+          frontend/src/components/LeftoverPairList.tsx
+          frontend/src/leftoverMapCoverage.ts
+          frontend/src/leftoverMapPlotLayout.ts
+          pyproject.toml
+          EOF
+          )
+          actual=$(git diff --name-only --diff-filter=U | sort)
+          test "$actual" = "$expected"
+          while IFS= read -r f; do git checkout --ours -- "$f"; git add "$f"; done <<< "$expected"
+          git rm -f docs/adr/0292-leftover-map-compare-incomplete-item.md CHANGELOG.d/2.49.0-leftover-map-compare-incomplete-item.md
+          git restore --source="$EXPECTED_PARENT" --staged --worktree docs/product-technical-gap-baseline.md
+          python - <<'PY'
+          from pathlib import Path
+          def rep(path, old, new, sentinel=None):
+              p=Path(path); s=p.read_text()
+              if sentinel and sentinel in s: return
+              assert s.count(old)==1,(path,s.count(old),old)
+              p.write_text(s.replace(old,new,1))
+          rep('frontend/src/leftoverMapCoverage.ts','export const LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL = "Leftover map comparison incomplete posts";\n','export const LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL = "Leftover map comparison incomplete posts";\n\nexport const LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL = "Leftover map comparison incomplete items";\n','LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL')
+          rep('frontend/src/App.tsx','  LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL,\n','  LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL,\n  LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL,\n','LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL,')
+          rep('frontend/src/App.tsx','            const comparisonIncompletePostCount = leftoverMapIncompletePostCount(row.leftover_map_coverage);\n','            const comparisonIncompletePostCount = leftoverMapIncompletePostCount(row.leftover_map_coverage);\n            const comparisonIncompleteItemCount = leftoverMapIncompleteItemCount(row.leftover_map_coverage);\n','comparisonIncompleteItemCount = leftoverMapIncompleteItemCount')
+          rep('frontend/src/App.tsx','              {comparisonIncompletePostCount !== null ? (\n                <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL)}>\n                  {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, comparisonIncompletePostCount)}\n                </p>\n              ) : null}\n','              {comparisonIncompletePostCount !== null ? (\n                <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_POST_LABEL)}>\n                  {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_POST, comparisonIncompletePostCount)}\n                </p>\n              ) : null}\n              {comparisonIncompleteItemCount !== null ? (\n                <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL)}>\n                  {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}\n                </p>\n              ) : null}\n','tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)')
+          rep('frontend/src/components/LeftoverPairList.tsx',' * item complete-case coverage on the grouping comparison strip, not this pair\n * list. Every badge still\n',' * item complete-case coverage on the grouping comparison strip, not this pair\n * list. ADR 0293 names persisted leftover-map incomplete post coverage on the\n * grouping comparison strip, not this pair list. ADR 0294 names persisted\n * leftover-map incomplete item coverage on the grouping comparison strip, not\n * this pair list. Every badge still\n','ADR 0294 names persisted')
+          p=Path('docs/storybook-inventory.md'); s=p.read_text(); old='The grouping comparison strip also names persisted item complete-case coverage only for fully visible grouping populations.'; new='The grouping comparison strip also names persisted item complete-case coverage, incomplete-post count, and incomplete-item count only for fully visible grouping populations; partial visibility omits those persisted grouping aggregates rather than recomputing them from the visible subset.'
+          if new not in s: assert s.count(old)==1; p.write_text(s.replace(old,new,1))
+          PY
+          git add -A
+      - name: Add executable ADR 0294 RED before identity repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > tests/test_adr_0294_governance.py <<'PY'
+          from pathlib import Path
+          ROOT=Path(__file__).resolve().parents[1]
+          def test_adr_0294_is_unique_proposed_successor() -> None:
+              expected={290:'0290-leftover-map-compare-coverage.md',291:'0291-leftover-map-compare-item-coverage.md',292:'0292-leftover-map-axis-singular.md',293:'0293-leftover-map-compare-incomplete-post.md',294:'0294-leftover-map-compare-incomplete-item.md'}
+              for n,name in expected.items():
+                  matches=list((ROOT/'docs/adr').glob(f'{n:04d}-*.md'))
+                  assert len(matches)==1,(n,matches)
+                  assert matches[0].name==name
+              text=(ROOT/'docs/adr/0294-leftover-map-compare-incomplete-item.md').read_text()
+              assert '**Decision status:** Proposed' in text
+              assert 'full persisted grouping population' in text
+              assert 'visible subset' in text
+          PY
+          uv sync --frozen --extra dev
+          set +e
+          uv run --no-sync pytest -q tests/test_adr_0294_governance.py
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          echo 'SERIALIZED_RED_CONFIRMED: exact #824 lacks ADR0294' >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply minimal ADR/release identity repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          def rep(path,old,new):
+              p=Path(path); s=p.read_text(); assert s.count(old)==1,(path,s.count(old)); p.write_text(s.replace(old,new,1))
+          rep('pyproject.toml','version = "2.50.0"','version = "2.51.0"')
+          rep('frontend/package.json','"version": "2.50.0"','"version": "2.51.0"')
+          rep('lineageweave/__init__.py','__version__ = "2.50.0"','__version__ = "2.51.0"')
+          p=Path('AGENTS.md'); s=p.read_text(); marker='ADR 0293 captions the grouping comparison strip with persisted leftover-map incomplete-post count only under the same full-visible-grouping authorization boundary. Partial-visibility groupings omit the aggregate and never derive dropped posts from the visible subset or scored-minus-used. Persisted valid dropped `0` remains visible.\n'; add=marker+'ADR 0294 captions persisted leftover-map incomplete-item count on the grouping comparison strip under the same full-visible-grouping boundary. Partial visibility omits the aggregate; never recompute a psychometric dropped-item count from visible members, pairs, or markers. Persisted valid dropped `0` remains visible.\n'
+          if 'ADR 0294 captions persisted leftover-map incomplete-item count' not in s: assert s.count(marker)==1; p.write_text(s.replace(marker,add,1))
+          p=Path('ARCHITECTURE.md'); s=p.read_text(); marker='ADR 0293 captions grouping-comparison persisted incomplete-post count only for a fully caller-visible persisted grouping; partial visibility omits the aggregate rather than disclosing or recomputing a hidden-population count.\n'; add=marker+'ADR 0294 captions grouping-comparison persisted incomplete-item count only for a fully caller-visible persisted grouping; partial visibility omits it rather than disclosing or recomputing a hidden-population criterion count.\n'
+          if 'ADR 0294 captions grouping-comparison persisted incomplete-item count' not in s: assert s.count(marker)==1; p.write_text(s.replace(marker,add,1))
+          p=Path('CHANGELOG.md'); s=p.read_text(); marker='### Added\n\n'; entry='- Grouping comparison rows now show persisted leftover-map incomplete-item count through `leftoverMapIncompleteItemCount` (ADR 0294 / v2.51.0) only for a fully caller-visible persisted grouping. Partial visibility omits the aggregate; valid persisted zero remains visible.\n\n'
+          if entry not in s: assert marker in s; p.write_text(s.replace(marker,marker+entry,1))
+          PY
+          cat > docs/adr/0294-leftover-map-compare-incomplete-item.md <<'EOF'
+          # ADR 0294 — Name leftover-map incomplete item coverage on the grouping comparison strip
+
+          **Decision status:** Proposed
+          **Date:** 2026-09-07
+
+          ## Context
+          `report_leftover_map_coverage.incomplete_item_count` is an existing persisted measurement fact. The serialized successor needs a distinct grouping-comparison presentation without reusing historical ADR 0292/v2.49.0.
+
+          ## Decision
+          Caption persisted incomplete-item count through `leftoverMapIncompleteItemCount(row.leftover_map_coverage)` and the distinct accessible name `Leftover map comparison incomplete items`. This aggregate is available only for a caller who can see the full persisted grouping population. Partial visibility omits `row.leftover_map_coverage`; never recompute psychometric coverage or dropped-item count from the visible subset. Missing, invalid, or inconsistent values omit the note; persisted zero remains visible. No SQL, schema, theta, leftover score, or alternate measurement authority is added.
+
+          ## Alternatives rejected
+          Client-side scored-minus-used derivation and direct table reads are rejected because they create a second measurement or authorization authority. Reusing pair-list or graphic labels is rejected because those are distinct surfaces.
+
+          ## Consequences
+          Fully visible comparisons name persisted dropped criteria; partial visibility fails closed. ADR 0294 remains Proposed while this PR is Draft and may become Accepted only through normal protected-branch merge/release evidence.
+
+          ## References
+          Gabriel, K. R. (1971). The biplot graphic display of matrices with application to principal component analysis. *Biometrika, 58*(3), 453–467. https://doi.org/10.1093/biomet/58.3.453
+
+          Jeon, M., Jin, I. H., Schweinberger, M., & Baugh, S. (2021). Mapping unobserved item–respondent interactions: A latent space item response model with interaction map. *Psychometrika, 86*(2), 378–403. https://doi.org/10.1007/s11336-021-09762-5
+          EOF
+          sed -i 's/^          //' docs/adr/0294-leftover-map-compare-incomplete-item.md
+          cat > CHANGELOG.d/2.51.0-leftover-map-compare-incomplete-item.md <<'EOF'
+          ## 2.51.0 — Leftover-map incomplete item coverage on grouping comparison
+          - Grouping comparison rows name persisted incomplete-item count only for fully caller-visible persisted groupings. Partial visibility omits the aggregate; persisted zero remains visible; no visible-subset recomputation is permitted.
+          EOF
+          sed -i 's/^          //' CHANGELOG.d/2.51.0-leftover-map-compare-incomplete-item.md
+          git add -A
+      - name: Rust and frozen backend dependencies
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+          uv sync --frozen --extra dev --extra backend
+      - run: corepack enable
+      - name: Frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Exact reconstructed GREEN
+        run: |
+          uv run --no-sync pytest -q tests/test_adr_0290_governance.py tests/test_adr_0291_governance.py tests/test_adr_0292_governance.py tests/test_adr_0293_governance.py tests/test_adr_0294_governance.py tests/test_compare_coverage_visibility.py tests/test_package_version.py
+      - name: Frontend GREEN
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run src/leftoverMapCoverage.test.ts src/i18n.test.ts src/App.test.tsx
+          pnpm exec oxlint src
+          pnpm run build
+          pnpm run build-storybook
+      - name: Verify workflow-free clean product tree and publish staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git diff --name-only "$EXPECTED_PARENT" | grep '^.github/workflows/' || true)"
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          assert len(list(Path('docs/adr').glob('0294-*.md')))==1
+          assert 'version = "2.51.0"' in Path('pyproject.toml').read_text()
+          assert '"version": "2.51.0"' in Path('frontend/package.json').read_text()
+          assert '__version__ = "2.51.0"' in Path('lineageweave/__init__.py').read_text()
+          assert 'leftoverMapIncompleteItemCount(row.leftover_map_coverage)' in Path('frontend/src/App.tsx').read_text()
+          assert 'LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL' in Path('frontend/src/App.tsx').read_text()
+          PY
+          git add -A
+          git commit -m 'feat(reports): reconstruct comparison incomplete-item coverage as v2.51.0'
+          test -z "$(git status --porcelain)"
+          git log -1 --format='staging commit=%H tree=%T parents=%P' | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '### Product delta' >> "$GITHUB_STEP_SUMMARY"
+          git diff --name-status "$EXPECTED_PARENT" HEAD | tee -a "$GITHUB_STEP_SUMMARY"
+          git push origin "HEAD:refs/heads/$STAGING_BRANCH"
