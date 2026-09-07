@@ -1,5 +1,72 @@
 # Product & Technical Gap Baseline
 
+## Bounded Voice export review — 2026-09-07
+
+This observation is supporting evidence, not a live queue or architecture
+authority. Earlier dated sections below remain historical. The inspected
+protected main was `83eba56149eb802cd63642c507c324c9976ec78e`; the implementation
+parent was #780 at `1d8fa267b059289e77301a09985dfac70a439814`. The follow-up must
+remain stacked on #780 until that parent is protected-merged, then be retargeted
+and revalidated. No parent test or approval transfers to the child.
+
+| Evidence class | Observation and limit |
+| --- | --- |
+| Product authority | Read `docs/product-requirements.md`, especially FR-2/FR-3 and release evidence. Read contextual-orchestrator `docs/product_planning.md` and `docs/architecture.md` for its external inference boundary; no upstream inference change is introduced. |
+| Normative authority | ADR 0246 defines 12 governed atoms; ADR 0256 governs evidence-bearing combinations and page-property union. ADR 0251 is the I/O-Psychology layer in this tree, not the Voice-combination decision. |
+| External standard | [W3C JSON-LD 1.1](https://www.w3.org/TR/json-ld11/#sets-and-lists) permits singleton values and unordered multiple values. This supports preserving supplied relations, not estimating new evidence or choosing truth. |
+| Implementation gap | `accumulateNeighborhoodPages` unioned only two arrays. A singleton relation followed by an array, the reverse, or two different singleton relations lost earlier supplied evidence. A synthetic direct invocation reproduced the loss before repair. |
+| Bounded repair | Normalize the two existing property values for union and retain a singleton when both inputs supply the same singleton. Preserve subject identity and input objects. No new Voice code, inference, API, schema, dependency, or release number. |
+| Runtime evidence | Only service availability was inspected. No current private record aggregate, authenticated candidate PostgreSQL API acceptance, or candidate load/capacity artifact was collected. These acceptance criteria remain unverified. |
+
+The selected customer gap is export fidelity while accumulating evidence pages.
+No measured impact ranking is available to establish it as the largest gap in
+the entire product. The regression covers all three singleton/array directions,
+replay idempotency, input immutability, and retained subject labels. It does not
+establish authenticated authorization, cutoff, or persisted provenance acceptance.
+
+Candidate #968 implementation head
+`82b7e71d84e51d1ca1c60431867849dd77de86fa`: the three direct Node regression
+cases passed after failing before repair; lint passed. Vitest could not start
+its process/thread pool before the startup timeout, including after frozen,
+offline project-local dependency installation. No test cases executed in those
+failed Vitest attempts. The production build did not reach a terminal result
+during the bounded local audit. Storybook started, but browser evidence failed
+with navigation/control-wait timeouts; no desktop/mobile screenshot acceptance
+is claimed. Draft-policy skipped hosted Tests are not successful validation.
+These limits leave #968 Draft and the product acceptance incomplete.
+
+The complete initial queue observation contained 125 open PRs: 118 Drafts and
+97 targeting a branch other than main. A later GraphQL observation counted 126
+open PRs and 19 open issues; these are separate observations, not one atomic
+snapshot. Ready heads independently inspected in this review:
+
+| PR | Exact head | Observed protection state |
+| --- | --- | --- |
+| #961 | `3bdec0504a65e63f44bd49ba15de37182a1672cc` | Checks rollup failure; review required; auto-merge retained |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | Checks rollup failure; review required; auto-merge retained |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | Checks rollup failure; review required; auto-merge retained |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | Checks rollup failure; review required; auto-merge retained |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Checks rollup failure; review required; auto-merge retained |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Tests passed but central CodeQL shards failed; no qualifying approval established |
+| #964 | `da29d2cd38178b0aa57a9701972fdccfd4f9d03c` | Pending/running Checks; predecessor review text is not current-head acceptance |
+
+The first five PRs had zero unresolved review threads in the fetched first-100
+thread connection. GraphQL ruleset observation found active central required
+workflows, one required approval, required thread resolution, and no-force-push
+protection; last-push approval was false. REST was rate-limited, so no bypass or
+merge decision was attempted. No merge SHA is claimed.
+
+Conflict audit: the protected main tree had no duplicate ADR filename numbers.
+The initial PR titles repeated release 2.61.0 (#841/#842), 2.62.0 (#843/#844),
+and 2.92.0 (#876/#877). Title collisions require owner reconciliation before
+release; they do not prove conflicting file contents. The new bounded repair
+does not alter API, migration, ADR identity, or version files. A complete
+cross-PR schema/API diff audit remains outstanding.
+
+Remote repository metadata confirmed `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, and `contextual-orchestrator`; the canonical
+storage repository is `ContextualWisdomLab/disksage`, not `DiskSage`.
+
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
