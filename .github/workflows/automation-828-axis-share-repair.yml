@@ -1,4 +1,4 @@
-name: Ephemeral #828 axis-share accessibility repair
+name: "Ephemeral #828 axis-share accessibility repair"
 
 on:
   push:
@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   repair:
-    if: github.event.head_commit.message == 'chore(automation): run #828 axis-share repair harness'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact harness head
@@ -19,14 +18,15 @@ jobs:
           ref: automation/828-axis-share-repair-harness-20260908-0800
 
       - name: Apply the minimum current-source repair
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           app = Path("frontend/src/App.tsx")
           source = app.read_text(encoding="utf-8")
           import_line = "  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n"
-          aria_line = "                        aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}\n"
+          aria_line = "                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}\n"
           if source.count(import_line) != 1:
               raise SystemExit("axis-share label import drifted")
           if source.count(aria_line) != 1:
@@ -37,22 +37,25 @@ jobs:
           test = Path("frontend/src/App.test.tsx")
           test_source = test.read_text(encoding="utf-8")
           old = '''    expect(
-            within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-              "Leftover map comparison axis share",
-            ),
-          ).toHaveLength(4);
-          expect(
-            within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-              "Leftover map comparison axis share",
-            )[0],
-          ).toHaveTextContent("leftover map comparison axis 1 0%");
+                within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+                  "Leftover map comparison axis share",
+                ),
+              ).toHaveLength(4);
+              expect(
+                within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+                  "Leftover map comparison axis share",
+                )[0],
+              ).toHaveTextContent("leftover map comparison axis 1 0%");
           '''
+          # Dedent the source literal to the exact four/six/eight-space JSX test indentation.
+          old = "\n".join(line[8:] if line.startswith("        ") else line for line in old.splitlines()) + "\n"
           new = '''    expect(
-            within(screen.getByLabelText("Grouping comparison")).getByText(
-              "leftover map comparison axis 1 0%",
-            ),
-          ).toBeInTheDocument();
+                within(screen.getByLabelText("Grouping comparison")).getByText(
+                  "leftover map comparison axis 1 0%",
+                ),
+              ).toBeInTheDocument();
           '''
+          new = "\n".join(line[8:] if line.startswith("        ") else line for line in new.splitlines()) + "\n"
           if test_source.count(old) != 1:
               raise SystemExit("axis-share frontend regression drifted")
           test.write_text(test_source.replace(old, new, 1), encoding="utf-8")
@@ -64,8 +67,10 @@ jobs:
           share_block = repaired.split(marker, 1)[1].split("</span>", 1)[0]
           if "aria-label=" in share_block:
               raise SystemExit("generic axis-share badge still carries aria-label")
+          PY
 
       - name: Remove this execution harness and advance the harness branch non-force
+        shell: bash
         run: |
           git config user.name "LineageWeave automation"
           git config user.email "automation@users.noreply.github.com"
