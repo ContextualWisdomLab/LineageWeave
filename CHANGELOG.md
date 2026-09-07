@@ -262,6 +262,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The bounded post-Keyman operator now uses semantic package-owned command,
+  database, record, and result identifiers while preserving every CLI flag,
+  JSON result field, SQL statement, and persistence boundary.
+
 - ADRs 0011 and 0065 now include APA 7th References for the dated W3C
   PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are
   unchanged.
