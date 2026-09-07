@@ -205,7 +205,7 @@ describe("App, authenticated", () => {
         })
       : Promise.resolve();
 
-    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>((input, init) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
@@ -2266,7 +2266,8 @@ describe("App, authenticated", () => {
   });
 
   it.each(["success", "failure"])("rejects a related %s from before an A-B-A authorization transition", async (outcome) => {
-    const backend = stubBackend();
+    stubBackend();
+    const backend = fetch;
     let releaseRelated!: (response: Response) => void;
     let rejectRelated!: (error: Error) => void;
     const oldRelated = new Promise<Response>((resolve, reject) => {
@@ -2282,7 +2283,7 @@ describe("App, authenticated", () => {
       return backend(input, init);
     }));
     const { rerender } = render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "고객 마스터" }));
+    fireEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
     await userEvent.click((await screen.findByText("DEMO-CORP-01 · Company")).closest("button")!);
     expect(relatedRequests).toBe(1);
 
@@ -2358,7 +2359,8 @@ describe("App, authenticated", () => {
   });
 
   it.each(["success", "failure"])("ignores hint %s from before an A-B-A authorization transition", async (outcome) => {
-    const backend = stubBackend({ admin: true, manyCustomerHints: 1 });
+    stubBackend({ admin: true, manyCustomerHints: 1 });
+    const backend = fetch;
     let releaseHint!: (response: Response) => void;
     let rejectHint!: (error: Error) => void;
     const oldHint = new Promise<Response>((resolve, reject) => {
@@ -2372,7 +2374,7 @@ describe("App, authenticated", () => {
       return backend(input, init);
     }));
     const { rerender } = render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "고객 마스터" }));
+    fireEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
     await userEvent.click(await screen.findByRole("button", { name: "Resolve" }));
     for (const accessToken of ["other-access-token", "test-access-token"]) {
       mockAuth = { ...mockAuth, user: {

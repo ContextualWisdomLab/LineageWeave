@@ -17,7 +17,16 @@ assertions; they are supporting source checks, not behavioral proof.
 The full frontend run (`vitest run --maxWorkers=2`) included all 550 tests:
 547 passed and three timed out across App and ontology exploration. No tests
 were excluded or deadlines increased. All three timeout cases and the four new regressions passed together in a
-focused single-worker recheck (7 passed). Full-suite GREEN is still unproven.
+focused single-worker recheck (7 passed). Production type checking and build
+also passed after the regression tests reused the installed standard fetch
+boundary. A later focused run also hit one 5-second timeout; the tests now
+synchronously navigate to Customer Master before exercising the deferred
+responses, avoiding unrelated initial Board work. All four then passed with
+the original timeout, and lint passed. With the final test driver, a fresh
+paired run again failed all four assertions on the pre-repair revision and
+passed all four on the repair; the final production build passed. Host scheduling also varied, so no
+product-performance improvement is inferred. The existing chunk-size warning remains. Full-suite GREEN is still
+unproven.
 This repair uses synthetic unit-test responses only and does not prove real
 account transitions, protected-main delivery, or authenticated p95 acceptance.
 
