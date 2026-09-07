@@ -294,7 +294,12 @@ buttons; omit the plot when coordinates are missing; click a post
 marker to open that post. ADR 0269 captions those leftover-map axes
 with persisted leftover-map axis share `σ_k² / Σ_j σ_j²` when finite,
 including rank-0 zero-share axes; a missing or non-finite share omits
-that axis badge and keeps the existing leftover-map axis text. ADR 0270
+that axis badge and keeps the existing leftover-map axis text. ADR 0289
+captions those leftover-map axes with persisted leftover-map singular
+values `σ_k` when finite and non-negative, including rank-0 zero
+singular values; a missing, non-finite, or negative singular value omits
+that `σ` badge independently of leftover-map axis share and does not
+invent `σ_k` from leftover-map axis share. ADR 0270
 ticks leftover-map axes at the origin and at each unique finite
 persisted `ξ` / `ζ` coordinate so the pair-row badge matches the
 plot; rank-0 unused axes name only `0` and do not invent drawing-scale
@@ -385,43 +390,15 @@ non-integer payload cannot caption a contradictory `used N of M scored posts`
 note; a missing, non-integer, negative-used, non-positive-scored, or
 used-greater-than-scored coverage omits that leftover-map coverage note and
 does not invent post coverage from plotted marker count.
-ADR 0289 captions the grouping comparison strip with persisted leftover-map
-post complete-case coverage through leftoverMapCoverageCounts so a buyer who
-compares leftover pairs can read how many scored posts entered each grouping's
-Gabriel factorization; a missing, non-integer, negative-used, non-positive-scored,
-or used-greater-than-scored coverage omits that leftover-map comparison coverage
-note and does not invent post coverage from leftover pair count or plotted
-marker count. The strip does not gain leftover-map incomplete post coverage,
-leftover-map incomplete item coverage, or the leftover-map graphic.
-ADR 0290 captions the grouping comparison strip with persisted leftover-map
-item complete-case coverage through leftoverMapItemCoverageCounts so a buyer who
-compares leftover pairs can read how many scored criteria entered each grouping's
-Gabriel factorization; a missing, non-integer, negative-used, non-positive-scored,
-or used-greater-than-scored item coverage omits that leftover-map comparison item
-coverage note and does not invent item coverage from leftover pair count or plotted
-criterion marker count.
-ADR 0291 captions the grouping comparison strip with persisted leftover-map
-incomplete post coverage through leftoverMapIncompletePostCount so a buyer who
-compares leftover pairs can read how many scored posts stayed out of each grouping's
-Gabriel factorization; a missing, non-integer, or negative dropped count, or a
-dropped count that contradicts usable complete-case integers, omits that leftover-map
-comparison incomplete post note and does not invent dropped posts from scored minus
-used or from leftover pair count. Dropped `0` is shown when persisted. The strip
-does not gain leftover-map incomplete item coverage or the leftover-map graphic.
-ADR 0292 captions the grouping comparison strip with persisted leftover-map
-incomplete item coverage through leftoverMapIncompleteItemCount so a buyer who
-compares leftover pairs can read how many scored criteria stayed out of each grouping's
-Gabriel factorization; a missing, non-integer, or negative dropped count, or a
-dropped count that contradicts usable item complete-case integers, omits that leftover-map
-comparison incomplete item note and does not invent dropped criteria from scored minus
-used or from leftover pair count. Dropped `0` is shown when persisted. The strip
-does not gain the leftover-map graphic.
-ADR 0293 captions grouping comparison leftover-pair buttons with persisted leftover-map
-reconstruction `R̂` through formatLeftoverMapReconstruction so a buyer who compares
-leftover pairs can match the pair-row reconstruction badge; a missing or non-finite
-`R̂` omits that leftover-map comparison reconstruction badge and does not invent `R̂`
-from leftover-map distance or plotted coordinates. The strip does not gain the
-leftover-map graphic.
+ADR 0289 captions leftover-map graphic axes with persisted leftover-map
+singular values `σ_k` so leftover-map axis share is not read as leftover-map
+structure without the Gabriel scale that produced it; a missing, non-finite,
+or negative singular value omits that `σ` badge independently of leftover-map
+axis share and does not invent `σ_k` from leftover-map axis share.
+ADR 0292 captions leftover-axis report badges with persisted leftover-map singular values `σ_k` when finite and non-negative, including rank-0 zero singular values; missing, non-finite, or negative singular values omit only the `σ` caption and never derive `σ_k` from leftover-map axis share.
+ADR 0290 captions the grouping comparison strip with persisted leftover-map post complete-case coverage only when the caller can see the full persisted grouping population. Partial-visibility groupings omit that aggregate; never reconstruct the psychometric denominator from visible members, leftover pairs, or plotted markers.
+ADR 0291 captions the grouping comparison strip with persisted leftover-map item complete-case coverage through leftoverMapItemCoverageCounts only when the caller can see the full persisted grouping population. Partial-visibility rows inherit ADR 0290's fail-closed coverage boundary and never recompute psychometric coverage from visible members, leftover pairs, or plotted criterion markers.
+ADR 0293 captions the grouping comparison strip with persisted leftover-map incomplete-post count only under the same full-visible-grouping authorization boundary. Partial-visibility groupings omit the aggregate and never derive dropped posts from the visible subset or scored-minus-used. Persisted valid dropped `0` remains visible.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -432,20 +409,12 @@ list so a click opens that post with the leftover criterion current
 in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
-and are not a leftover score. Complete-case coverage (ADR 0168) persists to
+and are not a leftover score. Leftover-map singular values on the graphic
+display (ADR 0289) name persisted `σ_k` on those leftover-map axes when
+finite. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list and the leftover-map
 graphic with how many scored posts entered the map. Pair-list post complete-case
 coverage (ADR 0288) fail-closes that pair-list note through leftoverMapCoverageCounts.
-Grouping comparison complete-case coverage (ADR 0289) captions the grouping
-comparison strip with how many scored posts entered each grouping's map.
-Grouping comparison item complete-case coverage (ADR 0290) captions the grouping
-comparison strip with how many scored criteria entered each grouping's map.
-Grouping comparison incomplete post coverage (ADR 0291) captions the grouping
-comparison strip with how many scored posts stayed out of each grouping's map.
-Grouping comparison incomplete item coverage (ADR 0292) captions the grouping
-comparison strip with how many scored criteria stayed out of each grouping's map.
-Grouping comparison reconstruction (ADR 0293) captions grouping comparison leftover-pair
-buttons with persisted leftover-map reconstruction `R̂`.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
@@ -567,3 +536,7 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+ADR 0294 keeps grouping-comparison incomplete-item coverage in the LineageWeave read-model boundary: consume only authorization-filtered persisted coverage for a full grouping, omit partial visibility, and never recompute psychometrics in the client.
+
+ADR 0295 keeps grouping-comparison reconstruction in the LineageWeave read-model/UI boundary: format only persisted `R̂`, expose the value in the pair button accessible name, and never derive psychometric reconstruction from UI-visible proxies.
