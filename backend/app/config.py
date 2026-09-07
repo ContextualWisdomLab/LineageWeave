@@ -8,11 +8,6 @@ import math
 import os
 from dataclasses import dataclass, field
 
-# Hard ceiling on one Global Ask job's answer computation, shared with the
-# worker in global_ask_queue.py so config validation and execution can never
-# disagree about the bound.
-GLOBAL_ASK_JOB_DEADLINE_SECONDS = 600
-
 
 @dataclass(frozen=True)
 class Settings:
@@ -52,9 +47,8 @@ class Settings:
     orchestrator_base_url: str
     orchestrator_api_key: str
     # Optional socket timeout for one Ask answer round-trip. Omitted/blank
-    # means no LineageWeave elapsed socket limit (provider/orchestrator
-    # transport policy owns hang-up). An explicit finite value must stay
-    # below the Ask worker's job deadline.
+    # means no LineageWeave elapsed socket limit. Explicit values are
+    # deployment transport policy and remain independent of worker liveness.
     orchestrator_answer_timeout_seconds: float | None
     valkey_url: str
     searxng_base_url: str
@@ -83,11 +77,11 @@ class Settings:
 
 
 def _validated_answer_timeout(raw: str | None) -> float | None:
-    """Parse an optional Ask answer timeout under the job deadline.
+    """Parse an optional finite-positive Ask transport timeout.
 
-    Blank or omitted leaves no LineageWeave elapsed socket limit. An
-    explicit finite value must stay below the worker deadline so a
-    configured hang-up cannot outlive the job reaper.
+    Blank or omitted leaves no LineageWeave elapsed socket limit. Worker
+    liveness is owned by claim heartbeats and generation fencing, not by
+    this optional transport policy.
     """
     if raw is None or not str(raw).strip():
         return None
@@ -97,10 +91,9 @@ def _validated_answer_timeout(raw: str | None) -> float | None:
         raise ValueError(
             "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a number"
         ) from exc
-    if not math.isfinite(value) or not 0 < value < GLOBAL_ASK_JOB_DEADLINE_SECONDS:
+    if not math.isfinite(value) or value <= 0:
         raise ValueError(
-            "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a finite number greater"
-            f" than 0 and less than {GLOBAL_ASK_JOB_DEADLINE_SECONDS}"
+            "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a finite number greater than 0"
         )
     return value
 
