@@ -932,3 +932,23 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### Ask timeout attribution repair (2026-09-07)
+
+The queue worker treated every `asyncio.TimeoutError` as proof its 600-second
+execution deadline expired. A provider that terminated immediately therefore
+produced an incorrect durable deadline explanation. A paired synthetic regression
+reproduced that mismatch (provider case failed; actual zero-duration worker timer
+passed). The worker now uses the standard asyncio timeout context's expiration
+state to attribute only its own expiry. Other failures retain ADR 0123's existing
+bounded unavailable message; provider exception content is not persisted.
+
+The focused queue/service suite passed 22 tests in 1.59 s, including provider
+failure, actual timer expiry, and shutdown cancellation with no failed settlement.
+Compilation and diff checks passed. This does not remove the execution deadline,
+change model policy, or repair age-based orphan recovery: default-null execution
+still requires worker liveness and claim fencing. No database migration, new
+container, provider call, deployment, or protected merge was performed.
+
+Python Software Foundation. (2026). *Coroutines and tasks: Timeouts*.
+https://docs.python.org/3/library/asyncio-task.html#timeouts

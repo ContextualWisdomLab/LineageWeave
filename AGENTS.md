@@ -386,6 +386,11 @@ exist on the post.
 
 ## CI gates
 
+Do not classify an upstream TimeoutError as proof that a local deadline expired.
+Use the owning timer's expiration state and keep shutdown cancellation distinct
+from failure settlement. Test upstream failure, actual timer expiry, and shutdown
+independently; exception names alone do not identify the terminating boundary.
+
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
