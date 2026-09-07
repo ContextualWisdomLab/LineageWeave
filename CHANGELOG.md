@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Grouping comparison leftover-pair buttons now expose persisted leftover-map reconstruction `R̂` (ADR 0295 / v2.52.0). The visible badge is decorative to accessibility APIs; the button accessible name carries the reconstruction label and value, so the explicit button `aria-label` cannot suppress the metric. Missing/non-finite `R̂` omits only that value and no client-side proxy is invented.
+
 - Grouping comparison rows now show persisted leftover-map incomplete-item count through `leftoverMapIncompleteItemCount` (ADR 0294 / v2.51.0) only for fully caller-visible persisted groupings. Partial visibility remains omitted by the API; valid zero stays visible, and the UI never derives dropped criteria from scored-minus-used.
 
 - Grouping comparison rows now show persisted leftover-map incomplete-post count through `leftoverMapIncompletePostCount` (ADR 0293 / v2.50.0) only for a fully caller-visible persisted grouping. Partial visibility omits the aggregate; valid persisted zero remains visible, and the UI never derives dropped posts from scored-minus-used.

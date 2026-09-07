@@ -143,6 +143,10 @@ import {
   LEFTOVER_MAP_AXIS_BADGE_SHARE,
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
 } from "./leftoverMapAxisBadge";
+import {
+  formatLeftoverMapReconstruction,
+  LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
+} from "./leftoverMapReconstruction";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4066,6 +4070,14 @@ function ReportsPanel({
                         ? "Open this post to read the criterion it sat farthest from after main effects."
                         : "Open this post to read the criterion it sat closest to after main effects.";
                     const criterion = criterionShortLabel(pair.criterion_code);
+                    const reconstruction = formatLeftoverMapReconstruction(
+                      pair.leftover_map_reconstruction,
+                    );
+                    const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${
+                      reconstruction
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)} ${reconstruction}`
+                        : ""
+                    }`;
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4073,7 +4085,7 @@ function ReportsPanel({
                       >
                         <button
                           className="post-list-item"
-                          aria-label={`Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`}
+                          aria-label={pairAccessibleName}
                           onClick={() =>
                             // Same promise, same landing: the badge tells the
                             // reader the criterion will be current in Post
@@ -4092,6 +4104,11 @@ function ReportsPanel({
                           </span>
                           <span className="post-badge">{nextAction}</span>
                           <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+                          {reconstruction ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {reconstruction}
+                            </span>
+                          ) : null}
                         </button>
                       </li>
                     );
