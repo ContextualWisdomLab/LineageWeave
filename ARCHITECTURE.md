@@ -1089,3 +1089,5 @@ so it also covers the multi-entity opposite-order case a per-name lock
 would still deadlock on. Every already-cataloged entity still resolves
 through the unchanged, lock-free similarity-matching fast path; only
 the rare creation branch serializes.
+
+ADR 0294 adds persisted incomplete-item coverage to grouping comparison presentation while the API remains the full-group visibility authority; the frontend formats only an admitted persisted count.
