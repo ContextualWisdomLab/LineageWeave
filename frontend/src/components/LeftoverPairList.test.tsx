@@ -83,6 +83,31 @@ describe("LeftoverPairList", () => {
     );
   });
 
+  it("omits non-finite leftover residual and distance from the pair action", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIRS[0],
+            leftover_residual: Number.NaN,
+            leftover_distance: Number.NaN,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button", {
+      name: /Open leftover closest pair: Public post · sales-lead/,
+    });
+    expect(closest).toHaveAccessibleName(/rank 1/);
+    expect(closest).not.toHaveAccessibleName(/R /);
+    expect(closest).not.toHaveAccessibleName(/\bd /);
+    expect(closest).not.toHaveTextContent("R —");
+    expect(closest).not.toHaveTextContent("d NaN");
+  });
+
   it("keeps residual guidance for an older payload without rank or Y/E", () => {
     render(
       <LeftoverPairList

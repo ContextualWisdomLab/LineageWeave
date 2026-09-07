@@ -95,6 +95,8 @@ export function LeftoverPairList({
           pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
         const criterion = criterionLabel(pair.criterion_code);
         const residual = formatLeftoverResidual(pair.leftover_residual);
+        const residualBadge = Number.isFinite(pair.leftover_residual) ? `R ${residual}` : null;
+        const distanceBadge = formatLeftoverMapDistance(pair.leftover_distance);
         const observedExpected = formatLeftoverObservedExpected(
           pair.observed_response,
           pair.expected_response,
@@ -228,7 +230,7 @@ export function LeftoverPairList({
                   title: pair.post_title,
                   criterion,
                 }),
-                Number.isFinite(pair.leftover_residual) ? `R ${residual}` : null,
+                residualBadge,
                 observedExpected,
                 rankBadge,
                 unexplained,
@@ -237,7 +239,7 @@ export function LeftoverPairList({
                 crossShareBadge,
                 reconstruction,
                 coordinatesBadge,
-                formatLeftoverMapDistance(pair.leftover_distance),
+                distanceBadge,
               ])}
               title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
@@ -246,7 +248,7 @@ export function LeftoverPairList({
                 {kindLabel}: {pair.post_title} · {criterion}
               </span>
               <span className="post-badge">{nextAction}</span>
-              <span className="post-badge">R {residual}</span>
+              {residualBadge ? <span className="post-badge">{residualBadge}</span> : null}
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
@@ -259,7 +261,7 @@ export function LeftoverPairList({
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               {coordinatesBadge ? <span className="post-badge">{coordinatesBadge}</span> : null}
-              <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+              {distanceBadge ? <span className="post-badge">{distanceBadge}</span> : null}
             </button>
           </li>
         );
