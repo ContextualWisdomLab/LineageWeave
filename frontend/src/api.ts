@@ -563,6 +563,7 @@ async function backendFetch<T>(
       },
     });
   } catch {
+    init?.signal?.throwIfAborted();
     throw new BackendError(path, 0);
   }
   if (!response.ok) {
@@ -1369,16 +1370,15 @@ export function optionalKnowledgeCutoffIso(value: string): string | undefined {
   return parsed.toISOString();
 }
 
-/** Submit the question as an asynchronous job and poll it to completion.
- * The signature and resolved value are unchanged from the old synchronous
- * call, so callers (AskAgentPanel) keep their existing pending/complete
- * states without modification. */
+/** Submit and poll an Ask job; aborting retires client I/O, not the server job. */
 export async function askAgent(
   accessToken: string,
   question: string,
   verifyExternal = false,
   knowledgeCutoff?: string,
+  signal?: AbortSignal,
 ): Promise<AskAgentResponse> {
+  signal?.throwIfAborted();
   const requestBody: {
     question: string;
     verify_external: boolean;
@@ -1386,15 +1386,19 @@ export async function askAgent(
   } = { question, verify_external: verifyExternal };
   if (knowledgeCutoff) requestBody.knowledge_cutoff = knowledgeCutoff;
   const submitted = await backendFetch<AskJobStatus>("/api/ask", accessToken, {
+    signal,
     method: "POST",
     body: JSON.stringify(requestBody),
   });
   const deadline = Date.now() + ASK_POLL_CEILING_MS;
   for (;;) {
+    signal?.throwIfAborted();
     const job = await backendFetch<AskJobStatus>(
       `/api/ask/jobs/${submitted.ask_job_id}`,
       accessToken,
+      { signal },
     );
+    signal?.throwIfAborted();
     if (job.job_status_code === "succeeded" && job.answer) {
       return job.answer;
     }
@@ -1404,7 +1408,17 @@ export async function askAgent(
     if (Date.now() > deadline) {
       throw new Error("Ask Agent timed out waiting for an answer. Try again.");
     }
-    await new Promise((resolve) => setTimeout(resolve, ASK_POLL_INTERVAL_MS));
+    await new Promise<void>((resolve, reject) => {
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(signal?.reason);
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, ASK_POLL_INTERVAL_MS);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
   }
 }
 

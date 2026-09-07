@@ -5053,6 +5053,7 @@ export function AskAgentPanel({
   const [verifyExternal, setVerifyExternal] = useState(false);
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
   const authGeneration = useRef(0);
+  const requestController = useRef<AbortController | null>(null);
   const currentAccessTokenRef = useRef(accessToken);
   currentAccessTokenRef.current = accessToken;
   const [inputAccessToken, setInputAccessToken] = useState(accessToken);
@@ -5066,7 +5067,10 @@ export function AskAgentPanel({
     setVerifyExternal(false);
     setEvidenceLayerPostId(null);
   }
-  useEffect(() => () => { authGeneration.current += 1; }, [accessToken]);
+  useEffect(() => () => {
+    authGeneration.current += 1;
+    requestController.current?.abort();
+  }, [accessToken]);
   const now = new Date();
   const localKnowledgeCutoffMax = new Date(
     now.getTime() - now.getTimezoneOffset() * 60_000,
@@ -5083,12 +5087,14 @@ export function AskAgentPanel({
       setError(t("Enter a valid knowledge cutoff, then ask again."));
       return;
     }
+    const controller = new AbortController();
+    requestController.current = controller;
     const requestAuthGeneration = authGeneration.current;
     const requestAccessToken = accessToken;
     setAsking(true);
     setError(null);
     try {
-      const response = await askAgent(accessToken, normalized, verifyExternal, cutoff);
+      const response = await askAgent(accessToken, normalized, verifyExternal, cutoff, controller.signal);
       if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
         setAnswer(response);
       }

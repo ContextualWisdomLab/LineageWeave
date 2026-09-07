@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
+  askAgent,
   fetchMe,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
@@ -11,6 +12,7 @@ import {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("backendFetch provider-error boundary", () => {
@@ -116,5 +118,41 @@ describe("backendFetch provider-error boundary", () => {
       status: 500,
       message: "The service could not complete this request. Try again later.",
     });
+  });
+});
+
+
+describe("Ask polling cancellation", () => {
+  it.each(["before submission", "during fetch"])("preserves cancellation %s", async (moment) => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    if (moment === "before submission") controller.abort();
+    const result = askAgent("token", "Question", false, undefined, controller.signal).catch((error: unknown) => error);
+    if (moment === "during fetch") controller.abort();
+    expect(await result).toBe(controller.signal.reason);
+    expect(fetchMock).toHaveBeenCalledTimes(moment === "before submission" ? 0 : 1);
+  });
+
+  it("stops during the poll delay without another request", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "job-1", job_status_code: "queued" }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "running" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "succeeded", answer: {} })));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = askAgent("token", "Question", false, undefined, controller.signal).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(await result).toBe(controller.signal.reason);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

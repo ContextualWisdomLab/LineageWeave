@@ -8,6 +8,21 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
+  it.each(["credential", "unmount"])("aborts transport on %s retirement", async (retirement) => {
+    const fetchMock = vi.fn().mockImplementation(() => new Promise(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+    const props = { onOpenPost: vi.fn() };
+    const { rerender, unmount } = render(<AskAgentPanel {...props} accessToken="token-a" />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    const signal = fetchMock.mock.calls[0][1].signal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal.aborted).toBe(false);
+    if (retirement === "unmount") unmount();
+    else rerender(<AskAgentPanel {...props} accessToken="token-b" />);
+    expect(signal.aborted).toBe(true);
+  });
+
   it.each([200, 403])("discards a retired %s response after credential re-entry", async (status) => {
     let finishRetired!: (response: Response) => void;
     let finishCurrent!: (response: Response) => void;

@@ -431,3 +431,9 @@ retired A from current A after A → B → A. Clear prior questions, answers, an
 evidence selection when credentials change, and verify that a retired success
 or failure cannot end the current request's loading state. Keep behavioral
 regressions synthetic; UI retirement does not itself cancel a server-side job.
+
+Pass a native AbortSignal through client polling and fetch when retiring an
+authenticated screen. Preserve the abort reason instead of reporting a network
+failure, and clear delay timers/listeners. Result-admission guards remain necessary
+for already-resolved work. Verify both transport cancellation and A → B → A
+state admission; neither establishes server-job cancellation.

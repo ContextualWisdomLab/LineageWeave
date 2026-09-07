@@ -968,3 +968,34 @@ two-case repair run passed 3/3 before adding the current-request loading check;
 it is not substituted for the final run. Lint and TypeScript/production build
 passed; the existing large-chunk warning remains. The change stays Draft pending
 complete verification, independent review, and real-account acceptance.
+
+
+### Ask client transport retirement follow-up (2026-09-07)
+
+The UI guard alone did not retire transport: cancellation during a running-job
+poll delay still caused a third HTTP request, and credential/unmount cleanup
+supplied no AbortSignal. Three behavioral assertions reproduced those gaps.
+
+The existing backendFetch RequestInit now carries a native AbortSignal from
+AskAgentPanel through job submission and status reads. Component cleanup aborts
+its request controller. The shared polling loop checks cancellation before
+submission, before each status request, and after a returned status; delay abort
+clears its timer, while normal delay completion removes the listener. The fetch
+error boundary preserves the native cancellation reason. Existing generation
+checks still reject retired results, errors, and loading completions.
+
+This closes the client-poll-loop gap recorded above. It does not add a server
+job cancellation endpoint or change the existing execution/deadline policy.
+Current-error copy can still expose transport details and remains a separate
+verified gap. No provider SDK, session store, or dependency was introduced.
+
+Reference: MDN contributors. (2026, August 27). *AbortSignal: throwIfAborted()
+method*. MDN Web Docs.
+https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/throwIfAborted
+
+Final focused validation passed 15/15 tests across the Ask and API files in
+3.04 s, including the previously timed-out expanded re-entry success case,
+pre-submission abort, in-flight fetch abort, and delay cancellation without another
+request. Lint and TypeScript/production build passed with the existing chunk
+warning. This supersedes the earlier focused timeout result, not the outstanding
+full-suite, hosted, real-account, or page-latency acceptance requirements.
