@@ -446,3 +446,8 @@ unlisted names are rejected earlier and cannot prove scalar-value filtering.
 Inspect structured LogRecord fields as well as formatted text when checking
 content exclusion. Preserve the full coverage denominator and record harness
 failures separately from product assertions.
+
+When testing degraded telemetry support, verify that the original application
+exception survives and that exported events plus structured logs omit its value.
+A coverage percentage alone does not prove either invariant; retain the same
+statement/branch denominator when comparing improvements.

@@ -33,6 +33,25 @@ def attach_inmemory_tracer(monkeypatch: pytest.MonkeyPatch) -> InMemorySpanExpor
     return exporter
 
 
+@pytest.mark.parametrize("missing_symbol", ["Status", "StatusCode"])
+def test_missing_status_support_preserves_failure_and_safe_evidence(monkeypatch, caplog, missing_symbol):
+    """Partial status support must neither replace application errors nor leak content."""
+    exporter = attach_inmemory_tracer(monkeypatch)
+    monkeypatch.setattr(observability, missing_symbol, None)
+    original = ValueError("synthetic private payload")
+    with caplog.at_level(logging.WARNING), pytest.raises(ValueError) as raised:
+        with traced("lineageweave.test.partial_status"):
+            record_server_failure("post_chat", original, outcome="provider_unavailable")
+            raise original
+    assert raised.value is original
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].status.status_code == StatusCode.UNSET
+    assert spans[0].events[0].attributes["exception.type"] == "ValueError"
+    assert "synthetic private payload" not in str(spans[0].events)
+    assert "synthetic private payload" not in str([vars(record) for record in caplog.records])
+
+
 def test_post_json_sends_post_session_header(monkeypatch):
     """One post session reaches the orchestrator as a transport header."""
     captured = {}

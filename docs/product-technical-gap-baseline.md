@@ -1022,3 +1022,19 @@ or denominator change was made. Initial new-test failures were harness mistakes
 of structured LogRecord attributes); neither is claimed as a product bug.
 The 100% target, current-head hosted tests, independent review, and deployment
 remain incomplete; keep the PR Draft.
+
+### Telemetry measured coverage completion (2026-09-07; local module scope)
+
+The remaining telemetry regressions exercise absent/incomplete span context,
+unavailable propagation without header mutation, rejected outcome classification
+before metric creation, and partial status support. The latter uses the existing
+in-memory SDK exporter and verifies original-exception identity, retained bounded
+exception type, unset status, and absence of exception content in both events and
+structured logs. No production guard or coverage exclusion was removed.
+
+The focused suite passed 44 tests in 34.20 s. `coverage report --fail-under=100`
+passed with 197 statements, 68 branches, zero missed statements and zero partial
+branches: **100% for lineageweave/observability.py**, on the same denominator as
+96% and 97% observations above. This supersedes the local module coverage gap;
+it does not establish repository-wide 100% coverage, current-head hosted tests,
+independent review, collector deployment, or real-source runtime acceptance.

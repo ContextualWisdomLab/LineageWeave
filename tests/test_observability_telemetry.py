@@ -10,10 +10,36 @@ attribute-safety paths runs against synthetic values only.
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 
 import pytest
 
 import lineageweave.observability as observability
+
+
+@pytest.mark.parametrize("current_span", [None, object()])
+def test_missing_span_context_does_not_invent_correlation(monkeypatch, current_span) -> None:
+    """An absent or incomplete span has no valid correlation identifiers."""
+    monkeypatch.setattr(observability, "trace", SimpleNamespace(get_current_span=lambda: current_span))
+    assert observability._current_trace_ids() == ("", "")
+
+
+def test_unavailable_propagator_preserves_request_headers(monkeypatch) -> None:
+    """Missing propagation support must not change existing transport headers."""
+    monkeypatch.setattr(observability, "_otel_inject", None)
+    carrier = {"content-type": "application/json"}
+    observability.inject_trace_context(carrier)
+    assert carrier == {"content-type": "application/json"}
+
+
+def test_unlisted_failure_outcome_is_rejected_before_metric_creation(monkeypatch) -> None:
+    """Unlisted outcomes cannot create a new metric classification."""
+    def unexpected_counter():
+        pytest.fail("invalid classification reached metric creation")
+
+    monkeypatch.setattr(observability, "_failure_counter", unexpected_counter)
+    with pytest.raises(ValueError, match="unsupported server failure outcome"):
+        observability.record_server_failure("post_chat", ValueError(), outcome="invented")
 
 
 def test_failure_log_drops_unknown_operation_without_a_metric_counter(monkeypatch, caplog) -> None:
