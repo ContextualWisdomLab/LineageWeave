@@ -1,5 +1,25 @@
 # Product & Technical Gap Baseline
 
+## Bounded k6 contract repair — 2026-09-07 09:12 KST
+
+At PR #964 parent `107c8cc89e9c5f292a88a8fdd786607fa91b0c30`,
+[Tests run 34067029164](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34067029164)
+reported one failure, 1,767 passes, and 147 skips. The failing Python contract
+still required arbitrary job-state text in metric tags, contradicting the
+bounded diagnostic behavior already covered by ADR 0122 and the existing
+JavaScript regression suite. The authentication-renewal and timeout assertions
+remain intact; the stale assertion now requires the declared-state/unknown tag.
+
+The local KPI is failing tests in `tests/test_k6_http_e2e_contract.py`:
+**1/2 before, 0/2 after** at repair commit `94bcfc680`. Reproduce with
+`uv run --frozen --extra dev python -m pytest -q tests/test_k6_http_e2e_contract.py`.
+From `frontend`, `corepack pnpm exec vitest run src/k6Diagnostics.test.ts --maxWorkers=1`
+also passes all 42 behavioral cases. An earlier `pnpm test -- ...` invocation
+unexpectedly selected the full frontend suite, reported timeouts, and was
+interrupted; it is not full-suite success evidence. Fresh hosted full-suite
+validation, independent approval, protected merge, and runtime acceptance remain
+unverified. This test correction establishes no latency or capacity result.
+
 ## Bounded observation — 2026-09-07 08:20 KST
 
 Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e`.
