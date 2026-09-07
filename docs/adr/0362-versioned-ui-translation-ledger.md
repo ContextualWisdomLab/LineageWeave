@@ -130,6 +130,28 @@ locale cannot replace the active screen. Other destinations remain on their
 existing bundle until they receive their own complete resource and executable
 cutover evidence.
 
+### Authorization-lifecycle admission clarification (2026-09-07)
+
+Translation readiness and Customer Master data belong to the current
+authorization lifecycle. A token change clears both the primary projection and
+secondary related-post, hint, detail, and permission state. An imperative
+request may publish data, an error, a loading completion, or a follow-up read
+only while its originating lifecycle remains current. Returning to the same
+token value after A → B → A does not revive the first A lifecycle. Unmounting
+also retires that lifecycle. Existing per-request ordering still applies within
+one lifecycle, and server-side authorization remains authoritative.
+
+The existing token-equality guard was insufficient: a deferred related response
+replaced the new list after A → B → A, while a deferred hint result could
+trigger a stale refresh or display a retired error. Four behavioral App tests
+(success/failure for each operation) fail on `9b033e2737e9a42e04c326a80b53142a365a923d`.
+The repair reuses the existing authorization effect's cleanup to advance a
+component-local generation and checks that generation at all imperative
+completion paths. No shared session service, token storage, or new API is added.
+Effect-local cancellation still governs translation, permission, and detail
+fetches. This is candidate correctness evidence, not real-account or release
+acceptance.
+
 ## DDD mapping
 
 - Subdomain: product composition / presentation read model.

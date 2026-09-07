@@ -1,5 +1,26 @@
 # Product & Technical Gap Baseline
 
+## 2026-09-07 authorization lifecycle repair (PR #932)
+
+The current candidate extends the existing auth-bound Customer Master guard to
+retire outstanding imperative requests when the authorization lifecycle ends.
+Token equality alone admitted a first-A response after A → B → A: related
+records could overwrite the current list, and hint completion could refresh it
+or show an obsolete error. Four executable App regressions reproduce these
+success/failure paths on `9b033e2737e9a42e04c326a80b53142a365a923d`
+(4 failed); all four pass with lifecycle generation checks. The primary list
+also retains its request-order guard. Existing effect cancellation continues
+to govern translation, permissions, and post detail. The seven existing Python
+auth contract functions also passed when invoked with their standard-library
+assertions; they are supporting source checks, not behavioral proof.
+
+The full frontend run (`vitest run --maxWorkers=2`) included all 550 tests:
+547 passed and three timed out across App and ontology exploration. No tests
+were excluded or deadlines increased. All three timeout cases and the four new regressions passed together in a
+focused single-worker recheck (7 passed). Full-suite GREEN is still unproven.
+This repair uses synthetic unit-test responses only and does not prove real
+account transitions, protected-main delivery, or authenticated p95 acceptance.
+
 ## 2026-09-07 bootstrap recovery follow-up (PR #932)
 
 The candidate based on `846ec4700666188a281940b99ac4edf776e904ca`

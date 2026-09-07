@@ -4768,6 +4768,7 @@ function CustomerMasterPanel({
   const [copyAttempt, setCopyAttempt] = useState(0);
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const masterRequestGeneration = useRef(0);
+  const authGeneration = useRef(0);
   const currentAccessTokenRef = useRef(accessToken);
   currentAccessTokenRef.current = accessToken;
   const [error, setError] = useState<string | null>(null);
@@ -4805,18 +4806,20 @@ function CustomerMasterPanel({
       });
     return () => {
       active = false;
+      authGeneration.current += 1;
     };
   }, [accessToken]);
 
   const loadMaster = useCallback(() => {
     const requestAccessToken = accessToken;
+    const requestAuthGeneration = authGeneration.current;
     const requestGeneration = ++masterRequestGeneration.current;
     setError(null);
     return fetchCustomerMaster(requestAccessToken)
       .then((nextMaster) => {
         if (
           requestGeneration === masterRequestGeneration.current &&
-          requestAccessToken === currentAccessTokenRef.current
+          requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current
         ) {
           setMaster(nextMaster);
         }
@@ -4824,7 +4827,7 @@ function CustomerMasterPanel({
       .catch(() => {
         if (
           requestGeneration === masterRequestGeneration.current &&
-          requestAccessToken === currentAccessTokenRef.current
+          requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current
         ) {
           setError(t("Customer master could not be loaded."));
         }
@@ -4887,22 +4890,24 @@ function CustomerMasterPanel({
 
   async function handleResolveHint(hintCode: string) {
     const requestAccessToken = accessToken;
+    const requestAuthGeneration = authGeneration.current;
     setResolvingHint(hintCode);
     setResolveError(null);
     try {
       await resolveCustomerHint(requestAccessToken, hintCode);
-      if (requestAccessToken === currentAccessTokenRef.current) await loadMaster();
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) await loadMaster();
     } catch {
-      if (requestAccessToken === currentAccessTokenRef.current) {
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
         setResolveError(t("This hint could not be resolved to a corroborated organization name."));
       }
     } finally {
-      if (requestAccessToken === currentAccessTokenRef.current) setResolvingHint(null);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) setResolvingHint(null);
     }
   }
 
   async function toggleEntity(entityId: string) {
     const requestAccessToken = accessToken;
+    const requestAuthGeneration = authGeneration.current;
     if (expandedEntityId === entityId) {
       setExpandedEntityId(null);
       return;
@@ -4912,15 +4917,15 @@ function CustomerMasterPanel({
     setRelatedLoading(entityId);
     try {
       const response = await fetchRelatedEntity(requestAccessToken, entityId);
-      if (requestAccessToken === currentAccessTokenRef.current) {
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
         setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
       }
     } catch {
-      if (requestAccessToken === currentAccessTokenRef.current) {
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
         setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
       }
     } finally {
-      if (requestAccessToken === currentAccessTokenRef.current) setRelatedLoading(null);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) setRelatedLoading(null);
     }
   }
 
