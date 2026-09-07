@@ -1,0 +1,94 @@
+name: automation-829-a11y-repair
+on:
+  push:
+    branches: [automation/829-a11y-repair-20260907-1537]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    env:
+      OLD_HEAD: 118500f73251eaaf717d5329b8fb6d9895196fe7
+      PRODUCT_BRANCH: feat/leftover-map-compare-unexplained-share-v2520
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 2
+      - name: Verify exact historical product parent and live head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$OLD_HEAD"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24"
+      - name: Install frozen frontend graph
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: RED actionable comparison button must name persisted U-squared share
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B product-repair "$OLD_HEAD"
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("frontend/src/App.test.tsx")
+          text = p.read_text(encoding="utf-8")
+          anchor = '''    expect(\n      screen.getByRole("button", {\n        name: /open leftover closest pair from comparison: public post/i,\n      }),\n    ).toHaveTextContent("U²/R² 0.02");\n'''
+          regression = anchor + '''    expect(\n      screen.getByRole("button", {\n        name: /open leftover closest pair from comparison: public post · sales-lead · leftover map comparison unexplained leftover share U²\\/R² 0\\.02/i,\n      }),\n    ).toBeInTheDocument();\n'''
+          if anchor not in text:
+              raise SystemExit("comparison U²/R² test anchor changed")
+          p.write_text(text.replace(anchor, regression, 1), encoding="utf-8")
+          PY
+          set +e
+          (cd frontend && pnpm test -- src/App.test.tsx) > /tmp/red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/red.log
+          test "$rc" -ne 0
+          grep -q 'Unable to find an accessible element with the role "button" and name' /tmp/red.log
+      - name: Minimal causal accessible-name repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("frontend/src/App.tsx")
+          text = p.read_text(encoding="utf-8")
+          old = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    return (\n'''
+          new = '''                    const unexplainedShare = formatLeftoverMapUnexplainedShare(\n                      pair.leftover_map_unexplained_share,\n                    );\n                    const pairAccessibleName = [\n                      `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`,\n                      unexplainedShare\n                        ? `${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`\n                        : null,\n                    ]\n                      .filter((part): part is string => part !== null)\n                      .join(" · ");\n                    return (\n'''
+          if old not in text:
+              raise SystemExit("unexplained-share anchor changed")
+          text = text.replace(old, new, 1)
+          old_label = '                          aria-label={`Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`}\n'
+          if old_label not in text:
+              raise SystemExit("comparison button aria-label anchor changed")
+          text = text.replace(old_label, '                          aria-label={pairAccessibleName}\n', 1)
+          old_badge = '''                          {unexplainedShare ? (\n                            <span\n                              className="post-badge"\n                              aria-label={t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)}\n                            >\n'''
+          new_badge = '''                          {unexplainedShare ? (\n                            <span className="post-badge" aria-hidden="true">\n'''
+          if old_badge not in text:
+              raise SystemExit("unexplained-share badge anchor changed")
+          p.write_text(text.replace(old_badge, new_badge, 1), encoding="utf-8")
+          PY
+          git add frontend/src/App.tsx frontend/src/App.test.tsx
+          git diff --cached --check
+      - name: Exact repair GREEN
+        working-directory: frontend
+        run: |
+          pnpm test -- src/App.test.tsx
+          pnpm run lint
+          pnpm run build
+      - name: Promote workflow-free repair only if live head is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "lineageweave-automation@users.noreply.github.com"
+          test "$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)" = "$OLD_HEAD"
+          git commit -m "fix(reports): include unexplained share in comparison button name"
+          git push origin HEAD:"refs/heads/$PRODUCT_BRANCH"
+          echo "PRODUCT_COMMIT=$(git rev-parse HEAD)"
+          echo "PRODUCT_TREE=$(git rev-parse HEAD^{tree})"
