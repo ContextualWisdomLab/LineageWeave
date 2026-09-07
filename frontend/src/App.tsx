@@ -5052,6 +5052,21 @@ export function AskAgentPanel({
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
+  const authGeneration = useRef(0);
+  const currentAccessTokenRef = useRef(accessToken);
+  currentAccessTokenRef.current = accessToken;
+  const [inputAccessToken, setInputAccessToken] = useState(accessToken);
+  if (inputAccessToken !== accessToken) {
+    setInputAccessToken(accessToken);
+    setQuestion("");
+    setKnowledgeCutoff("");
+    setAnswer(null);
+    setError(null);
+    setAsking(false);
+    setVerifyExternal(false);
+    setEvidenceLayerPostId(null);
+  }
+  useEffect(() => () => { authGeneration.current += 1; }, [accessToken]);
   const now = new Date();
   const localKnowledgeCutoffMax = new Date(
     now.getTime() - now.getTimezoneOffset() * 60_000,
@@ -5068,22 +5083,22 @@ export function AskAgentPanel({
       setError(t("Enter a valid knowledge cutoff, then ask again."));
       return;
     }
+    const requestAuthGeneration = authGeneration.current;
+    const requestAccessToken = accessToken;
     setAsking(true);
     setError(null);
     try {
-      setAnswer(
-        await askAgent(
-          accessToken,
-          normalized,
-          verifyExternal,
-          cutoff,
-        ),
-      );
+      const response = await askAgent(accessToken, normalized, verifyExternal, cutoff);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+        setAnswer(response);
+      }
     } catch (err) {
-      setAnswer(null);
-      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+        setAnswer(null);
+        setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
+      }
     } finally {
-      setAsking(false);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) setAsking(false);
     }
   }
 

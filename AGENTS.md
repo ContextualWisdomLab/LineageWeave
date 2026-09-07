@@ -422,3 +422,12 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Authorization-sensitive asynchronous UI
+
+Bind imperative result, error, and loading completion to the originating
+component authorization lifecycle. Token equality alone cannot distinguish
+retired A from current A after A → B → A. Clear prior questions, answers, and
+evidence selection when credentials change, and verify that a retired success
+or failure cannot end the current request's loading state. Keep behavioral
+regressions synthetic; UI retirement does not itself cancel a server-side job.

@@ -932,3 +932,39 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+
+## Ask authorization lifecycle repair (2026-09-07)
+
+A pending Ask response could enter a later authorization lifecycle after
+A → B → A. Deferred success displayed the retired answer; deferred HTTP 403
+displayed the retired transport error. Both were assertion failures, not test
+deadlines, in the initial two-case reproduction.
+
+The component now clears question, cutoff, answer, error, external-verification
+selection, loading, and evidence selection when its credential changes. It reuses
+the existing component-generation pattern from Customer Master: request success,
+failure, and loading completion require both the current credential and the
+originating authorization generation. Cleanup retires the generation on token
+change or unmount. No global session service, token persistence, API, or schema
+is introduced. Server ABAC and ADR 0216's cutoff evidence remain authoritative.
+
+The regression cases also start a new request after re-entry and require the
+retired success/failure to leave that request loading until its own answer arrives.
+This is UI admission evidence; it does not establish cancellation of a running
+server job or the existing client poll loop. Those transport lifetimes remain a
+separate gap, as does current-error copy that can expose transport details.
+
+The repair is based on protected main `83eba56149eb802cd63642c507c324c9976ec78e`
+and is independent of the unmerged translation-ledger foundation in PR #929/#932.
+The initial experiment used the PR #932 worktree, then moved only the Ask diff to
+an isolated main-based branch; the translation worktree was restored clean.
+No real source records, new containers, or deployment were used.
+
+Validation on the main-based candidate: 2/3 Ask tests passed; the deferred-success
+case exceeded its unchanged five-second deadline. The expanded deferred-denial
+case and existing cutoff/public-evidence case passed. The earlier narrower
+two-case repair run passed 3/3 before adding the current-request loading check;
+it is not substituted for the final run. Lint and TypeScript/production build
+passed; the existing large-chunk warning remains. The change stays Draft pending
+complete verification, independent review, and real-account acceptance.

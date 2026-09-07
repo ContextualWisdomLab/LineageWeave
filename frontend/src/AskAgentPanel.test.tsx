@@ -1,11 +1,51 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AskAgentPanel } from "./App";
 
 describe("AskAgentPanel public verification", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it.each([200, 403])("discards a retired %s response after credential re-entry", async (status) => {
+    let finishRetired!: (response: Response) => void;
+    let finishCurrent!: (response: Response) => void;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "retired-job", job_status_code: "queued" }), { status: 202 }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishRetired = resolve; }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "current-job", job_status_code: "queued" }), { status: 202 }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishCurrent = resolve; }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onOpenPost = vi.fn();
+    const { rerender, container } = render(<AskAgentPanel accessToken="token-a" onOpenPost={onOpenPost} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Retired question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    rerender(<AskAgentPanel accessToken="token-b" onOpenPost={onOpenPost} />);
+    rerender(<AskAgentPanel accessToken="token-a" onOpenPost={onOpenPost} />);
+    expect(screen.getByLabelText("Ask a question")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Current question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    await act(async () => {
+      finishRetired(new Response(JSON.stringify({
+        ask_job_id: "retired-job", job_status_code: "succeeded",
+        answer: { answer_text: "Retired answer", cited_post_ids: [], cited_posts: [],
+          cited_post_evidence: [], source_post_ids: [], external_claims: [], limitations: [] },
+      }), { status }));
+    });
+    expect(screen.queryByText("Retired answer")).not.toBeInTheDocument();
+    expect(container.querySelector(".error")).toBeNull();
+    expect(screen.getByRole("button", { name: "Asking..." })).toBeDisabled();
+    await act(async () => {
+      finishCurrent(new Response(JSON.stringify({
+        ask_job_id: "current-job", job_status_code: "succeeded",
+        answer: { answer_text: "Current answer", cited_post_ids: [], source_post_ids: [] },
+      }), { status: 200 }));
+    });
+    expect(screen.getByText("Current answer")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
   });
 
   it("keeps public verification separate and renders cutoff provenance", async () => {
