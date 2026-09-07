@@ -1,0 +1,47 @@
+name: automation-828-current-827-reconstruction
+on:
+  push:
+    branches: [automation/828-current-827-reconstruction-20260907-1420]
+permissions:
+  contents: read
+jobs:
+  reconstruct-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact #827 product parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0f9e9c8db37948041f39b4e68e4bbd808fa83752"
+      - name: Reapply only historical #828 product commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin 1bed7336
+          git reset --hard HEAD^
+          set +e
+          git cherry-pick --no-commit 1bed7336
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "CURRENT_PARENT_CONFLICTS"
+            git diff --name-only --diff-filter=U
+            exit "$rc"
+          fi
+          echo "CURRENT_PARENT_DELTA"
+          git diff --name-status
+          git diff --check
+          test ! -e .github/workflows/automation-828-current-827-reconstruction.yml
+      - name: Fail closed on historical identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff | grep -Eq 'ADR 0295|ADR0295|2\.52\.0|Accepted'; then
+            echo "historical ADR/release/status identity requires current-stack repair"
+            exit 1
+          fi
