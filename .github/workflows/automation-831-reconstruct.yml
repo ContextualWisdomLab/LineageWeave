@@ -47,6 +47,17 @@ jobs:
           LIVE_PRODUCT="$(git ls-remote origin "refs/heads/$PRODUCT_BRANCH" | cut -f1)"
           test "$LIVE_PRODUCT" = "$HISTORICAL_SHA"
           cp .automation/pr831_reconstruct.py /tmp/pr831_reconstruct.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("/tmp/pr831_reconstruct.py")
+          text = path.read_text()
+          old = "'''                    ${\n                      unexplainedShare"
+          new = "'''                    }${\n                      unexplainedShare"
+          count = text.count(old)
+          if count != 2:
+              raise SystemExit(f"suffix harness correction expected two markers, found {count}")
+          path.write_text(text.replace(old, new))
+          PY
           git switch --detach "$PARENT_SHA"
           test ! -e .github/workflows/automation-831-reconstruct.yml
           test ! -e .automation/pr831_reconstruct.py
