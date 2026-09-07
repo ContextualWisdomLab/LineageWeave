@@ -1,0 +1,42 @@
+name: automation-826-current-825-diagnostic-r2
+on:
+  push:
+    branches: [automation/826-current-825-diagnostic-r2-20260907-1343]
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+      - name: Verify exact current parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "b73b10e3079e77f3e62235b2b709dc8a3f450292"
+      - name: Capture replay result on workflow-free report branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git cherry-pick --no-commit a4bf239f1cf07ea29bd49b28300f252be0ca7a19
+          rc=$?
+          set -e
+          {
+            echo "CHERRY_PICK_RC=$rc"
+            echo "UNMERGED:"
+            git diff --name-only --diff-filter=U
+            echo "STATUS:"
+            git status --short
+          } > /tmp/826-replay-report.txt
+          if [ "$rc" -ne 0 ]; then git cherry-pick --abort; else git reset --hard "b73b10e3079e77f3e62235b2b709dc8a3f450292"; fi
+          git checkout -B automation/826-current-825-diagnostic-report-20260907-1343 "b73b10e3079e77f3e62235b2b709dc8a3f450292"
+          mkdir -p .github/automation
+          cp /tmp/826-replay-report.txt .github/automation/826-replay-report.txt
+          git add .github/automation/826-replay-report.txt
+          git commit -m "test(stack): record #826 current-parent replay surface [skip ci]"
+          git push origin HEAD:automation/826-current-825-diagnostic-report-20260907-1343
