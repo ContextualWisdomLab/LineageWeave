@@ -11,7 +11,6 @@ def replace_once(path: str, old: str, new: str) -> None:
     p.write_text(text.replace(old, new, 1))
 
 
-# Historical product delta: expose persisted R-hat on grouping-comparison pair rows.
 replace_once(
     "frontend/src/leftoverMapReconstruction.ts",
     'export const LEFTOVER_MAP_RECONSTRUCTION_ACTION =\n  "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.";\n',
@@ -38,22 +37,20 @@ replace_once(
     '                          <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>\n                          {reconstruction ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {reconstruction}\n                            </span>\n                          ) : null}\n',
 )
 
-# Current exact-parent fixture gets one finite persisted value. The accessible-name
-# assertion is the realistic repair for the unresolved review finding: a visual
-# descendant inside an aria-labelled button must not be the only semantic exposure.
-replace_once(
-    "frontend/src/App.test.tsx",
-    '                    leftover_distance: 0.12,\n                    leftover_residual: 0.4,\n',
-    '                    leftover_distance: 0.12,\n                    leftover_residual: 0.4,\n                    leftover_map_reconstruction: 0.248,\n',
-)
+fixture_old = '''                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+'''
+fixture_new = fixture_old + '                    leftover_map_reconstruction: 0.248,\n'
+replace_once("frontend/src/App.test.tsx", fixture_old, fixture_new)
 replace_once(
     "frontend/src/App.test.tsx",
     '    ).toHaveTextContent("Closest leftover: Public post · sales-lead");\n',
     '    ).toHaveTextContent("Closest leftover: Public post · sales-lead");\n    const reconstructionPair = screen.getByRole("button", {\n      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \\+0\\.25/i,\n    });\n    expect(reconstructionPair).toHaveTextContent("R̂ +0.25");\n',
 )
 
-# Inline compatibility copy remains bounded to the legacy four locales; canonical
-# eight-locale translation authority stays with the separate ledger owner path.
 p = Path("frontend/src/i18n.ts")
 text = p.read_text()
 for old, new in [
@@ -72,14 +69,8 @@ text = p.read_text()
 old = '    "Leftover map comparison incomplete items",\n    "Leftover-map graphic item coverage",'
 if text.count(old) != 1:
     raise SystemExit(f"i18n required-label anchor count={text.count(old)}")
-text = text.replace(
-    old,
-    '    "Leftover map comparison incomplete items",\n    "Leftover map comparison reconstruction",\n    "Leftover-map graphic item coverage",',
-    1,
-)
-p.write_text(text)
+p.write_text(text.replace(old, '    "Leftover map comparison incomplete items",\n    "Leftover map comparison reconstruction",\n    "Leftover-map graphic item coverage",', 1))
 
-# Collision-free serialized identity.
 replace_once("pyproject.toml", 'version = "2.51.0"', 'version = "2.52.0"')
 replace_once("lineageweave/__init__.py", '__version__ = "2.51.0"', '__version__ = "2.52.0"')
 p = Path("frontend/package.json")
@@ -102,10 +93,10 @@ Path("docs/adr/0295-leftover-map-compare-reconstruction.md").write_text("""# ADR
 **Decision status:** Proposed
 
 ## Problem
-Grouping-comparison pair rows already carry persisted `leftover_map_reconstruction`, but buyers cannot see it in the serialized current stack. The historical implementation placed a reconstruction badge inside a button that already had an explicit `aria-label`; that descendant text therefore did not reliably contribute to the button's accessible name.
+Grouping-comparison pair rows carry persisted `leftover_map_reconstruction`, but the serialized current stack does not expose it. The historical implementation placed a reconstruction badge inside a button that already had an explicit `aria-label`; descendant text therefore did not reliably contribute to the button accessible name.
 
 ## Decision
-Format only the persisted `leftover_map_reconstruction` through the existing `formatLeftoverMapReconstruction` contract. Render the visible `R̂` badge for sighted comparison, mark that duplicate badge `aria-hidden`, and include the localized comparison-reconstruction label plus formatted value in the pair button's accessible name. Missing or non-finite `R̂` omits only this suffix. Never reconstruct `R̂` from distance, coordinates, residuals, unexplained leftover, rank, coverage counts, or any visible-subset proxy.
+Format only persisted `leftover_map_reconstruction` through `formatLeftoverMapReconstruction`. Render the visible `R̂` badge, mark that duplicate badge `aria-hidden`, and include the localized comparison-reconstruction label plus formatted value in the pair button accessible name. Missing or non-finite `R̂` omits only this suffix. Never reconstruct `R̂` from distance, coordinates, residuals, unexplained leftover, rank, coverage counts, or any visible-subset proxy.
 
 This is LineageWeave read-model/UI composition only; fast-mlsirm remains the psychometric owner. ADR status remains Proposed while Draft. Acceptance requires current-head hosted tests, keyboard/screen-reader/browser evidence, canonical eight-locale translation-ledger convergence, independent approval, and normal protected-branch merge.
 """)
