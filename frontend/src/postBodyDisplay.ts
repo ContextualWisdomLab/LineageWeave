@@ -211,7 +211,7 @@ function buildUnicodeToAsciiTable(table: Record<string, string>): Record<string,
 const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
 const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
 const CARET_EXPONENT =
-  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}(?!\d)|[nNiI]))/g;
+  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}(?!\d|\.\d)|[nNiI]))/g;
 const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
 const ENCODED_LT = String.raw`&(?:amp;)*(?:lt|#0*60|#x0*3c);`;
 const ENCODED_GT = String.raw`&(?:amp;)*(?:gt|#0*62|#x0*3e);`;
@@ -303,7 +303,7 @@ export function splitScriptRuns(text: string): ScriptRun[] {
     }
     if (ch === "^" && index > 0 && /[A-Za-z0-9µμ°ΩÅåÅ)]/.test(text[index - 1])) {
       const rest = text.slice(index);
-      const match = rest.match(/^\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}(?!\d)|[nNiI]))/);
+      const match = rest.match(/^\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}(?!\d|\.\d)|[nNiI]))/);
       if (match) {
         push(match[1] || match[2] || "", "super");
         index += match[0].length;

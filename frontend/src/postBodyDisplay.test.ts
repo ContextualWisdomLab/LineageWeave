@@ -360,7 +360,7 @@ describe("splitPostBody", () => {
     expect(splitScriptRuns(text)).toEqual([{ text: "x" }, { text: script, script: "super" }]);
   });
 
-  it.each(["x^1234", "x^-1234", "x^+1234", "x^{1234}"])("keeps unsupported long exponents intact: %s", (text) => {
+  it.each(["x^1234", "x^-1234", "x^+1234", "x^{1234}", "x^1.5", "x^-12.5"])("keeps unsupported numeric exponents intact: %s", (text) => {
     expect(normalizeScriptText(text)).toBe(text);
     expect(splitScriptRuns(text)).toEqual([{ text }]);
   });
