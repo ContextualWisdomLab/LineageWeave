@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import ast
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import backend.app.affiliate_tree_ingestion as ingestion
@@ -19,6 +21,53 @@ _ENTITIES = (
     CorporateEntityRow("plant-id", "korea-id", "Demo Electronics Gwangju Plant", "plant"),
     CorporateEntityRow("other-id", "group-id", "Demo Other Division", "company"),
 )
+
+AFFILIATE_TREE_SOURCE_PATH = Path(__file__).parents[1] / "lineageweave" / "affiliate_tree.py"
+FORBIDDEN_AFFILIATE_TREE_IDENTIFIERS = {
+    "affiliations",
+    "child",
+    "current",
+    "entities",
+    "leaf",
+    "leaves",
+    "name",
+    "needed",
+    "person",
+    "row",
+    "unique",
+}
+
+
+def test_affiliate_tree_builder_uses_hierarchy_specific_identifiers() -> None:
+    """Keep private builder names aligned with the affiliate-tree domain."""
+    source_tree = ast.parse(AFFILIATE_TREE_SOURCE_PATH.read_text(encoding="utf-8"))
+    owned_identifiers = {
+        syntax_node.id
+        for syntax_node in ast.walk(source_tree)
+        if isinstance(syntax_node, ast.Name)
+    }
+    owned_identifiers.update(
+        syntax_node.arg
+        for syntax_node in ast.walk(source_tree)
+        if isinstance(syntax_node, ast.arg)
+    )
+    owned_function_names = {
+        syntax_node.name
+        for syntax_node in ast.walk(source_tree)
+        if isinstance(syntax_node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    assert not (FORBIDDEN_AFFILIATE_TREE_IDENTIFIERS & owned_identifiers)
+    assert "_build" not in owned_function_names
+    assert {
+        "affiliate_person",
+        "affiliation_leaf",
+        "corporate_entities",
+        "corporate_entity_row",
+        "needed_entity_ids",
+        "resolved_affiliation_leaves",
+    } <= owned_identifiers
+    assert "_build_affiliate_node" in owned_function_names
 
 
 def test_resolved_affiliation_pulls_in_ancestors_not_siblings() -> None:
