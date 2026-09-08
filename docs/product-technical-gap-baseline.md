@@ -1325,3 +1325,14 @@ and classes in lineageweave (491/491 documented) and backend/app (324/324),
 excluding __init__.py as specified by the existing contract. All 815 counted
 definitions have docstrings. This verifies presence within that Python scope,
 not prose accuracy or documentation coverage in other languages.
+
+### Exact-head frontend coverage failure — 2026-09-08
+
+Hosted Tests run `34194311106` at `8d8a809ad` executed 576 frontend tests in
+59 files successfully, but the required complete-source 100% gate failed:
+lines 82.57%, statements 81.01%, functions 81.58%, and branches 79.20%.
+The retained artifact is `10043511437`; its LCOV identifies untested Storybook
+modules and uncovered product paths in OntologyExplorer, ProjectHistoryTimeline,
+LeftoverMapPlot, OccupationalConstructCatalogSearch, App, and related modules.
+Lint, production build, and Storybook build passed. This is a measured coverage
+gap, not a reason to lower the threshold or shrink the source denominator.
