@@ -446,3 +446,9 @@ can cancel an in-progress PostgreSQL suite through the existing concurrency
 policy; repeated small pushes can prevent terminal full-suite evidence. Track
 the current run to completion while developing independent work, and distinguish
 superseded cancellation from an actual test failure.
+
+For API request-contract tests, decode generated URLs with URL/URLSearchParams
+and assert repeated parameters, opaque cursors, timezone offsets, and explicit
+false/zero values survive transport. Mocked fetch tests establish client request
+serialization and error propagation only; they do not prove server authorization,
+valid parameter ranges, or database-backed evidence availability.
