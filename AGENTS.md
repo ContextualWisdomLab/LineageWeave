@@ -439,3 +439,8 @@ a repository-owned coverage command; a passing plain test run is insufficient.
 Run `corepack pnpm run test:coverage` from `frontend/` to collect source coverage
 and enforce the 100% threshold. Generated reports stay outside git. Preserve
 failing results: instrumentation availability does not prove coverage acceptance.
+
+The frontend CI retains `frontend-coverage` even when the coverage threshold
+fails. Use its LCOV paths and JSON summary to select regression work; console
+tables abbreviate filenames. A passing test suite and a failing coverage gate
+are distinct results, and neither licenses lowering the threshold.
