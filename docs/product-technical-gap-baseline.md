@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Post-evaluation naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@156831f14e1302d1361bcdb7cd4674ef49924204`;
+> exact RED head `f2e982905dc4e85e4123df0655a87b39b3f91b48` found
+> repository-owned `body`, `categories`, `client`, `conn`, `result`,
+> `response`, `responses`, `row`, and `rows` identifiers across the judge
+> adapter, IRT projection, persistence, API handlers, SQL aliases, and focused
+> fixtures. Action: align that complete bounded surface with
+> orchestrator-response, judge-result, criterion-response,
+> database-connection, and persisted-evaluation-row language while preserving
+> existing route paths, JSON keys, PostgreSQL tables, fast-mlsirm projection
+> entry point, and external adapter signatures. Status: RED reproduced; three
+> focused naming/contract tests and Python compile GREEN locally. Runtime
+> behavior tests require the separately released fast-mlsirm package, which is
+> unavailable in this runner; GitHub exact-head checks and independent review
+> remain pending.
+>
 > Authorized job-architecture import naming overlay: 2026-09-08 KST. The
 > stacked base is exact head
 > `4a81f8706ad819967a8a88787464174d59599002`; exact RED head

@@ -95,7 +95,7 @@ class _OrchestratorCompleteAdapter:
 
     def complete(self, messages: list[dict[str, Any]], mode: str = "auto") -> dict[str, Any]:
         """Complete the configured gateway request and return its response."""
-        body = post_json(
+        orchestrator_response_body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": messages,
@@ -107,7 +107,7 @@ class _OrchestratorCompleteAdapter:
             timeout=self._timeout,
         )
         return {
-            "answer": chat_completion_content(body),
+            "answer": chat_completion_content(orchestrator_response_body),
             "mode": mode,
             "trace": [],
         }
@@ -134,11 +134,15 @@ class ContextualOrchestratorPostEvaluationClient:
         )
 
 
-def irt_responses_from_result(result: LLMJudgeResult) -> tuple[CriterionResponse, ...]:
+def irt_responses_from_result(judge_result: LLMJudgeResult) -> tuple[CriterionResponse, ...]:
     """Project a judge result through ``to_irt_row`` -- the only legal path."""
-    categories = result.to_irt_row(item_type="polytomous", n_categories=IRT_CATEGORY_COUNT)
-    criterion_ids = tuple(sorted(result.criterion_scores))
+    irt_response_categories = judge_result.to_irt_row(
+        item_type="polytomous", n_categories=IRT_CATEGORY_COUNT
+    )
+    criterion_ids = tuple(sorted(judge_result.criterion_scores))
     return tuple(
-        CriterionResponse(criterion_code=criterion_id, response_category=category)
-        for criterion_id, category in zip(criterion_ids, categories, strict=True)
+        CriterionResponse(criterion_code=criterion_id, response_category=response_category)
+        for criterion_id, response_category in zip(
+            criterion_ids, irt_response_categories, strict=True
+        )
     )

@@ -81,8 +81,8 @@ def test_post_evaluation_sql_uses_semantic_relation_aliases() -> None:
 
     assert "from post_evaluation_response evaluation_response" in ingestion_source
     assert "left join common_lookup_value criterion_lookup" in ingestion_source
-    assert "post_evaluation_response e" not in ingestion_source
-    assert "common_lookup_value v" not in ingestion_source
+    assert "from post_evaluation_response e\n" not in ingestion_source
+    assert "join common_lookup_value v on" not in ingestion_source
 
 
 def test_post_evaluation_external_contracts_remain_stable() -> None:

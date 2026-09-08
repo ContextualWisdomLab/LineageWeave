@@ -262,6 +262,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The post-evaluation judge, IRT projection, persistence, API handlers, SQL
+  aliases, and focused fixtures now use semantic judge-result,
+  criterion-response, database-connection, persisted-evaluation-row, and
+  orchestrator-response names. Existing route paths, JSON fields, SQL tables,
+  fast-mlsirm projection entry point, and external adapter signatures remain
+  unchanged.
+
 - The authorized job-architecture importer and its behavioral fixture now use
   semantic source-snapshot, job-architecture node, hierarchy-edge,
   occupation-binding, database, digest, and command identifiers while
