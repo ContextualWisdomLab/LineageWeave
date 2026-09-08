@@ -14,6 +14,33 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([
+    "<html>upstream diagnostic</html>",
+    "null",
+    '"upstream diagnostic"',
+    '{"error":"upstream diagnostic"}',
+    '{"detail":{"error":"upstream diagnostic"}}',
+  ])("keeps malformed server error payloads private: %s", async (body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { status: 503 })));
+    await expect(fetchMe("access-token")).rejects.toMatchObject({
+      name: "BackendError",
+      status: 503,
+      message: "The service could not complete this request. Try again later.",
+    });
+  });
+
+  it("authenticates tenant mutations and sends an exact JSON body", async () => {
+    const result = { brandName: "Synthetic tenant" };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(result)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(updateTenantConfig("access-token", result.brandName)).resolves.toEqual(result);
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/settings"), {
+      method: "PATCH",
+      body: JSON.stringify(result),
+      headers: { Authorization: "Bearer access-token", "Content-Type": "application/json" },
+    });
+  });
+
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),
