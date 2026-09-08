@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
 import type { OntologyNeighborhoodPayload } from "../api";
 import { OntologyExplorer } from "./OntologyExplorer";
@@ -9,6 +9,10 @@ import { filterNeighborhood } from "../ontologyLayout";
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
   return { ...actual, fetchOntologyNeighborhood: vi.fn(), fetchOccupationalConstructSearch: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchOntologyNeighborhood).mockReset();
 });
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
@@ -198,7 +202,6 @@ describe("OntologyExplorer", () => {
 
   it("retries a failed continuation page with the same cursor", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
-    fetchNeighborhood.mockClear();
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
       .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 500))
@@ -226,7 +229,6 @@ describe("OntologyExplorer", () => {
 
   it.each([403, 404])("uses one fail-closed surface for hidden and missing focus responses (%s)", async (status) => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
-    fetchNeighborhood.mockClear();
     fetchNeighborhood.mockRejectedValueOnce(
       new BackendError("/api/ontology/neighborhood", status),
     );
