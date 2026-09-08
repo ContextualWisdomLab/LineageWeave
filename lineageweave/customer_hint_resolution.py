@@ -64,7 +64,9 @@ class NullCustomerHintResolutionClient:
 
     def resolve(self, hint_code: str, context_text: str) -> str | None:
         """Implement the resolve operation for this channel."""
-        raise RuntimeError("NullCustomerHintResolutionClient cannot resolve; check .available first")
+        raise RuntimeError(
+            "NullCustomerHintResolutionClient cannot resolve; check .available first"
+        )
 
 
 class ContextualOrchestratorCustomerHintResolutionClient:
@@ -73,7 +75,12 @@ class ContextualOrchestratorCustomerHintResolutionClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 30.0
+        self,
+        base_url: str,
+        api_key: str,
+        *,
+        reasoning_effort: str = "auto",
+        timeout: float = 30.0,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -82,16 +89,18 @@ class ContextualOrchestratorCustomerHintResolutionClient:
 
     def resolve(self, hint_code: str, context_text: str) -> str | None:
         """Resolve the customer code against the given post excerpts."""
-        prompt = _RESOLUTION_PROMPT_TEMPLATE.format(hint_code=hint_code, context=context_text)
-        body = post_json(
+        resolution_prompt = _RESOLUTION_PROMPT_TEMPLATE.format(
+            hint_code=hint_code, context=context_text
+        )
+        orchestrator_response_body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [{"role": "user", "content": resolution_prompt}],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = chat_completion_content(body)
-        return parse_resolution_response(content)
+        completion_content_text = chat_completion_content(orchestrator_response_body)
+        return parse_resolution_response(completion_content_text)

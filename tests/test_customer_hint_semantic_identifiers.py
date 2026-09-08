@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 REPOSITORY_ROOT = Path(__file__).parents[1]
 CUSTOMER_HINT_SOURCE_PATHS = (
     REPOSITORY_ROOT / "lineageweave" / "customer_hint_resolution.py",

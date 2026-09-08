@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Customer-hint naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@4629c5259a6e78f2778f597a16e09de6534949a6`;
+> exact RED head `058764ecd9edbce031873b00e62dd0abd9408eeb` found
+> repository-owned `body`, `content`, `prompt`,
+> `conn`, `rows`, `row`, `resolution`, `existing`, `created`, `linked`,
+> `client`, `result`, `status`, `query`, `args`, `call`, and `seen`
+> identifiers across customer-code resolution, external corroboration,
+> corporate-entity persistence, post relinking, and focused fixtures. Action:
+> align that bounded surface with customer-context, orchestrator-response,
+> verified-customer-resolution, corporate-entity-row, linked-post-row,
+> database-connection, and transport-observation language while preserving the
+> context-qualified `resolve()` protocol, orchestrator request keys, SQL/schema,
+> result ordering, and published API response keys. Status: RED reproduced;
+> implementation and ten focused behavior/naming tests, compile, diff, and
+> scoped Ruff/format validation GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
 > Affiliate-tree builder naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@5b0d6c51f2ffee89d0e335d3e76a2825d1636d69`;
 > exact RED head `32c7bd44d026feaa898c164b78541cc0c4030ba1` found

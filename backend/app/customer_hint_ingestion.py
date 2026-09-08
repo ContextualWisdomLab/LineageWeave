@@ -17,16 +17,20 @@ import asyncpg
 
 from lineageweave.customer_hint_resolution import CustomerHintResolutionClient
 from lineageweave.image_content import NullImageContentClient
-from lineageweave.organization_name_resolution import resolve_and_verify_organization_name
+from lineageweave.organization_name_resolution import (
+    resolve_and_verify_organization_name,
+)
 from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationClient
-
+from lineageweave.relation_verification import (
+    STATUS_CORROBORATED,
+    RelationVerificationClient,
+)
 
 _EXCERPT_LENGTH = 1500
 
 
 async def resolve_customer_hint(
-    conn: asyncpg.Connection,
+    database_connection: asyncpg.Connection,
     resolution_client: CustomerHintResolutionClient,
     verification_client: RelationVerificationClient,
     hint_code: str,
@@ -45,7 +49,7 @@ async def resolve_customer_hint(
     # Five rows and 20,000 raw body characters per row bound both transfer and
     # parsing before deterministic normalization. The SQL remains literal;
     # only the observed hint code is a bound value.
-    rows = await conn.fetch(
+    source_post_rows = await database_connection.fetch(
         """
         select post_title, left(post_body, 20000) as post_body
           from source_post
@@ -91,41 +95,44 @@ async def resolve_customer_hint(
         """,
         hint_code,
     )
-    if not rows:
+    if not source_post_rows:
         return None
 
-    vision_client = NullImageContentClient()
-    excerpts = "\n---\n".join(
-        f"{row['post_title']}\n"
-        f"{normalize_post_body(row['post_body'], vision_client=vision_client).text[:_EXCERPT_LENGTH]}"
-        for row in rows
+    image_content_client = NullImageContentClient()
+    customer_context_excerpts = "\n---\n".join(
+        f"{source_post_row['post_title']}\n"
+        f"{normalize_post_body(source_post_row['post_body'], vision_client=image_content_client).text[:_EXCERPT_LENGTH]}"
+        for source_post_row in source_post_rows
     )
-    resolution = await asyncio.to_thread(
+    verified_customer_resolution = await asyncio.to_thread(
         resolve_and_verify_organization_name,
         hint_code,
-        excerpts,
+        customer_context_excerpts,
         resolution_client,
         verification_client,
     )
-    if resolution is None or resolution.verification_status_code != STATUS_CORROBORATED:
+    if (
+        verified_customer_resolution is None
+        or verified_customer_resolution.verification_status_code != STATUS_CORROBORATED
+    ):
         return None
 
-    entity_name = resolution.resolved_organization_name
-    existing = await conn.fetchrow(
+    corporate_entity_name = verified_customer_resolution.resolved_organization_name
+    existing_entity_row = await database_connection.fetchrow(
         "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
-        entity_name,
+        corporate_entity_name,
     )
-    if existing is not None:
-        entity_id = existing["corporate_entity_id"]
+    if existing_entity_row is not None:
+        corporate_entity_id = existing_entity_row["corporate_entity_id"]
     else:
         # ON CONFLICT, not a plain INSERT: re-resolving the same hint_code
         # is not guaranteed to get byte-identical LLM phrasing back, so the
         # name-based lookup above can miss an entity this same hint already
         # created -- corporate_entity_code (deterministic from hint_code)
         # is the stable identity key a retry must key off instead.
-        entity_code = f"HINT-{hint_code}"
+        corporate_entity_code = f"HINT-{hint_code}"
         # Safe SQL: the statement is a literal migration-shaped query; both observed values are bound.
-        created = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        created_entity_row = await database_connection.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
             insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
             values ($1, $2, 'company')
@@ -133,10 +140,10 @@ async def resolve_customer_hint(
             do update set entity_name = excluded.entity_name
             returning corporate_entity_id
             """,
-            entity_code,
-            entity_name,
+            corporate_entity_code,
+            corporate_entity_name,
         )
-        entity_id = created["corporate_entity_id"]
+        corporate_entity_id = created_entity_row["corporate_entity_id"]
 
     # `corporate_entity_id` is NOT NULL, so a bulk-imported real record
     # never sits at NULL waiting to be resolved -- it defaults to whatever
@@ -145,7 +152,7 @@ async def resolve_customer_hint(
     # `author_affiliations` hint leak fixed in semantic_hints.py). Only
     # reclaim a post still sitting at that default, never one some other
     # resolution already bound to a specific entity.
-    linked = await conn.fetch(
+    linked_post_rows = await database_connection.fetch(
         """
         update source_post
            set corporate_entity_id = $1
@@ -156,12 +163,12 @@ async def resolve_customer_hint(
            )
         returning post_id
         """,
-        entity_id,
+        corporate_entity_id,
         hint_code,
     )
     return {
-        "corporate_entity_id": str(entity_id),
-        "entity_name": entity_name,
-        "linked_post_count": len(linked),
-        "verification_evidence_url": resolution.verification_evidence_url,
+        "corporate_entity_id": str(corporate_entity_id),
+        "entity_name": corporate_entity_name,
+        "linked_post_count": len(linked_post_rows),
+        "verification_evidence_url": verified_customer_resolution.verification_evidence_url,
     }

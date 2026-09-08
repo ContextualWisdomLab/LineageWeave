@@ -262,6 +262,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Customer-hint resolution and ingestion now use customer-context,
+  orchestrator-response, verified-resolution, corporate-entity, and linked-post
+  identifiers throughout their owned implementation and regression fixtures.
+  The context-qualified resolver protocol, orchestrator request keys, SQL/schema,
+  and published API response keys are unchanged.
+
 - Extractive VOC evidence and affiliate-tree construction/ingestion now use
   bounded-context identifiers for source text, evidence excerpts, organization
   names, corporate entities, affiliation leaves, hierarchy nodes, lookup labels,
