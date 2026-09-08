@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 SCRIPT_PATH = Path("scripts/estimate_llm_channel_weights.py")
+BEHAVIOR_TEST_PATH = Path("tests/test_estimate_llm_channel_weights_script.py")
 
 
 def test_owned_llm_estimation_identifiers_are_semantic() -> None:
@@ -111,3 +112,19 @@ def test_llm_provider_cli_json_and_persistence_contracts_are_unchanged() -> None
         assert contract_literal in script_source
     assert "asyncio.run(_submit_batch_estimation(command_arguments))" in script_source
     assert "asyncio.run(_collect_batch_estimation(command_arguments))" in script_source
+
+
+def test_llm_estimator_behavior_tests_name_the_script_boundary() -> None:
+    """Reject a generic alias for the queued-estimator module under test."""
+    test_source = BEHAVIOR_TEST_PATH.read_text(encoding="utf-8")
+    syntax_tree = ast.parse(test_source)
+    owned_aliases = {
+        imported_name.asname
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, ast.Import)
+        for imported_name in syntax_node.names
+        if imported_name.asname
+    }
+
+    assert "script" not in owned_aliases
+    assert "llm_estimation_script" in owned_aliases
