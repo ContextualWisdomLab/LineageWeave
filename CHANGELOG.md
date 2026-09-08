@@ -262,6 +262,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The queued LLM channel-weight estimator behavior tests now name their module
+  boundary explicitly instead of using the generic `script` alias.
+
 - The deterministic channel-weight estimator tests now use semantic source-post,
   thread-group, sampling-index, digest, database, query, and persistence names
   while preserving estimator behavior and external database protocol signatures.

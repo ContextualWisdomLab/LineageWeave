@@ -1,5 +1,14 @@
 # Product & Technical Gap Baseline
 
+> Queued estimator test naming overlay: 2026-09-08 KST. Exact RED head
+> `e73e0a1afd66432022c81ef86e34fd15f20ee162` found the generic owned
+> `script` alias in the ADR 0200 queued-estimator behavior tests. Action: name
+> the module boundary `llm_estimation_script` throughout its complete caller
+> surface while preserving provider fixtures, caller `custom_id` mapping,
+> confidence parsing, and completion semantics. Status: RED reproduced; AST
+> contracts, compile, and Ruff/format GREEN locally; GitHub exact-head checks
+> and independent review pending.
+>
 > Deterministic estimator test naming overlay: 2026-09-08 KST. Exact RED head
 > `3620f8b9f4775a3511c4bb8f56e6c9882af702dd` found repository-owned
 > `_record`, `_Connection`, `script`, `chosen`, `first`, `inserted`, and

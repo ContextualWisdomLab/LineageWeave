@@ -9,17 +9,18 @@ result order), and must fit exclusively over a complete run.
 from __future__ import annotations
 
 import pytest
-
 from lineageweave.adjudication_client import judge_prompt, parse_confidence
 from lineageweave.http_client import HttpClientError
 
-import scripts.estimate_llm_channel_weights as script
+import scripts.estimate_llm_channel_weights as llm_estimation_script
 
 
 def test_batch_requests_carry_caller_custom_ids_for_every_pair() -> None:
     """Attach caller-owned identifiers to every pair request."""
     candidate_pair_labels = [("a", "b"), ("c", "d"), ("e", "f")]
-    batch_requests = script.batch_requests_for_pairs([0, 2], candidate_pair_labels)
+    batch_requests = llm_estimation_script.batch_requests_for_pairs(
+        [0, 2], candidate_pair_labels
+    )
     assert [batch_request["custom_id"] for batch_request in batch_requests] == [
         "pair-0",
         "pair-2",
@@ -49,7 +50,7 @@ def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
     0.0 -- the pair stays unjudged and the incomplete-run path reports it.
     Mapping is by custom_id only; foreign or malformed ids are ignored.
     """
-    judgment_updates = script.judgment_updates_from_results(
+    judgment_updates = llm_estimation_script.judgment_updates_from_results(
         [
             {"custom_id": "pair-3", "answer": "0.7"},
             {"custom_id": "pair-4", "answer": ""},
@@ -64,8 +65,8 @@ def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
 
 def test_batch_completion_is_detected_from_flag_or_status() -> None:
     """Recognize batch completion from either supported field."""
-    assert script._is_complete({"is_complete": True})
-    assert script._is_complete({"status": "completed"})
-    assert script._is_complete({"status": "Succeeded"})
-    assert not script._is_complete({"status": "in_progress"})
-    assert not script._is_complete({})
+    assert llm_estimation_script._is_complete({"is_complete": True})
+    assert llm_estimation_script._is_complete({"status": "completed"})
+    assert llm_estimation_script._is_complete({"status": "Succeeded"})
+    assert not llm_estimation_script._is_complete({"status": "in_progress"})
+    assert not llm_estimation_script._is_complete({})

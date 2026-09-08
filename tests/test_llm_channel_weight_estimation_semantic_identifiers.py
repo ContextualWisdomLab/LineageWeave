@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 SCRIPT_PATH = Path("scripts/estimate_llm_channel_weights.py")
 BEHAVIOR_TEST_PATH = Path("tests/test_estimate_llm_channel_weights_script.py")
 
