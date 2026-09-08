@@ -1,134 +1,17 @@
 # Product & Technical Gap Baseline
 
-## 2026-09-07 full-suite recheck on the published candidate
-
-On clean `afe7f8f212c0219ee19069d7177a4a35d77c04c2`, the complete frontend
-suite was rerun without a concurrent build and with one worker. All 59 files
-and 550 tests remained included, with committed test deadlines unchanged.
-The result was 57 files passing / 2 failing and 546 tests passing / 4 timing
-out in 493.43 seconds. The failures covered governed Voice selection, Ask
-cutoff conversion, Ask delivery localization, and ontology continuation-error
-retention. These differ from the earlier three timeout cases; reducing test
-parallelism did not establish local suite GREEN. No worker setting, deadline,
-or assertion was changed in the repository to turn this result green.
-
-The local suite target remains all 550 passing. Host scheduling varied during
-these experiments, but that observation alone does not prove the cause or
-repair the failing gate. No further unchanged full-suite rerun is justified
-without diagnosis or a changed execution condition. Hosted Draft-skip policy
-is separately tracked by #933; this consumer change does not override it.
-
-## 2026-09-07 live entry-path verification
-
-A fresh browser inspected the existing Compose frontend without credentials or
-source-record queries. The documented `http://localhost:15173/` address showed
-one login button and no product-owned login, signup, or recovery form. Clicking
-login reached the existing issuer at `http://localhost:18080/` and displayed a
-password input. No credentials were entered, so authenticated success, claim
-admission, account recovery, and page p95 remain unverified. This existing
-runtime does not establish delivery of the open consumer or identity PRs.
-
-The frontend container reported image
-`sha256:2728a7896e4ccf5770567b98c8c6c23903f58b9a0ed7157377bf80a15e43a06a`
-and start time `2026-09-01T05:03:13.413298609Z`. Its issuer container reported
-`sha256:ede94b77ed55af002280a39d5be4ba8fb0231b525a2e1f9740310b7777395ea0`.
-The browser navigation is direct evidence that this issuer is still consumed;
-it must not be stopped merely because another identity engine is running.
-The three previously verified inactive duplicate-stack containers remain
-stopped, with containers and data volumes retained.
-
-Using `127.0.0.1:15173` instead of the documented hostname reached a callback
-validation error, whereas the documented localhost origin reached the issuer
-form. That difference is not evidence that the documented login path is
-broken, and no callback allowlist or issuer configuration was broadened.
-The temporary browser tab was closed after the read-only check.
-
-## 2026-09-07 authorization lifecycle repair (PR #932)
-
-The current candidate extends the existing auth-bound Customer Master guard to
-retire outstanding imperative requests when the authorization lifecycle ends.
-Token equality alone admitted a first-A response after A → B → A: related
-records could overwrite the current list, and hint completion could refresh it
-or show an obsolete error. Four executable App regressions reproduce these
-success/failure paths on `9b033e2737e9a42e04c326a80b53142a365a923d`
-(4 failed); all four pass with lifecycle generation checks. The primary list
-also retains its request-order guard. Existing effect cancellation continues
-to govern translation, permissions, and post detail. The seven existing Python
-auth contract functions also passed when invoked with their standard-library
-assertions; they are supporting source checks, not behavioral proof.
-
-The full frontend run (`vitest run --maxWorkers=2`) included all 550 tests:
-547 passed and three timed out across App and ontology exploration. No tests
-were excluded or deadlines increased. All three timeout cases and the four new regressions passed together in a
-focused single-worker recheck (7 passed). Production type checking and build
-also passed after the regression tests reused the installed standard fetch
-boundary. A later focused run also hit one 5-second timeout; the tests now
-synchronously navigate to Customer Master before exercising the deferred
-responses, avoiding unrelated initial Board work. All four then passed with
-the original timeout, and lint passed. With the final test driver, a fresh
-paired run again failed all four assertions on the pre-repair revision and
-passed all four on the repair; the final production build passed. Host scheduling also varied, so no
-product-performance improvement is inferred. The existing chunk-size warning remains. Full-suite GREEN is still
-unproven.
-This repair uses synthetic unit-test responses only and does not prove real
-account transitions, protected-main delivery, or authenticated p95 acceptance.
-
-## 2026-09-07 bootstrap recovery follow-up (PR #932)
-
-The candidate based on `846ec4700666188a281940b99ac4edf776e904ca`
-removes access/publication troubleshooting from the eight-locale recovery
-instruction. Readers can retry and contact their administrator if the problem
-continues; an unclassified load failure still does not assert a cause.
-Seven additional locale stories reuse the existing gate and status notice.
-The earlier snapshot below remains historical evidence.
-
-The existing English recovery assertion failed before the copy change
-(1 failed / 10 passed); the repaired gate and shared notice passed all 17
-focused tests. Lint, production build, and Storybook build also passed; the
-existing production chunk-size warning remains. An actual browser displayed each of the eight retry stories at
-320 × 640: document width and scroll width were both 320 pixels in all eight,
-and Tab focused the correctly localized retry button in all eight. English,
-German, and French screenshots were visually inspected. This verifies the
-isolated bootstrap shell only: no authenticated source records were loaded,
-and it does not establish PostgreSQL translation delivery, native-speaker
-review, screen-reader acceptance, all-page latency, protected merge, or release.
-
-> Snapshot refreshed 2026-09-07 KST. Protected `main` is
+> Snapshot refreshed 2026-09-09 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
-> validation at `2a8ed5d02`. Required current-head checks are not yet accepted as terminal GREEN
-> and the delivery boundary still requires qualifying independent review. The
-> live non-identifying queue snapshot contains 134 open PRs (13 ready / 121
-> draft) and 22 open issues; those counts describe coordination load, not product
-> maturity or release readiness. No open PR currently shows independent
-> `reviewDecision=APPROVED`. Ready main-targeting PRs
-> `#974`/`#973`/`#972` still have pending hosted review or security jobs;
-> do not poll those jobs and do not treat CodeQL compatibility `pending`
-> dispatch handshakes as product scan failures. The authenticated
-> `GET /api/translations/{screen_key}` API is implemented on the candidate
-> branch. That is candidate implementation evidence, not protected-main,
-> deployed, or release evidence.
+> validation. Required current-head checks are not yet accepted as terminal GREEN
+> and the delivery boundary still requires qualifying independent review.
+> The authenticated `GET /api/translations/{screen_key}` API is implemented on
+> the candidate branch. That is candidate implementation evidence, not
+> protected-main, deployed, or release evidence.
 >
-> Historical child implementation and validation snapshot (2026-09-05):
-> A stacked Customer Master consumer candidate now exists at exact head
-> `c95736ab6627d646ba4455ae2749f84f9cf23d31` on top of PR #929's
-> exact head `2a8ed5d02f4a3082b346d923d754c1ff37ebff52`. It admits all eight
-> locale tags, fetches the authenticated `customer-master` resource before
-> customer data, rejects incomplete screen projections, ignores late responses
-> from a previous locale or authorization identity, and shows an actionable
-> retry state instead of
-> rendering bundled Customer Master copy. Review `5119233938` found that the
-> retry shell incorrectly diagnosed every transport/auth/permission/not-found/
-> service exception as an unpublished translation. RED
-> `fd3f0326f539f23dfae75fc3511722ead4455d36` and causal repair
-> `cb093960d43e95cdfb1d9ed491e920e2106305db` keep that unclassified failure
-> cause-neutral while retaining one concrete retry action. This stacked branch
-> is not protected-main, hosted-product-GREEN, authenticated PostgreSQL, or
-> deployed evidence.
-> Current-head local evidence is 59 frontend test files / 546 tests, lint,
-> production build, Storybook build, five focused Python contract tests, and
-> freshly inspected 1440 x 900 plus 390 x 844 retry-state captures. These local
-> results do not satisfy the protected delivery boundary.
+> Volatile queue counts, other-PR heads, and pending-job observations are not
+> promoted into this current snapshot. Historical queue and candidate evidence
+> remains preserved in repository history and the dated baseline archive.
 >
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
@@ -136,13 +19,11 @@ review, screen-reader acceptance, all-page latency, protected merge, or release.
 > PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
 > Master records visible when imported hierarchy edges are malformed and adds
 > synthetic desktop/mobile Storybook evidence. #911 is Ready for exact-head
-> validation after moving its colliding TLS ADR to Proposed ADR 0366. Its
-> repository-local Tests, PROV-O, and Ontology Pages runs are successful, while
-> central Security/CodeQL/SAST remain queued. #909 is Draft because #922's
-> eight-locale published-resource cutover and the required current-head
-> material-UI/runtime evidence are still absent. Neither has qualifying
-> independent current-head approval, and neither is protected-main or deployed
-> evidence.
+> validation after moving its colliding TLS ADR to Proposed ADR 0366. #909 is
+> Draft because #922's eight-locale published-resource cutover and the required
+> current-head material-UI/runtime evidence are still absent. Neither has
+> qualifying independent current-head approval or terminal hosted checks, and
+> neither is protected-main or deployed evidence.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -152,16 +33,10 @@ review, screen-reader acceptance, all-page latency, protected merge, or release.
 > The buyer-visible gap in #922 remains open. Protected `main` still ships the
 > production frontend translation source in `frontend/src/i18n.ts` with only
 > `en/ko/zh/ja/vi`; `es/de/fr` are not first-class frontend locales. No material
-> SPA screen has yet been released on a published eight-locale ledger resource.
-> The stacked Customer Master candidate covers API admission plus loading and
-> retry rendering. The 1440×900 and 390×844 Storybook captures were regenerated
-> and inspected after the current auth-bound/cause-neutral repair. They prove
-> only the synthetic retry shell, not authenticated browser acceptance. The
-> candidate does not contain reviewed eight-locale
-> product copy or authenticated PostgreSQL normal/empty/permission evidence.
-> There is no release evidence for normal, loading, empty, error, permission,
-> responsive, keyboard/focus/screen-reader, CJK text expansion, or font fallback
-> states.
+> SPA screen has yet been cut over to a published eight-locale ledger resource,
+> and there is no exact-head desktop/mobile evidence covering normal, loading,
+> empty, error, permission, responsive, keyboard/focus/screen-reader, CJK text
+> expansion, or font fallback states.
 >
 > Do not synthesize translations and do not count English fallback as translated
 > coverage. Ontology labels and concept names remain outside this presentation
@@ -204,12 +79,6 @@ review, screen-reader acceptance, all-page latency, protected merge, or release.
   incomplete requested-locale copy maps to 409. Unsupported locale, malformed
   screen identity, and an unrepresentable resource version each map to a
   distinct 422 response that tells the caller which request value to correct.
-- The Customer Master consumer does not reinterpret those backend failure
-  categories when the fetch promise is caught generically. Until a typed
-  frontend failure contract is introduced, its retry shell says only that the
-  selected-language screen could not be loaded, retries the request first, and
-  asks an administrator to check access and publication status only if the
-  failure persists. It does not assert that publication is missing.
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
@@ -233,24 +102,18 @@ review, screen-reader acceptance, all-page latency, protected merge, or release.
 - None of the above is release evidence until the unchanged exact PR head has
   terminal required/security checks and qualifying independent approval, then
   reaches protected `main` normally.
-- The stacked Customer Master consumer has no new ADR number, migration, API
-  route, schema object, or release number. It extends ADR 0362 and consumes the
-  route owned by #929, avoiding collisions with ADRs 0364–0366 and the
-  serialized report-release stack.
 
 ## Next buyer cut
 
 1. Use reviewed product copy to create and publish one complete screen resource
    for all eight locales. Do not invent copy to satisfy coverage.
-2. Finish the stacked Customer Master cutover by publishing reviewed product
-   copy for its declared keys in all eight locales and proving the authenticated
-   PostgreSQL/API normal path. The consumer and fail-closed loading/retry gate
-   exist only as branch evidence.
+2. Cut one material SPA screen off bundled `TRANSLATIONS` and onto the versioned
+   API. Customer Master is the natural first slice because #922 gates its open
+   material-UI work, but the screen identity must follow the actual product
+   composition contract rather than creating a second domain owner.
 3. Prove normal/loading/empty/error/permission/responsive states plus
    keyboard/focus/screen-reader behavior, CJK rendering, text expansion, and
    font fallback on the same exact head with fresh desktop and mobile evidence.
-   Include the small loading/retry shell in locale and text-expansion review;
-   its English source copy is not evidence of eight-locale behavior.
 4. Converge PRD/TRD/ARCHITECTURE/UX/OPERABILITY/TEST_STRATEGY/CHANGELOG and this
    baseline with the actual cutover. Keep ontology labels separate from product
    copy and consume only released owner contracts where another CWL product is
@@ -305,11 +168,4 @@ review, screen-reader acceptance, all-page latency, protected merge, or release.
   `tests/test_translation_api_driver_boundary.py`,
   `tests/test_translation_cache_timeout.py`, and
   `tests/test_translation_documentation_alignment.py`.
-- Stacked Customer Master consumer: `frontend/src/api.ts`,
-  `frontend/src/i18n.ts`, `frontend/src/App.tsx`,
-  `frontend/src/components/ScreenTranslationGate.tsx`,
-  `frontend/src/components/ScreenTranslationGate.test.tsx`, and
-  `tests/test_customer_master_translation_auth_gate_contract.py`; current-head
-  synthetic visual evidence is
-  `docs/screenshots/customer-master-translation-gate-{desktop,mobile}.png`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
