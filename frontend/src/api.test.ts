@@ -21,6 +21,14 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each(["{}", '{"detail":"   "}'])("keeps internal paths private when client guidance is absent: %s", async (body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { status: 403 })));
+    await expect(fetchMe("access-token")).rejects.toMatchObject({
+      name: "BackendError", status: 403,
+      message: "The service could not complete this request. Try again later.",
+    });
+  });
+
   it.each(["invalid JSON", "interrupted body"])("sanitizes a successful HTTP response with %s", async (failure) => {
     const response = new Response("synthetic private upstream diagnostic", { status: 200 });
     if (failure === "interrupted body") {
