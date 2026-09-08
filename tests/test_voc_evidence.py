@@ -8,7 +8,9 @@ from pathlib import Path
 from lineageweave.fixtures import fixture_thread_cast, sample_records
 from lineageweave.voc_evidence import first_excerpt_for, sentence_excerpts
 
-VOC_EVIDENCE_SOURCE_PATH = Path(__file__).parents[1] / "lineageweave" / "voc_evidence.py"
+VOC_EVIDENCE_SOURCE_PATH = (
+    Path(__file__).parents[1] / "lineageweave" / "voc_evidence.py"
+)
 AFFILIATE_INGESTION_SOURCE_PATH = (
     Path(__file__).parents[1] / "backend" / "app" / "affiliate_tree_ingestion.py"
 )
@@ -72,8 +74,10 @@ def test_voc_evidence_uses_extract_and_affiliate_specific_identifiers() -> None:
 
 
 def test_only_sentences_that_name_an_organization_are_kept() -> None:
-    excerpts = sentence_excerpts(_SOURCE_BODY, ("Northridge Grid", "Demo Corp"))
-    assert excerpts == (
+    matching_excerpts = sentence_excerpts(
+        _SOURCE_BODY, ("Northridge Grid", "Demo Corp")
+    )
+    assert matching_excerpts == (
         "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid "
         "about the delayed shipment.",
     )
@@ -85,8 +89,8 @@ def test_unmentioned_organization_yields_no_excerpt() -> None:
 
 
 def test_matching_is_case_insensitive() -> None:
-    excerpts = sentence_excerpts(_SOURCE_BODY, ("demo corp",))
-    assert "Demo Corp" in excerpts[0]
+    matching_excerpts = sentence_excerpts(_SOURCE_BODY, ("demo corp",))
+    assert "Demo Corp" in matching_excerpts[0]
 
 
 def test_empty_inputs_are_missing_evidence_not_a_guess() -> None:
@@ -105,23 +109,39 @@ def test_first_excerpt_returns_the_matching_sentence() -> None:
 
 def test_proj_alpha_cast_names_northridge_and_uncast_stays_empty() -> None:
     """Event Lineage click-through must have extractable VOC evidence."""
-    fork = fixture_thread_cast("Pricing renegotiation follow-up")
-    assert fork is not None
-    assert fork.organization_name == "Northridge Grid"
-    assert "Ada West" in fork.person_names
-    assert fork.body is not None
-    assert sentence_excerpts(fork.body, (fork.organization_name,))
+    pricing_thread_cast = fixture_thread_cast("Pricing renegotiation follow-up")
+    assert pricing_thread_cast is not None
+    assert pricing_thread_cast.organization_name == "Northridge Grid"
+    assert "Ada West" in pricing_thread_cast.person_names
+    assert pricing_thread_cast.body is not None
+    assert sentence_excerpts(
+        pricing_thread_cast.body, (pricing_thread_cast.organization_name,)
+    )
     assert fixture_thread_cast("Unrelated: annual account review") is None
-    spec = fixture_thread_cast("Technical specification review meeting")
-    assert spec is not None
-    assert spec.organization_name == "Westfield Power"
-    assert "Jordan Hale" in spec.person_names
-    assert spec.body is not None
-    assert sentence_excerpts(spec.body, (spec.organization_name,))
-    calendar = fixture_thread_cast("Follow-up on the Riverbend order confirmation")
-    assert calendar is not None
-    assert calendar.organization_name == "Riverbend"
-    assert not calendar.person_names
-    alpha = [rec.label for rec in sample_records() if rec.secondary_key == "proj-alpha"]
-    assert len(alpha) == 5
-    assert all(fixture_thread_cast(title) is not None for title in alpha)
+    specification_thread_cast = fixture_thread_cast(
+        "Technical specification review meeting"
+    )
+    assert specification_thread_cast is not None
+    assert specification_thread_cast.organization_name == "Westfield Power"
+    assert "Jordan Hale" in specification_thread_cast.person_names
+    assert specification_thread_cast.body is not None
+    assert sentence_excerpts(
+        specification_thread_cast.body,
+        (specification_thread_cast.organization_name,),
+    )
+    calendar_thread_cast = fixture_thread_cast(
+        "Follow-up on the Riverbend order confirmation"
+    )
+    assert calendar_thread_cast is not None
+    assert calendar_thread_cast.organization_name == "Riverbend"
+    assert not calendar_thread_cast.person_names
+    project_alpha_labels = [
+        lineage_record.label
+        for lineage_record in sample_records()
+        if lineage_record.secondary_key == "proj-alpha"
+    ]
+    assert len(project_alpha_labels) == 5
+    assert all(
+        fixture_thread_cast(record_title) is not None
+        for record_title in project_alpha_labels
+    )

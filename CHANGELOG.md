@@ -262,6 +262,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Extractive VOC evidence and affiliate-tree ingestion now use bounded-context
+  identifiers for source text, evidence excerpts, organization names, corporate
+  entities, affiliation leaves, lookup labels, database connections, and
+  counterparties. Published JSON keys, SQL/schema, lookup codes, sentence
+  matching, ordering, and missing-evidence behavior are unchanged.
+
 - The evidence-only 5W1H projection and its authorized read caller now use
   semantic evidence-slot, post-summary-role, key-event, counterparty, ontology,
   and deduplication identifiers. Published slot/value JSON keys, ontology

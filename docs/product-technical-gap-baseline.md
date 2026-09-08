@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Extractive VOC evidence naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@33981c8e562b927ba455995052de5a47187cd095`;
+> exact RED head `f515541502d4c8ee7001181aa92da0efc06e9fe1` found
+> repository-owned `text`, `names`, `name`, `excerpts`, `seen`, `sentence`,
+> `lowered`, `conn`, `aliases`, `row`, `entities`, `leaves`, `person`,
+> `affiliation`, `forest`, `nodes`, `codes`, `labels`, `level`, `side`, and
+> `counterparties` identifiers across sentence extraction, affiliate-tree
+> hydration, authorized database ingestion, and focused fixtures. Action:
+> align the complete bounded surface with source-text, evidence-excerpt,
+> organization-name, corporate-entity, affiliation-leaf, affiliate-node,
+> lookup-label, database-connection, and counterparty-row language while
+> preserving public JSON keys, SQL/schema, lookup codes, matching, ordering,
+> and missing-evidence behavior. Status: RED reproduced; implementation and
+> 16 focused affiliate-tree/VOC behavior and naming tests, compile, diff, and
+> scoped Ruff/format validation GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
 > Evidence-only 5W1H naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@af761b167595a4fbd15fbfc3cfcec4c3efe48de3`;
 > exact RED head `52dea4374655e0b222e464ab53b24400c97c7444` found
