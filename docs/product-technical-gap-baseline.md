@@ -1,5 +1,32 @@
 # Product & Technical Gap Baseline
 
+## Dashboard and login verification — 2026-09-08
+
+PR #983 at `f2fab9e3ca36c71bb4c16f37a5bbb63dc0584231` passed all
+10 Dashboard tests locally with `pnpm exec vitest run
+src/components/OperationsDashboard.test.tsx --maxWorkers=1` from `frontend/`
+(9.49 seconds total). Deferred success and failure are checked across both
+A-to-B and A-to-B-to-A authorization changes. The first request cannot overwrite
+the current result after returning to the original token. This is synthetic
+component evidence, not a production identity acceptance result.
+
+The same product source passed `pnpm run build` and `pnpm run build-storybook`.
+The product build reports a 551.27 kB main JavaScript chunk (161.88 kB gzip),
+above the bundler's 500 kB warning. This is an artifact-size observation;
+it does not measure browser execution cost or identify the latency root cause.
+Do not raise the warning limit to present the performance gap as resolved.
+
+The login helper at `6fdfc0591cb0700613ed078bf001ba387196e29f` addresses the
+review finding that an allowed navigation error could leave the browser on an
+unexpected page. It reasserts the authorization URL before filling the synthetic
+demo credentials and retains the post-login destination check.
+`pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --timeout=60000`
+passed the real Chromium redirect/login smoke (one test, 33.1 seconds total).
+This verifies the demo login flow against the local runtime, not deployment of
+the PR's frontend bundle, production Keyverse integration, or all-page latency.
+Current-head hosted checks, independent approval, protected merge, and release
+remain unverified; older successful runs do not satisfy those gates.
+
 ## Frontend coverage evidence — 2026-09-08
 
 PR #983 at `5a8a195c1` collected coverage in hosted run
