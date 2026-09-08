@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard } from "../api";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
@@ -25,6 +25,28 @@ const data = {
 };
 
 describe("OperationsDashboardView", () => {
+  beforeEach(() => vi.mocked(fetchOperationsDashboard).mockReset());
+
+  it("retries a failed query with the selected period and hides diagnostic details", async () => {
+    const fetchMock = vi.mocked(fetchOperationsDashboard);
+    fetchMock.mockResolvedValueOnce(data)
+      .mockRejectedValueOnce(new Error("private upstream diagnostic"))
+      .mockResolvedValueOnce(data);
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+    await screen.findByText("5건 · 25.0%");
+    fireEvent.change(screen.getByLabelText("시작일"), { target: { value: "2026-08-01" } });
+    fireEvent.change(screen.getByLabelText("종료일"), { target: { value: "2026-08-25" } });
+    await userEvent.click(screen.getByRole("button", { name: "기간 적용" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("불러오지 못했습니다");
+    expect(screen.queryByText("private upstream diagnostic")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    await screen.findByText("5건 · 25.0%");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "synthetic-token", "2026-08-01", "2026-08-25");
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "synthetic-token", "2026-08-01", "2026-08-25");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
