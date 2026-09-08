@@ -178,7 +178,7 @@ describe("OccupationRatingProfile coverage contracts", () => {
       items: [
         {
           ...ready.items[0],
-          category_value: "1",
+          category_value: 1,
           sample_size: null,
           standard_error: null,
           lower_ci_bound: null,
