@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
   fetchMe,
+  fetchOccupationalConstructSearch,
   fetchProjectHistory,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
@@ -15,6 +16,25 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([false, true])("preserves construct search filters and opaque continuation (%s)", async (withFilters) => {
+    const response = { query: "Planning & analysis + 설계", family_code: null, hits: [], next_cursor: null };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(response)));
+    vi.stubGlobal("fetch", fetchMock);
+    const filters = withFilters ? {
+      family: "worker_function", knowledgeCutoff: "2026-08-12T09:30:00+09:00",
+      cursor: "https://synthetic.invalid/construct#A+B&next=1", limit: 0,
+    } : {};
+    await expect(fetchOccupationalConstructSearch("access-token", { query: response.query, ...filters })).resolves.toEqual(response);
+    const [request, options] = fetchMock.mock.calls[0];
+    const url = new URL(request, "https://synthetic.invalid");
+    expect(url.pathname).toBe("/api/occupational-constructs/search");
+    expect(Object.fromEntries(url.searchParams)).toEqual(withFilters ? {
+      q: response.query, family: filters.family, knowledge_cutoff: filters.knowledgeCutoff,
+      cursor: filters.cursor, limit: "0",
+    } : { q: response.query });
+    expect(options.headers.Authorization).toBe("Bearer access-token");
+  });
+
   it.each([undefined, null, "2026-08-12T09:30:00+09:00"])("preserves project history identity and cutoff %s", async (cutoff) => {
     const response = { synthetic: true };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(response)));
