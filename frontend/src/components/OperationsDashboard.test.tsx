@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard } from "../api";
@@ -26,6 +26,29 @@ const data = {
 
 describe("OperationsDashboardView", () => {
   beforeEach(() => vi.mocked(fetchOperationsDashboard).mockReset());
+
+  it.each(["success", "failure"])("ignores stale %s after the access token changes", async (outcome) => {
+    let resolvePrevious!: (value: Awaited<ReturnType<typeof fetchOperationsDashboard>>) => void;
+    let rejectPrevious!: (reason: Error) => void;
+    const previous = new Promise<Awaited<ReturnType<typeof fetchOperationsDashboard>>>((resolve, reject) => {
+      resolvePrevious = resolve;
+      rejectPrevious = reject;
+    });
+    vi.mocked(fetchOperationsDashboard)
+      .mockReturnValueOnce(previous)
+      .mockResolvedValueOnce({ ...data, period_label: "Current authorized period" });
+    const { rerender } = render(<OperationsDashboard accessToken="old-token" onOpenPost={() => undefined} />);
+    rerender(<OperationsDashboard accessToken="new-token" onOpenPost={() => undefined} />);
+    await screen.findByText("Current authorized period");
+    await act(async () => {
+      if (outcome === "success") resolvePrevious({ ...data, period_label: "Stale authorized period" });
+      else rejectPrevious(new Error("previous request failed"));
+    });
+    expect(screen.getByText("Current authorized period")).toBeInTheDocument();
+    expect(screen.queryByText("Stale authorized period")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetchOperationsDashboard).toHaveBeenNthCalledWith(2, "new-token", "", "");
+  });
 
   it("retries a failed query with the selected period and hides diagnostic details", async () => {
     const fetchMock = vi.mocked(fetchOperationsDashboard);
