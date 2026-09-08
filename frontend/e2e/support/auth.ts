@@ -7,6 +7,25 @@ import type { Page } from "@playwright/test";
  */
 const DEMO_USERNAME = "demo.analyst";
 const DEMO_PASSWORD = "lineageweave-demo-only";
+const DEFAULT_KEYVERSE_ISSUER = "http://localhost:18080/realms/lineageweave-demo";
+const KEYVERSE_ISSUER = process.env.LINEAGEWEAVE_E2E_KEYVERSE_ISSUER ?? DEFAULT_KEYVERSE_ISSUER;
+
+/**
+ * Returns true only for the configured Keyverse issuer's authorization path.
+ * Matching the realm path alone is insufficient because credentials must never
+ * be entered on another origin that happens to expose the same path.
+ */
+export function isExpectedKeyverseAuthorizationUrl(
+  url: URL,
+  expectedIssuer: string = KEYVERSE_ISSUER,
+): boolean {
+  const issuer = new URL(expectedIssuer);
+  const issuerPath = issuer.pathname.replace(/\/+$/, "");
+  return (
+    url.origin === issuer.origin &&
+    url.pathname === `${issuerPath}/protocol/openid-connect/auth`
+  );
+}
 
 /**
  * Logs in through the real Keycloak-hosted login form (OIDC redirect,
@@ -17,9 +36,21 @@ const DEMO_PASSWORD = "lineageweave-demo-only";
  * authenticated destination.
  */
 export async function loginAsDemoAnalyst(page: Page): Promise<void> {
+  const isExpectedAuthorizationUrl = (url: URL) => isExpectedKeyverseAuthorizationUrl(url);
+
   await page.goto("/");
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL(/\/realms\/lineageweave-demo\/protocol\/openid-connect\/auth/);
+  try {
+    await page.waitForURL(isExpectedAuthorizationUrl, {
+      waitUntil: "commit",
+    });
+  } catch (error) {
+    if (!(error instanceof Error && /ERR_ABORTED|frame was detached/.test(error.message))) {
+      throw error;
+    }
+  }
+  await page.waitForURL(isExpectedAuthorizationUrl, { waitUntil: "commit" });
+  await page.getByLabel("Username or email").waitFor({ state: "visible" });
   await page.getByLabel("Username or email").fill(DEMO_USERNAME);
   await page.getByLabel("Password", { exact: true }).fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Sign In" }).click();

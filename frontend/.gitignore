@@ -27,3 +27,6 @@ playwright/.cache
 *.njsproj
 *.sln
 *.sw?
+
+# Generated Vitest coverage reports
+coverage/

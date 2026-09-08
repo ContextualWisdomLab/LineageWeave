@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 import "../App.css";
 
@@ -63,5 +63,22 @@ export const LoadError: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("불러오지 못했습니다");
     await expect(canvas.getByRole("button", { name: "다시 시도" })).toBeVisible();
+  },
+};
+
+export const EvidenceWithoutProject: Story = {
+  args: {
+    data: {
+      ...EvidenceReady.args!.data!,
+      cases: EvidenceReady.args!.data!.cases.slice(0, 1).map((item) => ({ ...item, project_name: null })),
+    },
+    onOpenPost: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("프로젝트 연결 분석 중")).toBeVisible();
+    await expect(canvas.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "분류 근거 글 열기" }));
+    await expect(args.onOpenPost).toHaveBeenCalledWith("synthetic-post-1");
   },
 };

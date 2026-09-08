@@ -6,6 +6,12 @@ import { configDefaults } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   test: {
+    coverage: {
+      provider: 'v8',
+      reportOnFailure: true,
+      include: ['src/**/*.{ts,tsx}'],
+      reporter: ['text', 'json-summary', 'lcov'],
+    },
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
     exclude: [...configDefaults.exclude, 'e2e/**'],

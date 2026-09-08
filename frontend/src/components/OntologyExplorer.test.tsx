@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
 import type { OntologyNeighborhoodPayload } from "../api";
 import { OntologyExplorer } from "./OntologyExplorer";
@@ -9,6 +9,10 @@ import { filterNeighborhood } from "../ontologyLayout";
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
   return { ...actual, fetchOntologyNeighborhood: vi.fn(), fetchOccupationalConstructSearch: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchOntologyNeighborhood).mockReset();
 });
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
@@ -198,7 +202,6 @@ describe("OntologyExplorer", () => {
 
   it("retries a failed continuation page with the same cursor", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
-    fetchNeighborhood.mockClear();
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
       .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 500))
@@ -226,7 +229,6 @@ describe("OntologyExplorer", () => {
 
   it.each([403, 404])("uses one fail-closed surface for hidden and missing focus responses (%s)", async (status) => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
-    fetchNeighborhood.mockClear();
     fetchNeighborhood.mockRejectedValueOnce(
       new BackendError("/api/ontology/neighborhood", status),
     );
@@ -565,5 +567,35 @@ describe("OntologyExplorer", () => {
       ),
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Find matching records" })).toBeVisible();
+  });
+
+  it("exports the visible neighborhood as CSV and JSON-LD files", () => {
+    const createObjectURL = vi.fn(() => "blob:ontology-export");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({ jsonld: { "@graph": [{ "@id": "lw:node/demo" }] } })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export JSON-LD" }));
+    const names = [...document.querySelectorAll("a")].map((link) => link.download);
+    expect(names).toEqual(
+      expect.arrayContaining(["ontology-neighborhood.csv", "ontology-neighborhood.jsonld"]),
+    );
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(click).toHaveBeenCalledTimes(2);
+    vi.runAllTimers();
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+    click.mockRestore();
+    vi.unstubAllGlobals();
   });
 });

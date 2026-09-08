@@ -17,7 +17,7 @@ export const Evidence: Story = {
   args: { status: "evidence" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const status = canvas.getByRole("status");
+    const status = canvas.getByRole("img", { name: /Evidence:/ });
     await expect(status).toHaveTextContent("Evidence");
     await expect(status.getAttribute("aria-label")).toMatch(/directly observed/i);
   },
@@ -27,7 +27,7 @@ export const Inference: Story = {
   args: { status: "inference" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const status = canvas.getByRole("status");
+    const status = canvas.getByRole("img", { name: /Inference:/ });
     await expect(status).toHaveTextContent("Inference");
     await expect(status.getAttribute("aria-label")).toMatch(/derived from observed evidence/i);
   },
@@ -37,7 +37,7 @@ export const Prediction: Story = {
   args: { status: "prediction" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const status = canvas.getByRole("status");
+    const status = canvas.getByRole("img", { name: /Prediction:/ });
     await expect(status).toHaveTextContent("Prediction");
     // A prediction must never read as settled fact -- it's the whole point
     // of carrying this status through from TEPP ADR 0016 to the UI.
@@ -55,7 +55,7 @@ export const AllThreeSideBySide: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const marks = canvas.getAllByRole("status");
+    const marks = canvas.getAllByRole("img");
     await expect(marks).toHaveLength(3);
     // Each mark's accessible name must differ -- the non-color
     // distinction requirement (ADR 0132 decision 5) is testable, not
