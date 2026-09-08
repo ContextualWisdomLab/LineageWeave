@@ -27,7 +27,10 @@ const data = {
 describe("OperationsDashboardView", () => {
   beforeEach(() => vi.mocked(fetchOperationsDashboard).mockReset());
 
-  it.each(["success", "failure"])("ignores stale %s after the access token changes", async (outcome) => {
+  it.each([
+    ["success", false], ["failure", false],
+    ["success", true], ["failure", true],
+  ] as const)("ignores stale %s after token changes (return to original: %s)", async (outcome, returnToOriginal) => {
     let resolvePrevious!: (value: Awaited<ReturnType<typeof fetchOperationsDashboard>>) => void;
     let rejectPrevious!: (reason: Error) => void;
     const previous = new Promise<Awaited<ReturnType<typeof fetchOperationsDashboard>>>((resolve, reject) => {
@@ -36,9 +39,14 @@ describe("OperationsDashboardView", () => {
     });
     vi.mocked(fetchOperationsDashboard)
       .mockReturnValueOnce(previous)
+      .mockResolvedValueOnce({ ...data, period_label: returnToOriginal ? "Intermediate authorized period" : "Current authorized period" })
       .mockResolvedValueOnce({ ...data, period_label: "Current authorized period" });
     const { rerender } = render(<OperationsDashboard accessToken="old-token" onOpenPost={() => undefined} />);
     rerender(<OperationsDashboard accessToken="new-token" onOpenPost={() => undefined} />);
+    if (returnToOriginal) {
+      await screen.findByText("Intermediate authorized period");
+      rerender(<OperationsDashboard accessToken="old-token" onOpenPost={() => undefined} />);
+    }
     await screen.findByText("Current authorized period");
     await act(async () => {
       if (outcome === "success") resolvePrevious({ ...data, period_label: "Stale authorized period" });
@@ -48,6 +56,8 @@ describe("OperationsDashboardView", () => {
     expect(screen.queryByText("Stale authorized period")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(fetchOperationsDashboard).toHaveBeenNthCalledWith(2, "new-token", "", "");
+    expect(fetchOperationsDashboard).toHaveBeenCalledTimes(returnToOriginal ? 3 : 2);
+    if (returnToOriginal) expect(fetchOperationsDashboard).toHaveBeenLastCalledWith("old-token", "", "");
   });
 
   it("retries a failed query with the selected period and hides diagnostic details", async () => {

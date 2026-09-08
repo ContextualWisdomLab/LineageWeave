@@ -449,3 +449,9 @@ When a button combines a date and label in adjacent inline elements, preserve
 an explicit text separator; visual CSS spacing does not guarantee a separated
 accessible name. Test the complete accessible name and the destination callback
 together, as in the Dashboard project-journey regression.
+
+For asynchronous authorization changes, test both A-to-B and A-to-B-to-A
+transitions with deferred success and failure. Returning to the same token
+must not reactivate the first request; assert the current authorized result
+and the actual request sequence, not token equality alone. Dashboard's
+effect-local cleanup flag already provides this request-lifecycle boundary.
