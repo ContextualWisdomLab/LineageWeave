@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
   fetchMe,
+  fetchPosts,
+  fetchOntologyNeighborhood,
+  setPostBookmark,
   fetchOccupationalConstructSearch,
   fetchProjectHistory,
   fetchOccupationRatingSources,
@@ -16,6 +19,52 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([false, true])("keeps post visibility and repeated Voice filters with legacy response %s", async (legacy) => {
+    const page = { posts: [], total_count: 0, limit: 10, offset: 20 };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(legacy ? [] : page)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(fetchPosts("access-token", 10, 20, "  design & review  ", ["customer", "partner"], "public", "oldest")).resolves.toEqual(page);
+    const [request, options] = fetchMock.mock.calls[0];
+    const url = new URL(request, "https://synthetic.invalid");
+    expect(url.pathname).toBe("/api/posts");
+    expect([...url.searchParams]).toEqual([
+      ["limit", "10"], ["offset", "20"], ["search", "design & review"],
+      ["voc_type", "customer"], ["voc_type", "partner"], ["visibility", "public"], ["sort", "oldest"],
+    ]);
+    expect(options.headers.Authorization).toBe("Bearer access-token");
+  });
+
+  it.each([true, false])("authenticates bookmark selection %s without dropping false", async (bookmarked) => {
+    const result = { bookmarked };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(result)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(setPostBookmark("access-token", "synthetic-post", bookmarked)).resolves.toEqual(result);
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/posts/synthetic-post/bookmark"), {
+      method: "POST", body: JSON.stringify({ bookmarked }),
+      headers: { Authorization: "Bearer access-token", "Content-Type": "application/json" },
+    });
+  });
+
+  it("preserves ontology property repetition, cutoff, and opaque continuation", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ nodes: [], edges: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchOntologyNeighborhood("access-token", {
+      focusNodeType: "post", focusNodeId: "synthetic +/#", maximumDepth: 0,
+      maximumNodes: 10, maximumEdges: 20, allowedPropertyCodes: ["wasDerivedFrom", "wasAttributedTo"],
+      knowledgeCutoff: "2026-08-12T09:30:00+09:00", cursor: "opaque+/=&",
+    });
+    const [request, options] = fetchMock.mock.calls[0];
+    const url = new URL(request, "https://synthetic.invalid");
+    expect(url.pathname).toBe("/api/ontology/neighborhood");
+    expect([...url.searchParams]).toEqual([
+      ["focus_node_type", "post"], ["focus_node_id", "synthetic +/#"], ["maximum_depth", "0"],
+      ["maximum_nodes", "10"], ["maximum_edges", "20"],
+      ["knowledge_cutoff", "2026-08-12T09:30:00+09:00"], ["cursor", "opaque+/=&"],
+      ["allowed_property_codes", "wasDerivedFrom"], ["allowed_property_codes", "wasAttributedTo"],
+    ]);
+    expect(options.headers.Authorization).toBe("Bearer access-token");
+  });
+
   it.each([false, true])("preserves construct search filters and opaque continuation (%s)", async (withFilters) => {
     const response = { query: "Planning & analysis + 설계", family_code: null, hits: [], next_cursor: null };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(response)));
