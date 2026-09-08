@@ -5,6 +5,7 @@ import { OntologyExplorer } from "./OntologyExplorer";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
+const EDGE_ID = "mentions:post-person";
 
 const neighborhood: OntologyNeighborhoodPayload = {
   focus_node_id: POST_ID,
@@ -40,7 +41,7 @@ const neighborhood: OntologyNeighborhoodPayload = {
   ],
   edges: [
     {
-      edge_id: "mentions:post-person",
+      edge_id: EDGE_ID,
       source_node_type_code: "node_post",
       source_node_id: POST_ID,
       target_node_type_code: "node_person",
@@ -58,6 +59,29 @@ const neighborhood: OntologyNeighborhoodPayload = {
   ],
   exact_value_rows: [],
   jsonld: { "@graph": [] },
+};
+
+const neighborhoodWithExactRow: OntologyNeighborhoodPayload = {
+  ...neighborhood,
+  exact_value_rows: [
+    {
+      edge_id: EDGE_ID,
+      source_node_id: POST_ID,
+      source_label: "Demo public post",
+      source_type_code: "node_post",
+      property_code: "mentions",
+      property_label: "mentions",
+      ontology_property_iri: "https://example.test/mentions",
+      target_node_id: PERSON_ID,
+      target_label: "Test Person",
+      target_type_code: "node_person",
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      valid_from: "",
+      valid_to: "",
+      evidence_count: "1",
+    },
+  ],
 };
 
 afterEach(() => {
@@ -108,5 +132,32 @@ describe("OntologyExplorer buyer actions", () => {
     fireEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
     fireEvent.click(screen.getByRole("button", { name: /Open evidence:/ }));
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+  });
+
+  it("selects an exact-value edge and retires the previous node disclosure", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhoodWithExactRow}
+      />,
+    );
+
+    const nodeControl = screen.getByRole("button", { name: "Select node: Post Demo public post" });
+    fireEvent.click(nodeControl);
+    expect(nodeControl).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Node evidence")).toBeInTheDocument();
+
+    const exactValueSource = screen.getByRole("button", { name: "Demo public post" });
+    fireEvent.click(exactValueSource);
+
+    expect(nodeControl).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByLabelText("Node evidence")).not.toBeInTheDocument();
+    expect(exactValueSource.closest("tr")).toHaveClass("is-selected");
+    expect(screen.getByRole("button", { name: /Select edge: mentions from/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByLabelText("Edge provenance")).toBeInTheDocument();
   });
 });
