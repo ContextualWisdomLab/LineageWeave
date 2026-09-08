@@ -241,7 +241,10 @@ The real-browser OIDC smoke helper waits for the Keycloak authorization URL at
 navigation commit, because waiting for the full Keycloak document load can
 exhaust Playwright's default timeout before the login form is usable. Keep the
 browser proof separate from the authorization-code exchange: the smoke test
-must still reach an authenticated destination after the callback.
+must still reach an authenticated destination after the callback. Chromium can
+report `ERR_ABORTED` or a detached frame during that cross-origin handoff; only
+that narrowly identified navigation race may be tolerated, followed by an
+explicit visible-login-form assertion.
 
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
