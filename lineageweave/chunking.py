@@ -193,7 +193,7 @@ _HTML_SUB = re.compile(r"<sub\b[^>]*>(.*?)</sub>", re.IGNORECASE | re.DOTALL)
 _INNER_TAG = re.compile(r"<[^>]+>")
 # Quantity caret after a unit/digit, not a leading footnote marker such as `^1`.
 _CARET_EXPONENT = re.compile(
-    r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}(?!\d|\.\d)|[nNiI]))"
+    r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?[0-9]{1,3}|[nNiI])\}|([+\-]?[0-9]{1,3}(?!\d|\.\d)|[nNiI]))"
 )
 _ENCODED_CARET = re.compile(r"&(?:amp;)*(?:#0*94|#x0*5e);", re.IGNORECASE)
 _ENCODED_LT = r"&(?:amp;)*(?:lt|#0*60|#x0*3c);"
@@ -386,8 +386,8 @@ class Chunk:
             ``"color:red;text-align:center"``), only set for ``"dom"``
             chunks that had one. A formatting cue -- font color,
             alignment, size -- degrades an embedding or an LLM prompt if
-            dumped into the text alongside the content (VIPS; Cai, Yu,
-            Wen, & Ma, 2003), so it is kept here as separate,
+            dumped into the text alongside the content (VIPS; Cai,
+            Yu, Wen, & Ma, 2003), so it is kept here as separate,
             addressable metadata instead, never concatenated into
             ``text``. ``None`` when the element had no ``style``
             attribute, distinct from an empty string (which would mean
