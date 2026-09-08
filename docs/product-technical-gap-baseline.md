@@ -1,5 +1,16 @@
 # Product & Technical Gap Baseline
 
+> Deterministic estimator test naming overlay: 2026-09-08 KST. Exact RED head
+> `3620f8b9f4775a3511c4bb8f56e6c9882af702dd` found repository-owned
+> `_record`, `_Connection`, `script`, `chosen`, `first`, `inserted`, and
+> `executed` identifiers in the behavioral fixture. Action: align the fixture
+> with source-post, thread-group, sampling-index, snapshot-digest, database,
+> query, and persisted-row language while preserving production estimator calls,
+> SQL/provenance assertions, and external `execute(query, *args)`. Status: RED
+> reproduced; AST contracts, compile, and Ruff/format GREEN locally with the
+> pre-existing naive-datetime lint excluded from this naming-only slice; GitHub
+> exact-head checks and independent review pending.
+>
 > Thread-group-key test naming overlay: 2026-09-08 KST. Exact RED head
 > `a06801aab7713f2638f20a2afaf0a6e35592bb09` found repository-owned
 > `_Connection`, `conn`, `rows`, `result`, `update`, and `script` identifiers in

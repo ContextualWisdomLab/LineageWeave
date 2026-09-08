@@ -262,6 +262,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The deterministic channel-weight estimator tests now use semantic source-post,
+  thread-group, sampling-index, digest, database, query, and persistence names
+  while preserving estimator behavior and external database protocol signatures.
+
 - The thread-group-key backfill test doubles now use semantic database,
   placeholder-post, analysis-run, query, and result identifiers while preserving
   the operator's behavior and external `asyncpg` protocol method names.

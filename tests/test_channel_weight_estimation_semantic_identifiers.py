@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 SCRIPT_PATH = Path("scripts/estimate_channel_weights.py")
 BEHAVIOR_TEST_PATH = Path("tests/test_estimate_channel_weights_script.py")
 
@@ -147,6 +146,11 @@ def test_estimator_behavior_tests_use_domain_specific_fixture_names() -> None:
             syntax_node,
             (ast.AsyncFunctionDef, ast.ClassDef, ast.FunctionDef),
         )
+    )
+    owned_identifiers.update(
+        syntax_node.attr
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, ast.Attribute)
     )
 
     assert owned_identifiers.isdisjoint(
