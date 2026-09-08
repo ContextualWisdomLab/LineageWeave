@@ -262,6 +262,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The thread-group-key backfill test doubles now use semantic database,
+  placeholder-post, analysis-run, query, and result identifiers while preserving
+  the operator's behavior and external `asyncpg` protocol method names.
+
 - The post-summary backfill operator now uses semantic parser, orchestrator
   gateway, database, source-post, client, content, failure, and aggregate
   identifiers while preserving CLI flags, JSON result keys, SQL selection,

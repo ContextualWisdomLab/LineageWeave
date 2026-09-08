@@ -1,5 +1,15 @@
 # Product & Technical Gap Baseline
 
+> Thread-group-key test naming overlay: 2026-09-08 KST. Exact RED head
+> `a06801aab7713f2638f20a2afaf0a6e35592bb09` found repository-owned
+> `_Connection`, `conn`, `rows`, `result`, `update`, and `script` identifiers in
+> the behavioral fixture despite semantic production naming. Action: align the
+> complete test-double and local-variable surface with database, placeholder-post,
+> analysis-run, update-query, and backfill-summary language while preserving the
+> external `asyncpg` `query`/`*args` adapter signature and all behavior. Status:
+> RED naming contract reproduced; implementation, focused contract, compile, and
+> Ruff GREEN locally; GitHub exact-head checks and independent review pending.
+>
 > Post-summary backfill naming overlay: 2026-09-08 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded operator used
 > generic package-owned parser, gateway, database, record, result, client, and

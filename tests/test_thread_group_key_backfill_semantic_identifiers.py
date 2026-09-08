@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 SCRIPT_PATH = Path(__file__).parents[1] / "scripts" / "backfill_thread_group_keys.py"
 BEHAVIOR_TEST_PATH = (
     Path(__file__).parents[1] / "tests" / "test_backfill_thread_group_keys.py"

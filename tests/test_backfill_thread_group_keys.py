@@ -16,31 +16,33 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import asyncpg
-
 import backend.app.config as backend_config
-import scripts.backfill_thread_group_keys as backfill
+
+import scripts.backfill_thread_group_keys as thread_group_backfill
 
 
-class _Connection:
+class _ThreadGroupDatabaseConnection:
     """Simulates the guard SELECT and the UPDATE...RETURNING this script issues.
 
-    ``rows`` models every ``source_post`` row carrying the placeholder
+    ``placeholder_post_rows`` models every ``source_post`` row carrying the placeholder
     signature (``thread_group_key`` equal to the row's own record key):
     each entry is ``had_project_code`` (True when the row's
     ``source_project_code`` was non-empty, so it now feeds the
-    secondary-key evidence channel). A row NOT in ``rows`` models a
+    secondary-key evidence channel). A row NOT in ``placeholder_post_rows`` models a
     seeded/genuinely-mapped row the placeholder predicate never touches.
-    ``anchored_runs`` models existing analysis_scope_thread_group runs
+    ``analysis_run_ids`` models existing analysis_scope_thread_group runs
     whose live scope match the rewrite would orphan.
     """
 
     def __init__(
-        self, rows: list[bool], anchored_runs: list[str] | None = None
+        self,
+        placeholder_post_rows: list[bool],
+        analysis_run_ids: list[str] | None = None,
     ) -> None:
         """Initialize the transaction test double."""
-        self._rows = rows
-        self._anchored_runs = anchored_runs or []
-        self.executed: list[str] = []
+        self._placeholder_post_rows = placeholder_post_rows
+        self._analysis_run_ids = analysis_run_ids or []
+        self.executed_queries: list[str] = []
 
     @asynccontextmanager
     async def transaction(self):
@@ -49,45 +51,55 @@ class _Connection:
 
     async def fetch(self, query: str, *args: object):
         """Return deterministic records for the requested query."""
-        self.executed.append(" ".join(query.split()))
+        self.executed_queries.append(" ".join(query.split()))
         if "analysis_run_scope" in query:
             return [
-                {"analysis_run_id": run_id, "scope_key": f"key-{run_id}"}
-                for run_id in self._anchored_runs
+                {
+                    "analysis_run_id": analysis_run_id,
+                    "scope_key": f"key-{analysis_run_id}",
+                }
+                for analysis_run_id in self._analysis_run_ids
             ]
         return [
-            {"had_project_code": had_project_code} for had_project_code in self._rows
+            {"had_project_code": had_project_code}
+            for had_project_code in self._placeholder_post_rows
         ]
 
 
 def test_backfill_clears_placeholders_and_routes_project_codes_to_secondary() -> None:
     """Verify placeholders clear and project codes become secondary keys."""
-    conn = _Connection([True, True, False, False, False])
-    result = asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=False))
-    assert result == {
+    database_connection = _ThreadGroupDatabaseConnection(
+        [True, True, False, False, False]
+    )
+    backfill_summary = asyncio.run(
+        thread_group_backfill.backfill_thread_group_keys(
+            database_connection, dry_run=False
+        )
+    )
+    assert backfill_summary == {
         "cleared_placeholder_posts": 5,
         "project_secondary_evidence_posts": 2,
     }
-    assert len(conn.executed) == 2
-    assert "analysis_run_scope" in conn.executed[0]
-    update = conn.executed[1]
-    assert "update source_post" in update
+    assert len(database_connection.executed_queries) == 2
+    assert "analysis_run_scope" in database_connection.executed_queries[0]
+    update_query = database_connection.executed_queries[1]
+    assert "update source_post" in update_query
     # The placeholder signature is the only predicate -- seeded rows with
     # real designed keys must never match.
-    assert "btrim(thread_group_key) = btrim(source_record_key)" in update
+    assert "btrim(thread_group_key) = btrim(source_record_key)" in update_query
     # Project code is routed to the secondary-key evidence channel, never
     # to thread_group_key -- a hard project partition would wall off
     # related posts that lack a project code, exactly the links the
     # reconstruction library exists to find.
-    assert "thread_group_key = ''" in update
+    assert "thread_group_key = ''" in update_query
     assert (
         "secondary_grouping_key = coalesce(nullif(btrim(source_project_code), ''), '')"
-        in update
+        in update_query
     )
-    assert "source_thread_group_key = coalesce(" in update
-    assert "source_thread_group_key, thread_group_key" in update
-    assert "source_secondary_grouping_key = coalesce(" in update
-    assert "source_secondary_grouping_key, secondary_grouping_key" in update
+    assert "source_thread_group_key = coalesce(" in update_query
+    assert "source_thread_group_key, thread_group_key" in update_query
+    assert "source_secondary_grouping_key = coalesce(" in update_query
+    assert "source_secondary_grouping_key, secondary_grouping_key" in update_query
 
 
 def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned() -> (
@@ -99,22 +111,35 @@ def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned(
     # posts are snapshot-frozen but the scope match is not. Rewriting
     # the keys out from under such a run silently detaches it, so the
     # backfill must refuse instead, before any UPDATE.
-    conn = _Connection([True, False], anchored_runs=["run-1", "run-2"])
+    database_connection = _ThreadGroupDatabaseConnection(
+        [True, False], analysis_run_ids=["run-1", "run-2"]
+    )
     try:
-        asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=False))
-    except RuntimeError as exc:
-        assert "run-1" in str(exc)
-        assert "run-2" in str(exc)
+        asyncio.run(
+            thread_group_backfill.backfill_thread_group_keys(
+                database_connection, dry_run=False
+            )
+        )
+    except RuntimeError as runtime_error:
+        assert "run-1" in str(runtime_error)
+        assert "run-2" in str(runtime_error)
     else:
         raise AssertionError("expected RuntimeError")
-    assert all("update source_post" not in query for query in conn.executed)
+    assert all(
+        "update source_post" not in query
+        for query in database_connection.executed_queries
+    )
 
 
 def test_backfill_no_placeholder_rows_is_a_clean_no_op() -> None:
     """Treat an empty placeholder selection as a successful no-op."""
-    conn = _Connection([])
-    result = asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=False))
-    assert result == {
+    database_connection = _ThreadGroupDatabaseConnection([])
+    backfill_summary = asyncio.run(
+        thread_group_backfill.backfill_thread_group_keys(
+            database_connection, dry_run=False
+        )
+    )
+    assert backfill_summary == {
         "cleared_placeholder_posts": 0,
         "project_secondary_evidence_posts": 0,
     }
@@ -122,10 +147,14 @@ def test_backfill_no_placeholder_rows_is_a_clean_no_op() -> None:
 
 def test_dry_run_reports_counts_but_raises_to_force_a_rollback() -> None:
     """Require dry-run counts while forcing transaction rollback."""
-    conn = _Connection([True, False])
+    database_connection = _ThreadGroupDatabaseConnection([True, False])
     try:
-        asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=True))
-    except backfill._RollbackDryRun as rolled_back:
+        asyncio.run(
+            thread_group_backfill.backfill_thread_group_keys(
+                database_connection, dry_run=True
+            )
+        )
+    except thread_group_backfill._RollbackDryRun as rolled_back:
         assert rolled_back.project_evidence_post_count == 1
         assert rolled_back.cleared_post_count == 2
     else:
@@ -133,33 +162,35 @@ def test_dry_run_reports_counts_but_raises_to_force_a_rollback() -> None:
 
 
 class _FakePool:
-    def __init__(self, conn: _Connection) -> None:
+    def __init__(self, database_connection: _ThreadGroupDatabaseConnection) -> None:
         """Initialize the transaction test double."""
-        self._conn = conn
+        self._database_connection = database_connection
 
     @asynccontextmanager
     async def acquire(self):
         """Return the configured database connection test double."""
-        yield self._conn
+        yield self._database_connection
 
     async def close(self) -> None:
         """Record closure of the pool test double."""
-        return None
+        return
 
 
-def _patch_pool(monkeypatch, conn: _Connection) -> None:
+def _patch_database_pool(
+    monkeypatch, database_connection: _ThreadGroupDatabaseConnection
+) -> None:
     """Install deterministic pool and settings test doubles."""
 
     async def fake_create_pool(*_args, **_kwargs):
         """Return the configured pool test double."""
-        return _FakePool(conn)
+        return _FakePool(database_connection)
 
     def fake_load_settings():
         """Return deterministic database settings."""
         return type("S", (), {"database_url": "postgresql://x"})()
 
-    monkeypatch.setattr(backfill.asyncpg, "create_pool", fake_create_pool)
-    monkeypatch.setattr(backfill, "load_settings", fake_load_settings)
+    monkeypatch.setattr(thread_group_backfill.asyncpg, "create_pool", fake_create_pool)
+    monkeypatch.setattr(thread_group_backfill, "load_settings", fake_load_settings)
 
 
 def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(
@@ -168,12 +199,14 @@ def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(
     """Report dry-run counts without exposing the rollback sentinel."""
     import argparse
 
-    conn = _Connection([True, True, False])
-    _patch_pool(monkeypatch, conn)
-    result = asyncio.run(
-        backfill._run_thread_group_key_backfill(argparse.Namespace(dry_run=True))
+    database_connection = _ThreadGroupDatabaseConnection([True, True, False])
+    _patch_database_pool(monkeypatch, database_connection)
+    backfill_summary = asyncio.run(
+        thread_group_backfill._run_thread_group_key_backfill(
+            argparse.Namespace(dry_run=True)
+        )
     )
-    assert result == {
+    assert backfill_summary == {
         "cleared_placeholder_posts": 3,
         "project_secondary_evidence_posts": 2,
         "dry_run": True,
@@ -184,12 +217,14 @@ def test_run_reports_write_counts_when_not_a_dry_run(monkeypatch) -> None:
     """Report persisted counts for a write run."""
     import argparse
 
-    conn = _Connection([True, False, False])
-    _patch_pool(monkeypatch, conn)
-    result = asyncio.run(
-        backfill._run_thread_group_key_backfill(argparse.Namespace(dry_run=False))
+    database_connection = _ThreadGroupDatabaseConnection([True, False, False])
+    _patch_database_pool(monkeypatch, database_connection)
+    backfill_summary = asyncio.run(
+        thread_group_backfill._run_thread_group_key_backfill(
+            argparse.Namespace(dry_run=False)
+        )
     )
-    assert result == {
+    assert backfill_summary == {
         "cleared_placeholder_posts": 3,
         "project_secondary_evidence_posts": 1,
         "dry_run": False,
@@ -198,22 +233,22 @@ def test_run_reports_write_counts_when_not_a_dry_run(monkeypatch) -> None:
 
 def test_script_entrypoint_reports_dry_run_counts(monkeypatch, capsys) -> None:
     """The documented operator command executes the rollback-safe boundary."""
-    conn = _Connection([True, False])
+    database_connection = _ThreadGroupDatabaseConnection([True, False])
 
     async def fake_create_pool(*_args, **_kwargs):
         """Return the configured pool test double."""
-        return _FakePool(conn)
+        return _FakePool(database_connection)
 
-    script = Path(backfill.__file__)
+    script_path = Path(thread_group_backfill.__file__)
     monkeypatch.setattr(asyncpg, "create_pool", fake_create_pool)
     monkeypatch.setattr(
         backend_config,
         "load_settings",
         lambda: SimpleNamespace(database_url="postgresql://synthetic"),
     )
-    monkeypatch.setattr(sys, "argv", [str(script), "--dry-run"])
+    monkeypatch.setattr(sys, "argv", [str(script_path), "--dry-run"])
 
-    runpy.run_path(str(script), run_name="__main__")
+    runpy.run_path(str(script_path), run_name="__main__")
 
     assert capsys.readouterr().out == (
         '{"cleared_placeholder_posts": 2, "dry_run": true, '
