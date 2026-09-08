@@ -4,6 +4,19 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import * as previewAnnotations from "../.storybook/preview";
 
+type RunnableStory = { run: () => Promise<unknown> };
+
+function assertRunnableStory(value: unknown): asserts value is RunnableStory {
+  if (
+    (typeof value !== "object" && typeof value !== "function") ||
+    value === null ||
+    !("run" in value) ||
+    typeof value.run !== "function"
+  ) {
+    throw new TypeError("Composed Storybook story does not expose run().");
+  }
+}
+
 const annotations = setProjectAnnotations([previewAnnotations]);
 const storyModules = import.meta.glob("./**/*.stories.tsx", { eager: true });
 
@@ -20,6 +33,7 @@ describe("Storybook portable story contract", () => {
 
     for (const [storyName, Story] of Object.entries(composedStories)) {
       it(`${modulePath} :: ${storyName}`, async () => {
+        assertRunnableStory(Story);
         await Story.run();
         expect(document.body.childElementCount).toBeGreaterThan(0);
       });
