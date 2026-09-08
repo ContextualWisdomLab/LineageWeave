@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+## Runtime measurement correction — 2026-09-08
+
+Docker's live port mappings identify backend at `18420`, contextual-orchestrator
+at `18000`, and frontend at `15173`. Earlier observations calling port `18000`
+"backend" are misattributed and cannot establish backend performance.
+
+A sequential 30-attempt probe per endpoint, with no warm-up or excluded attempts,
+read each complete response using Python urllib over host loopback. Nearest-rank
+p95 uses sorted attempt index `ceil(0.95 * 30) - 1`; timeout is 5 seconds.
+
+| Endpoint | Attempts | Failed attempts | Attempt p95 (ms) | Maximum (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Backend `/healthz`, port 18420 | 30 | 0 | 724.59 | 2435.51 |
+| Orchestrator `/healthz`, port 18000 | 30 | 0 | 780.26 | 1460.67 |
+| Frontend `/`, port 15173 | 30 | 0 | 170.19 | 670.47 |
+
+These observations exceed 20 ms. They measure public liveness/HTML transport,
+not authenticated pages, rendering, or k6 load acceptance. They do not establish
+an improvement against earlier runs with unverified service attribution.
+An earlier port-18000 attempt timed out after 5 seconds; subsequent successful
+responses do not erase that failure. Historical provider allowlist/candidate
+errors have not been temporally correlated with it and are not a proven cause.
+A follow-up backend container-loopback probe (`docker exec -i
+lineageweave-backend-1 python`, urllib to `127.0.0.1:8000/healthz`) used the same
+30-attempt method: zero failures, p95 8.89 ms, maximum 523.77 ms. The immediately
+following host probe to port 18420 had zero failures, p95 466.96 ms, maximum
+2651.49 ms. These sequential observations prioritize host/VM forwarding and
+scheduling investigation; they do not isolate causality or rule out application
+stalls. The internal maximum remains material. Do not replace application code
+or claim the all-page target met from this liveness comparison. The historical overlays below remain dated evidence.
+
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

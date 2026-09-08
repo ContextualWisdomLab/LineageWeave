@@ -422,3 +422,11 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Runtime measurement attribution
+
+Before timing a local endpoint, verify its service with `docker port` or live
+container port bindings; Compose port overrides can invalidate remembered
+ports. Record attempted requests and failures, retain timeout observations, and
+state whether the measurement covers liveness, HTML, or authenticated rendered
+pages. Correlate timestamped logs before attributing latency to provider errors.
