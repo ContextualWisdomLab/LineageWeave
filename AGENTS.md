@@ -469,3 +469,8 @@ For mocks with queued one-shot responses, reset the implementation between tests
 leave a response queued for the next test. Use the existing scoped lifecycle
 hook with `mockReset()` so one failed test cannot consume another test's data.
 This isolates later failures; it does not repair the first timeout.
+
+Coverage artifact upload cannot retain a report the test runner never produced.
+Keep Vitest `coverage.reportOnFailure` enabled so assertion failures still emit
+reports; retain the nonzero test exit and the complete configured denominator.
+Verify this with an ephemeral intentional failure, then remove the probe.

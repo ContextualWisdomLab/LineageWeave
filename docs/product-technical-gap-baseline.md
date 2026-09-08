@@ -1173,3 +1173,23 @@ unconsumed prior response ahead of the next response, whereas `mockReset()`
 removes it. This identifies a mechanism for cross-test failure propagation,
 not the cause of the first timeout. Keep the running source unchanged until
 its terminal result is recorded, then isolate those mocks and revalidate.
+
+### Full-run failure and evidence retention repair — 2026-09-08
+
+The canonical `pnpm run test:coverage` at `ed33b9601` terminated with exit 1:
+532 passed, 29 failed across 58 files (49 passed, nine failed), 278.92 seconds.
+There were 23 timeout reports; this count does not establish a common cause.
+No coverage report was printed, so earlier artifact percentages must not be
+attributed to this run. The failure log is retained locally.
+
+Head `1c36a0a96` resets the OntologyExplorer request mock before every test;
+its 16 tests passed in 25.04 seconds with unchanged thresholds. This prevents
+queued responses leaking between tests, without claiming the initial timeout
+is fixed. The same head enables Vitest `coverage.reportOnFailure`, supported
+by the [official configuration reference](https://vitest.dev/config/coverage.html#coverage-reportonfailure).
+Context7 documentation lookup was unavailable because its monthly quota was
+exhausted, so the official reference and installed runtime were checked.
+An ephemeral intentional-failure probe returned exit 1 while emitting both
+coverage-summary JSON and LCOV with the full configured source denominator.
+The probe was removed after verification. It proves report retention, not
+product correctness or coverage improvement; the 100% gate remains intact.
