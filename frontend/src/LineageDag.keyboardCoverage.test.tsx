@@ -82,6 +82,20 @@ describe("LineageDag connection keyboard coverage", () => {
     expect(edgeButton).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("closes selected connection evidence from its disclosure summary", () => {
+    const { edgeButton, disclosure } = renderDag();
+    const summary = disclosure.querySelector("summary");
+    if (!summary) throw new Error("expected connection evidence summary");
+
+    fireEvent.keyDown(edgeButton, { key: "Enter" });
+    expect(disclosure).toHaveAttribute("open");
+
+    fireEvent.click(summary);
+
+    expect(disclosure).not.toHaveAttribute("open");
+    expect(edgeButton).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("does not activate connection evidence for unrelated keys", () => {
     const { edgeButton, disclosure } = renderDag();
 
