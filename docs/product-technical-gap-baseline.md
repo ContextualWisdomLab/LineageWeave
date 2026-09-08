@@ -1,9 +1,9 @@
 # Product & Technical Gap Baseline
 
-> Snapshot refreshed 2026-09-08 KST (fourth cycle). Protected `main` is
+> Snapshot refreshed 2026-09-08 KST (fifth cycle). Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
-> validation at `1551f9e17`. Required current-head checks are not accepted
+> validation at `b05dec68c`. Required current-head checks are not accepted
 > as terminal GREEN and the delivery boundary still requires qualifying
 > independent review. The live non-identifying queue snapshot contains 139
 > open PRs (15 ready / 124 draft; #966 and #983 are Draft) and 22 open
@@ -14,16 +14,16 @@
 > run `34182446558`, stacked on #974. Same-author COMMENT is not independent
 > APPROVE. #972 hosted checks were pending and were not polled.
 >
-> #983 is Draft at `6e8a86683` because the 100% frontend coverage gate is
+> #983 is Draft at `d4e92718f` because the 100% frontend coverage gate is
 > still open. Last Ready-head coverage failure remains `8d8a809ad` (lines
-> 82.57%, job `101958668563`). Concurrent portable-story execution
-> (`27e80daac` / `f3fc86c46`) replaced the earlier CSF inventory runner and
-> was adopted, not restored. This cycle added leftover-map keyboard open and
-> catalog missing-session / 422 / failed-continuation regressions; local
-> leftover-map 6/6 and catalog 7/7 passed. Draft skips repository Tests;
-> hosted coverage GREEN is not claimed. Remaining product-source holes
-> include App and OntologyExplorer. #984 hosted checks were pending. Do not
-> poll those pending jobs. The authenticated
+> 82.57%, job `101958668563`). Concurrent OIDC bootstrap, portable-story
+> typing, and mixed-script exponent commits were adopted. This cycle added
+> CSV/JSON-LD neighborhood export coverage (local 1/1). Draft skips
+> repository Tests; hosted coverage GREEN is not claimed. Remaining
+> product-source holes include App destination handoff. #929 current-head
+> Frontend/Full test were not failing; remaining fails are dependency-review
+> 403, noema-review, opencode-review, and strix. #984 hosted checks were
+> pending. Do not poll those pending jobs. The authenticated
 > `GET /api/translations/{screen_key}` API is implemented on the candidate
 > branch. That is candidate implementation evidence, not protected-main,
 > deployed, or release evidence.
