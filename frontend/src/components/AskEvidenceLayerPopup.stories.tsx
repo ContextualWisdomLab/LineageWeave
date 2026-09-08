@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { AskEvidenceLayerPopup } from "./AskEvidenceLayerPopup";
 
 const meta = {
@@ -20,8 +21,8 @@ const meta = {
         tags: ["screenshot", "error"],
       },
     ],
-    onClose: () => undefined,
-    onOpenPost: () => undefined,
+    onClose: fn(),
+    onOpenPost: fn(),
   },
 } satisfies Meta<typeof AskEvidenceLayerPopup>;
 
