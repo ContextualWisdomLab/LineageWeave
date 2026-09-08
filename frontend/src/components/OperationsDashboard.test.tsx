@@ -79,11 +79,21 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
     await userEvent.click(screen.getByRole("button", { name: "원인 수주 근거 열기" }));
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-2");
+    await userEvent.click(screen.getByRole("button", { name: "2026-08-12 클레임 원인 역추적" }));
+    expect(onOpenPost).toHaveBeenLastCalledWith("post-1");
   });
 
   it("shows an actionable empty external-information state", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
     expect(screen.getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+  });
+
+  it("directs an empty completed period to period or access scope without inventing pending work", () => {
+    render(<OperationsDashboardView data={{ ...data, cases: [], pending_analysis_count: 0 }} onOpenPost={vi.fn()} />);
+    expect(screen.getByRole("status")).toHaveTextContent("기간이나 접근 범위를 확인하세요");
+    expect(screen.queryByText("분석 대기 건부터 처리하세요")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
   });
 
   it("separates failed analysis from pending work and gives the next action", () => {

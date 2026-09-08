@@ -444,3 +444,8 @@ The frontend CI retains `frontend-coverage` even when the coverage threshold
 fails. Use its LCOV paths and JSON summary to select regression work; console
 tables abbreviate filenames. A passing test suite and a failing coverage gate
 are distinct results, and neither licenses lowering the threshold.
+
+When a button combines a date and label in adjacent inline elements, preserve
+an explicit text separator; visual CSS spacing does not guarantee a separated
+accessible name. Test the complete accessible name and the destination callback
+together, as in the Dashboard project-journey regression.
