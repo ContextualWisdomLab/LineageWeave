@@ -1,5 +1,18 @@
 # Product & Technical Gap Baseline
 
+> Explicit post-content requeue naming overlay: 2026-09-08 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`; exact RED head
+> `c92ee08effb128e1a5de0277f9c0da43ffa639ed` found repository-owned
+> `_parser`, `parser`, `connection`, `client`, `request`, `args`, and `settings`
+> identifiers across the operator's CLI, PostgreSQL transaction, Valkey
+> publication, and runtime configuration. Action: align the complete private
+> caller surface with post-content-requeue, database, source-post,
+> job-request, Valkey-stream, and runtime-settings language while preserving
+> CLI flags, SQL, JSON output keys, transaction, publication, and resource
+> close behavior. Status: RED reproduced; implementation and focused naming,
+> boundary, compile, and lint validation GREEN locally; GitHub exact-head
+> checks and independent review pending.
+>
 > Ontology-site builder naming overlay: 2026-09-08 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`; exact RED head
 > `fbde01a4696362d659db2f4b33f588882bdb8385` found repository-owned
