@@ -237,6 +237,12 @@ vector degrades that pair back to difflib; it never fabricates a score.
 
 ## Tests
 
+The real-browser OIDC smoke helper waits for the Keycloak authorization URL at
+navigation commit, because waiting for the full Keycloak document load can
+exhaust Playwright's default timeout before the login form is usable. Keep the
+browser proof separate from the authorization-code exchange: the smoke test
+must still reach an authenticated destination after the callback.
+
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
 # (see backend/Dockerfile). Without it, pip falls over at build time.
