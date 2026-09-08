@@ -28,6 +28,14 @@ discarded, and transport failures become a stable status-0 client error
 before any UI handler can render them. Client-error details remain available
 only for actionable validation or authorization responses.
 
+A successful HTTP status does not establish a readable application response.
+If reading or decoding its JSON body fails, the browser client rejects with
+`BackendError`, retains the observed HTTP status, and supplies the same stable
+retry guidance as a service failure. It never exposes the body or parser
+exception. Retaining the status avoids inventing an upstream 5xx response;
+rejection, rather than the status alone, signals unusable evidence to callers.
+This does not replace endpoint-specific schema validation.
+
 Missing or malformed evidence remains unavailable; it is never converted into
 a fabricated negative result. Existing input-validation errors outside a
 provider boundary retain their client-actionable 422 detail.
