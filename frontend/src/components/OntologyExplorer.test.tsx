@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
@@ -567,5 +567,35 @@ describe("OntologyExplorer", () => {
       ),
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Find matching records" })).toBeVisible();
+  });
+
+  it("exports the visible neighborhood as CSV and JSON-LD files", () => {
+    const createObjectURL = vi.fn(() => "blob:ontology-export");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({ jsonld: { "@graph": [{ "@id": "lw:node/demo" }] } })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export JSON-LD" }));
+    const names = [...document.querySelectorAll("a")].map((link) => link.download);
+    expect(names).toEqual(
+      expect.arrayContaining(["ontology-neighborhood.csv", "ontology-neighborhood.jsonld"]),
+    );
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(click).toHaveBeenCalledTimes(2);
+    vi.runAllTimers();
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+    click.mockRestore();
+    vi.unstubAllGlobals();
   });
 });
