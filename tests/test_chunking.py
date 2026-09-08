@@ -682,3 +682,8 @@ def test_decode_data_uri_image_accepts_png_and_rejects_malformed() -> None:
     assert _decode_data_uri_image("http://example.test/image.png") is None
     assert _decode_data_uri_image("data:image/png,notbase64") is None
     assert _decode_data_uri_image("data:image/png;base64,%%%bad") is None
+
+
+def test_long_numeric_caret_exponents_remain_literal() -> None:
+    for text in ("x^1234", "x^-1234", "x^+1234", "x^{1234}"):
+        assert normalize_script_text(text) == text

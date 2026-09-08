@@ -31,6 +31,11 @@ plain text, and a leading footnote caret (`^1 …`) is not a unit exponent.
   rather than silently concatenating. Full formula ontology remains out of
   scope; this decision covers quantity display and unit-level text.
 
+Numeric caret runs longer than three digits stay literal in both derived text
+and display runs. Never convert a three-digit prefix while leaving the rest
+as ordinary text: that changes the represented quantity. This preserves the
+short-exponent boundary without introducing a full formula parser.
+
 ## Consequences
 
 - The post popup shows `12 m³` and `H₂O` as superscripts and subscripts.

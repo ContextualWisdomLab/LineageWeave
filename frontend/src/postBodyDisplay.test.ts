@@ -350,6 +350,11 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it.each(["x^1234", "x^-1234", "x^+1234", "x^{1234}"])("keeps unsupported long exponents intact: %s", (text) => {
+    expect(normalizeScriptText(text)).toBe(text);
+    expect(splitScriptRuns(text)).toEqual([{ text }]);
+  });
+
   it("keeps mixed script content as a visible fallback", () => {
     expect(splitPostBody("x<sup>3a</sup>")).toEqual([{ kind: "text", text: "x^3a" }]);
   });
