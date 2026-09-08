@@ -54,33 +54,13 @@ _BATCH_TIMEOUT_SECONDS = 60.0
 
 
 def _orchestrator_config() -> tuple[str, str]:
-    """Base URL and bearer key for the batch routing API, from the environment."""
-    orchestrator_base_url = next(
-        (
-            os.environ[environment_variable_name].strip()
-            for environment_variable_name in (
-                "ORCHESTRATOR_BASE_URL",
-                "LLM_GATEWAY_API_URL",
-            )
-            if os.environ.get(environment_variable_name, "").strip()
-        ),
-        "",
-    )
-    orchestrator_api_key = next(
-        (
-            os.environ[environment_variable_name].strip()
-            for environment_variable_name in (
-                "ORCHESTRATOR_API_KEY",
-                "CONTEXTUAL_ORCHESTRATOR_TOKEN",
-            )
-            if os.environ.get(environment_variable_name, "").strip()
-        ),
-        "",
-    )
+    """Return the published contextual-orchestrator consumer endpoint and bearer."""
+    orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "").strip()
+    orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "").strip()
     if not orchestrator_base_url or not orchestrator_api_key:
         raise RuntimeError(
-            "set ORCHESTRATOR_BASE_URL and ORCHESTRATOR_API_KEY (or "
-            "CONTEXTUAL_ORCHESTRATOR_TOKEN) to reach the batch routing API"
+            "set ORCHESTRATOR_BASE_URL and ORCHESTRATOR_API_KEY to reach "
+            "the contextual-orchestrator batch routing API"
         )
     return orchestrator_base_url.rstrip("/"), orchestrator_api_key
 
