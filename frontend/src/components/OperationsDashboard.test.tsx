@@ -25,6 +25,15 @@ const data = {
 };
 
 describe("OperationsDashboardView", () => {
+  it("keeps evidence available for a case without a project association", async () => {
+    const onOpenPost = vi.fn();
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], project_name: null }] }} onOpenPost={onOpenPost} />);
+    expect(screen.getByText("프로젝트 연결 분석 중")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));
+    expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
+  });
+
   beforeEach(() => vi.mocked(fetchOperationsDashboard).mockReset());
 
   it.each([

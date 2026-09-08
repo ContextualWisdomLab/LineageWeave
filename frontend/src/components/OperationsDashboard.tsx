@@ -78,7 +78,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             <div key={project} className="dashboard-journey">
               <h4>{project}</h4>
               <ol>
-                {(events ?? []).map((event) => (
+                {events.map((event) => (
                   <li key={`${event.post_id}-${event.case_kind_code}`}>
                     <button type="button" onClick={() => onOpenPost(event.post_id)}>
                       <time dateTime={event.occurred_at}>{event.occurred_at.slice(0, 10)}</time>{" "}
