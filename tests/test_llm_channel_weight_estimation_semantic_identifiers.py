@@ -10,6 +10,7 @@ SCRIPT_PATH = Path("scripts/estimate_llm_channel_weights.py")
 
 
 def test_owned_llm_estimation_identifiers_are_semantic() -> None:
+    """Require semantic identifiers throughout queued LLM estimation."""
     script_source = SCRIPT_PATH.read_text(encoding="utf-8")
     syntax_tree = ast.parse(script_source)
     owned_identifiers = {
@@ -83,6 +84,7 @@ def test_owned_llm_estimation_identifiers_are_semantic() -> None:
 
 
 def test_llm_provider_cli_json_and_persistence_contracts_are_unchanged() -> None:
+    """Preserve LLM estimator boundary contracts."""
     script_source = SCRIPT_PATH.read_text(encoding="utf-8")
 
     for contract_literal in (

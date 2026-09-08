@@ -23,6 +23,7 @@ import scripts.estimate_channel_weights as script
 
 
 def _record(record_id: str, group: str, minute: int, secondary: str = "") -> Record:
+    """Build one deterministic source-post record fixture."""
     return Record(
         record_id,
         group,
@@ -33,6 +34,7 @@ def _record(record_id: str, group: str, minute: int, secondary: str = "") -> Rec
 
 
 def test_sampling_stays_within_groups_and_window() -> None:
+    """Keep sampled pairs within group and candidate-window boundaries."""
     lineage_records = [
         _record("a1", "g-a", 0),
         _record("a2", "g-a", 1),
@@ -51,6 +53,7 @@ def test_sampling_stays_within_groups_and_window() -> None:
 
 
 def test_sampling_window_bounds_candidates_like_reconstruct() -> None:
+    """Match reconstruction candidate-window bounds."""
     lineage_records = [_record(f"r{index}", "g", index) for index in range(5)]
     _, unbounded_ids, _ = script.sample_pair_scores(
         lineage_records, candidate_window=50
@@ -62,6 +65,7 @@ def test_sampling_window_bounds_candidates_like_reconstruct() -> None:
 
 
 def test_llm_subsample_stride_is_deterministic_and_spread() -> None:
+    """Keep LLM subsampling deterministic and distributed."""
     # Small totals pass through untouched; larger ones are evenly strided
     # (first index 0, no index past the end, exactly the limit chosen)
     # with no randomness, so re-runs stay comparable.
@@ -75,6 +79,7 @@ def test_llm_subsample_stride_is_deterministic_and_spread() -> None:
 
 
 def test_snapshot_digest_is_reproducible_and_order_sensitive() -> None:
+    """Require reproducible order-sensitive source digests."""
     source_post_rows = [
         {"post_id": "a", "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc)},
         {"post_id": "b", "created_at": datetime(2026, 1, 2, tzinfo=timezone.utc)},
@@ -87,13 +92,16 @@ def test_snapshot_digest_is_reproducible_and_order_sensitive() -> None:
 
 class _Connection:
     def __init__(self) -> None:
+        """Initialize the estimation database test double."""
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
     @asynccontextmanager
     async def transaction(self):
+        """Return the transaction test double context."""
         yield self
 
     async def execute(self, query: str, *args: object) -> str:
+        """Record one persistence statement and its arguments."""
         self.executed.append((" ".join(query.split()), args))
         return "OK"
 
@@ -101,6 +109,7 @@ class _Connection:
 def test_persist_estimate_stamps_full_provenance_on_one_scoped_set(
     monkeypatch,
 ) -> None:
+    """Persist complete provenance for one scoped estimate set."""
     monkeypatch.setattr(script, "estimator_version", lambda: "0.9.1")
     database_connection = _Connection()
     channel_weight_estimate = ChannelWeightEstimate(
@@ -140,6 +149,7 @@ def test_persist_estimate_stamps_full_provenance_on_one_scoped_set(
 
 
 def test_main_rejects_nonpositive_post_limit(monkeypatch) -> None:
+    """Reject a nonpositive command post limit."""
     monkeypatch.setattr(
         "sys.argv", ["estimate_channel_weights.py", "--post-limit", "0"]
     )

@@ -37,15 +37,18 @@ class _Connection:
     def __init__(
         self, rows: list[bool], anchored_runs: list[str] | None = None
     ) -> None:
+        """Initialize the transaction test double."""
         self._rows = rows
         self._anchored_runs = anchored_runs or []
         self.executed: list[str] = []
 
     @asynccontextmanager
     async def transaction(self):
+        """Return the transaction test double context."""
         yield self
 
     async def fetch(self, query: str, *args: object):
+        """Return deterministic records for the requested query."""
         self.executed.append(" ".join(query.split()))
         if "analysis_run_scope" in query:
             return [
@@ -58,6 +61,7 @@ class _Connection:
 
 
 def test_backfill_clears_placeholders_and_routes_project_codes_to_secondary() -> None:
+    """Verify placeholders clear and project codes become secondary keys."""
     conn = _Connection([True, True, False, False, False])
     result = asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=False))
     assert result == {
@@ -89,6 +93,7 @@ def test_backfill_clears_placeholders_and_routes_project_codes_to_secondary() ->
 def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned() -> (
     None
 ):
+    """Reject a backfill that would orphan a scoped analysis run."""
     # analysis_scope_thread_group runs resolve `thread_group_key =
     # scope_key` live on every read (ABAC visibility) -- their member
     # posts are snapshot-frozen but the scope match is not. Rewriting
@@ -106,6 +111,7 @@ def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned(
 
 
 def test_backfill_no_placeholder_rows_is_a_clean_no_op() -> None:
+    """Treat an empty placeholder selection as a successful no-op."""
     conn = _Connection([])
     result = asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=False))
     assert result == {
@@ -115,6 +121,7 @@ def test_backfill_no_placeholder_rows_is_a_clean_no_op() -> None:
 
 
 def test_dry_run_reports_counts_but_raises_to_force_a_rollback() -> None:
+    """Require dry-run counts while forcing transaction rollback."""
     conn = _Connection([True, False])
     try:
         asyncio.run(backfill.backfill_thread_group_keys(conn, dry_run=True))
@@ -127,21 +134,28 @@ def test_dry_run_reports_counts_but_raises_to_force_a_rollback() -> None:
 
 class _FakePool:
     def __init__(self, conn: _Connection) -> None:
+        """Initialize the transaction test double."""
         self._conn = conn
 
     @asynccontextmanager
     async def acquire(self):
+        """Return the configured database connection test double."""
         yield self._conn
 
     async def close(self) -> None:
+        """Record closure of the pool test double."""
         return None
 
 
 def _patch_pool(monkeypatch, conn: _Connection) -> None:
+    """Install deterministic pool and settings test doubles."""
+
     async def fake_create_pool(*_args, **_kwargs):
+        """Return the configured pool test double."""
         return _FakePool(conn)
 
     def fake_load_settings():
+        """Return deterministic database settings."""
         return type("S", (), {"database_url": "postgresql://x"})()
 
     monkeypatch.setattr(backfill.asyncpg, "create_pool", fake_create_pool)
@@ -151,6 +165,7 @@ def _patch_pool(monkeypatch, conn: _Connection) -> None:
 def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(
     monkeypatch,
 ) -> None:
+    """Report dry-run counts without exposing the rollback sentinel."""
     import argparse
 
     conn = _Connection([True, True, False])
@@ -166,6 +181,7 @@ def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(
 
 
 def test_run_reports_write_counts_when_not_a_dry_run(monkeypatch) -> None:
+    """Report persisted counts for a write run."""
     import argparse
 
     conn = _Connection([True, False, False])
@@ -185,6 +201,7 @@ def test_script_entrypoint_reports_dry_run_counts(monkeypatch, capsys) -> None:
     conn = _Connection([True, False])
 
     async def fake_create_pool(*_args, **_kwargs):
+        """Return the configured pool test double."""
         return _FakePool(conn)
 
     script = Path(backfill.__file__)

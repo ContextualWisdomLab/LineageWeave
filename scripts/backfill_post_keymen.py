@@ -37,6 +37,7 @@ from lineageweave.post_content_normalization import normalize_post_body
 
 
 def _first_env(*variable_names: str) -> str:
+    """Return the first non-empty configured environment value."""
     return next(
         (
             os.environ.get(variable_name, "").strip()
@@ -48,6 +49,7 @@ def _first_env(*variable_names: str) -> str:
 
 
 def _orchestrator_config() -> tuple[str, str]:
+    """Resolve the contextual-orchestrator endpoint and credential."""
     base_url = _first_env(
         "ORCHESTRATOR_BASE_URL", "LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL"
     )
@@ -176,6 +178,7 @@ async def _select_posts(
 async def _run_post_keyman_backfill(
     command_arguments: argparse.Namespace,
 ) -> dict[str, object]:
+    """Run the bounded post-Keyman backfill transaction."""
     if command_arguments.post_id and command_arguments.all:
         raise ValueError("--post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
@@ -254,6 +257,7 @@ async def _run_post_keyman_backfill(
 
 
 def main() -> None:
+    """Run the post-Keyman operator and print its JSON summary."""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     post_selector = argument_parser.add_mutually_exclusive_group()
     post_selector.add_argument("--post-id", help="Re-extract one eligible post")

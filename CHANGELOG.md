@@ -262,6 +262,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The post-summary backfill operator now uses semantic parser, orchestrator
+  gateway, database, source-post, client, content, failure, and aggregate
+  identifiers while preserving CLI flags, JSON result keys, SQL selection,
+  transactions, persistence, and connection-close behavior.
+
 - The synchronous post-content backfill now uses semantic command, database,
   source-post, normalized-content, image-result, aggregate-result, and SQL
   aliases while preserving CLI flags, JSON result keys, source selection,

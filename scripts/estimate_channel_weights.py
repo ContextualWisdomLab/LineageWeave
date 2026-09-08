@@ -186,6 +186,7 @@ async def persist_estimate(
 async def _run_channel_weight_estimation(
     command_arguments: argparse.Namespace,
 ) -> dict[str, object]:
+    """Estimate and persist one channel-weight profile."""
     runtime_settings = load_settings()
     # Short-lived fetch connection; nothing stays open while fitting.
     database_connection = await asyncpg.connect(runtime_settings.database_url)

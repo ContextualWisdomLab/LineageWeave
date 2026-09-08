@@ -17,6 +17,7 @@ import scripts.estimate_llm_channel_weights as script
 
 
 def test_batch_requests_carry_caller_custom_ids_for_every_pair() -> None:
+    """Attach caller-owned identifiers to every pair request."""
     candidate_pair_labels = [("a", "b"), ("c", "d"), ("e", "f")]
     batch_requests = script.batch_requests_for_pairs([0, 2], candidate_pair_labels)
     assert [batch_request["custom_id"] for batch_request in batch_requests] == [
@@ -32,6 +33,7 @@ def test_batch_requests_carry_caller_custom_ids_for_every_pair() -> None:
 
 
 def test_shared_judge_prompt_and_confidence_parse_round_trip() -> None:
+    """Round-trip shared judging prompts and confidence values."""
     judgment_prompt = judge_prompt("Record about pricing", "Follow-up record")
     assert "Record A: Record about pricing" in judgment_prompt
     assert "Record B: Follow-up record" in judgment_prompt
@@ -61,6 +63,7 @@ def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
 
 
 def test_batch_completion_is_detected_from_flag_or_status() -> None:
+    """Recognize batch completion from either supported field."""
     assert script._is_complete({"is_complete": True})
     assert script._is_complete({"status": "completed"})
     assert script._is_complete({"status": "Succeeded"})

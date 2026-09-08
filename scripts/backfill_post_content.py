@@ -41,6 +41,7 @@ from lineageweave.post_structure import (
 
 
 def _post_content_backfill_parser() -> argparse.ArgumentParser:
+    """Build the synchronous post-content backfill argument parser."""
     argument_parser = argparse.ArgumentParser(description=__doc__)
     argument_parser.add_argument(
         "--target-dsn",
@@ -70,6 +71,7 @@ async def backfill_post_content(
     post_limit: int | None,
     normalize_only: bool = False,
 ) -> dict[str, int]:
+    """Backfill normalized content for selected eligible source posts."""
     post_ids = [
         str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])
     ]
@@ -279,6 +281,7 @@ async def backfill_post_content(
 
 
 def main() -> None:
+    """Validate command arguments, run the backfill, and print JSON counts."""
     command_arguments = _post_content_backfill_parser().parse_args()
     if command_arguments.limit < 1:
         raise SystemExit("--limit must be positive")

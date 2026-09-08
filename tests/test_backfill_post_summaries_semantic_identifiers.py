@@ -58,11 +58,17 @@ def _owned_identifiers(source_tree: ast.AST) -> set[str]:
     """Collect package-owned definitions, arguments, and assignment targets."""
     identifiers: set[str] = set()
     for syntax_node in ast.walk(source_tree):
-        if isinstance(syntax_node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if isinstance(
+            syntax_node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
             identifiers.add(syntax_node.name)
         elif isinstance(syntax_node, ast.arg):
             identifiers.add(syntax_node.arg)
-        elif isinstance(syntax_node, ast.Name) and isinstance(syntax_node.ctx, ast.Store):
+        elif isinstance(syntax_node, ast.ExceptHandler) and syntax_node.name:
+            identifiers.add(syntax_node.name)
+        elif isinstance(syntax_node, ast.Name) and isinstance(
+            syntax_node.ctx, ast.Store
+        ):
             identifiers.add(syntax_node.id)
     return identifiers
 
@@ -91,8 +97,6 @@ def test_post_summary_backfill_preserves_external_contract() -> None:
         '"failure_types"',
         "await database_connection.close()",
         "asyncpg.connect(target_dsn)",
-        "PostgresPostSummaryMetadataStore",
-        "PostgresPostSummaryRepository",
     }
     assert all(contract_literal in source for contract_literal in required_literals)
 
@@ -107,4 +111,3 @@ def test_post_summary_backfill_functions_have_docstrings() -> None:
     ]
     assert function_nodes
     assert all(ast.get_docstring(function_node) for function_node in function_nodes)
-

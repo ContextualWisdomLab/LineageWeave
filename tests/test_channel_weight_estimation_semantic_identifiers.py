@@ -10,6 +10,7 @@ SCRIPT_PATH = Path("scripts/estimate_channel_weights.py")
 
 
 def _function_identifiers(function_name: str) -> set[str]:
+    """Collect identifiers owned by the target estimator function."""
     source_tree = ast.parse(SCRIPT_PATH.read_text(encoding="utf-8"))
     function_node = next(
         node
@@ -31,6 +32,7 @@ def _function_identifiers(function_name: str) -> set[str]:
 
 
 def test_owned_estimation_identifiers_are_semantic() -> None:
+    """Require semantic identifiers throughout deterministic estimation."""
     expected_identifiers = {
         "source_snapshot_digest": {
             "source_post_rows",
@@ -94,6 +96,7 @@ def test_owned_estimation_identifiers_are_semantic() -> None:
 
 
 def test_external_cli_json_and_persistence_contracts_are_unchanged() -> None:
+    """Preserve deterministic estimator boundary contracts."""
     script_source = SCRIPT_PATH.read_text(encoding="utf-8")
 
     assert '"--post-limit"' in script_source

@@ -1,5 +1,17 @@
 # Product & Technical Gap Baseline
 
+> Post-summary backfill naming overlay: 2026-09-08 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded operator used
+> generic package-owned parser, gateway, database, record, result, client, and
+> limit identifiers (`_parser`, `_gateway_config`, `_load_posts`,
+> `_semantic_hints`, `conn`, `row`, `result`, `limit`). Action:
+> translate its complete private caller surface to post-summary and
+> contextual-orchestrator language while preserving CLI flags, JSON result
+> keys, SQL selection, transaction, persistence, failure aggregation, and
+> connection close. Status: RED naming/docstring/contract regression followed
+> by implementation GREEN locally; GitHub exact-head checks and independent
+> review remain pending.
+>
 > Synchronous post-content backfill naming overlay: 2026-09-07 KST. Protected
 > `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The operator used
 > generic package-owned command, database, record, normalized-content, image,
@@ -10,7 +22,7 @@
 > transaction boundaries, and connection close. Status: RED naming/contract
 > regression followed by production GREEN locally; GitHub exact-head checks and
 > independent review remain pending.
-
+>
 > Post-content queue backfill naming overlay: 2026-09-07 KST. Protected
 > `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The private
 > operator used generic package-owned command, database, queue, record, request,
@@ -22,7 +34,7 @@
 > and resource close behavior. Status: RED naming/contract regression followed
 > by production GREEN locally; GitHub exact-head checks and independent review
 > remain pending.
-
+>
 > Occupational catalog synchronizer naming overlay: 2026-09-07 KST. Protected
 > `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The ADR 0250
 > operator used generic package-owned command, database, payload,
@@ -33,7 +45,7 @@
 > transactional UPSERT, and connection close. Status: RED naming/contract
 > regression followed by production GREEN locally; GitHub exact-head checks
 > and independent review remain pending.
-
+>
 > Deterministic channel-weight estimator naming overlay: 2026-09-07 KST.
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
 > The ADR 0200 operator used generic package-owned sampling, database,
@@ -45,7 +57,7 @@
 > owned separately by #967; this naming slice adds no source fallback or
 > dependency change. Status: implementation, behavioral tests, and AST
 > regression GREEN locally; GitHub exact-head verification pending.
-
+>
 > Queued LLM channel-weight estimator overlay: the ADR 0200 batch adapter on
 > the same protected head used generic owned submit/collect, database, run,
 > result, score, and command identifiers (`_submit`, `_collect`, `conn`, `run`,
@@ -55,7 +67,7 @@
 > SQL, transaction boundaries, and fail-closed incomplete judgment behavior.
 > Status: implementation, behavioral tests, and AST regression GREEN locally;
 > GitHub exact-head verification pending.
-
+>
 > Exact-head naming overlay: 2026-09-07 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded post-Keyman
 > operator still used generic package-owned command, database, record, and
@@ -65,14 +77,14 @@
 > persistence contracts, and keep the change Proposed until fresh exact-head
 > checks and independent review complete. Status: implementation and AST
 > regression GREEN locally; GitHub verification pending.
-
+>
 > Thread-group-key naming overlay: the separate bounded backfill command on the
 > same exact protected head also used `_run`, `args`, `conn`, `pool`, `row`, and
 > `rows`. Action: carry the same semantic naming rule through that complete
 > private caller surface while preserving `--dry-run`, aggregate JSON fields,
 > SQL, transaction rollback, and persistence behavior. Status: implementation,
 > behavior tests, and AST regression GREEN locally; GitHub verification pending.
-
+>
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -95,7 +107,7 @@
 > from plotted coordinates. Do not invent leftover scores. Stack onto
 > leftover branch `feat/leftover-map-coordinates-v2240`; leave the PR
 > open for independent review.
-
+>
 > Exact-head loop overlay: 2026-08-29 13:15 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -116,7 +128,7 @@
 > only `0` and do not invent drawing-scale `−1` / `+1` ticks. Do not
 > invent leftover scores. Do not mix into #782; stack onto leftover
 > branch `feat/leftover-map-coordinates-v2240`.
-
+>
 > Exact-head loop overlay: 2026-08-28 19:15 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -135,7 +147,7 @@
 > share omits that axis badge and keeps existing leftover-map axis
 > text. Do not invent leftover scores. Do not mix into dashboard stacks
 > #640/#778/#781.
-
+>
 > Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -149,7 +161,7 @@
 > UI-only; no new columns. `R̂` and `d` already are inner product and
 > length. Do not invent leftover scores. Do not mix into dashboard
 > stacks #640/#778/#781.
-
+>
 > Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -160,7 +172,7 @@
 > `ξ_{1:2}` / `ζ_{1:2}` (ADR 0267 / migration 0245 / v2.24.0) so
 > `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
 > leftover-map inner product, cosine, or length as separate columns.
-
+>
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
 > Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
@@ -176,7 +188,7 @@
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
 > `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
 > coordinates in this slice.
-
+>
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
@@ -196,7 +208,7 @@
 > evidence, not confirmation of this exact head. The checked repository names
 > are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
 > and lowercase canonical `ContextualWisdomLab/disksage`.
-
+>
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was
