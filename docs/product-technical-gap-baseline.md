@@ -1301,3 +1301,12 @@ followed by a decimal continuation, while existing sentence-ending quantity
 cases still pass. The 47 display-helper tests and 74 chunking tests passed;
 ADR 0165 records the distinction. Final-head hosted and runtime verification
 remain outstanding.
+
+### Empty client-error privacy repair — 2026-09-08
+
+`8d8a809ad` replaces the internal path/HTTP fallback for missing or blank 4xx
+guidance with existing product retry text. Two new API cases failed before the
+repair; all 33 cases passed after it (2.25 seconds), with actionable details
+and programmatic HTTP status preserved. Frontend lint passed. ADR 0123 records
+the boundary; the constructor signature remains compatible with existing callers.
+Current-head CI and deployment remain separate, unverified gates.

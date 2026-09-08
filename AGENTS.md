@@ -488,3 +488,7 @@ without changing the supported short-exponent range (ADR 0165).
 Numeric token-boundary tests should include decimal continuations as well as
 extra digits. Keep a sentence-ending period distinct from a period followed
 by a digit so preserving unsupported numbers does not break ordinary prose.
+
+Exercise missing and whitespace-only 4xx guidance at the shared API boundary.
+Fallback errors must not expose route paths even when the server supplies no
+message; retain HTTP status separately for caller decisions (ADR 0123).
