@@ -479,3 +479,8 @@ When a full-run test count drops, inspect unhandled worker-start errors before
 calling it a smaller passing suite. Preserve the intended file/test inventory,
 reported passes/failures, and unstarted files separately; retained coverage does
 not prove that every planned test ran.
+
+Bounded numeric regexes must reject a longer numeric token, not match its prefix.
+For quantity exponents, keep browser normalization, React text-run splitting,
+and ingestion normalization aligned; test signed and braced unsupported values
+without changing the supported short-exponent range (ADR 0165).

@@ -1232,3 +1232,13 @@ passed all four tests when executed separately at unchanged `1c36a0a96`
 (19.49 seconds total). Keep this as recovery evidence, not an addition that
 turns the earlier failed whole run into a successful one. The remaining full-run
 timeouts and 100% coverage gap still require resolution.
+
+### Long-exponent quantity repair — 2026-09-08
+
+Local `41e7fbdc5` fixes partial numeric exponent conversion: `x^1234` previously
+became `x¹²³4`. Three unbraced signed/unsigned regression cases failed before
+the fix; the braced long form already remained literal. Browser normalization,
+text-run splitting, and ingestion now reject a partial numeric match, retaining
+the source quantity under ADR 0165. All 41 display-helper tests and 73 chunking
+tests passed afterward, and frontend lint passed. These are synthetic regression
+results, not a full-suite or deployed-runtime acceptance claim.
