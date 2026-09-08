@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+> Global Ask time-axis naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@889b926d3ac5bfcfee99b96a9fa7488bb282509a`;
+> exact RED head `8cdbf1cb6a3bb22defd2c4f4994eefb4b78608b8`
+> found repository-owned `row`, `rows`, `value`, `instant`, `day`, `start`,
+> `end`, `conn`, `channel`, `target`, `index`, and `sources` identifiers across
+> the relative-time helper, authorized Global Ask source retrieval, and focused
+> fixtures. Action: align that bounded surface with source-post,
+> timestamp-value, filter-instant, calendar-day, date-range,
+> database-connection, candidate-channel, lineage-edge, and source-document
+> language while preserving public helper names, source-post SQL columns,
+> evidence-fact text, ordering, visibility filtering, and API payload keys.
+> Status: RED reproduced; implementation and 37 focused behavior/naming tests,
+> compile, diff, and scoped Ruff/format validation GREEN locally; GitHub
+> exact-head checks and independent review remain pending.
+>
 > Customer-hint naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@4629c5259a6e78f2778f597a16e09de6534949a6`;
 > exact RED head `058764ecd9edbce031873b00e62dd0abd9408eeb` found

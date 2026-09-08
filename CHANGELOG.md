@@ -8,6 +8,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Global Ask relative-time source selection now uses explicit source-post,
+  timestamp, candidate-channel, lineage-edge, and source-document identifiers
+  across the time-axis helper, authorized retrieval caller, and focused
+  fixtures. Public helper names and positional behavior remain stable; semantic
+  keyword parameters replace generic owned names. Source-post SQL columns,
+  evidence-fact text, result order, visibility filtering, and API payload keys
+  are unchanged.
+
 - Period leftover pairs now caption leftover-map graphic-display pair
   segments with persisted leftover-map distance `d` (ADR 0271 /
   v2.28.0). After `make seed`, closest and farthest leftover pairs sit

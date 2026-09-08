@@ -77,7 +77,9 @@ def test_global_ask_time_axis_uses_semantic_owned_identifiers() -> None:
 
     time_axis_identifiers = _owned_identifiers(time_axis_tree)
     time_axis_identifiers.update(
-        _owned_identifiers(_named_function(post_chat_tree, "gather_global_chat_sources"))
+        _owned_identifiers(
+            _named_function(post_chat_tree, "gather_global_chat_sources")
+        )
     )
     time_axis_identifiers.update(_owned_identifiers(time_axis_test_tree))
 
