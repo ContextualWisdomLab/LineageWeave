@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { OrganizationAliasChip } from "./OrganizationAliasChip";
 
 const meta = {
@@ -7,7 +8,7 @@ const meta = {
   args: {
     displayName: "Demo Corp",
     ariaLabel: "Affiliate org: Demo Corp",
-    onSelect: () => undefined,
+    onSelect: fn(),
   },
 } satisfies Meta<typeof OrganizationAliasChip>;
 
