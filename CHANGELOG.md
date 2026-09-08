@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Issue-ticket persistence now uses explicit database-connection,
+  issue-ticket-row, issue-ticket collection, ticket-status-label, and
+  existing/updated-ticket-row identifiers. Public function names, positional
+  callers, JSON fields, PostgreSQL schema and SQL behavior remain unchanged.
+
+- Operations dashboard projection now uses explicit database-connection,
+  query-parameter, visible-period-predicate, dashboard-metric,
+  operations-case-row/fact, case-identity, and post-count identifiers. Public
+  response fields, ABAC/event-clock SQL, ordering, and percentage behavior
+  remain unchanged.
+
 - Buyer-visible RankWeave ingestion now uses explicit current-account,
   database-pool, database-connection, source-post-row, and
   visible-ranking-post identifiers from the authorized SQL read through the

@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+> Issue-ticket persistence naming overlay: 2026-09-09 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@71ef0fafc843ec8ff1f179d4f0cd534b14ab9559`;
+> exact RED head `8ee4675bd614b07b1b7f7c399a41a7da040d308c` found
+> repository-owned `conn`, `row`, `rows`,
+> `ticket`, `tickets`, `labels`, `labeled`, `existing`, and `code` identifiers
+> across serialization, lookup hydration, list/create/update, commitment
+> UPSERT, and owning-post lookup. Action: align that bounded persistence
+> surface with database-connection, issue-ticket-row/collection,
+> ticket-status-label/code, existing-ticket-row, updated-ticket-row, and
+> labeled-issue-ticket language while preserving public function names,
+> positional callers, JSON fields, PostgreSQL schema, SQL, due-date parsing,
+> ordering, and update behavior. Status: RED reproduced; two focused
+> naming/external-contract tests, compile, diff, and scoped Ruff/format
+> validation are GREEN locally. The broader API selection cannot collect in
+> this runner because the `redis` module is unavailable; GitHub exact-head
+> checks and independent review remain pending.
+>
+> Operations dashboard naming overlay: 2026-09-09 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@5ef8f3ab6fb3bb4e73eed9a02e203ffd684886b1`;
+> exact RED head `b8a1a4e168ca8b52f24393e2364da4ce4b5eb7fc` found
+> repository-owned `args`, `conn`, `external`, `facts`, `key`, `metrics`,
+> `row`, `total`, and `visible` identifiers across the ABAC-filtered
+> operations dashboard projection. GREEN head
+> `71ef0fafc843ec8ff1f179d4f0cd534b14ab9559` aligns that surface with
+> database-connection, query-parameter, visible-period-predicate,
+> dashboard-metric, operations-case-row/fact, case-identity, and post-count
+> language while preserving response fields, SQL/schema, authorization,
+> event-clock filtering, ordering, and zero-denominator behavior. Status: RED
+> reproduced; implementation and five focused naming/behavior tests, compile,
+> diff, and scoped Ruff/format validation are GREEN locally; GitHub exact-head
+> checks and independent review remain pending.
+>
 > Buyer-visible RankWeave ingestion naming overlay: 2026-09-08 KST. The
 > stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@79f369c2f9d3b2300af9d22979d52863bca0ddd7`;
