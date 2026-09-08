@@ -1206,3 +1206,21 @@ hosted result cannot validate newer changes. Only after terminal evidence was
 retrieved was the accumulated source batch `1c36a0a96` sent for its own checks.
 Baseline PR #984 predecessor run 34187271401 at `5da47f37e` also completed
 successfully. Independent approval and protected merge remain outstanding.
+
+### Serial whole-suite diagnostic — 2026-09-08
+
+At unchanged `1c36a0a96576942633ce9d2d7c5fab062a285082`, the full coverage
+command with `--maxWorkers=1` exited 1 after 1,303.44 seconds: 549 passed,
+eight failed, and one unhandled worker-start error. Eight files failed and
+49 passed. WorkerFunctionPsychology.test.tsx did not start because the fork
+worker failed to respond, explaining the missing file/four tests relative to
+the earlier 58-file/561-test inventory. Do not interpret 557 reported tests
+as the complete intended denominator or compare pass percentages as a controlled
+improvement. The eight reported test failures were five-second timeouts.
+
+The repaired report-on-failure setting retained JSON and LCOV. Full configured
+source coverage is lines 2,720/3,314 (82.07%), statements 2,917/3,620 (80.58%),
+functions 864/1,068 (80.89%), and branches 2,417/3,087 (78.29%). The unchanged
+100% gate failed. Coverage and log copies remain outside git. Source status
+was clean and HEAD unchanged after execution. Serial execution did not establish
+a green suite, and host pressure is not a sufficient causal explanation.

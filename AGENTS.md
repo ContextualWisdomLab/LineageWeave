@@ -474,3 +474,8 @@ Coverage artifact upload cannot retain a report the test runner never produced.
 Keep Vitest `coverage.reportOnFailure` enabled so assertion failures still emit
 reports; retain the nonzero test exit and the complete configured denominator.
 Verify this with an ephemeral intentional failure, then remove the probe.
+
+When a full-run test count drops, inspect unhandled worker-start errors before
+calling it a smaller passing suite. Preserve the intended file/test inventory,
+reported passes/failures, and unstarted files separately; retained coverage does
+not prove that every planned test ran.
