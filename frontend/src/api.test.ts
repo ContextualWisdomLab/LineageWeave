@@ -198,3 +198,33 @@ it.each([200, 503])("preserves custom cancellation reason while parsing a %i res
 
   expect(await result).toBe(retirement);
 });
+
+it.each([
+  { job_status_code: "succeeded" },
+  { job_status_code: "succeeded", answer: null },
+  { job_status_code: "failed", failure_detail: "synthetic private diagnostic" },
+  { job_status_code: "synthetic private diagnostic" },
+  {},
+  null,
+])("stops observing a non-progress response without leaking its content: %j", async (job) => {
+  vi.useFakeTimers();
+  const controller = new AbortController();
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 }))
+    .mockImplementation(() => Promise.resolve(new Response(JSON.stringify(job))));
+  vi.stubGlobal("fetch", fetchMock);
+  let settled = false;
+  const result = askAgent("synthetic-token", "Synthetic question", false, undefined, controller.signal)
+    .catch((error: unknown) => error)
+    .finally(() => { settled = true; });
+  await vi.advanceTimersByTimeAsync(0);
+  const settledBeforeCancellation = settled;
+  const pendingTimers = vi.getTimerCount();
+  controller.abort();
+
+  expect(await result).toMatchObject({ message: "Ask Agent could not answer this question." });
+  expect(settledBeforeCancellation).toBe(true);
+  expect(pendingTimers).toBe(0);
+  await vi.advanceTimersByTimeAsync(4000);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});

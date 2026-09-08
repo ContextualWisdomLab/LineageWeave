@@ -1397,11 +1397,11 @@ export async function askAgent(
       { signal },
     );
     signal?.throwIfAborted();
-    if (job.job_status_code === "succeeded" && job.answer) {
+    if (job?.job_status_code === "succeeded" && job.answer) {
       return job.answer;
     }
-    if (job.job_status_code === "failed") {
-      throw new Error(job.failure_detail || "Ask Agent could not answer this question.");
+    if (job?.job_status_code !== "queued" && job?.job_status_code !== "running") {
+      throw new Error("Ask Agent could not answer this question.");
     }
     await new Promise<void>((resolve, reject) => {
       const onAbort = () => {

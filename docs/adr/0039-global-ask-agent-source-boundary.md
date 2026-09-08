@@ -70,6 +70,15 @@ The regression must advance past the former ceiling, observe a nonterminal
 status, and then receive the actual completed answer. Existing cancellation
 tests must continue passing without timer or listener leaks.
 
+Only the persisted `queued` and `running` states mean observation should
+continue. A `succeeded` response without its answer, a missing/unknown state,
+or a null response is unavailable to this reader, not ongoing work. Stop
+client polling and reuse the existing localized recovery guidance without
+changing the durable job or resubmitting it. A failed response likewise must
+not expose its diagnostic detail through the client error. Synthetic regressions
+must prove prompt settlement, no remaining polling timer, no extra request,
+and restored question controls; valid late answers remain observable.
+
 This is only the client observation decision. The backend's 600-second execution
 deadline, answer socket limit, and 660-second age-based orphan recovery remain
 an unresolved policy conflict. Removing execution limits requires a separate

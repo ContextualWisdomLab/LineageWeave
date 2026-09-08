@@ -8,6 +8,22 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
+  it("restores question controls when a completed job has no answer", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "succeeded", answer: null })));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<AskAgentPanel accessToken="synthetic-token" onOpenPost={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Synthetic question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("This view is unavailable. Refresh once; if it fails again, contact your administrator.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+    expect(screen.getByLabelText("Ask a question")).toHaveValue("Synthetic question");
+    expect(container.textContent).not.toMatch(/TypeError|job_status_code|succeeded/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it.each([0, 403, 500])("shows recovery guidance instead of transport details for %s", async (status) => {
     const fetchMock = status === 0
       ? vi.fn().mockRejectedValue(new Error("synthetic private transport detail"))
