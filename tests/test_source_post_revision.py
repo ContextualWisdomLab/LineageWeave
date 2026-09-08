@@ -1,5 +1,7 @@
 """Cutoff-known bodies come from source_post_revision, never an invented sentence."""
 
+import ast
+
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,6 +15,62 @@ _ROOT = Path(__file__).resolve().parents[1]
 _MIGRATION = _ROOT / "migrations" / "0024_source_post_revision.sql"
 _ROLLBACK = _ROOT / "migrations" / "rollback" / "0024_source_post_revision.sql"
 _CUTOFF = datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)
+
+
+def test_source_post_revision_uses_semantic_owned_identifiers() -> None:
+    """Keep revision clocks, persistence rows, and fixtures domain-specific."""
+    source_paths = (
+        _ROOT / "backend" / "app" / "source_post_revision.py",
+        Path(__file__),
+    )
+    forbidden_identifiers = {
+        "_iso",
+        "clock",
+        "conn",
+        "exc",
+        "naive",
+        "parsed",
+        "rollback",
+        "row",
+        "rows",
+        "seed",
+        "source",
+        "sql",
+        "start",
+        "superseded",
+        "text",
+        "value",
+        "written",
+    }
+    required_identifiers = {
+        "_iso_timestamp",
+        "clock_text",
+        "database_connection",
+        "normalized_clock_text",
+        "parsed_clock",
+        "query_clock",
+        "revision_start",
+        "source_post_revision_row",
+        "source_post_revision_rows",
+        "timestamp_value",
+    }
+    owned_identifiers: set[str] = set()
+    for source_path in source_paths:
+        syntax_tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        for syntax_node in ast.walk(syntax_tree):
+            if isinstance(
+                syntax_node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
+                owned_identifiers.add(syntax_node.name)
+            elif isinstance(syntax_node, ast.arg):
+                owned_identifiers.add(syntax_node.arg)
+            elif isinstance(syntax_node, ast.Name) and isinstance(
+                syntax_node.ctx, ast.Store
+            ):
+                owned_identifiers.add(syntax_node.id)
+
+    assert not (forbidden_identifiers & owned_identifiers)
+    assert required_identifiers <= owned_identifiers
 
 
 def test_parse_as_of_clock_treats_z_and_naive_as_utc() -> None:
