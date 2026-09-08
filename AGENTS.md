@@ -440,3 +440,9 @@ the failing phase before changing selectors or deadlines. A timer firing late
 is evidence of delayed execution, not proof that the product is correct. Keep
 full-run failures distinct from focused passes and remove ineffective diagnostic
 edits instead of shipping a speculative fix.
+
+Batch related frontend regression changes before pushing a PR head. A new push
+can cancel an in-progress PostgreSQL suite through the existing concurrency
+policy; repeated small pushes can prevent terminal full-suite evidence. Track
+the current run to completion while developing independent work, and distinguish
+superseded cancellation from an actual test failure.
