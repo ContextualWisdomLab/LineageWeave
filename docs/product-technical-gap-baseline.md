@@ -2,7 +2,7 @@
 
 > Issue-ticket persistence naming overlay: 2026-09-09 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@71ef0fafc843ec8ff1f179d4f0cd534b14ab9559`;
-> exact RED head `8ee4675bd614b07b1b7f7c399a41a7da040d308c` found
+> exact RED head `842395c5dcc4b4ded57ea2a71daa69cfcf7973b1` found
 > repository-owned `conn`, `row`, `rows`,
 > `ticket`, `tickets`, `labels`, `labeled`, `existing`, and `code` identifiers
 > across serialization, lookup hydration, list/create/update, commitment
