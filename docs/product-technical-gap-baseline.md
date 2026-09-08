@@ -1,5 +1,17 @@
 # Product & Technical Gap Baseline
 
+> Ontology-site builder naming overlay: 2026-09-08 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`; exact RED head
+> `fbde01a4696362d659db2f4b33f588882bdb8385` found repository-owned
+> `value`, `key`, `item`, `rows`, `payload`, `parser`, and `args` identifiers
+> across RDF rendering, JSON-LD canonicalization, manifest output, and the CLI.
+> Action: align that complete builder surface with ontology-resource,
+> serialization-item, relation-row, manifest-payload, and command language while
+> preserving published URLs, CLI flags, RDF formats, manifest keys, generated
+> bytes, and deterministic ordering. Status: RED reproduced; implementation,
+> focused publication behavior, AST contract, compile, and scoped lint GREEN
+> locally; GitHub exact-head checks and independent review pending.
+>
 > Queued estimator test naming overlay: 2026-09-08 KST. Exact RED head
 > `e73e0a1afd66432022c81ef86e34fd15f20ee162` found the generic owned
 > `script` alias in the ADR 0200 queued-estimator behavior tests. Action: name

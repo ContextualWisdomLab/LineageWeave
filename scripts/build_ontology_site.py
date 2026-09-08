@@ -72,45 +72,58 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _fragment(value: URIRef) -> str:
+def _fragment(ontology_resource: URIRef) -> str:
     """Return the stable local fragment used as the HTML anchor."""
-    iri = str(value)
-    if "#" in iri:
-        return iri.rsplit("#", 1)[1]
-    return iri.rstrip("/").rsplit("/", 1)[-1]
+    ontology_iri = str(ontology_resource)
+    if "#" in ontology_iri:
+        return ontology_iri.rsplit("#", 1)[1]
+    return ontology_iri.rstrip("/").rsplit("/", 1)[-1]
 
 
 def _preferred_literal(graph: Graph, subject: URIRef, predicate: URIRef) -> str | None:
     """Choose an English, untagged, or first literal in a deterministic order."""
     literals = sorted(
-        (value for value in graph.objects(subject, predicate) if isinstance(value, Literal)),
-        key=lambda value: (
-            0 if value.language == "en" else 1 if value.language is None else 2,
-            value.language or "",
-            str(value),
+        (
+            literal_value
+            for literal_value in graph.objects(subject, predicate)
+            if isinstance(literal_value, Literal)
+        ),
+        key=lambda literal_value: (
+            0
+            if literal_value.language == "en"
+            else 1
+            if literal_value.language is None
+            else 2,
+            literal_value.language or "",
+            str(literal_value),
         ),
     )
     return str(literals[0]) if literals else None
 
 
-def _canonicalize_json(value: Any, parent_key: str | None = None) -> Any:
+def _canonicalize_json(json_value: Any, parent_key: str | None = None) -> Any:
     """Canonicalize JSON-LD while preserving explicit ``@list`` ordering."""
-    if isinstance(value, dict):
-        return {key: _canonicalize_json(value[key], key) for key in sorted(value)}
-    if isinstance(value, list):
-        canonical = [_canonicalize_json(item, parent_key) for item in value]
+    if isinstance(json_value, dict):
+        return {
+            json_key: _canonicalize_json(json_value[json_key], json_key)
+            for json_key in sorted(json_value)
+        }
+    if isinstance(json_value, list):
+        canonical_items = [
+            _canonicalize_json(json_item, parent_key) for json_item in json_value
+        ]
         if parent_key == "@list":
-            return canonical
+            return canonical_items
         return sorted(
-            canonical,
-            key=lambda item: json.dumps(
-                item,
+            canonical_items,
+            key=lambda json_item: json.dumps(
+                json_item,
                 ensure_ascii=False,
                 sort_keys=True,
                 separators=(",", ":"),
             ),
         )
-    return value
+    return json_value
 
 
 def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
@@ -132,12 +145,12 @@ def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
     )
 
 
-def _render_link(value: URIRef, ontology_subjects: set[URIRef]) -> str:
+def _render_link(ontology_resource: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Render a local term link or a non-navigating external RDF identifier."""
-    if value not in ontology_subjects:
-        return f"<code>{html.escape(str(value))}</code>"
-    href = html.escape(f"#{public_fragment(_fragment(value))}", quote=True)
-    return f'<a href="{href}">{html.escape(_fragment(value))}</a>'
+    if ontology_resource not in ontology_subjects:
+        return f"<code>{html.escape(str(ontology_resource))}</code>"
+    href = html.escape(f"#{public_fragment(_fragment(ontology_resource))}", quote=True)
+    return f'<a href="{href}">{html.escape(_fragment(ontology_resource))}</a>'
 
 
 def _render_relation_rows(
@@ -146,17 +159,26 @@ def _render_relation_rows(
     ontology_subjects: set[URIRef],
 ) -> str:
     """Render standard semantic relations for one term."""
-    rows: list[str] = []
+    relation_rows: list[str] = []
     for heading, predicate in RELATION_FIELDS:
-        values = sorted(
-            (value for value in graph.objects(subject, predicate) if isinstance(value, URIRef)),
+        relation_targets = sorted(
+            (
+                ontology_resource
+                for ontology_resource in graph.objects(subject, predicate)
+                if isinstance(ontology_resource, URIRef)
+            ),
             key=str,
         )
-        if not values:
+        if not relation_targets:
             continue
-        rendered = ", ".join(_render_link(value, ontology_subjects) for value in values)
-        rows.append(f"<dt>{html.escape(heading)}</dt><dd>{rendered}</dd>")
-    return "".join(rows)
+        rendered_links = ", ".join(
+            _render_link(ontology_resource, ontology_subjects)
+            for ontology_resource in relation_targets
+        )
+        relation_rows.append(
+            f"<dt>{html.escape(heading)}</dt><dd>{rendered_links}</dd>"
+        )
+    return "".join(relation_rows)
 
 
 def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) -> str:
@@ -172,13 +194,21 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         graph, subject, RDFS.comment
     )
     lookup_predicate = URIRef(CANONICAL_LOOKUP_PREDICATE)
-    lookup_codes = sorted(str(value) for value in graph.objects(subject, lookup_predicate))
+    lookup_codes = sorted(
+        str(lookup_value) for lookup_value in graph.objects(subject, lookup_predicate)
+    )
     type_values = sorted(
-        (value for value in graph.objects(subject, RDF.type) if isinstance(value, URIRef)),
+        (
+            type_value
+            for type_value in graph.objects(subject, RDF.type)
+            if isinstance(type_value, URIRef)
+        ),
         key=str,
     )
     relation_rows = _render_relation_rows(graph, subject, ontology_subjects)
-    type_links = ", ".join(_render_link(value, ontology_subjects) for value in type_values)
+    type_links = ", ".join(
+        _render_link(type_value, ontology_subjects) for type_value in type_values
+    )
     lookup_row = (
         "<dt>Lookup code</dt><dd>"
         + "".join(f"<code>{html.escape(code)}</code>" for code in lookup_codes)
@@ -187,12 +217,12 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         else ""
     )
     fja_rows = "".join(
-        f"<dt>{heading}</dt><dd><code>{html.escape(value)}</code></dd>"
+        f"<dt>{heading}</dt><dd><code>{html.escape(fja_value)}</code></dd>"
         for heading, predicate in (
             ("FJA domain", CANONICAL_FJA_DOMAIN_PREDICATE),
             ("FJA rank", CANONICAL_FJA_RANK_PREDICATE),
         )
-        if (value := _preferred_literal(graph, subject, predicate)) is not None
+        if (fja_value := _preferred_literal(graph, subject, predicate)) is not None
     )
     comment_html = (
         f'<p class="term-comment">{html.escape(comment)}</p>' if comment else ""
@@ -419,7 +449,7 @@ def _write_manifest(
     term_count: int,
 ) -> None:
     """Write deterministic provenance metadata for the published ontology."""
-    payload = {
+    manifest_payload = {
         "documentation_url": DOCUMENTATION_URL,
         "generated_artifacts": [
             "index.html",
@@ -438,7 +468,7 @@ def _write_manifest(
         "source_sha256": _sha256(source),
     }
     (ontology_dir / "manifest.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        json.dumps(manifest_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
@@ -497,26 +527,26 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
 
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments for repository and output locations."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    site_build_parser = argparse.ArgumentParser(description=__doc__)
+    site_build_parser.add_argument(
         "--repository-root",
         type=Path,
         default=Path(__file__).resolve().parents[1],
         help="LineageWeave repository root (default: inferred from this script)",
     )
-    parser.add_argument(
+    site_build_parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("_site"),
         help="Static site output directory (default: _site)",
     )
-    return parser.parse_args(argv)
+    return site_build_parser.parse_args(argv)
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     """Build the site from CLI arguments and return a process exit code."""
-    args = _parse_args(argv)
-    build_site(args.repository_root, args.output_dir)
+    command_arguments = _parse_args(argv)
+    build_site(command_arguments.repository_root, command_arguments.output_dir)
     return 0
 
 
