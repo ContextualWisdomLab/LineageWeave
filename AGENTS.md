@@ -430,3 +430,7 @@ container port bindings; Compose port overrides can invalidate remembered
 ports. Record attempted requests and failures, retain timeout observations, and
 state whether the measurement covers liveness, HTML, or authenticated rendered
 pages. Correlate timestamped logs before attributing latency to provider errors.
+
+For host/container latency differences, record logical CPU counts, load, and
+Linux `/proc/pressure/{cpu,memory,io}` with timestamps. High CPU pressure is a
+measurement condition, not proof that a particular request stalled there.

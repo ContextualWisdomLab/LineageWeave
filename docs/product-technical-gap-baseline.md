@@ -31,6 +31,18 @@ scheduling investigation; they do not isolate causality or rule out application
 stalls. The internal maximum remains material. Do not replace application code
 or claim the all-page target met from this liveness comparison. The historical overlays below remain dated evidence.
 
+At 2026-09-08 10:35 KST, macOS reported 10 logical CPUs and load averages
+37.70 / 54.08 / 72.16. Colima reported 4 CPUs and load averages
+15.00 / 28.12 / 41.26. Linux CPU PSI `some` was 74.12% over 10 seconds,
+56.14% over 60 seconds, and 64.21% over 300 seconds; memory PSI was zero
+and I/O PSI `some` over 10 seconds was zero. This independently demonstrates
+CPU contention at that observation time, but does not prove the cause of an
+earlier request. Preserve this loaded-host evidence in performance comparisons.
+Do not increase VM CPU allocation or stop unrelated workloads without checking
+host capacity and workload ownership. Colima uses Virtualization.Framework and
+virtiofs; this observation does not establish a forwarding implementation bug.
+
+
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
