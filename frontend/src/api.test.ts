@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
   fetchMe,
+  fetchProjectHistory,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   fetchOperationsDashboard,
@@ -14,6 +15,20 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([undefined, null, "2026-08-12T09:30:00+09:00"])("preserves project history identity and cutoff %s", async (cutoff) => {
+    const response = { synthetic: true };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(response)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(fetchProjectHistory("access-token", "Synthetic / A&B", "post +/?#", cutoff)).resolves.toEqual(response);
+    const [request, options] = fetchMock.mock.calls[0];
+    const url = new URL(request, "https://synthetic.invalid");
+    expect(url.pathname).toBe("/api/projects/Synthetic%20%2F%20A%26B/history");
+    expect(url.searchParams.get("focus_post_id")).toBe("post +/?#");
+    expect(url.searchParams.get("knowledge_cutoff")).toBe(cutoff ?? null);
+    expect([...url.searchParams.keys()]).toEqual(cutoff ? ["focus_post_id", "knowledge_cutoff"] : ["focus_post_id"]);
+    expect(options.headers.Authorization).toBe("Bearer access-token");
+  });
+
   it.each([
     "<html>upstream diagnostic</html>",
     "null",
