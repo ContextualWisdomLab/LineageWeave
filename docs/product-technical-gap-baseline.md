@@ -1140,3 +1140,25 @@ For `src/api.ts` alone, it covered 65/129 lines, 16/61 functions,
 77/144 statements, and 53/98 branches. This selected-test report keeps the
 full configured source denominator and is not a whole-suite coverage result.
 The committed tests do not establish server authorization or release readiness.
+
+### Successful-response privacy repair — 2026-09-08
+
+Local #983 head `ed33b9601` repairs the shared browser API boundary for unreadable
+successful responses under ADR 0123. Before the repair, invalid JSON exposed a
+parser diagnostic and a failed body read exposed its original exception: two
+new regression cases failed while 29 existing cases passed. The boundary now
+awaits decoding inside a catch, rejects with stable retry guidance, and retains
+the actual HTTP status rather than inventing an upstream 5xx. It does not claim
+to validate every endpoint schema. After repair, all 31 API tests passed in the
+configured browser-like environment (1.76 seconds); TypeScript and the canonical
+`pnpm run lint` (oxlint) passed. An initial direct eslint invocation was invalid
+because this project uses oxlint, and is not counted as a lint result.
+
+A combined consumer run passed 17/21 tests; OntologyExplorer had one timeout
+followed by three missing-element failures. These consumer tests replace the
+API functions and do not exercise the changed decoding branch. An isolated
+OntologyExplorer run subsequently passed all 16 tests in 22.74 seconds with the
+same thresholds. Preserve the initial failures as execution-instability evidence;
+the isolated pass does not establish a green whole suite or a diagnosed cause.
+Current hosted checks, independent review, protected merge, and release remain
+unverified for this local head.

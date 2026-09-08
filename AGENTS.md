@@ -457,3 +457,9 @@ When checking an interactive Storybook scene in a browser, wait for its authored
 play function to finish before testing keyboard input. Assert the additional
 callback separately from the play callback so an earlier click cannot mask a
 broken keyboard action. Record viewport and document scroll widths together.
+
+The API privacy boundary includes successful-response body reads and decoding:
+await them inside the shared catch boundary so parser/body diagnostics cannot
+reach UI handlers. Preserve observed HTTP status; a rejected decode is not proof
+of an upstream 5xx. Keep actionable client errors distinct (ADR 0123). Use the
+repository lint script; the frontend currently uses oxlint, not eslint.
