@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { AskAgentPanel } from "./App";
 import "./App.css";
 
 const meta = {
   title: "Ask Agent/Knowledge cutoff",
   component: AskAgentPanel,
-  args: { accessToken: "synthetic-token", onOpenPost: () => undefined },
+  args: { accessToken: "synthetic-token", onOpenPost: fn() },
   parameters: { layout: "fullscreen" },
   beforeEach: () => {
     const previousFetch = globalThis.fetch;
