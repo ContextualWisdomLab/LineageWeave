@@ -1,5 +1,164 @@
 # Product & Technical Gap Baseline
 
+## Current evidence — 2026-09-08 KST
+
+This section supersedes the historical snapshots below. It is a bounded audit,
+not a claim that every open PR or product acceptance condition is complete.
+Protected main: `83eba56149eb802cd63642c507c324c9976ec78e`.
+Reviewed Ask candidate: #979 at `fef48b14f302dd40e1fa83096810cc880a5c4c66`,
+stacked on #974 at `def15fc691d4442c0d82103c1642147b1528d7be`.
+The completion/renewal correction is source commit
+`06be667c01f930fefb41a5107bf21fceb81ba7e7`; this document is its evidence-only
+follow-up. Hosted checks and reviews must be fetched for the final PR head,
+never inherited from either source commit or parent.
+
+### Authority and implementation are separate
+
+- Read the current LineageWeave PRD (`docs/product-requirements.md`) before
+  choosing the correction. PRD-FR-5 and FR-7 require observable durable outcomes
+  and preserve the upstream ownership boundary. ADR 0371 is **Proposed**;
+  accepted ADRs 0204/0213 govern short database transactions and provider work.
+- Read contextual-orchestrator `docs/product_planning.md` and
+  `docs/architecture.md`; its remote main was
+  `414f22973658c4ddc3d4320fcf7acd9b4e8ba991` at this audit. The Fugu/TRINITY/
+  Conductor register supports that owner's orchestration boundary. It does
+  not establish a LineageWeave timeout, heartbeat ratio, workload SLO, or
+  model ordering. This correction adds no model-selection or numeric policy.
+- Python's official [task/cancellation contract](https://docs.python.org/3/library/asyncio-task.html)
+  supplies the task lifecycle behavior used by the correction. A task's
+  completed answer and another task's completion/failure are separate facts.
+- GitHub repository API returned canonical names
+  `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+  `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`,
+  `ContextualWisdomLab/TEPP`, and `ContextualWisdomLab/contextual-orchestrator`.
+  The PRD register now uses the remotely confirmed lowercase `disksage`.
+- DeepWiki returned repository-not-indexed; Context7 returned quota-exceeded.
+  Neither response is documentation or architecture evidence. Sequential
+  Thinking and Memory graph tools are unavailable in this tool catalog.
+
+### Selected actionable buyer gap — completed Ask can remain running (#975)
+
+The reviewed candidate could cancel a claim renewal after PostgreSQL committed
+it but before the caller received its generation. A finished answer then used
+the old generation for settlement and could stay `running`. A simultaneous
+renewal failure could also be ignored when the answer had finished. These are
+reproduced lifecycle defects, not inferred performance bottlenecks. They are
+prioritized because they prevent an already completed answer from reaching the
+requester. No numerical product-gap ranking or population inference is claimed.
+
+The minimal correction stops scheduling renewals, drains a renewal already in
+flight, rejects an unconfirmed/lost claim, and then admits answer or failure to
+existing compare-and-set settlement. External cancellation still cancels and
+joins both tasks. No API/schema/release-number change, new dependency, provider
+call, local mathematical implementation, or UI-copy change is introduced.
+
+Two focused cases failed before the correction: committed renewal delivery was
+cancelled, and a simultaneous renewal error did not reject the answer. After
+correction, **42 local tests passed** across claim cancellation, elapsed-time
+behavior, queue outcomes, transport configuration, and public docstrings.
+The added PostgreSQL regression invokes production claim/renewal/settlement
+functions after delaying a real committed renewal response. Initial live execution
+found that the shared test fixture omitted migrations 0212 and 0218; it failed
+with a missing public-verification column before entering the race. The fixture
+now applies and replays both real migrations. The normal two-second connection
+admission skipped two local tests; skipped tests are not persistence proof. A
+separate authenticated PostgreSQL execution with the exact production migrations
+passed both regressions: stale-owner settlement rejection and persisted answer
+after committed-renewal delivery. Idempotent migration replay also passed. The
+throwaway database was dropped afterward. Only visibility/model computation
+was synthetic; claim, renewal and settlement used the production functions and
+real PostgreSQL. This is database evidence, not authenticated HTTP/UI acceptance.
+The inherited three-heartbeat orphan threshold is still ungrounded as a
+failure-detector/capacity policy and remains an unresolved ADR acceptance gap.
+
+### Non-identifying runtime observation, not acceptance
+
+The formal Compose project remains `lineageweave`. Live Docker mappings bind
+backend HTTP to host 18420, contextual-orchestrator to 18000, frontend to 15173,
+and PostgreSQL to 15432. No Compose rendering or credentials were printed.
+
+At 11:41 KST the content-safe k6 harness from exact #964
+`1cced397600b15258b36e221a33beb62c4cca4cd` attempted two VUs for ten seconds,
+with an explicit 20-second request observation limit. Synthetic OIDC succeeded
+in 16.80 seconds; Ask submission timed out at 19.97 seconds. Setup stopped with
+zero active VUs and zero workload iterations. The two setup requests had one
+failure (50%) and observed throughput 0.0537 requests/second. These are setup
+observations, **not authenticated concurrent workload latency/error/throughput**.
+Do not infer whether the timed-out submission eventually persisted or succeeded.
+
+A nearby one-shot Docker CPU observation was PostgreSQL 175.92%, backend 4.06%,
+Ask service 50.83%, Valkey 8.26%, and gateway 67.73%; memory percentages were
+2.47%, 1.28%, 1.60%, 8.14%, and 1.69%, respectively. Docker CPU is not normalized
+to a single host-core percentage. One snapshot does not prove saturation or a
+causal bottleneck; PostgreSQL waits, service occupancy, gateway capacity and
+Valkey saturation remain unavailable. No tuning is justified by these numbers.
+Authenticated all-page/API acceptance and rendered desktop/mobile acceptance
+remain unavailable. There is no UI change in this correction and no new
+screenshot or deployed behavior claim.
+
+### Open queue and protected delivery
+
+The refreshed GitHub inventory contains **139 open PRs: 17 ready, 122 draft**,
+plus **22 open issues**; zero PRs have `reviewDecision=APPROVED`. These describe
+the queue, not product maturity. #979's reviewed predecessor has terminal
+successful repository backend/frontend Tests, but its only commit check runs
+are those two jobs; central receipts and independent approval are not inferred.
+#974 has failing/cancelled central review/security receipts as well as the
+independent approval requirement. Normal squash auto-merge is enabled on #974;
+#780's existing squash auto-merge remains enabled. No merge SHA is claimed.
+
+Effective main rules require one independent approval, stale-review dismissal,
+resolved review threads, and centrally supplied review/security workflows;
+force pushes and deletion are prohibited. Classic branch protection returns
+404, which does not negate the effective rulesets. No current main or open-PR
+run was cancelled. The observed active PR runs belonged to current #983/#966;
+no stale closed-PR cancellation was warranted.
+
+### Collision and Voice acceptance audit
+
+- The correction retains #979's Proposed ADR 0371. Exact #980 separately adds
+  ADR 0370 for leftover-map comparison axis-singular evidence; neither number
+  is allocated anew. #974 changes ADR 0083; #929 owns translation ADR 0362 and
+  migrations 0246/0247. This correction does not add a migration or release.
+- #974 must merge normally before #979 is retargeted to main. Do not enable a
+  child merge onto its unprotected feature base or inherit parent checks.
+- The wider draft report queue still includes duplicate release labels and
+  serialized overlapping files. A whole-queue ADR/API/schema/release collision
+  clearance is **not established** by this bounded audit.
+- ADR 0246 retains twelve atomic Voices. In the current main, ADR 0251 is the
+  FJA I/O-psychology document; current #780 names the combination decision
+  `0256-evidence-bearing-voice-combinations.md` and primary history ADR 0252.
+  Track title and exact branch as well as number instead of treating the
+  user's historical ADR 0251 combination reference as the unrelated FJA policy.
+- #780 at `1d8fa267b059289e77301a09985dfac70a439814` remains the Voice export
+  parent. Carrying Post and derivation evidence stay distinct; combinations
+  remain extensible atomic assignments, with authorized evidence, PROV-O,
+  truth status and cutoff. Hidden evidence is never substituted. JSON-LD page
+  subject-property and multi-Voice union candidates #934/#968 remain separate
+  unmerged evidence, with #937/#971 also pending authorization work.
+  No fresh authenticated PostgreSQL/API or rendered Voice acceptance was
+  established here. An exact-head #968 Vitest attempt with one fork could not
+  start its test process before the runner startup timeout (zero tests ran).
+  The source diff preserves singleton/array property union, but that inspection
+  does not replace executable validation. UI/CSV and paged JSON-LD acceptance
+  remain open.
+
+## Historical snapshots — not current authority or acceptance
+
+The preceding file content is retained verbatim below for provenance. Its
+head hashes, counts, GREEN claims and timestamps are historical only.
+
+# Product & Technical Gap Baseline
+
+> Ask ownership-fence overlay: 2026-09-08 KST. Issue #975 / #979 exact
+> head `262d496a9` Tests run `34156704752` was GREEN. Follow-up: a dead
+> heartbeat while compute still ran used to leave the owner live without
+> renewals (RED `TimeoutError` in
+> `test_dead_heartbeat_aborts_live_ask_operation`). The wrapper now
+> aborts as a lost claim. Parent #974 Tests GREEN, BLOCKED on
+> independent APPROVE. #979 has no independent APPROVE. Do not merge.
+> ADR 0371 Proposed. Leftover-map #980 already holds ADR 0370.
+>
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

@@ -323,8 +323,7 @@ async def lifespan(app: FastAPI):
         app.state.post_content_worker = content_worker
         # Late-bound lambda so tests that monkeypatch _post_chat_client reach
         # the worker too (the name resolves in module globals at call time).
-        # This worker still has an explicit answer socket limit; per-post
-        # chat retains the default null transport timeout.
+        # Ask and per-post chat both default to a null transport timeout.
         global_ask_worker = asyncio.create_task(
             run_global_ask_worker(
                 valkey,
