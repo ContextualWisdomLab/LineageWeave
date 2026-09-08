@@ -103,9 +103,11 @@ jobs:
           retention-days: 7
 
       - name: Build
+        if: ${{ !cancelled() }}
         working-directory: frontend
         run: pnpm run build
 
       - name: Build Storybook
+        if: ${{ !cancelled() }}
         working-directory: frontend
         run: pnpm run build-storybook
