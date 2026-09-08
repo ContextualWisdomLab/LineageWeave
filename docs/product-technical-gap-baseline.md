@@ -1,5 +1,19 @@
 # Product & Technical Gap Baseline
 
+> Buyer-visible RankWeave ingestion naming overlay: 2026-09-08 KST. The
+> stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@79f369c2f9d3b2300af9d22979d52863bca0ddd7`;
+> exact RED head `a0e193ff02df2ec5b9435240f53d67739845c8ab` found
+> repository-owned `account`, `pool`, `conn`, `posts`, `row`, and `_row`
+> identifiers across the authorized ranking loader and `/api/rankings`
+> projection. Action: align that bounded surface with current-account,
+> database-pool, database-connection, source-post-row, visible-post-row, and
+> visible-ranking-post language while preserving the public route, source-post
+> SQL columns, ABAC predicate, RankWeave adapter contract, and response payload.
+> Status: RED reproduced; focused naming and authorization regression tests are
+> GREEN locally; GitHub exact-head checks and independent review remain
+> pending.
+>
 > Source-post valid-time revision naming overlay: 2026-09-08 KST. The stacked
 > base is
 > `refactor/post-keyman-backfill-semantic-identifiers@d07ac85bd9804a6eb5ff8383a3ebe5385307a87f`;

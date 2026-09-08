@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Buyer-visible RankWeave ingestion now uses explicit current-account,
+  database-pool, database-connection, source-post-row, and
+  visible-ranking-post identifiers from the authorized SQL read through the
+  API projection. The `/api/rankings` route, source-post SQL columns, ABAC
+  predicate, RankWeave adapter contract, and response payload remain unchanged.
+
 - Source-post valid-time revision lookup now uses explicit timestamp-value,
   query-clock, database-connection, and source-post-revision-row identifiers
   across parsing, interval coverage, persistence reads, serialization, and

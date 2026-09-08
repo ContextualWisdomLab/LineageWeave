@@ -6,7 +6,8 @@ a fused score or a theta.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import asyncpg
@@ -15,12 +16,16 @@ __all__ = ["load_visible_ranking_posts"]
 
 
 async def load_visible_ranking_posts(
-    conn: "asyncpg.Connection",
+    database_connection: asyncpg.Connection,
     can_see_post: Callable[[Mapping[str, Any]], bool],
 ) -> list[dict[str, Any]]:
     """Read ``source_post`` rows the buyer may rank."""
-    posts = await conn.fetch(
+    source_post_rows = await database_connection.fetch(
         "select post_id, post_title, created_at, visibility_code, "
         "corporate_entity_id, process_unit_id from source_post"
     )
-    return [dict(row) for row in posts if can_see_post(row)]
+    return [
+        dict(source_post_row)
+        for source_post_row in source_post_rows
+        if can_see_post(source_post_row)
+    ]

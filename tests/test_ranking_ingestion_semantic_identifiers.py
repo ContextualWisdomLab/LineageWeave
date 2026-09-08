@@ -46,11 +46,12 @@ def test_ranking_ingestion_uses_semantic_owned_identifiers() -> None:
     ranking_tree = ast.parse(RANKING_INGESTION_PATH.read_text(encoding="utf-8"))
     main_tree = ast.parse(MAIN_PATH.read_text(encoding="utf-8"))
     ranking_identifiers = _owned_identifiers(ranking_tree)
-    ranking_identifiers.update(_owned_identifiers(_named_function(main_tree, "read_rankings")))
+    ranking_identifiers.update(
+        _owned_identifiers(_named_function(main_tree, "read_rankings"))
+    )
 
     assert not (
-        {"_row", "account", "conn", "pool", "posts", "row"}
-        & ranking_identifiers
+        {"_row", "account", "conn", "pool", "posts", "row"} & ranking_identifiers
     )
     assert {
         "current_account",

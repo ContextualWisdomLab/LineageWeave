@@ -4007,8 +4007,8 @@ async def read_calendar(
 
 @app.get("/api/rankings")
 async def read_rankings(
-    account: CurrentAccount = Depends(get_current_account),
-    pool: asyncpg.Pool = Depends(get_pool),
+    current_account: CurrentAccount = Depends(get_current_account),
+    database_pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0167).
 
@@ -4017,11 +4017,14 @@ async def read_rankings(
     lists. Fail-closed when RankWeave is disabled or the library is
     missing.
     """
-    _require_post_read(account)
-    async with pool.acquire() as conn:
-        posts = await load_visible_ranking_posts(
-            conn, lambda row: _can_see_post(account, row)
+    _require_post_read(current_account)
+    async with database_pool.acquire() as database_connection:
+        visible_ranking_posts = await load_visible_ranking_posts(
+            database_connection,
+            lambda visible_post_row: _can_see_post(
+                current_account, visible_post_row
+            ),
         )
     return _rankweave_client().as_api_payload(
-        posts, can_see_post=lambda _row: True
+        visible_ranking_posts, can_see_post=lambda _visible_post_row: True
     )
