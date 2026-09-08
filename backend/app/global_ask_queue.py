@@ -158,7 +158,13 @@ async def _run_with_ask_claim_heartbeat(
     worker = asyncio.create_task(operation)
     try:
         await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
-        if lost.is_set() or (beater.done() and not worker.done()):
+        if not worker.done():
+            raise _LostAskClaim()
+        # A renewal may already be committed while its response is in flight.
+        # Drain it before settlement so the lease contains the committed generation.
+        stop.set()
+        (renewal_result,) = await asyncio.gather(beater, return_exceptions=True)
+        if lost.is_set() or isinstance(renewal_result, BaseException):
             raise _LostAskClaim()
         return await worker
     finally:

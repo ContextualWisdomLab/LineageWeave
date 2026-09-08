@@ -1061,3 +1061,70 @@ def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:
         count = cursor.fetchone()[0]
     assert ids[0] == ids[1]
     assert count == 1
+
+
+def test_postgres_ask_completion_retains_inflight_renewal(schema_db, monkeypatch) -> None:
+    """A real committed renewal cannot strand a completed Ask in running state."""
+    from backend.app import global_ask_queue
+
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into user_account (external_subject_id, display_name, email_address) "
+            "values ('ask-renewal-race', 'Synthetic renewal', 'renewal@example.test') "
+            "returning user_account_id"
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into global_ask_job "
+            "(requesting_account_id, question_text, job_status_code) "
+            "values (%s, 'Synthetic renewal race', 'queued') returning global_ask_job_id",
+            (account_id,),
+        )
+        job_id = cur.fetchone()[0]
+    schema_db.commit()
+    db_dsn = urlunsplit(urlsplit(_ADMIN_DSN)._replace(
+        path=f"/{schema_db.get_dsn_parameters()['dbname']}"
+    ))
+
+    async def exercise():
+        renewal_committed = asyncio.Event()
+        answer_finished = asyncio.Event()
+        renew = global_ask_queue._renew_ask_claim
+
+        async def delayed_renew(*args):
+            generation = await renew(*args)
+            assert generation is not None
+            renewal_committed.set()
+            await answer_finished.wait()
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            return generation
+
+        async def answer(*_args, **_kwargs):
+            await renewal_committed.wait()
+            answer_finished.set()
+            return {"answer_text": "Synthetic completed answer"}
+
+        async def visibility(*_args):
+            return set(), set(), False, True
+
+        class _Client:
+            available = True
+
+        monkeypatch.setattr(global_ask_queue, "_CLAIM_HEARTBEAT_SECONDS", 0.001)
+        monkeypatch.setattr(global_ask_queue, "_renew_ask_claim", delayed_renew)
+        monkeypatch.setattr(global_ask_queue, "compute_global_ask_answer", answer)
+        monkeypatch.setattr(global_ask_queue, "load_job_visibility", visibility)
+        async with asyncpg.create_pool(db_dsn, min_size=1, max_size=2) as pool:
+            await global_ask_queue.process_global_ask_job(
+                pool, job_id=str(job_id), chat_factory=_Client
+            )
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "select job_status_code, answer_payload from global_ask_job "
+                    "where global_ask_job_id = $1", job_id
+                )
+            assert row["job_status_code"] == "succeeded"
+            assert 'Synthetic completed answer' in row["answer_payload"]
+
+    asyncio.run(exercise())

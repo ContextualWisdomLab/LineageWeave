@@ -32,6 +32,12 @@ the original worker could still settle by job id alone.
   recovery uses three missed heartbeats, not the old 660 s reaper.
 - If the heartbeat task ends while compute is still running, abort as a
   lost claim rather than continuing without renewals.
+- When compute finishes, stop scheduling renewals and await any renewal
+  already in flight before admitting either its result or its failure to
+  settlement. A committed renewal must update the settlement generation;
+  cancellation during response delivery must not discard that generation.
+  A failed renewal wins over a simultaneously completed answer. External
+  owner cancellation still cancels and joins both tasks.
 - Provider `TimeoutError` stays an unavailable Ask failure.
 
 ## Consequences
@@ -44,6 +50,15 @@ Negative: crashed workers wait three heartbeat intervals to reclaim.
 `tests/test_schema.py` proves the settlement compare-and-set against a
 throwaway database that replayed the real `0001` and `0165` migrations.
 In-memory queue tests remain for elapsed-time and cancellation contracts.
+The completion/renewal race also uses the production queue and renewal
+functions against PostgreSQL: delay delivery of an already committed renewal,
+finish the answer, then require the stored job to reach `succeeded` with that
+answer. This is persistence evidence, not authenticated HTTP/UI acceptance.
+
+The inherited three-heartbeat recovery ratio is not established as a
+deployment capacity or failure-detector contract by these regressions. Its
+acceptance remains unresolved; this correction does not calibrate that ratio
+or establish that elapsed silence alone proves a dead owner.
 
 ## Alternatives considered
 
