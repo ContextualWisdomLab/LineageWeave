@@ -1193,3 +1193,16 @@ An ephemeral intentional-failure probe returned exit 1 while emitting both
 coverage-summary JSON and LCOV with the full configured source denominator.
 The probe was removed after verification. It proves report retention, not
 product correctness or coverage improvement; the 100% gate remains intact.
+
+### Terminal hosted predecessor evidence — 2026-09-08
+
+GitHub run 34187144345 at `014b049b8fc7f1eb4f8c7359f0419a44ed8dea2e`
+is terminal. Frontend job 101937662239 passed all 554 tests in 58 files but
+failed the unchanged 100% coverage gate: lines 82.63%, functions 81.89%,
+statements 81.08%, branches 78.79%. PostgreSQL job 101937662373 succeeded
+with 1,768 passed, 147 skipped, one warning in 1,242.41 seconds.
+The newer local failures at `ed33b9601` remain separately recorded; this older
+hosted result cannot validate newer changes. Only after terminal evidence was
+retrieved was the accumulated source batch `1c36a0a96` sent for its own checks.
+Baseline PR #984 predecessor run 34187271401 at `5da47f37e` also completed
+successfully. Independent approval and protected merge remain outstanding.
