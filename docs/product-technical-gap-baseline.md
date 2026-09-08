@@ -1280,3 +1280,14 @@ literal. Document scroll width equaled viewport width in all cases. The driver
 exited successfully and closed its temporary server and browser. This is real
 browser evidence for a synthetic isolated component, not deployed product or
 authenticated corpus acceptance.
+
+### Concurrent successor and denominator restoration — 2026-09-08
+
+The `1c36a0a96` PostgreSQL job 101945416734 ended cancelled at 05:54:46 UTC,
+not with a terminal test result. A concurrent `c58cde83a` push already contained
+all quantity fixes and added an evidence-label regression. It also excluded
+stories and browser bootstrap from coverage. Follow-up `dae3a9be8` preserves
+the useful test and restores the complete configured source denominator; its
+Vite configuration matches `1c36a0a96` exactly. This gate correction was pushed
+immediately rather than accepting a smaller denominator as progress. Neither
+cancelled predecessor nor queued successor establishes backend acceptance.
