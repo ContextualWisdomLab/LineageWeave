@@ -452,3 +452,8 @@ and assert repeated parameters, opaque cursors, timezone offsets, and explicit
 false/zero values survive transport. Mocked fetch tests establish client request
 serialization and error propagation only; they do not prove server authorization,
 valid parameter ranges, or database-backed evidence availability.
+
+When checking an interactive Storybook scene in a browser, wait for its authored
+play function to finish before testing keyboard input. Assert the additional
+callback separately from the play callback so an earlier click cannot mask a
+broken keyboard action. Record viewport and document scroll widths together.

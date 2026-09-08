@@ -1119,3 +1119,13 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### Dashboard keyboard and viewport verification — 2026-09-08
+
+On local source `bd64a2161`, the built `EvidenceWithoutProject` story completed
+its authored interaction in fresh Chromium pages at 320, 390, and 1440 CSS
+pixels. Document scroll width equaled viewport width in all three cases.
+Focusing the evidence button and pressing Enter added exactly one callback to
+the story interaction, producing two calls with the same synthetic fixture key
+per page. The driver exited successfully; this verifies the isolated synthetic
+story, not authenticated runtime acceptance or whole-suite coverage.
