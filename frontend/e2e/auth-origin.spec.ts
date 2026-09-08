@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { isExpectedKeyverseAuthorizationUrl } from "./support/auth";
+import { isExpectedKeyverseAuthorizationUrl } from "./support/auth.js";
 
 const COMPOSE_ISSUER = "http://localhost:18080/realms/lineageweave-demo";
 const AUTH_PATH = "/realms/lineageweave-demo/protocol/openid-connect/auth";
