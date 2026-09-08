@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const render = vi.fn();
-const createRoot = vi.fn(() => ({ render }));
+const createRoot = vi.fn((_container: Element | DocumentFragment) => ({ render }));
 
 vi.mock("react-dom/client", () => ({
   createRoot,
