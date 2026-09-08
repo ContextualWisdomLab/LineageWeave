@@ -431,3 +431,11 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Frontend coverage evidence
+
+The central review sandbox requires a lock-pinned Vitest coverage provider and
+a repository-owned coverage command; a passing plain test run is insufficient.
+Run `corepack pnpm run test:coverage` from `frontend/` to collect source coverage
+and enforce the 100% threshold. Generated reports stay outside git. Preserve
+failing results: instrumentation availability does not prove coverage acceptance.
