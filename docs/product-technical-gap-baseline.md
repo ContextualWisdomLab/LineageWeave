@@ -46,6 +46,16 @@ remain unverified; older successful runs do not satisfy those gates.
 
 ## Frontend coverage evidence — 2026-09-08
 
+Latest measured #983 head `6fdfc0591cb0700613ed078bf001ba387196e29f`:
+[frontend job 101927745710](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34183704662/job/101927745710)
+completed with 542 tests passing across 58 files. Lines reached 82.20%,
+functions 81.42%, statements 80.44%, and branches 78.31%; the 100% gate
+correctly failed. Lint, coverage artifact preservation, product build, and
+Storybook build all succeeded in that same hosted job. The job failure is a
+measured coverage gap, not a runner-allocation or build failure. Other jobs in
+the run, independent review, protected merge, and deployment remain separate.
+
+
 PR #983 at `5a8a195c1` collected coverage in hosted run
 [34180352347](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34180352347).
 All 530 tests passed, while the 100% coverage gate failed: lines 82.08%,
