@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /**
  * Synthetic demo credentials seeded by `make seed` -- never a real account.
@@ -28,6 +28,7 @@ export async function loginAsDemoAnalyst(page: Page): Promise<void> {
       throw error;
     }
   }
+  await expect(page).toHaveURL(/\/realms\/lineageweave-demo\/protocol\/openid-connect\/auth/);
   await page.getByLabel("Username or email").waitFor({ state: "visible" });
   await page.getByLabel("Username or email").fill(DEMO_USERNAME);
   await page.getByLabel("Password", { exact: true }).fill(DEMO_PASSWORD);

@@ -455,3 +455,8 @@ transitions with deferred success and failure. Returning to the same token
 must not reactivate the first request; assert the current authorized result
 and the actual request sequence, not token equality alone. Dashboard's
 effect-local cleanup flag already provides this request-lifecycle boundary.
+
+When an E2E login helper tolerates a narrowly identified navigation error,
+reassert the expected authorization URL before locating or filling credential
+fields. A matching form label is not evidence that the navigation reached its
+expected destination; retain the post-login destination check as well.
