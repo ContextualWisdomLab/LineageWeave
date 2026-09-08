@@ -1242,3 +1242,17 @@ text-run splitting, and ingestion now reject a partial numeric match, retaining
 the source quantity under ADR 0165. All 41 display-helper tests and 73 chunking
 tests passed afterward, and frontend lint passed. These are synthetic regression
 results, not a full-suite or deployed-runtime acceptance claim.
+
+### Hosted full frontend and quantity rendering evidence — 2026-09-08
+
+Hosted frontend job 101945416574 at `1c36a0a96` passed all 561 tests in
+58 files. It failed the required 100% gate: lines 82.46%, functions 81.74%,
+statements 80.93%, branches 78.94%. Coverage artifact 10042347224 was retained.
+The sibling PostgreSQL job was still running at inspection; do not supersede
+it with a small follow-up push. Local serial timeouts remain separate evidence.
+
+Local quantity-rendering follow-up `989e4254e` passed all 29 PostBody tests
+in 26.10 seconds. The new raw-body and persisted-unit cases assert that only
+supported `m^3` becomes a superscript while long signed/braced exponents remain
+literal. This is component DOM evidence, not a deployed browser acceptance run;
+it is newer than the hosted revision above.
