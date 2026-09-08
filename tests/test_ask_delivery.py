@@ -1,6 +1,38 @@
 """Checks for the transport-neutral Ask delivery contract."""
 
+import ast
+from pathlib import Path
+
 from lineageweave.ask_delivery import build_ask_delivery
+
+
+ASK_DELIVERY_SOURCE_PATH = (
+    Path(__file__).parents[1] / "lineageweave" / "ask_delivery.py"
+)
+FORBIDDEN_ASK_DELIVERY_IDENTIFIERS = {"documents", "encoded_id", "item", "post"}
+REQUIRED_ASK_DELIVERY_IDENTIFIERS = {
+    "cited_post",
+    "encoded_post_id",
+    "evidence_facts_by_post_id",
+    "post_evidence",
+    "source_document",
+    "source_documents",
+}
+
+
+def test_ask_delivery_uses_evidence_specific_owned_identifiers() -> None:
+    """Keep internal projection names aligned with the Ask evidence domain."""
+    ask_delivery_tree = ast.parse(
+        ASK_DELIVERY_SOURCE_PATH.read_text(encoding="utf-8")
+    )
+    owned_identifiers = {
+        syntax_node.id
+        for syntax_node in ast.walk(ask_delivery_tree)
+        if isinstance(syntax_node, ast.Name)
+    }
+
+    assert not (FORBIDDEN_ASK_DELIVERY_IDENTIFIERS & owned_identifiers)
+    assert REQUIRED_ASK_DELIVERY_IDENTIFIERS <= owned_identifiers
 
 
 def test_delivery_links_only_cited_evidence_without_keyword_classification() -> None:
