@@ -1316,3 +1316,12 @@ The accumulated local `8d8a809ad` follow-up passed frontend lint and a separate
 verified the compiler status rather than relying on the final exit of a chained
 command. Hosted `dae3a9be8` jobs 101953651575/101953651682 remained queued/running
 at inspection; these local checks do not substitute for their results.
+
+### Public Python docstring inventory — 2026-09-08
+
+At local source `8d8a809ad`, tests/test_public_docstrings.py passed both checks
+in 4.88 seconds. Its AST inventory covers public functions, async functions,
+and classes in lineageweave (491/491 documented) and backend/app (324/324),
+excluding __init__.py as specified by the existing contract. All 815 counted
+definitions have docstrings. This verifies presence within that Python scope,
+not prose accuracy or documentation coverage in other languages.
