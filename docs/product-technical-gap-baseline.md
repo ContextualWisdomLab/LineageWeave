@@ -1336,3 +1336,13 @@ modules and uncovered product paths in OntologyExplorer, ProjectHistoryTimeline,
 LeftoverMapPlot, OccupationalConstructCatalogSearch, App, and related modules.
 Lint, production build, and Storybook build passed. This is a measured coverage
 gap, not a reason to lower the threshold or shrink the source denominator.
+
+### Stale required-check references — 2026-09-08
+
+After the functional checks completed, the PR still showed pending
+`noema-review` and CodeQL compatibility checks. Their linked workflow IDs
+returned GitHub API 404, while the current repository contains no matching
+workflow definition under `.github/workflows`. The pending checks cannot be
+treated as successful or independently reviewed evidence. Protected-branch
+admission remains blocked until the owning organization workflow emits a
+terminal result and an independent approval is recorded.
