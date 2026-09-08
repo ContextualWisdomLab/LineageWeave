@@ -8,6 +8,7 @@ in-memory fake connection -- no live PostgreSQL required.
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import importlib.util
 from pathlib import Path
@@ -21,6 +22,60 @@ _spec.loader.exec_module(migrate_legacy_namespace)
 
 CANONICAL = migrate_legacy_namespace.CANONICAL_NAMESPACE
 LEGACY = migrate_legacy_namespace.LEGACY_NAMESPACE
+
+
+def test_migration_operator_uses_semantic_owned_identifiers() -> None:
+    """Keep migration, database, IRI, and command names context-specific."""
+    module_source = _SCRIPT.read_text(encoding="utf-8")
+    syntax_tree = ast.parse(module_source)
+    owned_identifiers = {
+        syntax_node.id
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, ast.Name)
+    }
+    owned_identifiers.update(
+        syntax_node.arg
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, ast.arg)
+    )
+    owned_identifiers.update(
+        syntax_node.name
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, (ast.AsyncFunctionDef, ast.FunctionDef))
+    )
+
+    assert owned_identifiers.isdisjoint(
+        {
+            "apply",
+            "args",
+            "canonical",
+            "canonicalize",
+            "change",
+            "conn",
+            "dsn",
+            "iri",
+            "migrate",
+            "new",
+            "parser",
+            "planned",
+            "row",
+            "rows",
+            "unexpected",
+            "updated",
+        }
+    )
+    assert {
+        "apply_changes",
+        "canonicalize_ontology_iri",
+        "command_arguments",
+        "command_parser",
+        "database_connection",
+        "migrate_legacy_ontology_namespace",
+        "ontology_iri",
+        "planned_iri_rewrites",
+        "source_mention_rows",
+        "unexpected_namespace_records",
+    } <= owned_identifiers
 
 
 class TestCanonicalize:
