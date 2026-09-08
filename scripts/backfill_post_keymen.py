@@ -36,29 +36,16 @@ from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
 
-def _first_env(*variable_names: str) -> str:
-    """Return the first non-empty configured environment value."""
-    return next(
-        (
-            os.environ.get(variable_name, "").strip()
-            for variable_name in variable_names
-            if os.environ.get(variable_name, "").strip()
-        ),
-        "",
-    )
-
-
 def _orchestrator_config() -> tuple[str, str]:
-    """Resolve the contextual-orchestrator endpoint and credential."""
-    base_url = _first_env(
-        "ORCHESTRATOR_BASE_URL", "LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL"
-    )
-    api_key = _first_env("ORCHESTRATOR_API_KEY", "LLM_GATEWAY_API_KEY")
-    if not base_url or not api_key:
+    """Return the published contextual-orchestrator consumer endpoint and bearer."""
+    orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "").strip()
+    orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "").strip()
+    if not orchestrator_base_url or not orchestrator_api_key:
         raise RuntimeError(
-            "contextual-orchestrator gateway configuration is unavailable"
+            "set ORCHESTRATOR_BASE_URL and ORCHESTRATOR_API_KEY to reach "
+            "contextual-orchestrator"
         )
-    return base_url, api_key
+    return orchestrator_base_url, orchestrator_api_key
 
 
 async def _select_posts(
@@ -181,12 +168,14 @@ async def _run_post_keyman_backfill(
     """Run the bounded post-Keyman backfill transaction."""
     if command_arguments.post_id and command_arguments.all:
         raise ValueError("--post-id and --all cannot be combined")
-    base_url, api_key = _orchestrator_config()
+    orchestrator_base_url, orchestrator_api_key = _orchestrator_config()
     runtime_settings = load_settings()
     keyman_client = ContextualOrchestratorKeymanExtractionClient(
-        base_url=base_url, api_key=api_key, timeout=180.0
+        base_url=orchestrator_base_url, api_key=orchestrator_api_key, timeout=180.0
     )
-    vision_client = orchestrator_vision_client(base_url, api_key)
+    vision_client = orchestrator_vision_client(
+        orchestrator_base_url, orchestrator_api_key
+    )
     resolution_client = _organization_name_resolution_client()
     verification_client = _relation_verification_client()
     hierarchy_client = _corporate_hierarchy_inference_client()
