@@ -1,39 +1,31 @@
 # Product & Technical Gap Baseline
 
-> Snapshot refreshed 2026-09-08 KST (second cycle). Protected `main` is
+> Snapshot refreshed 2026-09-08 KST (third cycle). Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
-> validation at `697531b33`. Hosted Frontend and Full test suite on the
-> preceding `0f4fd26a5` head were GREEN; the snapshot commit retriggered
-> checks that were still pending at this cycle and were not polled.
-> Remaining prior failures on that lineage are dependency-review (GitHub
-> compare HTTP 403, fail-closed), noema-review, opencode-review, strix, and
-> CodeQL compatibility analysis. Required current-head checks are not yet
-> accepted as terminal GREEN and the delivery boundary still requires
-> qualifying independent review. The live non-identifying queue snapshot
-> contains 139 open PRs (17 ready / 122 draft) and 22 open issues; those
-> counts describe coordination load, not product maturity or release
-> readiness. No open PR currently shows independent
+> validation at `f57eb32a5`. Required current-head checks are not accepted
+> as terminal GREEN and the delivery boundary still requires qualifying
+> independent review. The live non-identifying queue snapshot contains 139
+> open PRs (16 ready / 123 draft; #966 returned to Draft) and 22 open
+> issues. No open PR currently shows independent
 > `reviewDecision=APPROVED`.
 >
-> Ask stack this cycle: #979 `6662ea5df` Frontend and Full test suite GREEN
-> on run `34182446558`, stacked on #974 `def15fc69` (Tests/Frontend GREEN;
-> remaining #974 failures are review/security jobs, not the product suite).
-> Same-author COMMENT review recorded on #979; that is not independent
-> APPROVE and does not authorize merge. #972 `e436d9a61` hosted checks were
-> pending at snapshot time and were not polled.
+> Ask stack: #979 `6662ea5df` Frontend and Full test suite remain GREEN on
+> run `34182446558`, stacked on #974. Same-author COMMENT is not independent
+> APPROVE. #972 hosted checks were pending and were not polled.
 >
-> #983 `1c36a0a96` Frontend coverage failed closed: 561 tests passed, then
-> lines 82.46% / functions 81.74% / statements 80.93% / branches 78.94%
-> against 100% over `src/**/*.{ts,tsx}` including CSF stories, `main.tsx`,
-> and `vite-env.d.ts` (job `101945416574`). Successor `c58cde83a` keeps the
-> 100% product-source gate and excludes only files the Vitest job does not
-> execute; unknown evidence kinds resolve to Evidence. Concurrent exponent
-> display commits on that branch were adopted, not discarded. Hosted checks
-> for `c58cde83a` were not polled and are not coverage GREEN. Remaining
-> product-source holes include App, OntologyExplorer, leftover-map plot, and
-> occupation catalog paths. #984 hosted checks were pending. Do not poll
-> those pending jobs. The authenticated
+> #983 `8d8a809ad` Frontend coverage failed closed: 59 files passed, then
+> lines 82.57% / functions 81.58% / statements 81.01% / branches 79.2%
+> against the complete `src/**/*.{ts,tsx}` denominator (job
+> `101958668563`). Concurrent `dae3a9be8` restored that denominator after a
+> smaller-scope experiment. Successor `294b1ca27` keeps the full
+> denominator and executes CSF inventory plus the browser bootstrap from
+> Vitest (137 local inventory/bootstrap tests passed). Concurrent Ask
+> polling and Keyverse origin commits were merged, not discarded. Hosted
+> checks for `294b1ca27` were not polled and are not coverage GREEN.
+> Remaining product-source holes include App, OntologyExplorer, leftover-map
+> plot, and occupation catalog paths. #984 hosted checks were pending. Do
+> not poll those pending jobs. The authenticated
 > `GET /api/translations/{screen_key}` API is implemented on the candidate
 > branch. That is candidate implementation evidence, not protected-main,
 > deployed, or release evidence.
