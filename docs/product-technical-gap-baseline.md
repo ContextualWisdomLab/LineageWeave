@@ -37,8 +37,11 @@ button, reported document scroll width 390, no project-journey section, and no
 page errors. The temporary loopback static server was shut down afterward.
 The browser check did not inspect the callback spy or prove a real post was
 opened; exact callback identity is covered by the synthetic component test.
-The story's play assertions were authored but their terminal play-run result
-was not separately observed. This is not production/database acceptance.
+A subsequent fresh Chromium run observed the story render phase `finished`
+and exactly one callback invocation with `synthetic-post-1`, without a manual
+click in the driver. This verifies the authored play interaction against the
+synthetic story. The static server was again shut down. This is not
+production/database acceptance.
 
 
 PR #983 at `f2fab9e3ca36c71bb4c16f37a5bbb63dc0584231` passed all
