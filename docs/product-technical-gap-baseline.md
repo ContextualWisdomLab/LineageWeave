@@ -8,7 +8,7 @@
 > checks that were still pending at this cycle and were not polled.
 > Remaining prior failures on that lineage are dependency-review (GitHub
 > compare HTTP 403, fail-closed), noema-review, opencode-review, strix, and
-> CodeQL compatibility analysis. Required current-head checks are not
+> CodeQL compatibility analysis. Required current-head checks are not yet
 > accepted as terminal GREEN and the delivery boundary still requires
 > qualifying independent review. The live non-identifying queue snapshot
 > contains 139 open PRs (17 ready / 122 draft) and 22 open issues; those
