@@ -1,5 +1,29 @@
 # Product & Technical Gap Baseline
 
+## Frontend coverage evidence — 2026-09-08
+
+PR #983 at `5a8a195c1` collected coverage in hosted run
+[34180352347](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34180352347).
+All 530 tests passed, while the 100% coverage gate failed: lines 82.08%,
+statements 80.31%, functions 80.95%, branches 78.14%. Artifact
+[10038701921](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34180352347/artifacts/10038701921)
+contains the JSON summary and LCOV evidence.
+
+The denominator comprises 58 non-story source files (2,976 executable lines,
+2,703 covered) and 28 Storybook files (329 executable lines, 10 covered).
+This classification is diagnostic only; no files are removed from the gate.
+Neither a Storybook build nor a successful ordinary test suite proves the
+missing behavior was exercised. Both product-source and story coverage remain
+open work. The non-story group is not a claim of deployed bundle composition.
+
+At `6757ad73e`, hosted run
+[34181569153](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34181569153)
+passed 537 tests after API privacy and Dashboard retry regressions. Lines reached
+82.17%, functions 81.33%, statements 80.42%, branches 78.27%; the gate still
+failed. These measurements belong to those revisions, not later PR heads.
+Protected merge, current-head approval, deployed behavior, and all-page p95
+acceptance remain separate requirements.
+
 ## Runtime measurement correction — 2026-09-08
 
 Docker's live port mappings identify backend at `18420`, contextual-orchestrator
