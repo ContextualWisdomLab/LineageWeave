@@ -437,13 +437,11 @@ published beside the ontology.
 The central review sandbox requires a lock-pinned Vitest coverage provider and
 a repository-owned coverage command; a passing plain test run is insufficient.
 Run `corepack pnpm run test:coverage` from `frontend/` to collect source coverage
-and enforce the 100% threshold. The Vitest job instruments product source the
-unit suite executes. CSF stories stay in the Storybook inventory and interaction
-evidence; `main.tsx` is the browser bootstrap and `vite-env.d.ts` is a type
-ambient. Do not count those files toward the Vitest threshold, and do not lower
-the 100% gate on the remaining product source. Generated reports stay outside
-git. Preserve failing results: instrumentation availability does not prove
-coverage acceptance.
+and enforce the 100% threshold over the complete configured source inventory.
+Keep Storybook and browser-entry runtime evidence distinct, but do not remove
+those executable files from coverage merely because the unit suite has not yet
+executed them. Generated reports stay outside git. Instrumentation availability
+and a smaller denominator do not establish coverage acceptance.
 
 The frontend CI retains `frontend-coverage` even when the coverage threshold
 fails. Use its LCOV paths and JSON summary to select regression work; console

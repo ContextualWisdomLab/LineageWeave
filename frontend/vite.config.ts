@@ -10,11 +10,6 @@ export default defineConfig({
       provider: 'v8',
       reportOnFailure: true,
       include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/**/*.stories.tsx',
-        'src/main.tsx',
-        'src/vite-env.d.ts',
-      ],
       reporter: ['text', 'json-summary', 'lcov'],
     },
     environment: 'jsdom',
