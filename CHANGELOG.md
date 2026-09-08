@@ -262,6 +262,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The governed ontology-site publisher now uses semantic renderer, ontology
+  graph, namespace-mapping, SHACL-resource, source-path, output-path, and CLI
+  identifiers while preserving public function signatures, CLI flags, RDF
+  validation, fail-closed replacement, cleanup, and generated-site behavior.
+
 - The legacy ontology-namespace migration operator and behavioral fixture now
   use semantic ontology-IRI, database, source-mention, rewrite-plan, and command
   identifiers while preserving CLI flags, SQL, dry-run/fail-closed output,

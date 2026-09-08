@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+> Ontology-site publisher naming overlay: 2026-09-08 KST. The stacked base is
+> `fix/contextual-orchestrator-owner-boundary@e5711282c48cc20d0a88fb56a9e382d500989c72`;
+> exact RED head `1e077883e807f2e42f0b61743d99815469460af6` found
+> repository-owned `_fragment`, `_parse_args`, `root`, `source`, `profile`,
+> `graph`, `renderer`, `subject`, `predicate`, `value`, `path`, `output`,
+> `parser`, and `args` identifiers across renderer loading, public-graph and
+> namespace/SHACL validation, safe output replacement, and the CLI. Action:
+> align the complete private caller surface with ontology-publication,
+> renderer-module, ontology-resource, namespace-mapping, SHACL-resource,
+> source-path, output-path, and command language while preserving public
+> validation function names, CLI flags, RDF checks, fail-closed replacement,
+> cleanup, and generated-site behavior. Status: RED reproduced; implementation,
+> 16 focused behavior/naming tests, compile, and scoped lint/format GREEN
+> locally; GitHub exact-head checks and independent review pending.
+>
 > Legacy ontology-namespace migration naming overlay: 2026-09-08 KST.
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > exact RED head `5c7e288605cf091c1300905af2df77509458529d`
