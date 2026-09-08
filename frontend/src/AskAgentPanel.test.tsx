@@ -1,11 +1,95 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AskAgentPanel } from "./App";
 
 describe("AskAgentPanel public verification", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("restores question controls when a completed job has no answer", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "succeeded", answer: null })));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<AskAgentPanel accessToken="synthetic-token" onOpenPost={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Synthetic question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("This view is unavailable. Refresh once; if it fails again, contact your administrator.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+    expect(screen.getByLabelText("Ask a question")).toHaveValue("Synthetic question");
+    expect(container.textContent).not.toMatch(/TypeError|job_status_code|succeeded/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([0, 403, 500])("shows recovery guidance instead of transport details for %s", async (status) => {
+    const fetchMock = status === 0
+      ? vi.fn().mockRejectedValue(new Error("synthetic private transport detail"))
+      : vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: "synthetic private transport detail" }), { status }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<AskAgentPanel accessToken="token" onOpenPost={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByText("This view is unavailable. Refresh once; if it fails again, contact your administrator.")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/BackendError|HTTP|\/api\/ask|synthetic private/);
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+  });
+
+  it.each(["credential", "unmount"])("aborts transport on %s retirement", async (retirement) => {
+    const fetchMock = vi.fn().mockImplementation(() => new Promise(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+    const props = { onOpenPost: vi.fn() };
+    const { rerender, unmount } = render(<AskAgentPanel {...props} accessToken="token-a" />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    const signal = fetchMock.mock.calls[0][1].signal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal.aborted).toBe(false);
+    if (retirement === "unmount") unmount();
+    else rerender(<AskAgentPanel {...props} accessToken="token-b" />);
+    expect(signal.aborted).toBe(true);
+  });
+
+  it.each([200, 403])("discards a retired %s response after credential re-entry", async (status) => {
+    let finishRetired!: (response: Response) => void;
+    let finishCurrent!: (response: Response) => void;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "retired-job", job_status_code: "queued" }), { status: 202 }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishRetired = resolve; }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "current-job", job_status_code: "queued" }), { status: 202 }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishCurrent = resolve; }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onOpenPost = vi.fn();
+    const { rerender, container } = render(<AskAgentPanel accessToken="token-a" onOpenPost={onOpenPost} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Retired question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    rerender(<AskAgentPanel accessToken="token-b" onOpenPost={onOpenPost} />);
+    rerender(<AskAgentPanel accessToken="token-a" onOpenPost={onOpenPost} />);
+    expect(screen.getByLabelText("Ask a question")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Current question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    await act(async () => {
+      finishRetired(new Response(JSON.stringify({
+        ask_job_id: "retired-job", job_status_code: "succeeded",
+        answer: { answer_text: "Retired answer", cited_post_ids: [], cited_posts: [],
+          cited_post_evidence: [], source_post_ids: [], external_claims: [], limitations: [] },
+      }), { status }));
+    });
+    expect(screen.queryByText("Retired answer")).not.toBeInTheDocument();
+    expect(container.querySelector(".error")).toBeNull();
+    expect(screen.getByRole("button", { name: "Asking..." })).toBeDisabled();
+    await act(async () => {
+      finishCurrent(new Response(JSON.stringify({
+        ask_job_id: "current-job", job_status_code: "succeeded",
+        answer: { answer_text: "Current answer", cited_post_ids: [], source_post_ids: [] },
+      }), { status: 200 }));
+    });
+    expect(screen.getByText("Current answer")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
   });
 
   it("keeps public verification separate and renders cutoff provenance", async () => {

@@ -563,6 +563,7 @@ async function backendFetch<T>(
       },
     });
   } catch {
+    init?.signal?.throwIfAborted();
     throw new BackendError(path, 0);
   }
   if (!response.ok) {
@@ -573,11 +574,17 @@ async function backendFetch<T>(
         detail = body.detail;
       }
     } catch {
+      init?.signal?.throwIfAborted();
       detail = undefined;
     }
     throw new BackendError(path, response.status, detail);
   }
-  return response.json() as Promise<T>;
+  try {
+    return (await response.json()) as T;
+  } catch (error) {
+    init?.signal?.throwIfAborted();
+    throw error;
+  }
 }
 
 export interface LineageGraphNode {
@@ -1342,15 +1349,8 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-/** How often the queued Ask job is polled, and for how long overall.
- * A live orchestrator answer can take minutes under shared-gateway load,
- * so the ceiling is generous; the poll interval keeps the reader's
- * "Thinking..." state honest without hammering the backend. */
+/** Poll durable work until completion or client retirement; queue age is not failure. */
 const ASK_POLL_INTERVAL_MS = 2000;
-// Must exceed the backend's whole pipeline for one job — queue wait plus
-// the 600 s job deadline — and the e2e suite's own answer deadline, so a
-// stored answer is never abandoned by the client that asked for it.
-const ASK_POLL_CEILING_MS = 15 * 60 * 1000;
 
 interface AskJobStatus {
   ask_job_id: string;
@@ -1369,16 +1369,15 @@ export function optionalKnowledgeCutoffIso(value: string): string | undefined {
   return parsed.toISOString();
 }
 
-/** Submit the question as an asynchronous job and poll it to completion.
- * The signature and resolved value are unchanged from the old synchronous
- * call, so callers (AskAgentPanel) keep their existing pending/complete
- * states without modification. */
+/** Submit and poll an Ask job; aborting retires client I/O, not the server job. */
 export async function askAgent(
   accessToken: string,
   question: string,
   verifyExternal = false,
   knowledgeCutoff?: string,
+  signal?: AbortSignal,
 ): Promise<AskAgentResponse> {
+  signal?.throwIfAborted();
   const requestBody: {
     question: string;
     verify_external: boolean;
@@ -1386,25 +1385,35 @@ export async function askAgent(
   } = { question, verify_external: verifyExternal };
   if (knowledgeCutoff) requestBody.knowledge_cutoff = knowledgeCutoff;
   const submitted = await backendFetch<AskJobStatus>("/api/ask", accessToken, {
+    signal,
     method: "POST",
     body: JSON.stringify(requestBody),
   });
-  const deadline = Date.now() + ASK_POLL_CEILING_MS;
   for (;;) {
+    signal?.throwIfAborted();
     const job = await backendFetch<AskJobStatus>(
       `/api/ask/jobs/${submitted.ask_job_id}`,
       accessToken,
+      { signal },
     );
-    if (job.job_status_code === "succeeded" && job.answer) {
+    signal?.throwIfAborted();
+    if (job?.job_status_code === "succeeded" && job.answer) {
       return job.answer;
     }
-    if (job.job_status_code === "failed") {
-      throw new Error(job.failure_detail || "Ask Agent could not answer this question.");
+    if (job?.job_status_code !== "queued" && job?.job_status_code !== "running") {
+      throw new Error("Ask Agent could not answer this question.");
     }
-    if (Date.now() > deadline) {
-      throw new Error("Ask Agent timed out waiting for an answer. Try again.");
-    }
-    await new Promise((resolve) => setTimeout(resolve, ASK_POLL_INTERVAL_MS));
+    await new Promise<void>((resolve, reject) => {
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(signal?.reason);
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, ASK_POLL_INTERVAL_MS);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
   }
 }
 

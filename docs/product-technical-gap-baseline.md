@@ -1,5 +1,174 @@
 # Product & Technical Gap Baseline
 
+## Current development audit — 2026-09-08
+
+This snapshot supersedes earlier queue and completion claims below. ADRs are
+normative; PRDs describe product acceptance; research references support only
+their stated decisions. Candidate code, local tests, authenticated runtime,
+and protected-main delivery are separate evidence classes. No new research,
+weight, estimator, failure-detector ratio, or population inference is claimed.
+
+Protected `main`: `83eba56149eb802cd63642c507c324c9976ec78e`.
+The paginated live inventory contains **139 open PRs: 17 Ready and 122 Draft**,
+plus **22 open issues**. No inspected Ready head has a qualifying current-head
+APPROVE. Required organization rules demand one independent approval, stale
+review dismissal, resolved review threads, and seven central review/security
+workflows. Existing auto-merge is not a merge SHA or release result.
+
+### Selected buyer gap and ownership
+
+Ask can keep its controls disabled forever when a status response says
+`succeeded` but omits the answer, or returns an unknown/missing state. This
+cycle prioritizes restoring an actionable screen over a new feature: the
+broken path prevents the requester from completing the current question.
+This is a delivery judgment, not a measured ranking of all product gaps.
+
+The correction extends the existing #972 owner branch from
+`40742bcf48858c22ee9726693669391836b9a5ad`, under the Proposed client-observation
+amendment to ADR 0039. Only `queued` and `running` continue observation.
+Missing completion evidence stops client polling and shows existing localized
+recovery copy; it does not mark the server job failed or submit another job.
+A failed response no longer propagates its diagnostic detail as a client error.
+Cancellation, authorization generations, cutoff, and valid late answers stay
+under the same existing contracts. There is no new API, migration, dependency,
+release number, model selection, or arithmetic implementation.
+
+Six synthetic RED cases reproduced four non-settling observations, leaked
+failure detail, and a null-response TypeError. The API suite then passed 19
+tests. The integrated API/panel run still failed because the panel fork did not
+start; a separate unchanged panel run also timed out before collecting tests.
+Neither failure is erased by the API pass. A threads-pool diagnostic then
+collected all nine panel cases: seven passed and two exceeded the unchanged
+five-second test deadline (the new missing-answer case and the existing cutoff
+case). This is a local failure, not an established environmental root cause.
+On implementation commit `c25fd4aeb6129f94256959d78624f0303176ae09`, lint,
+TypeScript/product build, and Storybook build succeeded. Chromium executed the
+new Storybook interaction at 1440 x 1000 and 390 x 844: recovery guidance was
+visible, the question remained editable, the Ask action was enabled and focused,
+and neither viewport had horizontal overflow. The synthetic screenshots were
+visually inspected: [desktop](evidence/ask-recovery-20260908/desktop.png) and
+[mobile](evidence/ask-recovery-20260908/mobile.png). This is component rendering
+evidence, not authenticated Ask/PostgreSQL acceptance or a full-suite pass.
+The product chunk warning remains (551.98 kB; 162.05 kB gzip).
+
+### Authority and canonical identity
+
+Read before implementation: LineageWeave `docs/product-requirements.md`, ADR
+0039 and ADRs 0204/0213/0246/0251, plus the linked owner
+`contextual-orchestrator/docs/product_planning.md` and `docs/architecture.md`.
+Remote repository metadata confirms `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, and `contextual-orchestrator`. The actual
+storage repository is **`ContextualWisdomLab/disksage`**, not `DiskSage`; the
+PRD register has a case mismatch. Preserve the #847 PRD-authority owner while
+converging that register. No DiskSage runtime integration is inferred.
+
+The twelve atomic Voice concepts remain ADR 0246 vocabulary. In the inspected
+tree, ADR 0251 names the FJA I/O psychology layer; the explicit Voice combination
+and temporal history contracts are ADR 0256 and ADR 0252 on #780. Preserve the
+user-required extensible atomic composition, evidence-bearing PROV derivation,
+truth state, cutoff, distinct carrying/evidence actions, and paged JSON-LD
+subject-property union. Do not infer equivalence between these differently
+named ADRs. This Ask correction does not establish Voice API/UI acceptance.
+
+### Exact Ready-head inventory (pre-correction queue snapshot)
+
+After the #972 correction, GraphQL confirmed OPEN at
+`c25fd4aeb6129f94256959d78624f0303176ae09`, with zero unresolved threads,
+REVIEW_REQUIRED, and queued Tests/central checks. Its previous head in the
+table below is historical and cannot satisfy new-head validation. GitHub REST
+subsequently exhausted its user rate limit; GraphQL remained available.
+
+Check summaries below were read for the listed heads. Failed and queued jobs
+remain distinct; no older run or review is accepted as current success.
+
+| PR | Exact head | Base | Check observations |
+| --- | --- | --- | --- |
+| #984 | `e52a63adcc46985a36d23f2ab85757f8e956f895` | `main` | in_progress: 1, queued: 10, skipped: 2, success: 4 |
+| #983 | `3b0b5d76d9e0a90c255df740437fee991d0de7cd` | `main` | failure: 1, in_progress: 1, queued: 10, skipped: 2, success: 3 |
+| #979 | `6662ea5df6f8f026b54a083677d3e0ee98d2d6d2` | `codex/ask-timeout-attribution-20260907` | success: 2 |
+| #974 | `def15fc691d4442c0d82103c1642147b1528d7be` | `main` | cancelled: 1, failure: 5, skipped: 5, success: 24 |
+| #973 | `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6` | `main` | failure: 7, skipped: 9, success: 28 |
+| #972 | `40742bcf48858c22ee9726693669391836b9a5ad` | `main` | failure: 5, skipped: 7, success: 25 |
+| #970 | `50807d1e7484fd0aa65bdbf6af015bbe8d739d80` | `main` | failure: 6, skipped: 9, success: 29 |
+| #969 | `583157c5d007d4903a78b2e30c0caac224f6460e` | `main` | failure: 6, skipped: 7, success: 24 |
+| #966 | `f749fb2714fef5975ba042f9356c10a120f671ac` | `main` | queued: 9, skipped: 5, success: 16 |
+| #964 | `1cced397600b15258b36e221a33beb62c4cca4cd` | `main` | failure: 6, skipped: 5, success: 24 |
+| #961 | `3bdec0504a65e63f44bd49ba15de37182a1672cc` | `main` | failure: 5, skipped: 9, success: 23 |
+| #959 | `96ce3de6190f1f66f140663f034427fd4d78d3a4` | `main` | failure: 6, skipped: 7, success: 24 |
+| #929 | `0f4fd26a5f0fcf26932d0945188aefb2143d6605` | `main` | failure: 7, skipped: 4, success: 29 |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | `main` | failure: 5, skipped: 7, success: 25 |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | `main` | failure: 7, skipped: 5, success: 28 |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | `main` | failure: 7, skipped: 4, success: 28 |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | `main` | cancelled: 5, failure: 4, skipped: 11, success: 17 |
+
+### Collision and stack audit
+
+Changed-file inventories were collected for all 139 PRs. Seventeen ADR
+numbers map to different filenames across those diffs; these are collision
+candidates, not seventeen adjudicated semantic conflicts. No different-name
+migration-number collision appeared in these diffs; this does not certify
+full historical schema compatibility. Competing ADR decisions need normative
+comparison and owner-order convergence before merge.
+
+| ADR number | Owning PR candidates |
+| --- | --- |
+| 0233 | #672, #811 |
+| 0245 | #702, #847 |
+| 0272 | #802, #850, #888 |
+| 0279 | #811, #857, #888 |
+| 0290 | #821, #846 |
+| 0291 | #822, #848 |
+| 0292 | #823, #849 |
+| 0293 | #824, #850 |
+| 0294 | #825, #851 |
+| 0295 | #826, #852 |
+| 0296 | #827, #831, #853 |
+| 0297 | #832, #833, #854 |
+| 0300 | #837, #857, #899 |
+| 0301 | #838, #902 |
+| 0305 | #843, #844, #845 |
+| 0335 | #876, #877, #878, #891 |
+| 0355 | #915, #920 |
+
+Ready overlaps include `backend/app/main.py` (#979/#974/#929/#914/#911/#780),
+`frontend/src/App.tsx` (#972/#969), `.github/workflows/tests.yml` (#983/#911),
+and dependency manifests (#973/#970/#929/#911/#802). #961 repairs the existing
+2.28 runtime identity while #802 advances the report release; inherited
+manifest values cannot decide release order. Full API/schema/release merge
+compatibility remains unverified until exact bases and heads converge.
+
+#979 stays based on #974; #932 stays on #929. Merge parents through protected
+main first, then retarget children and recollect evidence. #983 already contains
+its reviewed authorization-URL recheck; #911 already contains commit/rollback
+SQLSTATE translation. Do not duplicate those corrections. The two observed
+in-progress runs belonged to #984 and #983 at their current heads; neither
+was stale, and neither was cancelled. No CI stall was manually cleared.
+
+### Current runtime boundary
+
+The formal Compose project label is `lineageweave`. The live backend image
+declares revision `c47cabed2c2a85d5a3dae2d7d5fb512a04720f18`, which is not the
+candidate or current protected main. A real synthetic-account token admitted
+`GET /api/me`; this proves authentication for that existing runtime only.
+A direct current SQL count observed 43,189 Posts without retrieving identities
+or source content. It is a database count, not a probability sample or a
+population inference. The authorized workload has not been proved to contain
+only synthetic Posts, so the general k6 Ask/read harness was not run against
+this mixed-data runtime. Concurrency, latency, error rate, throughput, and
+PostgreSQL/worker/Valkey/gateway saturation are **unverified in this cycle**.
+Do not change capacity or timeout settings without that evidence.
+
+Fresh authenticated PostgreSQL Ask and Voice acceptance, candidate deployment,
+full-suite success, independent approval, protected merge, and release remain
+unavailable. #922 eight-locale publication and Customer Master cutover remain
+with #929/#932; #983 retains its observed 100% coverage failure (lines 82.48%,
+branches 78.63%) without weakened thresholds. UI recovery screenshots alone
+will not complete any authenticated runtime acceptance.
+
+---
+
+## Earlier snapshots (historical only)
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -932,3 +1101,136 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+
+## Ask authorization lifecycle repair (2026-09-07)
+
+A pending Ask response could enter a later authorization lifecycle after
+A → B → A. Deferred success displayed the retired answer; deferred HTTP 403
+displayed the retired transport error. Both were assertion failures, not test
+deadlines, in the initial two-case reproduction.
+
+The component now clears question, cutoff, answer, error, external-verification
+selection, loading, and evidence selection when its credential changes. It reuses
+the existing component-generation pattern from Customer Master: request success,
+failure, and loading completion require both the current credential and the
+originating authorization generation. Cleanup retires the generation on token
+change or unmount. No global session service, token persistence, API, or schema
+is introduced. Server ABAC and ADR 0216's cutoff evidence remain authoritative.
+
+The regression cases also start a new request after re-entry and require the
+retired success/failure to leave that request loading until its own answer arrives.
+This is UI admission evidence; it does not establish cancellation of a running
+server job or the existing client poll loop. Those transport lifetimes remain a
+separate gap, as does current-error copy that can expose transport details.
+
+The repair is based on protected main `83eba56149eb802cd63642c507c324c9976ec78e`
+and is independent of the unmerged translation-ledger foundation in PR #929/#932.
+The initial experiment used the PR #932 worktree, then moved only the Ask diff to
+an isolated main-based branch; the translation worktree was restored clean.
+No real source records, new containers, or deployment were used.
+
+Validation on the main-based candidate: 2/3 Ask tests passed; the deferred-success
+case exceeded its unchanged five-second deadline. The expanded deferred-denial
+case and existing cutoff/public-evidence case passed. The earlier narrower
+two-case repair run passed 3/3 before adding the current-request loading check;
+it is not substituted for the final run. Lint and TypeScript/production build
+passed; the existing large-chunk warning remains. The change stays Draft pending
+complete verification, independent review, and real-account acceptance.
+
+
+### Ask client transport retirement follow-up (2026-09-07)
+
+The UI guard alone did not retire transport: cancellation during a running-job
+poll delay still caused a third HTTP request, and credential/unmount cleanup
+supplied no AbortSignal. Three behavioral assertions reproduced those gaps.
+
+The existing backendFetch RequestInit now carries a native AbortSignal from
+AskAgentPanel through job submission and status reads. Component cleanup aborts
+its request controller. The shared polling loop checks cancellation before
+submission, before each status request, and after a returned status; delay abort
+clears its timer, while normal delay completion removes the listener. The fetch
+error boundary preserves the native cancellation reason. Existing generation
+checks still reject retired results, errors, and loading completions.
+
+This closes the client-poll-loop gap recorded above. It does not add a server
+job cancellation endpoint or change the existing execution/deadline policy.
+Current-error copy can still expose transport details and remains a separate
+verified gap. No provider SDK, session store, or dependency was introduced.
+
+Reference: MDN contributors. (2026, August 27). *AbortSignal: throwIfAborted()
+method*. MDN Web Docs.
+https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/throwIfAborted
+
+Final focused validation passed 15/15 tests across the Ask and API files in
+3.04 s, including the previously timed-out expanded re-entry success case,
+pre-submission abort, in-flight fetch abort, and delay cancellation without another
+request. Lint and TypeScript/production build passed with the existing chunk
+warning. This supersedes the earlier focused timeout result, not the outstanding
+full-suite, hosted, real-account, or page-latency acceptance requirements.
+
+
+### Shared operation-error copy (2026-09-07)
+
+Ask's current-error leak came from the shared orchestratorUnavailableMessage
+fallback used by Chat, Keymen extraction, Evaluation, Commitment derivation,
+and Ask. Non-503 errors were stringified into buyer copy. Three negative cases
+(network failure, HTTP 403, HTTP 500) reproduced missing recovery guidance and
+visible transport details. The fallback now reuses the existing translated
+view-recovery sentence; the existing 503 saved-evidence guidance is unchanged.
+No second catalog or dependency was introduced. This covers this formatter's
+five callers, not every error path in the application.
+
+The Ask/API run passed 17/18 cases, including all three new error-copy checks;
+the existing cutoff/public-verification test exceeded its unchanged deadline.
+A subsequent sibling-test invocation failed before test execution because the
+Vitest forks worker did not respond. Neither is labeled a green suite.
+
+Separately, hosted Tests run 34082387676 on ontology PR #959 commit
+`96ce3de6190f1f66f140663f034427fd4d78d3a4` passed the frontend's 544 tests across
+58 files and its lint/build, plus 1768 backend tests (147 skipped, one warning).
+Skipped tests and repository-job success do not prove independent review,
+all required central checks, private runtime acceptance, or deployment.
+
+The correctly selected four existing 503 sibling tests passed in 6.86 s:
+Chat, Evaluation, Keymen extraction, and Commitment derivation retained their
+saved-evidence guidance. Lint and production build passed; the existing chunk
+warning remains. The earlier worker-start failure ran no tests and is not
+counted as a sibling assertion failure or success.
+
+### Ask hosted integration evidence (2026-09-07)
+
+[Tests run 34084171460](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34084171460)
+completed successfully on PR #972 code revision
+`2242ef05cbd9cc61e836d87e1a838e7a8edd2589`. The frontend job passed 540 tests
+across 58 files, lint, and production build. The backend job passed 1768 tests
+with 147 skipped and one warning in 1251.00 s. This is the first full hosted
+success recorded here for the combined Ask authorization, transport retirement,
+and shared error-copy changes; the earlier local timeout evidence remains above.
+
+The 540-test result belongs to this Ask revision; the 544-test result above
+belongs to the independent ontology revision. Neither test count proves that
+the other PR's changes were integrated. Skipped integration cases, independent
+review, central required checks, product-owned authentication, eight-language
+database resources, deployment, and authenticated all-page p95 remain separate
+acceptance obligations. Subsequent documentation commits require their own
+current-head checks; this run remains evidence for the cited code revision.
+
+### Ask observation lifetime (2026-09-07; proposed ADR 0039 amendment)
+
+A synthetic API regression moved the browser clock sixteen minutes forward
+after a queued response. The next status was running, with a succeeded answer
+available afterward. The client threw its fixed fifteen-minute timeout instead
+of fetching that answer: 1 failed, 10 passed before repair. Removing the elapsed
+observation ceiling from the shared askAgent poller preserved terminal responses
+and native cancellation. The correctly selected API and Ask panel suites passed
+19/19 in 11.65 s. An initial selection named a nonexistent panel file and ran
+only the API suite (11/11); it is not counted as panel coverage.
+
+The backend still enforces a 600-second execution deadline and a shorter answer
+socket timeout. Recovery requeues running rows after 660 seconds because it
+assumes the deadline ended any live computation. Removing that deadline alone
+would invalidate the recovery assumption and could duplicate work. Worker
+liveness, claim fencing, crash recovery, and the contextual-orchestrator model
+administrator contract remain required before claiming the requested default-null
+end-to-end model lifetime. No provider or private-runtime call was made here.

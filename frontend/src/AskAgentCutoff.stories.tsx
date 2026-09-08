@@ -63,3 +63,26 @@ export const NarrowViewport: Story = {
   ...PartialHistoricalEvidence,
   globals: { viewport: { value: "mobile1", isRotated: false } },
 };
+
+export const CompletedAnswerUnavailable: Story = {
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (_input, init) => init?.method === "POST"
+      ? new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 })
+      : new Response(JSON.stringify({ job_status_code: "succeeded", answer: null }));
+    return () => { globalThis.fetch = previousFetch; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByLabelText("Ask a question"), "Summarize the synthetic evidence.");
+    await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
+    await expect(canvas.findByText("This view is unavailable. Refresh once; if it fails again, contact your administrator.")).resolves.toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Ask" })).toBeEnabled();
+    await expect(canvas.getByLabelText("Ask a question")).toHaveValue("Summarize the synthetic evidence.");
+  },
+};
+
+export const CompletedAnswerUnavailableNarrow: Story = {
+  ...CompletedAnswerUnavailable,
+  globals: { viewport: { value: "mobile1", isRotated: false } },
+};
