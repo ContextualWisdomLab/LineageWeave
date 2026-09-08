@@ -66,7 +66,11 @@ Head `3b0b5d76d9e0a90c255df740437fee991d0de7cd` obtained terminal
 [PostgreSQL job 101933123327](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34185559460/job/101933123327)
 success: 1,768 passed, 147 skipped, one warning, 1,241.56 seconds. The warning
 is deprecated OpenTelemetry `LoggingHandler` use in the provider-installation
-test; it remains a repair item, not suppressed. Skips remain outside verified
+test; it remains a repair item, not suppressed. The existing repair owner is
+PR #973 (`182d3c9d4`), which switches to the supported instrumentation handler;
+#929 also contains that import change. Keep the repair in its existing owner
+rather than duplicating it into #983. Neither open branch establishes protected
+main delivery. Skips remain outside verified
 coverage. Its frontend job passed 547 tests with lines 82.48%, functions 81.61%,
 statements 80.83%, branches 78.63%; the required 100% gate still failed.
 Only after recording terminal PostgreSQL evidence were the accumulated API
