@@ -5,8 +5,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 _GENERIC_OWNED_NAMES = {
+    "_FIELDS",
+    "_KINDS",
+    "_SHA256",
+    "_SOURCE_CODE",
+    "_parser",
     "args",
     "bindings",
     "child",

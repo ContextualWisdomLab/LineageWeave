@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Authorized job-architecture import naming overlay: 2026-09-08 KST. The
+> stacked base is exact head
+> `4a81f8706ad819967a8a88787464174d59599002`; exact RED head
+> `4770efa31acdb7996b945135541e34d59dcd953c` found repository-owned
+> `code`, `kind`, `name`, `path`, `row`, `node`, `edge`, `binding`,
+> `parser`, `args`, `conn`, `entity_id`, `key`, `digest`, and traversal
+> accumulator identifiers across authorized CSV parsing, hierarchy validation,
+> occupation binding, transactional persistence, and behavioral fixtures.
+> Action: align the complete private caller and owned field surface with
+> source-snapshot, job-architecture node, hierarchy-edge, occupation-binding,
+> corporate-entity, database, digest, and command language while preserving
+> external CSV columns, CLI flags, SQL/schema, source evidence, aggregate JSON
+> fields, transaction behavior, and connection close. Status: RED reproduced;
+> six focused behavior/naming tests, compile, and scoped Ruff/format GREEN
+> locally; GitHub exact-head checks and independent review pending.
+>
 > Ontology-site publisher naming overlay: 2026-09-08 KST. The stacked base is
 > `fix/contextual-orchestrator-owner-boundary@e5711282c48cc20d0a88fb56a9e382d500989c72`;
 > exact RED head `1e077883e807f2e42f0b61743d99815469460af6` found

@@ -262,6 +262,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The authorized job-architecture importer and its behavioral fixture now use
+  semantic source-snapshot, job-architecture node, hierarchy-edge,
+  occupation-binding, database, digest, and command identifiers while
+  preserving CSV columns, CLI flags, SQL/schema, aggregate JSON fields,
+  transaction behavior, and connection close.
+
 - The governed ontology-site publisher now uses semantic renderer, ontology
   graph, namespace-mapping, SHACL-resource, source-path, output-path, and CLI
   identifiers while preserving public function signatures, CLI flags, RDF
