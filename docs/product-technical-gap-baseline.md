@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+> Evidence-only 5W1H naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@af761b167595a4fbd15fbfc3cfcec4c3efe48de3`;
+> exact RED head `52dea4374655e0b222e464ab53b24400c97c7444` found
+> repository-owned `_value`, `_unique`, `text`, `source`, `codes`, `values`,
+> `seen`, `result`, `role`, `event`, `claim`, `slot`, `item`, `name`, and
+> `key` identifiers across evidence-slot construction, deduplication, 5W1H
+> assembly, the authorized database caller, and focused fixtures. Action:
+> align the complete bounded surface with evidence-slot, post-summary-role,
+> key-event, counterparty, ontology-annotation, slot-code, and value-key
+> language while preserving published JSON keys, ontology/source codes,
+> stable ordering, and evidence-only behavior. Status: RED reproduced;
+> implementation and four focused behavior/naming tests, compile, diff, and
+> scoped Ruff/format GREEN locally; GitHub exact-head checks and independent
+> review remain pending.
+>
 > Ask delivery naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@61ab94ad0f1d4621d8fb733a789d09abf4360750`;
 > exact RED head `114437e59a472b8a9d83701511f3be1d41726274` found

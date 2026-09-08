@@ -3332,11 +3332,11 @@ async def read_post_five_w1h(
 ) -> dict[str, Any]:
     """Return an evidence-only 5W1H projection for an authorized post."""
     await _load_visible_post(post_id, account, pool)
-    async with pool.acquire() as conn:
+    async with pool.acquire() as database_connection:
         return await load_five_w1h_slots(
-            conn,
+            database_connection,
             post_id,
-            lambda row: _can_see_post(account, row),
+            lambda visible_post_row: _can_see_post(account, visible_post_row),
         )
 
 

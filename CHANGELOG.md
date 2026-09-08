@@ -262,6 +262,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The evidence-only 5W1H projection and its authorized read caller now use
+  semantic evidence-slot, post-summary-role, key-event, counterparty, ontology,
+  and deduplication identifiers. Published slot/value JSON keys, ontology
+  codes, source codes, ordering, and evidence-only behavior remain unchanged.
+
 - The Ask delivery projection and its direct empty-result caller now use
   semantic cited-post, post-evidence, source-document, encoded-post-ID, and
   Ask-delivery identifiers. The published report/alert JSON keys, URL quoting,
