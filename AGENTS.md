@@ -434,3 +434,9 @@ pages. Correlate timestamped logs before attributing latency to provider errors.
 For host/container latency differences, record logical CPU counts, load, and
 Linux `/proc/pressure/{cpu,memory,io}` with timestamps. High CPU pressure is a
 measurement condition, not proof that a particular request stalled there.
+
+When a UI test alternates between timeout and missing-element failures, inspect
+the failing phase before changing selectors or deadlines. A timer firing late
+is evidence of delayed execution, not proof that the product is correct. Keep
+full-run failures distinct from focused passes and remove ineffective diagnostic
+edits instead of shipping a speculative fix.

@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+## Translation consumer full-App diagnosis — 2026-09-08
+
+On #932 merge head `8c662a055`, all 106 App tests ran with one worker and
+unchanged deadlines: 60 failed / 46 passed in 599.76 seconds. Failure records
+comprise 54 timeout cases and six missing-control cases. A focused seven-case
+recheck passed six, leaving the DAG node-click case failing. Subsequent
+single-case diagnostics alternated between a missing node and timeout; a
+5-second timeout was reported after 11.28 seconds of test execution. These
+observations do not establish that every failure is environmental.
+
+Temporary phase instrumentation measured render at 73 ms, the post button ready
+at 1,939 ms, and its click complete at 3,098 ms before node lookup failed.
+Scoping lookup to the post dialog did not establish a repair. All diagnostic
+and ineffective candidate edits were removed. Preserve the full-run failure;
+do not repeat unchanged full runs or promote focused passes to suite acceptance.
+
 ## Dashboard and login verification — 2026-09-08
 
 PR #983 at `f2fab9e3ca36c71bb4c16f37a5bbb63dc0584231` passed all
@@ -46,7 +62,15 @@ remain unverified; older successful runs do not satisfy those gates.
 
 ## Frontend coverage evidence — 2026-09-08
 
-Latest measured #983 head `6fdfc0591cb0700613ed078bf001ba387196e29f`:
+At `2eef50490b90184fb57303d948021a41d7bf4c9d`,
+[frontend job 101931318953](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34184940038/job/101931318953)
+passed 545 tests plus lint, product build, and Storybook build. Lines are 82.29%,
+functions 81.51%, statements 80.55%, and branches 78.37%. Coverage remains a
+failing 100% gate. The added API cases preserve encoded project/focus identity
+and omitted, null, or explicit timezone-bearing cutoff values.
+
+
+Earlier measured #983 head `6fdfc0591cb0700613ed078bf001ba387196e29f`:
 [frontend job 101927745710](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34183704662/job/101927745710)
 completed with 542 tests passing across 58 files. Lines reached 82.20%,
 functions 81.42%, statements 80.44%, and branches 78.31%; the 100% gate
