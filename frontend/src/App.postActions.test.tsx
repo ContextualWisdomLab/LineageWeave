@@ -264,13 +264,24 @@ describe("post share and bookmark actions", () => {
   });
 
   it("keeps the current bookmark state and reports a save failure", async () => {
-    const bookmarkSave = Promise.reject(new Error("bookmark failed"));
-    const { shareButton } = await renderSharedPost({ bookmarkSave });
+    let rejectSave!: (error: Error) => void;
+    const bookmarkSave = new Promise<boolean>((_resolve, reject) => {
+      rejectSave = reject;
+    });
+    const { fetchMock, shareButton } = await renderSharedPost({ bookmarkSave });
     expect(shareButton).toBeEnabled();
     const button = await screen.findByRole("button", { name: "Bookmark" });
     await waitFor(() => expect(button).toBeEnabled());
 
     fireEvent.click(button);
+    await waitFor(() => {
+      const saves = fetchMock.mock.calls.filter(([input, init]) => {
+        const url = new URL(String(input), "https://backend.test");
+        return url.pathname === "/api/posts/post-1/bookmark" && (init?.method ?? "GET") === "POST";
+      });
+      expect(saves).toHaveLength(1);
+    });
+    rejectSave(new Error("bookmark failed"));
 
     expect(
       await screen.findByText(
