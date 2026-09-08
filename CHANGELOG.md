@@ -8,6 +8,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Source-post valid-time revision lookup now uses explicit timestamp-value,
+  query-clock, database-connection, and source-post-revision-row identifiers
+  across parsing, interval coverage, persistence reads, serialization, and
+  focused fixtures. Public helper names, positional behavior, PostgreSQL
+  table/column names, SQL predicates and ordering, and returned API keys are
+  unchanged.
+
 - Global Ask relative-time source selection now uses explicit source-post,
   timestamp, candidate-channel, lineage-edge, and source-document identifiers
   across the time-axis helper, authorized retrieval caller, and focused

@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Source-post valid-time revision naming overlay: 2026-09-08 KST. The stacked
+> base is
+> `refactor/post-keyman-backfill-semantic-identifiers@d07ac85bd9804a6eb5ff8383a3ebe5385307a87f`;
+> exact RED head `85ecda944d67b08f8c6f40ece3c52d167600c3ea` found
+> repository-owned `_iso`, `value`, `text`, `parsed`, `start`, `clock`, `conn`,
+> `row`, and `rows` identifiers across ISO clock parsing, half-open revision
+> coverage, authorized PostgreSQL reads, result serialization, and focused
+> fixtures. Action: align that bounded surface with timestamp-value,
+> normalized-clock-text, parsed-clock, revision-start, query-clock,
+> database-connection, and source-post-revision-row language while preserving
+> public helper names, positional behavior, source-post-revision SQL/schema,
+> half-open interval semantics, result ordering, and returned API keys. Status:
+> RED reproduced; implementation and six focused behavior/naming tests are
+> GREEN locally; GitHub exact-head checks and independent review remain
+> pending.
+>
 > Global Ask time-axis naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@889b926d3ac5bfcfee99b96a9fa7488bb282509a`;
 > exact RED head `8cdbf1cb6a3bb22defd2c4f4994eefb4b78608b8`
