@@ -41,7 +41,15 @@ Neither failure is erased by the API pass. A threads-pool diagnostic then
 collected all nine panel cases: seven passed and two exceeded the unchanged
 five-second test deadline (the new missing-answer case and the existing cutoff
 case). This is a local failure, not an established environmental root cause.
-Build and rendered evidence remain pending at this documentation preparation point.
+On implementation commit `c25fd4aeb6129f94256959d78624f0303176ae09`, lint,
+TypeScript/product build, and Storybook build succeeded. Chromium executed the
+new Storybook interaction at 1440 x 1000 and 390 x 844: recovery guidance was
+visible, the question remained editable, the Ask action was enabled and focused,
+and neither viewport had horizontal overflow. The synthetic screenshots were
+visually inspected: [desktop](evidence/ask-recovery-20260908/desktop.png) and
+[mobile](evidence/ask-recovery-20260908/mobile.png). This is component rendering
+evidence, not authenticated Ask/PostgreSQL acceptance or a full-suite pass.
+The product chunk warning remains (551.98 kB; 162.05 kB gzip).
 
 ### Authority and canonical identity
 
@@ -62,7 +70,13 @@ truth state, cutoff, distinct carrying/evidence actions, and paged JSON-LD
 subject-property union. Do not infer equivalence between these differently
 named ADRs. This Ask correction does not establish Voice API/UI acceptance.
 
-### Exact Ready-head inventory
+### Exact Ready-head inventory (pre-correction queue snapshot)
+
+After the #972 correction, GraphQL confirmed OPEN at
+`c25fd4aeb6129f94256959d78624f0303176ae09`, with zero unresolved threads,
+REVIEW_REQUIRED, and queued Tests/central checks. Its previous head in the
+table below is historical and cannot satisfy new-head validation. GitHub REST
+subsequently exhausted its user rate limit; GraphQL remained available.
 
 Check summaries below were read for the listed heads. Failed and queued jobs
 remain distinct; no older run or review is accepted as current success.
