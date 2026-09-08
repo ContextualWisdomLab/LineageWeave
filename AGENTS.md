@@ -440,8 +440,11 @@ Run `corepack pnpm run test:coverage` from `frontend/` to collect source coverag
 and enforce the 100% threshold over the complete configured source inventory.
 Keep Storybook and browser-entry runtime evidence distinct, but do not remove
 those executable files from coverage merely because the unit suite has not yet
-executed them. Generated reports stay outside git. Instrumentation availability
-and a smaller denominator do not establish coverage acceptance.
+executed them. The unit suite must import and render the CSF inventory and mount
+the browser bootstrap so those files are executed; Storybook play assertions
+remain the interaction evidence. Generated reports stay outside git.
+Instrumentation availability and a smaller denominator do not establish coverage
+acceptance.
 
 The frontend CI retains `frontend-coverage` even when the coverage threshold
 fails. Use its LCOV paths and JSON summary to select regression work; console
