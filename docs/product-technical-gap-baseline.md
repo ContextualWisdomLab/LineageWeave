@@ -1256,3 +1256,9 @@ in 26.10 seconds. The new raw-body and persisted-unit cases assert that only
 supported `m^3` becomes a superscript while long signed/braced exponents remain
 literal. This is component DOM evidence, not a deployed browser acceptance run;
 it is newer than the hosted revision above.
+
+At follow-up `a613855c8`, the supported three-digit boundary is explicitly
+verified for unsigned, signed, and braced exponents in both implementations.
+All 45 display-helper tests (12.03 seconds) and 74 chunking tests (0.84 seconds)
+passed. These checks prevent the long-token repair from rejecting valid short
+quantities; they do not replace the final-head full-suite and release gates.
