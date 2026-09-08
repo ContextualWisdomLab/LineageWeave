@@ -62,6 +62,17 @@ remain unverified; older successful runs do not satisfy those gates.
 
 ## Frontend coverage evidence — 2026-09-08
 
+Head `3b0b5d76d9e0a90c255df740437fee991d0de7cd` obtained terminal
+[PostgreSQL job 101933123327](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34185559460/job/101933123327)
+success: 1,768 passed, 147 skipped, one warning, 1,241.56 seconds. The warning
+is deprecated OpenTelemetry `LoggingHandler` use in the provider-installation
+test; it remains a repair item, not suppressed. Skips remain outside verified
+coverage. Its frontend job passed 547 tests with lines 82.48%, functions 81.61%,
+statements 80.83%, branches 78.63%; the required 100% gate still failed.
+Only after recording terminal PostgreSQL evidence were the accumulated API
+regression commits pushed. The new head requires its own hosted checks.
+
+
 At `2eef50490b90184fb57303d948021a41d7bf4c9d`,
 [frontend job 101931318953](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34184940038/job/101931318953)
 passed 545 tests plus lint, product build, and Storybook build. Lines are 82.29%,
