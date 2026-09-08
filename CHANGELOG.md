@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 30354)
+Total output lines: 2641
+
 # Changelog
 
 All notable changes to this project are documented here. Format follows
@@ -261,6 +264,12 @@ All notable changes to this project are documented here. Format follows
   invent a leftover score.
 
 ### Changed
+
+- The Ask delivery projection and its direct empty-result caller now use
+  semantic cited-post, post-evidence, source-document, encoded-post-ID, and
+  Ask-delivery identifiers. The published report/alert JSON keys, URL quoting,
+  citation order, evidence facts, and subscription eligibility remain
+  unchanged.
 
 - The post-evaluation judge, IRT projection, persistence, API handlers, SQL
   aliases, and focused fixtures now use semantic judge-result,
@@ -1280,31 +1289,7 @@ All notable changes to this project are documented here. Format follows
 - Related-node person chips now use the localized `person_side` lookup label
   supplied by the authorized API payload. Users see business context such as
   `Our side` or `Counterparty`, while ontology class metadata remains available
-  separately for semantic processing and provenance.
-- Related-person buttons now expose that same caption in the accessible name, so
-  assistive technology hears `Related nodes for Priya Nair (Counterparty)`
-  instead of the name alone.
-- Structured extraction, summarization, commitment, relationship-classification,
-  and LLM-as-a-Judge consumers now request contextual-orchestrator `auto` mode
-  so the orchestration plane can meet the quality requirement and then minimize
-  known execution cost. Explicit checked `verify` paths remain unchanged
-  (ADR 0015).
-
-## [0.77.0] - 2026-08-14
-
-### Fixed
-
-- Keyman and R&R person mentions now replace independent source projections. Knowledge Graph edges have one canonical identity plus post-level evidence, so removed actors and concurrent writes cannot leave stale or duplicate buyer-visible relationships.
-- Vision-response parsing now strips balanced outer Markdown emphasis from field values
-  while still accepting emphasized field labels, so OCR such as
-  ``TEXT: **LT7**`` is not truncated.
-- A real live synthetic regression batch run surfaced a genuine
-  `DeadlockDetectedError` from concurrent corporate-entity creation:
-  two concurrent transactions each creating a different new entity,
-  mentioned in opposite order across two different posts, took
-  row-level locks in opposite order and deadlocked. Entity *creation*
-  (the rare, first-mention-only branch) now serializes through a
-  single named Postgres advisory transaction lock, taken only right
+  separately for semantic proc…354 tokens truncated…  single named Postgres advisory transaction lock, taken only right
   before the write and auto-released at commit/rollback -- the
   lock-free similarity-matching fast path every already-cataloged
   entity resolves through is unaffected. See ADR 0012.

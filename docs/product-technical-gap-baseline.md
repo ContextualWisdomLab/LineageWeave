@@ -1,5 +1,18 @@
 # Product & Technical Gap Baseline
 
+> Ask delivery naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@61ab94ad0f1d4621d8fb733a789d09abf4360750`;
+> exact RED head `114437e59a472b8a9d83701511f3be1d41726274` found
+> repository-owned `item`, `documents`, `post`, `encoded_id`, and a direct
+> caller's `delivery` identifier across the transport-neutral Ask projection,
+> empty-result path, and focused fixtures. Action: align that bounded surface
+> with cited-post, post-evidence, source-document, encoded-post-ID, and
+> Ask-delivery language while preserving released report/alert JSON keys, URL
+> quoting, citation order, evidence facts, and subscription eligibility.
+> Status: RED reproduced; implementation and focused behavior/naming, compile,
+> and scoped Ruff/format validation GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
 > Post-evaluation naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@156831f14e1302d1361bcdb7cd4674ef49924204`;
 > exact RED head `f2e982905dc4e85e4123df0655a87b39b3f91b48` found

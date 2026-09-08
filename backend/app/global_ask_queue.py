@@ -367,7 +367,7 @@ async def compute_global_ask_answer(
             verify_external=verify_external,
             client=verification_client,
         )
-        delivery = build_ask_delivery("", (), ())
+        ask_delivery = build_ask_delivery("", (), ())
         return {
             "answer_text": "",
             "cited_post_ids": [],
@@ -383,7 +383,7 @@ async def compute_global_ask_answer(
                 if limitations
                 else "No authorized source posts are available for this question."
             ),
-            "delivery": delivery,
+            "delivery": ask_delivery,
             "knowledge_cutoff": cutoff_text,
             "grounding_status": grounding_status,
             "limitations": limitations,
