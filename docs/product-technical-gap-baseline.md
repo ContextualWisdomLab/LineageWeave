@@ -18,6 +18,19 @@ do not repeat unchanged full runs or promote focused passes to suite acceptance.
 
 ## Dashboard and login verification — 2026-09-08
 
+Local candidate `dc8f1d4f7` adds a synthetic case with no project association:
+its evidence remains clickable and no project journey is fabricated. It also
+removes `events ?? []` because `Object.entries` enumerates arrays created by
+the local reducer; no entry can have an undefined value under that construction.
+This removes two instrumented branches (36 to 34), not a coverage exclusion.
+The focused command `pnpm exec vitest run
+src/components/OperationsDashboard.test.tsx --maxWorkers=1 --coverage` passed
+11 tests. The Dashboard module reports 31/31 lines, 36/36 statements, 20/20
+functions, and 34/34 branches. Other configured source files remain in the
+report denominator; this is module evidence only, not whole-frontend 100%.
+The candidate was kept local while remote CI status could not be refreshed.
+
+
 PR #983 at `f2fab9e3ca36c71bb4c16f37a5bbb63dc0584231` passed all
 10 Dashboard tests locally with `pnpm exec vitest run
 src/components/OperationsDashboard.test.tsx --maxWorkers=1` from `frontend/`
