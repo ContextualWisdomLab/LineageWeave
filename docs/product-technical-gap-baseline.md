@@ -30,6 +30,16 @@ functions, and 34/34 branches. Other configured source files remain in the
 report denominator; this is module evidence only, not whole-frontend 100%.
 The candidate was kept local while remote CI status could not be refreshed.
 
+Story candidate `bd64a2161` adds `EvidenceWithoutProject` and updates the
+Storybook inventory. The static Storybook build passed. A real headless Chromium
+loaded that isolated story at 390 × 844, displayed and clicked the evidence
+button, reported document scroll width 390, no project-journey section, and no
+page errors. The temporary loopback static server was shut down afterward.
+The browser check did not inspect the callback spy or prove a real post was
+opened; exact callback identity is covered by the synthetic component test.
+The story's play assertions were authored but their terminal play-run result
+was not separately observed. This is not production/database acceptance.
+
 
 PR #983 at `f2fab9e3ca36c71bb4c16f37a5bbb63dc0584231` passed all
 10 Dashboard tests locally with `pnpm exec vitest run
