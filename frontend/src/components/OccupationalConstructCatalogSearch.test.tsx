@@ -131,4 +131,45 @@ describe("OccupationalConstructCatalogSearch", () => {
     expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
     expect(screen.getByText(/Written Comprehension/)).toBeVisible();
   });
+
+  it("fails closed without a session and on an invalid catalog request", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<OccupationalConstructCatalogSearch />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    expect(fetchOccupationalConstructSearch).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Work-evidence search is unavailable. Open a visible record next.",
+    );
+
+    vi.mocked(fetchOccupationalConstructSearch).mockRejectedValueOnce(
+      new BackendError("/api/occupational-constructs/search", 422),
+    );
+    rerender(<OccupationalConstructCatalogSearch accessToken="token" />);
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Type two or more letters of a catalog label, then open the supporting record.",
+    );
+  });
+
+  it("keeps earlier matches when continuation fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchOccupationalConstructSearch)
+      .mockResolvedValueOnce({
+        query: "Oral",
+        family_code: null,
+        next_cursor: HIT.construct_iri,
+        hits: [HIT],
+      })
+      .mockRejectedValueOnce(new BackendError("/api/occupational-constructs/search", 500));
+    render(<OccupationalConstructCatalogSearch accessToken="token" />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Show more matching records" }));
+    expect(screen.queryByText(/Oral Comprehension/)).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Work-evidence search is unavailable. Open a visible record next.",
+    );
+  });
 });
