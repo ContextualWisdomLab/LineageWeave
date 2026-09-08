@@ -172,6 +172,12 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
     / "migrations"
     / "0203_global_ask_authorization_scope.sql"
 )
+_GLOBAL_ASK_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0212_global_ask_knowledge_cutoff.sql"
+)
+_GLOBAL_ASK_VERIFICATION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0218_global_ask_public_verification.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -240,10 +246,14 @@ def schema_db():
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_CUTOFF_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_VERIFICATION_MIGRATION.read_text())
                 # Exercise the production replay contract against the same
                 # PostgreSQL objects instead of merely inspecting SQL text.
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_CUTOFF_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_VERIFICATION_MIGRATION.read_text())
                 # Match ADR 0166's production migration executor instead of
                 # maintaining a fixture-owned SQL parser.
                 subprocess.run(

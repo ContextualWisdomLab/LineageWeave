@@ -57,8 +57,17 @@ cancelled, and a simultaneous renewal error did not reject the answer. After
 correction, **42 local tests passed** across claim cancellation, elapsed-time
 behavior, queue outcomes, transport configuration, and public docstrings.
 The added PostgreSQL regression invokes production claim/renewal/settlement
-functions after delaying a real committed renewal response. Its live outcome
-is recorded separately below; skipped tests never count as persistence proof.
+functions after delaying a real committed renewal response. Initial live execution
+found that the shared test fixture omitted migrations 0212 and 0218; it failed
+with a missing public-verification column before entering the race. The fixture
+now applies and replays both real migrations. The normal two-second connection
+admission skipped two local tests; skipped tests are not persistence proof. A
+separate authenticated PostgreSQL execution with the exact production migrations
+passed both regressions: stale-owner settlement rejection and persisted answer
+after committed-renewal delivery. Idempotent migration replay also passed. The
+throwaway database was dropped afterward. Only visibility/model computation
+was synthetic; claim, renewal and settlement used the production functions and
+real PostgreSQL. This is database evidence, not authenticated HTTP/UI acceptance.
 The inherited three-heartbeat orphan threshold is still ungrounded as a
 failure-detector/capacity policy and remains an unresolved ADR acceptance gap.
 
@@ -128,7 +137,11 @@ no stale closed-PR cancellation was warranted.
   subject-property and multi-Voice union candidates #934/#968 remain separate
   unmerged evidence, with #937/#971 also pending authorization work.
   No fresh authenticated PostgreSQL/API or rendered Voice acceptance was
-  established here. UI/CSV and paged JSON-LD acceptance remain open.
+  established here. An exact-head #968 Vitest attempt with one fork could not
+  start its test process before the runner startup timeout (zero tests ran).
+  The source diff preserves singleton/array property union, but that inspection
+  does not replace executable validation. UI/CSV and paged JSON-LD acceptance
+  remain open.
 
 ## Historical snapshots — not current authority or acceptance
 
