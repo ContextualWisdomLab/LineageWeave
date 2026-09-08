@@ -1,5 +1,21 @@
 # Product & Technical Gap Baseline
 
+> Affiliate-tree builder naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@5b0d6c51f2ffee89d0e335d3e76a2825d1636d69`;
+> exact RED head `32c7bd44d026feaa898c164b78541cc0c4030ba1` found
+> repository-owned `_build`, `affiliations`, `entities`, `row`, `leaf`,
+> `needed`, `current`, `unique`, `person`, `child`, `name`, and `leaves`
+> identifiers across affiliate-person deduplication, ancestor selection,
+> resolved hierarchy construction, unresolved-root projection, and focused
+> fixtures. Action: align private builder and fixture names with
+> affiliate-person, affiliation-leaf, corporate-entity-row, needed-entity-ID,
+> affiliate-node, resolved-root, and unresolved-affiliation language while
+> preserving public dataclass fields, JSON keys, hierarchy membership,
+> deduplication, ordering, and unresolved-organization behavior. Status: RED
+> reproduced; implementation and 17 focused affiliate-tree/VOC behavior and
+> naming tests, compile, diff, and scoped Ruff/format validation GREEN locally;
+> GitHub exact-head checks and independent review remain pending.
+>
 > Extractive VOC evidence naming overlay: 2026-09-08 KST. The stacked base is
 > `refactor/post-keyman-backfill-semantic-identifiers@33981c8e562b927ba455995052de5a47187cd095`;
 > exact RED head `f515541502d4c8ee7001181aa92da0efc06e9fe1` found
