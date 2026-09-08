@@ -16,6 +16,23 @@ above the bundler's 500 kB warning. This is an artifact-size observation;
 it does not measure browser execution cost or identify the latency root cause.
 Do not raise the warning limit to present the performance gap as resolved.
 
+A diagnostic `pnpm exec vite build --sourcemap --outDir <temporary-directory>`
+on `6fdfc0591` confirms the entry chunk includes `App.tsx`, `i18n.ts`,
+React DOM, and OIDC client code. Original source contents in that map occupy
+205,162 bytes for App and 171,275 bytes for i18n; these are original UTF-8
+source sizes, not minified contribution, transfer cost, or execution time.
+Do not add these sizes to the emitted chunk total. Runtime profiling and
+mapped generated-byte attribution remain necessary before selecting a rewrite.
+
+Translation consumption already has an owner stack: #929 introduces the ledger
+and #932 consumes Customer Master screen copy. At inspection, #932 head
+`c01e3109c987115c65bcbc74cd6f6247527387b8` still documents a stale descendant of
+parent #929 head `0f4fd26a5f0fcf26932d0945188aefb2143d6605`. Its stated scope is
+Customer Master, not removal of every bundled translation. Preserve that valid
+delta and converge the parent non-destructively before extending screen
+migration; neither an open foundation PR nor this source-map observation proves
+that the full translation-bundle requirement has been delivered.
+
 The login helper at `6fdfc0591cb0700613ed078bf001ba387196e29f` addresses the
 review finding that an allowed navigation error could leave the browser on an
 unexpected page. It reasserts the authorization URL before filling the synthetic
