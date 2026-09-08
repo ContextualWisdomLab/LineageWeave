@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
   fetchMe,
+  fetchWorkerFunctionProfile,
+  fetchWorkerFunctionConstructCatalog,
   fetchPosts,
   fetchOntologyNeighborhood,
   setPostBookmark,
@@ -19,6 +21,18 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([
+    ["profile", () => fetchWorkerFunctionProfile("access-token", "data", 0), "/api/ontology/worker-functions/data/0"],
+    ["catalog", () => fetchWorkerFunctionConstructCatalog("access-token"), "/api/ontology/worker-function-constructs"],
+  ] as const)("authenticates worker-function %s reads without fabricating unavailable evidence", async (_kind, read, endpoint) => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(read()).rejects.toMatchObject({ name: "BackendError", status: 503 });
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(endpoint), expect.objectContaining({
+      headers: { Authorization: "Bearer access-token" },
+    }));
+  });
+
   it.each([false, true])("keeps post visibility and repeated Voice filters with legacy response %s", async (legacy) => {
     const page = { posts: [], total_count: 0, limit: 10, offset: 20 };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(legacy ? [] : page)));
