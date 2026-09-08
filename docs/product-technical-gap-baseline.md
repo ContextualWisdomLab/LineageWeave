@@ -1129,3 +1129,14 @@ Focusing the evidence button and pressing Enter added exactly one callback to
 the story interaction, producing two calls with the same synthetic fixture key
 per page. The driver exited successfully; this verifies the isolated synthetic
 story, not authenticated runtime acceptance or whole-suite coverage.
+
+### Actionable client-error regression — 2026-09-08
+
+Local head `8ca3e8c69` adds four HTTP client-error cases (401, 403, 409, 422)
+to the shared API regression suite. They preserve actionable product guidance
+and status under ADR 0123 while the existing server/transport cases retain
+privacy protection. The focused V8 run passed 29 tests in 68.36 seconds.
+For `src/api.ts` alone, it covered 65/129 lines, 16/61 functions,
+77/144 statements, and 53/98 branches. This selected-test report keeps the
+full configured source denominator and is not a whole-suite coverage result.
+The committed tests do not establish server authorization or release readiness.
