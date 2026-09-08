@@ -74,6 +74,33 @@ describe("ProjectHistoryTimeline coverage contracts", () => {
     expect(third).toHaveAttribute("aria-selected", "true");
   });
 
+  it("keeps a selected tab stable when a malformed sparse projection has no target event", () => {
+    const sparseEvents = Array<ProjectHistoryEvent>(3);
+    sparseEvents[0] = historyEvent("first", "First event");
+    sparseEvents[2] = historyEvent("third", "Third event");
+    const projection: ProjectHistoryProjection = {
+      contract_version: 1,
+      project_key: "P-SPARSE",
+      normalized_project_key: "p-sparse",
+      project_name: "Sparse history",
+      focus_event_id: "first",
+      time_basis_code: "source_post_created_at_fallback",
+      event_count: 2,
+      distinct_observed_actor_count: 0,
+      truncated: false,
+      events: sparseEvents,
+    };
+
+    render(<ProjectHistoryTimeline projection={projection} onOpenPost={vi.fn()} />);
+
+    const first = screen.getByRole("tab", { name: /First event/ });
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+
+    expect(first).toHaveFocus();
+    expect(first).toHaveAttribute("aria-selected", "true");
+  });
+
   it("keeps fallback, truncation, identity-evidence, and unknown-path states buyer-visible", () => {
     const fallbackEvent: ProjectHistoryEvent = {
       ...historyEvent("fallback", "Fallback event"),
@@ -85,6 +112,17 @@ describe("ProjectHistoryTimeline coverage contracts", () => {
           truth_status_code: "observed",
           confidence: null,
           ontology_iri: null,
+          provenance: "source_record",
+        },
+      ],
+      observed_responsibilities: [
+        {
+          actor_key: "actor-without-organization",
+          actor_name: "Ada Analyst",
+          actor_type_code: "person",
+          affiliated_organization_name: null,
+          responsibility: "Reviews evidence",
+          truth_status_code: "observed",
           provenance: "source_record",
         },
       ],
@@ -115,7 +153,7 @@ describe("ProjectHistoryTimeline coverage contracts", () => {
       focus_event_id: "missing-focus",
       time_basis_code: "source_post_created_at_fallback",
       event_count: 1,
-      distinct_observed_actor_count: 0,
+      distinct_observed_actor_count: 1,
       truncated: true,
       events: [fallbackEvent],
     };
@@ -128,7 +166,8 @@ describe("ProjectHistoryTimeline coverage contracts", () => {
       "true",
     );
     expect(screen.getAllByText("not-a-date").length).toBeGreaterThan(0);
-    expect(screen.getByText("No responsibility evidence is recorded for this event.")).toBeInTheDocument();
+    expect(screen.getByText("Ada Analyst")).toBeInTheDocument();
+    expect(screen.getByText("Reviews evidence")).toBeInTheDocument();
     expect(screen.getByText("Recorded project alias")).toBeInTheDocument();
     expect(screen.getByText(/unknown-prior → Fallback event/)).toBeInTheDocument();
     expect(screen.getAllByText("0.625").length).toBeGreaterThan(0);
