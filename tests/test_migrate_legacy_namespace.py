@@ -2,7 +2,7 @@
 
 The migration must be deterministic, dry-run by default, refuse unknown
 namespaces, and never touch provenance columns. These tests exercise the
-pure ``canonicalize`` mapping and the async scan/rewrite flow against an
+pure ``canonicalize_ontology_iri`` mapping and the async scan/rewrite flow against an
 in-memory fake connection -- no live PostgreSQL required.
 """
 
@@ -15,18 +15,23 @@ from pathlib import Path
 
 import pytest
 
-_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "migrate_legacy_namespace.py"
-_spec = importlib.util.spec_from_file_location("migrate_legacy_namespace", _SCRIPT)
-migrate_legacy_namespace = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(migrate_legacy_namespace)
+MIGRATION_SCRIPT_PATH = (
+    Path(__file__).resolve().parents[1] / "scripts" / "migrate_legacy_namespace.py"
+)
+MIGRATION_MODULE_SPEC = importlib.util.spec_from_file_location(
+    "migrate_legacy_namespace",
+    MIGRATION_SCRIPT_PATH,
+)
+migrate_legacy_namespace = importlib.util.module_from_spec(MIGRATION_MODULE_SPEC)
+MIGRATION_MODULE_SPEC.loader.exec_module(migrate_legacy_namespace)
 
-CANONICAL = migrate_legacy_namespace.CANONICAL_NAMESPACE
-LEGACY = migrate_legacy_namespace.LEGACY_NAMESPACE
+CANONICAL_ONTOLOGY_NAMESPACE = migrate_legacy_namespace.CANONICAL_NAMESPACE
+LEGACY_ONTOLOGY_NAMESPACE = migrate_legacy_namespace.LEGACY_NAMESPACE
 
 
 def test_migration_operator_uses_semantic_owned_identifiers() -> None:
     """Keep migration, database, IRI, and command names context-specific."""
-    module_source = _SCRIPT.read_text(encoding="utf-8")
+    module_source = MIGRATION_SCRIPT_PATH.read_text(encoding="utf-8")
     syntax_tree = ast.parse(module_source)
     owned_identifiers = {
         syntax_node.id
@@ -80,73 +85,86 @@ def test_migration_operator_uses_semantic_owned_identifiers() -> None:
 
 class TestCanonicalize:
     def test_maps_legacy_to_canonical(self) -> None:
-        assert migrate_legacy_namespace.canonicalize(f"{LEGACY}Project") == f"{CANONICAL}Project"
+        assert (
+            migrate_legacy_namespace.canonicalize_ontology_iri(
+                f"{LEGACY_ONTOLOGY_NAMESPACE}Project"
+            )
+            == f"{CANONICAL_ONTOLOGY_NAMESPACE}Project"
+        )
 
     def test_canonical_rows_are_left_alone(self) -> None:
-        iri = f"{CANONICAL}Person"
-        assert migrate_legacy_namespace.canonicalize(iri) is None
+        ontology_iri = f"{CANONICAL_ONTOLOGY_NAMESPACE}Person"
+        assert migrate_legacy_namespace.canonicalize_ontology_iri(ontology_iri) is None
 
     def test_unknown_namespaces_return_none(self) -> None:
-        assert migrate_legacy_namespace.canonicalize("https://example.com/other#Thing") is None
+        assert (
+            migrate_legacy_namespace.canonicalize_ontology_iri(
+                "https://example.com/other#Thing"
+            )
+            is None
+        )
 
     def test_fragment_is_preserved_exactly(self) -> None:
-        term = "CorporateEntity"
-        mapped = migrate_legacy_namespace.canonicalize(f"{LEGACY}{term}")
-        assert mapped == f"{CANONICAL}{term}"
-        assert mapped.endswith(term)
+        ontology_term = "CorporateEntity"
+        mapped_ontology_iri = migrate_legacy_namespace.canonicalize_ontology_iri(
+            f"{LEGACY_ONTOLOGY_NAMESPACE}{ontology_term}"
+        )
+        assert mapped_ontology_iri == f"{CANONICAL_ONTOLOGY_NAMESPACE}{ontology_term}"
+        assert mapped_ontology_iri.endswith(ontology_term)
 
 
 class FakeRecord:
     def __init__(self, post_id: str, project_name: str, ontology_iri: str):
-        self._data = {
+        self._record_values = {
             "post_id": post_id,
             "project_name": project_name,
             "ontology_iri": ontology_iri,
         }
 
-    def __getitem__(self, key: str):
-        return self._data[key]
+    def __getitem__(self, record_field: str):
+        return self._record_values[record_field]
 
 
 @pytest.fixture()
 def _patch_connect(monkeypatch: pytest.MonkeyPatch):
     """Route asyncpg.connect to a factory over a caller-supplied connection."""
-    holder: dict = {}
+    connection_factory_state: dict = {}
 
-    def _factory(conn):
-        def _connect(dsn):
-            assert "postgresql://" in dsn
-            return _AsyncReturn(conn)
-        holder["conn"] = conn
-        return _connect
+    def _connection_factory(database_connection):
+        def connect_database(target_dsn):
+            assert "postgresql://" in target_dsn
+            return _AsyncReturn(database_connection)
 
-    holder["factory"] = _factory
-    yield holder
+        connection_factory_state["database_connection"] = database_connection
+        return connect_database
+
+    connection_factory_state["connection_factory"] = _connection_factory
+    yield connection_factory_state
 
 
 class _AsyncReturn:
     """Awaitable that resolves immediately."""
 
-    def __init__(self, value):
-        self._value = value
+    def __init__(self, awaited_value):
+        self._awaited_value = awaited_value
 
     def __await__(self):
         if False:
             yield
-        return self._value
+        return self._awaited_value
 
 
 class FakeConnection:
     """Minimal asyncpg surface: one select, transactional updates."""
 
-    def __init__(self, rows: list[FakeRecord]):
-        self.rows = rows
-        self.updates: list[tuple] = []
+    def __init__(self, mention_rows: list[FakeRecord]):
+        self.mention_rows = mention_rows
+        self.executed_updates: list[tuple] = []
         self.transaction_entered = False
 
     async def fetch(self, query: str):
         assert "post_project_mention" in query
-        return self.rows
+        return self.mention_rows
 
     def transaction(self):
         return self
@@ -160,67 +178,117 @@ class FakeConnection:
 
     async def execute(self, query: str, *args):
         assert "update post_project_mention" in query
-        self.updates.append(args)
+        self.executed_updates.append(args)
         return "UPDATE 1"
 
     async def close(self):
         pass
 
 
-def test_dry_run_reports_without_writing(capsys: pytest.CaptureFixture[str], _patch_connect, monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        FakeRecord("p1", "Alpha", f"{LEGACY}Project"),
-        FakeRecord("p2", "Beta", f"{CANONICAL}Team"),
+def test_dry_run_reports_without_writing(
+    capsys: pytest.CaptureFixture[str], _patch_connect, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_mention_rows = [
+        FakeRecord("p1", "Alpha", f"{LEGACY_ONTOLOGY_NAMESPACE}Project"),
+        FakeRecord("p2", "Beta", f"{CANONICAL_ONTOLOGY_NAMESPACE}Team"),
     ]
-    conn = FakeConnection(rows)
-    monkeypatch.setattr(migrate_legacy_namespace.asyncpg, "connect", _patch_connect["factory"](conn))
-    rc = asyncio.run(migrate_legacy_namespace.migrate("postgresql://unused", apply=False))
+    database_connection = FakeConnection(source_mention_rows)
+    monkeypatch.setattr(
+        migrate_legacy_namespace.asyncpg,
+        "connect",
+        _patch_connect["connection_factory"](database_connection),
+    )
+    exit_code = asyncio.run(
+        migrate_legacy_namespace.migrate_legacy_ontology_namespace(
+            "postgresql://unused",
+            apply_changes=False,
+        )
+    )
 
-    assert rc == 0
-    out = capsys.readouterr().out
-    assert "dry run" in out
-    assert f"{LEGACY}Project -> {CANONICAL}Project" in out
-    assert conn.updates == []
-    assert not conn.transaction_entered
+    assert exit_code == 0
+    captured_output = capsys.readouterr().out
+    assert "dry run" in captured_output
+    assert (
+        f"{LEGACY_ONTOLOGY_NAMESPACE}Project -> {CANONICAL_ONTOLOGY_NAMESPACE}Project"
+    ) in captured_output
+    assert database_connection.executed_updates == []
+    assert not database_connection.transaction_entered
 
 
-def test_apply_rewrites_only_legacy_rows(_patch_connect, monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        FakeRecord("p1", "Alpha", f"{LEGACY}Project"),
-        FakeRecord("p2", "Beta", f"{CANONICAL}Team"),
+def test_apply_rewrites_only_legacy_rows(
+    _patch_connect, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_mention_rows = [
+        FakeRecord("p1", "Alpha", f"{LEGACY_ONTOLOGY_NAMESPACE}Project"),
+        FakeRecord("p2", "Beta", f"{CANONICAL_ONTOLOGY_NAMESPACE}Team"),
     ]
-    conn = FakeConnection(rows)
-    monkeypatch.setattr(migrate_legacy_namespace.asyncpg, "connect", _patch_connect["factory"](conn))
-    rc = asyncio.run(migrate_legacy_namespace.migrate("postgresql://unused", apply=True))
+    database_connection = FakeConnection(source_mention_rows)
+    monkeypatch.setattr(
+        migrate_legacy_namespace.asyncpg,
+        "connect",
+        _patch_connect["connection_factory"](database_connection),
+    )
+    exit_code = asyncio.run(
+        migrate_legacy_namespace.migrate_legacy_ontology_namespace(
+            "postgresql://unused",
+            apply_changes=True,
+        )
+    )
 
-    assert rc == 0
-    assert len(conn.updates) == 1
-    post_id, project_name, new_iri, old_iri = conn.updates[0]
-    assert (post_id, project_name) == ("p1", "Alpha")
-    assert new_iri == f"{CANONICAL}Project"
-    assert old_iri == f"{LEGACY}Project"
-
-
-def test_unknown_namespace_fails_closed(capsys: pytest.CaptureFixture[str], _patch_connect, monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [FakeRecord("p3", "Gamma", "https://example.com/weird#X")]
-    conn = FakeConnection(rows)
-    monkeypatch.setattr(migrate_legacy_namespace.asyncpg, "connect", _patch_connect["factory"](conn))
-    rc = asyncio.run(migrate_legacy_namespace.migrate("postgresql://unused", apply=False))
-
-    assert rc == 1
-    out = capsys.readouterr().out
-    assert "UNEXPECTED" in out
-    assert "nothing written" in out
-    assert conn.updates == []
+    assert exit_code == 0
+    assert len(database_connection.executed_updates) == 1
+    source_post_id, project_name, canonical_iri, legacy_iri = (
+        database_connection.executed_updates[0]
+    )
+    assert (source_post_id, project_name) == ("p1", "Alpha")
+    assert canonical_iri == f"{CANONICAL_ONTOLOGY_NAMESPACE}Project"
+    assert legacy_iri == f"{LEGACY_ONTOLOGY_NAMESPACE}Project"
 
 
-def test_clean_database_is_a_no_op(capsys: pytest.CaptureFixture[str], _patch_connect, monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [FakeRecord("p4", "Delta", f"{CANONICAL}Post")]
-    conn = FakeConnection(rows)
-    monkeypatch.setattr(migrate_legacy_namespace.asyncpg, "connect", _patch_connect["factory"](conn))
-    rc = asyncio.run(migrate_legacy_namespace.migrate("postgresql://unused", apply=True))
+def test_unknown_namespace_fails_closed(
+    capsys: pytest.CaptureFixture[str], _patch_connect, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_mention_rows = [FakeRecord("p3", "Gamma", "https://example.com/weird#X")]
+    database_connection = FakeConnection(source_mention_rows)
+    monkeypatch.setattr(
+        migrate_legacy_namespace.asyncpg,
+        "connect",
+        _patch_connect["connection_factory"](database_connection),
+    )
+    exit_code = asyncio.run(
+        migrate_legacy_namespace.migrate_legacy_ontology_namespace(
+            "postgresql://unused",
+            apply_changes=False,
+        )
+    )
 
-    assert rc == 0
-    out = capsys.readouterr().out
-    assert "no legacy namespace rows remain" in out
-    assert conn.updates == []
+    assert exit_code == 1
+    captured_output = capsys.readouterr().out
+    assert "UNEXPECTED" in captured_output
+    assert "nothing written" in captured_output
+    assert database_connection.executed_updates == []
+
+
+def test_clean_database_is_a_no_op(
+    capsys: pytest.CaptureFixture[str], _patch_connect, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_mention_rows = [
+        FakeRecord("p4", "Delta", f"{CANONICAL_ONTOLOGY_NAMESPACE}Post")
+    ]
+    database_connection = FakeConnection(source_mention_rows)
+    monkeypatch.setattr(
+        migrate_legacy_namespace.asyncpg,
+        "connect",
+        _patch_connect["connection_factory"](database_connection),
+    )
+    exit_code = asyncio.run(
+        migrate_legacy_namespace.migrate_legacy_ontology_namespace(
+            "postgresql://unused",
+            apply_changes=True,
+        )
+    )
+
+    assert exit_code == 0
+    captured_output = capsys.readouterr().out
+    assert "no legacy namespace rows remain" in captured_output
+    assert database_connection.executed_updates == []

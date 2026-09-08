@@ -1,5 +1,19 @@
 # Product & Technical Gap Baseline
 
+> Legacy ontology-namespace migration naming overlay: 2026-09-08 KST.
+> Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
+> exact RED head `5c7e288605cf091c1300905af2df77509458529d`
+> found repository-owned `canonicalize`, `migrate`, `iri`, `dsn`, `apply`,
+> `conn`, `rows`, `row`, `planned`, `unexpected`, `parser`, and `args`
+> identifiers across the operator, PostgreSQL transaction, and behavioral
+> fixture. Action: align the complete caller surface with ontology-IRI,
+> legacy-namespace migration, database, source-mention, rewrite-plan, and
+> command language while preserving CLI flags, SQL, dry-run/fail-closed
+> output, idempotence, transactional updates, and connection close. Status:
+> RED reproduced; implementation and focused behavior, naming, compile, lint,
+> and format validation GREEN locally; GitHub exact-head checks and independent
+> review pending.
+>
 > Explicit post-content requeue naming overlay: 2026-09-08 KST. Protected
 > `main` is `83eba56149eb802cd63642c507c324c9976ec78e`; exact RED head
 > `c92ee08effb128e1a5de0277f9c0da43ffa639ed` found repository-owned
