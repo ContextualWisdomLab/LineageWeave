@@ -1310,3 +1310,9 @@ repair; all 33 cases passed after it (2.25 seconds), with actionable details
 and programmatic HTTP status preserved. Frontend lint passed. ADR 0123 records
 the boundary; the constructor signature remains compatible with existing callers.
 Current-head CI and deployment remain separate, unverified gates.
+
+The accumulated local `8d8a809ad` follow-up passed frontend lint and a separate
+`pnpm exec tsc -b --pretty false` invocation with exit 0. The separate invocation
+verified the compiler status rather than relying on the final exit of a chained
+command. Hosted `dae3a9be8` jobs 101953651575/101953651682 remained queued/running
+at inspection; these local checks do not substitute for their results.
