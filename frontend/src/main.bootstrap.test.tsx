@@ -13,6 +13,16 @@ vi.mock("./App.tsx", () => ({
   },
 }));
 
+type RenderedAuthTree = {
+  props: {
+    children: {
+      props: {
+        onSigninCallback: (user?: { state?: unknown }) => void;
+      };
+    };
+  };
+};
+
 describe("browser bootstrap", () => {
   beforeEach(() => {
     render.mockClear();
@@ -20,10 +30,19 @@ describe("browser bootstrap", () => {
     document.body.innerHTML = '<div id="root"></div>';
   });
 
-  it("mounts the authorized app on the document root", async () => {
+  it("mounts the authorized app and restores the requested URL after sign-in", async () => {
+    const replaceState = vi.spyOn(window.history, "replaceState").mockImplementation(() => undefined);
+
     await import("./main");
+
     expect(createRoot).toHaveBeenCalledTimes(1);
     expect(createRoot.mock.calls[0][0]).toBe(document.getElementById("root"));
     expect(render).toHaveBeenCalledTimes(1);
+
+    const tree = render.mock.calls[0][0] as unknown as RenderedAuthTree;
+    tree.props.children.props.onSigninCallback({ state: "/projects?post=demo-post" });
+    expect(replaceState).toHaveBeenCalledWith({}, document.title, "/projects?post=demo-post");
+
+    replaceState.mockRestore();
   });
 });
