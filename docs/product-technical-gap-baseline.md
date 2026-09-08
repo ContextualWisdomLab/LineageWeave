@@ -1269,3 +1269,14 @@ including TypeScript compilation and Vite production output. The existing
 a reason to raise the warning threshold. Colima inventory at inspection still
 showed one instance per canonical LineageWeave service, with no duplicate stack
 requiring cleanup. The current hosted PostgreSQL job remained in progress.
+
+### Browser quantity boundary verification — 2026-09-08
+
+`fe658fdfb` adds the NumericExponentBoundary Storybook scene and inventory entry.
+The static Storybook build passed. Fresh Chromium pages at 320, 390, and 1440
+CSS pixels completed the story interaction and independently verified exactly
+two superscript runs (3 and 123); the long signed and braced tokens remained
+literal. Document scroll width equaled viewport width in all cases. The driver
+exited successfully and closed its temporary server and browser. This is real
+browser evidence for a synthetic isolated component, not deployed product or
+authenticated corpus acceptance.
