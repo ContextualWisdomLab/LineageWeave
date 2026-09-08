@@ -1262,3 +1262,10 @@ verified for unsigned, signed, and braced exponents in both implementations.
 All 45 display-helper tests (12.03 seconds) and 74 chunking tests (0.84 seconds)
 passed. These checks prevent the long-token repair from rejecting valid short
 quantities; they do not replace the final-head full-suite and release gates.
+
+The accumulated quantity batch at `a613855c8` also passed `pnpm run build`,
+including TypeScript compilation and Vite production output. The existing
+500 kB chunk warning remains; a successful build is not a latency result or
+a reason to raise the warning threshold. Colima inventory at inspection still
+showed one instance per canonical LineageWeave service, with no duplicate stack
+requiring cleanup. The current hosted PostgreSQL job remained in progress.
