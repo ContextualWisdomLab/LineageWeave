@@ -139,7 +139,7 @@ describe("ProjectHistoryTimeline coverage contracts", () => {
       "true",
     );
     expect(screen.getAllByText("not-a-date").length).toBeGreaterThan(0);
-    expect(screen.getByText("Ada Analyst")).toBeInTheDocument();
+    expect(screen.getAllByText("Ada Analyst").length).toBe(2);
     expect(screen.getByText("Reviews evidence")).toBeInTheDocument();
     expect(screen.getByText("Recorded project alias")).toBeInTheDocument();
     expect(screen.getByText(/unknown-prior → Fallback event/)).toBeInTheDocument();
@@ -166,6 +166,6 @@ describe("ProjectHistoryTimeline coverage contracts", () => {
 
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
     expect(screen.queryByRole("tabpanel")).not.toBeInTheDocument();
-    expect(screen.getByRole("table", { name: /exact project-history values/i })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: /project history exact values/i })).toBeInTheDocument();
   });
 });
