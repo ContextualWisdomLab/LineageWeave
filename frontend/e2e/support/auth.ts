@@ -19,7 +19,9 @@ const DEMO_PASSWORD = "lineageweave-demo-only";
 export async function loginAsDemoAnalyst(page: Page): Promise<void> {
   await page.goto("/");
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL(/\/realms\/lineageweave-demo\/protocol\/openid-connect\/auth/);
+  await page.waitForURL(/\/realms\/lineageweave-demo\/protocol\/openid-connect\/auth/, {
+    waitUntil: "commit",
+  });
   await page.getByLabel("Username or email").fill(DEMO_USERNAME);
   await page.getByLabel("Password", { exact: true }).fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Sign In" }).click();
