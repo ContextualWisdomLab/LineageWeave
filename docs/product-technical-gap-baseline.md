@@ -1224,3 +1224,11 @@ functions 864/1,068 (80.89%), and branches 2,417/3,087 (78.29%). The unchanged
 100% gate failed. Coverage and log copies remain outside git. Source status
 was clean and HEAD unchanged after execution. Serial execution did not establish
 a green suite, and host pressure is not a sufficient causal explanation.
+
+### Unstarted-file recovery check — 2026-09-08
+
+WorkerFunctionPsychology.test.tsx, which never started in the serial full run,
+passed all four tests when executed separately at unchanged `1c36a0a96`
+(19.49 seconds total). Keep this as recovery evidence, not an addition that
+turns the earlier failed whole run into a successful one. The remaining full-run
+timeouts and 100% coverage gap still require resolution.
