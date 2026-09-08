@@ -1,10 +1,47 @@
 """Focused tests for the operational dashboard evidence projection."""
 
+import ast
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 import pytest
 
 from backend.app.operations_dashboard import fetch_operations_dashboard
+
+
+def test_operations_dashboard_uses_semantic_owned_identifiers() -> None:
+    """Keep internal projection names tied to their operations-case roles."""
+    source_path = Path("backend/app/operations_dashboard.py")
+    source_tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    dashboard_function = next(
+        syntax_node
+        for syntax_node in source_tree.body
+        if isinstance(syntax_node, ast.AsyncFunctionDef)
+        and syntax_node.name == "fetch_operations_dashboard"
+    )
+    owned_identifiers = {
+        syntax_node.arg
+        for syntax_node in ast.walk(dashboard_function)
+        if isinstance(syntax_node, ast.arg)
+    } | {
+        syntax_node.id
+        for syntax_node in ast.walk(dashboard_function)
+        if isinstance(syntax_node, ast.Name) and isinstance(syntax_node.ctx, ast.Store)
+    }
+
+    assert owned_identifiers.isdisjoint(
+        {
+            "args",
+            "conn",
+            "external",
+            "facts",
+            "key",
+            "metrics",
+            "row",
+            "total",
+            "visible",
+        }
+    )
 
 
 class _Connection:
