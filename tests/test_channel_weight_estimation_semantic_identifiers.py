@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 SCRIPT_PATH = Path("scripts/estimate_channel_weights.py")
+BEHAVIOR_TEST_PATH = Path("tests/test_estimate_channel_weights_script.py")
 
 
 def _function_identifiers(function_name: str) -> set[str]:
@@ -123,3 +124,54 @@ def test_external_cli_json_and_persistence_contracts_are_unchanged() -> None:
         "asyncio.run(_run_channel_weight_estimation(command_arguments))"
         in script_source
     )
+
+
+def test_estimator_behavior_tests_use_domain_specific_fixture_names() -> None:
+    """Keep owned deterministic-estimator test identifiers semantic."""
+    test_source = BEHAVIOR_TEST_PATH.read_text(encoding="utf-8")
+    syntax_tree = ast.parse(test_source)
+    owned_identifiers = {
+        syntax_node.id
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, ast.Name)
+    }
+    owned_identifiers.update(
+        syntax_node.arg
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(syntax_node, ast.arg)
+    )
+    owned_identifiers.update(
+        syntax_node.name
+        for syntax_node in ast.walk(syntax_tree)
+        if isinstance(
+            syntax_node,
+            (ast.AsyncFunctionDef, ast.ClassDef, ast.FunctionDef),
+        )
+    )
+
+    assert owned_identifiers.isdisjoint(
+        {
+            "_Connection",
+            "_record",
+            "chosen",
+            "executed",
+            "first",
+            "group",
+            "inserted",
+            "minute",
+            "script",
+            "secondary",
+        }
+    )
+    assert {
+        "_EstimationDatabaseConnection",
+        "_source_post_record",
+        "channel_weight_script",
+        "chosen_indexes",
+        "executed_queries",
+        "first_digest",
+        "inserted_rows",
+        "minute_offset",
+        "secondary_grouping_key",
+        "thread_group_key",
+    } <= owned_identifiers
