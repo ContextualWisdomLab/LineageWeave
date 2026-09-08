@@ -167,6 +167,48 @@ describe("OccupationRatingProfile coverage contracts", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("직업 근거를 불러오지 못했습니다");
   });
 
+  it("renders sparse categorical evidence without inventing missing metadata", () => {
+    render(<OccupationRatingProfileView profile={{
+      ...ready,
+      source: {
+        ...ready.source!,
+        source_artifact_url: "mailto:data@example.test",
+        scale_artifact_url: "http://example.test/scales.csv",
+      },
+      items: [
+        {
+          ...ready.items[0],
+          category_value: "1",
+          sample_size: null,
+          standard_error: null,
+          lower_ci_bound: null,
+          upper_ci_bound: "4.20",
+          recommend_suppress: false,
+          not_relevant: false,
+          source_updated_month: null,
+          domain_source_code: null,
+        },
+        {
+          ...ready.items[0],
+          element_id: "1.A.1.a.2",
+          element_name: "Written Comprehension",
+          lower_ci_bound: "3.80",
+          upper_ci_bound: null,
+        },
+      ],
+    }} />);
+
+    expect(screen.getByText("4.10 · 범주 1")).toBeInTheDocument();
+    expect(screen.getByText("표본 수 없음")).toBeInTheDocument();
+    expect(screen.getByText("시점 없음")).toBeInTheDocument();
+    expect(screen.getByText("공개 근거와 함께 해석하세요.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "평정 원문 열기" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "척도 정의 열기" })).toHaveAttribute(
+      "href",
+      "http://example.test/scales.csv",
+    );
+  });
+
   it("keeps syntactically invalid artifact locations out of customer links", () => {
     render(<OccupationRatingProfileView profile={{
       ...ready,
