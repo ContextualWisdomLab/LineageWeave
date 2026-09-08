@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { LineageGraph } from "./api";
 import { LineageDag } from "./LineageDag";
@@ -51,6 +51,39 @@ const graph: LineageGraph = {
   },
 };
 
+const multiEdgeGraph: LineageGraph = {
+  ...graph,
+  nodes: [
+    ...graph.nodes,
+    {
+      id: "rec-003",
+      group: "A-100",
+      label: "Pilot decision",
+      occurred_at: "2026-01-04T00:00:00Z",
+      is_root: false,
+      is_branch_point: false,
+    },
+  ],
+  edges: [
+    ...graph.edges,
+    {
+      source: "rec-002",
+      target: "rec-003",
+      fused_score: 0.64,
+      channel_evidence: [
+        {
+          signal_code: "temporal",
+          signal_label: "Temporal proximity",
+          score: 0.7,
+          weight: 0.3,
+          contribution: 0.21,
+          rank: 1,
+        },
+      ],
+    },
+  ],
+};
+
 function renderDag() {
   render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
   const edgeButton = screen.getByRole("button", {
@@ -82,7 +115,7 @@ describe("LineageDag connection keyboard coverage", () => {
     expect(edgeButton).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("closes selected connection evidence from its disclosure summary", () => {
+  it("closes selected connection evidence from its disclosure summary", async () => {
     const { edgeButton, disclosure } = renderDag();
     const summary = disclosure.querySelector("summary");
     if (!summary) throw new Error("expected connection evidence summary");
@@ -92,8 +125,30 @@ describe("LineageDag connection keyboard coverage", () => {
 
     fireEvent.click(summary);
 
-    expect(disclosure).not.toHaveAttribute("open");
-    expect(edgeButton).toHaveAttribute("aria-pressed", "false");
+    await waitFor(() => {
+      expect(disclosure).not.toHaveAttribute("open");
+      expect(edgeButton).toHaveAttribute("aria-pressed", "false");
+    });
+  });
+
+  it("keeps the new selection when the previously selected disclosure closes", async () => {
+    render(<LineageDag graph={multiEdgeGraph} onSelectPost={vi.fn()} />);
+    const firstEdge = screen.getByRole("button", {
+      name: "Open connection evidence: Kickoff recap to Pricing follow-up",
+    });
+    const secondEdge = screen.getByRole("button", {
+      name: "Open connection evidence: Pricing follow-up to Pilot decision",
+    });
+
+    fireEvent.keyDown(firstEdge, { key: "Enter" });
+    expect(firstEdge).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.keyDown(secondEdge, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(firstEdge).toHaveAttribute("aria-pressed", "false");
+      expect(secondEdge).toHaveAttribute("aria-pressed", "true");
+    });
   });
 
   it("does not activate connection evidence for unrelated keys", () => {
