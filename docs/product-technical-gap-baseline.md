@@ -1291,3 +1291,13 @@ the useful test and restores the complete configured source denominator; its
 Vite configuration matches `1c36a0a96` exactly. This gate correction was pushed
 immediately rather than accepting a smaller denominator as progress. Neither
 cancelled predecessor nor queued successor establishes backend acceptance.
+
+### Decimal exponent preservation — 2026-09-08
+
+At `a3e86db31`, unsupported decimal exponents also remain literal: the prior
+parser changed `x^1.5` into `x¹.5`. A failing ingestion regression reproduced
+this partial conversion. Both ingestion and display now reject a numeric match
+followed by a decimal continuation, while existing sentence-ending quantity
+cases still pass. The 47 display-helper tests and 74 chunking tests passed;
+ADR 0165 records the distinction. Final-head hosted and runtime verification
+remain outstanding.

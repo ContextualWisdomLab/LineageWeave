@@ -484,3 +484,7 @@ Bounded numeric regexes must reject a longer numeric token, not match its prefix
 For quantity exponents, keep browser normalization, React text-run splitting,
 and ingestion normalization aligned; test signed and braced unsupported values
 without changing the supported short-exponent range (ADR 0165).
+
+Numeric token-boundary tests should include decimal continuations as well as
+extra digits. Keep a sentence-ending period distinct from a period followed
+by a digit so preserving unsupported numbers does not break ordinary prose.
