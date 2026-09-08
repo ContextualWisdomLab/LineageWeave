@@ -38,7 +38,6 @@ function parsePipeDelimitedTable(text: string, requireSeparator = true): string[
     .filter((_row, rowIndex) => rowIndex !== separatorIndex)
     .filter((row) => row.length > 1 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
-  if (rows[0].length < 2) return null;
   return rows;
 }
 
