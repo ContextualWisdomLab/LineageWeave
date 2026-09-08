@@ -463,3 +463,9 @@ await them inside the shared catch boundary so parser/body diagnostics cannot
 reach UI handlers. Preserve observed HTTP status; a rejected decode is not proof
 of an upstream 5xx. Keep actionable client errors distinct (ADR 0123). Use the
 repository lint script; the frontend currently uses oxlint, not eslint.
+
+For mocks with queued one-shot responses, reset the implementation between tests.
+`mockClear()` only clears call history: an early assertion failure or timeout can
+leave a response queued for the next test. Use the existing scoped lifecycle
+hook with `mockReset()` so one failed test cannot consume another test's data.
+This isolates later failures; it does not repair the first timeout.

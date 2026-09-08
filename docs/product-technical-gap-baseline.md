@@ -1162,3 +1162,14 @@ same thresholds. Preserve the initial failures as execution-instability evidence
 the isolated pass does not establish a green whole suite or a diagnosed cause.
 Current hosted checks, independent review, protected merge, and release remain
 unverified for this local head.
+
+### Ontology test isolation diagnosis — 2026-09-08
+
+The ongoing whole frontend run at `ed33b9601` again showed an OntologyExplorer
+continuation timeout followed by missing-element failures. Its test file queues
+one-shot API responses and clears only call history. A direct check with the
+installed Vitest spy implementation confirmed that `mockClear()` leaves an
+unconsumed prior response ahead of the next response, whereas `mockReset()`
+removes it. This identifies a mechanism for cross-test failure propagation,
+not the cause of the first timeout. Keep the running source unchanged until
+its terminal result is recorded, then isolate those mocks and revalidate.
