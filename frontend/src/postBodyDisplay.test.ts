@@ -350,6 +350,16 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it.each([
+    ["x^123", "x¹²³", "123"],
+    ["x^-123", "x⁻¹²³", "-123"],
+    ["x^+123", "x⁺¹²³", "+123"],
+    ["x^{123}", "x¹²³", "123"],
+  ])("retains the supported three-digit boundary: %s", (text, normalized, script) => {
+    expect(normalizeScriptText(text)).toBe(normalized);
+    expect(splitScriptRuns(text)).toEqual([{ text: "x" }, { text: script, script: "super" }]);
+  });
+
   it.each(["x^1234", "x^-1234", "x^+1234", "x^{1234}"])("keeps unsupported long exponents intact: %s", (text) => {
     expect(normalizeScriptText(text)).toBe(text);
     expect(splitScriptRuns(text)).toEqual([{ text }]);

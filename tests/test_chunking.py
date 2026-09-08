@@ -687,3 +687,13 @@ def test_decode_data_uri_image_accepts_png_and_rejects_malformed() -> None:
 def test_long_numeric_caret_exponents_remain_literal() -> None:
     for text in ("x^1234", "x^-1234", "x^+1234", "x^{1234}"):
         assert normalize_script_text(text) == text
+
+
+def test_three_digit_caret_exponents_remain_supported() -> None:
+    for source, expected in (
+        ("x^123", "x¹²³"),
+        ("x^-123", "x⁻¹²³"),
+        ("x^+123", "x⁺¹²³"),
+        ("x^{123}", "x¹²³"),
+    ):
+        assert normalize_script_text(source) == expected
