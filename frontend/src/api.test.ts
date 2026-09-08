@@ -21,6 +21,16 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([401, 403, 409, 422])("retains actionable client-error details and HTTP status %s", async (status) => {
+    const detail = "Select an available evidence source and retry.";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ detail }), { status }),
+    ));
+    await expect(fetchMe("access-token")).rejects.toMatchObject({
+      name: "BackendError", status, message: detail,
+    });
+  });
+
   it.each([
     ["profile", () => fetchWorkerFunctionProfile("access-token", "data", 0), "/api/ontology/worker-functions/data/0"],
     ["catalog", () => fetchWorkerFunctionConstructCatalog("access-token"), "/api/ontology/worker-function-constructs"],
