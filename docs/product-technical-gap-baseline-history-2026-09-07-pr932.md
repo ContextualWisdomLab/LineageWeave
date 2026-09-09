@@ -309,7 +309,9 @@ review, screen-reader acceptance, all-page latency, protected merge, or release.
   `frontend/src/i18n.ts`, `frontend/src/App.tsx`,
   `frontend/src/components/ScreenTranslationGate.tsx`,
   `frontend/src/components/ScreenTranslationGate.test.tsx`, and
-  `tests/test_customer_master_translation_auth_gate_contract.py`; current-head
-  synthetic visual evidence is
-  `docs/screenshots/customer-master-translation-gate-{desktop,mobile}.png`.
+  `tests/test_customer_master_translation_auth_gate_contract.py`. The checked-in
+  desktop/mobile images predate the later cause-neutral recovery-copy repair and
+  are historical predecessor evidence, not current-head visual acceptance.
+  Fresh screenshots must be captured from the unchanged candidate head before
+  this UI condition can be accepted.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
