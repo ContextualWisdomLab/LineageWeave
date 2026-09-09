@@ -1,6 +1,57 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
+> Current authority: 2026-09-09 UTC. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (#931, 2026-09-05,
+> defer repository-local jobs while PRs are Draft). Live queue at
+> refresh: 140 open PRs (16 ready, 124 draft) and 22 open issues.
+> Leftover-map family: 65 open (64 draft, 1 ready: #802 v2.30.0
+> explained share on pair segments). This section is the sole current
+> authority; every `Exact-head loop overlay` below is dated historical
+> evidence and does not supersede this section (issue #963).
+>
+> Exact-head checks on protected `main@83eba56`: Full test suite
+> SUCCESS plus CodeQL / PROV-O / Ontology / Tests SUCCESS (4/4
+> `gh run list --commit` completed-success). Open-PR exact heads share
+> one pattern: Full test suite SUCCESS vs central required-workflow
+> failures — CodeQL compatibility (actions/js-ts/python) FAILURE,
+> noema-review FAILURE (except #960 SUCCESS), opencode-review FAILURE
+> (except #960 SUCCESS), dependency-review FAILURE/SKIPPED, strix mixed
+> (SUCCESS #970/#929/#914/#961; FAILURE
+> #969/#964/#959/#802/#973/#911; CANCELLED #974/#972/#960; IN_PROGRESS
+> #983), reviewDecision REVIEW_REQUIRED and mergeStateStatus BLOCKED
+> (except #979 CLEAN stacked on #974 with Full + Frontend SUCCESS).
+> Central CodeQL/noema/opencode/strix failures are owner-side
+> ContextualWisdomLab/.github control-plane state, not local-code
+> verdicts. No self-approve, no force-push, no stale-evidence transfer.
+>
+> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED, Full
+> SUCCESS, Frontend FAILURE, strix IN_PROGRESS); #979 Ask
+> ownership-fenced liveness (CLEAN, stacked on #974); #974 chat
+> null-timeout + worker expiry; #970 fast-mlsirm v0.9.1 owner release
+> (for #967); #969 auth sign-in recovery; #964 k6 load diagnostics (no
+> response content); #960 customer-error hygiene; #929 versioned UI
+> translation ledger; #802 leftover-map explained share on pair segments
+> (v2.30.0, ADR 0233 family); supporting #973/#972/#961/#959/#914/#911.
+> Focus issues: #976 LeftoverPairList button names, #975 Ask
+> ownership-fenced liveness, #967 fast-mlsirm v0.9.1, #965 MCP
+> 2026-07-28 stateless, #963 current-vs-historical separation (this
+> refresh), #962 rankweave 0.18.0. Aggregate counts + PR numbers only;
+> no post identifiers, organization names, or production record keys
+> (ADR 0001).
+>
+> PRD/TRD: Operations Dashboard traceability section and ADRs remain
+> normative per `docs/adr/README.md` (this file stays a traceability
+> projection; no new decision introduced). 조치: (1) keep #979→#974 Ask
+> stack in CLEAN→merge order with independent APPROVE; (2) land #970 and
+> #962 dependency pins through protected gates only; (3) keep #983
+> frontend/a11y green plus #976 acceptance before any release claim;
+> (4) advance #802 plus 64 draft leftover-map badges in version order
+> with persisted-`d`/`ξ`/`ζ` honesty (ADR 0267–0271/0233); (5) repair
+> central CodeQL/noema/opencode/strix gates in
+> ContextualWisdomLab/.github, not via local bypass; (6) treat drafts
+> #901/#984 as ordinary deltas to adopt, not authority.
+
+> Exact-head loop overlay (historical, 2026-08-29 13:20 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
 > APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
