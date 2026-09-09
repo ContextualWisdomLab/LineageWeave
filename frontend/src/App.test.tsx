@@ -3283,16 +3283,19 @@ describe("App, authenticated", () => {
     expect(badge).toHaveAttribute("href", "https://example.test/searxng?q=Northridge");
   });
 
-  it("does not turn a javascript: evidence URL into a verification link", async () => {
-    stubBackend({ verificationEvidenceUrl: "javascript:alert(1)" });
-    render(<App showLabPanels />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() =>
-      expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
-  });
+  it.each(["javascript:alert(1)", "not a valid URL"])(
+    "does not turn an unsafe evidence URL into a verification link: %s",
+    async (verificationEvidenceUrl) => {
+      stubBackend({ verificationEvidenceUrl });
+      render(<App showLabPanels />);
+      await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+      await waitFor(() =>
+        expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
+      );
+      expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
+      expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
+    },
+  );
 
   it("keeps malformed verification evidence non-clickable", async () => {
     stubBackend({ verificationEvidenceUrl: "https://[malformed" });
@@ -4765,6 +4768,9 @@ describe("App, authenticated", () => {
     expect(nav.textContent).not.toMatch(/Buyer|Cubee|\bBoard\b|Customer master/i);
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Log out" }));
+    expect(signoutRedirect).toHaveBeenCalledOnce();
   });
 
   it("fails closed on the calendar destination when Naruon consume is unwired", async () => {
