@@ -88,6 +88,16 @@ describe("OIDC return URL handling", () => {
       window.history.replaceState({}, "", previousLocation);
     }
   });
+
+  it("restores the current post deep link when no OIDC state or stored return URL exists", () => {
+    const previousLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    try {
+      window.history.replaceState({}, "", "/?post=current#evidence");
+      expect(restoreOidcReturnUrl(undefined)).toBe("/?post=current#evidence");
+    } finally {
+      window.history.replaceState({}, "", previousLocation);
+    }
+  });
 });
 
 describe("stripOidcCallbackParams", () => {
