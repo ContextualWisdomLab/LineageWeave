@@ -88,6 +88,17 @@ remain unverified; older successful runs do not satisfy those gates.
 
 ## Frontend coverage evidence — 2026-09-08
 
+At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
+[34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
+preserved artifact [10085488908](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502/artifacts/10085488908).
+The frontend test files completed 727 passing tests, but the strict 100% gate
+still failed at lines 95.43%, statements 93.56%, functions 92.93%, and
+branches 83.57%. `App.tsx` remains the largest product-source gap. Excluding
+the ambient `vite-env.d.ts` declaration did not change these values; product
+paths remain in the denominator. The frontend job is therefore not a release
+or merge acceptance signal. The PostgreSQL job for this exact head was still
+running when this entry was recorded.
+
 Head `3b0b5d76d9e0a90c255df740437fee991d0de7cd` obtained terminal
 [PostgreSQL job 101933123327](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34185559460/job/101933123327)
 success: 1,768 passed, 147 skipped, one warning, 1,241.56 seconds. The warning
