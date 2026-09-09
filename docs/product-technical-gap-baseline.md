@@ -95,16 +95,20 @@ PR #983 now points at exact HEAD
 authorized Ask-to-Post navigation, reverse dialog focus wrap, and deep-link
 cleanup regressions, then adds one synthetic Board contract for catalog
 fallback, title sorting, and eight-page navigation. The isolated Board test
-passed. A serial local full run passed 745 tests across 76 files and measured
-96.95% lines, 95.09% statements, 95.13% functions, and 85.56% branches;
-`App.tsx` measured 92.52% lines and 77.44% branches. The default parallel local
-run did not complete cleanly: five App tests timed out and one occupation test
-remained in its loading state. Keep that failure separate from the serial
-measurement. Hosted exact-head run
+passed. A serial local full run passed 745 tests across 76 files. The default
+parallel local run did not complete cleanly: five App tests timed out and one
+occupation test remained in its loading state. Keep that failure separate from
+the serial measurement. Hosted exact-head run
 [34335655798](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34335655798)
-is in progress, so local results do not satisfy the protected merge gate. No
-auto-merge request is currently present, the PR lacks a qualifying independent
-approval, and it remains outside protected `main`.
+independently completed the same 745 frontend tests, lint, product build, and
+Storybook. Artifact
+[10097630717](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34335655798/artifacts/10097630717)
+records 96.95% lines, 95.09% statements, 95.13% functions, and 85.56% branches;
+`App.tsx` reached 92.52% lines and 77.44% branches. The frontend job failed only
+the unchanged 100% gate. The same run's PostgreSQL suite remains in progress,
+so protected acceptance is pending. No auto-merge request is currently present,
+the PR lacks a qualifying independent approval, and it remains outside
+protected `main`.
 
 At predecessor HEAD `92e6016eefb3376132a0bd7f35a23b63efad4a87`, hosted run
 [34333493054](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054)
