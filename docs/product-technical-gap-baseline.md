@@ -1,36 +1,25 @@
 # Product & Technical Gap Baseline
 
-> Snapshot refreshed 2026-09-09 KST (sixth cycle, exact-head
-> `fabdacd4c487be7feb8db02c32b79d4e7d89f581`). Protected `main` is
+> Snapshot refreshed 2026-09-09 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
-> ADR 0362 candidate for issue #922 and is open / Ready for exact-head
-> validation at that head. Required current-head checks are not yet accepted
-> as terminal GREEN and the delivery boundary still requires qualifying
-> independent review. The authenticated `GET /api/translations/{screen_key}`
-> API is implemented on the candidate branch. That is candidate implementation
-> evidence, not protected-main, deployed, or release evidence. Code-relevant
-> hosted checks on that head pass (Full test suite, Frontend lint/test/build,
-> Analyze python/actions, Semgrep, opencode-review, osv, trivy, scorecard);
-> delivery remains BLOCKED by central evidence (dependency-review 403
-> fail-closed, CodeQL compat pending central dispatch, noema-review 429
-> rate-limited, strix cancelled) with `REVIEW_REQUIRED` and no independent
-> APPROVE.
+> ADR 0362 candidate for issue #922 and remains outside protected `main`.
+> Required current-head checks are not yet accepted as terminal GREEN and the
+> delivery boundary still requires qualifying independent review. The
+> authenticated `GET /api/translations/{screen_key}` API is implemented on the
+> candidate branch. That is candidate implementation evidence, not
+> protected-main, deployed, or release evidence.
 >
-> Volatile queue counts, other-PR heads, and pending-job observations are not
-> promoted into this current snapshot. Historical queue and candidate evidence
-> remains preserved in repository history and the dated baseline archive.
+> Live branch heads, queue counts, pending jobs, provider/model observations,
+> and other-PR check states are deliberately not promoted into this current
+> snapshot: recording them in a documentation commit makes the snapshot stale by
+> construction. Current validation authority is the live PR/check/ref state.
+> Revision-scoped evidence remains in git history and the dated baseline archive.
 >
-> Two adjacent candidates remain outside protected `main`: PR #911 at
-> `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` replaces the synchronous
-> PostgreSQL driver and defaults omitted TLS policy to identity verification;
-> PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` keeps authorized Customer
-> Master records visible when imported hierarchy edges are malformed and adds
-> synthetic desktop/mobile Storybook evidence. #911 is Ready for exact-head
-> validation after moving its colliding TLS ADR to Proposed ADR 0366. #909 is
-> Draft because #922's eight-locale published-resource cutover and the required
-> current-head material-UI/runtime evidence are still absent. Neither has
-> qualifying independent current-head approval or terminal hosted checks, and
-> neither is protected-main or deployed evidence.
+> Adjacent candidates remain outside protected `main`. PR #911 owns the
+> synchronous PostgreSQL driver/TLS-policy slice, and PR #909 owns malformed
+> Customer Master hierarchy presentation. Their live heads and validation states
+> must be read from GitHub rather than frozen here. Neither candidate changes
+> the translation-ledger ownership boundary.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -40,10 +29,10 @@
 > The buyer-visible gap in #922 remains open. Protected `main` still ships the
 > production frontend translation source in `frontend/src/i18n.ts` with only
 > `en/ko/zh/ja/vi`; `es/de/fr` are not first-class frontend locales. No material
-> SPA screen has yet been cut over to a published eight-locale ledger resource,
-> and there is no exact-head desktop/mobile evidence covering normal, loading,
-> empty, error, permission, responsive, keyboard/focus/screen-reader, CJK text
-> expansion, or font fallback states.
+> SPA screen has yet been cut over on protected `main` to a published eight-locale
+> ledger resource, and there is no protected-main desktop/mobile evidence
+> covering normal, loading, empty, error, permission, responsive,
+> keyboard/focus/screen-reader, CJK text expansion, or font fallback states.
 >
 > Do not synthesize translations and do not count English fallback as translated
 > coverage. Ontology labels and concept names remain outside this presentation
@@ -89,26 +78,24 @@
 - Focused HTTP and asyncpg-boundary tests cover the route without adding a
   direct `psycopg2` caller. The documentation-alignment contract prevents this
   baseline from regressing to the obsolete claim that the API does not exist.
-- Current-head regression evidence includes exact-version query-budget
-  contracts for both normal paths: a true cache miss must perform Valkey I/O
-  before any PostgreSQL acquisition and use one full PostgreSQL projection; a
-  valid candidate must use one digest/key-set query that does not select the
-  full localized text projection. Corrupt present candidates retain explicit
+- Current-head regression coverage includes exact-version query-budget contracts
+  for both normal paths: a true cache miss must perform Valkey I/O before any
+  PostgreSQL acquisition and use one full PostgreSQL projection; a valid
+  candidate must use one digest/key-set query that does not select the full
+  localized text projection. Corrupt present candidates retain explicit
   fail-closed fallback coverage and are not misreported as ordinary misses.
   Recursion exhaustion has two independent tests: synthetic fault injection
   preserves exception-classification coverage, while
   `test_translation_cache_recursion_real_payload.py` constructs a depth from
   the running interpreter's recursion limit that exhausts the standard JSON
-  decoder on the supported runtime, proves
-  `json.loads(raw_payload)` actually raises `RecursionError`, and then requires
-  that same wire payload to converge to a cache miss. The evidence-contract test
-  prevents later edits from weakening that real-wire proof or promoting a local
-  or predecessor focused-pass count into current hosted evidence. Hosted required
-  checks are non-terminal, so no exact-head GREEN or focused-pass total is
-  claimed for this head.
-- None of the above is release evidence until the unchanged exact PR head has
-  terminal required/security checks and qualifying independent approval, then
-  reaches protected `main` normally.
+  decoder, proves `json.loads(raw_payload)` raises `RecursionError`, and then
+  requires that same wire payload to converge to a cache miss. The
+  evidence-contract test prevents later edits from weakening that real-wire
+  proof or promoting local/predecessor focused results into current acceptance.
+- Any branch movement requires fresh exact-head hosted checks. None of the above
+  is release evidence until the unchanged exact PR head has terminal
+  required/security checks and qualifying independent approval, then reaches
+  protected `main` normally.
 
 ## Next buyer cut
 
@@ -125,36 +112,35 @@
    baseline with the actual cutover. Keep ontology labels separate from product
    copy and consume only released owner contracts where another CWL product is
    authoritative.
-5. Keep #929 in the Ready validation lane while this exact head is evaluated.
-   Normal merge or release still requires terminal required/security gates and
-   the qualifying independent review; do not bypass or inherit predecessor
-   evidence. Stacked consumer PR #932 remains Draft on this parent and is not
-   protected-main cutover evidence. Leftover-pair accessible-name gap #976
-   waits for leftover-map single-writer `#802` rather than racing that file.
+5. Keep #929 outside merge admission until its unchanged exact head has terminal
+   required/security evidence and qualifying independent review. Stacked
+   consumer #932 remains a dependent Draft until this foundation reaches
+   protected truth and must then be revalidated against that released parent.
+   Leftover-pair accessible-name gap #976 waits for the leftover-map
+   single-writer owner rather than racing that file.
 
 ## Adjacent delivery and collision audit
 
 - The active decisions are non-overlapping: ADR 0362 belongs to the translation
   ledger, ADR 0364 to authenticated browser requests, ADR 0365 to malformed
   Customer Master hierarchy presentation, and ADR 0366 to synchronous
-  PostgreSQL TLS. PR #911 removed its colliding ADR 0363 before re-entering
-  review. It alone adds the `2.28.0` changelog fragment; #909 and #929 do not
-  claim that release number.
+  PostgreSQL TLS. Release-number and ADR-number ownership must be rechecked
+  against live refs before promotion; a clean historical merge calculation is
+  not transferable evidence.
 - The wider open queue still contains dependent report branches with serialized
   release numbers and overlapping historical ADR-number ranges. Those branches
   require ancestor-order convergence and a fresh exact-head ADR/API/schema/
-  release audit before merge. A clean local merge calculation or predecessor
-  check cannot transfer acceptance to a changed head.
-- PR #909 closes only the synthetic rendering gap: lint, focused regressions,
-  Storybook build, and 320 x 568 plus desktop visual audits passed on its exact
-  head. Authenticated PostgreSQL/API and deployed UI evidence are absent, so the
-  product acceptance condition remains explicitly unavailable and the PR stays
-  Draft behind #922.
+  release audit before merge. A predecessor check cannot transfer acceptance to
+  a changed head.
+- PR #909's durable scope is the synthetic malformed-hierarchy rendering gap.
+  Authenticated PostgreSQL/API and deployed UI evidence remain separate product
+  acceptance requirements; its live lifecycle/check state is intentionally not
+  duplicated in this baseline.
 - Voice-of-X remains governed by ADR 0246/0251: the twelve atomic Voice classes
   stay extensible through evidence-backed combinations. Carrying Posts and
   derivation evidence remain distinct; hidden evidence is never substituted;
   truth status, cutoff, PROV-O derivation, exact-value UI/CSV, and paged JSON-LD
-  subject merging are unchanged by these three candidates.
+  subject merging are unchanged by these translation candidates.
 
 ## Traceability
 
@@ -177,33 +163,11 @@
   `tests/test_translation_documentation_alignment.py`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
 
-## Autonomous KPI loop (2026-09-09 exact-head evidence)
+## Latest revision-scoped predecessor evidence
 
-- KPI-1 PR-zero convergence: `gh pr list` reports 139 open PRs and
-  `gh issue list` reports 22 open issues at this cycle. No PR was closed,
-  force-pushed, or merged in this cycle; merge requires terminal
-  required/security gates plus qualifying independent approval.
-- KPI-2 exact-head Checks on #929 at
-  `fabdacd4c487be7feb8db02c32b79d4e7d89f581`: code-relevant hosted checks
-  pass (Full test suite, Frontend lint/test/build, Analyze python/actions,
-  Semgrep, opencode-review, osv-scan, trivy-fs, scorecard). Delivery stays
-  `BLOCKED`/`REVIEW_REQUIRED` on central evidence: dependency-review fails
-  closed on HTTP 403 from the dependency-graph compare API, CodeQL compat
-  shards report pending central dispatch, noema-review fails on gateway
-  HTTP 429 (`served_model=deepseek-ai/deepseek-v4-flash-0731`), and strix is
-  cancelled after ~6h. Queue saturation (314 queued runs reported on the
-  predecessor head) was handed to canonical owner `.github#712`; no duplicate
-  local workflow was added.
-- KPI-3 baseline freshness: protected `main`
-  `83eba56149eb802cd63642c507c324c9976ec78e` verified via
-  `git rev-parse origin/main`; this snapshot records the exact #929 head
-  above and does not inherit predecessor evidence.
-- KPI-4 touched-code quality: local focused
-  `test_translation_ledger_contract + test_translation_screen_value_object +
-  test_translation_documentation_alignment` reports 31 passed; that is local
-  evidence only, not hosted GREEN. p95<=20ms, full docstring/test/boundary
-  100% remain tracked as unverified until measured on the exact head.
-- KPI-5 sale-quality proxy: buyer-visible gap #922 stays open (only
-  `en/ko/zh/ja/vi` first-class in protected `main`; `es/de/fr` cutover and
-  material-screen desktop/mobile state evidence absent). No Medium+ security
-  gate is claimed GREEN while CodeQL dispatch is pending.
+Before this documentation repair, predecessor `07388aedc8942a6a99561aaaa1e57ca4b2820b10`
+was a documentation-only descendant of `1f0f7059c8a2cc0a610cd0ee62568b7ed6612add`.
+The latter had terminal Tests, PROV-O, Ontology Pages, and SAST success, while
+Security and CodeQL remained fail-closed at their central owner boundaries.
+Those results explain the repair lineage only; they do not transfer to this new
+head or establish merge/release acceptance.
