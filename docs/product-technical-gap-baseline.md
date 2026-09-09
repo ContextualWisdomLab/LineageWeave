@@ -86,7 +86,7 @@ the PR's frontend bundle, production Keyverse integration, or all-page latency.
 Current-head hosted checks, independent approval, protected merge, and release
 remain unverified; older successful runs do not satisfy those gates.
 
-## Frontend coverage evidence — 2026-09-08
+## Frontend coverage evidence — 2026-09-08 to 2026-09-09
 
 ### Current exact-head rerun — 2026-09-09
 
@@ -1171,6 +1171,8 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+## Candidate diagnostics — 2026-09-08 onward
 
 ### Dashboard keyboard and viewport verification — 2026-09-08
 
