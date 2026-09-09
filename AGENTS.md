@@ -494,11 +494,3 @@ When an E2E login helper tolerates a narrowly identified navigation error,
 reassert the expected authorization URL before locating or filling credential
 fields. A matching form label is not evidence that the navigation reached its
 expected destination; retain the post-login destination check as well.
-
-For local frontend KPI reproduction, use one controlled Vitest invocation.
-Starting a second coverage or test process while the full run is active can
-exhaust local resources and create unrelated timeout failures across
-independent component tests. Those failures are execution noise, not product
-evidence. The authenticated app boundary has explicit tests for provider
-authentication errors and missing access tokens, preserving its fail-closed
-customer path while closing the corresponding `App.tsx` branches.
