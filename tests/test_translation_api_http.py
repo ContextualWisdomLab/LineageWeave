@@ -123,6 +123,31 @@ def test_translation_screen_reads_authenticated_exact_version(monkeypatch) -> No
     assert seen["resource_version"] == 7
 
 
+def test_translation_screen_reads_admitted_nested_screen_key(monkeypatch) -> None:
+    """An admitted screen identity containing a slash must remain addressable."""
+    seen: dict[str, object] = {}
+
+    async def fake_read(pool, valkey, *, product_key, screen_key, locale, resource_version):
+        seen["screen_key"] = screen_key
+        return SimpleNamespace(
+            screen_key=screen_key,
+            resource_version=1,
+            locale=locale,
+            translations={"title": "Daily report"},
+        )
+
+    monkeypatch.setattr(api, "read_translation_screen", fake_read)
+    client = _client(authenticated=True)
+    try:
+        response = client.get("/api/translations/reports/daily", params={"locale": "en"})
+    finally:
+        _close(client)
+
+    assert response.status_code == 200
+    assert response.json()["screen_key"] == "reports/daily"
+    assert seen["screen_key"] == "reports/daily"
+
+
 def test_translation_screen_maps_missing_version_without_driver_access(monkeypatch) -> None:
     """A missing published resource is a stable 404 HTTP contract."""
     async def fake_read(*args, **kwargs):
