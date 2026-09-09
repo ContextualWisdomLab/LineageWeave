@@ -94,7 +94,7 @@ success: 1,768 passed, 147 skipped, one warning, 1,241.56 seconds. The warning
 is deprecated OpenTelemetry `LoggingHandler` use in the provider-installation
 test; it remains a repair item, not suppressed. The existing repair owner is
 PR #973 (`182d3c9d4`), which switches to the supported instrumentation handler;
-#929 also contains that import change. Keep the repair in its existing owner
+PR #929 also contains that import change. Keep the repair in its existing owner
 rather than duplicating it into #983. Neither open branch establishes protected
 main delivery. Skips remain outside verified
 coverage. Its frontend job passed 547 tests with lines 82.48%, functions 81.61%,
@@ -159,8 +159,9 @@ p95 uses sorted attempt index `ceil(0.95 * 30) - 1`; timeout is 5 seconds.
 | Orchestrator `/healthz`, port 18000 | 30 | 0 | 780.26 | 1460.67 |
 | Frontend `/`, port 15173 | 30 | 0 | 170.19 | 670.47 |
 
-These observations exceed 20 ms. They measure public liveness/HTML transport,
-not authenticated pages, rendering, or k6 load acceptance. They do not establish
+These observations exceed the 20 ms CWL engineering/diagnostic target. They measure
+public liveness/HTML transport, not authenticated pages, rendering, or k6 load
+acceptance. They do not establish
 an improvement against earlier runs with unverified service attribution.
 An earlier port-18000 attempt timed out after 5 seconds; subsequent successful
 responses do not erase that failure. Historical provider allowlist/candidate
