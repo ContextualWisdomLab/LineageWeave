@@ -98,6 +98,12 @@ functions 92.93%, and branches 83.57%. `App.tsx` remains the largest product
 source gap. This run establishes backend test completion, not frontend release
 acceptance, protected merge, or deployment.
 
+The successor hosted run for exact HEAD `7120f9eab3aa55935fbccfd7cd2f80ee15503890`
+was still queued at inspection; both test jobs had no assigned runner. The
+organization runner inventory also reported zero runners. This is execution
+infrastructure evidence and does not convert the preceding product coverage
+failure into a pass or authorize a retry/cancellation.
+
 At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
 [34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
 preserved artifact [10085488908](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502/artifacts/10085488908).
