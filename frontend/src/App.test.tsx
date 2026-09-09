@@ -143,6 +143,10 @@ describe("App, authenticated", () => {
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    analysisRunListUnavailable?: boolean;
+    analysisRunOpenNotFound?: boolean;
+    lineageConflictOnce?: boolean;
+    lineageStartUnavailable?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
@@ -188,6 +192,7 @@ describe("App, authenticated", () => {
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
+    let lineageConflictRemaining = options?.lineageConflictOnce ? 1 : 0;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
 
@@ -484,6 +489,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.analysisRunOpenNotFound) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -583,6 +596,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
+        if (options?.lineageStartUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "temporarily unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage-pending",
@@ -696,6 +717,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
+        if (lineageConflictRemaining > 0) {
+          lineageConflictRemaining -= 1;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "request key conflict" }), {
+              status: 409,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
             new Response(
@@ -736,6 +766,14 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        if (options?.analysisRunListUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "temporarily unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
@@ -4012,6 +4050,78 @@ describe("App, authenticated", () => {
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+  });
+
+  it("retries a conflicting lineage request with a new request identity", async () => {
+    const fetchMock = stubBackend({ lineageConflictOnce: true });
+    render(<App showLabPanels />);
+
+    const requestButton = await screen.findByRole("button", {
+      name: "Request a lineage reconstruction",
+    });
+    await userEvent.click(requestButton);
+    expect(
+      await screen.findByText(
+        "This request key already names a different reconstruction. Request again to start a new run.",
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(requestButton);
+    expect(
+      await screen.findByRole("heading", {
+        name: "Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+
+    const requests = fetchMock.mock.calls
+      .filter((call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST")
+      .map((call) => JSON.parse(String(call[1]?.body)).idempotency_key);
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).not.toBe(requests[1]);
+  });
+
+  it("removes an inaccessible analysis detail and explains the next action", async () => {
+    stubBackend({ analysisRunOpenNotFound: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    expect(await screen.findByText("This analysis run is not visible.")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", {
+        name: "Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps a pending reconstruction retryable when start is unavailable", async () => {
+    stubBackend({ lineageStartUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    const startButton = await screen.findByRole("button", { name: "Start reconstruction" });
+    await userEvent.click(startButton);
+
+    expect(await screen.findByText(/could not complete this request/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeEnabled();
+    expect(
+      screen.getByRole("heading", {
+        name: "Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a recoverable error when the analysis-run list is unavailable", async () => {
+    stubBackend({ analysisRunListUnavailable: true });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText(/could not complete this request/)).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Analysis runs" })).not.toBeInTheDocument();
   });
 
   it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
