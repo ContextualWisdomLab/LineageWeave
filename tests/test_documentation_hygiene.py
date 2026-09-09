@@ -25,7 +25,7 @@ _FORBIDDEN_MARKERS = (
     "PLACEHOLDER_DO_NOT_WRITE",
     "TODO_WRITE_ADR",
 )
-_CURRENT_AUTHORITY_PATTERN = re.compile(r"Current authority:\s*(\d{4}-\d{2}-\d{2})")
+_DATED_OBSERVATION_PATTERN = re.compile(r"Dated observation:\s*(\d{4}-\d{2}-\d{2})")
 _OVERLAY_HEADER_PATTERN = re.compile(r"^>\s*Exact-head loop overlay[^\n]*", re.MULTILINE)
 _PROTECTED_MAIN_SHA_PATTERN = re.compile(r"`([0-9a-f]{40})`")
 _MUTABLE_STILL_PATTERN = re.compile(r"\bstill\b", re.IGNORECASE)
@@ -138,43 +138,51 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
     assert docker_match.group(1) == expected_embedding_contract_commit
 
 
-def test_gap_baseline_first_authority_is_dated_current_authority() -> None:
-    """Issue #963: the file opens with a dated Current authority, not a stale overlay."""
+def test_gap_baseline_first_section_is_dated_observation() -> None:
+    """Issue #963: the ledger must defer live authority to repository state."""
     baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
 
-    current_match = _CURRENT_AUTHORITY_PATTERN.search(baseline)
-    assert current_match is not None, (
-        "product-gap baseline must open with a dated 'Current authority: YYYY-MM-DD' section"
+    dated_match = _DATED_OBSERVATION_PATTERN.search(baseline)
+    assert dated_match is not None, (
+        "product-gap baseline must open with a dated 'Dated observation: YYYY-MM-DD' section"
     )
 
     overlay_headers = list(_OVERLAY_HEADER_PATTERN.finditer(baseline))
     assert overlay_headers, "product-gap baseline must retain dated historical overlays"
     first_overlay_start = overlay_headers[0].start()
-    assert current_match.start() < first_overlay_start, (
-        "the dated Current authority must precede every 'Exact-head loop overlay'"
+    assert dated_match.start() < first_overlay_start, (
+        "the dated observation must precede every 'Exact-head loop overlay'"
     )
 
-    current_section = baseline[current_match.start() : first_overlay_start]
-    sha_match = _PROTECTED_MAIN_SHA_PATTERN.search(current_section)
+    observation_section = baseline[dated_match.start() : first_overlay_start]
+    sha_match = _PROTECTED_MAIN_SHA_PATTERN.search(observation_section)
     assert sha_match is not None, (
-        "Current authority must name its protected-main SHA as a verifiable repo fact"
+        "dated observation must name its observed protected-main SHA as a verifiable repo fact"
     )
     assert re.fullmatch(r"[0-9a-f]{40}", sha_match.group(1)) is not None
 
     receipt_markers = ("at refresh", "Live queue", "UTC")
-    assert any(marker in current_section for marker in receipt_markers), (
-        "Current authority queue counts must read as dated live receipt, "
-        "not timeless product truth"
+    assert any(marker in observation_section for marker in receipt_markers), (
+        "mutable queue counts must read as a dated receipt, not timeless product truth"
     )
-    if "open PRs" in current_section:
-        assert "at refresh" in current_section or "Live queue" in current_section, (
+    if "open PRs" in observation_section:
+        assert "at refresh" in observation_section or "Live queue" in observation_section, (
             "mutable PR counts must stay time-scoped to their receipt moment"
         )
-    assert "sole current" in current_section.lower(), (
-        "Current authority must declare itself the sole current section"
+
+    lowered = observation_section.lower()
+    assert "sole current authority" not in lowered, (
+        "a dated evidence ledger must not compete with live repository authority"
     )
-    assert "historical" in current_section.lower(), (
-        "Current authority must mark every overlay below as dated historical evidence"
+    assert "live agents/pr/issue/protected-ref/check state remains current authority" in lowered, (
+        "the dated observation must explicitly delegate current lifecycle/check authority "
+        "to live repository state"
+    )
+    assert "unfixable from any branch" not in lowered, (
+        "owner-side failures must remain time-scoped repair findings, not timeless impossibility claims"
+    )
+    assert "historical" in lowered, (
+        "the dated observation must mark every overlay below as historical evidence"
     )
 
 
@@ -185,11 +193,11 @@ def test_gap_baseline_historical_overlays_use_time_scoped_language() -> None:
     baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
     lines = baseline.splitlines()
 
-    current_match = _CURRENT_AUTHORITY_PATTERN.search(baseline)
-    assert current_match is not None
+    dated_match = _DATED_OBSERVATION_PATTERN.search(baseline)
+    assert dated_match is not None
     overlay_matches = list(_OVERLAY_HEADER_PATTERN.finditer(baseline))
-    overlay_starts = [m.start() for m in overlay_matches if m.start() > current_match.start()]
-    assert overlay_starts, "no historical overlays found below the Current authority"
+    overlay_starts = [m.start() for m in overlay_matches if m.start() > dated_match.start()]
+    assert overlay_starts, "no historical overlays found below the dated observation"
 
     line_starts: list[int] = []
     offset = 0
