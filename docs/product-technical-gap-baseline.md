@@ -2,24 +2,25 @@
 
 > Snapshot refreshed 2026-09-09 KST. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
-> ADR 0362 candidate for issue #922 and remains outside protected `main`.
-> Required current-head checks are not yet accepted as terminal GREEN and the
-> delivery boundary still requires qualifying independent review. The
+> ADR 0362 candidate for issue #922 and is open / Ready for exact-head
+> validation. Required current-head checks are not yet accepted as terminal GREEN
+> and the delivery boundary still requires qualifying independent review. The
 > authenticated `GET /api/translations/{screen_key}` API is implemented on the
 > candidate branch. That is candidate implementation evidence, not
 > protected-main, deployed, or release evidence.
 >
-> Live branch heads, queue counts, pending jobs, provider/model observations,
-> and other-PR check states are deliberately not promoted into this current
-> snapshot: recording them in a documentation commit makes the snapshot stale by
+> Live self-heads, queue counts, pending jobs, provider/model observations, and
+> transient check states are deliberately not promoted into this current
+> snapshot: recording them in the same documentation commit makes them stale by
 > construction. Current validation authority is the live PR/check/ref state.
 > Revision-scoped evidence remains in git history and the dated baseline archive.
 >
-> Adjacent candidates remain outside protected `main`. PR #911 owns the
-> synchronous PostgreSQL driver/TLS-policy slice, and PR #909 owns malformed
-> Customer Master hierarchy presentation. Their live heads and validation states
-> must be read from GitHub rather than frozen here. Neither candidate changes
-> the translation-ledger ownership boundary.
+> Two adjacent candidates remain outside protected `main`: PR #911 at
+> `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` owns the synchronous PostgreSQL
+> driver/TLS-policy slice and its live head was reverified for this snapshot;
+> PR #909 owns malformed Customer Master hierarchy presentation. Their validation
+> results remain live-GitHub evidence rather than duplicated check-state claims
+> here. Neither candidate changes the translation-ledger ownership boundary.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -165,9 +166,12 @@
 
 ## Latest revision-scoped predecessor evidence
 
-Before this documentation repair, predecessor `07388aedc8942a6a99561aaaa1e57ca4b2820b10`
-was a documentation-only descendant of `1f0f7059c8a2cc0a610cd0ee62568b7ed6612add`.
-The latter had terminal Tests, PROV-O, Ontology Pages, and SAST success, while
-Security and CodeQL remained fail-closed at their central owner boundaries.
-Those results explain the repair lineage only; they do not transfer to this new
-head or establish merge/release acceptance.
+Before this documentation repair, predecessor `aaad36a5d7aaf8b1f6075562253f7fd9dda2b1aa`
+removed the self-staling scheduler KPI block but, before hosted validation, was
+found to violate the existing documentation-alignment contract by removing the
+current `open / Ready` and live adjacent-#911 snapshot phrases. Its parent
+`07388aedc8942a6a99561aaaa1e57ca4b2820b10` was a documentation-only descendant
+of `1f0f7059c8a2cc0a610cd0ee62568b7ed6612add`; `1f0f7059...` had terminal Tests,
+PROV-O, Ontology Pages, and SAST success while Security and CodeQL remained
+fail-closed at central owner boundaries. These receipts explain repair lineage
+only and do not transfer to this new head.
