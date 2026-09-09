@@ -192,6 +192,7 @@ function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
     return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
   }
+  if (err instanceof BackendError) return err.message;
   return String(err);
 }
 
