@@ -35,7 +35,7 @@ describe("PostBody persisted table boundaries", () => {
     expect(within(tables[0]).getByText("Persisted D")).toBeInTheDocument();
   });
 
-  it("counts only direct and row-group table rows when source tables contain metadata children", () => {
+  it("counts parser-normalized and explicit row-group table rows around metadata children", () => {
     render(
       <PostBody
         body={
