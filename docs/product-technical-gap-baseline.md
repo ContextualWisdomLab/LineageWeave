@@ -104,6 +104,12 @@ organization runner inventory also reported zero runners. This is execution
 infrastructure evidence and does not convert the preceding product coverage
 failure into a pass or authorize a retry/cancellation.
 
+Local full coverage at parent exact HEAD `5726132b647acff2c96b70136a987ba254f933a0`
+ran 728 tests and exposed four failures under concurrent instrumentation: three
+5-second timeouts and one occupation-data wait. Each failed test passed when
+rerun alone. This is a reproducibility gap for the full coverage harness, not
+evidence that the hosted gate passed.
+
 At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
 [34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
 preserved artifact [10085488908](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502/artifacts/10085488908).
