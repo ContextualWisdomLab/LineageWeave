@@ -90,16 +90,16 @@ remain unverified; older successful runs do not satisfy those gates.
 
 ### Current exact-head rerun — 2026-09-09
 
-At exact HEAD `2b9b057ca85cb426f638a7e692cc16bc7471a6b9`, hosted run
-[34325705295](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34325705295)
-completed 740 frontend tests across 75 files. Lint, product build, Storybook,
+At exact HEAD `031cb4fe51d43ac3d8f792fe8180ab858617d1bc`, hosted run
+[34328998659](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659)
+completed 743 frontend tests across 76 files. Lint, product build, Storybook,
 and coverage-artifact preservation succeeded. Artifact
-[10093698726](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34325705295/artifacts/10093698726)
-records lines 96.13%, statements 94.31%, functions 93.70%, and branches
-84.25%. `App.tsx` reached 90.50% lines and 75.00% branches; the similar-VOC
-panel reached 100% for all four metrics. The unchanged 100% gate correctly
-failed, so this is exact-head improvement evidence, not merge or release
-acceptance. The PostgreSQL job for this head was still running when recorded.
+[10095173451](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659/artifacts/10095173451)
+records lines 96.35%, statements 94.53%, functions 93.89%, and branches
+84.81%. `App.tsx` reached 91.02% lines and 76.05% branches. The unchanged 100%
+gate correctly failed, so this is exact-head improvement evidence, not merge
+or release acceptance. The PostgreSQL job for this head was still running when
+recorded.
 
 At exact HEAD `b69efde292a4bcf0c8ef78da31379965e9a34339`, hosted run
 [34303751037](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34303751037)
