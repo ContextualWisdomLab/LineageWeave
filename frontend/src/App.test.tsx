@@ -154,6 +154,7 @@ describe("App, authenticated", () => {
     chatUnavailable?: boolean;
     evidenceUnavailable?: boolean;
     searchUnavailable?: boolean;
+    searchFailure?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
@@ -1755,6 +1756,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/verify-relations") && method === "POST") {
+        if (options?.searchFailure) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Verification request was rejected." }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         if (options?.searchUnavailable) {
           return Promise.resolve(
             new Response(
@@ -2878,6 +2887,17 @@ describe("App, authenticated", () => {
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
+  });
+
+  it("surfaces a non-availability verification error without hiding the cause", async () => {
+    stubBackend({ admin: true, searchFailure: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
+
+    await waitFor(() => expect(screen.getByText("Verification request was rejected.")).toBeInTheDocument());
+    expect(screen.queryByText(/public search is not configured yet/)).not.toBeInTheDocument();
   });
 
   it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {
