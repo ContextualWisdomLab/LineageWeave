@@ -416,7 +416,10 @@ run with Vitest file parallelism disabled still exposed five `App.test.tsx`
 timeouts, so do not treat serializing files as the fix. Preserve both facts:
 isolated reruns are diagnostic evidence, not a green full-suite result, and the
 suite needs a reproducible instrumentation-timeout fix before treating the
-coverage run as stable.
+coverage run as stable. Raising only the coverage timeout to 15 seconds removed
+the timeout failures in one follow-up run, but the occupation catalog still
+failed to load under the full instrumented suite; do not treat that setting as
+the root-cause repair.
 
 ## W3C PROV-O boundary
 
