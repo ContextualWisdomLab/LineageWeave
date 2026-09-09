@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitPostBody } from "./postBodyDisplay";
+import { inferIndentationUnit, splitPostBody } from "./postBodyDisplay";
 
 describe("exported CSS indentation", () => {
   it("does not invent hierarchy from malformed or non-positive indentation", () => {
@@ -28,5 +28,12 @@ describe("exported CSS indentation", () => {
       { kind: "text", text: "Two", indentLevel: 2 },
       { kind: "text", text: "Three", indentLevel: 3 },
     ]);
+  });
+
+  it("derives a stable source indentation unit from tabs and non-breaking spaces", () => {
+    expect(inferIndentationUnit("\tParent\n\t\tChild\n\t\t\tGrandchild")).toBe(4);
+    expect(
+      inferIndentationUnit("\u00a0\u00a0Parent\n\u00a0\u00a0\u00a0\u00a0Child"),
+    ).toBe(2);
   });
 });
