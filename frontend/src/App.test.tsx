@@ -160,6 +160,9 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     hintRelatedPosts?: boolean;
     customerEntityHierarchy?: boolean;
+    customerMasterUnavailable?: boolean;
+    customerRelatedUnavailable?: boolean;
+    customerResolveUnavailable?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
@@ -1651,6 +1654,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        if (options?.customerRelatedUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entity_id: "corp-demo",
@@ -1947,6 +1953,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
+        if (options?.customerMasterUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entities: options?.customerEntityHierarchy
@@ -2066,6 +2075,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        if (options?.customerResolveUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         resolvedHintCode = body.hint_code;
         return Promise.resolve(
@@ -2363,6 +2375,44 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
+  });
+
+  it("keeps customer-master failures bounded to the customer workspace", async () => {
+    stubBackend({ customerMasterUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    expect(await screen.findByText("Customer master could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+  });
+
+  it("recovers from unavailable customer relationships and collapses the entity", async () => {
+    stubBackend({ customerRelatedUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
+    expect(entityButton).not.toBeNull();
+    await userEvent.click(entityButton as HTMLElement);
+    expect(await screen.findByText("No linked posts yet.")).toBeInTheDocument();
+    await userEvent.click(entityButton as HTMLElement);
+    expect(entityButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps a failed customer hint available for a later retry", async () => {
+    stubBackend({ admin: true, manyCustomerHints: 1, customerResolveUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    await screen.findByText("CUST-0");
+    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
+    expect(
+      await screen.findByText("This hint could not be resolved to a corroborated organization name."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
   });
 
   it("gives the customer-master hint disclosures a CSS hook for the shared touch target", async () => {
@@ -3340,6 +3390,67 @@ describe("App, authenticated", () => {
       next_offset: null,
     }));
     await waitFor(() => expect(screen.queryByText("Stale prior VOC")).not.toBeInTheDocument());
+  }, 15_000);
+
+  it("keeps similar-VOC pagination retryable and opens recovered evidence", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    let pageAttempts = 0;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/similar-voc") {
+        if (requestUrl.searchParams.get("offset") === "50") {
+          pageAttempts += 1;
+          if (pageAttempts === 1) {
+            return Promise.resolve(new Response(null, { status: 503 }));
+          }
+          return Promise.resolve(jsonResponse({
+            items: [{
+              post_id: "post-2", post_title: "Recovered prior VOC", issue_summary: "Recovered issue",
+              focal_evidence_text: "Current evidence", candidate_evidence_text: "Recovered evidence",
+              customer_cohort_text: "Enterprise cohort", action_history: ["Sent revised schedule"],
+              occurred_at: "2025-12-01T00:00:00Z",
+            }],
+            next_offset: null,
+          }));
+        }
+        return Promise.resolve(jsonResponse({
+          items: [{
+            post_id: "prior-1", post_title: "Prior evidence", issue_summary: "Prior issue",
+            focal_evidence_text: "Current evidence", candidate_evidence_text: "Prior evidence",
+            customer_cohort_text: null, action_history: [], occurred_at: "2025-12-02T00:00:00Z",
+          }],
+          next_offset: 50,
+        }));
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole(
+      "button",
+      { name: /open report post: public post/i },
+      { timeout: 5_000 },
+    ));
+    await userEvent.click(await screen.findByRole(
+      "button",
+      { name: "이전 VOC 더 보기" },
+      { timeout: 5_000 },
+    ));
+    expect(await screen.findByRole("alert")).toHaveTextContent("이전 VOC를 더 불러오지 못했습니다");
+
+    await userEvent.click(screen.getByRole("button", { name: "이전 VOC 더 보기" }));
+    const recoveredHeading = await screen.findByRole("heading", { name: "Recovered prior VOC" });
+    const recoveredArticle = recoveredHeading.closest("article");
+    expect(recoveredArticle).not.toBeNull();
+    expect(recoveredArticle).toHaveTextContent("Enterprise cohort");
+    expect(recoveredArticle).toHaveTextContent("Sent revised schedule");
+    await userEvent.click(within(recoveredArticle as HTMLElement).getByRole("button", { name: "근거 글 열기" }));
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
   }, 15_000);
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
