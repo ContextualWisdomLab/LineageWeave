@@ -19,6 +19,12 @@ _ADMIN_DSN = os.environ.get(
 _INITIAL_SCHEMA = ROOT / "migrations" / "0001_initial_schema.sql"
 _MEMBER_LOCALE_MIGRATION = ROOT / "migrations" / "0044_member_locale_preference.sql"
 _TRANSLATION_LEDGER_MIGRATION = ROOT / "migrations" / "0246_ui_translation_ledger.sql"
+_TRANSLATION_TRUNCATE_GUARD_MIGRATION = (
+    ROOT / "migrations" / "0247_ui_translation_truncate_guard.sql"
+)
+_TRANSLATION_TRUNCATE_GUARD_ROLLBACK = (
+    ROOT / "migrations" / "rollback" / "0247_ui_translation_truncate_guard.sql"
+)
 _TRANSLATION_LEDGER_ROLLBACK = (
     ROOT / "migrations" / "rollback" / "0246_ui_translation_ledger.sql"
 )
@@ -44,6 +50,18 @@ def test_translation_ledger_migration_has_executable_rollback_contract() -> None
 
     for unsupported_pre0246_locale in ("'es'", "'de'", "'fr'"):
         assert unsupported_pre0246_locale not in sql
+
+
+def test_translation_truncate_guard_rollback_refuses_existing_resources() -> None:
+    """The guard rollback must fail closed before exposing a nonempty ledger."""
+    sql = _TRANSLATION_TRUNCATE_GUARD_ROLLBACK.read_text(encoding="utf-8").lower()
+
+    for fragment in (
+        "lock table ui_translation_resource in access exclusive mode",
+        "select exists (select 1 from ui_translation_resource)",
+        "refusing 0247 rollback because translation resources exist",
+    ):
+        assert fragment in sql
 
 
 async def _postgres_available_async() -> bool:
@@ -235,6 +253,69 @@ def test_translation_ledger_rollback_refuses_existing_translation_data() -> None
                     )
                     == "ui_translation_resource"
                 )
+                assert await connection.fetchval(
+                    "select count(*) from ui_translation_resource"
+                ) == 1
+            finally:
+                await connection.close()
+        finally:
+            await admin_connection.execute(f'drop database "{database_name}"')
+            await admin_connection.close()
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
+def test_translation_truncate_guard_rollback_preserves_nonempty_protection() -> None:
+    """Rolling back 0247 alone must leave every guard installed when copy exists."""
+
+    async def scenario() -> None:
+        database_name = f"lineageweave_translation_guard_rollback_{uuid.uuid4().hex[:12]}"
+        admin_connection = await asyncpg.connect(_ADMIN_DSN)
+        await admin_connection.execute(f'create database "{database_name}"')
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+
+        try:
+            connection = await asyncpg.connect(database_dsn)
+            try:
+                await connection.execute(_INITIAL_SCHEMA.read_text(encoding="utf-8"))
+                await connection.execute(_MEMBER_LOCALE_MIGRATION.read_text(encoding="utf-8"))
+                await connection.execute(_TRANSLATION_LEDGER_MIGRATION.read_text(encoding="utf-8"))
+                await connection.execute(
+                    _TRANSLATION_TRUNCATE_GUARD_MIGRATION.read_text(encoding="utf-8")
+                )
+                await connection.execute(
+                    """
+                    insert into ui_translation_resource(product_key, screen_key, resource_version)
+                    values ('lineageweave', 'reports/daily', 1)
+                    """
+                )
+
+                with pytest.raises(
+                    asyncpg.PostgresError,
+                    match="refusing 0247 rollback because translation resources exist",
+                ):
+                    await connection.execute(
+                        _TRANSLATION_TRUNCATE_GUARD_ROLLBACK.read_text(encoding="utf-8")
+                    )
+                await connection.execute("rollback")
+
+                trigger_count = await connection.fetchval(
+                    """
+                    select count(*)
+                      from pg_trigger
+                     where not tgisinternal
+                       and tgname like 'ui_translation_%_truncate_guard'
+                    """
+                )
+                assert trigger_count == 3
                 assert await connection.fetchval(
                     "select count(*) from ui_translation_resource"
                 ) == 1

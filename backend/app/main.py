@@ -827,7 +827,7 @@ async def read_tenant_settings(
     return {"brandName": row["brand_name"]}
 
 
-@app.get("/api/translations/{screen_key}")
+@app.get("/api/translations/{screen_key:path}")
 async def read_ui_translations(
     screen_key: str,
     locale: str = Query(...),
