@@ -175,3 +175,41 @@ repair. Older `1f0f7059...` had terminal Tests, PROV-O, Ontology Pages, and SAST
 success while Security and CodeQL remained fail-closed at central owner
 boundaries. These receipts explain repair lineage only and do not transfer to
 this new head.
+
+## PRD / TRD / UML derivation (durable, non-volatile)
+
+- PRD (issue #922): buyer-visible gap is eight-locale product copy served from
+  a versioned ledger. Scope is presentation copy only; ontology labels and
+  concept names stay with their canonical owners. Do not invent copy and do
+  not count English fallback as translated coverage. First material cutover
+  candidate is one complete screen resource for all eight locales, proved in
+  normal, loading, empty, error, permission, and responsive states with
+  keyboard, focus, screen-reader, CJK expansion, and font-fallback evidence.
+- TRD (ADR 0362 Proposed): PostgreSQL is authoritative for screen keys,
+  localized text, and immutable publication versions; Valkey is only an exact
+  immutable-version read cache with 20 ms bounded optional I/O. Exact-version
+  reads admit a cached candidate only after PostgreSQL digest and key-set
+  evidence and otherwise converge to one complete PostgreSQL projection.
+  `GET /api/translations/{screen_key}` is authenticated; missing publication
+  maps to 404, incomplete requested-locale copy maps to 409, and unsupported
+  locale, malformed screen identity, and unrepresentable version each map to a
+  distinct 422.
+- UML (text): `Caller -> GET /api/translations/{screen_key} (backend/app/main.py)`
+  authenticates and propagates screen, locale, and version identity;
+  `translation_ledger.py` read model admits `ko/en/ja/zh/vi/es/de/fr` value
+  projections against PostgreSQL (`0246`/`0247` ledger, publication
+  immutability, writer serialization, TRUNCATE guard, rollback path) with
+  bounded Valkey candidate admission; focused HTTP, boundary, budget,
+  recursion, and evidence-contract tests guard the read path.
+- Gap: protected `main` still bundles frontend translation source with only
+  five first-class locales and has no material screen cut over to a published
+  eight-locale ledger resource. Desktop and mobile state coverage for the
+  cutover remains absent on protected `main`.
+- Actions: publish one reviewed complete screen resource; cut one material SPA
+  screen onto the versioned API under the product composition contract; prove
+  the required states on the same exact head with fresh desktop and mobile
+  evidence; keep PR #929 outside merge admission until its unchanged exact
+  head has terminal required and security evidence plus qualifying independent
+  review; keep stacked consumer #932 as a dependent Draft revalidated after
+  the foundation reaches protected truth; leave leftover-pair accessible-name
+  work to its single-writer owner.
