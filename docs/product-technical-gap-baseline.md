@@ -28,10 +28,10 @@
 > force-push, no stale-evidence transfer.
 >
 > Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `ce0259631`:
-> Full test suite IN_PROGRESS at observation (terminal SUCCESS on `52b6b93`),
-> Semgrep SUCCESS, Frontend FAILURE with 13 files below the 100% threshold,
-> Strix/Noema IN_PROGRESS, dependency-review/CodeQL/opencode fail-closed
-> as above); #979 Ask
+> Full test suite terminal SUCCESS, Semgrep SUCCESS, Frontend FAILURE with
+> 13 files below the 100% threshold, Strix terminal SUCCESS, Noema FAILURE
+> on unconfigured reviewer credentials, dependency-review/CodeQL/opencode
+> fail-closed as above); #979 Ask
 > ownership-fenced liveness (CLEAN, stacked on #974); #974 chat
 > null-timeout + worker expiry; #970 fast-mlsirm v0.9.1 owner release
 > (for #967); #969 auth sign-in recovery; #964 k6 load diagnostics (no
