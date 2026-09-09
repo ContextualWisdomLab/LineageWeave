@@ -3036,7 +3036,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(
         screen.getByText(
-          "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.",
+          "Verification could not be completed. Check the request and try again.",
         ),
       ).toBeInTheDocument(),
     );

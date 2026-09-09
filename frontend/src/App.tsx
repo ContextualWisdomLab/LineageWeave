@@ -190,7 +190,9 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError) {
-    return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
+    return err.status === 503
+      ? t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.")
+      : t("Verification could not be completed. Check the request and try again.");
   }
   return String(err);
 }
