@@ -133,6 +133,9 @@ def test_locale_and_cache_identity_validation_rejects_ambiguous_inputs() -> None
         build_translation_cache_key("lineage:weave", "customer-master", 1, "en")
     with pytest.raises(ValueError, match="screen_key"):
         build_translation_cache_key("lineageweave", " ", 1, "en")
+    for screen_key in (".", "..", "reports/./daily", "reports/../daily"):
+        with pytest.raises(ValueError, match="screen_key"):
+            build_translation_cache_key("lineageweave", screen_key, 1, "en")
     for version in (0, -1, True, 1.5):
         with pytest.raises(ValueError, match="positive integer"):
             build_translation_cache_key("lineageweave", "customer-master", version, "en")  # type: ignore[arg-type]

@@ -219,6 +219,12 @@ def _validate_identity_segment(value: str, *, field_name: str) -> str:
         raise TranslationIdentityError(
             f"{field_name} must be nonblank and must not contain ':'"
         )
+    if field_name == "screen_key" and any(
+        segment in {".", ".."} for segment in normalized.split("/")
+    ):
+        raise TranslationIdentityError(
+            "screen_key must not contain URL-normalized dot segments"
+        )
     return normalized
 
 
