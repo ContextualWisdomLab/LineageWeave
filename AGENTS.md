@@ -400,6 +400,15 @@ Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
 
+The frontend coverage gate is evidence-bearing: on PR #983 exact head
+`85c74137b6d64783322c52f39c2c28c8ac250d79`, all 727 Vitest tests passed, but
+the strict global gate failed at lines 95.43%, statements 93.56%, functions
+92.93%, and branches 83.57%. The largest gap was `frontend/src/App.tsx`.
+Keep the source in the coverage denominator and add behavior tests for the
+unexercised paths; do not lower the threshold or exclude product code to make
+the check green. A passing test count without a passing coverage report is not
+frontend CI completion.
+
 ## W3C PROV-O boundary
 
 - Add standard provenance through `lineageweave.prov_o` and the
