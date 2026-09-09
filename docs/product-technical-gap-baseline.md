@@ -932,3 +932,13 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### Exact-head successor workflow evidence — 2026-09-09
+
+Successor PR #985 at `18abec99c` carries the valid delta from #983 and adds
+authenticated-boundary and malformed-verification-URL coverage. The hosted
+Tests workflow produced `SKIPPED` and `CANCELLED` runs while the PR base was a
+non-main stacked branch; this is workflow evidence, not a product test result.
+The same head was checked against protected `main` for ancestry before the
+successor was retargeted. Independent review and exact-head hosted Checks are
+still required; the frontend 100% denominator remains unchanged.
