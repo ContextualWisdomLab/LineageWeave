@@ -479,6 +479,13 @@ fails. Use its LCOV paths and JSON summary to select regression work; console
 tables abbreviate filenames. A passing test suite and a failing coverage gate
 are distinct results, and neither licenses lowering the threshold.
 
+For local runtime checks, `colima status` and the Docker context must resolve
+to `/Users/seonghobae/.colima/default/docker.sock` before interpreting
+container evidence. A complete inventory on 2026-09-09 showed the canonical
+LineageWeave services healthy or running, plus separately named project/test
+containers; no duplicate LineageWeave stack was removed. Do not infer a
+duplicate from an image name or an exited unrelated container.
+
 When a button combines a date and label in adjacent inline elements, preserve
 an explicit text separator; visual CSS spacing does not guarantee a separated
 accessible name. Test the complete accessible name and the destination callback
