@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchOperationsDashboard } from "../api";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 
@@ -25,6 +25,70 @@ const data = {
 };
 
 describe("OperationsDashboardView", () => {
+  it("keeps evidence available for a case without a project association", async () => {
+    const onOpenPost = vi.fn();
+    render(<OperationsDashboardView data={{ ...data, cases: [{ ...data.cases[0], project_name: null }] }} onOpenPost={onOpenPost} />);
+    expect(screen.getByText("프로젝트 연결 분석 중")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "분류 근거 글 열기" }));
+    expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
+  });
+
+  beforeEach(() => vi.mocked(fetchOperationsDashboard).mockReset());
+
+  it.each([
+    ["success", false], ["failure", false],
+    ["success", true], ["failure", true],
+  ] as const)("ignores stale %s after token changes (return to original: %s)", async (outcome, returnToOriginal) => {
+    let resolvePrevious!: (value: Awaited<ReturnType<typeof fetchOperationsDashboard>>) => void;
+    let rejectPrevious!: (reason: Error) => void;
+    const previous = new Promise<Awaited<ReturnType<typeof fetchOperationsDashboard>>>((resolve, reject) => {
+      resolvePrevious = resolve;
+      rejectPrevious = reject;
+    });
+    vi.mocked(fetchOperationsDashboard)
+      .mockReturnValueOnce(previous)
+      .mockResolvedValueOnce({ ...data, period_label: returnToOriginal ? "Intermediate authorized period" : "Current authorized period" })
+      .mockResolvedValueOnce({ ...data, period_label: "Current authorized period" });
+    const { rerender } = render(<OperationsDashboard accessToken="old-token" onOpenPost={() => undefined} />);
+    rerender(<OperationsDashboard accessToken="new-token" onOpenPost={() => undefined} />);
+    if (returnToOriginal) {
+      await screen.findByText("Intermediate authorized period");
+      rerender(<OperationsDashboard accessToken="old-token" onOpenPost={() => undefined} />);
+    }
+    await screen.findByText("Current authorized period");
+    await act(async () => {
+      if (outcome === "success") resolvePrevious({ ...data, period_label: "Stale authorized period" });
+      else rejectPrevious(new Error("previous request failed"));
+    });
+    expect(screen.getByText("Current authorized period")).toBeInTheDocument();
+    expect(screen.queryByText("Stale authorized period")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetchOperationsDashboard).toHaveBeenNthCalledWith(2, "new-token", "", "");
+    expect(fetchOperationsDashboard).toHaveBeenCalledTimes(returnToOriginal ? 3 : 2);
+    if (returnToOriginal) expect(fetchOperationsDashboard).toHaveBeenLastCalledWith("old-token", "", "");
+  });
+
+  it("retries a failed query with the selected period and hides diagnostic details", async () => {
+    const fetchMock = vi.mocked(fetchOperationsDashboard);
+    fetchMock.mockResolvedValueOnce(data)
+      .mockRejectedValueOnce(new Error("private upstream diagnostic"))
+      .mockResolvedValueOnce(data);
+    render(<OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />);
+    await screen.findByText("5건 · 25.0%");
+    fireEvent.change(screen.getByLabelText("시작일"), { target: { value: "2026-08-01" } });
+    fireEvent.change(screen.getByLabelText("종료일"), { target: { value: "2026-08-25" } });
+    await userEvent.click(screen.getByRole("button", { name: "기간 적용" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("불러오지 못했습니다");
+    expect(screen.queryByText("private upstream diagnostic")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    await screen.findByText("5건 · 25.0%");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "synthetic-token", "2026-08-01", "2026-08-25");
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "synthetic-token", "2026-08-01", "2026-08-25");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("distinguishes posts, events, percentages and opens evidence", async () => {
     const onOpenPost = vi.fn();
     render(<OperationsDashboardView data={data} onOpenPost={onOpenPost} />);
@@ -34,11 +98,21 @@ describe("OperationsDashboardView", () => {
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-1");
     await userEvent.click(screen.getByRole("button", { name: "원인 수주 근거 열기" }));
     expect(onOpenPost).toHaveBeenCalledWith("evidence-post-2");
+    await userEvent.click(screen.getByRole("button", { name: "2026-08-12 클레임 원인 역추적" }));
+    expect(onOpenPost).toHaveBeenLastCalledWith("post-1");
   });
 
   it("shows an actionable empty external-information state", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
     expect(screen.getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+  });
+
+  it("directs an empty completed period to period or access scope without inventing pending work", () => {
+    render(<OperationsDashboardView data={{ ...data, cases: [], pending_analysis_count: 0 }} onOpenPost={vi.fn()} />);
+    expect(screen.getByRole("status")).toHaveTextContent("기간이나 접근 범위를 확인하세요");
+    expect(screen.queryByText("분석 대기 건부터 처리하세요")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
   });
 
   it("separates failed analysis from pending work and gives the next action", () => {

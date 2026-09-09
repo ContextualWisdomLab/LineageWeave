@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { WorkspaceNav } from "./WorkspaceNav";
 
 const meta = {
@@ -6,7 +7,7 @@ const meta = {
   component: WorkspaceNav,
   args: {
     destination: "board",
-    onChange: () => undefined,
+    onChange: fn(),
   },
 } satisfies Meta<typeof WorkspaceNav>;
 

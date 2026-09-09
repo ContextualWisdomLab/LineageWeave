@@ -24,6 +24,10 @@ describe("projectHistoryKeys", () => {
     expect(projectHistoryKeys([], "  ", " P-200 ")).toEqual([" P-200 "]);
   });
 
+  it("keeps an explicit source identity while project evidence is unavailable", () => {
+    expect(projectHistoryKeys(undefined, "SOURCE-300", null)).toEqual(["SOURCE-300"]);
+  });
+
   it("keeps a distinct explicit source identity beside semantic evidence", () => {
     expect(
       projectHistoryKeys(

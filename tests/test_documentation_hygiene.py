@@ -25,6 +25,11 @@ _FORBIDDEN_MARKERS = (
     "PLACEHOLDER_DO_NOT_WRITE",
     "TODO_WRITE_ADR",
 )
+_CURRENT_AUTHORITY_PATTERN = re.compile(r"Current authority:\s*(\d{4}-\d{2}-\d{2})")
+_OVERLAY_HEADER_PATTERN = re.compile(r"^>\s*Exact-head loop overlay[^\n]*", re.MULTILINE)
+_PROTECTED_MAIN_SHA_PATTERN = re.compile(r"`([0-9a-f]{40})`")
+_MUTABLE_STILL_PATTERN = re.compile(r"\bstill\b", re.IGNORECASE)
+_MUTABLE_CURRENT_PATTERN = re.compile(r"\bcurrent\b", re.IGNORECASE)
 
 
 def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
@@ -131,3 +136,107 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
     assert adr_match is not None
     assert docker_match.group(1) == adr_match.group(1)
     assert docker_match.group(1) == expected_embedding_contract_commit
+
+
+def test_gap_baseline_first_authority_is_dated_current_authority() -> None:
+    """Issue #963: the file opens with a dated Current authority, not a stale overlay."""
+    baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+
+    current_match = _CURRENT_AUTHORITY_PATTERN.search(baseline)
+    assert current_match is not None, (
+        "product-gap baseline must open with a dated 'Current authority: YYYY-MM-DD' section"
+    )
+
+    overlay_headers = list(_OVERLAY_HEADER_PATTERN.finditer(baseline))
+    assert overlay_headers, "product-gap baseline must retain dated historical overlays"
+    first_overlay_start = overlay_headers[0].start()
+    assert current_match.start() < first_overlay_start, (
+        "the dated Current authority must precede every 'Exact-head loop overlay'"
+    )
+
+    current_section = baseline[current_match.start() : first_overlay_start]
+    sha_match = _PROTECTED_MAIN_SHA_PATTERN.search(current_section)
+    assert sha_match is not None, (
+        "Current authority must name its protected-main SHA as a verifiable repo fact"
+    )
+    assert re.fullmatch(r"[0-9a-f]{40}", sha_match.group(1)) is not None
+
+    receipt_markers = ("at refresh", "Live queue", "UTC")
+    assert any(marker in current_section for marker in receipt_markers), (
+        "Current authority queue counts must read as dated live receipt, "
+        "not timeless product truth"
+    )
+    if "open PRs" in current_section:
+        assert "at refresh" in current_section or "Live queue" in current_section, (
+            "mutable PR counts must stay time-scoped to their receipt moment"
+        )
+    assert "sole current" in current_section.lower(), (
+        "Current authority must declare itself the sole current section"
+    )
+    assert "historical" in current_section.lower(), (
+        "Current authority must mark every overlay below as dated historical evidence"
+    )
+
+
+def test_gap_baseline_historical_overlays_use_time_scoped_language() -> None:
+    """Issue #963: historical overlays must not claim unqualified present authority."""
+    import bisect
+
+    baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+    lines = baseline.splitlines()
+
+    current_match = _CURRENT_AUTHORITY_PATTERN.search(baseline)
+    assert current_match is not None
+    overlay_matches = list(_OVERLAY_HEADER_PATTERN.finditer(baseline))
+    overlay_starts = [m.start() for m in overlay_matches if m.start() > current_match.start()]
+    assert overlay_starts, "no historical overlays found below the Current authority"
+
+    line_starts: list[int] = []
+    offset = 0
+    for line in lines:
+        line_starts.append(offset)
+        offset += len(line) + 1
+
+    def line_number_for_offset(target: int) -> int:
+        """Return the 1-indexed line number containing the character offset."""
+        return bisect.bisect_right(line_starts, target)
+
+    for index, overlay_start in enumerate(overlay_starts):
+        header_end = baseline.find("\n", overlay_start)
+        header = baseline[overlay_start:header_end] if header_end != -1 else baseline[overlay_start:]
+        header_line = line_number_for_offset(overlay_start)
+        assert "historical" in header.lower(), (
+            f"overlay header at line {header_line} must carry an explicit "
+            f"'(historical, <date>)' marker: {header.strip()[:120]}"
+        )
+        assert "Protected `main` is" not in header, (
+            f"overlay header at line {header_line} must use 'was', not 'is', "
+            f"for its protected-main claim: {header.strip()[:120]}"
+        )
+
+        next_overlay = overlay_starts[index + 1] if index + 1 < len(overlay_starts) else len(baseline)
+        body = baseline[header_end:next_overlay] if header_end != -1 else ""
+        heading_match = re.search(r"^##?\s", body, re.MULTILINE)
+        if heading_match is not None:
+            body = body[: heading_match.start()]
+        assert "Protected `main` is" not in body, (
+            f"historical overlay starting at line {header_line} must use 'was', "
+            "not 'is', for protected-main claims"
+        )
+        for body_line in body.splitlines():
+            lowered = body_line.lower()
+            if _MUTABLE_STILL_PATTERN.search(body_line) and "historical" not in lowered:
+                raise AssertionError(
+                    f"historical overlay line {header_line} uses unqualified 'still' "
+                    f"outside a time-scoped marker: {body_line.strip()[:160]}"
+                )
+            if _MUTABLE_CURRENT_PATTERN.search(body_line) and "historical" not in lowered:
+                raise AssertionError(
+                    f"historical overlay line {header_line} uses unqualified 'current' "
+                    f"outside a time-scoped marker: {body_line.strip()[:160]}"
+                )
+            if "supersedes" in lowered and "historical" not in lowered:
+                raise AssertionError(
+                    f"historical overlay line {header_line} uses unqualified 'supersedes' "
+                    f"outside a time-scoped marker: {body_line.strip()[:160]}"
+                )

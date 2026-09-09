@@ -21,6 +21,7 @@ jobs:
     name: Full test suite
     if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
@@ -67,6 +68,7 @@ jobs:
     name: Frontend lint, test, build
     if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
@@ -89,14 +91,25 @@ jobs:
         working-directory: frontend
         run: pnpm run lint
 
-      - name: Test
+      - name: Test with coverage
         working-directory: frontend
-        run: pnpm run test
+        run: pnpm run test:coverage
+
+      - name: Preserve coverage evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build
+        if: ${{ !cancelled() }}
         working-directory: frontend
         run: pnpm run build
 
       - name: Build Storybook
+        if: ${{ !cancelled() }}
         working-directory: frontend
         run: pnpm run build-storybook

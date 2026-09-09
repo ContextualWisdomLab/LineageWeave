@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
 
 import type { ProjectHistoryProjection } from "../projectHistory";
 import { ProjectHistoryTimeline } from "./ProjectHistoryTimeline";
@@ -85,7 +86,7 @@ const meta = {
   component: ProjectHistoryTimeline,
   args: {
     projection,
-    onOpenPost: () => undefined,
+    onOpenPost: fn(),
   },
 } satisfies Meta<typeof ProjectHistoryTimeline>;
 

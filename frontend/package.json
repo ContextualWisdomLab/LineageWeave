@@ -11,7 +11,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test:coverage": "vitest run --coverage --coverage.thresholds.100"
   },
   "dependencies": {
     "oidc-client-ts": "^3.5.0",
@@ -29,6 +30,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "@vitest/coverage-v8": "4.1.10",
     "jsdom": "^30.0.1",
     "oxlint": "^1.75.0",
     "playwright": "^1.62.1",

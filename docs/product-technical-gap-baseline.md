@@ -51,14 +51,292 @@
 > ContextualWisdomLab/.github, not via local bypass; (6) treat drafts
 > #901/#984 as ordinary deltas to adopt, not authority.
 
+## Translation consumer full-App diagnosis — 2026-09-08
+
+On #932 merge head `8c662a055`, all 106 App tests ran with one worker and
+unchanged deadlines: 60 failed / 46 passed in 599.76 seconds. Failure records
+comprise 54 timeout cases and six missing-control cases. A focused seven-case
+recheck passed six, leaving the DAG node-click case failing. Subsequent
+single-case diagnostics alternated between a missing node and timeout; a
+5-second timeout was reported after 11.28 seconds of test execution. These
+observations do not establish that every failure is environmental.
+
+Temporary phase instrumentation measured render at 73 ms, the post button ready
+at 1,939 ms, and its click complete at 3,098 ms before node lookup failed.
+Scoping lookup to the post dialog did not establish a repair. All diagnostic
+and ineffective candidate edits were removed. Preserve the full-run failure;
+do not repeat unchanged full runs or promote focused passes to suite acceptance.
+
+## Dashboard and login verification — 2026-09-08
+
+Local candidate `dc8f1d4f7` adds a synthetic case with no project association:
+its evidence remains clickable and no project journey is fabricated. It also
+removes `events ?? []` because `Object.entries` enumerates arrays created by
+the local reducer; no entry can have an undefined value under that construction.
+This removes two instrumented branches (36 to 34), not a coverage exclusion.
+The focused command `pnpm exec vitest run
+src/components/OperationsDashboard.test.tsx --maxWorkers=1 --coverage` passed
+11 tests. The Dashboard module reports 31/31 lines, 36/36 statements, 20/20
+functions, and 34/34 branches. Other configured source files remain in the
+report denominator; this is module evidence only, not whole-frontend 100%.
+The candidate was kept local while remote CI status could not be refreshed.
+
+Story candidate `bd64a2161` adds `EvidenceWithoutProject` and updates the
+Storybook inventory. The static Storybook build passed. A real headless Chromium
+loaded that isolated story at 390 × 844, displayed and clicked the evidence
+button, reported document scroll width 390, no project-journey section, and no
+page errors. The temporary loopback static server was shut down afterward.
+The browser check did not inspect the callback spy or prove a real post was
+opened; exact callback identity is covered by the synthetic component test.
+A subsequent fresh Chromium run observed the story render phase `finished`
+and exactly one callback invocation with `synthetic-post-1`, without a manual
+click in the driver. This verifies the authored play interaction against the
+synthetic story. The static server was again shut down. This is not
+production/database acceptance.
+
+
+PR #983 at `f2fab9e3ca36c71bb4c16f37a5bbb63dc0584231` passed all
+10 Dashboard tests locally with `pnpm exec vitest run
+src/components/OperationsDashboard.test.tsx --maxWorkers=1` from `frontend/`
+(9.49 seconds total). Deferred success and failure are checked across both
+A-to-B and A-to-B-to-A authorization changes. The first request cannot overwrite
+the current result after returning to the original token. This is synthetic
+component evidence, not a production identity acceptance result.
+
+The same product source passed `pnpm run build` and `pnpm run build-storybook`.
+The product build reports a 551.27 kB main JavaScript chunk (161.88 kB gzip),
+above the bundler's 500 kB warning. This is an artifact-size observation;
+it does not measure browser execution cost or identify the latency root cause.
+Do not raise the warning limit to present the performance gap as resolved.
+
+A diagnostic `pnpm exec vite build --sourcemap --outDir <temporary-directory>`
+on `6fdfc0591` confirms the entry chunk includes `App.tsx`, `i18n.ts`,
+React DOM, and OIDC client code. Original source contents in that map occupy
+205,162 bytes for App and 171,275 bytes for i18n; these are original UTF-8
+source sizes, not minified contribution, transfer cost, or execution time.
+Do not add these sizes to the emitted chunk total. Runtime profiling and
+mapped generated-byte attribution remain necessary before selecting a rewrite.
+
+Translation consumption already has an owner stack: #929 introduces the ledger
+and #932 consumes Customer Master screen copy. At inspection, #932 head
+`c01e3109c987115c65bcbc74cd6f6247527387b8` still documents a stale descendant of
+parent #929 head `0f4fd26a5f0fcf26932d0945188aefb2143d6605`. Its stated scope is
+Customer Master, not removal of every bundled translation. Preserve that valid
+delta and converge the parent non-destructively before extending screen
+migration; neither an open foundation PR nor this source-map observation proves
+that the full translation-bundle requirement has been delivered.
+
+The login helper at `6fdfc0591cb0700613ed078bf001ba387196e29f` addresses the
+review finding that an allowed navigation error could leave the browser on an
+unexpected page. It reasserts the authorization URL before filling the synthetic
+demo credentials and retains the post-login destination check.
+`pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --timeout=60000`
+passed the real Chromium redirect/login smoke (one test, 33.1 seconds total).
+This verifies the demo login flow against the local runtime, not deployment of
+the PR's frontend bundle, production Keyverse integration, or all-page latency.
+Current-head full-suite completion, independent approval, protected merge, and
+release remain unverified; older successful runs do not satisfy those gates.
+
+## Frontend coverage evidence — 2026-09-08 to 2026-09-09
+
+### Current exact-head rerun — 2026-09-09
+
+PR #983 now points at exact HEAD
+`b65d4301552f95de75eb51e085eb0f31dcdf5413`. The current tree retains the
+authorized Ask-to-Post navigation, reverse dialog focus wrap, and deep-link
+cleanup regressions, then adds one synthetic Board contract for catalog
+fallback, title sorting, and eight-page navigation. The isolated Board test
+passed. A serial local full run passed 745 tests across 76 files. The default
+parallel local run did not complete cleanly: five App tests timed out and one
+occupation test remained in its loading state. Keep that failure separate from
+the serial measurement. Hosted exact-head run
+[34335655798](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34335655798)
+independently completed the same 745 frontend tests, lint, product build, and
+Storybook. Artifact
+[10097630717](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34335655798/artifacts/10097630717)
+records 96.95% lines, 95.09% statements, 95.13% functions, and 85.56% branches;
+`App.tsx` reached 92.52% lines and 77.44% branches. The frontend job failed only
+the unchanged 100% gate. The same run's PostgreSQL suite remains in progress,
+so protected acceptance is pending. No auto-merge request is currently present,
+the PR lacks a qualifying independent approval, and it remains outside
+protected `main`.
+
+At predecessor HEAD `92e6016eefb3376132a0bd7f35a23b63efad4a87`, hosted run
+[34333493054](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054)
+completed 745 frontend tests across 76 files and the full PostgreSQL suite.
+Lint, product build, Storybook, and artifact preservation passed. Artifact
+[10096785881](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054/artifacts/10096785881)
+records lines 96.62%, statements 94.78%, functions 94.17%, and branches
+84.97%. `App.tsx` reached 91.69% lines and 76.25% branches. The unchanged 100%
+gate correctly failed. The completed run is historical after the head advanced;
+it does not transfer to current-head acceptance.
+
+At exact HEAD `031cb4fe51d43ac3d8f792fe8180ab858617d1bc`, hosted run
+[34328998659](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659)
+completed 743 frontend tests across 76 files. Lint, product build, Storybook,
+and coverage-artifact preservation succeeded. Artifact
+[10095173451](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659/artifacts/10095173451)
+records lines 96.35%, statements 94.53%, functions 93.89%, and branches
+84.81%. `App.tsx` reached 91.02% lines and 76.05% branches. The unchanged 100%
+gate correctly failed, so this is exact-head improvement evidence, not merge
+or release acceptance. The full PostgreSQL suite for the same head completed
+successfully.
+
+At exact HEAD `b69efde292a4bcf0c8ef78da31379965e9a34339`, hosted run
+[34303751037](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34303751037)
+is terminal. The PostgreSQL job succeeded; the frontend job passed all 727
+tests but the strict 100% gate failed at lines 95.43%, statements 93.56%,
+functions 92.93%, and branches 83.57%. `App.tsx` remains the largest product
+source gap. This run establishes backend test completion, not frontend release
+acceptance, protected merge, or deployment.
+
+The successor hosted run for exact HEAD `7120f9eab3aa55935fbccfd7cd2f80ee15503890`
+was still queued at inspection; both test jobs had no assigned runner. The
+organization runner inventory also reported zero runners. This is execution
+infrastructure evidence and does not convert the preceding product coverage
+failure into a pass or authorize a retry/cancellation.
+
+Local full coverage at parent exact HEAD `5726132b647acff2c96b70136a987ba254f933a0`
+ran 728 tests and exposed four failures under concurrent instrumentation: three
+5-second timeouts and one occupation-data wait. Each failed test passed when
+rerun alone. This is a reproducibility gap for the full coverage harness, not
+evidence that the hosted gate passed.
+
+The next hosted run at exact HEAD `0ba5daf4ac048337779ccffdcc4d741a1b490d07`
+([34306991982](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34306991982))
+completed lint, build, and Storybook successfully. Its frontend coverage job
+still failed the unchanged 100% gate with lines 95.49%, statements 93.61%,
+functions 93.03%, and branches 83.60%; the preserved artifact is the
+authoritative report. The PostgreSQL job later completed successfully after
+running the full backend suite.
+
+At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
+[34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
+preserved artifact [10085488908](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502/artifacts/10085488908).
+The frontend test files completed 727 passing tests, but the strict 100% gate
+still failed at lines 95.43%, statements 93.56%, functions 92.93%, and
+branches 83.57%. `App.tsx` remains the largest product-source gap. Excluding
+the ambient `vite-env.d.ts` declaration did not change these values; product
+paths remain in the denominator. The frontend job is therefore not a release
+or merge acceptance signal. The PostgreSQL job for this exact head was still
+running when this entry was recorded.
+
+Head `3b0b5d76d9e0a90c255df740437fee991d0de7cd` obtained terminal
+[PostgreSQL job 101933123327](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34185559460/job/101933123327)
+success: 1,768 passed, 147 skipped, one warning, 1,241.56 seconds. The warning
+is deprecated OpenTelemetry `LoggingHandler` use in the provider-installation
+test; it remains a repair item, not suppressed. The existing repair owner is
+PR #973 (`182d3c9d4`), which switches to the supported instrumentation handler;
+PR #929 also contains that import change. Keep the repair in its existing owner
+rather than duplicating it into #983. Neither open branch establishes protected
+main delivery. Skips remain outside verified
+coverage. Its frontend job passed 547 tests with lines 82.48%, functions 81.61%,
+statements 80.83%, branches 78.63%; the required 100% gate still failed.
+Only after recording terminal PostgreSQL evidence were the accumulated API
+regression commits pushed. The new head requires its own hosted checks.
+
+At exact HEAD `973ac01cf13657b15f316de6d5ca98380edb6e59`, hosted run
+[34299811219](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34299811219)
+ran the complete frontend denominator and preserved artifact
+[10084523307](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34299811219/artifacts/10084523307).
+The 100% gate failed after the tests completed: lines 95.37%, statements 93.50%,
+functions 92.93%, and branches 83.54%. The largest remaining product-source gap
+is `App.tsx` (lines 88.85%, branches 73.87%); the artifact is diagnostic evidence,
+not a reason to exclude that source or lower the gate. The full PostgreSQL job
+for this exact head was still running when this entry was recorded.
+
+
+At `2eef50490b90184fb57303d948021a41d7bf4c9d`,
+[frontend job 101931318953](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34184940038/job/101931318953)
+passed 545 tests plus lint, product build, and Storybook build. Lines are 82.29%,
+functions 81.51%, statements 80.55%, and branches 78.37%. Coverage remains a
+failing 100% gate. The added API cases preserve encoded project/focus identity
+and omitted, null, or explicit timezone-bearing cutoff values.
+
+
+Earlier measured #983 head `6fdfc0591cb0700613ed078bf001ba387196e29f`:
+[frontend job 101927745710](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34183704662/job/101927745710)
+completed with 542 tests passing across 58 files. Lines reached 82.20%,
+functions 81.42%, statements 80.44%, and branches 78.31%; the 100% gate
+correctly failed. Lint, coverage artifact preservation, product build, and
+Storybook build all succeeded in that same hosted job. The job failure is a
+measured coverage gap, not a runner-allocation or build failure. Other jobs in
+the run, independent review, protected merge, and deployment remain separate.
+
+
+PR #983 at `5a8a195c1` collected coverage in hosted run
+[34180352347](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34180352347).
+All 530 tests passed, while the 100% coverage gate failed: lines 82.08%,
+statements 80.31%, functions 80.95%, branches 78.14%. Artifact
+[10038701921](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34180352347/artifacts/10038701921)
+contains the JSON summary and LCOV evidence.
+
+The denominator comprises 58 non-story source files (2,976 executable lines,
+2,703 covered) and 28 Storybook files (329 executable lines, 10 covered).
+This classification is diagnostic only; no files are removed from the gate.
+Neither a Storybook build nor a successful ordinary test suite proves the
+missing behavior was exercised. Both product-source and story coverage remain
+open work. The non-story group is not a claim of deployed bundle composition.
+
+At `6757ad73e`, hosted run
+[34181569153](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34181569153)
+passed 537 tests after API privacy and Dashboard retry regressions. Lines reached
+82.17%, functions 81.33%, statements 80.42%, branches 78.27%; the gate still
+failed. These measurements belong to those revisions, not later PR heads.
+Protected merge, current-head approval, deployed behavior, and all-page p95
+acceptance remain separate requirements.
+
+## Runtime measurement correction — 2026-09-08
+
+Docker's live port mappings identify backend at `18420`, contextual-orchestrator
+at `18000`, and frontend at `15173`. Earlier observations calling port `18000`
+"backend" are misattributed and cannot establish backend performance.
+
+A sequential 30-attempt probe per endpoint, with no warm-up or excluded attempts,
+read each complete response using Python urllib over host loopback. Nearest-rank
+p95 uses sorted attempt index `ceil(0.95 * 30) - 1`; timeout is 5 seconds.
+
+| Endpoint | Attempts | Failed attempts | Attempt p95 (ms) | Maximum (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Backend `/healthz`, port 18420 | 30 | 0 | 724.59 | 2435.51 |
+| Orchestrator `/healthz`, port 18000 | 30 | 0 | 780.26 | 1460.67 |
+| Frontend `/`, port 15173 | 30 | 0 | 170.19 | 670.47 |
+
+These observations exceed the 20 ms CWL engineering/diagnostic target. They measure
+public liveness/HTML transport, not authenticated pages, rendering, or k6 load
+acceptance. They do not establish
+an improvement against earlier runs with unverified service attribution.
+An earlier port-18000 attempt timed out after 5 seconds; subsequent successful
+responses do not erase that failure. Historical provider allowlist/candidate
+errors have not been temporally correlated with it and are not a proven cause.
+A follow-up backend container-loopback probe (`docker exec -i
+lineageweave-backend-1 python`, urllib to `127.0.0.1:8000/healthz`) used the same
+30-attempt method: zero failures, p95 8.89 ms, maximum 523.77 ms. The immediately
+following host probe to port 18420 had zero failures, p95 466.96 ms, maximum
+2651.49 ms. These sequential observations prioritize host/VM forwarding and
+scheduling investigation; they do not isolate causality or rule out application
+stalls. The internal maximum remains material. Do not replace application code
+or claim the all-page target met from this liveness comparison. The historical overlays below remain dated evidence.
+
+At 2026-09-08 10:35 KST, macOS reported 10 logical CPUs and load averages
+37.70 / 54.08 / 72.16. Colima reported 4 CPUs and load averages
+15.00 / 28.12 / 41.26. Linux CPU PSI `some` was 74.12% over 10 seconds,
+56.14% over 60 seconds, and 64.21% over 300 seconds; memory PSI was zero
+and I/O PSI `some` over 10 seconds was zero. This independently demonstrates
+CPU contention at that observation time, but does not prove the cause of an
+earlier request. Preserve this loaded-host evidence in performance comparisons.
+Do not increase VM CPU allocation or stop unrelated workloads without checking
+host capacity and workload ownership. Colima uses Virtualization.Framework and
+virtiofs; this observation does not establish a forwarding implementation bug.
+
 > Exact-head loop overlay (historical, 2026-08-29 13:20 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-29 13:20 KST)
 > APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
 > (v2.24.0–v2.27.0 / ADR 0267–0270) is on
 > `2a203bf8b75b987ba899a0006a312d81259b9124` after #799 squash-merged
 > into the unprotected leftover branch. Auto-merge squash remains armed
-> on #782/#780/#774/#772/#771/#770. Independent APPROVE is still
+> on #782/#780/#774/#772/#771/#770. Independent APPROVE was at that time (historical, 2026-08-29 13:20 KST)
 > required for protected main. Drafts remain dirty against `main`. #96
 > stays closed as a weaker duplicate of #91. GitHub writes through
 > `gh`/MCP succeed. Copilot review is not independent APPROVE. Do not
@@ -74,9 +352,9 @@
 > leftover branch `feat/leftover-map-coordinates-v2240`; leave the PR
 > open for independent review.
 
-> Exact-head loop overlay: 2026-08-29 13:15 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-29 13:15 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-29 13:15 KST)
 > APPROVE. #782 leftover-map coordinates + graphic display + axis share
 > (v2.24.0 / v2.25.0 / v2.26.0 / ADR 0267 / ADR 0268 / ADR 0269) is on
 > `4a0afbf4804d9862bba58869db20ccdfb0a0b37e`; Strix fail-closed and no
@@ -84,7 +362,7 @@
 > #782/#780/#774/#772/#771/#770. Drafts remain dirty against `main`.
 > #96 stays closed as a weaker duplicate of #91. GitHub writes through
 > `gh`/MCP succeed (comment/create-branch/auto-merge). `git push` HTTPS
-> still fails (empty `X-OAuth-Scopes`). Copilot review is not
+> failed at that time (historical, 2026-08-29 13:15 KST) (empty `X-OAuth-Scopes`). Copilot review is not
 > independent APPROVE. Do not self-approve.
 >
 > Next buyer increment on this cycle: leftover-map coordinate ticks
@@ -95,9 +373,9 @@
 > invent leftover scores. Do not mix into #782; stack onto leftover
 > branch `feat/leftover-map-coordinates-v2240`.
 
-> Exact-head loop overlay: 2026-08-28 19:15 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-28 19:15 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-28 19:15 KST)
 > APPROVE. #782 leftover-map coordinates + graphic display (v2.24.0 /
 > v2.25.0 / ADR 0267 / ADR 0268) is on
 > `2f7e9c8df695f12d03964d5caa68fa3355bdd923`; Strix fail-closed and no
@@ -109,14 +387,14 @@
 > Next buyer increment on this cycle: leftover-map axis share on the
 > graphic display (ADR 0269 / v2.26.0). Caption plot axes with persisted
 > ADR 0148 `leftover_map_axes` inertia `σ_k² / Σ_j σ_j²`. UI-only; no
-> new columns. Rank-0 zero-share axes still named. Missing/non-finite
+> new columns. Rank-0 zero-share axes were named at that time (historical, 2026-08-28 19:15 KST). Missing/non-finite
 > share omits that axis badge and keeps existing leftover-map axis
 > text. Do not invent leftover scores. Do not mix into dashboard stacks
 > #640/#778/#781.
 
-> Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-28 16:05 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-28 16:05 KST)
 > APPROVE. #782 leftover-map coordinates (v2.24.0 / ADR 0267) is on
 > `e2d13019004a5d8c019fecf7a39ceeef4093b8dd`; Strix fail-closed and no
 > independent APPROVE. Drafts remain dirty against `main`. #96 stays
@@ -128,9 +406,9 @@
 > length. Do not invent leftover scores. Do not mix into dashboard
 > stacks #640/#778/#781.
 
-> Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-28 13:00 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-28 13:00 KST)
 > APPROVE. Drafts remain dirty against `main`. #96 stays closed as a
 > weaker duplicate of #91. GitHub writes through `gh` succeed.
 >
@@ -139,7 +417,7 @@
 > `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
 > leftover-map inner product, cosine, or length as separate columns.
 
-> Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
+> Exact-head loop overlay (historical, 2026-08-28 10:00 KST). Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
 > Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
 > coverage), #770 (project-history empty-state). Auto-merge squash is
@@ -148,27 +426,26 @@
 > `main`. #96 stays closed as a weaker duplicate of #91. Writes through
 > the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
 > despite empty `X-OAuth-Scopes`; git push is the remaining probe this
-> cycle. This overlay supersedes every older queue count below.
+> cycle. This overlay historically superseded every older queue count below as of 2026-08-28 10:00 KST (historical, 2026-08-28 10:00 KST).
 >
 > Next buyer increment on this cycle: leftover-map explained leftover
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
 > `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
 > coordinates in this slice.
 
-> Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
+> Exact-head loop overlay (historical, 2026-08-28 KST). Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
-> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
-> running, and no qualifying independent approval existed. PRs #702
+> mergeable, normal squash auto-merge was enabled, exact-head Checks were running at that time (historical, 2026-08-28 KST), and no qualifying independent approval existed. PRs #702
 > (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
 > (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
 > `main`. Central ruleset 18156473 and repository no-force-push ruleset
-> 21065108 remain active. This overlay supersedes every older queue count below.
+> 21065108 remain active. This overlay historically superseded every older queue count below as of 2026-08-28 KST (historical, 2026-08-28 KST).
 > Checks from older heads, stacked bases, or merged PRs are not transferred.
 >
-> Current-runtime boundary: the official Compose project was healthy at the
+> Current-runtime boundary (historical, 2026-08-28 KST): the official Compose project was healthy at the
 > HTTP health route, but its PostgreSQL schema did not yet contain
-> `source_post_voice`; therefore no current Voice-history aggregate,
+> `source_post_voice`; therefore no Voice-history aggregate as observed at that time (historical, 2026-08-28 KST),
 > authenticated project-history API result, or rendered authenticated UI result
 > is claimed. Older aggregate observations below remain dated supporting
 > evidence, not confirmation of this exact head. The checked repository names
@@ -189,7 +466,7 @@
 > #753 (FJA I/O-Psychology semantic layer, ADR 0251), #751 (SOC/O*NET/RIASEC
 > taxonomy, ADR 0245), #749 (authorized job-family and job-series snapshot
 > import, ADR 0263), #657 (TEPP lifecycle evidence), #704, #720, and #754 are
-> now merged. The still-open queue is carried in section 1. No row below is
+> now merged. The open queue as of that time was carried in section 1 (historical, 2026-08-27 KST). No row below is
 > release evidence until re-verified on a specific head.
 
 ## Voice-of-X product and technical gap
@@ -983,3 +1260,223 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+## Candidate diagnostics — 2026-09-08 onward
+
+### Dashboard keyboard and viewport verification — 2026-09-08
+
+On local source `bd64a2161`, the built `EvidenceWithoutProject` story completed
+its authored interaction in fresh Chromium pages at 320, 390, and 1440 CSS
+pixels. Document scroll width equaled viewport width in all three cases.
+Focusing the evidence button and pressing Enter added exactly one callback to
+the story interaction, producing two calls with the same synthetic fixture key
+per page. The driver exited successfully; this verifies the isolated synthetic
+story, not authenticated runtime acceptance or whole-suite coverage.
+
+### Actionable client-error regression — 2026-09-08
+
+Local head `8ca3e8c69` adds four HTTP client-error cases (401, 403, 409, 422)
+to the shared API regression suite. They preserve actionable product guidance
+and status under ADR 0123 while the existing server/transport cases retain
+privacy protection. The focused V8 run passed 29 tests in 68.36 seconds.
+For `src/api.ts` alone, it covered 65/129 lines, 16/61 functions,
+77/144 statements, and 53/98 branches. This selected-test report keeps the
+full configured source denominator and is not a whole-suite coverage result.
+The committed tests do not establish server authorization or release readiness.
+
+### Successful-response privacy repair — 2026-09-08
+
+Local #983 head `ed33b9601` repairs the shared browser API boundary for unreadable
+successful responses under ADR 0123. Before the repair, invalid JSON exposed a
+parser diagnostic and a failed body read exposed its original exception: two
+new regression cases failed while 29 existing cases passed. The boundary now
+awaits decoding inside a catch, rejects with stable retry guidance, and retains
+the actual HTTP status rather than inventing an upstream 5xx. It does not claim
+to validate every endpoint schema. After repair, all 31 API tests passed in the
+configured browser-like environment (1.76 seconds); TypeScript and the canonical
+`pnpm run lint` (oxlint) passed. An initial direct eslint invocation was invalid
+because this project uses oxlint, and is not counted as a lint result.
+
+A combined consumer run passed 17/21 tests; OntologyExplorer had one timeout
+followed by three missing-element failures. These consumer tests replace the
+API functions and do not exercise the changed decoding branch. An isolated
+OntologyExplorer run subsequently passed all 16 tests in 22.74 seconds with the
+same thresholds. Preserve the initial failures as execution-instability evidence;
+the isolated pass does not establish a green whole suite or a diagnosed cause.
+Current hosted checks, independent review, protected merge, and release remain
+unverified for this local head.
+
+### Ontology test isolation diagnosis — 2026-09-08
+
+The ongoing whole frontend run at `ed33b9601` again showed an OntologyExplorer
+continuation timeout followed by missing-element failures. Its test file queues
+one-shot API responses and clears only call history. A direct check with the
+installed Vitest spy implementation confirmed that `mockClear()` leaves an
+unconsumed prior response ahead of the next response, whereas `mockReset()`
+removes it. This identifies a mechanism for cross-test failure propagation,
+not the cause of the first timeout. Keep the running source unchanged until
+its terminal result is recorded, then isolate those mocks and revalidate.
+
+### Full-run failure and evidence retention repair — 2026-09-08
+
+The canonical `pnpm run test:coverage` at `ed33b9601` terminated with exit 1:
+532 passed, 29 failed across 58 files (49 passed, nine failed), 278.92 seconds.
+There were 23 timeout reports; this count does not establish a common cause.
+No coverage report was printed, so earlier artifact percentages must not be
+attributed to this run. The failure log is retained locally.
+
+Head `1c36a0a96` resets the OntologyExplorer request mock before every test;
+its 16 tests passed in 25.04 seconds with unchanged thresholds. This prevents
+queued responses leaking between tests, without claiming the initial timeout
+is fixed. The same head enables Vitest `coverage.reportOnFailure`, supported
+by the [official configuration reference](https://vitest.dev/config/coverage.html#coverage-reportonfailure).
+Context7 documentation lookup was unavailable because its monthly quota was
+exhausted, so the official reference and installed runtime were checked.
+An ephemeral intentional-failure probe returned exit 1 while emitting both
+coverage-summary JSON and LCOV with the full configured source denominator.
+The probe was removed after verification. It proves report retention, not
+product correctness or coverage improvement; the 100% gate remains intact.
+
+### Terminal hosted predecessor evidence — 2026-09-08
+
+GitHub run 34187144345 at `014b049b8fc7f1eb4f8c7359f0419a44ed8dea2e`
+is terminal. Frontend job 101937662239 passed all 554 tests in 58 files but
+failed the unchanged 100% coverage gate: lines 82.63%, functions 81.89%,
+statements 81.08%, branches 78.79%. PostgreSQL job 101937662373 succeeded
+with 1,768 passed, 147 skipped, one warning in 1,242.41 seconds.
+The newer local failures at `ed33b9601` remain separately recorded; this older
+hosted result cannot validate newer changes. Only after terminal evidence was
+retrieved was the accumulated source batch `1c36a0a96` sent for its own checks.
+Baseline PR #984 predecessor run 34187271401 at `5da47f37e` also completed
+successfully. Independent approval and protected merge remain outstanding.
+
+### Serial whole-suite diagnostic — 2026-09-08
+
+At unchanged `1c36a0a96576942633ce9d2d7c5fab062a285082`, the full coverage
+command with `--maxWorkers=1` exited 1 after 1,303.44 seconds: 549 passed,
+eight failed, and one unhandled worker-start error. Eight files failed and
+49 passed. WorkerFunctionPsychology.test.tsx did not start because the fork
+worker failed to respond, explaining the missing file/four tests relative to
+the earlier 58-file/561-test inventory. Do not interpret 557 reported tests
+as the complete intended denominator or compare pass percentages as a controlled
+improvement. The eight reported test failures were five-second timeouts.
+
+The repaired report-on-failure setting retained JSON and LCOV. Full configured
+source coverage is lines 2,720/3,314 (82.07%), statements 2,917/3,620 (80.58%),
+functions 864/1,068 (80.89%), and branches 2,417/3,087 (78.29%). The unchanged
+100% gate failed. Coverage and log copies remain outside git. Source status
+was clean and HEAD unchanged after execution. Serial execution did not establish
+a green suite, and host pressure is not a sufficient causal explanation.
+
+### Unstarted-file recovery check — 2026-09-08
+
+WorkerFunctionPsychology.test.tsx, which never started in the serial full run,
+passed all four tests when executed separately at unchanged `1c36a0a96`
+(19.49 seconds total). Keep this as recovery evidence, not an addition that
+turns the earlier failed whole run into a successful one. The remaining full-run
+timeouts and 100% coverage gap still require resolution.
+
+### Long-exponent quantity repair — 2026-09-08
+
+Local `41e7fbdc5` fixes partial numeric exponent conversion: `x^1234` previously
+became `x¹²³4`. Three unbraced signed/unsigned regression cases failed before
+the fix; the braced long form already remained literal. Browser normalization,
+text-run splitting, and ingestion now reject a partial numeric match, retaining
+the source quantity under ADR 0165. All 41 display-helper tests and 73 chunking
+tests passed afterward, and frontend lint passed. These are synthetic regression
+results, not a full-suite or deployed-runtime acceptance claim.
+
+### Hosted full frontend and quantity rendering evidence — 2026-09-08
+
+Hosted frontend job 101945416574 at `1c36a0a96` passed all 561 tests in
+58 files. It failed the required 100% gate: lines 82.46%, functions 81.74%,
+statements 80.93%, branches 78.94%. Coverage artifact 10042347224 was retained.
+The sibling PostgreSQL job was still running at inspection; do not supersede
+it with a small follow-up push. Local serial timeouts remain separate evidence.
+
+Local quantity-rendering follow-up `989e4254e` passed all 29 PostBody tests
+in 26.10 seconds. The new raw-body and persisted-unit cases assert that only
+supported `m^3` becomes a superscript while long signed/braced exponents remain
+literal. This is component DOM evidence, not a deployed browser acceptance run;
+it is newer than the hosted revision above.
+
+At follow-up `a613855c8`, the supported three-digit boundary is explicitly
+verified for unsigned, signed, and braced exponents in both implementations.
+All 45 display-helper tests (12.03 seconds) and 74 chunking tests (0.84 seconds)
+passed. These checks prevent the long-token repair from rejecting valid short
+quantities; they do not replace the final-head full-suite and release gates.
+
+The accumulated quantity batch at `a613855c8` also passed `pnpm run build`,
+including TypeScript compilation and Vite production output. The existing
+500 kB chunk warning remains; a successful build is not a latency result or
+a reason to raise the warning threshold. Colima inventory at inspection still
+showed one instance per canonical LineageWeave service, with no duplicate stack
+requiring cleanup. Hosted run `34306991982` later completed its PostgreSQL job
+successfully; the frontend coverage gate remained the outstanding failure.
+
+### Browser quantity boundary verification — 2026-09-08
+
+`fe658fdfb` adds the NumericExponentBoundary Storybook scene and inventory entry.
+The static Storybook build passed. Fresh Chromium pages at 320, 390, and 1440
+CSS pixels completed the story interaction and independently verified exactly
+two superscript runs (3 and 123); the long signed and braced tokens remained
+literal. Document scroll width equaled viewport width in all cases. The driver
+exited successfully and closed its temporary server and browser. This is real
+browser evidence for a synthetic isolated component, not deployed product or
+authenticated corpus acceptance.
+
+### Concurrent successor and denominator restoration — 2026-09-08
+
+The `1c36a0a96` PostgreSQL job 101945416734 ended cancelled at 05:54:46 UTC,
+not with a terminal test result. A concurrent `c58cde83a` push already contained
+all quantity fixes and added an evidence-label regression. It also excluded
+stories and browser bootstrap from coverage. Follow-up `dae3a9be8` preserves
+the useful test and restores the complete configured source denominator; its
+Vite configuration matches `1c36a0a96` exactly. This gate correction was pushed
+immediately rather than accepting a smaller denominator as progress. Neither
+cancelled predecessor nor queued successor establishes backend acceptance.
+
+### Decimal exponent preservation — 2026-09-08
+
+At `a3e86db31`, unsupported decimal exponents also remain literal: the prior
+parser changed `x^1.5` into `x¹.5`. A failing ingestion regression reproduced
+this partial conversion. Both ingestion and display now reject a numeric match
+followed by a decimal continuation, while existing sentence-ending quantity
+cases still pass. The 47 display-helper tests and 74 chunking tests passed;
+ADR 0165 records the distinction. Final-head hosted and runtime verification
+remain outstanding.
+
+### Empty client-error privacy repair — 2026-09-08
+
+`8d8a809ad` replaces the internal path/HTTP fallback for missing or blank 4xx
+guidance with existing product retry text. Two new API cases failed before the
+repair; all 33 cases passed after it (2.25 seconds), with actionable details
+and programmatic HTTP status preserved. Frontend lint passed. ADR 0123 records
+the boundary; the constructor signature remains compatible with existing callers.
+Current-head CI and deployment remain separate, unverified gates.
+
+The accumulated local `8d8a809ad` follow-up passed frontend lint and a separate
+`pnpm exec tsc -b --pretty false` invocation with exit 0. The separate invocation
+verified the compiler status rather than relying on the final exit of a chained
+command. Hosted `dae3a9be8` jobs 101953651575/101953651682 remained queued/running
+at inspection; these local checks do not substitute for their results.
+
+### Public Python docstring inventory — 2026-09-08
+
+At local source `8d8a809ad`, tests/test_public_docstrings.py passed both checks
+in 4.88 seconds. Its AST inventory covers public functions, async functions,
+and classes in lineageweave (491/491 documented) and backend/app (324/324),
+excluding __init__.py as specified by the existing contract. All 815 counted
+definitions have docstrings. This verifies presence within that Python scope,
+not prose accuracy or documentation coverage in other languages.
+
+### Exact-head frontend coverage failure — 2026-09-08
+
+Hosted Tests run `34194311106` at `8d8a809ad` executed 576 frontend tests in
+59 files successfully, but the required complete-source 100% gate failed:
+lines 82.57%, statements 81.01%, functions 81.58%, and branches 79.20%.
+The retained artifact is `10043511437`; its LCOV identifies untested Storybook
+modules and uncovered product paths in OntologyExplorer, ProjectHistoryTimeline,
+LeftoverMapPlot, OccupationalConstructCatalogSearch, App, and related modules.
+Lint, production build, and Storybook build passed. This is a measured coverage
+gap, not a reason to lower the threshold or shrink the source denominator.

@@ -49,6 +49,8 @@ afterEach(() => {
 
 it("announces a lazy surface load failure with a recovery action", () => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const reload = vi.fn();
+  vi.stubGlobal("location", { reload });
   const BrokenSurface = () => {
     throw new Error("synthetic chunk failure");
   };
@@ -62,7 +64,8 @@ it("announces a lazy surface load failure with a recovery action", () => {
   expect(screen.getByRole("alert")).toHaveTextContent(
     "This view is unavailable. Refresh once; if it fails again, contact your administrator.",
   );
-  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+  expect(reload).toHaveBeenCalledOnce();
 
   rerender(
     <SurfaceBoundary key="next-post">
@@ -140,11 +143,16 @@ describe("App, authenticated", () => {
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    analysisRunListUnavailable?: boolean;
+    analysisRunOpenNotFound?: boolean;
+    lineageConflictOnce?: boolean;
+    lineageStartUnavailable?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    pendingTopicLineageRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
@@ -153,6 +161,9 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     hintRelatedPosts?: boolean;
     customerEntityHierarchy?: boolean;
+    customerMasterUnavailable?: boolean;
+    customerRelatedUnavailable?: boolean;
+    customerResolveUnavailable?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
@@ -162,6 +173,9 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    includeAdditionalBoardPost?: boolean;
+    boardTotalCount?: number;
+    omitVisibilityOptions?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -185,8 +199,31 @@ describe("App, authenticated", () => {
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
+    let lineageConflictRemaining = options?.lineageConflictOnce ? 1 : 0;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    const pendingTopicLineageRun = {
+      analysis_run_id: "run-demo-topic",
+      run_kind_code: "analysis_run_topic_lineage" as const,
+      run_kind_label: "Topic lineage",
+      scope_kind_code: "analysis_scope_corporate_entity",
+      scope_kind_label: "Corporate entity",
+      scope_entity_name: "Demo Corp",
+      status_code: "analysis_status_pending" as const,
+      status_label: "Pending",
+      knowledge_cutoff: "2026-01-12T12:00:00Z",
+      requested_at: "2026-01-12T12:42:00Z",
+      source_counts: [],
+      visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+      status_history: [
+        {
+          status_ordinal: 1,
+          status_code: "analysis_status_pending",
+          status_label: "Pending",
+          occurred_at: "2026-01-12T12:42:00Z",
+        },
+      ],
+    };
 
     let releaseMe = () => {};
     const demoOrgAlias = options?.organizationAliases ? { organization_alias: "DC" } : {};
@@ -480,7 +517,18 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-topic")) {
+        return Promise.resolve(jsonResponse(pendingTopicLineageRun));
+      }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.analysisRunOpenNotFound) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -580,6 +628,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
+        if (options?.lineageStartUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "temporarily unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage-pending",
@@ -691,8 +747,37 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-topic/start") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            ...pendingTopicLineageRun,
+            status_code: "analysis_status_failed",
+            status_label: "Failed",
+            failure_code: "tepp_not_available",
+            status_history: [
+              ...pendingTopicLineageRun.status_history,
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_failed",
+                status_label: "Failed",
+                occurred_at: "2026-01-12T12:43:00Z",
+                failure_code: "tepp_not_available",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
+        if (lineageConflictRemaining > 0) {
+          lineageConflictRemaining -= 1;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "request key conflict" }), {
+              status: 409,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
             new Response(
@@ -733,11 +818,22 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        if (options?.analysisRunListUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "temporarily unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
+              ...(options?.pendingTopicLineageRun
+                ? [pendingTopicLineageRun]
+                : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -1229,8 +1325,21 @@ describe("App, authenticated", () => {
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
                     },
+                    ...(options?.includeAdditionalBoardPost
+                      ? [
+                          {
+                            post_id: "post-board-2",
+                            post_title: "Earlier alphabetic post",
+                            voc_type_code: "vop",
+                            voc_type_label: "Voice of Partner",
+                            visibility_code: "internal",
+                            visibility_label: "Internal",
+                            created_at: "2026-01-02T00:00:00Z",
+                          },
+                        ]
+                      : []),
                   ],
-                  total_count: 1,
+                  total_count: options?.boardTotalCount ?? 1,
                   limit: 50,
                   offset: 0,
                   ...(options?.omitVoiceOptions
@@ -1249,7 +1358,9 @@ describe("App, authenticated", () => {
                           { code: "vos", label: "Voice of Supplier" },
                         ],
                       }),
-                  visibility_options: [{ code: "public", label: "Public" }],
+                  ...(options?.omitVisibilityOptions
+                    ? {}
+                    : { visibility_options: [{ code: "public", label: "Public" }] }),
                 },
           ),
         );
@@ -1610,6 +1721,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        if (options?.customerRelatedUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entity_id: "corp-demo",
@@ -1906,6 +2020,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
+        if (options?.customerMasterUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entities: options?.customerEntityHierarchy
@@ -2025,6 +2142,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        if (options?.customerResolveUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         resolvedHintCode = body.hint_code;
         return Promise.resolve(
@@ -2077,7 +2197,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("checkbox", { name: "Voice of Supplier" })).not.toBeInTheDocument();
   });
 
-  it("renders safe Ask Agent evidence under each cited post", async () => {
+  it("renders safe Ask Agent evidence and opens a cited post from the workspace", async () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
@@ -2089,7 +2209,11 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
-  });
+
+    await userEvent.click(screen.getByRole("button", { name: "Linked post" }));
+    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+  }, 10_000);
 
   it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
     const fetchMock = stubBackend();
@@ -2324,6 +2448,44 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
   });
 
+  it("keeps customer-master failures bounded to the customer workspace", async () => {
+    stubBackend({ customerMasterUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    expect(await screen.findByText("Customer master could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+  });
+
+  it("recovers from unavailable customer relationships and collapses the entity", async () => {
+    stubBackend({ customerRelatedUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
+    expect(entityButton).not.toBeNull();
+    await userEvent.click(entityButton as HTMLElement);
+    expect(await screen.findByText("No linked posts yet.")).toBeInTheDocument();
+    await userEvent.click(entityButton as HTMLElement);
+    expect(entityButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps a failed customer hint available for a later retry", async () => {
+    stubBackend({ admin: true, manyCustomerHints: 1, customerResolveUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    await screen.findByText("CUST-0");
+    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
+    expect(
+      await screen.findByText("This hint could not be resolved to a corroborated organization name."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
+  });
+
   it("gives the customer-master hint disclosures a CSS hook for the shared touch target", async () => {
     // Regression test (touch_interaction gap): these three <details> used
     // to render with no className at all, so App.css had no selector able
@@ -2402,7 +2564,11 @@ describe("App, authenticated", () => {
   });
 
   it("renders the board landmark and functional post controls", async () => {
-    const fetchMock = stubBackend();
+    const fetchMock = stubBackend({
+      boardTotalCount: 400,
+      includeAdditionalBoardPost: true,
+      omitVisibilityOptions: true,
+    });
     render(<App showLabPanels />);
 
     const board = await screen.findByRole("region", { name: "Board" });
@@ -2411,6 +2577,13 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
     expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
+    expect(within(board).getByRole("option", { name: "Internal" })).toBeInTheDocument();
+    expect(within(board).getByText("...")).toBeInTheDocument();
+
+    await userEvent.click(within(board).getByRole("button", { name: "Next page" }));
+    await waitFor(() => expect(within(board).getByRole("button", { name: "Previous page" })).toBeEnabled());
+    await userEvent.click(within(board).getByRole("button", { name: "Page 8" }));
+    await userEvent.click(within(board).getByRole("button", { name: "Previous page" }));
 
     await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     await waitFor(() =>
@@ -2497,6 +2670,18 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
   });
 
+  it("opens an authorized deep-linked post and removes its query when closed", async () => {
+    window.history.replaceState({}, "", "/?post=post-1#evidence");
+    stubBackend();
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("#evidence");
+  });
+
   it("announces the post-detail popup loading state as a live region before the post resolves", async () => {
     const fetchMock = stubBackend({ deferPostOne: true });
 
@@ -2540,6 +2725,8 @@ describe("App, authenticated", () => {
 
     rerender(<App showLabPanels />);
     expect(closeButton).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(focusable.at(-1)).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -3098,16 +3285,19 @@ describe("App, authenticated", () => {
     expect(badge).toHaveAttribute("href", "https://example.test/searxng?q=Northridge");
   });
 
-  it("does not turn a javascript: evidence URL into a verification link", async () => {
-    stubBackend({ verificationEvidenceUrl: "javascript:alert(1)" });
-    render(<App showLabPanels />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() =>
-      expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
-  });
+  it.each(["javascript:alert(1)", "not a valid URL"])(
+    "does not turn an unsafe evidence URL into a verification link: %s",
+    async (verificationEvidenceUrl) => {
+      stubBackend({ verificationEvidenceUrl });
+      render(<App showLabPanels />);
+      await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+      await waitFor(() =>
+        expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
+      );
+      expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
+      expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
+    },
+  );
 
   it("lets post_admin verify pending counterparties against web search", async () => {
     const fetchMock = stubBackend({ admin: true });
@@ -3299,6 +3489,67 @@ describe("App, authenticated", () => {
       next_offset: null,
     }));
     await waitFor(() => expect(screen.queryByText("Stale prior VOC")).not.toBeInTheDocument());
+  }, 15_000);
+
+  it("keeps similar-VOC pagination retryable and opens recovered evidence", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    let pageAttempts = 0;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/similar-voc") {
+        if (requestUrl.searchParams.get("offset") === "50") {
+          pageAttempts += 1;
+          if (pageAttempts === 1) {
+            return Promise.resolve(new Response(null, { status: 503 }));
+          }
+          return Promise.resolve(jsonResponse({
+            items: [{
+              post_id: "post-2", post_title: "Recovered prior VOC", issue_summary: "Recovered issue",
+              focal_evidence_text: "Current evidence", candidate_evidence_text: "Recovered evidence",
+              customer_cohort_text: "Enterprise cohort", action_history: ["Sent revised schedule"],
+              occurred_at: "2025-12-01T00:00:00Z",
+            }],
+            next_offset: null,
+          }));
+        }
+        return Promise.resolve(jsonResponse({
+          items: [{
+            post_id: "prior-1", post_title: "Prior evidence", issue_summary: "Prior issue",
+            focal_evidence_text: "Current evidence", candidate_evidence_text: "Prior evidence",
+            customer_cohort_text: null, action_history: [], occurred_at: "2025-12-02T00:00:00Z",
+          }],
+          next_offset: 50,
+        }));
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole(
+      "button",
+      { name: /open report post: public post/i },
+      { timeout: 5_000 },
+    ));
+    await userEvent.click(await screen.findByRole(
+      "button",
+      { name: "이전 VOC 더 보기" },
+      { timeout: 5_000 },
+    ));
+    expect(await screen.findByRole("alert")).toHaveTextContent("이전 VOC를 더 불러오지 못했습니다");
+
+    await userEvent.click(screen.getByRole("button", { name: "이전 VOC 더 보기" }));
+    const recoveredHeading = await screen.findByRole("heading", { name: "Recovered prior VOC" });
+    const recoveredArticle = recoveredHeading.closest("article");
+    expect(recoveredArticle).not.toBeNull();
+    expect(recoveredArticle).toHaveTextContent("Enterprise cohort");
+    expect(recoveredArticle).toHaveTextContent("Sent revised schedule");
+    await userEvent.click(within(recoveredArticle as HTMLElement).getByRole("button", { name: "근거 글 열기" }));
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
   }, 15_000);
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
@@ -3936,6 +4187,47 @@ describe("App, authenticated", () => {
     expect(startCall?.[1]?.method).toBe("POST");
   });
 
+  it("starts pending topic lineage without claiming a topic result", async () => {
+    const fetchMock = stubBackend({ pendingTopicLineageRun: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Topic lineage · Pending · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "These posts are the cutoff corpus topic-lineage will thread once this run finishes.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start topic lineage" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Start topic lineage" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Topic lineage · Failed · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "These posts are the cutoff corpus topic-lineage would thread. Connect a TEPP transport, then re-run, to replace Failed with a topic-identity result.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a topic model.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).endsWith("/api/analysis-runs/run-demo-topic/start") &&
+          call[1]?.method === "POST",
+      ),
+    ).toBe(true);
+  });
+
   it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
     const fetchMock = stubBackend();
     render(<App showLabPanels />);
@@ -4009,6 +4301,78 @@ describe("App, authenticated", () => {
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+  });
+
+  it("retries a conflicting lineage request with a new request identity", async () => {
+    const fetchMock = stubBackend({ lineageConflictOnce: true });
+    render(<App showLabPanels />);
+
+    const requestButton = await screen.findByRole("button", {
+      name: "Request a lineage reconstruction",
+    });
+    await userEvent.click(requestButton);
+    expect(
+      await screen.findByText(
+        "This request key already names a different reconstruction. Request again to start a new run.",
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(requestButton);
+    expect(
+      await screen.findByRole("heading", {
+        name: "Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+
+    const requests = fetchMock.mock.calls
+      .filter((call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST")
+      .map((call) => JSON.parse(String(call[1]?.body)).idempotency_key);
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).not.toBe(requests[1]);
+  });
+
+  it("removes an inaccessible analysis detail and explains the next action", async () => {
+    stubBackend({ analysisRunOpenNotFound: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    expect(await screen.findByText("This analysis run is not visible.")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", {
+        name: "Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps a pending reconstruction retryable when start is unavailable", async () => {
+    stubBackend({ lineageStartUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    const startButton = await screen.findByRole("button", { name: "Start reconstruction" });
+    await userEvent.click(startButton);
+
+    expect(await screen.findByText(/could not complete this request/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeEnabled();
+    expect(
+      screen.getByRole("heading", {
+        name: "Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a recoverable error when the analysis-run list is unavailable", async () => {
+    stubBackend({ analysisRunListUnavailable: true });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText(/could not complete this request/)).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Analysis runs" })).not.toBeInTheDocument();
   });
 
   it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
@@ -4397,6 +4761,9 @@ describe("App, authenticated", () => {
     expect(nav.textContent).not.toMatch(/Buyer|Cubee|\bBoard\b|Customer master/i);
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Log out" }));
+    expect(signoutRedirect).toHaveBeenCalledOnce();
   });
 
   it("fails closed on the calendar destination when Naruon consume is unwired", async () => {

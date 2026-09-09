@@ -237,6 +237,15 @@ vector degrades that pair back to difflib; it never fabricates a score.
 
 ## Tests
 
+The real-browser OIDC smoke helper waits for the Keycloak authorization URL at
+navigation commit, because waiting for the full Keycloak document load can
+exhaust Playwright's default timeout before the login form is usable. Keep the
+browser proof separate from the authorization-code exchange: the smoke test
+must still reach an authenticated destination after the callback. Chromium can
+report `ERR_ABORTED` or a detached frame during that cross-origin handoff; only
+that narrowly identified navigation race may be tolerated, followed by an
+explicit visible-login-form assertion.
+
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
 # (see backend/Dockerfile). Without it, pip falls over at build time.
@@ -422,3 +431,108 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Frontend coverage evidence
+
+The central review sandbox requires a lock-pinned Vitest coverage provider and
+a repository-owned coverage command; a passing plain test run is insufficient.
+Run `corepack pnpm run test:coverage` from `frontend/` to collect source coverage
+and enforce the 100% threshold over the complete configured source inventory.
+Keep Storybook and browser-entry runtime evidence distinct, but do not remove
+those executable files from coverage merely because the unit suite has not yet
+executed them. The unit suite must import and render the CSF inventory and mount
+the browser bootstrap so those files are executed; Storybook play assertions
+remain the interaction evidence. Generated reports stay outside git.
+Instrumentation availability and a smaller denominator do not establish coverage
+acceptance.
+
+The frontend CI retains `frontend-coverage` even when the coverage threshold
+fails. Use its LCOV paths and JSON summary to select regression work; console
+tables abbreviate filenames. A passing test suite and a failing coverage gate
+are distinct results, and neither licenses lowering the threshold.
+
+When a button combines a date and label in adjacent inline elements, preserve
+an explicit text separator; visual CSS spacing does not guarantee a separated
+accessible name. Test the complete accessible name and the destination callback
+together, as in the Dashboard project-journey regression.
+
+For asynchronous authorization changes, test both A-to-B and A-to-B-to-A
+transitions with deferred success and failure. Returning to the same token
+must not reactivate the first request; assert the current authorized result
+and the actual request sequence, not token equality alone. Dashboard's
+effect-local cleanup flag already provides this request-lifecycle boundary.
+
+When an E2E login helper tolerates a narrowly identified navigation error,
+reassert the expected authorization URL before locating or filling credential
+fields. A matching form label is not evidence that the navigation reached its
+expected destination; retain the post-login destination check as well.
+
+## Runtime measurement attribution
+
+Before timing a local endpoint, verify its service with `docker port` or live
+container port bindings; Compose port overrides can invalidate remembered
+ports. Record attempted requests and failures, retain timeout observations, and
+state whether the measurement covers liveness, HTML, or authenticated rendered
+pages. Correlate timestamped logs before attributing latency to provider errors.
+
+For host/container latency differences, record logical CPU counts, load, and
+Linux `/proc/pressure/{cpu,memory,io}` with timestamps. High CPU pressure is a
+measurement condition, not proof that a particular request stalled there.
+
+When a UI test alternates between timeout and missing-element failures, inspect
+the failing phase before changing selectors or deadlines. A timer firing late
+is evidence of delayed execution, not proof that the product is correct. Keep
+full-run failures distinct from focused passes and remove ineffective diagnostic
+edits instead of shipping a speculative fix.
+
+Batch related frontend regression changes before pushing a PR head. A new push
+can cancel an in-progress PostgreSQL suite through the existing concurrency
+policy; repeated small pushes can prevent terminal full-suite evidence. Track
+the current run to completion while developing independent work, and distinguish
+superseded cancellation from an actual test failure.
+
+For API request-contract tests, decode generated URLs with URL/URLSearchParams
+and assert repeated parameters, opaque cursors, timezone offsets, and explicit
+false/zero values survive transport. Mocked fetch tests establish client request
+serialization and error propagation only; they do not prove server authorization,
+valid parameter ranges, or database-backed evidence availability.
+
+When checking an interactive Storybook scene in a browser, wait for its authored
+play function to finish before testing keyboard input. Assert the additional
+callback separately from the play callback so an earlier click cannot mask a
+broken keyboard action. Record viewport and document scroll widths together.
+
+The API privacy boundary includes successful-response body reads and decoding:
+await them inside the shared catch boundary so parser/body diagnostics cannot
+reach UI handlers. Preserve observed HTTP status; a rejected decode is not proof
+of an upstream 5xx. Keep actionable client errors distinct (ADR 0123). Use the
+repository lint script; the frontend currently uses oxlint, not eslint.
+
+For mocks with queued one-shot responses, reset the implementation between tests.
+`mockClear()` only clears call history: an early assertion failure or timeout can
+leave a response queued for the next test. Use the existing scoped lifecycle
+hook with `mockReset()` so one failed test cannot consume another test's data.
+This isolates later failures; it does not repair the first timeout.
+
+Coverage artifact upload cannot retain a report the test runner never produced.
+Keep Vitest `coverage.reportOnFailure` enabled so assertion failures still emit
+reports; retain the nonzero test exit and the complete configured denominator.
+Verify this with an ephemeral intentional failure, then remove the probe.
+
+When a full-run test count drops, inspect unhandled worker-start errors before
+calling it a smaller passing suite. Preserve the intended file/test inventory,
+reported passes/failures, and unstarted files separately; retained coverage does
+not prove that every planned test ran.
+
+Bounded numeric regexes must reject a longer numeric token, not match its prefix.
+For quantity exponents, keep browser normalization, React text-run splitting,
+and ingestion normalization aligned; test signed and braced unsupported values
+without changing the supported short-exponent range (ADR 0165).
+
+Numeric token-boundary tests should include decimal continuations as well as
+extra digits. Keep a sentence-ending period distinct from a period followed
+by a digit so preserving unsupported numbers does not break ordinary prose.
+
+Exercise missing and whitespace-only 4xx guidance at the shared API boundary.
+Fallback errors must not expose route paths even when the server supplies no
+message; retain HTTP status separately for caller decisions (ADR 0123).
