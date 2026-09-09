@@ -18,9 +18,10 @@
 > Two adjacent candidates remain outside protected `main`: PR #911 at
 > `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` owns the synchronous PostgreSQL
 > driver/TLS-policy slice and its live head was reverified for this snapshot;
-> PR #909 owns malformed Customer Master hierarchy presentation. Their validation
-> results remain live-GitHub evidence rather than duplicated check-state claims
-> here. Neither candidate changes the translation-ledger ownership boundary.
+> PR #909 at `e82aed38c0997588529e21fe0e1bf4159f3c198c` owns malformed Customer
+> Master hierarchy presentation. Their validation results remain live-GitHub
+> evidence rather than duplicated check-state claims here. Neither candidate
+> changes the translation-ledger ownership boundary.
 >
 > Historical baseline overlays through the preceding snapshot are preserved as
 > dated evidence at
@@ -166,12 +167,11 @@
 
 ## Latest revision-scoped predecessor evidence
 
-Before this documentation repair, predecessor `aaad36a5d7aaf8b1f6075562253f7fd9dda2b1aa`
-removed the self-staling scheduler KPI block but, before hosted validation, was
-found to violate the existing documentation-alignment contract by removing the
-current `open / Ready` and live adjacent-#911 snapshot phrases. Its parent
-`07388aedc8942a6a99561aaaa1e57ca4b2820b10` was a documentation-only descendant
-of `1f0f7059c8a2cc0a610cd0ee62568b7ed6612add`; `1f0f7059...` had terminal Tests,
-PROV-O, Ontology Pages, and SAST success while Security and CodeQL remained
-fail-closed at central owner boundaries. These receipts explain repair lineage
-only and do not transfer to this new head.
+Before this documentation repair, predecessor `6c207f1e9050afa457fbecf46dc8520b99279d0d`
+restored the `open / Ready` and #911 snapshot phrases but used `PR #909 owns`
+where the executable scoped-entry delimiter requires `PR #909 at`. Current live
+#909 was reverified at `e82aed38c0997588529e21fe0e1bf4159f3c198c` before this
+repair. Older `1f0f7059...` had terminal Tests, PROV-O, Ontology Pages, and SAST
+success while Security and CodeQL remained fail-closed at central owner
+boundaries. These receipts explain repair lineage only and do not transfer to
+this new head.
