@@ -486,6 +486,13 @@ LineageWeave services healthy or running, plus separately named project/test
 containers; no duplicate LineageWeave stack was removed. Do not infer a
 duplicate from an image name or an exited unrelated container.
 
+Hosted CI RCA: on 2026-09-09 the exact-head dependency-review job passed
+checkout identity but GitHub's dependency-graph compare endpoint returned HTTP
+403 for the public repository. The CodeQL compatibility shards likewise
+failed closed while their exact-head dispatch verdict was still pending. Treat
+these as central security-workflow evidence/permission failures; do not hide
+them with consumer-side suppressions or claim product validation from them.
+
 When a button combines a date and label in adjacent inline elements, preserve
 an explicit text separator; visual CSS spacing does not guarantee a separated
 accessible name. Test the complete accessible name and the destination callback
