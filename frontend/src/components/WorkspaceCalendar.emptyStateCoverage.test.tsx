@@ -13,7 +13,16 @@ const availableButEmpty: CalendarResponse = {
   },
 };
 
-describe("WorkspaceCalendar available empty states", () => {
+const unavailableWithoutNextAction: CalendarResponse = {
+  events: [],
+  commitments: [],
+  calendar_sources: {
+    naruon_available: false,
+    naruon_next_action: null,
+  },
+};
+
+describe("WorkspaceCalendar optional states", () => {
   beforeEach(() => {
     setLocale("en");
   });
@@ -39,5 +48,21 @@ describe("WorkspaceCalendar available empty states", () => {
     expect(screen.queryByRole("region", { name: /^Unavailable:/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /open commitment for:/i })).not.toBeInTheDocument();
     expect(onSelectPost).not.toHaveBeenCalled();
+  });
+
+  it("does not invent a provider next action when the unavailable source supplies none", () => {
+    render(
+      <WorkspaceCalendar
+        calendar={unavailableWithoutNextAction}
+        onSelectPost={() => undefined}
+        headingId="calendar-unavailable-heading"
+        heading="Calendar"
+      />,
+    );
+
+    const notice = screen.getByRole("region", { name: /^Unavailable:/ });
+    expect(notice).toBeInTheDocument();
+    expect(notice.querySelector(".status-notice-next-action")).toBeNull();
+    expect(screen.queryByText("No observed calendar events are available.")).not.toBeInTheDocument();
   });
 });
