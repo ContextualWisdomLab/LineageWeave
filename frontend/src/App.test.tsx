@@ -2684,6 +2684,8 @@ describe("App, authenticated", () => {
 
     rerender(<App showLabPanels />);
     expect(closeButton).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(focusable.at(-1)).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
