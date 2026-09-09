@@ -156,30 +156,24 @@ function renderImageEvidence(
 }
 
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
-  switch (segment.kind) {
-    case "text":
-      return (
-        <p
-          key={`post-body-text-${index}`}
-          className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
-          data-content-kind={segment.role ?? "text"}
-          data-indent-level={segment.indentLevel ?? 0}
-          style={
-            segment.indentLevel
-              ? { paddingInlineStart: `${segment.indentLevel}em` }
-              : undefined
-          }
-        >
-          {renderStyledText(segment.text)}
-        </p>
-      );
-    case "image":
-      return renderImageEvidence(index, imageContent, segment);
-    default: {
-      const _exhaustive: never = segment;
-      throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
-    }
+  if (segment.kind === "image") {
+    return renderImageEvidence(index, imageContent, segment);
   }
+  return (
+    <p
+      key={`post-body-text-${index}`}
+      className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
+      data-content-kind={segment.role ?? "text"}
+      data-indent-level={segment.indentLevel ?? 0}
+      style={
+        segment.indentLevel
+          ? { paddingInlineStart: `${segment.indentLevel}em` }
+          : undefined
+      }
+    >
+      {renderStyledText(segment.text)}
+    </p>
+  );
 }
 
 function renderTextSegment(segment: Extract<PostBodySegment, { kind: "text" }>, index: number) {
