@@ -166,6 +166,7 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    pendingTopicLineageRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
@@ -212,6 +213,28 @@ describe("App, authenticated", () => {
     let lineageConflictRemaining = options?.lineageConflictOnce ? 1 : 0;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    const pendingTopicLineageRun = {
+      analysis_run_id: "run-demo-topic",
+      run_kind_code: "analysis_run_topic_lineage" as const,
+      run_kind_label: "Topic lineage",
+      scope_kind_code: "analysis_scope_corporate_entity",
+      scope_kind_label: "Corporate entity",
+      scope_entity_name: "Demo Corp",
+      status_code: "analysis_status_pending" as const,
+      status_label: "Pending",
+      knowledge_cutoff: "2026-01-12T12:00:00Z",
+      requested_at: "2026-01-12T12:42:00Z",
+      source_counts: [],
+      visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+      status_history: [
+        {
+          status_ordinal: 1,
+          status_code: "analysis_status_pending",
+          status_label: "Pending",
+          occurred_at: "2026-01-12T12:42:00Z",
+        },
+      ],
+    };
 
     let releaseMe = () => {};
     const demoOrgAlias = options?.organizationAliases ? { organization_alias: "DC" } : {};
@@ -505,6 +528,9 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-topic")) {
+        return Promise.resolve(jsonResponse(pendingTopicLineageRun));
+      }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
         if (options?.analysisRunOpenNotFound) {
           return Promise.resolve(
@@ -732,6 +758,26 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-topic/start") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            ...pendingTopicLineageRun,
+            status_code: "analysis_status_failed",
+            status_label: "Failed",
+            failure_code: "tepp_not_available",
+            status_history: [
+              ...pendingTopicLineageRun.status_history,
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_failed",
+                status_label: "Failed",
+                occurred_at: "2026-01-12T12:43:00Z",
+                failure_code: "tepp_not_available",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
         if (lineageConflictRemaining > 0) {
@@ -796,6 +842,9 @@ describe("App, authenticated", () => {
             analysis_runs: [
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
+              ...(options?.pendingTopicLineageRun
+                ? [pendingTopicLineageRun]
+                : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -4134,6 +4183,47 @@ describe("App, authenticated", () => {
       String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp/start"),
     );
     expect(startCall?.[1]?.method).toBe("POST");
+  });
+
+  it("starts pending topic lineage without claiming a topic result", async () => {
+    const fetchMock = stubBackend({ pendingTopicLineageRun: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Topic lineage · Pending · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "These posts are the cutoff corpus topic-lineage will thread once this run finishes.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start topic lineage" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Start topic lineage" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Topic lineage · Failed · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "These posts are the cutoff corpus topic-lineage would thread. Connect a TEPP transport, then re-run, to replace Failed with a topic-identity result.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a topic model.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).endsWith("/api/analysis-runs/run-demo-topic/start") &&
+          call[1]?.method === "POST",
+      ),
+    ).toBe(true);
   });
 
   it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
