@@ -420,6 +420,13 @@ coverage run as stable. Raising only the coverage timeout to 15 seconds removed
 the timeout failures in one follow-up run, but the occupation catalog still
 failed to load under the full instrumented suite; do not treat that setting as
 the root-cause repair.
+Hosted run `34306991982` at exact head
+`0ba5daf4ac048337779ccffdcc4d741a1b490d07` completed the PostgreSQL full suite
+successfully and ran all 728 frontend tests successfully; the frontend job
+still failed only at the strict coverage gate with lines 95.49%, statements
+93.61%, functions 93.03%, and branches 83.60%. Treat this as a coverage
+implementation gap, not a test correctness failure or a reason to lower the
+gate.
 
 ## W3C PROV-O boundary
 
