@@ -3,7 +3,7 @@
 > Current authority: 2026-09-09 UTC. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (#931, 2026-09-05,
 > defer repository-local jobs while PRs are Draft). Live queue at
-> refresh: 140 open PRs (16 ready, 124 draft) and 22 open issues.
+> refresh: 141 open PRs (16 ready, 125 draft) and 22 open issues.
 > Leftover-map family: 65 open (64 draft, 1 ready: #802 v2.30.0
 > explained share on pair segments). This section is the sole current
 > authority; every `Exact-head loop overlay` below is dated historical
@@ -20,12 +20,19 @@
 > #969/#964/#959/#802/#973/#911; CANCELLED #974/#972/#960; IN_PROGRESS
 > #983), reviewDecision REVIEW_REQUIRED and mergeStateStatus BLOCKED
 > (except #979 CLEAN stacked on #974 with Full + Frontend SUCCESS).
-> Central CodeQL/noema/opencode/strix failures are owner-side
+> Central CodeQL/noema/opencode/strix/dependency failures are owner-side
 > ContextualWisdomLab/.github control-plane state, not local-code
-> verdicts. No self-approve, no force-push, no stale-evidence transfer.
+> verdicts: dependency-review evidence fetch fails closed with HTTP 403,
+> CodeQL compat shards miss their dispatch-verdict handshake, Noema review
+> fails on unconfigured reviewer credentials (org secret), and Strix fails
+> closed after its quick run exits without mappable findings (exit 2) -- all
+> environment class, unfixable from any branch. No self-approve, no
+> force-push, no stale-evidence transfer.
 >
-> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED, Full
-> SUCCESS, Frontend FAILURE, strix IN_PROGRESS); #979 Ask
+> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `52b6b93`:
+> Full test suite SUCCESS, Semgrep/osv-scorecard-trivy SUCCESS, Frontend
+> FAILURE with 16 files below the 100% threshold, Strix FAILURE closed
+> without mappable findings); #979 Ask
 > ownership-fenced liveness (CLEAN, stacked on #974); #974 chat
 > null-timeout + worker expiry; #970 fast-mlsirm v0.9.1 owner release
 > (for #967); #969 auth sign-in recovery; #964 k6 load diagnostics (no
