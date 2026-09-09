@@ -410,10 +410,12 @@ the check green. A passing test count without a passing coverage report is not
 frontend CI completion.
 
 The local full coverage run on `98f64d723` exposed four timing-sensitive
-failures under concurrent instrumented load (three 5-second timeouts and one
-occupation-data wait); each failed test passed when rerun alone. Preserve both
-facts: isolated reruns are diagnostic evidence, not a green full-suite result,
-and the suite needs a reproducible parallel-load fix before treating the
+failures under instrumented load (three 5-second timeouts and one
+occupation-data wait); each failed test passed when rerun alone. A follow-up
+run with Vitest file parallelism disabled still exposed five `App.test.tsx`
+timeouts, so do not treat serializing files as the fix. Preserve both facts:
+isolated reruns are diagnostic evidence, not a green full-suite result, and the
+suite needs a reproducible instrumentation-timeout fix before treating the
 coverage run as stable.
 
 ## W3C PROV-O boundary
