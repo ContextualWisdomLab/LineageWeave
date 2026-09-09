@@ -942,3 +942,16 @@ non-main stacked branch; this is workflow evidence, not a product test result.
 The same head was checked against protected `main` for ancestry before the
 successor was retargeted. Independent review and exact-head hosted Checks are
 still required; the frontend 100% denominator remains unchanged.
+
+### Exact-head KPI observation — 2026-09-09
+
+Successor PR #985 exact head `d0abddbea` passed frontend lint, build, and
+Storybook build. The preserved frontend coverage artifact measured 95.59%
+lines, 93.73% statements, 93.12% functions, and 83.77% branches; `App.tsx`
+measured 89.16% lines and 74.11% branches. The coverage gate therefore remains
+failed and its denominator was not reduced. Twenty unauthenticated requests to
+the Colima-hosted login page measured p50 35.73 ms, p95 146.53 ms, and maximum
+350.39 ms. This is a public-route observation only; it does not prove the
+authenticated page SLO or a 20 ms product-wide p95. The PostgreSQL Full test
+suite remained in progress at the time of capture, so no terminal integration
+result is inferred.
