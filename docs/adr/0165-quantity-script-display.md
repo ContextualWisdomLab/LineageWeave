@@ -24,10 +24,10 @@ plain text, and a leading footnote caret (`^1 …`) is not a unit exponent.
 - The buyer post view splits those Unicode (or leftover caret) runs and
   renders them as React `<sup>`/`<sub>` elements. The body is never
   assigned to `innerHTML` (ADR 0061).
-- Only a letter, digit, or closing `)` immediately followed by `^` and a
-  one-to-three ASCII-digit or `n`/`N`/`i`/`I` exponent is treated as a
-  quantity. A leading `^1` footnote marker and comparison operators stay
-  literal.
+- Only a letter, digit, or closing `)` immediately followed by `^` and an
+  optional ASCII `+` or `-` sign, then a one-to-three ASCII-digit or
+  `n`/`N`/`i`/`I` exponent is treated as a quantity. A leading `^1` footnote
+  marker and comparison operators stay literal.
 - Unmapped script runs keep a caret or underscore so they remain visible
   rather than silently concatenating. Full formula ontology remains out of
   scope; this decision covers quantity display and unit-level text.

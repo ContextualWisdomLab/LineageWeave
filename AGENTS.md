@@ -439,6 +439,10 @@ coverage run as stable. Raising only the coverage timeout to 15 seconds removed
 the timeout failures in one follow-up run, but the occupation catalog still
 failed to load under the full instrumented suite; do not treat that setting as
 the root-cause repair.
+Before classifying a coverage timeout, reproduce it on the unchanged exact
+HEAD and preserve the command, commit SHA, and timeout log. Results from later
+code or timeout-setting changes are follow-up evidence, not the causal
+baseline.
 Hosted run `34306991982` at exact head
 `0ba5daf4ac048337779ccffdcc4d741a1b490d07` completed the PostgreSQL full suite
 successfully and ran all 728 frontend tests successfully; the frontend job
