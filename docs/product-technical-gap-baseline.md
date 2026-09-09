@@ -110,6 +110,13 @@ ran 728 tests and exposed four failures under concurrent instrumentation: three
 rerun alone. This is a reproducibility gap for the full coverage harness, not
 evidence that the hosted gate passed.
 
+The next hosted run at exact HEAD `0ba5daf4ac048337779ccffdcc4d741a1b490d07`
+([34306991982](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34306991982))
+completed lint, build, and Storybook successfully. Its frontend coverage job
+still failed the unchanged 100% gate with lines 95.49%, statements 93.61%,
+functions 93.03%, and branches 83.60%; the preserved artifact is the
+authoritative report. The PostgreSQL job remained in progress when recorded.
+
 At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
 [34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
 preserved artifact [10085488908](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502/artifacts/10085488908).
