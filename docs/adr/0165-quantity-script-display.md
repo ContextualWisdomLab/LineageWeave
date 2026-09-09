@@ -24,22 +24,23 @@ plain text, and a leading footnote caret (`^1 …`) is not a unit exponent.
 - The buyer post view splits those Unicode (or leftover caret) runs and
   renders them as React `<sup>`/`<sub>` elements. The body is never
   assigned to `innerHTML` (ADR 0061).
-- Only a letter, digit, or closing `)` immediately followed by `^` and an
-  optional ASCII `+` or `-` sign, then a one-to-three ASCII-digit or
-  `n`/`N`/`i`/`I` exponent is treated as a quantity. A leading `^1` footnote
-  marker and comparison operators stay literal.
+- Only a letter, digit, or closing `)` immediately followed by `^` and a
+  one-to-three ASCII-digit exponent optionally preceded by an ASCII `+`/`-`,
+  or an `n`/`N`/`i`/`I` exponent, is treated as a quantity. A leading `^1`
+  footnote marker and comparison operators stay literal.
 - Unmapped script runs keep a caret or underscore so they remain visible
   rather than silently concatenating. Full formula ontology remains out of
   scope; this decision covers quantity display and unit-level text.
 
 Numeric caret runs longer than three ASCII digits and decimal exponents stay
-literal in both derived text and display runs. A following Unicode
-`Decimal_Number` digit also continues the numeric token even though that digit
-is not itself eligible for conversion; a mixed token such as `x^123٤` must
-therefore remain literal as a whole. A period followed by a decimal digit
-continues the numeric token; sentence-ending punctuation does not. Never
-convert a three-digit ASCII prefix while leaving the rest as ordinary text:
-that changes the represented quantity. This preserves the short-exponent
+literal in both derived text and display runs. An optional ASCII `+` or `-`
+belongs to the numeric exponent and does not extend the three-digit limit. A
+following Unicode `Decimal_Number` digit also continues the numeric token even
+though that digit is not itself eligible for conversion; a mixed token such as
+`x^123٤` must therefore remain literal as a whole. A period followed by a
+decimal digit continues the numeric token; sentence-ending punctuation does
+not. Never convert a three-digit ASCII prefix while leaving the rest as ordinary
+text: that changes the represented quantity. This preserves the short-exponent
 boundary without introducing a full formula parser.
 
 ## Consequences
