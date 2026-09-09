@@ -98,8 +98,8 @@ and coverage-artifact preservation succeeded. Artifact
 records lines 96.35%, statements 94.53%, functions 93.89%, and branches
 84.81%. `App.tsx` reached 91.02% lines and 76.05% branches. The unchanged 100%
 gate correctly failed, so this is exact-head improvement evidence, not merge
-or release acceptance. The PostgreSQL job for this head was still running when
-recorded.
+or release acceptance. The full PostgreSQL suite for the same head completed
+successfully.
 
 At exact HEAD `b69efde292a4bcf0c8ef78da31379965e9a34339`, hosted run
 [34303751037](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34303751037)
