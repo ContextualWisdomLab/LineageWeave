@@ -31,12 +31,12 @@ function parsePipeDelimitedTable(text: string, requireSeparator = true): string[
       return cells;
     });
   const separatorIndex = rawRows.findIndex(
-    (row) => row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
+    (row) => row.length > 0 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
   );
   if (requireSeparator && separatorIndex !== 1) return null;
   const rows = rawRows
     .filter((_row, rowIndex) => rowIndex !== separatorIndex)
-    .filter((row) => row.length > 1 && row.some(Boolean));
+    .filter((row) => row.length > 0 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
   return rows;
 }
@@ -49,14 +49,26 @@ function renderPipeTable(
 ): ReactNode | null {
   const rows = parsePipeDelimitedTable(text, requireSeparator);
   if (!rows) return null;
+  const bodyRows = requireSeparator ? rows.slice(1) : rows;
   return (
     <table
       key={`${keyPrefix}-table`}
       className={className}
       data-content-kind="table"
     >
+      {requireSeparator ? (
+        <thead>
+          <tr>
+            {rows[0].map((cell, cellIndex) => (
+              <th key={`${keyPrefix}-header-${cellIndex}`} scope="col">
+                {renderStyledText(cell)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+      ) : null}
       <tbody>
-        {rows.map((row, rowIndex) => (
+        {bodyRows.map((row, rowIndex) => (
           <tr key={`${keyPrefix}-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <td key={`${keyPrefix}-cell-${rowIndex}-${cellIndex}`}>{renderStyledText(cell)}</td>
