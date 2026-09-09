@@ -102,6 +102,16 @@ statements 80.83%, branches 78.63%; the required 100% gate still failed.
 Only after recording terminal PostgreSQL evidence were the accumulated API
 regression commits pushed. The new head requires its own hosted checks.
 
+At exact HEAD `973ac01cf13657b15f316de6d5ca98380edb6e59`, hosted run
+[34299811219](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34299811219)
+ran the complete frontend denominator and preserved artifact
+[10084523307](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34299811219/artifacts/10084523307).
+The 100% gate failed after the tests completed: lines 95.37%, statements 93.50%,
+functions 92.93%, and branches 83.54%. The largest remaining product-source gap
+is `App.tsx` (lines 88.85%, branches 73.87%); the artifact is diagnostic evidence,
+not a reason to exclude that source or lower the gate. The full PostgreSQL job
+for this exact head was still running when this entry was recorded.
+
 
 At `2eef50490b90184fb57303d948021a41d7bf4c9d`,
 [frontend job 101931318953](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34184940038/job/101931318953)
