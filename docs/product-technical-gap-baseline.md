@@ -88,6 +88,16 @@ remain unverified; older successful runs do not satisfy those gates.
 
 ## Frontend coverage evidence — 2026-09-08
 
+### Current exact-head rerun — 2026-09-09
+
+At exact HEAD `b69efde292a4bcf0c8ef78da31379965e9a34339`, hosted run
+[34303751037](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34303751037)
+is terminal. The PostgreSQL job succeeded; the frontend job passed all 727
+tests but the strict 100% gate failed at lines 95.43%, statements 93.56%,
+functions 92.93%, and branches 83.57%. `App.tsx` remains the largest product
+source gap. This run establishes backend test completion, not frontend release
+acceptance, protected merge, or deployment.
+
 At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
 [34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
 preserved artifact [10085488908](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502/artifacts/10085488908).
