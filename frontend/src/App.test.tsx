@@ -157,6 +157,10 @@ describe("App, authenticated", () => {
     searchFailure?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    analysisRunListUnavailable?: boolean;
+    analysisRunOpenNotFound?: boolean;
+    lineageConflictOnce?: boolean;
+    lineageStartUnavailable?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
@@ -170,6 +174,9 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     hintRelatedPosts?: boolean;
     customerEntityHierarchy?: boolean;
+    customerMasterUnavailable?: boolean;
+    customerRelatedUnavailable?: boolean;
+    customerResolveUnavailable?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     organizationAliases?: boolean;
@@ -202,6 +209,7 @@ describe("App, authenticated", () => {
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
+    let lineageConflictRemaining = options?.lineageConflictOnce ? 1 : 0;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
 
@@ -498,6 +506,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.analysisRunOpenNotFound) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -597,6 +613,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
+        if (options?.lineageStartUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "temporarily unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage-pending",
@@ -710,6 +734,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
+        if (lineageConflictRemaining > 0) {
+          lineageConflictRemaining -= 1;
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "request key conflict" }), {
+              status: 409,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
             new Response(
@@ -750,6 +783,14 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        if (options?.analysisRunListUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "temporarily unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
@@ -1627,6 +1668,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        if (options?.customerRelatedUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entity_id: "corp-demo",
@@ -1931,6 +1975,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
+        if (options?.customerMasterUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entities: options?.customerEntityHierarchy
@@ -2050,6 +2097,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        if (options?.customerResolveUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         resolvedHintCode = body.hint_code;
         return Promise.resolve(
@@ -2347,6 +2397,44 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
+  });
+
+  it("keeps customer-master failures bounded to the customer workspace", async () => {
+    stubBackend({ customerMasterUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    expect(await screen.findByText("Customer master could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+  });
+
+  it("recovers from unavailable customer relationships and collapses the entity", async () => {
+    stubBackend({ customerRelatedUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
+    expect(entityButton).not.toBeNull();
+    await userEvent.click(entityButton as HTMLElement);
+    expect(await screen.findByText("No linked posts yet.")).toBeInTheDocument();
+    await userEvent.click(entityButton as HTMLElement);
+    expect(entityButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps a failed customer hint available for a later retry", async () => {
+    stubBackend({ admin: true, manyCustomerHints: 1, customerResolveUnavailable: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+
+    await screen.findByText("CUST-0");
+    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
+    expect(
+      await screen.findByText("This hint could not be resolved to a corroborated organization name."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
   });
 
   it("gives the customer-master hint disclosures a CSS hook for the shared touch target", async () => {
@@ -3352,6 +3440,67 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.queryByText("Stale prior VOC")).not.toBeInTheDocument());
   }, 15_000);
 
+  it("keeps similar-VOC pagination retryable and opens recovered evidence", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    let pageAttempts = 0;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/similar-voc") {
+        if (requestUrl.searchParams.get("offset") === "50") {
+          pageAttempts += 1;
+          if (pageAttempts === 1) {
+            return Promise.resolve(new Response(null, { status: 503 }));
+          }
+          return Promise.resolve(jsonResponse({
+            items: [{
+              post_id: "post-2", post_title: "Recovered prior VOC", issue_summary: "Recovered issue",
+              focal_evidence_text: "Current evidence", candidate_evidence_text: "Recovered evidence",
+              customer_cohort_text: "Enterprise cohort", action_history: ["Sent revised schedule"],
+              occurred_at: "2025-12-01T00:00:00Z",
+            }],
+            next_offset: null,
+          }));
+        }
+        return Promise.resolve(jsonResponse({
+          items: [{
+            post_id: "prior-1", post_title: "Prior evidence", issue_summary: "Prior issue",
+            focal_evidence_text: "Current evidence", candidate_evidence_text: "Prior evidence",
+            customer_cohort_text: null, action_history: [], occurred_at: "2025-12-02T00:00:00Z",
+          }],
+          next_offset: 50,
+        }));
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole(
+      "button",
+      { name: /open report post: public post/i },
+      { timeout: 5_000 },
+    ));
+    await userEvent.click(await screen.findByRole(
+      "button",
+      { name: "이전 VOC 더 보기" },
+      { timeout: 5_000 },
+    ));
+    expect(await screen.findByRole("alert")).toHaveTextContent("이전 VOC를 더 불러오지 못했습니다");
+
+    await userEvent.click(screen.getByRole("button", { name: "이전 VOC 더 보기" }));
+    const recoveredHeading = await screen.findByRole("heading", { name: "Recovered prior VOC" });
+    const recoveredArticle = recoveredHeading.closest("article");
+    expect(recoveredArticle).not.toBeNull();
+    expect(recoveredArticle).toHaveTextContent("Enterprise cohort");
+    expect(recoveredArticle).toHaveTextContent("Sent revised schedule");
+    await userEvent.click(within(recoveredArticle as HTMLElement).getByRole("button", { name: "근거 글 열기" }));
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
+  }, 15_000);
+
   it("opens an accepted ranking hit without inventing a fused score", async () => {
     stubBackend({
       rankings: {
@@ -4060,6 +4209,78 @@ describe("App, authenticated", () => {
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+  });
+
+  it("retries a conflicting lineage request with a new request identity", async () => {
+    const fetchMock = stubBackend({ lineageConflictOnce: true });
+    render(<App showLabPanels />);
+
+    const requestButton = await screen.findByRole("button", {
+      name: "Request a lineage reconstruction",
+    });
+    await userEvent.click(requestButton);
+    expect(
+      await screen.findByText(
+        "This request key already names a different reconstruction. Request again to start a new run.",
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(requestButton);
+    expect(
+      await screen.findByRole("heading", {
+        name: "Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+
+    const requests = fetchMock.mock.calls
+      .filter((call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST")
+      .map((call) => JSON.parse(String(call[1]?.body)).idempotency_key);
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).not.toBe(requests[1]);
+  });
+
+  it("removes an inaccessible analysis detail and explains the next action", async () => {
+    stubBackend({ analysisRunOpenNotFound: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    expect(await screen.findByText("This analysis run is not visible.")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", {
+        name: "Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps a pending reconstruction retryable when start is unavailable", async () => {
+    stubBackend({ lineageStartUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    const startButton = await screen.findByRole("button", { name: "Start reconstruction" });
+    await userEvent.click(startButton);
+
+    expect(await screen.findByText(/could not complete this request/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeEnabled();
+    expect(
+      screen.getByRole("heading", {
+        name: "Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a recoverable error when the analysis-run list is unavailable", async () => {
+    stubBackend({ analysisRunListUnavailable: true });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText(/could not complete this request/)).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Analysis runs" })).not.toBeInTheDocument();
   });
 
   it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {

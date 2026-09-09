@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CalendarResponse } from "../api";
 import { setLocale } from "../i18n";
@@ -18,6 +19,28 @@ const unavailableWithoutNextAction: CalendarResponse = {
   commitments: [],
   calendar_sources: {
     naruon_available: false,
+    naruon_next_action: null,
+  },
+};
+
+const commitmentWithoutStatusLabel: CalendarResponse = {
+  events: [],
+  commitments: [
+    {
+      issue_ticket_id: "ticket-status-fallback",
+      post_id: "post-status-fallback",
+      ticket_status_code: "open",
+      ticket_title: "Confirm delivery window",
+      assigned_account_id: null,
+      due_date: "2026-09-12",
+      commitment_summary: "Confirm the revised delivery window",
+      created_at: "2026-09-09T00:00:00Z",
+      updated_at: "2026-09-09T00:00:00Z",
+      post_title: "Delivery update",
+    },
+  ],
+  calendar_sources: {
+    naruon_available: true,
     naruon_next_action: null,
   },
 };
@@ -64,5 +87,25 @@ describe("WorkspaceCalendar optional states", () => {
     expect(notice).toBeInTheDocument();
     expect(notice.querySelector(".status-notice-next-action")).toBeNull();
     expect(screen.queryByText("No observed calendar events are available.")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the persisted status code when a commitment has no status label", async () => {
+    const onSelectPost = vi.fn();
+
+    render(
+      <WorkspaceCalendar
+        calendar={commitmentWithoutStatusLabel}
+        onSelectPost={onSelectPost}
+        headingId="calendar-status-heading"
+        heading="Calendar"
+      />,
+    );
+
+    expect(screen.getByText("open")).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open commitment for: Delivery update" }),
+    );
+    expect(onSelectPost).toHaveBeenCalledOnce();
+    expect(onSelectPost).toHaveBeenCalledWith("post-status-fallback");
   });
 });
