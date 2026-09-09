@@ -49,11 +49,13 @@ class _SequencedPool:
                             "resource_version": 7,
                             "translation_key": "body",
                             "translated_text_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+                            "translated_text_octets": len(body.encode("utf-8")),
                         },
                         {
                             "resource_version": 7,
                             "translation_key": "title",
                             "translated_text_sha256": hashlib.sha256(title.encode("utf-8")).hexdigest(),
+                            "translated_text_octets": len(title.encode("utf-8")),
                         },
                     ]
                 ),

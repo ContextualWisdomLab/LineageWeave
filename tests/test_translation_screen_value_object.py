@@ -22,12 +22,14 @@ class _Connection:
                 "translation_key": "body",
                 "translated_text": "No customers",
                 "translated_text_sha256": hashlib.sha256(b"No customers").hexdigest(),
+                "translated_text_octets": len(b"No customers"),
             },
             {
                 "resource_version": 7,
                 "translation_key": "title",
                 "translated_text": "Customer master",
                 "translated_text_sha256": hashlib.sha256(b"Customer master").hexdigest(),
+                "translated_text_octets": len(b"Customer master"),
             },
         ]
 

@@ -367,6 +367,7 @@ def test_postgres_required_key_query_returns_authoritative_text_sha256() -> None
         assert len(rows) == 1
         assert rows[0]["translation_key"] == "title"
         assert rows[0]["translated_text_sha256"] == hashlib.sha256(b"title-en").hexdigest()
+        assert rows[0]["translated_text_octets"] == len(b"title-en")
 
     asyncio.run(_run_with_translation_db(scenario))
 

@@ -24,6 +24,7 @@ class _Connection:
                 "translation_key": "title",
                 "translated_text": "Customer master",
                 "translated_text_sha256": hashlib.sha256(b"Customer master").hexdigest(),
+                "translated_text_octets": len(b"Customer master"),
             }
         ]
 

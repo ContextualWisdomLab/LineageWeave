@@ -115,12 +115,14 @@ def _rows(*, body: str | None = "No customers", version: int = 7) -> list[dict[s
             "translation_key": "body",
             "translated_text": body,
             "translated_text_sha256": _text_sha256(body),
+            "translated_text_octets": None if body is None else len(body.encode("utf-8")),
         },
         {
             "resource_version": version,
             "translation_key": "title",
             "translated_text": title,
             "translated_text_sha256": _text_sha256(title),
+            "translated_text_octets": len(title.encode("utf-8")),
         },
     ]
 
