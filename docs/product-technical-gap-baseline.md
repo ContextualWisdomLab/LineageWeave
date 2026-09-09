@@ -115,7 +115,8 @@ The next hosted run at exact HEAD `0ba5daf4ac048337779ccffdcc4d741a1b490d07`
 completed lint, build, and Storybook successfully. Its frontend coverage job
 still failed the unchanged 100% gate with lines 95.49%, statements 93.61%,
 functions 93.03%, and branches 83.60%; the preserved artifact is the
-authoritative report. The PostgreSQL job remained in progress when recorded.
+authoritative report. The PostgreSQL job later completed successfully after
+running the full backend suite.
 
 At exact HEAD `459587772732996f0e3d2acfd5ce4d04ad9c1c60`, hosted run
 [34302472502](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34302472502)
@@ -1319,7 +1320,8 @@ including TypeScript compilation and Vite production output. The existing
 500 kB chunk warning remains; a successful build is not a latency result or
 a reason to raise the warning threshold. Colima inventory at inspection still
 showed one instance per canonical LineageWeave service, with no duplicate stack
-requiring cleanup. The current hosted PostgreSQL job remained in progress.
+requiring cleanup. Hosted run `34306991982` later completed its PostgreSQL job
+successfully; the frontend coverage gate remained the outstanding failure.
 
 ### Browser quantity boundary verification — 2026-09-08
 
