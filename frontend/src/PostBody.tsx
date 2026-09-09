@@ -206,12 +206,14 @@ function normalizedUnitText(value: string): string {
 }
 
 /**
- * Return direct row counts for each source table in document order.
+ * Return parsed row counts for each source table in document order.
  *
  * Persisted rows do not currently carry a table identifier. The source body
  * is therefore the smallest trustworthy boundary for adjacent tables; when
  * its row count disagrees with persisted rows, the renderer falls back to the
- * old consecutive-row grouping instead of guessing.
+ * old consecutive-row grouping instead of guessing. DOMParser's `text/html`
+ * tree builder inserts an implied `tbody` around bare `tr` tokens, so only
+ * table-section children are row-bearing at this boundary.
  */
 function sourceTableRowGroupSizes(body: string): number[] {
   const document = new DOMParser().parseFromString(body, "text/html");
@@ -219,7 +221,6 @@ function sourceTableRowGroupSizes(body: string): number[] {
     .map((table) =>
       Array.from(table.children).reduce((count, child) => {
         const tagName = child.tagName.toLowerCase();
-        if (tagName === "tr") return count + 1;
         if (tagName !== "thead" && tagName !== "tbody" && tagName !== "tfoot") return count;
         return count + Array.from(child.children).filter(
           (row) => row.tagName.toLowerCase() === "tr",
