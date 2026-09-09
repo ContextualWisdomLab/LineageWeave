@@ -2641,6 +2641,18 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
   });
 
+  it("opens an authorized deep-linked post and removes its query when closed", async () => {
+    window.history.replaceState({}, "", "/?post=post-1#evidence");
+    stubBackend();
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("#evidence");
+  });
+
   it("announces the post-detail popup loading state as a live region before the post resolves", async () => {
     const fetchMock = stubBackend({ deferPostOne: true });
 
