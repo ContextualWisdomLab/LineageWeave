@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOntologyNeighborhood } from "../api";
 import type { OntologyNeighborhoodPayload } from "../api";
 import { OntologyExplorer } from "./OntologyExplorer";
@@ -13,6 +13,12 @@ vi.mock("../api", async (importOriginal) => {
 
 beforeEach(() => {
   vi.mocked(fetchOntologyNeighborhood).mockReset();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
@@ -594,8 +600,5 @@ describe("OntologyExplorer", () => {
     expect(click).toHaveBeenCalledTimes(2);
     vi.runAllTimers();
     expect(revokeObjectURL).toHaveBeenCalledTimes(2);
-    vi.useRealTimers();
-    click.mockRestore();
-    vi.unstubAllGlobals();
   });
 });
