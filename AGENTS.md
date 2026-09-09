@@ -409,6 +409,13 @@ unexercised paths; do not lower the threshold or exclude product code to make
 the check green. A passing test count without a passing coverage report is not
 frontend CI completion.
 
+The local full coverage run on `98f64d723` exposed four timing-sensitive
+failures under concurrent instrumented load (three 5-second timeouts and one
+occupation-data wait); each failed test passed when rerun alone. Preserve both
+facts: isolated reruns are diagnostic evidence, not a green full-suite result,
+and the suite needs a reproducible parallel-load fix before treating the
+coverage run as stable.
+
 ## W3C PROV-O boundary
 
 - Add standard provenance through `lineageweave.prov_o` and the
