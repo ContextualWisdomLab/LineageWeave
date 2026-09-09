@@ -100,6 +100,13 @@ describe("App, unauthenticated", () => {
     render(<App showLabPanels />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
   });
+
+  it("shows the provider error without entering the product shell", () => {
+    mockAuth = { ...mockAuth, error: new Error("Authentication failed") };
+    render(<App />);
+    expect(screen.getByText("Authentication failed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /log in/i })).toBeNull();
+  });
 });
 
 function jsonResponse(body: unknown): Response {
@@ -116,6 +123,12 @@ describe("App, authenticated", () => {
         profile: { preferred_username: "demo.analyst" },
       },
     };
+  });
+
+  it("fails closed when authentication has no access token", () => {
+    mockAuth = { ...mockAuth, user: { profile: { preferred_username: "demo.analyst" } } };
+    render(<App />);
+    expect(screen.getByText("Authenticated, but no access token was returned.")).toBeInTheDocument();
   });
 
   function stubBackend(options?: {
