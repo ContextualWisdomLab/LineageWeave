@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Snapshot refreshed 2026-09-09 KST (sixth cycle, exact-head
-> `fabdacd4c487be7feb8db02c32b79d4e7d89f581`). Protected `main` is
+> Snapshot refreshed 2026-09-09 KST (seventh cycle, exact-head
+> `1f0f7059c8a2cc0a610cd0ee62568b7ed6612add`). Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
 > validation at that head. Required current-head checks are not yet accepted
@@ -10,11 +10,11 @@
 > API is implemented on the candidate branch. That is candidate implementation
 > evidence, not protected-main, deployed, or release evidence. Code-relevant
 > hosted checks on that head pass (Full test suite, Frontend lint/test/build,
-> Analyze python/actions, Semgrep, opencode-review, osv, trivy, scorecard);
-> delivery remains BLOCKED by central evidence (dependency-review 403
-> fail-closed, CodeQL compat pending central dispatch, noema-review 429
-> rate-limited, strix cancelled) with `REVIEW_REQUIRED` and no independent
-> APPROVE.
+> Analyze python/actions, Semgrep, osv, trivy, scorecard, strix recovered to
+> pass, coverage, ontology); delivery remains BLOCKED by central evidence
+> (dependency-review 403 fail-closed, CodeQL compat pending central dispatch,
+> noema-review 502 gateway transport, opencode verdict pending dispatch
+> rerun) with `REVIEW_REQUIRED` and no independent APPROVE.
 >
 > Volatile queue counts, other-PR heads, and pending-job observations are not
 > promoted into this current snapshot. Historical queue and candidate evidence
@@ -180,20 +180,21 @@
 ## Autonomous KPI loop (2026-09-09 exact-head evidence)
 
 - KPI-1 PR-zero convergence: `gh pr list` reports 139 open PRs and
-  `gh issue list` reports 22 open issues at this cycle. No PR was closed,
+  `gh issue list` reports 22 open issues at this cycle (unchanged). No PR was closed,
   force-pushed, or merged in this cycle; merge requires terminal
   required/security gates plus qualifying independent approval.
 - KPI-2 exact-head Checks on #929 at
-  `fabdacd4c487be7feb8db02c32b79d4e7d89f581`: code-relevant hosted checks
+  `1f0f7059c8a2cc0a610cd0ee62568b7ed6612add`: code-relevant hosted checks
   pass (Full test suite, Frontend lint/test/build, Analyze python/actions,
-  Semgrep, opencode-review, osv-scan, trivy-fs, scorecard). Delivery stays
+  Semgrep, osv-scan, trivy-fs, scorecard, strix recovered pass,
+  coverage-source-tree/evidence, Validate ontology publication). Delivery stays
   `BLOCKED`/`REVIEW_REQUIRED` on central evidence: dependency-review fails
   closed on HTTP 403 from the dependency-graph compare API, CodeQL compat
   shards report pending central dispatch, noema-review fails on gateway
-  HTTP 429 (`served_model=deepseek-ai/deepseek-v4-flash-0731`), and strix is
-  cancelled after ~6h. Queue saturation (314 queued runs reported on the
-  predecessor head) was handed to canonical owner `.github#712`; no duplicate
-  local workflow was added.
+  HTTP 502 (`served_model=meta/llama-3.2-11b-vision-instruct`, gateway owns
+  repair/failover), opencode-review waits for the dispatch verdict rerun on
+  the new head. Queue handoff to canonical owner `.github#712` stands; no
+  duplicate local workflow was added.
 - KPI-3 baseline freshness: protected `main`
   `83eba56149eb802cd63642c507c324c9976ec78e` verified via
   `git rev-parse origin/main`; this snapshot records the exact #929 head
