@@ -173,6 +173,9 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    includeAdditionalBoardPost?: boolean;
+    boardTotalCount?: number;
+    omitVisibilityOptions?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1322,8 +1325,21 @@ describe("App, authenticated", () => {
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
                     },
+                    ...(options?.includeAdditionalBoardPost
+                      ? [
+                          {
+                            post_id: "post-board-2",
+                            post_title: "Earlier alphabetic post",
+                            voc_type_code: "vop",
+                            voc_type_label: "Voice of Partner",
+                            visibility_code: "internal",
+                            visibility_label: "Internal",
+                            created_at: "2026-01-02T00:00:00Z",
+                          },
+                        ]
+                      : []),
                   ],
-                  total_count: 1,
+                  total_count: options?.boardTotalCount ?? 1,
                   limit: 50,
                   offset: 0,
                   ...(options?.omitVoiceOptions
@@ -1342,7 +1358,9 @@ describe("App, authenticated", () => {
                           { code: "vos", label: "Voice of Supplier" },
                         ],
                       }),
-                  visibility_options: [{ code: "public", label: "Public" }],
+                  ...(options?.omitVisibilityOptions
+                    ? {}
+                    : { visibility_options: [{ code: "public", label: "Public" }] }),
                 },
           ),
         );
@@ -2546,7 +2564,11 @@ describe("App, authenticated", () => {
   });
 
   it("renders the board landmark and functional post controls", async () => {
-    const fetchMock = stubBackend();
+    const fetchMock = stubBackend({
+      boardTotalCount: 400,
+      includeAdditionalBoardPost: true,
+      omitVisibilityOptions: true,
+    });
     render(<App showLabPanels />);
 
     const board = await screen.findByRole("region", { name: "Board" });
@@ -2555,6 +2577,13 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
     expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
+    expect(within(board).getByRole("option", { name: "Internal" })).toBeInTheDocument();
+    expect(within(board).getByText("...")).toBeInTheDocument();
+
+    await userEvent.click(within(board).getByRole("button", { name: "Next page" }));
+    await waitFor(() => expect(within(board).getByRole("button", { name: "Previous page" })).toBeEnabled());
+    await userEvent.click(within(board).getByRole("button", { name: "Page 8" }));
+    await userEvent.click(within(board).getByRole("button", { name: "Previous page" }));
 
     await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     await waitFor(() =>
