@@ -83,8 +83,8 @@ demo credentials and retains the post-login destination check.
 passed the real Chromium redirect/login smoke (one test, 33.1 seconds total).
 This verifies the demo login flow against the local runtime, not deployment of
 the PR's frontend bundle, production Keyverse integration, or all-page latency.
-Current-head hosted checks, independent approval, protected merge, and release
-remain unverified; older successful runs do not satisfy those gates.
+Current-head full-suite completion, independent approval, protected merge, and
+release remain unverified; older successful runs do not satisfy those gates.
 
 ## Frontend coverage evidence — 2026-09-08 to 2026-09-09
 
@@ -100,10 +100,16 @@ authorized `?post=` deep link, closes the Post, removes only that query key, and
 retains the evidence fragment. These tests cover buyer navigation and keyboard
 recovery without changing production code, deadlines, coverage scope, or the
 100% threshold. The head retains the separately owned calendar contract repair
-that arrived on the remote branch first. Required GitHub runs started for this
-exact head and were pending at inspection, so predecessor results below do not
-transfer. Normal squash auto-merge remains enabled, but the PR still lacks a
-qualifying independent approval and remains outside protected `main`.
+that arrived on the remote branch first. Exact-head run
+[34333493054](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054)
+completed 745 frontend tests across 76 files. Lint, product build, Storybook,
+and artifact preservation passed. Artifact
+[10096785881](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054/artifacts/10096785881)
+records lines 96.62%, statements 94.78%, functions 94.17%, and branches
+84.97%. `App.tsx` reached 91.69% lines and 76.25% branches. The unchanged 100%
+gate correctly failed; the same run's PostgreSQL suite is still in progress.
+No auto-merge request is currently present, the PR lacks a qualifying
+independent approval, and it remains outside protected `main`.
 
 At exact HEAD `031cb4fe51d43ac3d8f792fe8180ab858617d1bc`, hosted run
 [34328998659](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659)
