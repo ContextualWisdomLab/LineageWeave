@@ -49,6 +49,8 @@ afterEach(() => {
 
 it("announces a lazy surface load failure with a recovery action", () => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const reload = vi.fn();
+  vi.stubGlobal("location", { reload });
   const BrokenSurface = () => {
     throw new Error("synthetic chunk failure");
   };
@@ -62,7 +64,8 @@ it("announces a lazy surface load failure with a recovery action", () => {
   expect(screen.getByRole("alert")).toHaveTextContent(
     "This view is unavailable. Refresh once; if it fails again, contact your administrator.",
   );
-  expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+  expect(reload).toHaveBeenCalledOnce();
 
   rerender(
     <SurfaceBoundary key="next-post">
