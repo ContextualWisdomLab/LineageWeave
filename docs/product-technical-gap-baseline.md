@@ -90,7 +90,7 @@
   preserves exception-classification coverage, while
   `test_translation_cache_recursion_real_payload.py` constructs a depth from
   the running interpreter's recursion limit that exhausts the standard JSON
-  decoder, proves `json.loads(raw_payload)` raises `RecursionError`, and then
+  decoder, proves `json.loads(raw_payload)` actually raises `RecursionError`, and then
   requires that same wire payload to converge to a cache miss. The
   evidence-contract test prevents later edits from weakening that real-wire
   proof or promoting local/predecessor focused results into current acceptance.
