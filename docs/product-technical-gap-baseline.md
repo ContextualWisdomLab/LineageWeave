@@ -1,13 +1,20 @@
 # Product & Technical Gap Baseline
 
-> Snapshot refreshed 2026-09-09 KST. Protected `main` is
+> Snapshot refreshed 2026-09-09 KST (sixth cycle, exact-head
+> `fabdacd4c487be7feb8db02c32b79d4e7d89f581`). Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e`. PR #929 is the active
 > ADR 0362 candidate for issue #922 and is open / Ready for exact-head
-> validation. Required current-head checks are not yet accepted as terminal GREEN
-> and the delivery boundary still requires qualifying independent review.
-> The authenticated `GET /api/translations/{screen_key}` API is implemented on
-> the candidate branch. That is candidate implementation evidence, not
-> protected-main, deployed, or release evidence.
+> validation at that head. Required current-head checks are not yet accepted
+> as terminal GREEN and the delivery boundary still requires qualifying
+> independent review. The authenticated `GET /api/translations/{screen_key}`
+> API is implemented on the candidate branch. That is candidate implementation
+> evidence, not protected-main, deployed, or release evidence. Code-relevant
+> hosted checks on that head pass (Full test suite, Frontend lint/test/build,
+> Analyze python/actions, Semgrep, opencode-review, osv, trivy, scorecard);
+> delivery remains BLOCKED by central evidence (dependency-review 403
+> fail-closed, CodeQL compat pending central dispatch, noema-review 429
+> rate-limited, strix cancelled) with `REVIEW_REQUIRED` and no independent
+> APPROVE.
 >
 > Volatile queue counts, other-PR heads, and pending-job observations are not
 > promoted into this current snapshot. Historical queue and candidate evidence
@@ -169,3 +176,34 @@
   `tests/test_translation_cache_timeout.py`, and
   `tests/test_translation_documentation_alignment.py`.
 - Historical delivery/gap overlays: `docs/product-technical-gap-baseline-history-2026-09-04.md`.
+
+## Autonomous KPI loop (2026-09-09 exact-head evidence)
+
+- KPI-1 PR-zero convergence: `gh pr list` reports 139 open PRs and
+  `gh issue list` reports 22 open issues at this cycle. No PR was closed,
+  force-pushed, or merged in this cycle; merge requires terminal
+  required/security gates plus qualifying independent approval.
+- KPI-2 exact-head Checks on #929 at
+  `fabdacd4c487be7feb8db02c32b79d4e7d89f581`: code-relevant hosted checks
+  pass (Full test suite, Frontend lint/test/build, Analyze python/actions,
+  Semgrep, opencode-review, osv-scan, trivy-fs, scorecard). Delivery stays
+  `BLOCKED`/`REVIEW_REQUIRED` on central evidence: dependency-review fails
+  closed on HTTP 403 from the dependency-graph compare API, CodeQL compat
+  shards report pending central dispatch, noema-review fails on gateway
+  HTTP 429 (`served_model=deepseek-ai/deepseek-v4-flash-0731`), and strix is
+  cancelled after ~6h. Queue saturation (314 queued runs reported on the
+  predecessor head) was handed to canonical owner `.github#712`; no duplicate
+  local workflow was added.
+- KPI-3 baseline freshness: protected `main`
+  `83eba56149eb802cd63642c507c324c9976ec78e` verified via
+  `git rev-parse origin/main`; this snapshot records the exact #929 head
+  above and does not inherit predecessor evidence.
+- KPI-4 touched-code quality: local focused
+  `test_translation_ledger_contract + test_translation_screen_value_object +
+  test_translation_documentation_alignment` reports 31 passed; that is local
+  evidence only, not hosted GREEN. p95<=20ms, full docstring/test/boundary
+  100% remain tracked as unverified until measured on the exact head.
+- KPI-5 sale-quality proxy: buyer-visible gap #922 stays open (only
+  `en/ko/zh/ja/vi` first-class in protected `main`; `es/de/fr` cutover and
+  material-screen desktop/mobile state evidence absent). No Medium+ security
+  gate is claimed GREEN while CodeQL dispatch is pending.
