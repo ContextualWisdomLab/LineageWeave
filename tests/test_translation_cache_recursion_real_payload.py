@@ -27,4 +27,5 @@ def test_real_over_nested_json_payload_is_a_cache_miss() -> None:
         resource_version=1,
         locale="en",
         expected_text_digests={"title": expected_digest},
+        expected_text_octets={"title": len(b"Title")},
     ) is None

@@ -115,12 +115,14 @@ def _rows(*, body: str | None = "No customers", version: int = 7) -> list[dict[s
             "translation_key": "body",
             "translated_text": body,
             "translated_text_sha256": _text_sha256(body),
+            "translated_text_octets": None if body is None else len(body.encode("utf-8")),
         },
         {
             "resource_version": version,
             "translation_key": "title",
             "translated_text": title,
             "translated_text_sha256": _text_sha256(title),
+            "translated_text_octets": len(title.encode("utf-8")),
         },
     ]
 
@@ -133,6 +135,9 @@ def test_locale_and_cache_identity_validation_rejects_ambiguous_inputs() -> None
         build_translation_cache_key("lineage:weave", "customer-master", 1, "en")
     with pytest.raises(ValueError, match="screen_key"):
         build_translation_cache_key("lineageweave", " ", 1, "en")
+    for screen_key in (".", "..", "reports/./daily", "reports/../daily"):
+        with pytest.raises(ValueError, match="screen_key"):
+            build_translation_cache_key("lineageweave", screen_key, 1, "en")
     for version in (0, -1, True, 1.5):
         with pytest.raises(ValueError, match="positive integer"):
             build_translation_cache_key("lineageweave", "customer-master", version, "en")  # type: ignore[arg-type]

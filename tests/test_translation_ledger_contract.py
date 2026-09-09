@@ -103,7 +103,9 @@ def test_migration_normalizes_versioned_resources_and_expands_member_locale() ->
     assert "chr(160)" in sql
     assert "chr(12288)" in sql
     assert r"!~ e'^\\s|\\s$'" not in sql
-    assert "drop constraint if exists user_account_preferred_locale_ck" in sql
+    assert "installed_locales is distinct from" in sql
+    assert "constraint_is_validated is distinct from true" in sql
+    assert "screen_key !~ '(^|/)\\.\\.?(/|$)'" in sql
     for locale in EXPECTED_LOCALES:
         assert f"'{locale}'" in sql
 

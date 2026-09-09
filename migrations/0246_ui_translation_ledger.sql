@@ -2,15 +2,34 @@
 -- Ontology/concept labels remain outside this schema and with their canonical owner.
 begin;
 
-alter table user_account
-    drop constraint if exists user_account_preferred_locale_ck;
+do $$
+declare
+    installed_locales text[];
+    constraint_is_validated boolean;
+begin
+    select array_agg(locale_match[1] order by locale_match[1]), bool_and(convalidated)
+      into installed_locales, constraint_is_validated
+      from pg_constraint
+      cross join lateral regexp_matches(
+          pg_get_constraintdef(pg_constraint.oid),
+          '''([a-z]{2})''',
+          'g'
+      ) as locale_match
+     where conrelid = 'user_account'::regclass
+       and conname = 'user_account_preferred_locale_ck';
 
-alter table user_account
-    add constraint user_account_preferred_locale_ck
-    check (
-        preferred_locale is null
-        or preferred_locale in ('ko', 'en', 'ja', 'zh', 'vi', 'es', 'de', 'fr')
-    );
+    if installed_locales is distinct from array['de', 'en', 'es', 'fr', 'ja', 'ko', 'vi', 'zh']
+       or constraint_is_validated is distinct from true then
+        alter table user_account
+            drop constraint if exists user_account_preferred_locale_ck;
+        alter table user_account
+            add constraint user_account_preferred_locale_ck
+            check (
+                preferred_locale is null
+                or preferred_locale in ('ko', 'en', 'ja', 'zh', 'vi', 'es', 'de', 'fr')
+            );
+    end if;
+end $$;
 
 create table if not exists ui_translation_resource (
     resource_id bigint generated always as identity primary key,
@@ -39,6 +58,7 @@ create table if not exists ui_translation_resource (
             || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
         ) = screen_key
         and position(':' in screen_key) = 0
+        and screen_key !~ '(^|/)\.\.?(/|$)'
     ),
     resource_version bigint not null check (resource_version > 0),
     publication_state text not null default 'draft' check (publication_state in ('draft', 'published')),

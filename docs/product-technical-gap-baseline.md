@@ -90,7 +90,7 @@
   preserves exception-classification coverage, while
   `test_translation_cache_recursion_real_payload.py` constructs a depth from
   the running interpreter's recursion limit that exhausts the standard JSON
-  decoder, proves `json.loads(raw_payload)` raises `RecursionError`, and then
+  decoder, proves `json.loads(raw_payload)` actually raises `RecursionError`, and then
   requires that same wire payload to converge to a cache miss. The
   evidence-contract test prevents later edits from weakening that real-wire
   proof or promoting local/predecessor focused results into current acceptance.
@@ -213,3 +213,34 @@ this new head.
   review; keep stacked consumer #932 as a dependent Draft revalidated after
   the foundation reaches protected truth; leave leftover-pair accessible-name
   work to its single-writer owner.
+
+## Exact-head RCA: `e48d52968` (2026-09-09, PR #929)
+
+- Predecessor head `0db7d31da` (octet-bounded cache decoding) failed its Full
+  test suite on one regression:
+  `test_hung_cache_read_converges_to_miss_within_request_budget` raised
+  `TypeError` because `_read_exact_cache` gained a required
+  `expected_text_octets` argument the hung-cache contract call does not pass.
+  The repair defaults `expected_text_octets` to `None` in
+  `_read_exact_cache` and `_decode_cached_screen`: without authoritative copy
+  no decoder bound exists, so the candidate converges to a miss instead of
+  crashing. The hung-cache budget test is honored unchanged; 97 translation
+  tests passed locally before the fast-forward push.
+- On `e48d52968` the Full test suite is terminal SUCCESS, as are Frontend
+  lint/test/build, noema-review, Analyze python/actions, Semgrep, osv-scan,
+  trivy-fs, and Scorecard. Strix was still pending at record time. These are
+  hosted receipts for this exact head only and do not transfer.
+- Delivery stays BLOCKED on central evidence outside this repository's code:
+  dependency-review fails closed on HTTP 403 from the dependency-graph
+  compare API (canonical owner `.github#1725`); the three CodeQL
+  compatibility shards wait on the central dispatch verdict and rerun by
+  design (canonical owner `.github#2040`); opencode-review still reports no
+  agent verdict on the current head despite reruns, so the dispatch-owned
+  verdict loop remains the only path. No local workflow duplicate was added
+  and no gate was bypassed.
+- Predecessor head `0889f49b1` receipts (recorded here because its per-head
+  RCA stayed local): Full test suite SUCCESS and Frontend SUCCESS after the
+  route `:path` and wording alignment; its only failures were the same
+  central-owner and transient agent-verdict items.
+- Qualifying independent review is still outstanding; terminal merge admission
+  is not claimed.

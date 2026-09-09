@@ -131,7 +131,7 @@ async def _assert_postgres_error(
     raise AssertionError(f"expected PostgreSQL SQLSTATE {sqlstate}")
 
 
-def test_postgres_rejects_padded_translation_resource_identity() -> None:
+def test_postgres_rejects_noncanonical_translation_resource_identity() -> None:
     """Database aggregate identity cannot diverge from reader/cache admission."""
 
     async def scenario(connection: asyncpg.Connection) -> None:
@@ -140,6 +140,10 @@ def test_postgres_rejects_padded_translation_resource_identity() -> None:
             ("lineageweave", " customer-master"),
             ("lineageweave\t", "customer-master"),
             ("lineageweave", "\ncustomer-master"),
+            ("lineageweave", "."),
+            ("lineageweave", ".."),
+            ("lineageweave", "reports/./daily"),
+            ("lineageweave", "reports/../daily"),
         ):
             await _assert_postgres_error(
                 connection.execute(
@@ -363,6 +367,7 @@ def test_postgres_required_key_query_returns_authoritative_text_sha256() -> None
         assert len(rows) == 1
         assert rows[0]["translation_key"] == "title"
         assert rows[0]["translated_text_sha256"] == hashlib.sha256(b"title-en").hexdigest()
+        assert rows[0]["translated_text_octets"] == len(b"title-en")
 
     asyncio.run(_run_with_translation_db(scenario))
 

@@ -45,6 +45,10 @@ def test_duplicate_json_member_names_are_cache_misses(payload: str) -> None:
             resource_version=7,
             locale="en",
             expected_text_digests=expected_text_digests,
+            expected_text_octets={
+                "body": len(b"No customers"),
+                "title": len(b"Customer master"),
+            },
         )
         is None
     )

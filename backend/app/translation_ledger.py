@@ -61,7 +61,8 @@ select translation_key.translation_key,
        case
            when translation_text.translated_text is null then null
            else encode(sha256(convert_to(translation_text.translated_text, 'UTF8')), 'hex')
-       end as translated_text_sha256
+       end as translated_text_sha256,
+       octet_length(translation_text.translated_text) as translated_text_octets
   from ui_translation_resource as resource
   join ui_translation_key as translation_key
     on translation_key.resource_id = resource.resource_id
@@ -219,6 +220,12 @@ def _validate_identity_segment(value: str, *, field_name: str) -> str:
         raise TranslationIdentityError(
             f"{field_name} must be nonblank and must not contain ':'"
         )
+    if field_name == "screen_key" and any(
+        segment in {".", ".."} for segment in normalized.split("/")
+    ):
+        raise TranslationIdentityError(
+            "screen_key must not contain URL-normalized dot segments"
+        )
     return normalized
 
 
@@ -310,8 +317,22 @@ def _decode_cached_screen(
     resource_version: int,
     locale: str,
     expected_text_digests: Mapping[str, str | None],
+    expected_text_octets: Mapping[str, int | None] | None = None,
 ) -> TranslationScreen | None:
-    """Accept a cache hit only when identity and copy match PostgreSQL evidence."""
+    """Accept a cache hit only when identity and copy match PostgreSQL evidence.
+
+    Missing octet evidence converges to a miss: without the authoritative copy
+    no decoder bound exists, so the candidate is never trusted.
+    """
+    maximum_payload_units = _maximum_cache_payload_units(
+        product_key=product_key,
+        screen_key=screen_key,
+        resource_version=resource_version,
+        locale=locale,
+        expected_text_octets=expected_text_octets,
+    )
+    if maximum_payload_units is None or len(raw_payload) > maximum_payload_units:
+        return None
     try:
         decoded = json.loads(raw_payload, object_pairs_hook=_unique_json_object)
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError, RecursionError):
@@ -351,6 +372,37 @@ def _decode_cached_screen(
     )
 
 
+def _maximum_cache_payload_units(
+    *,
+    product_key: str,
+    screen_key: str,
+    resource_version: int,
+    locale: str,
+    expected_text_octets: Mapping[str, int | None] | None,
+) -> int | None:
+    """Derive a safe JSON-decoder input bound from the authoritative screen copy."""
+    if not expected_text_octets or any(
+        isinstance(length, bool) or not isinstance(length, int) or length < 0
+        for length in expected_text_octets.values()
+    ):
+        return None
+    empty_payload = json.dumps(
+        {
+            "product_key": product_key,
+            "screen_key": screen_key,
+            "resource_version": resource_version,
+            "locale": locale,
+            "translations": {key: "" for key in expected_text_octets},
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    # JSON may expand each UTF-8 source byte to at most one six-character
+    # ``\uXXXX`` escape. The empty payload already includes member syntax.
+    return len(empty_payload) + 6 * sum(expected_text_octets.values())
+
+
 async def _read_exact_cache_payload(
     cache: AsyncTranslationCache | None,
     *,
@@ -375,6 +427,7 @@ async def _read_exact_cache(
     resource_version: int,
     locale: str,
     expected_text_digests: Mapping[str, str | None],
+    expected_text_octets: Mapping[str, int | None] | None = None,
 ) -> TranslationScreen | None:
     """Validate one cache candidate against already-established PostgreSQL digests."""
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
@@ -388,6 +441,7 @@ async def _read_exact_cache(
         resource_version=resource_version,
         locale=locale,
         expected_text_digests=expected_text_digests,
+        expected_text_octets=expected_text_octets,
     )
 
 
@@ -455,10 +509,15 @@ async def read_translation_screen(
                     f"no published translation resource for {product}/{screen} version {version!r}"
                 )
             expected_text_digests: dict[str, str | None] = {}
+            expected_text_octets: dict[str, int | None] = {}
             for row in key_rows:
                 translation_key = str(row["translation_key"])
                 digest = row["translated_text_sha256"]
                 expected_text_digests[translation_key] = digest if isinstance(digest, str) else None
+                text_octets = row["translated_text_octets"]
+                expected_text_octets[translation_key] = (
+                    text_octets if isinstance(text_octets, int) and not isinstance(text_octets, bool) else None
+                )
             cached = _decode_cached_screen(
                 raw_payload,
                 product_key=product,
@@ -466,6 +525,7 @@ async def read_translation_screen(
                 resource_version=version,
                 locale=language,
                 expected_text_digests=expected_text_digests,
+                expected_text_octets=expected_text_octets,
             )
             if cached is not None:
                 return cached
