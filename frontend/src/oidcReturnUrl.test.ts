@@ -78,6 +78,16 @@ describe("OIDC return URL handling", () => {
     expect(restoreOidcReturnUrl(undefined)).toBe("/?post=from-local-storage");
     expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
   });
+
+  it("restores the current product path when no OIDC state, stored deep link, or post query exists", () => {
+    const previousLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    try {
+      window.history.replaceState({}, "", "/customers");
+      expect(restoreOidcReturnUrl(undefined)).toBe("/customers");
+    } finally {
+      window.history.replaceState({}, "", previousLocation);
+    }
+  });
 });
 
 describe("stripOidcCallbackParams", () => {
