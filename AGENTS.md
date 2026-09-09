@@ -269,6 +269,12 @@ only the run header and dots. Keep the single-worker setting in the checked-in
 Vitest configuration so local and hosted test paths measure assertions instead
 of worker startup contention; this is a test-harness reliability setting, not a
 product performance result.
+
+The full `pnpm run test:coverage` path also timed out after 180 seconds on the
+same checkout with only the Vitest startup banner. This is distinct from the
+hosted coverage artifact, which reached its threshold gate and preserved its
+report. Do not count the local timeout as a test pass or as hosted coverage
+evidence; isolate the hanging test lifecycle before changing coverage policy.
 `backend/tests/` and `tests/test_schema.py` are real-integration tests
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
