@@ -2889,15 +2889,21 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
   });
 
-  it("surfaces a non-availability verification error without hiding the cause", async () => {
+  it("keeps a rejected verification request behind stable recovery guidance", async () => {
     stubBackend({ admin: true, searchFailure: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
-    await waitFor(() => expect(screen.getByText("Verification request was rejected.")).toBeInTheDocument());
-    expect(screen.queryByText(/public search is not configured yet/)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.",
+        ),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Verification request was rejected.")).not.toBeInTheDocument();
   });
 
   it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {

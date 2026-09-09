@@ -257,19 +257,6 @@ Every new channel, fusion rule, or threshold needs a test against
 `lineageweave/fixtures.py`'s synthetic dataset (or a new synthetic fixture
 in the same spirit) -- never against real data, per the hard rule above.
 
-### Frontend Vitest execution
-
-On the aarch64 Colima development environment, Vitest's default worker
-parallelism reproduced a no-output hang for both `WorkspaceCalendar` and the
-large `App` suite. `pnpm exec vitest run
-src/components/WorkspaceCalendar.emptyStateCoverage.test.tsx --no-file-parallelism
---maxWorkers=1` completed with one passing test in 11.70 seconds, while the
-default run and `--maxWorkers=2` exceeded the observation limit after printing
-only the run header and dots. Keep the single-worker setting in the checked-in
-Vitest configuration so local and hosted test paths measure assertions instead
-of worker startup contention; this is a test-harness reliability setting, not a
-product performance result.
-
 The full `pnpm run test:coverage` path also timed out after 180 seconds on the
 same checkout with only the Vitest startup banner. This is distinct from the
 hosted coverage artifact, which reached its threshold gate and preserved its
