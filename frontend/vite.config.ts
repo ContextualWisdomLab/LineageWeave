@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { configDefaults } from 'vitest/config'
+import { configDefaults, coverageConfigDefaults } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
       provider: 'v8',
       reportOnFailure: true,
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/vite-env.d.ts'],
+      exclude: [...coverageConfigDefaults.exclude, 'src/vite-env.d.ts'],
       reporter: ['text', 'json-summary', 'lcov'],
     },
     environment: 'jsdom',
