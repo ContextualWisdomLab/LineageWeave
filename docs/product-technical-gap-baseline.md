@@ -1,13 +1,11 @@
 # Product & Technical Gap Baseline
 
-> Current authority: 2026-09-09 UTC. Protected `main` is
+> Dated observation: 2026-09-09 UTC. Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (#931, 2026-09-05,
 > defer repository-local jobs while PRs are Draft). Live queue at
 > refresh: 141 open PRs (16 ready, 125 draft) and 22 open issues.
 > Leftover-map family: 65 open (64 draft, 1 ready: #802 v2.30.0
-> explained share on pair segments). This section is the sole current
-> authority; every `Exact-head loop overlay` below is dated historical
-> evidence and does not supersede this section (issue #963).
+> explained share on pair segments). Live agents/PR/issue/protected-ref/check state remains current authority; this section is dated evidence only and every `Exact-head loop overlay` below is historical evidence (issue #963).
 >
 > Exact-head checks on protected `main@83eba56`: Full test suite
 > SUCCESS plus CodeQL / PROV-O / Ontology / Tests SUCCESS (4/4
@@ -26,13 +24,14 @@
 > CodeQL compat shards miss their dispatch-verdict handshake, Noema review
 > fails on unconfigured reviewer credentials (org secret), and Strix fails
 > closed after its quick run exits without mappable findings (exit 2) -- all
-> environment class, unfixable from any branch. No self-approve, no
+> repair findings open as of this observation. No self-approve, no
 > force-push, no stale-evidence transfer.
 >
-> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `52b6b93`:
-> Full test suite SUCCESS, Semgrep/osv-scorecard-trivy SUCCESS, Frontend
-> FAILURE with 16 files below the 100% threshold, Strix FAILURE closed
-> without mappable findings); #979 Ask
+> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `ce0259631`:
+> Full test suite IN_PROGRESS at observation (terminal SUCCESS on `52b6b93`),
+> Semgrep SUCCESS, Frontend FAILURE with 13 files below the 100% threshold,
+> Strix/Noema IN_PROGRESS, dependency-review/CodeQL/opencode fail-closed
+> as above); #979 Ask
 > ownership-fenced liveness (CLEAN, stacked on #974); #974 chat
 > null-timeout + worker expiry; #970 fast-mlsirm v0.9.1 owner release
 > (for #967); #969 auth sign-in recovery; #964 k6 load diagnostics (no
