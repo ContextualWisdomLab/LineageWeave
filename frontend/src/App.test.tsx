@@ -2179,7 +2179,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("checkbox", { name: "Voice of Supplier" })).not.toBeInTheDocument();
   });
 
-  it("renders safe Ask Agent evidence under each cited post", async () => {
+  it("renders safe Ask Agent evidence and opens a cited post from the workspace", async () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
@@ -2191,7 +2191,11 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
-  });
+
+    await userEvent.click(screen.getByRole("button", { name: "Linked post" }));
+    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+  }, 10_000);
 
   it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
     const fetchMock = stubBackend();
@@ -2680,6 +2684,8 @@ describe("App, authenticated", () => {
 
     rerender(<App showLabPanels />);
     expect(closeButton).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(focusable.at(-1)).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
