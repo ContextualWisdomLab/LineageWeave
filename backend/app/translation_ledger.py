@@ -317,9 +317,13 @@ def _decode_cached_screen(
     resource_version: int,
     locale: str,
     expected_text_digests: Mapping[str, str | None],
-    expected_text_octets: Mapping[str, int | None],
+    expected_text_octets: Mapping[str, int | None] | None = None,
 ) -> TranslationScreen | None:
-    """Accept a cache hit only when identity and copy match PostgreSQL evidence."""
+    """Accept a cache hit only when identity and copy match PostgreSQL evidence.
+
+    Missing octet evidence converges to a miss: without the authoritative copy
+    no decoder bound exists, so the candidate is never trusted.
+    """
     maximum_payload_units = _maximum_cache_payload_units(
         product_key=product_key,
         screen_key=screen_key,
@@ -374,7 +378,7 @@ def _maximum_cache_payload_units(
     screen_key: str,
     resource_version: int,
     locale: str,
-    expected_text_octets: Mapping[str, int | None],
+    expected_text_octets: Mapping[str, int | None] | None,
 ) -> int | None:
     """Derive a safe JSON-decoder input bound from the authoritative screen copy."""
     if not expected_text_octets or any(
@@ -423,7 +427,7 @@ async def _read_exact_cache(
     resource_version: int,
     locale: str,
     expected_text_digests: Mapping[str, str | None],
-    expected_text_octets: Mapping[str, int | None],
+    expected_text_octets: Mapping[str, int | None] | None = None,
 ) -> TranslationScreen | None:
     """Validate one cache candidate against already-established PostgreSQL digests."""
     cache_key = build_translation_cache_key(product_key, screen_key, resource_version, locale)
