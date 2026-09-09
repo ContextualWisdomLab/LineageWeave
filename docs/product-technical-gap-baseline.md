@@ -91,25 +91,30 @@ release remain unverified; older successful runs do not satisfy those gates.
 ### Current exact-head rerun — 2026-09-09
 
 PR #983 now points at exact HEAD
-`92e6016eefb3376132a0bd7f35a23b63efad4a87`. The current tree adds synthetic
-workspace regression that follows an authorized Ask citation into its carrying
-Post and verifies the Board destination and opened Post dialog. The focused
-test passed locally; the same source-owned test slice also covers reverse focus
-wrapping inside the Post dialog. A further focused regression opens an
-authorized `?post=` deep link, closes the Post, removes only that query key, and
-retains the evidence fragment. These tests cover buyer navigation and keyboard
-recovery without changing production code, deadlines, coverage scope, or the
-100% threshold. The head retains the separately owned calendar contract repair
-that arrived on the remote branch first. Exact-head run
+`b65d4301552f95de75eb51e085eb0f31dcdf5413`. The current tree retains the
+authorized Ask-to-Post navigation, reverse dialog focus wrap, and deep-link
+cleanup regressions, then adds one synthetic Board contract for catalog
+fallback, title sorting, and eight-page navigation. The isolated Board test
+passed. A serial local full run passed 745 tests across 76 files and measured
+96.95% lines, 95.09% statements, 95.13% functions, and 85.56% branches;
+`App.tsx` measured 92.52% lines and 77.44% branches. The default parallel local
+run did not complete cleanly: five App tests timed out and one occupation test
+remained in its loading state. Keep that failure separate from the serial
+measurement. Hosted exact-head run
+[34335655798](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34335655798)
+is in progress, so local results do not satisfy the protected merge gate. No
+auto-merge request is currently present, the PR lacks a qualifying independent
+approval, and it remains outside protected `main`.
+
+At predecessor HEAD `92e6016eefb3376132a0bd7f35a23b63efad4a87`, hosted run
 [34333493054](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054)
-completed 745 frontend tests across 76 files. Lint, product build, Storybook,
-and artifact preservation passed. Artifact
+completed 745 frontend tests across 76 files and the full PostgreSQL suite.
+Lint, product build, Storybook, and artifact preservation passed. Artifact
 [10096785881](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34333493054/artifacts/10096785881)
 records lines 96.62%, statements 94.78%, functions 94.17%, and branches
 84.97%. `App.tsx` reached 91.69% lines and 76.25% branches. The unchanged 100%
-gate correctly failed; the same run's PostgreSQL suite is still in progress.
-No auto-merge request is currently present, the PR lacks a qualifying
-independent approval, and it remains outside protected `main`.
+gate correctly failed. The completed run is historical after the head advanced;
+it does not transfer to current-head acceptance.
 
 At exact HEAD `031cb4fe51d43ac3d8f792fe8180ab858617d1bc`, hosted run
 [34328998659](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659)
