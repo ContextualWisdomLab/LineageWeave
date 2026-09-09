@@ -443,6 +443,11 @@ Before classifying a coverage timeout, reproduce it on the unchanged exact
 HEAD and preserve the command, commit SHA, and timeout log. Results from later
 code or timeout-setting changes are follow-up evidence, not the causal
 baseline.
+If the hosted Full test suite has no fresh log output, query both the workflow
+run and its job record. A job may remain `in_progress` with a live
+`runner_id` while the run `updated_at` is unchanged; that is verified live
+execution, not a terminal timeout. Preserve the job and do not restart or
+cancel it solely because observation output is stale.
 Hosted run `34306991982` at exact head
 `0ba5daf4ac048337779ccffdcc4d741a1b490d07` completed the PostgreSQL full suite
 successfully and ran all 728 frontend tests successfully; the frontend job
