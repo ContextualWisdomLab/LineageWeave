@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { isExpectedKeyverseAuthorizationUrl } from "./support/auth.js";
+import {
+  isExpectedApplicationUrl,
+  isExpectedKeyverseAuthorizationUrl,
+} from "./support/auth.js";
 
 const COMPOSE_ISSUER = "http://localhost:18080/realms/lineageweave-demo";
 const AUTH_PATH = "/realms/lineageweave-demo/protocol/openid-connect/auth";
@@ -39,5 +42,16 @@ test.describe("Keyverse authorization origin boundary", () => {
         httpsIssuer,
       ),
     ).toBe(true);
+  });
+
+  test("accepts only the configured application origin after login", () => {
+    const applicationUrl = "https://lineage.example/workspace";
+
+    expect(isExpectedApplicationUrl(new URL("https://lineage.example/dashboard"), applicationUrl)).toBe(
+      true,
+    );
+    expect(isExpectedApplicationUrl(new URL("https://identity.example/tenant/login"), applicationUrl)).toBe(
+      false,
+    );
   });
 });
