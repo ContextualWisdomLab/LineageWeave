@@ -945,13 +945,32 @@ still required; the frontend 100% denominator remains unchanged.
 
 ### Exact-head KPI observation — 2026-09-09
 
-Successor PR #985 exact head `d0abddbea` passed frontend lint, build, and
-Storybook build. The preserved frontend coverage artifact measured 95.59%
-lines, 93.73% statements, 93.12% functions, and 83.77% branches; `App.tsx`
-measured 89.16% lines and 74.11% branches. The coverage gate therefore remains
-failed and its denominator was not reduced. Twenty unauthenticated requests to
-the Colima-hosted login page measured p50 35.73 ms, p95 146.53 ms, and maximum
-350.39 ms. This is a public-route observation only; it does not prove the
-authenticated page SLO or a 20 ms product-wide p95. The PostgreSQL Full test
-suite remained in progress at the time of capture, so no terminal integration
-result is inferred.
+Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e` at the
+2026-09-09 observation. The repository had 140 open pull requests and 22 open
+issues. These are queue counts, not delivery or population evidence.
+
+Foundation PR #929 was `d997a282f3393b9c2ecbef6998cdc080b7576bed` with
+normal squash auto-merge enabled. It remained blocked on required current-head
+workflows and qualifying independent approval; no bypass or self-approval was
+used. Parent frontend-coverage PR #983 was observed at
+`808fcfd24fcebddbf5e208e3092cc7d6802f2e52`, Ready and review-required.
+
+Draft successor PR #985 predecessor `1b0ed330724c433c96feab7f72e617074c38d47b`
+preserves #983 and repairs two successor-only review findings: verification
+failures no longer render server detail and instead reuse the existing
+customer recovery action, while the repository-wide Vitest single-worker
+policy was removed because the local collection stall did not establish that
+permanent policy. Changed-file oxlint passed. A focused `App.test.tsx` run
+remained at zero collected tests until it was stopped after more than one
+minute, so it is recorded as a local unavailable result, never a pass. Fresh
+hosted Checks on the resulting head are required.
+
+Earlier exact head `d0abddbea` passed frontend lint, build, and Storybook build.
+Its preserved coverage artifact measured 95.59% lines, 93.73% statements,
+93.12% functions, and 83.77% branches; `App.tsx` measured 89.16% lines and
+74.11% branches. The coverage gate therefore remains failed and its denominator
+was not reduced. Twenty unauthenticated requests to the Colima-hosted login page
+measured p50 35.73 ms, p95 146.53 ms, and maximum 350.39 ms. This is a
+public-route observation only; it does not prove the authenticated page SLO or
+a 20 ms product-wide p95. The PostgreSQL Full test suite remained in progress
+at that capture, so no terminal integration result is inferred.
