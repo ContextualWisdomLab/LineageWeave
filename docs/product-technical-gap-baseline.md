@@ -91,17 +91,17 @@ remain unverified; older successful runs do not satisfy those gates.
 ### Current exact-head rerun — 2026-09-09
 
 PR #983 now points at exact HEAD
-`32b9a99bc6ced275adee339dc0739b9371e74e6d`. The child adds a synthetic
+`0a321ee33a3bd3d447779215ed40aedc8618f838`. The current tree adds synthetic
 workspace regression that follows an authorized Ask citation into its carrying
 Post and verifies the Board destination and opened Post dialog. The focused
-test passed locally; it covers the root Ask-to-Post routing callback without
-changing production code, deadlines, coverage scope, or the 100% threshold.
-The same head also retains the separately owned calendar contract repair that
-arrived on the remote branch before this child was pushed. Required GitHub runs
-started for this exact head and were queued at inspection, so predecessor
-results below do not transfer. Normal squash auto-merge is enabled, but the PR
-still lacks a qualifying independent approval and remains outside protected
-`main`.
+test passed locally; the same source-owned test slice also covers reverse focus
+wrapping inside the Post dialog. These tests cover buyer navigation and keyboard
+recovery without changing production code, deadlines, coverage scope, or the
+100% threshold. The head retains the separately owned calendar contract repair
+that arrived on the remote branch first. Required GitHub runs started for this
+exact head and were queued at inspection, so predecessor results below do not
+transfer. Normal squash auto-merge is enabled, but the PR still lacks a
+qualifying independent approval and remains outside protected `main`.
 
 At exact HEAD `031cb4fe51d43ac3d8f792fe8180ab858617d1bc`, hosted run
 [34328998659](https://github.com/ContextualWisdomLab/LineageWeave/actions/runs/34328998659)
