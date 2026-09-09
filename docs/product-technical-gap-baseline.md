@@ -965,6 +965,15 @@ remained at zero collected tests until it was stopped after more than one
 minute, so it is recorded as a local unavailable result, never a pass. Fresh
 hosted Checks on the resulting head are required.
 
+The current Ready-PR collision audit is not clean enough for independent
+merge ordering. PRs #929/#970/#973 overlap `pyproject.toml`; #929/#974 overlap
+the main API module; #960/#983/#985 overlap ADR 0123; and #969/#972/#985
+overlap the application shell. PR #985 also carries #983's workflow, package,
+lockfile, and ADR 0165 changes while targeting `main`, so ancestry must be
+rechecked after #983 is protected-merged rather than treating those inherited
+files as an independent release. No conflicting ADR or migration number was
+observed in this Ready subset, but path non-overlap is not semantic proof.
+
 Earlier exact head `d0abddbea` passed frontend lint, build, and Storybook build.
 Its preserved coverage artifact measured 95.59% lines, 93.73% statements,
 93.12% functions, and 83.77% branches; `App.tsx` measured 89.16% lines and
