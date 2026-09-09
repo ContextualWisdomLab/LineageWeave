@@ -3125,6 +3125,15 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
   });
 
+  it("keeps malformed verification evidence non-clickable", async () => {
+    stubBackend({ verificationEvidenceUrl: "https://[malformed" });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const badge = await screen.findByLabelText("VOC verification: Northridge Grid");
+    expect(badge.tagName).toBe("SPAN");
+    expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
+  });
+
   it("lets post_admin verify pending counterparties against web search", async () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App showLabPanels />);
