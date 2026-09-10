@@ -39,15 +39,17 @@ function flattenIds(
   nodes: ReturnType<typeof buildCustomerEntityTree>,
 ): string[] {
   const out: string[] = [];
-  const walk = (
-    list: ReturnType<typeof buildCustomerEntityTree>,
-  ): void => {
-    for (const node of list) {
-      out.push(node.entity.corporate_entity_id);
-      walk(node.children);
+  const stack = [...nodes].reverse();
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
     }
-  };
-  walk(nodes);
+    out.push(node.entity.corporate_entity_id);
+    for (let index = node.children.length - 1; index >= 0; index -= 1) {
+      stack.push(node.children[index]);
+    }
+  }
   return out;
 }
 
@@ -77,6 +79,21 @@ describe("#906 cycle-safe customer forest", () => {
     expect(flattenIds(tree)).toEqual(["child", "root", "kid"]);
     expect(tree[0].ancestryNote).toBe("unlisted-parent");
     expect(tree[1].ancestryNote).toBeUndefined();
+  });
+
+  it("keeps a large ordinary hierarchy within the pure-builder latency guard", () => {
+    const entities = Array.from({ length: 2_000 }, (_, index) =>
+      entity(String(index), index === 0 ? null : String(index - 1)),
+    );
+    const startedAt = performance.now();
+    const tree = buildCustomerEntityTree(entities);
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(tree).toHaveLength(1);
+    expect(flattenIds(tree)).toHaveLength(2_000);
+    // This is a narrow algorithmic regression guard, not the product p95 SLO.
+    // The previous repeated-ancestry walk took seconds at this size.
+    expect(elapsedMs).toBeLessThan(250);
   });
 
   it("renders both cycle members with an explicit ancestry note", () => {

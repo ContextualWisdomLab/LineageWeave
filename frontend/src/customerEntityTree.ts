@@ -33,41 +33,62 @@ export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): Custo
       parentOf.set(id, parent);
     }
   }
-  // Break presentation cycles deterministically: walking from each entity
-  // in input order, the edge closing a revisited ancestor is cut so its
-  // predecessor becomes a root. Earlier members keep their edges, so the
-  // result is stable for a given input order and always acyclic.
+
+  // Each entity joins at most one parent, so the visible hierarchy is a
+  // functional graph. Settle each path once: if the current path revisits
+  // one of its own members, cut only the edge that closes that cycle. The
+  // first input-order traversal therefore keeps the same deterministic
+  // presentation rule without repeatedly walking already-settled ancestry.
+  const settled = new Set<string>();
   for (const entity of entities) {
+    const start = entity.corporate_entity_id;
+    if (settled.has(start)) {
+      continue;
+    }
     const path: string[] = [];
-    let cursor: string | null = entity.corporate_entity_id;
-    while (cursor !== null && !path.includes(cursor)) {
+    const pathIndex = new Map<string, number>();
+    let cursor: string | null = start;
+    while (cursor !== null && !settled.has(cursor) && !pathIndex.has(cursor)) {
+      pathIndex.set(cursor, path.length);
       path.push(cursor);
       cursor = parentOf.get(cursor) ?? null;
     }
-    if (cursor !== null) {
+    if (cursor !== null && pathIndex.has(cursor)) {
       const predecessor = path[path.length - 1];
       parentOf.set(predecessor, null);
       noteOf.set(predecessor, "cycle-broken");
     }
-  }
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
-  for (const entity of entities) {
-    const parent = parentOf.get(entity.corporate_entity_id);
-    if (parent) {
-      const siblings = childrenByParent.get(parent) ?? [];
-      siblings.push(entity);
-      childrenByParent.set(parent, siblings);
-    } else {
-      roots.push(entity);
+    for (const id of path) {
+      settled.add(id);
     }
   }
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
-    ...(noteOf.has(entity.corporate_entity_id)
-      ? { ancestryNote: noteOf.get(entity.corporate_entity_id) }
-      : {}),
-  });
-  return roots.map(toNode);
+
+  // Materialize iteratively instead of recursively rebuilding every subtree.
+  // This keeps a malformed but very deep visible hierarchy from consuming the
+  // JavaScript call stack while preserving input order for roots and siblings.
+  const nodeById = new Map<string, CustomerEntityTreeNode>();
+  for (const entity of entities) {
+    const id = entity.corporate_entity_id;
+    nodeById.set(id, {
+      entity,
+      children: [],
+      ...(noteOf.has(id) ? { ancestryNote: noteOf.get(id) } : {}),
+    });
+  }
+
+  const roots: CustomerEntityTreeNode[] = [];
+  for (const entity of entities) {
+    const id = entity.corporate_entity_id;
+    const node = nodeById.get(id);
+    if (!node) {
+      continue;
+    }
+    const parent = parentOf.get(id);
+    if (parent) {
+      nodeById.get(parent)?.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
 }
