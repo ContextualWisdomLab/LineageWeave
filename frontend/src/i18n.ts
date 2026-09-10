@@ -2202,7 +2202,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison reconstruction": "Tái dựng so sánh bản đồ phần dư",
     "leftover map comparison graphic reconstruction {label}": "tái dựng đồ họa so sánh bản đồ phần dư {label}",
     "leftover map comparison graphic explained leftover share {label}":
-      "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",
+      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",
     "Leftover map comparison explained leftover share": "Phần dư giải thích so sánh bản đồ phần dư",
     "Leftover map comparison unexplained leftover share": "Phần dư chưa giải thích so sánh bản đồ phần dư",
     "Leftover map comparison cross share": "Phần giao so sánh bản đồ phần dư",
