@@ -239,3 +239,11 @@ def test_parse_description_does_not_absorb_unknown_labels_into_tags() -> None:
         "TAGS: turbine, diagram\nNOTE: synthetic"
     )
     assert parsed.tags == ("turbine", "diagram")
+
+
+def test_null_image_content_client_describe_fails_closed() -> None:
+    """Without a vision provider the image channel raises instead of describing."""
+    client = NullImageContentClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError, match="no image channel"):
+        client.describe(b"", "image/png")
