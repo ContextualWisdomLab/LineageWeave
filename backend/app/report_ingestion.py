@@ -1052,7 +1052,7 @@ async def fetch_period_comparison(
         f"""
         select lp.grouping_kind, lp.grouping_key, lp.pair_kind, lp.post_id,
                lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
-               lp.leftover_map_reconstruction,
+               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
                p.post_title, p.visibility_code, p.corporate_entity_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -1086,6 +1086,21 @@ async def fetch_period_comparison(
     leftover_coverage_by_key = {
         (row["grouping_kind"], row["grouping_key"]): row for row in leftover_coverage
     }
+    leftover_axes = await conn.fetch(
+        """
+        select grouping_kind, grouping_key, axis_index, leftover_singular_value, leftover_share
+        from report_leftover_map_axis
+        where period_code = $1 and rubric_version = $2
+          and grouping_kind = any($3::text[])
+        order by grouping_kind, grouping_key, axis_index
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    leftover_axes_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover_axes:
+        leftover_axes_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
     payload: list[dict[str, Any]] = []
     for row in rows:
         label = await resolve_grouping_label(conn, row["grouping_kind"], row["grouping_key"])
@@ -1123,6 +1138,11 @@ async def fetch_period_comparison(
                             if pair["leftover_map_reconstruction"] is None
                             else float(pair["leftover_map_reconstruction"])
                         ),
+                        "leftover_map_unexplained_share": (
+                            None
+                            if pair["leftover_map_unexplained_share"] is None
+                            else float(pair["leftover_map_unexplained_share"])
+                        ),
                         "visibility_code": pair["visibility_code"],
                         "corporate_entity_id": str(pair["corporate_entity_id"]),
                         "has_real_source_context": bool(pair["has_real_source_context"]),
@@ -1132,6 +1152,16 @@ async def fetch_period_comparison(
                 "leftover_map_coverage": _leftover_map_coverage_payload(
                     leftover_coverage_by_key.get((row["grouping_kind"], row["grouping_key"]))
                 ),
+                "leftover_map_axes": [
+                    {
+                        "axis_index": int(axis["axis_index"]),
+                        "leftover_singular_value": float(axis["leftover_singular_value"]),
+                        "leftover_share": float(axis["leftover_share"]),
+                    }
+                    for axis in leftover_axes_by_key.get(
+                        (row["grouping_kind"], row["grouping_key"]), []
+                    )
+                ],
             }
         )
     return payload

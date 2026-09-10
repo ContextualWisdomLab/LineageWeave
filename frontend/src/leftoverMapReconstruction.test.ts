@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatLeftoverMapReconstruction,
-  LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
-} from "./leftoverMapReconstruction";
+import { formatLeftoverMapReconstruction } from "./leftoverMapReconstruction";
 
 describe("formatLeftoverMapReconstruction", () => {
   it("names leftover-map reconstruction without inventing a leftover score", () => {
@@ -16,10 +13,5 @@ describe("formatLeftoverMapReconstruction", () => {
     expect(formatLeftoverMapReconstruction(undefined)).toBeNull();
     expect(formatLeftoverMapReconstruction(Number.NaN)).toBeNull();
     expect(formatLeftoverMapReconstruction(Number.POSITIVE_INFINITY)).toBeNull();
-  });
-
-  it("keeps the grouping comparison reconstruction label distinct from the graphic reconstruction label", () => {
-    expect(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL).toBe("Leftover map comparison reconstruction");
-    expect(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL).not.toBe("leftover-map reconstruction {label}");
   });
 });

@@ -8,315 +8,49 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Period leftover pairs now caption grouping comparison leftover-pair
-  buttons with persisted leftover-map cross share `x` through
-  formatLeftoverMapCrossShare (ADR 0296 / v2.53.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  a grouping comparison note that matches leftover-map item
-  complete-case coverage, a grouping comparison note that matches
-  leftover-map incomplete post coverage, a grouping comparison note
-  that matches leftover-map incomplete item coverage, grouping comparison
-  leftover-pair buttons that match leftover-map reconstruction `R̂` on the
-  pair row, grouping comparison leftover-pair buttons that match
-  leftover-map explained leftover share `e` on the pair row, grouping
-  comparison leftover-pair buttons that match leftover-map unexplained
-  leftover share `s` on the pair row, and grouping comparison leftover-pair
-  buttons that match leftover-map cross share `x` on the pair row; click a
-  post marker or a pair button opens that post. A missing or non-finite
-  `x` omits that leftover-map comparison cross share badge and keeps
-  leftover-map unexplained leftover share `s` when finite, leftover-map
-  explained leftover share `e` when finite, leftover-map reconstruction
-  `R̂` when finite, leftover-map distance `d`, plus the strip coverage
-  notes. Do not invent `x` from `R̂`, `U`, and `R`, leftover-map distance,
-  plotted coordinates, leftover-map reconstruction, leftover residual,
-  leftover-map rank, leftover-map post coverage, leftover-map item
-  coverage, leftover-map incomplete post coverage, leftover-map
-  incomplete item coverage, or the count of unused axes. A finite
-  negative share is shown, never clamped. The strip does not gain the
-  leftover-map graphic. Never invent a leftover score or a theta. No new
-  columns.
+- Grouping comparison pair actions now surface persisted finite unexplained leftover share `U²/R²` under ADR 0369 / v2.55.0, including the metric in the button accessible name and never deriving it from other psychometric values.
 
-- Period leftover pairs now caption grouping comparison leftover-pair
-  buttons with persisted leftover-map unexplained leftover share `s` through
-  formatLeftoverMapUnexplainedShare (ADR 0295 / v2.52.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  a grouping comparison note that matches leftover-map item
-  complete-case coverage, a grouping comparison note that matches
-  leftover-map incomplete post coverage, a grouping comparison note
-  that matches leftover-map incomplete item coverage, grouping comparison
-  leftover-pair buttons that match leftover-map reconstruction `R̂` on the
-  pair row, grouping comparison leftover-pair buttons that match
-  leftover-map explained leftover share `e` on the pair row, and grouping
-  comparison leftover-pair buttons that match leftover-map unexplained
-  leftover share `s` on the pair row; click a post marker or a pair button
-  opens that post. A missing or non-finite `s` omits that leftover-map
-  comparison unexplained leftover share badge and keeps leftover-map
-  explained leftover share `e` when finite, leftover-map reconstruction
-  `R̂` when finite, leftover-map distance `d`, plus the strip coverage
-  notes. Do not invent `s` from `U` and `R`, leftover-map distance,
-  plotted coordinates, leftover-map reconstruction, leftover residual,
-  leftover-map rank, leftover-map post coverage, leftover-map item
-  coverage, leftover-map incomplete post coverage, leftover-map
-  incomplete item coverage, or the count of unused axes. The strip does
-  not gain the leftover-map graphic. Never invent a leftover score or a
-  theta. No new columns.
+- Grouping comparison pair buttons now expose persisted explained-leftover share `e = R̂²/R²` (ADR 0296 / v2.53.0). The visible duplicate badge is accessibility-hidden while the actionable button name includes the localized label and formatted persisted value. Missing/non-finite `e` omits only the suffix; finite zero and values above 1 remain explicit without clamping or client-side derivation.
 
-- Period leftover pairs now caption grouping comparison leftover-pair
-  buttons with persisted leftover-map explained leftover share `e` through
-  formatLeftoverMapExplainedShare (ADR 0294 / v2.51.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  a grouping comparison note that matches leftover-map item
-  complete-case coverage, a grouping comparison note that matches
-  leftover-map incomplete post coverage, a grouping comparison note
-  that matches leftover-map incomplete item coverage, grouping comparison
-  leftover-pair buttons that match leftover-map reconstruction `R̂` on the
-  pair row, and grouping comparison leftover-pair buttons that match
-  leftover-map explained leftover share `e` on the pair row; click a post
-  marker or a pair button opens that post. A missing or non-finite `e`
-  omits that leftover-map comparison explained leftover share badge and
-  keeps leftover-map reconstruction `R̂` when finite, leftover-map distance
-  `d`, plus the strip coverage notes. Do not invent `e` from `R̂` and `R`,
-  leftover-map distance, plotted coordinates, leftover-map reconstruction,
-  leftover residual, leftover-map rank, leftover-map post coverage,
-  leftover-map item coverage, leftover-map incomplete post coverage,
-  leftover-map incomplete item coverage, or the count of unused axes. The
-  strip does not gain the leftover-map graphic. Never invent a leftover
-  score or a theta. No new columns.
+- Grouping comparison leftover-pair buttons now expose persisted leftover-map reconstruction `R̂` (ADR 0295 / v2.52.0). The visible badge is decorative to accessibility APIs; the button accessible name carries the reconstruction label and value, so the explicit button `aria-label` cannot suppress the metric. Missing/non-finite `R̂` omits only that value and no client-side proxy is invented.
 
-- Period leftover pairs now caption grouping comparison leftover-pair
-  buttons with persisted leftover-map reconstruction `R̂` through
-  formatLeftoverMapReconstruction (ADR 0293 / v2.50.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  a grouping comparison note that matches leftover-map item
-  complete-case coverage, a grouping comparison note that matches
-  leftover-map incomplete post coverage, a grouping comparison note
-  that matches leftover-map incomplete item coverage, and grouping
-  comparison leftover-pair buttons that match leftover-map reconstruction
-  `R̂` on the pair row; click a post marker or a pair button opens that
-  post. A missing or non-finite `R̂` omits that leftover-map comparison
-  reconstruction badge and keeps leftover-map distance `d` plus the strip
-  coverage notes. Do not invent `R̂` from leftover-map distance, plotted
-  coordinates, leftover residual, unexplained leftover, leftover-map rank,
-  leftover-map post coverage, leftover-map item coverage, leftover-map
-  incomplete post coverage, leftover-map incomplete item coverage, or the
-  count of unused axes. The strip does not gain the leftover-map graphic.
-  Never invent a leftover score or a theta. No new columns.
+- Grouping comparison rows now show persisted leftover-map incomplete-item count through `leftoverMapIncompleteItemCount` (ADR 0294 / v2.51.0) only for fully caller-visible persisted groupings. Partial visibility remains omitted by the API; valid zero stays visible, and the UI never derives dropped criteria from scored-minus-used.
 
-- Period leftover pairs now caption the grouping comparison strip with
-  persisted leftover-map incomplete item coverage through
-  leftoverMapIncompleteItemCount (ADR 0292 / v2.49.0). After `make seed`,
+- Grouping comparison rows now show persisted leftover-map incomplete-post count through `leftoverMapIncompletePostCount` (ADR 0293 / v2.50.0) only for a fully caller-visible persisted grouping. Partial visibility omits the aggregate; valid persisted zero remains visible, and the UI never derives dropped posts from scored-minus-used.
+
+- Period leftover pairs now caption leftover-axis report badges with persisted leftover-map singular values `σ_k` (ADR 0292 / v2.49.0). Missing, non-finite, or negative singular values omit only that `σ` caption; rank-0 zero remains `σ 0.00`, and axis share remains distinct.
+
+- Grouping comparison rows now name persisted leftover-map item complete-case coverage (ADR 0291 / v2.48.0) only when the caller can see the full persisted grouping population; partial-visibility rows omit the aggregate rather than leaking a denominator or recomputing subset coverage.
+
+- Grouping comparison rows now expose persisted leftover-map post complete-case coverage through `leftoverMapCoverageCounts` (ADR 0290 / v2.47.0) only for fully visible grouping populations. Partial-visibility rows omit the aggregate instead of leaking the full-group denominator or recomputing psychometric coverage from the visible subset.
+
+- Period leftover pairs now caption leftover-map graphic axes with persisted
+  leftover-map singular values `σ_k` (ADR 0289 / v2.46.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  a grouping comparison note that matches leftover-map item
-  complete-case coverage, a grouping comparison note that matches
-  leftover-map incomplete post coverage, and a grouping comparison note
+  Gabriel biplot of already-named coordinates, leftover-map singular values
+  when finite, leftover-map axis share when finite, axis ticks that match
+  `ξ (x, y) ζ (x, y)` on the pair row, pair segments that match `d` on
+  the pair row, pair segments that match `R̂` on the pair row, pair
+  segments that match `R̂²/R²` on the pair row, pair segments that match
+  `U²/R²` on the pair row, pair segments that match `2R̂U/R²` on the pair
+  row, pair segments that match `U` on the pair row, pair segments that
+  match `R` on the pair row, pair segments that match `Y` on the pair
+  row, pair segments that match `E` on the pair row, pair segments that
+  match leftover-map rank on the pair row, a plot caption that matches
+  leftover-map complete-case coverage above the pair list, a plot caption
+  that matches leftover-map item complete-case coverage, a plot caption
+  that matches leftover-map incomplete post coverage, a plot caption that
+  matches leftover-map incomplete item coverage, a pair-list note that
+  matches leftover-map post complete-case coverage, a pair-list note that
+  matches leftover-map item complete-case coverage, a pair-list note that
+  matches leftover-map incomplete post coverage, and a pair-list note
   that matches leftover-map incomplete item coverage; click a post marker
-  or a pair button opens that post. A missing, non-integer, or negative
-  dropped count, or a dropped count that contradicts usable item
-  complete-case integers, omits that leftover-map comparison incomplete
-  item note. Dropped `0` is shown when that persisted dropped count is a
-  non-negative integer. Do not invent dropped criteria from scored minus
-  used, leftover pair count, plotted criterion marker count, leftover-map
-  distance, leftover-map rank, leftover-map post coverage, leftover-map
-  item coverage, leftover-map incomplete post coverage, or the count of
-  unused axes. The strip does not gain the leftover-map graphic. Never
-  invent a leftover score or a theta. No new columns.
-
-- Period leftover pairs now caption the grouping comparison strip with
-  persisted leftover-map incomplete post coverage through
-  leftoverMapIncompletePostCount (ADR 0291 / v2.48.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  a grouping comparison note that matches leftover-map item
-  complete-case coverage, and a grouping comparison note that matches
-  leftover-map incomplete post coverage; click a post marker or a pair
-  button opens that post. A missing, non-integer, or negative dropped
-  count, or a dropped count that contradicts usable complete-case
-  integers, omits that leftover-map comparison incomplete post note.
-  Dropped `0` is shown when that persisted dropped count is a
-  non-negative integer. Do not invent dropped posts from scored minus
-  used, leftover pair count, plotted marker count, leftover-map distance,
-  leftover-map rank, leftover-map post coverage, leftover-map item
-  coverage, leftover-map incomplete item coverage, or the count of unused
-  axes. The strip does not gain leftover-map incomplete item coverage or
-  the leftover-map graphic. Never invent a leftover score or a theta. No
-  new columns.
-
-- Period leftover pairs now caption the grouping comparison strip with
-  persisted leftover-map item complete-case coverage through
-  leftoverMapItemCoverageCounts (ADR 0290 / v2.47.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, a grouping
-  comparison note that matches leftover-map post complete-case coverage,
-  and a grouping comparison note that matches leftover-map item
-  complete-case coverage; click a post marker or a pair button opens that
-  post. A missing, non-integer, negative used, non-positive scored, or
-  used-greater-than-scored item coverage omits that leftover-map comparison
-  item coverage note. Coverage `0 of M` is shown when that persisted used
-  count is a non-negative integer and scored is a positive integer. Do not
-  invent item coverage from leftover pair count, plotted criterion marker
-  count, leftover-map distance, leftover-map rank, leftover-map post
-  coverage, leftover-map incomplete post coverage, leftover-map incomplete
-  item coverage, or the count of unused axes. The strip does not gain
-  leftover-map incomplete post coverage, leftover-map incomplete item
-  coverage, or the leftover-map graphic. Never invent a leftover score or
-  a theta. No new columns.
-
-- Period leftover pairs now caption the grouping comparison strip with
-  persisted leftover-map post complete-case coverage through
-  leftoverMapCoverageCounts (ADR 0289 / v2.46.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with the
-  Gabriel biplot of already-named coordinates, leftover-map axis share when
-  finite, axis ticks that match `ξ (x, y) ζ (x, y)` on the pair row, pair
-  segments that match `d` on the pair row, pair segments that match `R̂` on
-  the pair row, pair segments that match `R̂²/R²` on the pair row, pair
-  segments that match `U²/R²` on the pair row, pair segments that match
-  `2R̂U/R²` on the pair row, pair segments that match `U` on the pair row,
-  pair segments that match `R` on the pair row, pair segments that match
-  `Y` on the pair row, pair segments that match `E` on the pair row, pair
-  segments that match leftover-map rank on the pair row, a plot caption
-  that matches leftover-map complete-case coverage above the pair list, a
-  plot caption that matches leftover-map item complete-case coverage, a
-  plot caption that matches leftover-map incomplete post coverage, a plot
-  caption that matches leftover-map incomplete item coverage, a pair-list
-  note that matches leftover-map post complete-case coverage, a pair-list
-  note that matches leftover-map item complete-case coverage, a pair-list
-  note that matches leftover-map incomplete post coverage, a pair-list
-  note that matches leftover-map incomplete item coverage, and a grouping
-  comparison note that matches leftover-map post complete-case coverage;
-  click a post marker or a pair button opens that post. A missing,
-  non-integer, negative used, non-positive scored, or used-greater-than-scored
-  coverage omits that leftover-map comparison coverage note. Coverage `0 of
-  M` is shown when that persisted used count is a non-negative integer and
-  scored is a positive integer. Do not invent post coverage from leftover
-  pair count, plotted marker count, leftover-map distance, leftover-map
-  rank, leftover-map item coverage, leftover-map incomplete post coverage,
-  leftover-map incomplete item coverage, or the count of unused axes. The
-  strip does not gain leftover-map item coverage, leftover-map incomplete
-  post coverage, leftover-map incomplete item coverage, or the leftover-map
-  graphic. Never invent a leftover score or a theta. No new columns.
+  or a pair button opens that post. A missing, non-finite, or negative
+  singular value omits that `σ` badge independently of leftover-map axis
+  share. Rank-0 unused axes still name `σ 0.00`. Do not invent `σ_k` from
+  leftover-map axis share, leftover-map distance, leftover-map rank, or
+  plotted coordinates. Never invent a leftover score or a theta. No new
+  columns.
 
 - Period leftover pairs now fail-close leftover-map post complete-case
   coverage on the leftover pair list through leftoverMapCoverageCounts

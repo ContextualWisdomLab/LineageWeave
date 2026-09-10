@@ -5778,7 +5778,11 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
             assert explained_share + unexplained_share + share == pytest.approx(1.0)
     leftover_axes = high_report.get("leftover_map_axes", [])
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
-    assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
+    assert all(
+        math.isfinite(axis["leftover_singular_value"])
+        and axis["leftover_singular_value"] >= 0
+        for axis in leftover_axes
+    )
     assert all(0.0 <= axis["leftover_share"] <= 1.0 for axis in leftover_axes)
     leftover_coverage = high_report.get("leftover_map_coverage")
     assert leftover_coverage is not None
@@ -5836,6 +5840,23 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_compare_coverage["incomplete_post_count"] == (
         leftover_compare_coverage["scored_post_count"] - leftover_compare_coverage["map_post_count"]
     )
+    leftover_compare_axes = leftover_thread.get("leftover_map_axes", [])
+    assert [axis["axis_index"] for axis in leftover_compare_axes] == [1, 2]
+    assert all(isinstance(axis["leftover_share"], (int, float)) for axis in leftover_compare_axes)
+    assert all(
+        axis["leftover_share"] == axis["leftover_share"] for axis in leftover_compare_axes
+    )
+    assert leftover_compare_axes[0]["leftover_share"] != leftover_compare_axes[0][
+        "leftover_singular_value"
+    ] or leftover_compare_axes[0]["leftover_share"] in {0, 1}
+    assert all(
+        isinstance(axis["leftover_singular_value"], (int, float)) for axis in leftover_compare_axes
+    )
+    assert all(
+        math.isfinite(axis["leftover_singular_value"])
+        and axis["leftover_singular_value"] >= 0
+        for axis in leftover_compare_axes
+    )
     assert leftover_compare_coverage["map_item_count"] <= leftover_compare_coverage["scored_item_count"]
     assert leftover_compare_coverage["map_post_count"] != len(
         leftover_thread.get("leftover_pairs", [])
@@ -5849,6 +5870,19 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(
         pair.get("leftover_map_reconstruction") is None
         or isinstance(pair["leftover_map_reconstruction"], (int, float))
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert all(
+        "leftover_map_unexplained_share" in pair
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert any(
+        pair["leftover_map_unexplained_share"] is not None
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
+    assert all(
+        pair["leftover_map_unexplained_share"] is None
+        or isinstance(pair["leftover_map_unexplained_share"], (int, float))
         for pair in leftover_thread.get("leftover_pairs", [])
     )
 

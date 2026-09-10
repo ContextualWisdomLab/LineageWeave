@@ -19,12 +19,9 @@ describe("formatLeftoverMapUnexplainedShare", () => {
     expect(formatLeftoverMapUnexplainedShare(Number.NEGATIVE_INFINITY)).toBeNull();
   });
 
-  it("keeps the grouping comparison unexplained leftover share label distinct from the graphic unexplained leftover share label", () => {
+  it("keeps the grouping comparison unexplained leftover share label distinct", () => {
     expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL).toBe(
       "Leftover map comparison unexplained leftover share",
-    );
-    expect(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL).not.toBe(
-      "leftover-map unexplained leftover share {label}",
     );
   });
 });
