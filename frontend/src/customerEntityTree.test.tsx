@@ -64,6 +64,20 @@ describe("#906 cycle-safe customer forest", () => {
     expect(tree[0].ancestryNote).toBe("cycle-broken");
   });
 
+  it("breaks one deterministic presentation edge when a tail enters a three-entity cycle", () => {
+    const tree = buildCustomerEntityTree([
+      entity("tail", "A"),
+      entity("A", "B"),
+      entity("B", "C"),
+      entity("C", "A"),
+    ]);
+
+    expect(tree).toHaveLength(1);
+    expect(tree[0].entity.corporate_entity_id).toBe("C");
+    expect(tree[0].ancestryNote).toBe("cycle-broken");
+    expect(flattenIds(tree)).toEqual(["C", "B", "A", "tail"]);
+  });
+
   it("emits a self-parent entity once instead of dropping it", () => {
     const tree = buildCustomerEntityTree([entity("S", "S")]);
     expect(flattenIds(tree)).toEqual(["S"]);
