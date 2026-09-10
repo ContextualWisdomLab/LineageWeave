@@ -38,8 +38,9 @@
  *  item complete-case coverage on that graphic (ADR 0307), grouping comparison leftover-map
  *  incomplete post coverage on that graphic (ADR 0308), grouping comparison leftover-map
  *  incomplete item coverage on that graphic (ADR 0309), grouping comparison leftover-map
- *  reconstruction on that graphic (ADR 0310), and grouping comparison leftover-map
- *  explained leftover share on that graphic (ADR 0311) caption the pair list or the grouping comparison
+ *  reconstruction on that graphic (ADR 0310), grouping comparison leftover-map
+ *  explained leftover share on that graphic (ADR 0311), and grouping comparison leftover-map
+ *  unexplained leftover share on that graphic (ADR 0312) caption the pair list or the grouping comparison
  *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
  *  strip. ADR 0305 captions leftover-map axis share on that comparison
  *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
@@ -51,7 +52,9 @@
  *  comparison graphic from already-named leftover-map coverage. ADR 0310 captions leftover-map
  *  reconstruction on that comparison graphic from already-named leftover-map reconstruction.
  *  ADR 0311 captions leftover-map explained leftover share on that comparison graphic from
- *  already-named leftover-map explained leftover share.
+ *  already-named leftover-map explained leftover share. ADR 0312 captions leftover-map
+ *  unexplained leftover share on that comparison graphic from already-named leftover-map
+ *  unexplained leftover share.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -99,6 +102,8 @@ export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE } from "./leftoverMap
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE =
   "leftover-map unexplained leftover share {label}";
+
+export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED_SHARE } from "./leftoverMapUnexplainedShare";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE =
   "leftover-map cross share {label}";
