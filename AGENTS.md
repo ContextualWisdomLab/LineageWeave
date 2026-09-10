@@ -469,14 +469,15 @@ for genuinely complex judgment, interleaved with real lookups, and
 never count its calls or verdicts as execution, verification, review
 approval, or KPI improvement.
 
-Merge decisions distinguish failure kinds. Infrastructure, CI,
-runner, and workflow failures may bypass-merge with the failure SHA,
-alternative verification, impact, and recovery recorded in the PR,
-bypassing only the minimal protection within authority. Code,
-security, contract, orchestrator-routing, and secret-policy failures
-are never bypassed. Completion evidence is tool events plus
-dependency and acceptance checks -- never planned commands,
-summaries, or idle and finish markers.
+Normal merge is the default. Infrastructure, CI, runner, and workflow failures
+do not create a standing bypass. An exceptional bypass is allowed only when
+explicit current owner or ruleset authority identifies the exact PR/head and
+the minimal protection that may be bypassed; record that authority identifier,
+failure SHA, alternative verification, impact, and recovery in the PR. Without
+that exact current authority, fail-closed. Code, security, contract,
+orchestrator-routing, and secret-policy failures are never bypassed. Completion
+evidence is tool events plus dependency and acceptance checks -- never planned
+commands, summaries, or idle and finish markers.
 
 A stopped remote head, a running CI, a passing local suite, an
 active owner branch, or no new review is each a status, not a
