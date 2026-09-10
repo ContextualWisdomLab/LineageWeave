@@ -95,3 +95,28 @@ export const UnlistedParent: Story = {
     ).toBeInTheDocument();
   },
 };
+
+export const OrdinaryTree: Story = {
+  render: () => (
+    <ForestList
+      nodes={buildCustomerEntityTree([
+        entity("root", null, "Root"),
+        entity("kid", "root", "Kid"),
+      ])}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Root")).toBeInTheDocument();
+    await expect(canvas.getByText("Kid")).toBeInTheDocument();
+    await expect(
+      canvas.queryByText("Shown as top level: listed parent forms a cycle."),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByText("Shown as top level: entity lists itself as parent."),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByText("Shown as top level: listed parent is not visible."),
+    ).not.toBeInTheDocument();
+  },
+};
