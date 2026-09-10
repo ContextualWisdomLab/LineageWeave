@@ -9,31 +9,164 @@ permissions:
   contents: write
 
 concurrency:
-  group: automation-831-cross-share-repair
+  group: automation-831-cross-share-repair-v2
   cancel-in-progress: false
 
 jobs:
   repair:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc4999588649806c4678c61a1
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - name: Checkout exact branch
+      - name: Checkout exact trigger commit
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          ref: feat/leftover-map-compare-cross-share-v2530
-          fetch-depth: 2
+          ref: ${{ github.sha }}
+          fetch-depth: 4
 
-      - name: Verify expected predecessor
+      - name: Verify expected serialized predecessor
         shell: bash
         run: |
           set -euo pipefail
-          expected=856464d69bdf989c6e47bd1f6e3126fc839ce229
-          actual="$(git rev-parse HEAD^)"
-          test "$actual" = "$expected" || {
-            echo "branch moved before repair: expected parent $expected, got $actual" >&2
+          test "$(git rev-parse HEAD^)" = "2c2c17070946ae881cbc7f5378a9380677e82fa6" || {
+            echo "unexpected workflow-update parent" >&2
             exit 1
           }
+          git merge-base --is-ancestor 856464d69bdf989c6e47bd1f6e3126fc839ce229 HEAD
+          test "$(git rev-parse HEAD:frontend/src/App.tsx)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:frontend/src/App.tsx)"
+          test "$(git rev-parse HEAD:backend/app/report_ingestion.py)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:backend/app/report_ingestion.py)"
 
-      - name: Apply minimal causal source repair
+      - name: Add backend transport RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > backend/tests/test_period_comparison_cross_share.py <<'PY'
+          """Regression for persisted cross-share transport on the comparison read model."""
+
+          from __future__ import annotations
+
+          import asyncio
+          from typing import Any
+
+          from backend.app import report_ingestion
+
+
+          class _ComparisonConnection:
+              """Minimal asyncpg-shaped fixture for one comparison grouping."""
+
+              def __init__(self) -> None:
+                  self.leftover_query = ""
+
+              async def fetch(self, query: str, *_args: Any) -> list[dict[str, Any]]:
+                  if "from report_period_score" in query:
+                      return [
+                          {
+                              "grouping_kind": "process_unit",
+                              "grouping_key": "PU-1",
+                              "mean_theta": 0.25,
+                              "post_count": 4,
+                              "link_method": "fixture",
+                          }
+                      ]
+                  if "from report_member_score" in query:
+                      return []
+                  if "from report_leftover_pair" in query:
+                      self.leftover_query = query
+                      return [
+                          {
+                              "grouping_kind": "process_unit",
+                              "grouping_key": "PU-1",
+                              "pair_kind": pair_kind,
+                              "post_id": f"post-{index}",
+                              "criterion_code": "criterion-a",
+                              "leftover_distance": 1.0,
+                              "leftover_residual": -0.5,
+                              "leftover_map_reconstruction": None,
+                              "leftover_map_unexplained_share": None,
+                              "leftover_map_cross_share": cross_share,
+                              "post_title": f"Post {index}",
+                              "visibility_code": "public",
+                              "corporate_entity_id": f"entity-{index}",
+                              "has_real_source_context": True,
+                          }
+                          for index, (pair_kind, cross_share) in enumerate(
+                              (
+                                  ("closest", 0.12),
+                                  ("farthest", 0.0),
+                                  ("closest", -0.25),
+                                  ("farthest", None),
+                              ),
+                              start=1,
+                          )
+                      ]
+                  if "from report_leftover_map_coverage" in query:
+                      return []
+                  if "from report_leftover_map_axis" in query:
+                      return []
+                  raise AssertionError(f"unexpected query: {query}")
+
+
+          def test_period_comparison_transports_persisted_cross_share(monkeypatch) -> None:
+              """Finite signed, zero, and null x values must survive the persisted pair boundary."""
+
+              async def _label(_conn: Any, _kind: str, _key: str) -> str:
+                  return "Process unit 1"
+
+              monkeypatch.setattr(report_ingestion, "resolve_grouping_label", _label)
+              connection = _ComparisonConnection()
+              payload = asyncio.run(report_ingestion.fetch_period_comparison(connection, "2026-W02"))
+
+              assert "lp.leftover_map_cross_share" in connection.leftover_query
+              pairs = payload[0]["leftover_pairs"]
+              assert [pair["leftover_map_cross_share"] for pair in pairs] == [0.12, 0.0, -0.25, None]
+          PY
+          git add backend/tests/test_period_comparison_cross_share.py
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(reports): require comparison cross-share transport"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed universal lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Prove backend transport RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          if uv run --frozen python -m pytest -q backend/tests/test_period_comparison_cross_share.py; then
+            echo "expected the transport regression to fail before the source repair" >&2
+            exit 1
+          fi
+
+      - name: Apply minimum causal source repairs
         shell: bash
         run: |
           set -euo pipefail
@@ -41,8 +174,8 @@ jobs:
           from pathlib import Path
           import re
 
-          path = Path("frontend/src/App.tsx")
-          source = path.read_text(encoding="utf-8")
+          app_path = Path("frontend/src/App.tsx")
+          source = app_path.read_text(encoding="utf-8")
 
           import_needle = '''import {
             formatLeftoverMapUnexplainedShare,
@@ -111,23 +244,58 @@ jobs:
           if source.count(badge_needle) != 1:
               raise SystemExit(f"unexpected visual-badge anchor count: {source.count(badge_needle)}")
           source = source.replace(badge_needle, badge_replacement, 1)
-
           if "LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL" in source:
               raise SystemExit("forbidden inline/static comparison cross-share label authority remains")
-          path.write_text(source, encoding="utf-8")
+          app_path.write_text(source, encoding="utf-8")
+
+          backend_path = Path("backend/app/report_ingestion.py")
+          backend = backend_path.read_text(encoding="utf-8")
+          query_needle = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
+               p.post_title, p.visibility_code, p.corporate_entity_id,'''
+          query_replacement = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
+               lp.leftover_map_cross_share,
+               p.post_title, p.visibility_code, p.corporate_entity_id,'''
+          if backend.count(query_needle) != 1:
+              raise SystemExit(f"unexpected backend select anchor count: {backend.count(query_needle)}")
+          backend = backend.replace(query_needle, query_replacement, 1)
+
+          payload_needle = '''                        "leftover_map_unexplained_share": (
+                            None
+                            if pair["leftover_map_unexplained_share"] is None
+                            else float(pair["leftover_map_unexplained_share"])
+                        ),
+                        "visibility_code": pair["visibility_code"],'''
+          payload_replacement = '''                        "leftover_map_unexplained_share": (
+                            None
+                            if pair["leftover_map_unexplained_share"] is None
+                            else float(pair["leftover_map_unexplained_share"])
+                        ),
+                        "leftover_map_cross_share": (
+                            None
+                            if pair["leftover_map_cross_share"] is None
+                            else float(pair["leftover_map_cross_share"])
+                        ),
+                        "visibility_code": pair["visibility_code"],'''
+          if backend.count(payload_needle) != 1:
+              raise SystemExit(f"unexpected backend payload anchor count: {backend.count(payload_needle)}")
+          backend_path.write_text(backend.replace(payload_needle, payload_replacement, 1), encoding="utf-8")
           PY
           git diff --check
 
-      - name: Run executable cross-share regression
+      - name: Prove causal GREEN contracts
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
+          uv run --frozen python -m pytest -q backend/tests/test_period_comparison_cross_share.py
+          uv run --frozen python - <<'PY'
           import runpy
           ns = runpy.run_path("tests/test_grouping_comparison_cross_share_contract.py")
           ns["test_grouping_comparison_projects_persisted_cross_share_into_one_accessible_action"]()
           ns["test_cross_share_formatter_remains_fail_closed_and_unclamped"]()
           PY
+
+      - name: Run full PostgreSQL-backed suite
+        run: uv run --frozen python -m pytest -q
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
@@ -157,14 +325,12 @@ jobs:
         working-directory: frontend
         run: pnpm run build-storybook
 
-      - name: Commit repair and remove temporary workflow
+      - name: Commit GREEN repair and remove temporary workflow
         shell: bash
         run: |
           set -euo pipefail
           git rm .github/workflows/automation-831-cross-share-repair.yml
-          git add frontend/src/App.tsx
+          git add frontend/src/App.tsx backend/app/report_ingestion.py
           git diff --cached --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(reports): project persisted comparison cross share"
+          git commit -m "fix(reports): transport and project comparison cross share"
           git push origin HEAD:feat/leftover-map-compare-cross-share-v2530
