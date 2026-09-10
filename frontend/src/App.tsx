@@ -152,6 +152,10 @@ import {
   LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL,
 } from "./leftoverMapExplainedShare";
 import {
+  formatLeftoverMapUnexplainedShare,
+  LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
+} from "./leftoverMapUnexplainedShare";
+import {
   leftoverMapCompareAxisShare,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE,
 } from "./leftoverMapCompareAxis";
@@ -4098,6 +4102,9 @@ function ReportsPanel({
                     const explainedShare = formatLeftoverMapExplainedShare(
                       pair.leftover_map_explained_share,
                     );
+                    const unexplainedShare = formatLeftoverMapUnexplainedShare(
+                      pair.leftover_map_unexplained_share,
+                    );
                     const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${
                       reconstruction
                         ? ` · ${t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)} ${reconstruction}`
@@ -4105,6 +4112,10 @@ function ReportsPanel({
                     }${
                       explainedShare
                         ? ` · ${t(LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL)} ${explainedShare}`
+                        : ""
+                    }${
+                      unexplainedShare
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
                         : ""
                     }`;
                     return (
@@ -4141,6 +4152,11 @@ function ReportsPanel({
                           {explainedShare ? (
                             <span className="post-badge" aria-hidden="true">
                               {explainedShare}
+                            </span>
+                          ) : null}
+                          {unexplainedShare ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {unexplainedShare}
                             </span>
                           ) : null}
                         </button>

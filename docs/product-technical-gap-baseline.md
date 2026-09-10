@@ -1,5 +1,8 @@
 # Product & Technical Gap Baseline
 
+> Current serialized repair (2026-09-07): #829 consumes exact promoted #828 `7b6dbbb99a09d0523bce43c6872bbd9fa382a43a` and preserves persisted `U²/R²` comparison presentation as ADR 0369 / v2.55.0. Finite values are present in the actionable button name and visible badge; missing/non-finite values are absent; values are never derived/clamped; current-parent whole-population authorization remains intact. Historical ADR0295/v2.52.0 is evidence only. Inline five-locale copy is compatibility presentation while #922/#929/#932 remain the eight-locale translation-ledger owner path.
+
+
 > Current serialized repair (2026-09-07): #828 is reconstructed from exact #827 `0f9e9c8db37948041f39b4e68e4bbd808fa83752` as ADR 0367 / v2.54.0. The valid delta carries persisted grouping-comparison `leftover_map_axes` but exposes them only when the caller can see the entire persisted grouping population; partial visibility returns no aggregate and never recomputes psychometrics from the visible subset. Presentation consumes persisted `leftover_share` only, with zero and finite negative values explicit and missing/non-finite values omitted. Historical v2.50.0/ADR0293 identity is evidence only. Existing five-locale compatibility copy is preserved while the database-backed eight-locale translation-ledger authority remains #922/#929/#932; this Draft does not create a competing translation source.
 
 

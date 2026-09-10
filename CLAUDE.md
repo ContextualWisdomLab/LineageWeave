@@ -63,3 +63,5 @@ ADR 0294 is the Proposed grouping-comparison incomplete-item presentation contra
 ADR 0295 is the Proposed grouping-comparison reconstruction contract: persisted `R̂` only, no client inference, accessible-name exposure required despite the button's explicit aria-label.
 
 ADR 0296 is the Proposed grouping-comparison explained-share contract: persisted `e` only, accessible-name exposure required, no client derivation or clamping.
+
+Grouping-comparison unexplained-share presentation is ADR 0369: consume persisted finite `leftover_map_unexplained_share`, never derive it, and keep its value in the actionable button accessible name.

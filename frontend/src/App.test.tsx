@@ -928,6 +928,7 @@ describe("App, authenticated", () => {
                     leftover_residual: 0.4,
                     leftover_map_reconstruction: 0.248,
                     leftover_map_explained_share: 0.76,
+                    leftover_map_unexplained_share: 0.02,
                   },
                 ],
                 leftover_map_coverage: {
@@ -4376,6 +4377,10 @@ describe("App, authenticated", () => {
       name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25.*leftover map comparison explained leftover share R̂²\/R² 0\.76/i,
     });
     expect(explainedSharePair).toHaveTextContent("R̂²/R² 0.76");
+    const unexplainedSharePair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison unexplained leftover share U²\/R² 0\.02/i,
+    });
+    expect(unexplainedSharePair).toHaveTextContent("U²/R² 0.02");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

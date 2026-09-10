@@ -1097,3 +1097,5 @@ ADR 0295 adds persisted `R̂` to grouping-comparison pair buttons. The explicit 
 ADR 0296 adds persisted explained-leftover share `e = R̂²/R²` to grouping-comparison pair actions; the button accessible name is authoritative for assistive technology and fast-mlsirm remains psychometric owner.
 
 ADR 0367 adds persisted `leftover_map_axes` to the grouping-comparison read model under the same whole-population authorization rule as other psychometric aggregates. The UI consumes persisted `leftover_share` through `leftoverMapCompareAxisShare`; no subset recomputation or singular-value derivation is permitted.
+
+ADR 0369 composes persisted finite grouping-comparison `leftover_map_unexplained_share` into pair actions. The parent button accessible name and visual badge share one formatter result; the visual duplicate is `aria-hidden`. Authorization and psychometric ownership remain upstream/current-parent contracts.
