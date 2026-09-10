@@ -390,7 +390,7 @@ describe("i18n", () => {
     ],
     [
       "vi",
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     ],
   ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
     setLocale(locale);
@@ -517,7 +517,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 설명 잔여 점유율 R̂²/R² 0.76"],
     ["zh", "残差地图比较图形已解释残差份额 R̂²/R² 0.76"],
     ["ja", "残差マップの比較図説明済み残差割合 R̂²/R² 0.76"],
-    ["vi", "phần dư giải thích đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"],
+    ["vi", "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"],
   ] as const)(
     "formats leftover map comparison graphic explained leftover share in %s",
     (locale, expected) => {
@@ -534,7 +534,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 미설명 잔여 점유율 U²/R² 0.02"],
     ["zh", "残差地图比较图形未解释残差份额 U²/R² 0.02"],
     ["ja", "残差マップの比較図未説明残差割合 U²/R² 0.02"],
-    ["vi", "phần dư chưa giải thích đồ họa so sánh bản đồ phần dư U²/R² 0.02"],
+    ["vi", "tỷ phần phần dư chưa giải thích trên đồ họa so sánh bản đồ phần dư U²/R² 0.02"],
   ] as const)(
     "formats leftover map comparison graphic unexplained leftover share in %s",
     (locale, expected) => {
@@ -551,7 +551,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 교차 점유율 2R̂U/R² 0.12"],
     ["zh", "残差地图比较图形交叉份额 2R̂U/R² 0.12"],
     ["ja", "残差マップの比較図交差割合 2R̂U/R² 0.12"],
-    ["vi", "phần giao đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"],
+    ["vi", "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"],
   ] as const)(
     "formats leftover map comparison graphic cross share in %s",
     (locale, expected) => {
@@ -854,7 +854,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 설명 잔여 점유율 R̂²/R² 0.76"],
     ["zh", "残差图已解释残差份额 R̂²/R² 0.76"],
     ["ja", "残差マップ説明済み残差割合 R̂²/R² 0.76"],
-    ["vi", "phần dư giải thích bản đồ phần dư R̂²/R² 0.76"],
+    ["vi", "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"],
   ] as const)("formats leftover-map segment explained leftover share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map explained leftover share {label}", { label: "R̂²/R² 0.76" })).toBe(
