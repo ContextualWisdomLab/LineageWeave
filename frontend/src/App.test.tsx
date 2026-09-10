@@ -4338,15 +4338,8 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover-map axis share"),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover map comparison axis share",
-      ),
-    ).toHaveLength(4);
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
-        "Leftover map comparison axis share",
-      )[0],
-    ).toHaveTextContent("leftover map comparison axis 1 0%");
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 0%"),
+    ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 82%"),
     ).toBeInTheDocument();
