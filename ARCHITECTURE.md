@@ -740,36 +740,6 @@ badge.
 ADR 0317 captions leftover expected on that grouping
 comparison leftover-map graphic when formatLeftoverMapExpected returns a usable
 badge.
-ADR 0318 captions leftover-map rank on that grouping
-comparison leftover-map graphic when formatLeftoverMapRank returns a usable
-badge.
-ADR 0319 captions leftover-map distance on that grouping
-comparison leftover-map graphic when formatLeftoverMapDistance returns a usable
-badge.
-ADR 0320 captions leftover-map coordinate ticks on that grouping
-comparison leftover-map graphic from already-named leftover-map coordinates.
-ADR 0321 captions leftover-map singular values on that grouping
-comparison leftover-map graphic from already-named leftover-map axes.
-ADR 0322 captions leftover-axis report badges with persisted leftover-map
-singular values `σ_k`.
-ADR 0323 captions leftover-axis report badges on the grouping comparison strip
-with persisted leftover-map singular values `σ_k`.
-ADR 0324 captions leftover-map graphic-display axes with persisted leftover-map
-singular values `σ_k`.
-ADR 0325 captions leftover-axis report badges with persisted leftover-map
-singular values `σ_k` independently of leftover-map axis share.
-ADR 0326 captions leftover-map comparison graphic leftover-map axes with persisted leftover-map
-singular values `σ_k` when leftoverMapComparePlotAxisBadge returns a usable leftover-map
-axis caption.
-ADR 0327 captions leftover-map graphic leftover-map axis ticks with persisted leftover-map
-singular values `σ_k` when leftoverMapPlotTickAxisBadge returns a usable leftover-map
-axis tick caption independently of leftover-map axis share.
-ADR 0328 captions leftover-map comparison graphic leftover-map axis ticks with persisted leftover-map
-singular values `σ_k` when leftoverMapComparePlotTickAxisBadge returns a usable leftover-map
-axis tick caption independently of leftover-map axis share.
-ADR 0329 captions leftover-map comparison leftover-axis ticks with persisted leftover-map
-singular values `σ_k` when leftoverMapCompareAxisTickBadge returns a usable leftover-axis
-tick caption independently of leftover-map axis share.
 Click a post marker or a pair button
 opens that post. Those ADRs are the normative mathematical, storage, and
 display contracts. Leftover-map axis share
@@ -816,20 +786,7 @@ graphic (ADR 0313), leftover-map unexplained leftover on the grouping comparison
 graphic (ADR 0314), leftover residual on the grouping comparison leftover-map
 graphic (ADR 0315), leftover observed on the grouping comparison leftover-map
 graphic (ADR 0316), leftover expected on the grouping comparison leftover-map
-graphic (ADR 0317), leftover-map rank on the grouping comparison leftover-map
-graphic (ADR 0318), leftover-map distance on the grouping comparison leftover-map
-graphic (ADR 0319), leftover-map coordinate ticks on the grouping comparison leftover-map
-graphic (ADR 0320), leftover-map singular values on the grouping comparison leftover-map
-graphic (ADR 0321), leftover-map singular values on leftover-axis report badges
-(ADR 0322), leftover-map singular values on leftover-axis report badges on the
-grouping comparison strip (ADR 0323), leftover-map singular values on leftover-map
-graphic-display axes (ADR 0324), leftover-map singular values on leftover-axis
-report badges independently of leftover-map axis share (ADR 0325), leftover-map
-comparison graphic leftover-map axis leftover-map singular values as leftoverMapComparePlotAxisBadge
-(ADR 0326), leftover-map graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share
-(ADR 0327), leftover-map comparison graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share
-(ADR 0328), leftover-map comparison leftover-axis tick leftover-map singular values independently of leftover-map axis share
-(ADR 0329);
+graphic (ADR 0317);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared

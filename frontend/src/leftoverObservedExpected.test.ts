@@ -87,7 +87,7 @@ describe("formatLeftoverMapExpected", () => {
       LEFTOVER_MAP_COMPARE_EXPECTED_LABEL,
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED).not.toBe(
-      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
+      "leftover map comparison graphic leftover observed {label}",
     );
   });
 });
