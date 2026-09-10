@@ -1,0 +1,93 @@
+name: automation-851-comparison-vi-repair
+
+on:
+  push:
+    branches:
+      - automation/851-vietnamese-lock-repair-20260911
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-851-comparison-vi-repair
+  cancel-in-progress: false
+
+jobs:
+  red-green:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify RED parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "26bf97ab0ba0228cb22253590f1ebd68c66f2c33"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install frontend dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Reproduce production-bound RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          set +e
+          pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts > /tmp/vi-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/vi-red.log
+          test "$rc" -ne 0
+          grep -F "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư" /tmp/vi-red.log
+          grep -F "phần dư giải thích đồ họa so sánh bản đồ phần dư" /tmp/vi-red.log
+
+      - name: Apply minimal causal translation repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/i18n.ts")
+          text = path.read_text()
+          old = '"leftover map comparison graphic explained leftover share {label}":\n      "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}"'
+          new = '"leftover map comparison graphic explained leftover share {label}":\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}"'
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f"expected exactly one production translation, found {count}")
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Verify GREEN and unchanged neighbouring contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          pnpm run lint
+          pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts src/leftoverMapPlotLayout.test.ts src/components/LeftoverMapPlot.test.tsx
+
+      - name: Commit workflow-free repaired tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/automation-851-comparison-vi-repair.yml
+          git status --short
+          test -z "$(git status --short | grep -v -E '^( M frontend/src/i18n.ts| D .github/workflows/automation-851-comparison-vi-repair.yml)$' || true)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/i18n.ts .github/workflows/automation-851-comparison-vi-repair.yml
+          git commit -m "fix(reports): preserve Vietnamese comparison share semantics"
+          git push origin HEAD:automation/851-vietnamese-lock-repair-20260911
