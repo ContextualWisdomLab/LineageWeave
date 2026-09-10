@@ -84,6 +84,7 @@ describe("i18n", () => {
     "Leftover map comparison item coverage",
     "Leftover map comparison incomplete posts",
     "Leftover map comparison incomplete items",
+    "leftover map comparison axis {axis} {share}%",
     "Leftover map comparison reconstruction",
     "Leftover map comparison explained leftover share",
     "Leftover-map graphic item coverage",

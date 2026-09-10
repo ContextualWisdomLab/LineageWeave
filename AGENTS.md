@@ -542,3 +542,5 @@ ADR 0294 keeps grouping-comparison incomplete-item coverage in the LineageWeave 
 ADR 0295 keeps grouping-comparison reconstruction in the LineageWeave read-model/UI boundary: format only persisted `R̂`, expose the value in the pair button accessible name, and never derive psychometric reconstruction from UI-visible proxies.
 
 ADR 0296 adds persisted grouping-comparison explained-leftover share `e` in the LineageWeave read-model/UI boundary: expose it in the pair button accessible name, keep the duplicate visible badge presentation-only, and never derive or clamp psychometric values.
+
+ADR 0367 exposes persisted grouping-comparison leftover-map axis share only for a fully caller-visible persisted grouping. Partial visibility returns no axis aggregate; never recompute it from visible members. Missing/non-finite share omits only the badge; persisted zero and finite negative values remain explicit.

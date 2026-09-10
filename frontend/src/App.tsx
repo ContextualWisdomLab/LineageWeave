@@ -151,6 +151,10 @@ import {
   formatLeftoverMapExplainedShare,
   LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL,
 } from "./leftoverMapExplainedShare";
+import {
+  leftoverMapCompareAxisShare,
+  LEFTOVER_MAP_COMPARE_AXIS_SHARE,
+} from "./leftoverMapCompareAxis";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4064,6 +4068,20 @@ function ReportsPanel({
                   {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}
                 </p>
               ) : null}
+              {row.leftover_map_axes?.map((axis) => {
+                const comparisonAxisShare = leftoverMapCompareAxisShare(axis);
+                if (comparisonAxisShare === null) {
+                  return null;
+                }
+                return (
+                  <span
+                    key={axis.axis_index}
+                    className="post-badge"
+                  >
+                    {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}
+                  </span>
+                );
+              })}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (
                 <ul className="ticket-list" aria-label={`Leftover pairs for ${row.grouping_label}`}>
                   {row.leftover_pairs.map((pair) => {

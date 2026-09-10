@@ -898,6 +898,10 @@ describe("App, authenticated", () => {
                   incomplete_post_count: 0,
                   incomplete_item_count: 0,
                 },
+                leftover_map_axes: [
+                  { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+                  { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+                ],
               },
               {
                 grouping_kind: "corporate_entity",
@@ -934,6 +938,10 @@ describe("App, authenticated", () => {
                   incomplete_post_count: 1,
                   incomplete_item_count: 0,
                 },
+                leftover_map_axes: [
+                  { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+                  { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
+                ],
               },
             ],
           }),
@@ -4324,6 +4332,27 @@ describe("App, authenticated", () => {
       within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
         "Leftover-map graphic incomplete items",
       ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover-map axis share"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 0%"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 82%"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 2 18%"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 1 82%"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText(/leftover-map axis 1/),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText(/σ 1\.84/),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),

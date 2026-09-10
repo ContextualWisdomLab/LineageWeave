@@ -1095,3 +1095,5 @@ ADR 0294 adds persisted incomplete-item coverage to grouping comparison presenta
 ADR 0295 adds persisted `R̂` to grouping-comparison pair buttons. The explicit button accessible name carries the reconstruction label/value; the visible duplicate badge is presentation-only. Psychometric computation remains owned by fast-mlsirm.
 
 ADR 0296 adds persisted explained-leftover share `e = R̂²/R²` to grouping-comparison pair actions; the button accessible name is authoritative for assistive technology and fast-mlsirm remains psychometric owner.
+
+ADR 0367 adds persisted `leftover_map_axes` to the grouping-comparison read model under the same whole-population authorization rule as other psychometric aggregates. The UI consumes persisted `leftover_share` through `leftoverMapCompareAxisShare`; no subset recomputation or singular-value derivation is permitted.
