@@ -39,76 +39,42 @@ jobs:
           PRODUCT_HEAD: 4eae8473e760f3cb74679b53f9ebc83f68d02345
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "$PRODUCT_HEAD"
+          test "$(git rev-list --count "$PRODUCT_HEAD"..HEAD)" = "2"
+          test "$(git diff --name-only "$PRODUCT_HEAD"...HEAD)" = ".github/workflows/automation-853-converge.yml"
           git config user.name "LineageWeave automation"
           git config user.email "actions@users.noreply.github.com"
           git fetch --no-tags origin "$PARENT_BRANCH"
           test "$(git rev-parse FETCH_HEAD)" = "$PARENT_SHA"
 
-          set +e
           git merge --no-ff --no-commit "$PARENT_SHA"
-          merge_rc=$?
-          set -e
-          echo "merge exit=$merge_rc"
-          git status --short
+          test -z "$(git diff --name-only --diff-filter=U)"
 
-          for path in frontend/src/i18n.ts frontend/src/i18n.test.ts uv.lock; do
-            if git ls-files -u -- "$path" | grep -q .; then
-              git checkout --theirs -- "$path"
-              git add "$path"
-            fi
-          done
-          remaining="$(git diff --name-only --diff-filter=U)"
-          if [ -n "$remaining" ]; then
-            echo "Unexpected unresolved conflicts:"
-            echo "$remaining"
-            exit 1
-          fi
+          cat > frontend/src/leftoverMapCompareCrossShareVietnameseCopy.test.ts <<'EOF'
+          import { afterEach, describe, expect, it } from "vitest";
+          import { setLocale, tf } from "./i18n";
 
-          python - <<'PY'
-          from pathlib import Path
+          afterEach(() => {
+            setLocale("en");
+          });
 
-          source = Path("frontend/src/i18n.ts")
-          text = source.read_text()
-          inserts = {
-              '    "Leftover map comparison cross share": "잔여 지도 비교 교차 점유율",':
-                  '    "leftover map comparison graphic cross share {label}": "잔여 지도 비교 그림 교차 점유율 {label}",\n',
-              '    "Leftover map comparison cross share": "残差地图比较交叉份额",':
-                  '    "leftover map comparison graphic cross share {label}": "残差地图比较图形交叉份额 {label}",\n',
-              '    "Leftover map comparison cross share": "残差マップの比較交差割合",':
-                  '    "leftover map comparison graphic cross share {label}": "残差マップの比較図交差割合 {label}",\n',
-              '    "Leftover map comparison cross share": "Phần giao so sánh bản đồ phần dư",':
-                  '    "leftover map comparison graphic cross share {label}": "phần giao đồ họa so sánh bản đồ phần dư {label}",\n',
-          }
-          for anchor, addition in inserts.items():
-              if addition.strip() not in text:
-                  if text.count(anchor) != 1:
-                      raise SystemExit(f"source anchor count != 1: {anchor}")
-                  text = text.replace(anchor, addition + anchor)
-          source.write_text(text)
-
-          test = Path("frontend/src/i18n.test.ts")
-          text = test.read_text()
-          key_anchor = '    "Leftover map comparison cross share",'
-          key_line = '    "leftover map comparison graphic cross share {label}",\n'
-          if key_line.strip() not in text:
-              if text.count(key_anchor) != 1:
-                  raise SystemExit("test key anchor count != 1")
-              text = text.replace(key_anchor, key_line + key_anchor)
-
-          block_anchor = '''  it.each([\n    ["ko", "잔여 지도 비교 설명 잔여 점유율"],'''
-          cross_block = '''  it.each([\n    ["ko", "잔여 지도 비교 그림 교차 점유율 2R̂U/R² 0.12"],\n    ["zh", "残差地图比较图形交叉份额 2R̂U/R² 0.12"],\n    ["ja", "残差マップの比較図交差割合 2R̂U/R² 0.12"],\n    ["vi", "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"],\n  ] as const)(\n    "formats leftover map comparison graphic cross share in %s",\n    (locale, expected) => {\n      setLocale(locale);\n      expect(\n        tf("leftover map comparison graphic cross share {label}", {\n          label: "2R̂U/R² 0.12",\n        }),\n      ).toBe(expected);\n    },\n  );\n\n'''
-          if 'formats leftover map comparison graphic cross share in %s' not in text:
-              if text.count(block_anchor) != 1:
-                  raise SystemExit("cross test insertion anchor count != 1")
-              text = text.replace(block_anchor, cross_block + block_anchor)
-          test.write_text(text)
-          PY
+          describe("leftover-map comparison Vietnamese cross-share copy", () => {
+            it("preserves share meaning in the production graphic accessible name", () => {
+              setLocale("vi");
+              expect(
+                tf("leftover map comparison graphic cross share {label}", {
+                  label: "2R̂U/R² 0.12",
+                }),
+              ).toBe(
+                "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12",
+              );
+            });
+          });
+          EOF
 
           corepack enable
           (cd frontend && pnpm install --frozen-lockfile)
           set +e
-          red_output="$(cd frontend && pnpm exec vitest run src/i18n.test.ts -t 'formats leftover map comparison graphic cross share in vi' 2>&1)"
+          red_output="$(cd frontend && pnpm exec vitest run src/leftoverMapCompareCrossShareVietnameseCopy.test.ts 2>&1)"
           red_rc=$?
           set -e
           echo "$red_output"
@@ -118,6 +84,7 @@ jobs:
 
           python - <<'PY'
           from pathlib import Path
+
           source = Path("frontend/src/i18n.ts")
           text = source.read_text()
           old = '"leftover map comparison graphic cross share {label}": "phần giao đồ họa so sánh bản đồ phần dư {label}"'
@@ -125,6 +92,14 @@ jobs:
           if text.count(old) != 1:
               raise SystemExit(f"expected one Vietnamese cross-share defect, found {text.count(old)}")
           source.write_text(text.replace(old, new))
+
+          test = Path("frontend/src/i18n.test.ts")
+          text = test.read_text()
+          old_expected = '["vi", "phần giao đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"]'
+          new_expected = '["vi", "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"]'
+          if text.count(old_expected) != 1:
+              raise SystemExit(f"expected one stale Vietnamese test expectation, found {text.count(old_expected)}")
+          test.write_text(text.replace(old_expected, new_expected))
           PY
 
           uv lock
@@ -134,7 +109,7 @@ jobs:
           awk '/name = "lineageweave"/{seen=1; next} seen && /version =/{print; exit}' uv.lock | grep -F 'version = "2.70.0"'
 
           (cd frontend && pnpm run lint)
-          (cd frontend && pnpm exec vitest run src/i18n.test.ts src/leftoverMapCrossShare.test.ts src/leftoverMapPlotVietnameseCopy.test.ts src/leftoverMapCompareUnexplainedVietnameseCopy.test.ts)
+          (cd frontend && pnpm exec vitest run src/i18n.test.ts src/leftoverMapCrossShare.test.ts src/leftoverMapPlotVietnameseCopy.test.ts src/leftoverMapCompareUnexplainedVietnameseCopy.test.ts src/leftoverMapCompareCrossShareVietnameseCopy.test.ts)
           (cd frontend && pnpm run build)
           (cd frontend && pnpm run build-storybook)
 
