@@ -73,12 +73,12 @@ export const PureCycle: Story = {
 // intermediate width without inventing a second responsive-test vocabulary.
 export const PureCycleMobile: Story = {
   ...PureCycle,
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile1", isRotated: false } },
 };
 
 export const PureCycleIntermediate: Story = {
   ...PureCycle,
-  parameters: { viewport: { defaultViewport: "tablet" } },
+  globals: { viewport: { value: "tablet", isRotated: false } },
 };
 
 export const SelfParent: Story = {
