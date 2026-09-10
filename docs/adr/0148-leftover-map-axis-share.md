@@ -3,19 +3,7 @@
 **Decision status:** Accepted
 **Date:** 2026-08-24
 **Amended by:** [ADR 0269](0269-leftover-map-axis-share-plot.md)
-(leftover-map axis share on the graphic display);
-[ADR 0322](0322-leftover-map-axis-singular.md)
-(leftover-map singular values on leftover-axis report badges);
-[ADR 0323](0323-leftover-map-compare-axis-singular.md)
-(leftover-map singular values on leftover-axis report badges on the grouping comparison strip);
-[ADR 0324](0324-leftover-map-plot-axis-singular.md)
-(leftover-map singular values on leftover-map graphic-display axes);
-[ADR 0325](0325-leftover-map-axis-singular-only.md)
-(leftover-map singular values on leftover-axis report badges independently of leftover-map axis share);
-[ADR 0326](0326-leftover-map-compare-plot-axis-badge.md)
-(leftover-map comparison graphic leftover-map axis leftover-map singular values as leftoverMapComparePlotAxisBadge);
-[ADR 0327](0327-leftover-map-plot-tick-axis-badge.md)
-(leftover-map graphic leftover-map axis tick leftover-map singular values independently of leftover-map axis share)
+(leftover-map axis share on the graphic display)
 
 ## Context
 

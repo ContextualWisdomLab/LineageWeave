@@ -20,16 +20,13 @@ import {
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL,
 } from "../leftoverMapCoverage";
 import {
+  formatLeftoverMapPlotAxisShare,
   leftoverShareForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_1,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_2,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
+  LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
-import {
-  leftoverMapComparePlotAxisBadge,
-  leftoverMapPlotAxisBadge,
-  leftoverMapPlotTickAxisBadge,
-  leftoverSingularForAxis,
-} from "../leftoverMapPlotAxisSingular";
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
@@ -44,9 +41,6 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
-  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
-  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
-  LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -59,6 +53,7 @@ import {
   LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE,
+  LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
 
@@ -82,34 +77,19 @@ function leftoverMapPlotAxisText(
   leftoverMapAxes: LeftoverMapAxis[] | undefined,
   variant: LeftoverMapPlotVariant,
 ): string {
-  const leftoverShare = leftoverShareForAxis(leftoverMapAxes, axisIndex);
-  const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
+  const percent = formatLeftoverMapPlotAxisShare(
+    leftoverShareForAxis(leftoverMapAxes, axisIndex),
+  );
   if (variant === "comparison") {
-    const badge = leftoverMapComparePlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
-    if (badge === null) {
+    if (percent === null) {
       return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
     }
-    return tf(badge.key, badge.values);
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
   }
-  const badge = leftoverMapPlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
-  if (badge === null) {
+  if (percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
-  return tf(badge.key, badge.values);
-}
-
-function leftoverMapPlotTickText(
-  axisIndex: number,
-  tickLabel: string,
-  leftoverMapAxes: LeftoverMapAxis[] | undefined,
-  variant: LeftoverMapPlotVariant,
-): string {
-  if (variant === "comparison") {
-    return tf(LEFTOVER_MAP_COMPARE_PLOT_TICK, { axis: axisIndex, value: tickLabel });
-  }
-  const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
-  const badge = leftoverMapPlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular);
-  return tf(badge.key, badge.values);
+  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
 }
 
 /**
@@ -117,8 +97,7 @@ function leftoverMapPlotTickText(
  *
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
- * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
- * including rank-0 zero-share axes.
+ * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -147,10 +126,8 @@ function leftoverMapPlotTickText(
  * caption when incomplete post coverage is missing or not a usable integer.
  * Omit that leftover-map incomplete item caption when incomplete item
  * coverage is missing or not a usable integer.
- * Omit that axis singular-value badge when ``σ_k`` is missing, non-finite,
- * or negative, independently of leftover-map axis share. Omit that axis badge when share is
- * missing or non-finite and keep the existing leftover-map axis text,
- * including any leftover-map comparison graphic leftover-map axis singular value.
+ * Omit that axis badge when share is
+ * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * ADR 0304 reuses this graphic on the grouping comparison strip from
  * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis
@@ -192,28 +169,7 @@ function leftoverMapPlotTickText(
  * labels. ADR 0317 captions leftover expected on that
  * comparison graphic from already-named leftover expected
  * with distinct leftover map comparison graphic leftover expected
- * labels. ADR 0318 captions leftover-map rank on that
- * comparison graphic from already-named leftover-map rank
- * with distinct leftover map comparison graphic leftover-map rank
- * labels. ADR 0319 captions leftover-map distance on that
- * comparison graphic from already-named leftover-map distance
- * with distinct leftover map comparison graphic leftover-map distance
- * labels. ADR 0320 captions leftover-map coordinate ticks on that
- * comparison graphic from already-named leftover-map coordinates
- * with distinct leftover map comparison graphic leftover-map axis tick
- * labels. ADR 0321 captions leftover-map singular values on that
- * comparison graphic from already-named leftover-map axes
- * with distinct leftover map comparison graphic leftover-map axis σ
- * labels. ADR 0322 captions leftover-axis report badges with persisted
- * leftover-map singular values, not this graphic. ADR 0323 captions leftover-axis
- * report badges on the grouping comparison strip with persisted leftover-map
- * singular values, not this graphic. ADR 0324 captions leftover-map
- * graphic-display axes with persisted leftover-map singular values.
- * ADR 0326 fail-closes leftover-map comparison graphic leftover-map axis leftover-map
- * singular values through leftoverMapComparePlotAxisBadge.
- * ADR 0327 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
- * singular values through leftoverMapPlotTickAxisBadge independently of leftover-map
- * axis share.
+ * labels.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -341,12 +297,7 @@ export function LeftoverMapPlot({
             <g
               key={`tick:${tick.axis}:${tick.label}`}
               className="leftover-map-plot-tick"
-              aria-label={leftoverMapPlotTickText(
-                tick.axis,
-                tick.label,
-                leftoverMapAxes,
-                variant,
-              )}
+              aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
             >
               <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
               <text
@@ -374,12 +325,9 @@ export function LeftoverMapPlot({
                   x={segment.labelX}
                   y={segment.labelY}
                   textAnchor="middle"
-                  aria-label={tf(
-                    variant === "comparison"
-                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE
-                      : LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
-                    { label: segment.distanceLabel },
-                  )}
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {
+                    label: segment.distanceLabel,
+                  })}
                 >
                   {segment.distanceLabel}
                 </text>
@@ -518,12 +466,9 @@ export function LeftoverMapPlot({
                   x={segment.rankX}
                   y={segment.rankY}
                   textAnchor="middle"
-                  aria-label={tf(
-                    variant === "comparison"
-                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK
-                      : LEFTOVER_MAP_PLOT_SEGMENT_RANK,
-                    { label: segment.rankLabel },
-                  )}
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_RANK, {
+                    label: segment.rankLabel,
+                  })}
                 >
                   {segment.rankLabel}
                 </text>
