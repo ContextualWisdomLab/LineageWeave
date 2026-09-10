@@ -78,6 +78,26 @@ describe("#906 cycle-safe customer forest", () => {
     expect(flattenIds(tree)).toEqual(["C", "B", "A", "tail"]);
   });
 
+  it("chooses the same cycle break when the API returns the same entities in a different order", () => {
+    const first = buildCustomerEntityTree([
+      entity("A", "B"),
+      entity("B", "C"),
+      entity("C", "A"),
+    ]);
+    const permuted = buildCustomerEntityTree([
+      entity("B", "C"),
+      entity("C", "A"),
+      entity("A", "B"),
+    ]);
+
+    expect(first).toHaveLength(1);
+    expect(permuted).toHaveLength(1);
+    expect(first[0].entity.corporate_entity_id).toBe("C");
+    expect(permuted[0].entity.corporate_entity_id).toBe("C");
+    expect(first[0].ancestryNote).toBe("cycle-broken");
+    expect(permuted[0].ancestryNote).toBe("cycle-broken");
+  });
+
   it("emits a self-parent entity once instead of dropping it", () => {
     const tree = buildCustomerEntityTree([entity("S", "S")]);
     expect(flattenIds(tree)).toEqual(["S"]);
