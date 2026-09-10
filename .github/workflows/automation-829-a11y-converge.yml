@@ -1,0 +1,143 @@
+name: Stage #829 inherited accessibility convergence
+
+on:
+  push:
+    branches:
+      - automation/829-a11y-converge-20260911
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-829-a11y-converge-20260911
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/829-a11y-converge-20260911
+          fetch-depth: 2
+
+      - name: Verify exact source parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "ee7198d2a35493c026d1233368b015ee7c491114"
+
+      - name: Apply inherited #828 accessibility repair without touching #829 product delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement target, found {count}")
+              file.write_text(text.replace(old, new, 1))
+
+          replace_once("frontend/src/App.tsx", "  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n", "")
+          replace_once("frontend/src/App.tsx", "                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}\n", "")
+          replace_once("frontend/src/leftoverMapCompareAxis.ts", 'export const LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL = "Leftover map comparison axis share";\n\n', "")
+
+          old_app_test = '''    expect(\n      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(\n        "Leftover map comparison axis share",\n      ),\n    ).toHaveLength(4);\n    expect(\n      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(\n        "Leftover map comparison axis share",\n      )[0],\n    ).toHaveTextContent("leftover map comparison axis 1 0%");\n'''
+          new_app_test = '''    expect(\n      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 0%"),\n    ).toBeInTheDocument();\n'''
+          replace_once("frontend/src/App.test.tsx", old_app_test, new_app_test)
+
+          replace_once("frontend/src/leftoverMapCompareAxis.test.ts", "  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,\n", "")
+          replace_once(
+              "frontend/src/leftoverMapCompareAxis.test.ts",
+              '  it("keeps the grouping comparison leftover-map axis share label distinct from leftover-axis badges and graphic axes", () => {\n',
+              '  it("keeps the grouping comparison visible axis-share formatter distinct from leftover-axis badges and graphic axes", () => {\n',
+          )
+          replace_once(
+              "frontend/src/leftoverMapCompareAxis.test.ts",
+              '    expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL).toBe("Leftover map comparison axis share");\n    expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL).not.toBe("Leftover-map axis share");\n',
+              "",
+          )
+
+          i18n_path = Path("frontend/src/i18n.ts")
+          i18n = i18n_path.read_text()
+          pattern = r'^    "Leftover map comparison axis share": .*\n'
+          matches = re.findall(pattern, i18n, flags=re.MULTILINE)
+          if len(matches) != 4:
+              raise SystemExit(f"frontend/src/i18n.ts: expected four dead author-name resources, found {len(matches)}")
+          i18n_path.write_text(re.sub(pattern, "", i18n, flags=re.MULTILINE))
+          replace_once("frontend/src/i18n.test.ts", '    "Leftover map comparison axis share",\n', "")
+
+          app = Path("frontend/src/App.tsx").read_text()
+          helper = Path("frontend/src/leftoverMapCompareAxis.ts").read_text()
+          helper_test = Path("frontend/src/leftoverMapCompareAxis.test.ts").read_text()
+          if "LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL" in app or "LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL" in helper or "LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL" in helper_test:
+              raise SystemExit("dead author-name token remains")
+          if 'leftover map comparison axis {axis} {share}%' not in helper:
+              raise SystemExit("visible axis/share formatter was removed")
+          if 'LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE' not in app:
+              raise SystemExit("#829 unexplained-share product delta was lost")
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: pnpm run lint
+
+      - name: Run focused frontend regression suite
+        working-directory: frontend
+        run: pnpm exec vitest run src/leftoverMapCompareAxisAccessibility.test.ts src/leftoverMapCompareAxis.test.ts src/leftoverMapUnexplainedShare.test.ts src/App.test.tsx src/i18n.test.ts
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: pnpm run build-storybook
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Run inherited repository contracts
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q \
+            tests/test_compare_axis_share_accessibility_contract.py \
+            tests/test_compare_axis_share_visibility.py \
+            tests/test_leftover_map_axis_share_adr_authority.py
+
+      - name: Commit workflow-free validated tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/automation-829-a11y-converge.yml
+          git config user.name "LineageWeave automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/i18n.ts frontend/src/i18n.test.ts frontend/src/leftoverMapCompareAxis.ts frontend/src/leftoverMapCompareAxis.test.ts
+          git commit -m "fix(a11y): inherit visible axis-share naming from #828"
+          git push origin HEAD:automation/829-a11y-converge-20260911
