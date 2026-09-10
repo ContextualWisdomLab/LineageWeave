@@ -227,9 +227,13 @@ this new head.
   crashing. The hung-cache budget test is honored unchanged; 97 translation
   tests passed locally before the fast-forward push.
 - On `e48d52968` the Full test suite is terminal SUCCESS, as are Frontend
-  lint/test/build, noema-review, Analyze python/actions, Semgrep, osv-scan,
-  trivy-fs, and Scorecard. Strix was still pending at record time. These are
-  hosted receipts for this exact head only and do not transfer.
+  lint/test/build, noema-review (recovered PASS after gateway 429/502
+  retries), Strix, Analyze python/actions, Semgrep, osv-scan,
+  trivy-fs, and Scorecard. On the docs-only successor `d997a282f` the Full
+  suite stayed SUCCESS while noema-review returned to gateway failures
+  (HTTP 429 then repeated HTTP 502 on the free model pool); further reruns
+  are paused for gateway cooldown and owned by the dispatch retry path.
+  These are hosted receipts for their exact heads only and do not transfer.
 - Delivery stays BLOCKED on central evidence outside this repository's code:
   dependency-review fails closed on HTTP 403 from the dependency-graph
   compare API (canonical owner `.github#1725`); the three CodeQL
