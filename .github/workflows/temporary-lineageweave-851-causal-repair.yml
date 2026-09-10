@@ -95,12 +95,12 @@ jobs:
               if text.count(anchor) != 1:
                   raise SystemExit("unexpected Vietnamese regression import anchor")
               text = text.replace(anchor, import_line + anchor)
-          old = '''    expect(\n      tf("leftover-map explained leftover share {label}", { label: "R̂²/R² 0.76" }),\n    ).toBe("tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76");\n'''
-          new = old + '''    expect(\n      tf(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE, { label: "R̂²/R² 0.76" }),\n    ).toBe(\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76",\n    );\n'''
-          if new not in text:
-              if text.count(old) != 1:
-                  raise SystemExit("unexpected Vietnamese regression assertion anchor")
-              text = text.replace(old, new)
+          marker = '  it("keeps the expanded graphic description explicit about explained share e", () => {\n'
+          new_test = '''  it("keeps grouping comparison explained share terminology explicit in Vietnamese", () => {\n    setLocale("vi");\n\n    expect(\n      tf(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE, { label: "R̂²/R² 0.76" }),\n    ).toBe(\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76",\n    );\n  });\n\n'''
+          if new_test not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit("unexpected Vietnamese regression test anchor")
+              text = text.replace(marker, new_test + marker)
           test_path.write_text(text)
           PY
           git add frontend/src/leftoverMapPlotVietnameseCopy.test.ts
@@ -117,7 +117,7 @@ jobs:
             echo "Expected Vietnamese terminology RED did not reproduce."
             exit 65
           fi
-          grep -F "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư" /tmp/lineageweave-851-red.log >/dev/null
+          grep -F "keeps grouping comparison explained share terminology explicit in Vietnamese" /tmp/lineageweave-851-red.log >/dev/null
 
           python - <<'PY'
           from pathlib import Path
@@ -168,8 +168,6 @@ jobs:
             parent_pr="$pr"
           done
 
-          # Re-read remote PR heads immediately before publishing. Any concurrent writer wins;
-          # this job fails closed rather than force-updating or hiding intervening deltas.
           for pr in "${prs[@]}"; do
             live="$(gh api "repos/${repo}/pulls/${pr}" --jq '.head.sha')"
             if [ "$live" != "${expected[$pr]}" ]; then
@@ -190,5 +188,4 @@ jobs:
             echo "#${pr}: $(git rev-parse work-${pr})"
           done
 
-          # Remove the temporary automation branch after all product refs are published.
           git push origin --delete automation/lineageweave-851-causal-repair-20260911 || true
