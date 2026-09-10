@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: automation-831-cross-share-repair-v8
+  group: automation-831-cross-share-repair-v9
   cancel-in-progress: false
 
 jobs:
@@ -20,16 +20,15 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 10
+          fetch-depth: 2
 
-      - name: Verify serialized predecessor
+      - name: Verify serialized predecessor and product blobs
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "6bcf1d79b4de58c27b47306f72f9664afb134f72"
-          git merge-base --is-ancestor 856464d69bdf989c6e47bd1f6e3126fc839ce229 HEAD
-          test "$(git rev-parse HEAD:frontend/src/App.tsx)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:frontend/src/App.tsx)"
-          test "$(git rev-parse HEAD:backend/app/report_ingestion.py)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:backend/app/report_ingestion.py)"
+          test "$(git rev-parse HEAD^)" = "662bb9e87cde99eb5ab567a93fdb451201a37a90"
+          test "$(git rev-parse HEAD:frontend/src/App.tsx)" = "e959ea7515286f976b9bade9247c17ae604f2608"
+          test "$(git rev-parse HEAD:backend/app/report_ingestion.py)" = "b4bfb3187b8b85afa7f944a82e5e1664728b3c90"
 
       - name: Apply bounded source repair
         run: |
