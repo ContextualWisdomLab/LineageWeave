@@ -156,10 +156,14 @@ import {
 def repair_backend() -> None:
     path = Path("backend/app/report_ingestion.py")
     backend = path.read_text(encoding="utf-8")
+    function_start = backend.index("async def fetch_period_comparison(")
+    next_function = backend.find("\nasync def ", function_start + 1)
+    function_end = len(backend) if next_function == -1 else next_function
+    prefix, function, suffix = backend[:function_start], backend[function_start:function_end], backend[function_end:]
 
     query_anchor = "lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,\n"
-    require_once(backend, query_anchor, "backend select anchor")
-    backend = backend.replace(
+    require_once(function, query_anchor, "comparison backend select anchor")
+    function = function.replace(
         query_anchor,
         query_anchor + "               lp.leftover_map_cross_share,\n",
         1,
@@ -171,14 +175,15 @@ def repair_backend() -> None:
                             else float(pair["leftover_map_unexplained_share"])
                         ),
 '''
-    require_once(backend, payload_anchor, "backend payload anchor")
+    require_once(function, payload_anchor, "comparison backend payload anchor")
     payload_value = payload_anchor + '''                        "leftover_map_cross_share": (
                             None
                             if pair["leftover_map_cross_share"] is None
                             else float(pair["leftover_map_cross_share"])
                         ),
 '''
-    path.write_text(backend.replace(payload_anchor, payload_value, 1), encoding="utf-8")
+    function = function.replace(payload_anchor, payload_value, 1)
+    path.write_text(prefix + function + suffix, encoding="utf-8")
 
 
 if __name__ == "__main__":
