@@ -451,10 +451,17 @@ boundaries.
 Measurement loops follow the autoresearch shape: goal, metric command
 with extraction and direction, scope, isolated change, commit,
 measure, keep-or-revert, log. Keep the journal as tab-separated
-experiment/commit/metric/status/description rows outside git. Never
-install dependencies, change environments, or push without explicit
-approval; shared-branch reset --hard, force push, and discarding
-others' deltas are forbidden. Missing skills install only to
+experiment/commit/metric/status/description rows outside git. Shared-branch
+reset --hard, force push, and discarding others' deltas are forbidden;
+so are operating/global environment, secret, and paid-resource changes.
+Within a general development delegation, local source/test edits,
+independent branch/worktree creation, isolated installs of declared
+reviewed project dev/test dependencies, and non-force push of an owned
+branch do not wait for per-action re-designation -- a narrower user
+limit, read-only scope, tool ask/deny, or server permission denial
+still wins when present, and a claimed approval requirement needs its
+directive, policy, or actual request/denial identifier as evidence.
+Missing skills install only to
 supported project paths after license, permission, and SHA review --
 no personal, global, duplicate, or bulk installs, no permission
 widening, no paid services. Use step-by-step machine reasoning only
@@ -470,3 +477,12 @@ security, contract, orchestrator-routing, and secret-policy failures
 are never bypassed. Completion evidence is tool events plus
 dependency and acceptance checks -- never planned commands,
 summaries, or idle and finish markers.
+
+A stopped remote head, a running CI, a passing local suite, an
+active owner branch, or no new review is each a status, not a
+top-level blocker; keep working other READY paths. Never report
+"no side-effect-free step left" as a stop, and never use the
+goal-blocked tool for routine waits -- it can pause the top-level
+loop. Do not change another writer's branch to evade single-writer;
+independent work gets its own branch/worktree with no shared-file
+surprises.
