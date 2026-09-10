@@ -105,13 +105,20 @@ UI remain unavailable until their separate ADR acceptance. ADR 0253 adds
 catalog-bound semantic-unit extraction through contextual-orchestrator's
 multi-agent conduct path; exact offered IRIs and verbatim spans are required,
 and a digest-bound run record distinguishes a supported empty result from an
-unavailable provider. ADR 0254 adds the authorized Post-detail evidence review
-surface and honest complete, processing, and unavailable states. ADR 0255
+unavailable provider. The authorized Post-detail evidence review surface
+(`frontend/src/components/OccupationalConstructEvidence.tsx`, covered by its
+component test) reports honest complete, processing, and unavailable states.
+ADR 0255
 projects assertion-backed constructs into the existing ABAC-filtered ontology
-neighborhood without duplicating graph storage or promoting truth. ADR 0257
+neighborhood without duplicating graph storage or promoting truth. ADR 0265
 adds authorized catalog-label search: reviewers type an official O*NET label
 and open the earliest visible supporting Post. Constructs without visible
 evidence stay undisclosed. Occupation ratings remain unavailable.
+O*NET linkage relations from abilities, skills, and work styles to Work
+Activities and Work Context remain explicitly unavailable: ADR 0250 point 4
+defers them to their own provenance and decision records, and no accepted ADR
+on this branch covers them. Relevance is therefore neither asserted as a
+relation nor carried as a weight.
 
 ### PRD-FR-2C — FJA I/O-Psychology cognitive, affective & behavioral semantic layer
 
@@ -165,73 +172,10 @@ canonical namespace, and lookup round-trip isolation are enforced by
 `tests/test_io_taxonomy.py`; `tests/test_ontology.py` continues to pass
 unchanged.
 
-### PRD-FR-2A — Worker-function taxonomy
-
-- Publish the DOT/FJA Data/People/Things worker functions (24 concepts,
-  official definitions verbatim) in the canonical ontology namespace
-  (ADR 0232), each with its definitional ordinal rank. Do not infer a
-  DOT-to-O*NET or Fleishman crosswalk that the authorities do not publish.
-- Expose the taxonomy through a deterministic application read model with
-  fail-closed lookups; an absent function is an honest unknown.
-- Carry no numeric weight from the taxonomy: ranks are scale positions,
-  never calibrated weights.
-
-Acceptance: completeness, full verbatim definitions, deterministic ordering,
-and lookup round-trip isolation are enforced by
-`tests/test_worker_function_taxonomy.py`; `tests/test_ontology.py`
-continues to pass unchanged.
-
-### PRD-FR-2B — Occupational classification and worker-characteristic taxonomy
-
-- Publish all four levels of the 2018 Standard Occupational Classification:
-  23 major groups, 98 minor groups, 459 broad occupations, and 867 detailed
-  occupations with exact source parents, titles, and codes (ADR 0252), plus
-  the four O*NET 31.0 job-zone categories with
-  published names and source values 2 through 5 (ADR 0245).
-- Publish the worker-characteristic families that work-related
-  cognition, affect, and behavior resolve into: Fleishman's four ability
-  domains, Holland's six RIASEC interest types with the published
-  hexagonal adjacency relation, the six explicitly legacy O*NET work-value
-  clusters, and
-  the seven higher-order dimensions of the revised O*NET Work Styles
-  structure.
-- Publish all 3,006 O*NET 31.0 Content Model Reference elements with exact
-  identifiers, names, descriptions, and source-defined outline parents
-  (ADR 0264). Treat the six roots and 18 second-level branches as navigation
-  classes, never occupation ratings, person traits, scores, or weights.
-- Declare typed derivation properties from classifications to
-  characteristics but assert no instance binding; binding requires a
-  versioned released source profile imported with provenance in its own
-  decision.
-- Expose everything through a deterministic application read model with
-  fail-closed lookups; carry no numeric importance or level rating from
-  any occupational profile.
-
-Acceptance: completeness counts, verbatim titles, closed RIASEC
-vocabulary, exact published adjacency pairs, deterministic ordering,
-canonical namespace, and lookup round-trip isolation are enforced by
-`tests/test_io_taxonomy.py`, `tests/test_soc_2018_hierarchy.py`, and
-`tests/test_onet_content_model.py`;
-`tests/test_ontology.py` continues to pass unchanged.
-### PRD-FR-2C — Evidence-bound occupational constructs
-
-- Keep cognitive abilities, work styles, work activities, affective
-  reactions, and performance behaviors as non-equivalent construct classes
-  (ADR 0248). FJA worker functions remain separate.
-- Reuse official external identifiers and source-published relationships;
-  never infer a DPT-to-psychology crosswalk or relabel work style as affect.
-- Publish the eight O*NET 31.0 Ability, Essential Skill, Transferable Skill,
-  and Work Style link tables to Work Activities and Work Context as 1,417
-  directed, assertion-level provenance-bearing relations (ADR 0256). Treat
-  relevance as neither a causal effect nor a numeric weight.
-- Bind a construct to record content only through a provenance-bearing,
-  evidence-cited assertion. Do not promote record evidence to a person trait,
-  score, causal effect, or job requirement.
-
-Acceptance: SHACL rejects incomplete record assertions; ontology tests
-prohibit FJA equivalence, require exact Post/evidence/PROV statement structure,
-and reproduce every pinned O*NET linkage with its exact source table. Runtime
-persistence and UI remain unavailable until their separate ADR acceptance.
+The complete four-level SOC hierarchy and Content-Model-wide navigation
+classes remain explicitly unavailable: no accepted ADR on this branch covers
+them, and no implementation or test asserts them. They are not inferred from
+labels and are not supplied by the catalog sync.
 
 ### PRD-FR-2D — Occupation-rating source observations
 
@@ -503,8 +447,7 @@ A release claim requires one exact protected-main head that proves:
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
-  ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
-  ADR 0184, ADR 0207, ADR 0222, ADR 0246.
+   ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
 - Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
