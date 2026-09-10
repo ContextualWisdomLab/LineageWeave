@@ -707,7 +707,7 @@ function AffiliateTreeNode({
             />
           ))}
         </ul>
-      ) : null}
+      )}
     </li>
   );
 }
