@@ -98,6 +98,15 @@ describe("#906 cycle-safe customer forest", () => {
     expect(permuted[0].ancestryNote).toBe("cycle-broken");
   });
 
+  it("fails closed when two rows claim the same canonical entity identity", () => {
+    expect(() =>
+      buildCustomerEntityTree([
+        entity("duplicate", null, "First projection"),
+        entity("duplicate", null, "Conflicting projection"),
+      ]),
+    ).toThrow("Duplicate Customer Master entity identity: duplicate");
+  });
+
   it("emits a self-parent entity once instead of dropping it", () => {
     const tree = buildCustomerEntityTree([entity("S", "S")]);
     expect(flattenIds(tree)).toEqual(["S"]);
