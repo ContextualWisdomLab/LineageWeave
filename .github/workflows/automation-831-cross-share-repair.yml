@@ -1,0 +1,170 @@
+name: automation 831 cross-share repair
+
+on:
+  push:
+    branches:
+      - feat/leftover-map-compare-cross-share-v2530
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-831-cross-share-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/leftover-map-compare-cross-share-v2530
+          fetch-depth: 2
+
+      - name: Verify expected predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=856464d69bdf989c6e47bd1f6e3126fc839ce229
+          actual="$(git rev-parse HEAD^)"
+          test "$actual" = "$expected" || {
+            echo "branch moved before repair: expected parent $expected, got $actual" >&2
+            exit 1
+          }
+
+      - name: Apply minimal causal source repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("frontend/src/App.tsx")
+          source = path.read_text(encoding="utf-8")
+
+          import_needle = '''import {
+            formatLeftoverMapUnexplainedShare,
+            LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
+          } from "./leftoverMapUnexplainedShare";
+          import {
+            leftoverMapCompareAxisShare,'''
+          import_replacement = '''import {
+            formatLeftoverMapUnexplainedShare,
+            LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
+          } from "./leftoverMapUnexplainedShare";
+          import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";
+          import {
+            leftoverMapCompareAxisShare,'''
+          if source.count(import_needle) != 1:
+              raise SystemExit(f"unexpected cross-share import anchor count: {source.count(import_needle)}")
+          source = source.replace(import_needle, import_replacement, 1)
+
+          declaration_pattern = re.compile(
+              r'(                    const unexplainedShare = formatLeftoverMapUnexplainedShare\(\n'
+              r'                      pair\.leftover_map_unexplained_share,\n'
+              r'                    \);\n)'
+              r'(                    const pairAccessibleName = )'
+          )
+          source, count = declaration_pattern.subn(
+              r'\1                    const crossShare = formatLeftoverMapCrossShare(\n'
+              r'                      pair.leftover_map_cross_share,\n'
+              r'                    );\n\2',
+              source,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f"unexpected cross-share declaration anchor count: {count}")
+
+          name_needle = '''                    }${
+                      unexplainedShare
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
+                        : ""
+                    }`;'''
+          name_replacement = '''                    }${
+                      unexplainedShare
+                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
+                        : ""
+                    }${crossShare ? ` · ${crossShare}` : ""}`;'''
+          if source.count(name_needle) != 1:
+              raise SystemExit(f"unexpected accessible-name anchor count: {source.count(name_needle)}")
+          source = source.replace(name_needle, name_replacement, 1)
+
+          badge_needle = '''                          {unexplainedShare ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {unexplainedShare}
+                            </span>
+                          ) : null}
+                        </button>'''
+          badge_replacement = '''                          {unexplainedShare ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {unexplainedShare}
+                            </span>
+                          ) : null}
+                          {crossShare ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {crossShare}
+                            </span>
+                          ) : null}
+                        </button>'''
+          if source.count(badge_needle) != 1:
+              raise SystemExit(f"unexpected visual-badge anchor count: {source.count(badge_needle)}")
+          source = source.replace(badge_needle, badge_replacement, 1)
+
+          if "LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL" in source:
+              raise SystemExit("forbidden inline/static comparison cross-share label authority remains")
+          path.write_text(source, encoding="utf-8")
+          PY
+          git diff --check
+
+      - name: Run executable cross-share regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import runpy
+          ns = runpy.run_path("tests/test_grouping_comparison_cross_share_contract.py")
+          ns["test_grouping_comparison_projects_persisted_cross_share_into_one_accessible_action"]()
+          ns["test_cross_share_formatter_remains_fail_closed_and_unclamped"]()
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: pnpm run lint
+
+      - name: Test frontend
+        working-directory: frontend
+        run: pnpm run test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: pnpm run build-storybook
+
+      - name: Commit repair and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/automation-831-cross-share-repair.yml
+          git add frontend/src/App.tsx
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(reports): project persisted comparison cross share"
+          git push origin HEAD:feat/leftover-map-compare-cross-share-v2530
