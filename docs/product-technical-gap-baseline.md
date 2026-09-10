@@ -27,10 +27,10 @@
 > repair findings open as of this observation. No self-approve, no
 > force-push, no stale-evidence transfer.
 >
-> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `45fc14629`:
-> Full test suite terminal SUCCESS, Frontend FAILURE with 12 files below
-> the 100% threshold while the `PostBody.singleColumnTable` GFM regression
-> now passes; remaining gates pending at observation, central fail-closed
+> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `60d2f7800`:
+> Full test suite IN_PROGRESS at observation, Frontend FAILURE with 12 files
+> below the 100% threshold and zero failing tests (the GFM regression now
+> passes); remaining gates pending at observation, central fail-closed
 > causes as above); #979 Ask
 > ownership-fenced liveness (CLEAN, stacked on #974); #974 chat
 > null-timeout + worker expiry; #970 fast-mlsirm v0.9.1 owner release
