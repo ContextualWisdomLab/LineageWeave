@@ -27,4 +27,11 @@ def test_exceptional_bypass_requires_exact_current_authority() -> None:
     section = _agent_loop_section().lower()
     assert "explicit current" in section
     assert "exact pr/head" in section
+    assert "minimal protection" in section
+    assert "authority identifier" in section
+    assert "failure sha" in section
+    assert "alternative verification" in section
+    assert "impact, and recovery" in section
     assert "fail-closed" in section
+    assert "code, security, contract" in section
+    assert "orchestrator-routing, and secret-policy failures are never bypassed" in section
