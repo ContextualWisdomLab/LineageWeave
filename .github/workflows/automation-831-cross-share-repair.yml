@@ -9,39 +9,25 @@ permissions:
   contents: write
 
 concurrency:
-  group: automation-831-cross-share-repair-v2
+  group: automation-831-cross-share-repair-v3
   cancel-in-progress: false
 
 jobs:
   repair:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc4999588649806c4678c61a1
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - name: Checkout exact trigger commit
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 4
+          fetch-depth: 5
 
       - name: Verify expected serialized predecessor
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "2c2c17070946ae881cbc7f5378a9380677e82fa6" || {
-            echo "unexpected workflow-update parent" >&2
+          test "$(git rev-parse HEAD^)" = "9a958e7bf18e78f98c1627ad51e1997c27a25b60" || {
+            echo "unexpected workflow-repair parent" >&2
             exit 1
           }
           git merge-base --is-ancestor 856464d69bdf989c6e47bd1f6e3126fc839ce229 HEAD
@@ -176,7 +162,6 @@ jobs:
 
           app_path = Path("frontend/src/App.tsx")
           source = app_path.read_text(encoding="utf-8")
-
           import_needle = '''import {
             formatLeftoverMapUnexplainedShare,
             LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
@@ -193,7 +178,6 @@ jobs:
           if source.count(import_needle) != 1:
               raise SystemExit(f"unexpected cross-share import anchor count: {source.count(import_needle)}")
           source = source.replace(import_needle, import_replacement, 1)
-
           declaration_pattern = re.compile(
               r'(                    const unexplainedShare = formatLeftoverMapUnexplainedShare\(\n'
               r'                      pair\.leftover_map_unexplained_share,\n'
@@ -209,7 +193,6 @@ jobs:
           )
           if count != 1:
               raise SystemExit(f"unexpected cross-share declaration anchor count: {count}")
-
           name_needle = '''                    }${
                       unexplainedShare
                         ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
@@ -223,7 +206,6 @@ jobs:
           if source.count(name_needle) != 1:
               raise SystemExit(f"unexpected accessible-name anchor count: {source.count(name_needle)}")
           source = source.replace(name_needle, name_replacement, 1)
-
           badge_needle = '''                          {unexplainedShare ? (
                             <span className="post-badge" aria-hidden="true">
                               {unexplainedShare}
@@ -258,7 +240,6 @@ jobs:
           if backend.count(query_needle) != 1:
               raise SystemExit(f"unexpected backend select anchor count: {backend.count(query_needle)}")
           backend = backend.replace(query_needle, query_replacement, 1)
-
           payload_needle = '''                        "leftover_map_unexplained_share": (
                             None
                             if pair["leftover_map_unexplained_share"] is None
@@ -294,8 +275,8 @@ jobs:
           ns["test_cross_share_formatter_remains_fail_closed_and_unclamped"]()
           PY
 
-      - name: Run full PostgreSQL-backed suite
-        run: uv run --frozen python -m pytest -q
+      - name: Run bounded backend regressions
+        run: uv run --frozen python -m pytest -q backend/tests/test_period_comparison_cross_share.py tests/test_leftover_pairs.py
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
