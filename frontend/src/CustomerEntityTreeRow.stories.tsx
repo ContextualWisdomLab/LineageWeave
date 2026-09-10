@@ -68,6 +68,19 @@ export const PureCycle: Story = {
   },
 };
 
+// Reuse LineageWeave's existing Storybook viewport presets so malformed
+// hierarchy acceptance can be exercised at desktop, mobile, and the principal
+// intermediate width without inventing a second responsive-test vocabulary.
+export const PureCycleMobile: Story = {
+  ...PureCycle,
+  parameters: { viewport: { defaultViewport: "mobile1" } },
+};
+
+export const PureCycleIntermediate: Story = {
+  ...PureCycle,
+  parameters: { viewport: { defaultViewport: "tablet" } },
+};
+
 export const SelfParent: Story = {
   render: () => (
     <ForestList nodes={buildCustomerEntityTree([entity("S", "S", "Solo")])} />
