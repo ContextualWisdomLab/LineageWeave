@@ -210,8 +210,11 @@ function buildUnicodeToAsciiTable(table: Record<string, string>): Record<string,
 }
 const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
 const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
+// ADR 0165 admits ASCII exponent digits, but any following Unicode decimal
+// digit extends the token. Reject that mixed token instead of superscripting
+// only its ASCII prefix.
 const CARET_EXPONENT =
-  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
+  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?[0-9]{1,3}|[nNiI])\}|([+-]?[0-9]{1,3}(?!\p{Nd}|\.\p{Nd})|[nNiI]))/gu;
 const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
 const ENCODED_LT = String.raw`&(?:amp;)*(?:lt|#0*60|#x0*3c);`;
 const ENCODED_GT = String.raw`&(?:amp;)*(?:gt|#0*62|#x0*3e);`;
@@ -303,7 +306,7 @@ export function splitScriptRuns(text: string): ScriptRun[] {
     }
     if (ch === "^" && index > 0 && /[A-Za-z0-9µμ°ΩÅåÅ)]/.test(text[index - 1])) {
       const rest = text.slice(index);
-      const match = rest.match(/^\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/);
+      const match = rest.match(/^\^(?:\{([+-]?[0-9]{1,3}|[nNiI])\}|([+-]?[0-9]{1,3}(?!\p{Nd}|\.\p{Nd})|[nNiI]))/u);
       if (match) {
         push(match[1] || match[2] || "", "super");
         index += match[0].length;
@@ -363,7 +366,7 @@ function splitSemanticParagraphs(text: string): string[] {
   const flushPipeTableRows = () => {
     const hasSeparator = pipeTableRows.some((row) => {
       const cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
-      return cells.length >= 2 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
+      return cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
     });
     if (pipeTableRows.length >= 2 && hasSeparator) {
       flush();
@@ -378,7 +381,7 @@ function splitSemanticParagraphs(text: string): string[] {
     const trimmed = line.trim();
     if (trimmed.includes("|")) {
       const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
-      if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
+      if (cells.some((cell) => cell.trim())) {
         pipeTableRows.push(line);
         continue;
       }

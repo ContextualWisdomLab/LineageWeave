@@ -59,8 +59,7 @@ export function ProjectHistoryTimeline({
 
   function selectAt(index: number) {
     const bounded = Math.max(0, Math.min(index, projection.events.length - 1));
-    const event = projection.events[bounded];
-    if (!event) return;
+    const event = projection.events[bounded]!;
     setSelectedEventId(event.event_id);
     tabRefs.current[bounded]?.focus();
   }

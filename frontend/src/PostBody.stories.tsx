@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 import { PostBody } from "./PostBody";
 import diagramSrc from "./fixtures/synthetic-process-diagram.png?inline";
 
@@ -75,5 +76,14 @@ export const WhitespaceCaptionFallsBack: Story = {
         tags: [],
       },
     ],
+  },
+};
+
+
+export const NumericExponentBoundary: Story = {
+  args: { body: "<p>Volume m^3; x^123; x^1234; x^-1234; x^{1234}.</p>" },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement).toHaveTextContent("Volume m3; x123; x^1234; x^-1234; x^{1234}.");
+    await expect([...canvasElement.querySelectorAll("sup")].map((node) => node.textContent)).toEqual(["3", "123"]);
   },
 };
