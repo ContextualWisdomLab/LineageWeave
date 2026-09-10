@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: automation-831-cross-share-repair-v5
+  group: automation-831-cross-share-repair-v6
   cancel-in-progress: false
 
 jobs:
@@ -20,13 +20,13 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 7
+          fetch-depth: 8
 
       - name: Verify serialized predecessor and unchanged product sources
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "b7ebc9fa4ef464f8e8c36766a7477b70ee618be5"
+          test "$(git rev-parse HEAD^)" = "652bba70bfd997b63618381754ce58bcb0f7ba39"
           git merge-base --is-ancestor 856464d69bdf989c6e47bd1f6e3126fc839ce229 HEAD
           test "$(git rev-parse HEAD:frontend/src/App.tsx)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:frontend/src/App.tsx)"
           test "$(git rev-parse HEAD:backend/app/report_ingestion.py)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:backend/app/report_ingestion.py)"
@@ -105,7 +105,6 @@ jobs:
 
           app_path = Path("frontend/src/App.tsx")
           app = app_path.read_text(encoding="utf-8")
-
           import_anchor = '''import {
             formatLeftoverMapUnexplainedShare,
             LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
@@ -132,9 +131,7 @@ jobs:
           app, count = declaration.subn(
               r'\1                    const crossShare = formatLeftoverMapCrossShare(\n'
               r'                      pair.leftover_map_cross_share,\n'
-              r'                    );\n\2',
-              app,
-              count=1,
+              r'                    );\n\2', app, count=1
           )
           if count != 1:
               raise SystemExit(f"declaration anchor count={count}")
@@ -149,21 +146,11 @@ jobs:
           pair_start = app.index("const pairAccessibleName =")
           pair_prefix, pair_tail = app[:pair_start], app[pair_start:]
           badge = re.compile(
-              r'(?P<u>\s+\{unexplainedShare \? \(\n'
-              r'\s+<span className="post-badge" aria-hidden="true">\n'
-              r'\s+\{unexplainedShare\}\n'
-              r'\s+</span>\n'
-              r'\s+\) : null\}\n)'
-              r'(?P<close>\s+</button>)'
+              r'(?P<u>\s+\{unexplainedShare \? \(\n\s+<span className="post-badge" aria-hidden="true">\n\s+\{unexplainedShare\}\n\s+</span>\n\s+\) : null\}\n)(?P<close>\s+</button>)'
           )
           pair_tail, count = badge.subn(
-              r'\g<u>                          {crossShare ? (\n'
-              r'                            <span className="post-badge" aria-hidden="true">\n'
-              r'                              {crossShare}\n'
-              r'                            </span>\n'
-              r'                          ) : null}\n\g<close>',
-              pair_tail,
-              count=1,
+              r'\g<u>                          {crossShare ? (\n                            <span className="post-badge" aria-hidden="true">\n                              {crossShare}\n                            </span>\n                          ) : null}\n\g<close>',
+              pair_tail, count=1
           )
           if count != 1:
               raise SystemExit(f"badge anchor count={count}")
@@ -174,39 +161,34 @@ jobs:
 
           backend_path = Path("backend/app/report_ingestion.py")
           backend = backend_path.read_text(encoding="utf-8")
-          query_anchor = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
-               p.post_title, p.visibility_code, p.corporate_entity_id,'''
-          query_value = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
-               lp.leftover_map_cross_share,
-               p.post_title, p.visibility_code, p.corporate_entity_id,'''
+          query_anchor = "lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,\n"
           if backend.count(query_anchor) != 1:
               raise SystemExit(f"backend select anchor count={backend.count(query_anchor)}")
-          backend = backend.replace(query_anchor, query_value, 1)
+          backend = backend.replace(
+              query_anchor,
+              query_anchor + "               lp.leftover_map_cross_share,\n",
+              1,
+          )
 
           payload_anchor = '''                        "leftover_map_unexplained_share": (
                             None
                             if pair["leftover_map_unexplained_share"] is None
                             else float(pair["leftover_map_unexplained_share"])
                         ),
-                        "visibility_code": pair["visibility_code"],'''
-          payload_value = '''                        "leftover_map_unexplained_share": (
-                            None
-                            if pair["leftover_map_unexplained_share"] is None
-                            else float(pair["leftover_map_unexplained_share"])
-                        ),
-                        "leftover_map_cross_share": (
+'''
+          if backend.count(payload_anchor) != 1:
+              raise SystemExit(f"backend payload anchor count={backend.count(payload_anchor)}")
+          payload_value = payload_anchor + '''                        "leftover_map_cross_share": (
                             None
                             if pair["leftover_map_cross_share"] is None
                             else float(pair["leftover_map_cross_share"])
                         ),
-                        "visibility_code": pair["visibility_code"],'''
-          if backend.count(payload_anchor) != 1:
-              raise SystemExit(f"backend payload anchor count={backend.count(payload_anchor)}")
+'''
           backend_path.write_text(backend.replace(payload_anchor, payload_value, 1), encoding="utf-8")
           PY
           git diff --check
 
-      - name: Set up Python and locked dependencies
+      - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
         with:
           python-version: "3.12"
