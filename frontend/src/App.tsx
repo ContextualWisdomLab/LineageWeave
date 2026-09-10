@@ -4612,7 +4612,7 @@ function PostList({
 
 // Customer forest builder lives in ./customerEntityTree (cycle-safe, #906).
 
-function CustomerEntityTreeRow({
+export function CustomerEntityTreeRow({
   node,
   depth,
   expandedEntityId,

@@ -1,6 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CustomerEntityTreeRow } from "./App";
 import { buildCustomerEntityTree } from "./customerEntityTree";
 import type { CustomerMasterEntity } from "./api";
+import { setLocale } from "./i18n";
+
+vi.mock("react-oidc-context", () => ({
+  useAuth: () => ({
+    isLoading: false,
+    isAuthenticated: false,
+    error: undefined,
+    user: undefined,
+    signinRedirect: vi.fn(),
+    signoutRedirect: vi.fn(),
+  }),
+}));
+
+beforeEach(() => {
+  setLocale("en");
+});
 
 function entity(
   id: string,
@@ -59,5 +77,33 @@ describe("#906 cycle-safe customer forest", () => {
     expect(flattenIds(tree)).toEqual(["child", "root", "kid"]);
     expect(tree[0].ancestryNote).toBe("unlisted-parent");
     expect(tree[1].ancestryNote).toBeUndefined();
+  });
+
+  it("renders both cycle members with an explicit ancestry note", () => {
+    const tree = buildCustomerEntityTree([
+      entity("A", "B", "Alpha"),
+      entity("B", "A", "Beta"),
+    ]);
+    render(
+      <ul>
+        {tree.map((node) => (
+          <CustomerEntityTreeRow
+            key={node.entity.corporate_entity_id}
+            node={node}
+            depth={0}
+            expandedEntityId={null}
+            relatedByEntity={{}}
+            relatedLoading={null}
+            onToggle={() => undefined}
+            onOpenPost={() => undefined}
+          />
+        ))}
+      </ul>,
+    );
+    expect(screen.getByText("Alpha")).toBeDefined();
+    expect(screen.getByText("Beta")).toBeDefined();
+    expect(
+      screen.getByText("Shown as top level: listed parent forms a cycle."),
+    ).toBeDefined();
   });
 });
