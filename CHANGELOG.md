@@ -8,6 +8,47 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Period leftover pairs now name leftover-map unexplained leftover on the grouping
+  comparison leftover-map graphic (ADR 0314 / v2.71.0). After `make seed`,
+  closest and farthest leftover pairs sit above the member list with the
+  Gabriel biplot of already-named coordinates, leftover-map axis share when
+  finite, leftover-map complete-case coverage when leftoverMapCoverageCounts
+  returns usable complete-case integers, leftover-map item complete-case
+  coverage when leftoverMapItemCoverageCounts returns usable complete-case
+  integers, leftover-map incomplete post coverage when leftoverMapIncompletePostCount
+  returns a usable dropped integer, leftover-map incomplete item coverage when
+  leftoverMapIncompleteItemCount returns a usable dropped integer, leftover-map
+  reconstruction `R̂` when formatLeftoverMapReconstruction returns a usable signed
+  badge, leftover-map explained leftover share `e` when formatLeftoverMapExplainedShare
+  returns a usable badge, leftover-map unexplained leftover share `s` when
+  formatLeftoverMapUnexplainedShare returns a usable badge, leftover-map
+  cross share `x` when formatLeftoverMapCrossShare returns a usable badge, and leftover-map
+  unexplained leftover `U` on that grouping comparison leftover-map graphic when
+  formatLeftoverMapUnexplained returns a usable badge; click a post marker or a pair
+  button opens that post. A missing or non-finite `U` omits that leftover-map
+  comparison graphic unexplained leftover caption and keeps leftover-map cross
+  share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover
+  share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map
+  comparison graphic coverage, leftover-map comparison graphic item coverage,
+  leftover-map comparison graphic incomplete posts, and leftover-map comparison
+  graphic incomplete items when those helpers return usable integers. Rank-0 origin
+  cells still plot at `(0, 0)` and still name `U 0.00` when that persisted leftover-map
+  unexplained leftover is finite. Comparison copy uses `leftover map comparison graphic
+  unexplained leftover {label}` so it stays distinct from hyphen `leftover-map
+  unexplained leftover {label}` and from strip `Leftover map comparison unexplained leftover`.
+  Leftover-map unexplained leftover omits independently of leftover-map cross share,
+  leftover-map unexplained leftover share, leftover-map explained leftover share,
+  leftover-map reconstruction, leftover-map distance, and coverage notes. This
+  increment does not caption leftover residual on the comparison
+  graphic with a distinct name. Do not invent `U` from `R` and `R̂`, leftover-map
+  reconstruction, leftover residual, leftover-map distance, plotted coordinates,
+  leftover-map rank, leftover-map axis share, leftover expected, leftover observed,
+  leftover-map post coverage, leftover-map item coverage, leftover-map incomplete
+  post coverage, leftover-map incomplete item coverage, leftover pair count, or the
+  count of unused axes. A finite negative leftover-map unexplained leftover is shown,
+  never clamped. Omit the comparison graphic when no leftover pair has four finite
+  leftover-map coordinates. Never invent a leftover score or a theta. No new columns.
+
 - Period leftover pairs now name leftover-map cross share on the grouping
   comparison leftover-map graphic (ADR 0313 / v2.70.0). After `make seed`,
   closest and farthest leftover pairs sit above the member list with the

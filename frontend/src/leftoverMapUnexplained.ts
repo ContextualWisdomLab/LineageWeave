@@ -6,6 +6,9 @@ export const LEFTOVER_MAP_UNEXPLAINED_ACTION =
 export const LEFTOVER_MAP_COMPARE_UNEXPLAINED_LABEL =
   "Leftover map comparison unexplained leftover";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED =
+  "leftover map comparison graphic unexplained leftover {label}";
+
 export function formatSignedLeftoverValue(value: number): string | null {
   if (!Number.isFinite(value)) {
     return null;

@@ -37,6 +37,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED_SHARE,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -153,6 +154,9 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0313 captions leftover-map cross share on that
  * comparison graphic from already-named leftover-map cross share
  * with distinct leftover map comparison graphic cross share
+ * labels. ADR 0314 captions leftover-map unexplained leftover on that
+ * comparison graphic from already-named leftover-map unexplained leftover
+ * with distinct leftover map comparison graphic unexplained leftover
  * labels.
  * Never invent a leftover score.
  */
@@ -386,9 +390,12 @@ export function LeftoverMapPlot({
                   x={segment.unexplainedLeftoverX}
                   y={segment.unexplainedLeftoverY}
                   textAnchor="middle"
-                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED, {
-                    label: segment.unexplainedLeftoverLabel,
-                  })}
+                  aria-label={tf(
+                    variant === "comparison"
+                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED
+                      : LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED,
+                    { label: segment.unexplainedLeftoverLabel },
+                  )}
                 >
                   {segment.unexplainedLeftoverLabel}
                 </text>
