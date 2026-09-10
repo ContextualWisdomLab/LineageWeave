@@ -105,24 +105,25 @@ or the dashboard stacks.
 On the grouping comparison strip, include persisted `leftover_map_axes` on
 each comparison row and caption leftover-map axis `k` as
 `leftover map comparison axis {k} {share}%` only when leftoverMapCompareAxisShare
-returns a usable share from persisted `leftover_share`. Use the distinct
-accessible name `Leftover map comparison axis share` so the strip caption is
-not the leftover-axis report badge (`leftover axis {k} {share}%`) and is not
-the graphic caption (`leftover-map axis {k} ({share}%)`). A missing axis row
-or a missing or non-finite share omits that leftover-map comparison axis
-share badge and keeps the strip leftover-map post coverage note, leftover-map
-item coverage note, leftover-map incomplete post note, leftover-map
-incomplete item note, leftover pairs, leftover-map distance `d`, and any
-leftover-map captions on the pair list and graphic. Share `0` is shown when
-that persisted share is a finite number, including rank-0 unused axes. A
-finite negative share is shown; do not clamp to nonnegative. Axis 1 and
-axis 2 stay independently named. Do not invent leftover-map axis share from
-leftover-map singular value, leftover pair count, plotted marker count,
-leftover-map distance, leftover-map rank, leftover-map post coverage,
-leftover-map item coverage, leftover-map incomplete post coverage,
-leftover-map incomplete item coverage, or the count of unused axes. Do not
-caption leftover-map singular values or the leftover-map graphic on the strip
-in this increment. Click a leftover pair on the strip to open that post.
+returns a usable share from persisted `leftover_share`. The comparison badge is
+a generic text span: its localized visible text supplies its accessible name;
+do not add a separate author-provided `aria-label` that replaces the visible
+axis/share text in the accessibility tree. The caption remains distinct from
+the leftover-axis report badge (`leftover axis {k} {share}%`) and the graphic
+caption (`leftover-map axis {k} ({share}%)`). A missing axis row or a missing
+or non-finite share omits that leftover-map comparison axis share badge and
+keeps the strip leftover-map post coverage note, leftover-map item coverage
+note, leftover-map incomplete post note, leftover-map incomplete item note,
+leftover pairs, leftover-map distance `d`, and any leftover-map captions on the
+pair list and graphic. Share `0` is shown when that persisted share is a finite
+number, including rank-0 unused axes. A finite negative share is shown; do not
+clamp to nonnegative. Axis 1 and axis 2 stay independently named. Do not invent
+leftover-map axis share from leftover-map singular value, leftover pair count,
+plotted marker count, leftover-map distance, leftover-map rank, leftover-map
+post coverage, leftover-map item coverage, leftover-map incomplete post
+coverage, leftover-map incomplete item coverage, or the count of unused axes.
+Do not caption leftover-map singular values or the leftover-map graphic on the
+strip in this increment. Click a leftover pair on the strip to open that post.
 
 Do not add SQL migrations. Do not edit shipped migrations. Do not persist inner
 product, cosine, or length as separate columns. Do not invent a leftover
@@ -137,10 +138,10 @@ leftover-map incomplete item coverage, and persisted leftover-map axis share
 on each grouping row when leftoverMapCoverageCounts /
 leftoverMapItemCoverageCounts / leftoverMapIncompletePostCount /
 leftoverMapIncompleteItemCount / leftoverMapCompareAxisShare return usable
-values, then names leftover pairs with leftover-map distance `d`. Closest
-and farthest leftover pairs still sit above the member list with the
-leftover-map graphic display; click a post marker or a pair button opens that
-post.
+values, then names leftover pairs with leftover-map distance `d`. The axis-share
+badge's localized visible text is also its accessible name. Closest and
+farthest leftover pairs still sit above the member list with the leftover-map
+graphic display; click a post marker or a pair button opens that post.
 Hidden posts stay hidden.
 
 ## Related
