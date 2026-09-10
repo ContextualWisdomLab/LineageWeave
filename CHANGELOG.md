@@ -8,85 +8,49 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Period leftover pairs now name leftover-map singular values on the grouping
-  comparison leftover-map graphic (ADR 0321 / v2.78.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with leftover-map
-  singular values `σ_k` on that grouping comparison leftover-map graphic when
-  those persisted singular values are finite and non-negative; click a post
-  marker or a pair button opens that post. Rank-0 origin cells still name
-  leftover-map comparison graphic leftover-map axis `σ 0.00`. Comparison copy
-  uses `leftover map comparison graphic leftover-map axis {axis} σ {value}` so
-  it stays distinct from `leftover-map axis {axis} σ {value}`, from
-  `leftover axis {axis} σ {value}`, from
-  `leftover map comparison axis {axis} ({share}%)`, and from
-  `leftover map comparison graphic leftover-map axis {axis} tick {value}`.
-  Share and singular value omit independently. Do not invent `σ_k` from
-  leftover-map axis share. This increment does not caption leftover-map
-  singular values on leftover-axis report badges with a distinct name.
-  A finite negative leftover is shown, never clamped. Never invent a leftover
-  score or a theta. No new columns.
-
-- Period leftover pairs now name leftover-map coordinate ticks on the grouping
-  comparison leftover-map graphic (ADR 0320 / v2.77.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with leftover-map
-  coordinate ticks on that grouping comparison leftover-map graphic at the origin
-  and at each unique finite persisted `ξ` / `ζ` projection; click a post marker
-  or a pair button opens that post. Rank-0 origin cells still name leftover-map
-  comparison graphic leftover-map axis tick `0.00`. Comparison copy uses
-  `leftover map comparison graphic leftover-map axis {axis} tick {value}` so it
-  stays distinct from `leftover-map axis {axis} tick {value}` and from
-  `leftover map comparison axis {axis} ({share}%)`. Do not invent evenly spaced
-  ticks that no persisted coordinate occupies. Leftover-map singular values on
-  the comparison graphic are ADR 0321. Do not invent leftover-map coordinate ticks from leftover-map distance.
-  A finite negative leftover is shown, never clamped. Never invent a leftover
-  score or a theta. No new columns.
-
-- Period leftover pairs now name leftover-map distance on the grouping
-  comparison leftover-map graphic (ADR 0319 / v2.76.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with leftover-map
-  distance `d` on that grouping comparison leftover-map graphic when
-  formatLeftoverMapDistance returns a usable badge; click a post marker or a pair
-  button opens that post. A missing or non-finite `d` omits that leftover-map
-  comparison graphic leftover-map distance caption and keeps leftover-map rank.
-  Rank-0 origin cells still name `d 0.00` when that persisted leftover-map distance
-  is finite. Comparison copy uses
-  `leftover map comparison graphic leftover-map distance {label}` so it stays
-  distinct from `leftover-map distance {label}`. This increment does not caption leftover-map
-  coordinate ticks on the comparison graphic with a distinct name. Do not invent leftover-map
-  distance from plotted coordinates. A finite negative leftover is shown, never clamped.
-  Never invent a leftover score or a theta. No new columns.
-
-- Period leftover pairs now name leftover-map rank on the grouping
-  comparison leftover-map graphic (ADR 0318 / v2.75.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with leftover-map
-  rank on that grouping comparison leftover-map graphic when
-  formatLeftoverMapRank returns a usable badge; click a post marker or a pair
-  button opens that post. A missing, negative, or non-integer rank omits that leftover-map
-  comparison graphic leftover-map rank caption and keeps leftover expected `E`
-  and leftover observed `Y`. Rank-0 origin cells still name `rank 0` when that
-  persisted leftover-map rank is a non-negative integer. Comparison copy uses
-  `leftover map comparison graphic leftover-map rank {label}` so it stays
-  distinct from `leftover-map rank {label}` and from strip
-  `Leftover map comparison rank`. This increment does not caption leftover-map
-  distance on the comparison graphic with a distinct name. Do not invent leftover-map
-  rank from plotted coordinates or leftover-map distance. Never invent a leftover score
-  or a theta. No new columns.
-
 - Period leftover pairs now name leftover expected on the grouping
   comparison leftover-map graphic (ADR 0317 / v2.74.0). After `make seed`,
-  closest and farthest leftover pairs sit above the member list with leftover
-  expected `E` on that grouping comparison leftover-map graphic when
+  closest and farthest leftover pairs sit above the member list with the
+  Gabriel biplot of already-named coordinates, leftover-map axis share when
+  finite, leftover-map complete-case coverage when leftoverMapCoverageCounts
+  returns usable complete-case integers, leftover-map item complete-case
+  coverage when leftoverMapItemCoverageCounts returns usable complete-case
+  integers, leftover-map incomplete post coverage when leftoverMapIncompletePostCount
+  returns a usable dropped integer, leftover-map incomplete item coverage when
+  leftoverMapIncompleteItemCount returns a usable dropped integer, leftover-map
+  reconstruction `R̂` when formatLeftoverMapReconstruction returns a usable signed
+  badge, leftover-map explained leftover share `e` when formatLeftoverMapExplainedShare
+  returns a usable badge, leftover-map unexplained leftover share `s` when
+  formatLeftoverMapUnexplainedShare returns a usable badge, leftover-map
+  cross share `x` when formatLeftoverMapCrossShare returns a usable badge, leftover-map
+  unexplained leftover `U` when formatLeftoverMapUnexplained returns a usable badge, leftover residual
+  `R` when formatLeftoverMapResidual returns a usable badge, leftover observed
+  `Y` when formatLeftoverMapObserved returns a usable badge, and leftover expected
+  `E` on that grouping comparison leftover-map graphic when
   formatLeftoverMapExpected returns a usable badge; click a post marker or a pair
   button opens that post. A missing or non-finite `E` omits that leftover-map
-  comparison graphic leftover expected caption and keeps leftover observed `Y`
-  and leftover residual `R`. Rank-0 origin cells still name `E 0.00` when that
-  persisted leftover expected is finite. Comparison copy uses
-  `leftover map comparison graphic leftover expected {label}` so it stays
-  distinct from `leftover expected {label}` and from strip
-  `Leftover map comparison expected`. This increment does not caption leftover-map
-  rank on the comparison graphic with a distinct name. Do not invent `E` from
-  `Y` and `R`. A finite negative leftover expected is shown, never clamped.
-  Never invent a leftover score or a theta. No new columns.
+  comparison graphic leftover expected caption and keeps leftover observed
+  `Y`, leftover residual `R`, leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover
+  share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map
+  comparison graphic coverage, leftover-map comparison graphic item coverage,
+  leftover-map comparison graphic incomplete posts, and leftover-map comparison
+  graphic incomplete items when those helpers return usable integers. Rank-0 origin
+  cells still plot at `(0, 0)` and still name `E 0.00` when that persisted leftover
+  expected is finite. Comparison copy uses `leftover map comparison graphic
+  leftover expected {label}` so it stays distinct from
+  `leftover expected {label}` and from strip `Leftover map comparison expected`.
+  Leftover expected omits independently of leftover observed, leftover residual,
+  leftover-map unexplained leftover, leftover-map cross share, leftover-map unexplained leftover share, leftover-map explained leftover share,
+  leftover-map reconstruction, leftover-map distance, and coverage notes. This
+  increment does not caption leftover-map rank on the comparison
+  graphic with a distinct name. Do not invent `E` from `Y` and `R`, leftover residual, leftover observed, leftover-map
+  reconstruction, leftover-map unexplained leftover, leftover-map distance, plotted coordinates,
+  leftover-map rank, leftover-map axis share,
+  leftover-map post coverage, leftover-map item coverage, leftover-map incomplete
+  post coverage, leftover-map incomplete item coverage, leftover pair count, or the
+  count of unused axes. A finite negative leftover is shown,
+  never clamped. Omit the comparison graphic when no leftover pair has four finite
+  leftover-map coordinates. Never invent a leftover score or a theta. No new columns.
 
 - Period leftover pairs now name leftover observed on the grouping
   comparison leftover-map graphic (ADR 0316 / v2.73.0). After `make seed`,
@@ -103,9 +67,9 @@ All notable changes to this project are documented here. Format follows
   returns a usable badge, leftover-map unexplained leftover share `s` when
   formatLeftoverMapUnexplainedShare returns a usable badge, leftover-map
   cross share `x` when formatLeftoverMapCrossShare returns a usable badge, leftover-map
-  unexplained leftover `U` when formatLeftoverMapUnexplained returns a usable badge,
-  leftover residual `R` when formatLeftoverMapResidual returns a usable badge,
-  and leftover observed `Y` on that grouping comparison leftover-map graphic when
+  unexplained leftover `U` when formatLeftoverMapUnexplained returns a usable badge, leftover residual
+  `R` when formatLeftoverMapResidual returns a usable badge, and leftover observed
+  `Y` on that grouping comparison leftover-map graphic when
   formatLeftoverMapObserved returns a usable badge; click a post marker or a pair
   button opens that post. A missing or non-finite `Y` omits that leftover-map
   comparison graphic leftover observed caption and keeps leftover residual
@@ -118,8 +82,8 @@ All notable changes to this project are documented here. Format follows
   observed is finite. Comparison copy uses `leftover map comparison graphic
   leftover observed {label}` so it stays distinct from
   `leftover observed {label}` and from strip `Leftover map comparison observed`.
-  Leftover observed omits independently of leftover residual, leftover-map unexplained leftover,
-  leftover-map cross share, leftover-map unexplained leftover share, leftover-map explained leftover share,
+  Leftover observed omits independently of leftover residual,
+  leftover-map unexplained leftover, leftover-map cross share, leftover-map unexplained leftover share, leftover-map explained leftover share,
   leftover-map reconstruction, leftover-map distance, and coverage notes. This
   increment does not caption leftover expected on the comparison
   graphic with a distinct name. Do not invent `Y` from `R` and `E`, leftover residual, leftover-map
@@ -127,7 +91,7 @@ All notable changes to this project are documented here. Format follows
   leftover-map rank, leftover-map axis share, leftover expected,
   leftover-map post coverage, leftover-map item coverage, leftover-map incomplete
   post coverage, leftover-map incomplete item coverage, leftover pair count, or the
-  count of unused axes. A finite negative leftover observed is shown,
+  count of unused axes. A finite negative leftover is shown,
   never clamped. Omit the comparison graphic when no leftover pair has four finite
   leftover-map coordinates. Never invent a leftover score or a theta. No new columns.
 

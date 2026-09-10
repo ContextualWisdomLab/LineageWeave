@@ -1,111 +1,42 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-08-31 10:20 KST. Protected `main` is
-> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
-> self-approve. #860 leftover-map coordinate ticks on the grouping comparison leftover-map
-> graphic (v2.77.0 / ADR 0320) is `40fa5bd`, stacked on #859 @ `9ba8535`. Independent
-> APPROVE is missing. Next buyer increment on this
-> cycle: leftover-map singular values on the grouping comparison leftover-map
-> graphic (ADR 0321 / v2.78.0) delivered locally on
-> `feat/leftover-map-compare-plot-singular-v2780`. Caption persisted leftover-map
-> singular values `σ_k` on that comparison graphic from already-named leftover-map
-> axes. Distinct accessible name `leftover map comparison graphic leftover-map
-> axis {axis} σ {value}`. Rank-0 unused axes still name `σ 0.00`. Share and
-> singular value omit independently. Do not invent `σ_k` from leftover-map axis
-> share. Do not caption leftover-map singular values on leftover-axis report
-> badges with a distinct name this increment. Stack onto #860.
-> Leave open for independent review. Do not squash-merge. Do not self-approve.
-> Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
-> Never self-approve.
-
-> Exact-head loop overlay: 2026-08-31 09:28 KST. Protected `main` is
-> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
-> self-approve. #859 leftover-map distance on the grouping comparison leftover-map
-> graphic (v2.76.0 / ADR 0319) is `9ba8535`, stacked on #858 @ `4b9184f`. Independent
-> APPROVE is missing. Next buyer increment on this
-> cycle: leftover-map coordinate ticks on the grouping comparison leftover-map
-> graphic (ADR 0320 / v2.77.0) delivered locally on
-> `feat/leftover-map-compare-plot-ticks-v2770`. Caption persisted leftover-map
-> coordinate ticks on that comparison graphic from already-named leftover-map
-> coordinates. Distinct accessible name `leftover map comparison graphic leftover-map
-> axis {axis} tick {value}`. Origin and unique finite `ξ` / `ζ` projections only.
-> Do not invent evenly spaced ticks. Do not caption leftover-map singular values
-> on that comparison graphic with a distinct name this increment. Do not invent
-> leftover-map coordinate ticks from leftover-map distance. Stack onto #859.
-> Leave open for independent review. Do not squash-merge. Do not self-approve.
-> Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
-> Never self-approve.
-
-> Exact-head loop overlay: 2026-08-31 09:25 KST. Protected `main` is
-> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
-> self-approve. #858 leftover-map rank on the grouping comparison leftover-map
-> graphic (v2.75.0 / ADR 0318) is `4b9184f`, stacked on #857 @ `9f34d2c`. Independent
-> APPROVE is missing. Next buyer increment on this
-> cycle: leftover-map distance on the grouping comparison leftover-map
-> graphic (ADR 0319 / v2.76.0) delivered locally on
-> `feat/leftover-map-compare-plot-distance-v2760`. Caption persisted leftover-map
-> distance `d` on that comparison graphic from already-named leftover_distance.
-> Distinct accessible name `leftover map comparison graphic leftover-map
-> distance {label}`. Omit when formatLeftoverMapDistance fail-closes.
-> Do not caption leftover-map coordinate ticks on that comparison graphic with a distinct name this
-> increment. Do not invent leftover-map distance from plotted coordinates.
-> Stack onto #858. Leave open for independent review. Do not squash-merge. Do not
-> self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
-> Never self-approve.
-
-> Exact-head loop overlay: 2026-08-31 09:19 KST. Protected `main` is
-> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
-> self-approve. #857 leftover expected on the grouping comparison leftover-map
-> graphic (v2.74.0 / ADR 0317) is `9f34d2c`, stacked on #856. Independent
-> APPROVE is missing. Next buyer increment on this
-> cycle: leftover-map rank on the grouping comparison leftover-map
-> graphic (ADR 0318 / v2.75.0) delivered locally on
-> `feat/leftover-map-compare-plot-rank-v2750`. Caption persisted leftover-map
-> rank on that comparison graphic from already-named leftover_map_rank.
-> Distinct accessible name `leftover map comparison graphic leftover-map
-> rank {label}`. Omit when formatLeftoverMapRank fail-closes.
-> Do not caption leftover-map distance on that comparison graphic with a distinct name this
-> increment. Do not invent leftover-map rank from plotted coordinates or leftover-map
-> distance. Stack onto #857. Leave open for independent review. Do not squash-merge. Do not
-> self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
-> Never self-approve.
-
-> Exact-head loop overlay: 2026-08-31 09:05 KST. Protected `main` is
+> Exact-head loop overlay: 2026-08-31 09:10 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #856 leftover observed on the grouping comparison leftover-map
-> graphic (v2.73.0 / ADR 0316) is `c7a8680`, stacked on #855 @ `1087b16`.
-> Independent APPROVE is missing. Next buyer increment on this
+> graphic (v2.73.0 / ADR 0316) is `cf3b6d4`, stacked on #855 @ `1087b16`. Independent
+> APPROVE is missing. Next buyer increment on this
 > cycle: leftover expected on the grouping comparison leftover-map
 > graphic (ADR 0317 / v2.74.0) delivered locally on
-> `feat/leftover-map-compare-plot-expected-v2740`. Caption persisted leftover
-> expected `E` on that comparison graphic from already-named
-> expected_response. Distinct accessible name `leftover map comparison graphic
-> leftover expected {label}`. Omit when formatLeftoverMapExpected fail-closes.
-> Do not caption leftover-map rank on that comparison graphic with a distinct name this
-> increment. Do not invent `E` from `Y` and `R`. Stack onto #856. Leave open for
-> independent review. Do not squash-merge. Do not self-approve. Issues #79 and #87
-> stay open. Do not merge #808 without independent APPROVE. Never self-approve.
+> `feat/leftover-map-compare-plot-expected-v2740`. Caption persisted leftover expected
+> `E` on that comparison graphic from already-named expected_response. Distinct
+> accessible name `leftover map comparison graphic leftover expected {label}`. Omit when
+> formatLeftoverMapExpected fail-closes. Do not caption leftover-map rank on that
+> comparison graphic with a distinct name this increment. Do not invent `E` from
+> `Y` and `R`, leftover residual, leftover observed, leftover-map reconstruction, leftover-map unexplained leftover,
+> leftover-map distance, plotted coordinates, leftover-map rank, leftover-map axis share,
+> leftover-map post coverage, leftover-map item coverage, leftover-map incomplete post coverage,
+> leftover-map incomplete item coverage, leftover pair count, or the count of unused
+> axes. Stack onto #856. Leave open for independent review. Do not squash-merge. Do not
+> self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
 
-> Exact-head loop overlay: 2026-08-31 08:50 KST. Protected `main` is
+> Exact-head loop overlay: 2026-08-31 08:45 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
 > self-approve. #855 leftover residual on the grouping comparison leftover-map
-> graphic (v2.72.0 / ADR 0315) is `1087b16` (a11y name
-> `leftover map comparison graphic leftover residual {label}`), stacked on #854 @
-> `935cdea`. Independent APPROVE is missing. Next buyer increment on this
+> graphic (v2.72.0 / ADR 0315) is `1087b16`, stacked on #854 @ `935cdea`. Independent
+> APPROVE is missing. Next buyer increment on this
 > cycle: leftover observed on the grouping comparison leftover-map
 > graphic (ADR 0316 / v2.73.0) delivered locally on
-> `feat/leftover-map-compare-plot-observed-v2730`. Caption persisted leftover
-> observed `Y` on that comparison graphic from already-named
-> observed_response. Distinct accessible name `leftover map comparison graphic
-> leftover observed {label}`. Omit when formatLeftoverMapObserved fail-closes.
-> Do not caption leftover expected on that comparison graphic with a distinct name this
-> increment. Do not invent `Y` from `R` and `E`, leftover residual, leftover-map reconstruction, leftover-map unexplained leftover,
+> `feat/leftover-map-compare-plot-observed-v2730`. Caption persisted leftover observed
+> `Y` on that comparison graphic from already-named observed_response. Distinct
+> accessible name `leftover map comparison graphic leftover observed {label}`. Omit when
+> formatLeftoverMapObserved fail-closes. Do not caption leftover expected on that
+> comparison graphic with a distinct name this increment. Do not invent `Y` from
+> `R` and `E`, leftover residual, leftover-map reconstruction, leftover-map unexplained leftover,
 > leftover-map distance, plotted coordinates, leftover-map rank, leftover-map axis share,
 > leftover-map post coverage, leftover-map item coverage, leftover-map incomplete post coverage,
 > leftover-map incomplete item coverage, leftover pair count, or the count of unused
 > axes. Stack onto #855. Leave open for independent review. Do not squash-merge. Do not
 > self-approve. Issues #79 and #87 stay open. Do not merge #808 without independent APPROVE.
-> Closed #96 this cycle (weaker duplicate of #91). Never self-approve.
 
 > Exact-head loop overlay: 2026-08-31 08:20 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`. Writes work. Do not
