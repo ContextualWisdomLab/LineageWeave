@@ -1,6 +1,6 @@
 # ADR 0313 — Name leftover-map cross share on the grouping comparison leftover-map graphic
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 Amends leftover-map cross share on graphic-display pair segments
@@ -250,8 +250,8 @@ coverage on the graphic display, leftover-map complete-case coverage on the
 grouping comparison leftover-map graphic, leftover-map item complete-case
 coverage on the grouping comparison leftover-map graphic, leftover-map
 incomplete post coverage on the grouping comparison leftover-map graphic,
-leftover-map incomplete item coverage on the grouping comparison leftover-map
-graphic, leftover-map axis share on the grouping comparison leftover-map graphic,
+leftover-map incomplete item coverage on the grouping comparison leftover-map graphic,
+leftover-map axis share on the grouping comparison leftover-map graphic,
 and leftover-map unexplained leftover on the grouping comparison leftover-map graphic.
 
 ## References
