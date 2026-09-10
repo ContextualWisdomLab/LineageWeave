@@ -1,0 +1,320 @@
+name: Validate #851 causal repair
+
+on:
+  push:
+    branches:
+      - automation/851-causal-repair-20260911
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-851-causal-repair-20260911
+  cancel-in-progress: false
+
+jobs:
+  repair-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/851-causal-repair-20260911
+          fetch-depth: 2
+
+      - name: Verify staging ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "9a3dbe93b72fadba588bad89d34fa5049954f70f"
+
+      - name: Apply bounded layout and Vietnamese copy repair
+        shell: python
+        run: |
+          from pathlib import Path
+
+          layout_path = Path("frontend/src/leftoverMapPlotLayout.ts")
+          layout = layout_path.read_text()
+
+          old_to_svg = '''function toSvg(
+            axis1: number,
+            axis2: number,
+            minAxis: number,
+            scaleSpan: number,
+            width: number,
+            height: number,
+            pad: number,
+          ): { x: number; y: number } {
+            const innerW = width - pad * 2;
+            const innerH = height - pad * 2;
+            const pixelsPerUnit = Math.min(innerW, innerH) / scaleSpan;
+            const plotWidth = scaleSpan * pixelsPerUnit;
+            const plotHeight = scaleSpan * pixelsPerUnit;
+            const offsetX = pad + (innerW - plotWidth) / 2;
+            const offsetY = pad + (innerH - plotHeight) / 2;
+            return {
+              x: offsetX + (axis1 - minAxis) * pixelsPerUnit,
+              y: offsetY + (minAxis + scaleSpan - axis2) * pixelsPerUnit,
+            };
+          }'''
+          new_to_svg = '''function toSvg(
+            axis1: number,
+            axis2: number,
+            minAxis: number,
+            scaleSpan: number,
+            width: number,
+            height: number,
+            pad: number,
+          ): { x: number; y: number } {
+            const boundedPad = Math.min(
+              pad,
+              Math.max(0, (width - 1) / 2),
+              Math.max(0, (height - 1) / 2),
+            );
+            const innerW = Math.max(1, width - boundedPad * 2);
+            const innerH = Math.max(1, height - boundedPad * 2);
+            const pixelsPerUnit = Math.min(innerW, innerH) / scaleSpan;
+            const plotWidth = scaleSpan * pixelsPerUnit;
+            const plotHeight = scaleSpan * pixelsPerUnit;
+            const offsetX = boundedPad + (innerW - plotWidth) / 2;
+            const offsetY = boundedPad + (innerH - plotHeight) / 2;
+            return {
+              x: offsetX + (axis1 - minAxis) * pixelsPerUnit,
+              y: offsetY + (minAxis + scaleSpan - axis2) * pixelsPerUnit,
+            };
+          }'''
+          assert layout.count(old_to_svg) == 1
+          layout = layout.replace(old_to_svg, new_to_svg)
+
+          old_position = '''function leftoverMapSegmentLabelPosition(
+            x1: number,
+            y1: number,
+            x2: number,
+            y2: number,
+          ): { labelX: number; labelY: number } {
+            const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+            return {
+              labelX: (x1 + x2) / 2,
+              labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+            };
+          }
+
+          function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
+            return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+          }'''
+          new_position = '''function leftoverMapSegmentLabelPosition(
+            x1: number,
+            y1: number,
+            x2: number,
+            y2: number,
+            height: number,
+            captionCount: number,
+          ): { labelX: number; labelY: number; captionStep: number } {
+            const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+            const rawLabelY = coincident
+              ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET
+              : (y1 + y2) / 2;
+            const maxLabelY = Math.max(0, height - 4);
+            const minLabelY = Math.min(12, maxLabelY);
+            if (captionCount <= 1) {
+              return {
+                labelX: (x1 + x2) / 2,
+                labelY: Math.max(minLabelY, Math.min(rawLabelY, maxLabelY)),
+                captionStep: 0,
+              };
+            }
+            const fixedStackHeight = (captionCount - 1) * RECONSTRUCTION_LABEL_OFFSET;
+            const maxFixedBaseY = maxLabelY - fixedStackHeight;
+            if (maxFixedBaseY >= minLabelY) {
+              return {
+                labelX: (x1 + x2) / 2,
+                labelY: Math.max(minLabelY, Math.min(rawLabelY, maxFixedBaseY)),
+                captionStep: RECONSTRUCTION_LABEL_OFFSET,
+              };
+            }
+            return {
+              labelX: (x1 + x2) / 2,
+              labelY: minLabelY,
+              captionStep: (maxLabelY - minLabelY) / (captionCount - 1),
+            };
+          }
+
+          function leftoverMapStackedCaptionY(
+            labelY: number,
+            stackedAbove: number,
+            captionStep: number,
+          ): number {
+            return stackedAbove > 0 ? labelY + stackedAbove * captionStep : labelY;
+          }'''
+          assert layout.count(old_position) == 1
+          layout = layout.replace(old_position, new_position)
+
+          old_position_call = '''    const labelPosition = leftoverMapSegmentLabelPosition(
+              personPos.x,
+              personPos.y,
+              itemPos.x,
+              itemPos.y,
+            );'''
+          new_position_call = '''    const captionCount = [
+              distanceLabel,
+              reconstructionLabel,
+              explainedShareLabel,
+              unexplainedShareLabel,
+              crossShareLabel,
+              unexplainedLeftoverLabel,
+              residualLabel,
+              observedLabel,
+              expectedLabel,
+              rankLabel,
+            ].filter((label) => label !== null).length;
+            const labelPosition = leftoverMapSegmentLabelPosition(
+              personPos.x,
+              personPos.y,
+              itemPos.x,
+              itemPos.y,
+              height,
+              captionCount,
+            );'''
+          assert layout.count(old_position_call) == 1
+          layout = layout.replace(old_position_call, new_position_call)
+
+          # Every stacked caption must use the height-aware step produced for this segment.
+          layout = layout.replace(
+              '''      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+            );''',
+              '''      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+              labelPosition.captionStep,
+            );''',
+              1,
+          )
+          for marker in [
+              '''      (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),''',
+              '''        (explainedShareLabel !== null ? 1 : 0),''',
+              '''        (unexplainedShareLabel !== null ? 1 : 0),''',
+              '''        (crossShareLabel !== null ? 1 : 0),''',
+              '''        (unexplainedLeftoverLabel !== null ? 1 : 0),''',
+              '''        (residualLabel !== null ? 1 : 0),''',
+              '''        (observedLabel !== null ? 1 : 0),''',
+              '''        (expectedLabel !== null ? 1 : 0),''',
+          ]:
+              idx = layout.find(marker)
+              assert idx >= 0, marker
+              end = idx + len(marker)
+              layout = layout[:end] + "\n      labelPosition.captionStep," + layout[end:]
+
+          old_spread = '''      rankX: labelPosition.labelX,
+              rankY,
+              ...labelPosition,
+            });'''
+          new_spread = '''      rankX: labelPosition.labelX,
+              rankY,
+              labelX: labelPosition.labelX,
+              labelY: labelPosition.labelY,
+            });'''
+          assert layout.count(old_spread) == 1
+          layout = layout.replace(old_spread, new_spread)
+          layout_path.write_text(layout)
+
+          i18n_path = Path("frontend/src/i18n.ts")
+          i18n = i18n_path.read_text()
+          vi_start = i18n.index("  vi: {")
+          vi_end = i18n.index("\n  },\n};", vi_start)
+          vi = i18n[vi_start:vi_end]
+
+          old_general = '    "leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",'
+          new_general = '    "leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",'
+          assert vi.count(old_general) == 1
+          vi = vi.replace(old_general, new_general)
+
+          old_compare = '''    "leftover map comparison graphic explained leftover share {label}":
+              "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",'''
+          new_compare = '''    "leftover map comparison graphic explained leftover share {label}":
+              "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",'''
+          assert vi.count(old_compare) == 1
+          vi = vi.replace(old_compare, new_compare)
+
+          full_english = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":\n'
+          full_old_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
+          full_new_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
+          assert vi.count(full_english) == 1
+          assert vi.count(full_old_vi) == 1
+          vi = vi.replace(full_old_vi, full_new_vi)
+
+          legacy_english = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.":'
+          assert legacy_english not in vi
+          legacy_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
+          vi = vi.replace(full_english + full_new_vi, full_english + full_new_vi + "\n" + legacy_english + "\n" + legacy_vi)
+
+          i18n = i18n[:vi_start] + vi + i18n[vi_end:]
+          i18n_path.write_text(i18n)
+
+      - name: Set up repository-authoritative uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Regenerate universal lock from project metadata
+        run: uv lock
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Verify frozen backend dependency and release identity
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q tests/test_package_version.py tests/test_project_lock_version_parity.py
+
+      - name: Run full PostgreSQL-independent suite
+        run: uv run --frozen python -m pytest -q
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify focused RED contracts are GREEN
+        working-directory: frontend
+        run: pnpm exec vitest run src/leftoverMapPlotSmallCanvas.test.ts src/leftoverMapPlotVietnameseCopy.test.ts src/leftoverMapPlotLayout.test.ts src/i18n.test.ts
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: pnpm run lint
+
+      - name: Run full frontend tests
+        working-directory: frontend
+        run: pnpm run test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: pnpm run build-storybook
+
+      - name: Commit workflow-free validated tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git rm .github/workflows/automation-851-causal-repair-20260911.yml
+          git config user.name "lineageweave-automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/leftoverMapPlotLayout.ts frontend/src/i18n.ts uv.lock
+          git commit -m "fix(reports): bound plot captions and refresh v2.68 lock"
+          git push origin HEAD:automation/851-causal-repair-20260911
