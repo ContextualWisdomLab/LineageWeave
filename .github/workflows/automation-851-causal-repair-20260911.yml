@@ -1,4 +1,4 @@
-name: Validate #851 causal repair
+name: "Validate #851 causal repair"
 
 on:
   push:
@@ -15,18 +15,32 @@ concurrency:
 jobs:
   repair-and-validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - name: Checkout exact staging branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: automation/851-causal-repair-20260911
-          fetch-depth: 2
+          fetch-depth: 20
 
       - name: Verify staging ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "9a3dbe93b72fadba588bad89d34fa5049954f70f"
+          git merge-base --is-ancestor 9a3dbe93b72fadba588bad89d34fa5049954f70f HEAD
 
       - name: Apply bounded layout and Vietnamese copy repair
         shell: python
@@ -86,76 +100,130 @@ jobs:
           assert layout.count(old_to_svg) == 1
           layout = layout.replace(old_to_svg, new_to_svg)
 
-          old_position = '''function leftoverMapSegmentLabelPosition(
-            x1: number,
-            y1: number,
-            x2: number,
-            y2: number,
-          ): { labelX: number; labelY: number } {
-            const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
-            return {
-              labelX: (x1 + x2) / 2,
-              labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
-            };
-          }
-
-          function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
+          old_helpers = '''function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
             return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
           }'''
-          new_position = '''function leftoverMapSegmentLabelPosition(
-            x1: number,
-            y1: number,
-            x2: number,
-            y2: number,
-            height: number,
+          new_helpers = '''function leftoverMapCaptionStack(
+            labelY: number,
             captionCount: number,
-          ): { labelX: number; labelY: number; captionStep: number } {
-            const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
-            const rawLabelY = coincident
-              ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET
-              : (y1 + y2) / 2;
+            height: number,
+          ): { labelY: number; step: number } {
             const maxLabelY = Math.max(0, height - 4);
             const minLabelY = Math.min(12, maxLabelY);
             if (captionCount <= 1) {
               return {
-                labelX: (x1 + x2) / 2,
-                labelY: Math.max(minLabelY, Math.min(rawLabelY, maxLabelY)),
-                captionStep: 0,
+                labelY: Math.max(minLabelY, Math.min(labelY, maxLabelY)),
+                step: 0,
               };
             }
             const fixedStackHeight = (captionCount - 1) * RECONSTRUCTION_LABEL_OFFSET;
             const maxFixedBaseY = maxLabelY - fixedStackHeight;
             if (maxFixedBaseY >= minLabelY) {
               return {
-                labelX: (x1 + x2) / 2,
-                labelY: Math.max(minLabelY, Math.min(rawLabelY, maxFixedBaseY)),
-                captionStep: RECONSTRUCTION_LABEL_OFFSET,
+                labelY: Math.max(minLabelY, Math.min(labelY, maxFixedBaseY)),
+                step: RECONSTRUCTION_LABEL_OFFSET,
               };
             }
             return {
-              labelX: (x1 + x2) / 2,
               labelY: minLabelY,
-              captionStep: (maxLabelY - minLabelY) / (captionCount - 1),
+              step: (maxLabelY - minLabelY) / (captionCount - 1),
             };
           }
 
           function leftoverMapStackedCaptionY(
             labelY: number,
             stackedAbove: number,
-            captionStep: number,
+            step: number,
           ): number {
-            return stackedAbove > 0 ? labelY + stackedAbove * captionStep : labelY;
+            return stackedAbove > 0 ? labelY + stackedAbove * step : labelY;
           }'''
-          assert layout.count(old_position) == 1
-          layout = layout.replace(old_position, new_position)
+          assert layout.count(old_helpers) == 1
+          layout = layout.replace(old_helpers, new_helpers)
 
-          old_position_call = '''    const labelPosition = leftoverMapSegmentLabelPosition(
+          old_segment = '''    const labelPosition = leftoverMapSegmentLabelPosition(
               personPos.x,
               personPos.y,
               itemPos.x,
               itemPos.y,
+            );
+            const reconstructionY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+            );
+            const explainedShareY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+            );
+            const unexplainedShareY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0),
+            );
+            const crossShareY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0),
+            );
+            const unexplainedLeftoverY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0),
+            );
+            const residualY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0),
+            );
+            const observedY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0) +
+                (residualLabel !== null ? 1 : 0),
+            );
+            const expectedY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0) +
+                (residualLabel !== null ? 1 : 0) +
+                (observedLabel !== null ? 1 : 0),
+            );
+            const rankY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0) +
+                (residualLabel !== null ? 1 : 0) +
+                (observedLabel !== null ? 1 : 0) +
+                (expectedLabel !== null ? 1 : 0),
             );'''
-          new_position_call = '''    const captionCount = [
+          new_segment = '''    const rawLabelPosition = leftoverMapSegmentLabelPosition(
+              personPos.x,
+              personPos.y,
+              itemPos.x,
+              itemPos.y,
+            );
+            const captionCount = [
               distanceLabel,
               reconstructionLabel,
               explainedShareLabel,
@@ -167,52 +235,97 @@ jobs:
               expectedLabel,
               rankLabel,
             ].filter((label) => label !== null).length;
-            const labelPosition = leftoverMapSegmentLabelPosition(
-              personPos.x,
-              personPos.y,
-              itemPos.x,
-              itemPos.y,
-              height,
+            const captionStack = leftoverMapCaptionStack(
+              rawLabelPosition.labelY,
               captionCount,
+              height,
+            );
+            const labelPosition = {
+              labelX: rawLabelPosition.labelX,
+              labelY: captionStack.labelY,
+            };
+            const reconstructionY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+              captionStack.step,
+            );
+            const explainedShareY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const unexplainedShareY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const crossShareY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const unexplainedLeftoverY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const residualY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const observedY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0) +
+                (residualLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const expectedY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0) +
+                (residualLabel !== null ? 1 : 0) +
+                (observedLabel !== null ? 1 : 0),
+              captionStack.step,
+            );
+            const rankY = leftoverMapStackedCaptionY(
+              labelPosition.labelY,
+              (distanceLabel !== null ? 1 : 0) +
+                (reconstructionLabel !== null ? 1 : 0) +
+                (explainedShareLabel !== null ? 1 : 0) +
+                (unexplainedShareLabel !== null ? 1 : 0) +
+                (crossShareLabel !== null ? 1 : 0) +
+                (unexplainedLeftoverLabel !== null ? 1 : 0) +
+                (residualLabel !== null ? 1 : 0) +
+                (observedLabel !== null ? 1 : 0) +
+                (expectedLabel !== null ? 1 : 0),
+              captionStack.step,
             );'''
-          assert layout.count(old_position_call) == 1
-          layout = layout.replace(old_position_call, new_position_call)
-
-          # Every stacked caption must use the height-aware step produced for this segment.
-          layout = layout.replace(
-              '''      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
-            );''',
-              '''      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
-              labelPosition.captionStep,
-            );''',
-              1,
-          )
-          for marker in [
-              '''      (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),''',
-              '''        (explainedShareLabel !== null ? 1 : 0),''',
-              '''        (unexplainedShareLabel !== null ? 1 : 0),''',
-              '''        (crossShareLabel !== null ? 1 : 0),''',
-              '''        (unexplainedLeftoverLabel !== null ? 1 : 0),''',
-              '''        (residualLabel !== null ? 1 : 0),''',
-              '''        (observedLabel !== null ? 1 : 0),''',
-              '''        (expectedLabel !== null ? 1 : 0),''',
-          ]:
-              idx = layout.find(marker)
-              assert idx >= 0, marker
-              end = idx + len(marker)
-              layout = layout[:end] + "\n      labelPosition.captionStep," + layout[end:]
-
-          old_spread = '''      rankX: labelPosition.labelX,
-              rankY,
-              ...labelPosition,
-            });'''
-          new_spread = '''      rankX: labelPosition.labelX,
-              rankY,
-              labelX: labelPosition.labelX,
-              labelY: labelPosition.labelY,
-            });'''
-          assert layout.count(old_spread) == 1
-          layout = layout.replace(old_spread, new_spread)
+          assert layout.count(old_segment) == 1
+          layout = layout.replace(old_segment, new_segment)
           layout_path.write_text(layout)
 
           i18n_path = Path("frontend/src/i18n.ts")
@@ -233,17 +346,19 @@ jobs:
           assert vi.count(old_compare) == 1
           vi = vi.replace(old_compare, new_compare)
 
-          full_english = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":\n'
+          full_key = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":'
           full_old_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
           full_new_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
-          assert vi.count(full_english) == 1
+          assert vi.count(full_key) == 1
           assert vi.count(full_old_vi) == 1
           vi = vi.replace(full_old_vi, full_new_vi)
 
-          legacy_english = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.":'
-          assert legacy_english not in vi
+          legacy_key = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.":'
+          assert legacy_key not in vi
           legacy_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
-          vi = vi.replace(full_english + full_new_vi, full_english + full_new_vi + "\n" + legacy_english + "\n" + legacy_vi)
+          anchor = full_key + "\n" + full_new_vi
+          assert vi.count(anchor) == 1
+          vi = vi.replace(anchor, anchor + "\n" + legacy_key + "\n" + legacy_vi)
 
           i18n = i18n[:vi_start] + vi + i18n[vi_end:]
           i18n_path.write_text(i18n)
@@ -272,7 +387,7 @@ jobs:
           uv sync --frozen --extra dev --extra backend
           uv run --frozen python -m pytest -q tests/test_package_version.py tests/test_project_lock_version_parity.py
 
-      - name: Run full PostgreSQL-independent suite
+      - name: Run full test suite against PostgreSQL
         run: uv run --frozen python -m pytest -q
 
       - name: Set up Node
