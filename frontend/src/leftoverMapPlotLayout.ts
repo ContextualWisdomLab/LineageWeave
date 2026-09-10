@@ -131,6 +131,8 @@ const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
 const RECONSTRUCTION_LABEL_OFFSET = 12;
+const CAPTION_MIN_BASELINE = 12;
+const CAPTION_EDGE_PADDING = 4;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
@@ -268,6 +270,17 @@ function toSvg(
   };
 }
 
+function plotPaddingForSize(width: number, height: number): number {
+  // Keep a positive interior when a compact embedding is smaller than the desktop padding budget.
+  return Math.min(PLOT_PADDING, Math.max(0, width) / 4, Math.max(0, height) / 4);
+}
+
+function boundedCaptionY(y: number, height: number): number {
+  const maxY = Math.max(0, height - CAPTION_EDGE_PADDING);
+  const minY = Math.min(CAPTION_MIN_BASELINE, maxY);
+  return Math.min(Math.max(y, minY), maxY);
+}
+
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
   const byLabel = new Map<string, number>();
   for (const value of values) {
@@ -324,16 +337,23 @@ function leftoverMapSegmentLabelPosition(
   y1: number,
   x2: number,
   y2: number,
+  height: number,
 ): { labelX: number; labelY: number } {
   const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+  const rawLabelY = coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2;
   return {
     labelX: (x1 + x2) / 2,
-    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+    labelY: boundedCaptionY(rawLabelY, height),
   };
 }
 
-function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
-  return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+function leftoverMapStackedCaptionY(
+  labelY: number,
+  stackedAbove: number,
+  height: number,
+): number {
+  const stackedY = stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+  return boundedCaptionY(stackedY, height);
 }
 
 export function layoutLeftoverMapPlot(
@@ -348,6 +368,7 @@ export function layoutLeftoverMapPlot(
 
   const width = size?.width ?? PLOT_WIDTH;
   const height = size?.height ?? PLOT_HEIGHT;
+  const plotPadding = plotPaddingForSize(width, height);
   const axes: number[] = [];
   for (const pair of plottable) {
     axes.push(
@@ -378,7 +399,7 @@ export function layoutLeftoverMapPlot(
       scaleSpan,
       width,
       height,
-      PLOT_PADDING,
+      plotPadding,
     );
     const itemPos = toSvg(
       pair.leftover_map_item_axis_1 as number,
@@ -387,7 +408,7 @@ export function layoutLeftoverMapPlot(
       scaleSpan,
       width,
       height,
-      PLOT_PADDING,
+      plotPadding,
     );
     if (!persons.has(pair.post_id)) {
       persons.set(pair.post_id, {
@@ -440,20 +461,24 @@ export function layoutLeftoverMapPlot(
       personPos.y,
       itemPos.x,
       itemPos.y,
+      height,
     );
     const reconstructionY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
       distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+      height,
     );
     const explainedShareY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
       (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+      height,
     );
     const unexplainedShareY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
       (distanceLabel !== null ? 1 : 0) +
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0),
+      height,
     );
     const crossShareY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
@@ -461,6 +486,7 @@ export function layoutLeftoverMapPlot(
         (reconstructionLabel !== null ? 1 : 0) +
         (explainedShareLabel !== null ? 1 : 0) +
         (unexplainedShareLabel !== null ? 1 : 0),
+      height,
     );
     const unexplainedLeftoverY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
@@ -469,6 +495,7 @@ export function layoutLeftoverMapPlot(
         (explainedShareLabel !== null ? 1 : 0) +
         (unexplainedShareLabel !== null ? 1 : 0) +
         (crossShareLabel !== null ? 1 : 0),
+      height,
     );
     const residualY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
@@ -478,6 +505,7 @@ export function layoutLeftoverMapPlot(
         (unexplainedShareLabel !== null ? 1 : 0) +
         (crossShareLabel !== null ? 1 : 0) +
         (unexplainedLeftoverLabel !== null ? 1 : 0),
+      height,
     );
     const observedY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
@@ -488,6 +516,7 @@ export function layoutLeftoverMapPlot(
         (crossShareLabel !== null ? 1 : 0) +
         (unexplainedLeftoverLabel !== null ? 1 : 0) +
         (residualLabel !== null ? 1 : 0),
+      height,
     );
     const expectedY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
@@ -499,6 +528,7 @@ export function layoutLeftoverMapPlot(
         (unexplainedLeftoverLabel !== null ? 1 : 0) +
         (residualLabel !== null ? 1 : 0) +
         (observedLabel !== null ? 1 : 0),
+      height,
     );
     const rankY = leftoverMapStackedCaptionY(
       labelPosition.labelY,
@@ -511,6 +541,7 @@ export function layoutLeftoverMapPlot(
         (residualLabel !== null ? 1 : 0) +
         (observedLabel !== null ? 1 : 0) +
         (expectedLabel !== null ? 1 : 0),
+      height,
     );
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
@@ -552,7 +583,7 @@ export function layoutLeftoverMapPlot(
     });
   }
 
-  const origin = toSvg(0, 0, minAxis, scaleSpan, width, height, PLOT_PADDING);
+  const origin = toSvg(0, 0, minAxis, scaleSpan, width, height, plotPadding);
   return {
     width,
     height,
@@ -568,7 +599,7 @@ export function layoutLeftoverMapPlot(
       scaleSpan,
       width,
       height,
-      PLOT_PADDING,
+      plotPadding,
     ),
   };
 }
