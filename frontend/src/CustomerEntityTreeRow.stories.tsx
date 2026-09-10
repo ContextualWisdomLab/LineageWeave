@@ -120,3 +120,49 @@ export const OrdinaryTree: Story = {
     ).not.toBeInTheDocument();
   },
 };
+
+export const LoadingRelatedPosts: Story = {
+  render: () => {
+    const [node] = buildCustomerEntityTree([entity("root", null, "Root")]);
+    return (
+      <ul>
+        <CustomerEntityTreeRow
+          node={node}
+          depth={0}
+          expandedEntityId="root"
+          relatedByEntity={{}}
+          relatedLoading="root"
+          {...callbacks}
+        />
+      </ul>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("status")).toHaveTextContent("Loading related posts...");
+    await expect(canvas.queryByText("No linked posts yet.")).not.toBeInTheDocument();
+  },
+};
+
+export const EmptyRelatedPosts: Story = {
+  render: () => {
+    const [node] = buildCustomerEntityTree([entity("root", null, "Root")]);
+    return (
+      <ul>
+        <CustomerEntityTreeRow
+          node={node}
+          depth={0}
+          expandedEntityId="root"
+          relatedByEntity={{ root: [] }}
+          relatedLoading={null}
+          {...callbacks}
+        />
+      </ul>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("No linked posts yet.")).toBeInTheDocument();
+    await expect(canvas.queryByRole("status")).not.toBeInTheDocument();
+  },
+};
