@@ -707,7 +707,7 @@ function AffiliateTreeNode({
             />
           ))}
         </ul>
-      )}
+      ) : null}
     </li>
   );
 }
@@ -4867,7 +4867,7 @@ function CustomerMasterPanel({
         [entityId]: { status: "error", error },
       }));
     } finally {
-      setRelatedLoading(null);
+      setRelatedLoading((current) => (current === entityId ? null : current));
     }
   }
 
