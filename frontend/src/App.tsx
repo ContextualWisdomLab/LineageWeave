@@ -138,19 +138,6 @@ import {
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
 } from "./leftoverMapCoverage";
 import {
-  leftoverMapAxisBadgeShare,
-  leftoverMapAxisBadgeSingular,
-  LEFTOVER_MAP_AXIS_BADGE_SHARE,
-  LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
-} from "./leftoverMapAxisBadge";
-import {
-  leftoverMapCompareAxisBadge,
-  leftoverSingularForAxis,
-  LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
-  LEFTOVER_MAP_COMPARE_AXIS_LABEL,
-} from "./leftoverMapPlotAxisSingular";
-import { leftoverShareForAxis } from "./leftoverMapPlotAxisShare";
-import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
 } from "./leftoverMapReconstruction";
@@ -3936,25 +3923,18 @@ function ReportsPanel({
                 {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, incompleteItemCount)}
               </p>
             ) : null}
-            {report.leftover_map_axes?.map((axis) => {
-              const singular = leftoverMapAxisBadgeSingular(axis);
-              const share = leftoverMapAxisBadgeShare(axis.leftover_share);
-              return (
-                <span key={axis.axis_index} className="post-badge">
-                  {singular === null
-                    ? tf(LEFTOVER_MAP_AXIS_BADGE_SHARE, { axis: axis.axis_index, share })
-                    : tf(LEFTOVER_MAP_AXIS_BADGE_SINGULAR, {
-                        axis: axis.axis_index,
-                        value: singular,
-                        share,
-                      })}
-                </span>
-              );
-            })}
+            {report.leftover_map_axes?.map((axis) => (
+              <span key={axis.axis_index} className="post-badge">
+                {tf("leftover axis {axis} {share}%", {
+                  axis: axis.axis_index,
+                  share: (axis.leftover_share * 100).toFixed(0),
+                })}
+              </span>
+            ))}
             {report.leftover_map_axes && report.leftover_map_axes.length > 0 && (
               <p aria-label={t("Leftover-map axis share")}>
                 {t(
-                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
+                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
                 )}
               </p>
             )}
@@ -4106,33 +4086,6 @@ function ReportsPanel({
               {comparisonIncompleteItemCount !== null ? (
                 <p className="post-meta" role="note" aria-label={t(LEFTOVER_MAP_COMPARE_INCOMPLETE_ITEM_LABEL)}>
                   {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}
-                </p>
-              ) : null}
-              {row.leftover_map_axes?.map((axis) => {
-                const badge = leftoverMapCompareAxisBadge(
-                  axis.axis_index,
-                  leftoverSingularForAxis([axis], axis.axis_index),
-                  leftoverShareForAxis([axis], axis.axis_index),
-                );
-                if (badge === null) {
-                  return null;
-                }
-                return (
-                  <span key={axis.axis_index} className="post-badge">
-                    {tf(badge.key, badge.values)}
-                  </span>
-                );
-              })}
-              {row.leftover_map_axes?.some(
-                (axis) =>
-                  leftoverMapCompareAxisBadge(
-                    axis.axis_index,
-                    leftoverSingularForAxis([axis], axis.axis_index),
-                    leftoverShareForAxis([axis], axis.axis_index),
-                  ) !== null,
-              ) ? (
-                <p aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_LABEL)}>
-                  {t(LEFTOVER_MAP_COMPARE_AXIS_CAPTION)}
                 </p>
               ) : null}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (

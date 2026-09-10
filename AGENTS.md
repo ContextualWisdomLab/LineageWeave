@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302 / 0303 / 0304 / 0305 / 0306 / 0307 / 0308 / 0309 / 0310 / 0311 / 0312 / 0313 / 0314 / 0315 / 0316 / 0317 / 0318 / 0319 / 0320 / 0321 / 0322 / 0323) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293 / 0294 / 0295 / 0296 / 0297 / 0298 / 0299 / 0300 / 0301 / 0302 / 0303 / 0304 / 0305 / 0306 / 0307 / 0308 / 0309 / 0310 / 0311 / 0312 / 0313 / 0314 / 0315 / 0316) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -597,7 +597,7 @@ non-finite `Y` omits that leftover-map comparison graphic leftover observed capt
 leftover residual `R`, leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map comparison graphic coverage,
 leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
 and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent
-`Y` from `R` and `E`, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map distance, plotted coordinates,
+`Y` from `R` and `E`, leftover residual, leftover-map reconstruction, leftover-map unexplained leftover, leftover-map distance, plotted coordinates,
 leftover-map rank, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
 leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
 count, or the count of unused axes.
@@ -607,55 +607,10 @@ non-finite `E` omits that leftover-map comparison graphic leftover expected capt
 leftover observed `Y`, leftover residual `R`, leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map comparison graphic coverage,
 leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
 and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent
-`E` from `Y` and `R`, leftover observed, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map distance, plotted coordinates,
+`E` from `Y` and `R`, leftover residual, leftover observed, leftover-map reconstruction, leftover-map unexplained leftover, leftover-map distance, plotted coordinates,
 leftover-map rank, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
 leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
 count, or the count of unused axes.
-ADR 0318 captions leftover-map rank on that grouping comparison leftover-map
-graphic when formatLeftoverMapRank returns a usable badge; a missing,
-negative, or non-integer rank omits that leftover-map comparison graphic leftover-map rank caption and keeps
-leftover expected `E`, leftover observed `Y`, leftover residual `R`, leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map distance `d`, leftover-map comparison graphic coverage,
-leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
-and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent
-leftover-map rank from plotted coordinates, leftover-map distance, leftover expected, leftover observed, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
-leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
-count, or the count of unused axes.
-ADR 0319 captions leftover-map distance on that grouping comparison leftover-map
-graphic when formatLeftoverMapDistance returns a usable badge; a missing or
-non-finite `d` omits that leftover-map comparison graphic leftover-map distance caption and keeps
-leftover-map rank, leftover expected `E`, leftover observed `Y`, leftover residual `R`, leftover-map unexplained leftover `U`, leftover-map cross share `x`, leftover-map unexplained leftover share `s`, leftover-map explained leftover share `e`, leftover-map reconstruction `R̂`, leftover-map comparison graphic coverage,
-leftover-map comparison graphic item coverage, leftover-map comparison graphic incomplete posts,
-and leftover-map comparison graphic incomplete items when those helpers return usable integers. Do not invent
-leftover-map distance from plotted coordinates, leftover-map rank, leftover expected, leftover observed, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
-leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
-count, or the count of unused axes.
-ADR 0320 captions leftover-map coordinate ticks on that grouping comparison leftover-map
-graphic from already-named leftover-map coordinates; the origin and each unique finite
-persisted `ξ` / `ζ` projection still name leftover-map comparison graphic leftover-map axis
-ticks. Do not invent evenly spaced leftover-map comparison graphic leftover-map axis ticks
-that no persisted coordinate occupies. Do not invent leftover-map coordinate ticks from leftover-map
-distance, leftover-map rank, leftover expected, leftover observed, leftover residual, leftover-map unexplained leftover, leftover-map reconstruction, leftover-map axis share, leftover-map post coverage, leftover-map item coverage,
-leftover-map incomplete post coverage, leftover-map incomplete item coverage, leftover pair
-count, or the count of unused axes.
-ADR 0321 captions leftover-map singular values on that grouping comparison leftover-map
-graphic from already-named leftover-map axes when that persisted `σ_k` is finite and
-non-negative. Rank-0 unused axes still name leftover-map comparison graphic leftover-map
-axis `σ 0.00`. Share and singular value omit independently. Do not invent leftover-map
-singular values from leftover-map axis share, leftover-map coordinate ticks, leftover-map
-distance, leftover-map rank, leftover expected, leftover observed, leftover residual,
-leftover-map unexplained leftover, leftover-map reconstruction, leftover-map post coverage,
-leftover-map item coverage, leftover-map incomplete post coverage, leftover-map incomplete
-item coverage, leftover pair count, or the count of unused axes.
-ADR 0322 captions leftover-axis report badges with persisted leftover-map singular
-values `σ_k` when leftoverMapAxisBadgeSingular returns a usable finite non-negative
-value; a missing, non-finite, or negative singular value omits that `σ` badge and
-keeps `leftover axis {k} {share}%`. Do not invent leftover-map singular values from
-leftover-map axis share. ADR 0323 captions leftover-axis report badges on the grouping
-comparison strip with persisted leftover-map singular values `σ_k` when
-leftoverMapCompareAxisBadge returns a usable leftover-axis caption. Distinct accessible
-name `leftover map comparison leftover axis {axis} σ {value}`. Share and singular value
-omit independently. Rank-0 unused axes still name `σ 0.00`. Do not invent leftover-map
-singular values from leftover-map axis share.
 When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
 finite, `Y − E = R`. When `R`, `R̂`, and `U` are
@@ -742,24 +697,6 @@ that grouping comparison leftover-map graphic with persisted leftover observed
 Grouping comparison leftover expected (ADR 0317) captions
 that grouping comparison leftover-map graphic with persisted leftover expected
 `E` when formatLeftoverMapExpected returns a usable badge.
-Grouping comparison leftover-map rank (ADR 0318) captions
-that grouping comparison leftover-map graphic with persisted leftover-map rank
-when formatLeftoverMapRank returns a usable badge.
-Grouping comparison leftover-map distance (ADR 0319) captions
-that grouping comparison leftover-map graphic with persisted leftover-map distance
-`d` when formatLeftoverMapDistance returns a usable badge.
-Grouping comparison leftover-map coordinate ticks (ADR 0320) captions
-that grouping comparison leftover-map graphic with persisted leftover-map coordinate
-ticks at the origin and at each unique finite `ξ` / `ζ` projection.
-Grouping comparison leftover-map singular values (ADR 0321) captions
-that grouping comparison leftover-map graphic with persisted leftover-map singular
-values `σ_k` when leftoverSingularForAxis returns a usable finite non-negative value.
-Leftover-axis report badge leftover-map singular values (ADR 0322) captions leftover-axis
-report badges with persisted leftover-map singular values `σ_k` when leftoverMapAxisBadgeSingular
-returns a usable finite non-negative value.
-Grouping comparison leftover-axis report badge leftover-map singular values (ADR 0323) captions
-leftover-axis report badges on the grouping comparison strip with persisted leftover-map
-singular values `σ_k` when leftoverMapCompareAxisBadge returns a usable leftover-axis caption.
 Item complete-case coverage
 (ADR 0282) captions the leftover-map graphic with how many scored criteria
 entered the map. Item complete-case coverage on the pair list (ADR 0285)
