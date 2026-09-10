@@ -14,6 +14,14 @@ _ADR_RE = re.compile(r"ADR (\d{4})")
 _TEST_RE = re.compile(r"tests/(test_[A-Za-z0-9_]+\.py)")
 
 
+def test_reference_patterns_reject_longer_token_prefixes() -> None:
+    """Near-miss ADR numbers and backup filenames must not satisfy exact references."""
+    assert _ADR_RE.findall("ADR 0256") == ["0256"]
+    assert _ADR_RE.findall("ADR 02560") == []
+    assert _TEST_RE.findall("tests/test_example.py") == ["test_example.py"]
+    assert _TEST_RE.findall("tests/test_example.py.bak") == []
+
+
 def test_prd_requirement_identifiers_are_unique() -> None:
     """Keep each PRD-FR-* identifier stable and singular (issue #807)."""
     counts: dict[str, int] = {}
