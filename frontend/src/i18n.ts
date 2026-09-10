@@ -196,6 +196,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading project history. Review the timeline when it appears.": "프로젝트 이력을 불러오는 중입니다. 표시되면 타임라인을 확인하세요.",
     "Customer master could not be loaded.": "고객 마스터를 불러오지 못했습니다.",
     "No customer entities are connected to this account.": "이 계정에 연결된 고객 엔터티가 없습니다.",
+    "Shown as top level: listed parent forms a cycle.": "상위 조직 연결이 순환해서 최상위로 표시됩니다.",
+    "Shown as top level: entity lists itself as parent.": "자기 자신을 상위로 지정해서 최상위로 표시됩니다.",
+    "Shown as top level: listed parent is not visible.": "지정된 상위가 보이지 않아 최상위로 표시됩니다.",
     "Observed customer evidence": "관찰된 고객 증거",
     "Relationship network": "관계 네트워크",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
@@ -784,6 +787,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading project history. Review the timeline when it appears.": "正在加载项目历史。显示后请查看时间线。",
     "Customer master could not be loaded.": "无法加载客户主数据。",
     "No customer entities are connected to this account.": "此账户没有连接的客户实体。",
+    "Shown as top level: listed parent forms a cycle.": "所列上级形成循环，已显示为顶层。",
+    "Shown as top level: entity lists itself as parent.": "该实体将自身列为上级，已显示为顶层。",
+    "Shown as top level: listed parent is not visible.": "所列上级不可见，已显示为顶层。",
     "Observed customer evidence": "观测到的客户证据",
     "Relationship network": "关系网络",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
@@ -1389,6 +1395,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading project history. Review the timeline when it appears.": "プロジェクト履歴を読み込んでいます。表示されたらタイムラインを確認してください。",
     "Customer master could not be loaded.": "顧客マスターを読み込めませんでした。",
     "No customer entities are connected to this account.": "このアカウントに接続された顧客エンティティはありません。",
+    "Shown as top level: listed parent forms a cycle.": "指定された親が循環しているため、最上位として表示しています。",
+    "Shown as top level: entity lists itself as parent.": "自身が親に指定されているため、最上位として表示しています。",
+    "Shown as top level: listed parent is not visible.": "指定された親が表示できないため、最上位として表示しています。",
     "Observed customer evidence": "観測された顧客証拠",
     "Relationship network": "関係ネットワーク",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
@@ -1973,6 +1982,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading project history. Review the timeline when it appears.": "Đang tải lịch sử dự án. Khi dòng thời gian xuất hiện, hãy xem lại.",
     "Customer master could not be loaded.": "Không thể tải danh mục khách hàng.",
     "No customer entities are connected to this account.": "Tài khoản này chưa được kết nối với thực thể khách hàng nào.",
+    "Shown as top level: listed parent forms a cycle.": "Cấp trên được liệt kê tạo thành chu trình nên hiển thị ở cấp cao nhất.",
+    "Shown as top level: entity lists itself as parent.": "Thực thể liệt kê chính nó làm cấp trên nên hiển thị ở cấp cao nhất.",
+    "Shown as top level: listed parent is not visible.": "Cấp trên được liệt kê không hiển thị nên hiển thị ở cấp cao nhất.",
     "Observed customer evidence": "Bằng chứng khách hàng được quan sát",
     "Relationship network": "Mạng lưới quan hệ",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":

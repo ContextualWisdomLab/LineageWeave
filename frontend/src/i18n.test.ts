@@ -99,6 +99,9 @@ describe("i18n", () => {
     "Inspect the authorized cited posts and their evidence.",
     "Review unavailable historical channels before relying on this cutoff answer.",
     "Compare these cutoff-grounded citations with live evidence next.",
+    "Shown as top level: listed parent forms a cycle.",
+    "Shown as top level: entity lists itself as parent.",
+    "Shown as top level: listed parent is not visible.",
   ] as const;
 
   it("supports the five product locales", () => {
