@@ -124,16 +124,9 @@ export type LeftoverPairListProps = {
  * pair list. ADR 0314 captions leftover-map unexplained leftover on that
  * grouping comparison leftover-map graphic, not this pair list. ADR 0315
  * captions leftover residual on that grouping comparison leftover-map graphic,
- * not this pair list. ADR 0316 captions leftover observed on that grouping
- * comparison leftover-map graphic, not this pair list. ADR 0317 captions leftover
- * expected on that grouping comparison leftover-map graphic, not this pair list. ADR 0318
- * captions leftover-map rank on that grouping comparison leftover-map graphic, not this
- * pair list. ADR 0319 captions leftover-map distance on that grouping comparison leftover-map
- * graphic, not this pair list. ADR 0320 captions leftover-map coordinate ticks on that grouping
- * comparison leftover-map graphic, not this pair list. ADR 0321 captions leftover-map
- * singular values on that grouping comparison leftover-map graphic, not this pair list.
- * ADR 0322 captions leftover-map singular values on leftover-axis report badges, not this
- * pair list. Every badge still
+ * not this pair list. ADR 0316 captions leftover observed on that
+ * grouping comparison leftover-map graphic, not this pair list. ADR 0317 captions leftover expected on that
+ * grouping comparison leftover-map graphic, not this pair list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

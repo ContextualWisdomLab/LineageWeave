@@ -1,88 +1,6 @@
-/** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
- *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
- *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
- *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271),
- *  persisted leftover-map reconstruction ``R̂`` (ADR 0272), persisted
- *  leftover-map explained leftover share ``e`` (ADR 0273), persisted
- *  leftover-map unexplained leftover share ``s`` (ADR 0274), persisted
- *  leftover-map cross share ``x`` (ADR 0275), persisted leftover-map
- *  unexplained leftover ``U`` (ADR 0276), persisted leftover residual
- *  ``R`` (ADR 0277), persisted leftover observed ``Y`` (ADR 0278),
- *  persisted leftover expected ``E`` (ADR 0279), and persisted leftover-map
- *  rank (ADR 0280). The plot names persisted leftover-map complete-case
- *  coverage (ADR 0281), leftover-map item complete-case coverage
- *  (ADR 0282), leftover-map incomplete post coverage (ADR 0283), and
- *  leftover-map incomplete item coverage (ADR 0284). Pair-list post
- *  complete-case coverage fail-closed through leftoverMapCoverageCounts
- *  (ADR 0288), pair-list item complete-case coverage (ADR 0285), pair-list
- *  incomplete post coverage (ADR 0286), pair-list incomplete item
- *  coverage (ADR 0287), grouping comparison complete-case coverage
- *  (ADR 0289), grouping comparison item complete-case coverage
- *  (ADR 0290), grouping comparison incomplete post coverage
- *  (ADR 0291), grouping comparison incomplete item coverage
- *  (ADR 0292), grouping comparison reconstruction
- *  (ADR 0293), grouping comparison explained leftover share
- *  (ADR 0294), grouping comparison unexplained leftover share
- *  (ADR 0295), grouping comparison leftover-map cross share
- *  (ADR 0296), grouping comparison leftover-map unexplained leftover
- *  (ADR 0297), grouping comparison leftover residual
- *  (ADR 0298), grouping comparison leftover observed
- *  (ADR 0299), grouping comparison leftover expected
- *  (ADR 0300), grouping comparison leftover-map rank
- *  (ADR 0301), grouping comparison leftover-map coordinates
- *  (ADR 0302), grouping comparison leftover-map coordinates payload
- *  (ADR 0303), grouping comparison leftover-map graphic display
- *  (ADR 0304), grouping comparison leftover-map axis share on that
- *  graphic (ADR 0305), grouping comparison leftover-map complete-case
- *  coverage on that graphic (ADR 0306), grouping comparison leftover-map
- *  item complete-case coverage on that graphic (ADR 0307), grouping comparison leftover-map
- *  incomplete post coverage on that graphic (ADR 0308), grouping comparison leftover-map
- *  incomplete item coverage on that graphic (ADR 0309), grouping comparison leftover-map
- *  reconstruction on that graphic (ADR 0310), grouping comparison leftover-map
- *  explained leftover share on that graphic (ADR 0311), grouping comparison leftover-map
- *  unexplained leftover share on that graphic (ADR 0312), grouping comparison leftover-map
- *  cross share on that graphic (ADR 0313), and grouping comparison leftover-map
- *  unexplained leftover on that graphic (ADR 0314), and grouping comparison leftover
- *  residual on that graphic (ADR 0315), and grouping comparison leftover
- *  observed on that graphic (ADR 0316), and grouping comparison leftover
- *  expected on that graphic (ADR 0317), and grouping comparison leftover-map
- *  rank on that graphic (ADR 0318), grouping comparison leftover-map
- *  distance on that graphic (ADR 0319), and grouping comparison leftover-map
- *  coordinate ticks on that graphic (ADR 0320), and grouping comparison leftover-map
- *  singular values on that graphic (ADR 0321) caption the pair list or the grouping comparison
- *  strip. ADR 0304 reuses this graphic layout on the grouping comparison
- *  strip. ADR 0305 captions leftover-map axis share on that comparison
- *  graphic from already-named leftover-map axes. ADR 0306 captions leftover-map
- *  complete-case coverage on that comparison graphic from already-named leftover-map
- *  coverage. ADR 0307 captions leftover-map item complete-case coverage on that
- *  comparison graphic from already-named leftover-map coverage. ADR 0308 captions leftover-map
- *  incomplete post coverage on that comparison graphic from already-named leftover-map
- *  coverage. ADR 0309 captions leftover-map incomplete item coverage on that
- *  comparison graphic from already-named leftover-map coverage. ADR 0310 captions leftover-map
- *  reconstruction on that comparison graphic from already-named leftover-map reconstruction.
- *  ADR 0311 captions leftover-map explained leftover share on that comparison graphic from
- *  already-named leftover-map explained leftover share. ADR 0312 captions leftover-map
- *  unexplained leftover share on that comparison graphic from already-named leftover-map
- *  unexplained leftover share. ADR 0313 captions leftover-map
- *  cross share on that comparison graphic from already-named leftover-map
- *  cross share. ADR 0314 captions leftover-map unexplained leftover on that
- *  comparison graphic from already-named leftover-map unexplained leftover.
- *  ADR 0315 captions leftover residual on that comparison graphic from
- *  already-named leftover residual.
- *  ADR 0316 captions leftover observed on that comparison graphic from
- *  already-named leftover observed.
- *  ADR 0317 captions leftover expected on that comparison graphic from
- *  already-named leftover expected.
- *  ADR 0318 captions leftover-map rank on that comparison graphic from
- *  already-named leftover-map rank.
- *  ADR 0319 captions leftover-map distance on that comparison graphic from
- *  already-named leftover-map distance.
- *  ADR 0320 captions leftover-map coordinate ticks on that comparison graphic from
- *  already-named leftover-map coordinates.
- *  ADR 0321 captions leftover-map singular values on that comparison graphic from
- *  already-named leftover-map axes.
- *  ADR 0322 captions leftover-axis report badges with persisted leftover-map
- *  singular values, not this graphic.
+/** Gabriel leftover-map graphic display of persisted `ξ/ζ` coordinates and persisted pair metrics.
+ * Grouping-comparison captions through ADR 0317 reuse these persisted values; this module never derives
+ * measurement truth from geometry, rank, coverage, pair counts, or neighbouring statistics.
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
@@ -115,59 +33,43 @@ export const LEFTOVER_MAP_PLOT_POST_ACTION =
 export const LEFTOVER_MAP_PLOT_TICK =
   "leftover-map axis {axis} tick {value}";
 
-export const LEFTOVER_MAP_COMPARE_PLOT_TICK =
-  "leftover map comparison graphic leftover-map axis {axis} tick {value}";
-
 export const LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE =
   "leftover-map distance {label}";
 
-export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE =
-  "leftover map comparison graphic leftover-map distance {label}";
-
 export const LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION =
   "leftover-map reconstruction {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION } from "./leftoverMapReconstruction";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE =
   "leftover-map explained leftover share {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE } from "./leftoverMapExplainedShare";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE =
   "leftover-map unexplained leftover share {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED_SHARE } from "./leftoverMapUnexplainedShare";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE =
   "leftover-map cross share {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE } from "./leftoverMapCrossShare";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED =
   "leftover-map unexplained leftover {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED } from "./leftoverMapUnexplained";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL =
   "leftover residual {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL } from "./leftoverResidual";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_OBSERVED =
   "leftover observed {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED } from "./leftoverObservedExpected";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_EXPECTED =
   "leftover expected {label}";
-
 export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED } from "./leftoverObservedExpected";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_RANK =
   "leftover-map rank {label}";
-
-export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK } from "./leftoverMapRank";
 
 export const PLOT_WIDTH = 480;
 export const PLOT_HEIGHT = 320;
@@ -177,6 +79,8 @@ const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
 const RECONSTRUCTION_LABEL_OFFSET = 12;
+const CAPTION_MIN_BASELINE = 12;
+const CAPTION_EDGE_PADDING = 4;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
@@ -277,9 +181,7 @@ export function formatLeftoverMapDistance(value: number | null | undefined): str
   return `d ${value.toFixed(2)}`;
 }
 
-export function hasLeftoverMapPlotCoordinates(
-  pair: LeftoverMapPlottablePair,
-): boolean {
+export function hasLeftoverMapPlotCoordinates(pair: LeftoverMapPlottablePair): boolean {
   return (
     formatLeftoverMapCoordinatePair(
       pair.leftover_map_person_axis_1,
@@ -312,6 +214,16 @@ function toSvg(
     x: offsetX + (axis1 - minAxis) * pixelsPerUnit,
     y: offsetY + (minAxis + scaleSpan - axis2) * pixelsPerUnit,
   };
+}
+
+function plotPaddingForSize(width: number, height: number): number {
+  return Math.min(PLOT_PADDING, Math.max(0, width) / 4, Math.max(0, height) / 4);
+}
+
+function boundedCaptionY(y: number, height: number): number {
+  const maxY = Math.max(0, height - CAPTION_EDGE_PADDING);
+  const minY = Math.min(CAPTION_MIN_BASELINE, maxY);
+  return Math.min(Math.max(y, minY), maxY);
 }
 
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
@@ -370,16 +282,23 @@ function leftoverMapSegmentLabelPosition(
   y1: number,
   x2: number,
   y2: number,
+  height: number,
 ): { labelX: number; labelY: number } {
   const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+  const rawLabelY = coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2;
   return {
     labelX: (x1 + x2) / 2,
-    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+    labelY: boundedCaptionY(rawLabelY, height),
   };
 }
 
-function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
-  return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+function leftoverMapStackedCaptionY(
+  labelY: number,
+  stackedAbove: number,
+  height: number,
+): number {
+  const stackedY = stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
+  return boundedCaptionY(stackedY, height);
 }
 
 export function layoutLeftoverMapPlot(
@@ -394,6 +313,7 @@ export function layoutLeftoverMapPlot(
 
   const width = size?.width ?? PLOT_WIDTH;
   const height = size?.height ?? PLOT_HEIGHT;
+  const plotPadding = plotPaddingForSize(width, height);
   const axes: number[] = [];
   for (const pair of plottable) {
     axes.push(
@@ -403,7 +323,6 @@ export function layoutLeftoverMapPlot(
       pair.leftover_map_item_axis_2 as number,
     );
   }
-  // Keep the origin in view: it is the rank-0 unused-axis location, not a score.
   const minObserved = Math.min(...axes, 0);
   const maxObserved = Math.max(...axes, 0);
   const observedSpan = maxObserved - minObserved;
@@ -424,7 +343,7 @@ export function layoutLeftoverMapPlot(
       scaleSpan,
       width,
       height,
-      PLOT_PADDING,
+      plotPadding,
     );
     const itemPos = toSvg(
       pair.leftover_map_item_axis_1 as number,
@@ -433,7 +352,7 @@ export function layoutLeftoverMapPlot(
       scaleSpan,
       width,
       height,
-      PLOT_PADDING,
+      plotPadding,
     );
     if (!persons.has(pair.post_id)) {
       persons.set(pair.post_id, {
@@ -463,20 +382,13 @@ export function layoutLeftoverMapPlot(
       pair.leftover_map_person_axis_2 as number,
       pair.leftover_map_item_axis_2 as number,
     );
+
     const distanceLabel = formatLeftoverMapDistance(pair.leftover_distance);
-    const reconstructionLabel = formatLeftoverMapReconstruction(
-      pair.leftover_map_reconstruction,
-    );
-    const explainedShareLabel = formatLeftoverMapExplainedShare(
-      pair.leftover_map_explained_share,
-    );
-    const unexplainedShareLabel = formatLeftoverMapUnexplainedShare(
-      pair.leftover_map_unexplained_share,
-    );
+    const reconstructionLabel = formatLeftoverMapReconstruction(pair.leftover_map_reconstruction);
+    const explainedShareLabel = formatLeftoverMapExplainedShare(pair.leftover_map_explained_share);
+    const unexplainedShareLabel = formatLeftoverMapUnexplainedShare(pair.leftover_map_unexplained_share);
     const crossShareLabel = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
-    const unexplainedLeftoverLabel = formatLeftoverMapUnexplained(
-      pair.leftover_map_unexplained,
-    );
+    const unexplainedLeftoverLabel = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
     const residualLabel = formatLeftoverMapResidual(pair.leftover_residual);
     const observedLabel = formatLeftoverMapObserved(pair.observed_response);
     const expectedLabel = formatLeftoverMapExpected(pair.expected_response);
@@ -486,78 +398,28 @@ export function layoutLeftoverMapPlot(
       personPos.y,
       itemPos.x,
       itemPos.y,
+      height,
     );
-    const reconstructionY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
-    );
-    const explainedShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
-    );
-    const unexplainedShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0),
-    );
-    const crossShareY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0) +
-        (unexplainedShareLabel !== null ? 1 : 0),
-    );
-    const unexplainedLeftoverY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0) +
-        (unexplainedShareLabel !== null ? 1 : 0) +
-        (crossShareLabel !== null ? 1 : 0),
-    );
-    const residualY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0) +
-        (unexplainedShareLabel !== null ? 1 : 0) +
-        (crossShareLabel !== null ? 1 : 0) +
-        (unexplainedLeftoverLabel !== null ? 1 : 0),
-    );
-    const observedY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0) +
-        (unexplainedShareLabel !== null ? 1 : 0) +
-        (crossShareLabel !== null ? 1 : 0) +
-        (unexplainedLeftoverLabel !== null ? 1 : 0) +
-        (residualLabel !== null ? 1 : 0),
-    );
-    const expectedY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0) +
-        (unexplainedShareLabel !== null ? 1 : 0) +
-        (crossShareLabel !== null ? 1 : 0) +
-        (unexplainedLeftoverLabel !== null ? 1 : 0) +
-        (residualLabel !== null ? 1 : 0) +
-        (observedLabel !== null ? 1 : 0),
-    );
-    const rankY = leftoverMapStackedCaptionY(
-      labelPosition.labelY,
-      (distanceLabel !== null ? 1 : 0) +
-        (reconstructionLabel !== null ? 1 : 0) +
-        (explainedShareLabel !== null ? 1 : 0) +
-        (unexplainedShareLabel !== null ? 1 : 0) +
-        (crossShareLabel !== null ? 1 : 0) +
-        (unexplainedLeftoverLabel !== null ? 1 : 0) +
-        (residualLabel !== null ? 1 : 0) +
-        (observedLabel !== null ? 1 : 0) +
-        (expectedLabel !== null ? 1 : 0),
-    );
+
+    const captions = [
+      distanceLabel,
+      reconstructionLabel,
+      explainedShareLabel,
+      unexplainedShareLabel,
+      crossShareLabel,
+      unexplainedLeftoverLabel,
+      residualLabel,
+      observedLabel,
+      expectedLabel,
+      rankLabel,
+    ];
+    const stackedY = (index: number): number =>
+      leftoverMapStackedCaptionY(
+        labelPosition.labelY,
+        captions.slice(0, index).filter((label) => label !== null).length,
+        height,
+      );
+
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
@@ -576,29 +438,30 @@ export function layoutLeftoverMapPlot(
       observedLabel,
       expectedLabel,
       rankLabel,
+      labelX: labelPosition.labelX,
+      labelY: stackedY(0),
       reconstructionX: labelPosition.labelX,
-      reconstructionY,
+      reconstructionY: stackedY(1),
       explainedShareX: labelPosition.labelX,
-      explainedShareY,
+      explainedShareY: stackedY(2),
       unexplainedShareX: labelPosition.labelX,
-      unexplainedShareY,
+      unexplainedShareY: stackedY(3),
       crossShareX: labelPosition.labelX,
-      crossShareY,
+      crossShareY: stackedY(4),
       unexplainedLeftoverX: labelPosition.labelX,
-      unexplainedLeftoverY,
+      unexplainedLeftoverY: stackedY(5),
       residualX: labelPosition.labelX,
-      residualY,
+      residualY: stackedY(6),
       observedX: labelPosition.labelX,
-      observedY,
+      observedY: stackedY(7),
       expectedX: labelPosition.labelX,
-      expectedY,
+      expectedY: stackedY(8),
       rankX: labelPosition.labelX,
-      rankY,
-      ...labelPosition,
+      rankY: stackedY(9),
     });
   }
 
-  const origin = toSvg(0, 0, minAxis, scaleSpan, width, height, PLOT_PADDING);
+  const origin = toSvg(0, 0, minAxis, scaleSpan, width, height, plotPadding);
   return {
     width,
     height,
@@ -614,7 +477,7 @@ export function layoutLeftoverMapPlot(
       scaleSpan,
       width,
       height,
-      PLOT_PADDING,
+      plotPadding,
     ),
   };
 }
