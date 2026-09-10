@@ -100,6 +100,13 @@ describe("App, unauthenticated", () => {
     render(<App showLabPanels />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
   });
+
+  it("shows the provider error without entering the product shell", () => {
+    mockAuth = { ...mockAuth, error: new Error("Authentication failed") };
+    render(<App />);
+    expect(screen.queryByRole("button", { name: /log in/i })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Workspace navigation" })).toBeNull();
+  });
 });
 
 function jsonResponse(body: unknown): Response {
@@ -116,6 +123,12 @@ describe("App, authenticated", () => {
         profile: { preferred_username: "demo.analyst" },
       },
     };
+  });
+
+  it("fails closed when authentication has no access token", () => {
+    mockAuth = { ...mockAuth, user: { profile: { preferred_username: "demo.analyst" } } };
+    render(<App />);
+    expect(screen.queryByRole("navigation", { name: "Workspace navigation" })).toBeNull();
   });
 
   function stubBackend(options?: {
@@ -141,6 +154,7 @@ describe("App, authenticated", () => {
     chatUnavailable?: boolean;
     evidenceUnavailable?: boolean;
     searchUnavailable?: boolean;
+    searchFailure?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     analysisRunListUnavailable?: boolean;
@@ -1853,6 +1867,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/verify-relations") && method === "POST") {
+        if (options?.searchFailure) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Verification request was rejected." }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         if (options?.searchUnavailable) {
           return Promise.resolve(
             new Response(
@@ -3054,6 +3076,23 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
   });
 
+  it("keeps a rejected verification request behind stable recovery guidance", async () => {
+    stubBackend({ admin: true, searchFailure: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Verification could not be completed. Check the request and try again.",
+        ),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Verification request was rejected.")).not.toBeInTheDocument();
+  });
+
   it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -3301,6 +3340,15 @@ describe("App, authenticated", () => {
       expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
     },
   );
+
+  it("keeps malformed verification evidence non-clickable", async () => {
+    stubBackend({ verificationEvidenceUrl: "https://[malformed" });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const badge = await screen.findByLabelText("VOC verification: Northridge Grid");
+    expect(badge.tagName).toBe("SPAN");
+    expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
+  });
 
   it("lets post_admin verify pending counterparties against web search", async () => {
     const fetchMock = stubBackend({ admin: true });

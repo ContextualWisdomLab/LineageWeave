@@ -256,6 +256,12 @@ pytest
 Every new channel, fusion rule, or threshold needs a test against
 `lineageweave/fixtures.py`'s synthetic dataset (or a new synthetic fixture
 in the same spirit) -- never against real data, per the hard rule above.
+
+The full `pnpm run test:coverage` path also timed out after 180 seconds on the
+same checkout with only the Vitest startup banner. This is distinct from the
+hosted coverage artifact, which reached its threshold gate and preserved its
+report. Do not count the local timeout as a test pass or as hosted coverage
+evidence; isolate the hanging test lifecycle before changing coverage policy.
 `backend/tests/` and `tests/test_schema.py` are real-integration tests
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
@@ -420,6 +426,15 @@ coverage run as stable. Raising only the coverage timeout to 15 seconds removed
 the timeout failures in one follow-up run, but the occupation catalog still
 failed to load under the full instrumented suite; do not treat that setting as
 the root-cause repair.
+Before classifying a coverage timeout, reproduce it on the unchanged exact
+HEAD and preserve the command, commit SHA, and timeout log. Results from later
+code or timeout-setting changes are follow-up evidence, not the causal
+baseline.
+If the hosted Full test suite has no fresh log output, query both the workflow
+run and its job record. A job may remain `in_progress` with a live
+`runner_id` while the run `updated_at` is unchanged; that is verified live
+execution, not a terminal timeout. Preserve the job and do not restart or
+cancel it solely because observation output is stale.
 Hosted run `34306991982` at exact head
 `0ba5daf4ac048337779ccffdcc4d741a1b490d07` completed the PostgreSQL full suite
 successfully and ran all 728 frontend tests successfully; the frontend job
