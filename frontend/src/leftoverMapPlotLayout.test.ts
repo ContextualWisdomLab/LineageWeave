@@ -13,6 +13,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1286,6 +1287,21 @@ describe("leftover map comparison graphic labels", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_UNEXPLAINED,
+    );
+  });
+
+  it("stays distinct from leftover observed copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).toBe(
+      "leftover map comparison graphic leftover observed {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).not.toBe(
+      "leftover observed {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).not.toBe(
+      "Leftover map comparison observed",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED).not.toBe(
+      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL,
     );
   });
 });

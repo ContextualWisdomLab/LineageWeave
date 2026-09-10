@@ -4594,10 +4594,15 @@ describe("App, authenticated", () => {
       )[1],
     ).toHaveTextContent("R +0.40");
     expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        /leftover observed/,
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "leftover map comparison graphic leftover observed Y 2.40",
       ),
     ).toHaveTextContent("Y 2.40");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "leftover observed Y 2.40",
+      ),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison observed",
