@@ -8,6 +8,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
   PLOT_HEIGHT,
   PLOT_PADDING,
@@ -1215,6 +1216,18 @@ describe("leftover map comparison graphic labels", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RECONSTRUCTION).not.toBe(
       "Leftover map comparison reconstruction",
+    );
+  });
+
+  it("stays distinct from leftover-map explained leftover share copy", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE).toBe(
+      "leftover map comparison graphic explained leftover share {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE).not.toBe(
+      "leftover-map explained leftover share {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE).not.toBe(
+      "Leftover map comparison explained leftover share",
     );
   });
 });

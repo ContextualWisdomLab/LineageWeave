@@ -278,6 +278,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison graphic incomplete items": "잔여 지도 비교 그림 불완전 기준",
     "Leftover map comparison reconstruction": "잔여 지도 비교 재구성",
     "leftover map comparison graphic reconstruction {label}": "잔여 지도 비교 그림 재구성 {label}",
+    "leftover map comparison graphic explained leftover share {label}":
+      "잔여 지도 비교 그림 설명 잔여 점유율 {label}",
     "Leftover map comparison explained leftover share": "잔여 지도 비교 설명 잔여 점유율",
     "Leftover map comparison unexplained leftover share": "잔여 지도 비교 미설명 잔여 점유율",
     "Leftover map comparison cross share": "잔여 지도 비교 교차 점유율",
@@ -910,6 +912,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison graphic incomplete items": "残差地图比较图形不完整准则",
     "Leftover map comparison reconstruction": "残差地图比较重建",
     "leftover map comparison graphic reconstruction {label}": "残差地图比较图形重建 {label}",
+    "leftover map comparison graphic explained leftover share {label}":
+      "残差地图比较图形已解释残差份额 {label}",
     "Leftover map comparison explained leftover share": "残差地图比较已解释残差份额",
     "Leftover map comparison unexplained leftover share": "残差地图比较未解释残差份额",
     "Leftover map comparison cross share": "残差地图比较交叉份额",
@@ -1563,6 +1567,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison graphic incomplete items": "残差マップの比較図不完全基準",
     "Leftover map comparison reconstruction": "残差マップの比較再構成",
     "leftover map comparison graphic reconstruction {label}": "残差マップの比較図再構成 {label}",
+    "leftover map comparison graphic explained leftover share {label}":
+      "残差マップの比較図説明済み残差割合 {label}",
     "Leftover map comparison explained leftover share": "残差マップの比較説明済み残差割合",
     "Leftover map comparison unexplained leftover share": "残差マップの比較未説明残差割合",
     "Leftover map comparison cross share": "残差マップの比較交差割合",
@@ -2195,6 +2201,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover map comparison graphic incomplete items": "Tiêu chí không đầy đủ đồ họa so sánh trên bản đồ phần dư",
     "Leftover map comparison reconstruction": "Tái dựng so sánh bản đồ phần dư",
     "leftover map comparison graphic reconstruction {label}": "tái dựng đồ họa so sánh bản đồ phần dư {label}",
+    "leftover map comparison graphic explained leftover share {label}":
+      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",
     "Leftover map comparison explained leftover share": "Phần dư giải thích so sánh bản đồ phần dư",
     "Leftover map comparison unexplained leftover share": "Phần dư chưa giải thích so sánh bản đồ phần dư",
     "Leftover map comparison cross share": "Phần giao so sánh bản đồ phần dư",
@@ -2520,7 +2528,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",
     "leftover-map distance {label}": "khoảng cách bản đồ phần dư {label}",
     "leftover-map reconstruction {label}": "tái dựng bản đồ phần dư {label}",
-    "leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",
+    "leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",
     "leftover-map unexplained leftover share {label}": "phần dư chưa giải thích bản đồ phần dư {label}",
     "leftover-map cross share {label}": "phần giao bản đồ phần dư {label}",
     "leftover-map unexplained leftover {label}": "phần dư chưa giải thích {label}",
@@ -2533,7 +2541,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover-map graphic incomplete posts": "Bài không đầy đủ trên đồ họa bản đồ phần dư",
     "Leftover-map graphic incomplete items": "Tiêu chí không đầy đủ trên đồ họa bản đồ phần dư",
     "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     "Open leftover-map post {title} at ξ {person}":
       "Mở bài viết bản đồ phần dư {title} tại ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":

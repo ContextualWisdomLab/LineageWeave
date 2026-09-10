@@ -6,7 +6,9 @@
 **Amended by:** [ADR 0274](0274-leftover-map-segment-unexplained-share.md)
 (leftover-map unexplained leftover share on pair segments);
 [ADR 0275](0275-leftover-map-segment-cross-share.md)
-(leftover-map cross share on pair segments)
+(leftover-map cross share on pair segments);
+[ADR 0311](0311-leftover-map-compare-plot-explained-share.md)
+(leftover-map explained leftover share on the grouping comparison leftover-map graphic)
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md). Independent of leftover-map

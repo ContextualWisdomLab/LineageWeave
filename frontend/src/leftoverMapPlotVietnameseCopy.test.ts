@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setLocale, tf } from "./i18n";
-
-const GRAPHIC_DISPLAY_COPY =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.";
+import {
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE,
+  LEFTOVER_MAP_PLOT_CAPTION,
+} from "./leftoverMapPlotLayout";
 
 afterEach(() => {
   setLocale("en");
@@ -20,8 +21,20 @@ describe("leftover-map Vietnamese copy inheritance", () => {
   it("keeps the expanded graphic description explicit about explained share e", () => {
     setLocale("vi");
 
-    expect(tf(GRAPHIC_DISPLAY_COPY, {})).toContain(
-      "tỷ phần phần dư được giải thích e",
+    const caption = tf(LEFTOVER_MAP_PLOT_CAPTION, {});
+    expect(caption).toContain("tỷ phần phần dư được giải thích e");
+    expect(caption).not.toContain("phần dư giải thích e");
+  });
+
+  it("keeps comparison graphic explained share terminology explicit", () => {
+    setLocale("vi");
+
+    expect(
+      tf(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE, {
+        label: "R̂²/R² 0.76",
+      }),
+    ).toBe(
+      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76",
     );
   });
 });
