@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   leftoverMapCompareAxisShare,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE,
-  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,
   LEFTOVER_MAP_LIST_AXIS_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "./leftoverMapCompareAxis";
@@ -55,9 +54,7 @@ describe("leftoverMapCompareAxisShare", () => {
     });
   });
 
-  it("keeps the grouping comparison leftover-map axis share label distinct from leftover-axis badges and graphic axes", () => {
-    expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL).toBe("Leftover map comparison axis share");
-    expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL).not.toBe("Leftover-map axis share");
+  it("keeps the grouping comparison visible axis-share formatter distinct from leftover-axis badges and graphic axes", () => {
     expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE).toBe("leftover map comparison axis {axis} {share}%");
     expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE).not.toBe(LEFTOVER_MAP_LIST_AXIS_SHARE);
     expect(LEFTOVER_MAP_COMPARE_AXIS_SHARE).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SHARE);

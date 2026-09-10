@@ -2,8 +2,6 @@
 
 import type { LeftoverMapAxis } from "./api";
 
-export const LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL = "Leftover map comparison axis share";
-
 export const LEFTOVER_MAP_COMPARE_AXIS_SHARE = "leftover map comparison axis {axis} {share}%";
 
 export const LEFTOVER_MAP_LIST_AXIS_SHARE = "leftover axis {axis} {share}%";
