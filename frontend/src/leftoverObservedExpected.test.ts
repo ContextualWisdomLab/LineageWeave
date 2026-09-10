@@ -6,6 +6,7 @@ import {
   LEFTOVER_MAP_COMPARE_OBSERVED_LABEL,
   LEFTOVER_MAP_COMPARE_EXPECTED_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
 } from "./leftoverObservedExpected";
 
 describe("formatLeftoverObservedExpected", () => {
@@ -75,5 +76,18 @@ describe("formatLeftoverMapExpected", () => {
   it("keeps the grouping comparison expected label distinct from the graphic expected label", () => {
     expect(LEFTOVER_MAP_COMPARE_EXPECTED_LABEL).toBe("Leftover map comparison expected");
     expect(LEFTOVER_MAP_COMPARE_EXPECTED_LABEL).not.toBe("leftover expected {label}");
+  });
+
+  it("keeps the grouping comparison graphic leftover expected label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED).toBe(
+      "leftover map comparison graphic leftover expected {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED).not.toBe("leftover expected {label}");
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED).not.toBe(
+      LEFTOVER_MAP_COMPARE_EXPECTED_LABEL,
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED).not.toBe(
+      "leftover map comparison graphic leftover observed {label}",
+    );
   });
 });

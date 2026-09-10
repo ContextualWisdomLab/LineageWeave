@@ -9,6 +9,9 @@ export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED =
 export const LEFTOVER_MAP_COMPARE_EXPECTED_LABEL =
   "Leftover map comparison expected";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED =
+  "leftover map comparison graphic leftover expected {label}";
+
 export function formatLeftoverObservedExpected(
   observed: number | null | undefined,
   expected: number | null | undefined,

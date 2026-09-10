@@ -1,5 +1,5 @@
 /** Gabriel leftover-map graphic display of persisted `ξ/ζ` coordinates and persisted pair metrics.
- * Grouping-comparison captions through ADR 0316 reuse these persisted values; this module never derives
+ * Grouping-comparison captions through ADR 0317 reuse these persisted values; this module never derives
  * measurement truth from geometry, rank, coverage, pair counts, or neighbouring statistics.
  */
 
@@ -66,6 +66,7 @@ export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED } from "./leftoverObservedEx
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_EXPECTED =
   "leftover expected {label}";
+export { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED } from "./leftoverObservedExpected";
 
 export const LEFTOVER_MAP_PLOT_SEGMENT_RANK =
   "leftover-map rank {label}";
