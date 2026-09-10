@@ -4634,15 +4634,10 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(1);
     expect(
-      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
-        "leftover map comparison graphic leftover-map rank rank 1",
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        /leftover-map rank/,
       ),
     ).toHaveTextContent("rank 1");
-    expect(
-      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
-        "leftover-map rank rank 1",
-      ),
-    ).not.toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Grouping comparison")).getByLabelText(
         "Leftover map comparison rank",
