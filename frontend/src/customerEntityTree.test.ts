@@ -1,17 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { buildCustomerEntityTree } from "./App";
+import { describe, expect, it } from "vitest";
+import { buildCustomerEntityTree } from "./customerEntityTree";
 import type { CustomerMasterEntity } from "./api";
-
-vi.mock("react-oidc-context", () => ({
-  useAuth: () => ({
-    isLoading: false,
-    isAuthenticated: false,
-    error: undefined,
-    user: undefined,
-    signinRedirect: vi.fn(),
-    signoutRedirect: vi.fn(),
-  }),
-}));
 
 function entity(
   id: string,
