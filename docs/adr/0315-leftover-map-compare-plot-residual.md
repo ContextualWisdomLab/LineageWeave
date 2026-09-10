@@ -1,6 +1,6 @@
 # ADR 0315 — Name leftover residual on the grouping comparison leftover-map graphic
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 Amends leftover residual on graphic-display pair segments
