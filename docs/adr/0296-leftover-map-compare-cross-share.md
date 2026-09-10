@@ -3,6 +3,9 @@
 **Decision status:** Accepted
 **Date:** 2026-08-31
 
+**Amended by:** [ADR 0313](0313-leftover-map-compare-plot-cross-share.md)
+(leftover-map cross share on the grouping comparison leftover-map graphic)
+
 Amends leftover pairs on the grouping comparison strip
 ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)), leftover-map
 cross share persistence

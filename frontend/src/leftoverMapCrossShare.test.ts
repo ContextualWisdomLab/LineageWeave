@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLeftoverMapCrossShare,
   LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE,
 } from "./leftoverMapCrossShare";
 
 describe("formatLeftoverMapCrossShare", () => {
@@ -25,6 +26,18 @@ describe("formatLeftoverMapCrossShare", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL).not.toBe(
       "leftover-map cross share {label}",
+    );
+  });
+
+  it("keeps the grouping comparison graphic leftover-map cross share label distinct from the graphic and strip labels", () => {
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE).toBe(
+      "leftover map comparison graphic cross share {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE).not.toBe(
+      "leftover-map cross share {label}",
+    );
+    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_CROSS_SHARE).not.toBe(
+      LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL,
     );
   });
 });
