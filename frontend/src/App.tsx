@@ -158,7 +158,6 @@ import {
 import {
   leftoverMapCompareAxisShare,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE,
-  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,
 } from "./leftoverMapCompareAxis";
 import "./App.css";
 
@@ -4082,7 +4081,6 @@ function ReportsPanel({
                   <span
                     key={axis.axis_index}
                     className="post-badge"
-                    aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}
                   >
                     {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}
                   </span>
