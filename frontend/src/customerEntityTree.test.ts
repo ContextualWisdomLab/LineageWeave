@@ -51,11 +51,14 @@ describe("#906 cycle-safe customer forest", () => {
       entity("B", "A"),
     ]);
     expect(flattenIds(tree).sort()).toEqual(["A", "B"]);
+    expect(tree).toHaveLength(1);
+    expect(tree[0].ancestryNote).toBe("cycle-broken");
   });
 
   it("emits a self-parent entity once instead of dropping it", () => {
     const tree = buildCustomerEntityTree([entity("S", "S")]);
     expect(flattenIds(tree)).toEqual(["S"]);
+    expect(tree[0].ancestryNote).toBe("self-parent");
   });
 
   it("preserves missing-parent-as-root and ordinary order", () => {
@@ -65,5 +68,7 @@ describe("#906 cycle-safe customer forest", () => {
       entity("kid", "root"),
     ]);
     expect(flattenIds(tree)).toEqual(["child", "root", "kid"]);
+    expect(tree[0].ancestryNote).toBe("unlisted-parent");
+    expect(tree[1].ancestryNote).toBeUndefined();
   });
 });

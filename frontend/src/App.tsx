@@ -4613,6 +4613,9 @@ function PostList({
 interface CustomerEntityTreeNode {
   entity: CustomerMasterEntity;
   children: CustomerEntityTreeNode[];
+  // Presentation-only ancestry flag. The entity DTO is never mutated:
+  // a broken presentation edge still renders the entity exactly once.
+  ancestryNote?: "cycle-broken" | "self-parent" | "unlisted-parent";
 }
 
 // Live bug (2026-08-19): Customer Master's own entity list rendered every
@@ -4627,13 +4630,49 @@ interface CustomerEntityTreeNode {
 // instead of disappearing.
 export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
   const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
+  // Tentative presentation parents: visible and non-self only.
+  const parentOf = new Map<string, string | null>();
+  const noteOf = new Map<string, NonNullable<CustomerEntityTreeNode["ancestryNote"]>>();
+  for (const entity of entities) {
+    const id = entity.corporate_entity_id;
+    const parent = entity.parent_entity_id;
+    if (!parent || !byId.has(parent)) {
+      parentOf.set(id, null);
+      if (parent) {
+        noteOf.set(id, "unlisted-parent");
+      }
+    } else if (parent === id) {
+      parentOf.set(id, null);
+      noteOf.set(id, "self-parent");
+    } else {
+      parentOf.set(id, parent);
+    }
+  }
+  // Break presentation cycles deterministically: walking from each entity
+  // in input order, the edge closing a revisited ancestor is cut so its
+  // predecessor becomes a root. Earlier members keep their edges, so the
+  // result is stable for a given input order and always acyclic.
+  for (const entity of entities) {
+    const path: string[] = [];
+    let cursor: string | null = entity.corporate_entity_id;
+    while (cursor !== null && !path.includes(cursor)) {
+      path.push(cursor);
+      cursor = parentOf.get(cursor) ?? null;
+    }
+    if (cursor !== null) {
+      const predecessor = path[path.length - 1];
+      parentOf.set(predecessor, null);
+      noteOf.set(predecessor, "cycle-broken");
+    }
+  }
   const childrenByParent = new Map<string, CustomerMasterEntity[]>();
   const roots: CustomerMasterEntity[] = [];
   for (const entity of entities) {
-    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
-      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
+    const parent = parentOf.get(entity.corporate_entity_id);
+    if (parent) {
+      const siblings = childrenByParent.get(parent) ?? [];
       siblings.push(entity);
-      childrenByParent.set(entity.parent_entity_id, siblings);
+      childrenByParent.set(parent, siblings);
     } else {
       roots.push(entity);
     }
@@ -4641,6 +4680,9 @@ export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): Custo
   const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
     entity,
     children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
+    ...(noteOf.has(entity.corporate_entity_id)
+      ? { ancestryNote: noteOf.get(entity.corporate_entity_id) }
+      : {}),
   });
   return roots.map(toNode);
 }
@@ -4676,6 +4718,15 @@ function CustomerEntityTreeRow({
       >
         <strong>{entity.entity_name}</strong>
         <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+        {node.ancestryNote ? (
+          <span className="customer-ancestry-note">
+            {node.ancestryNote === "cycle-broken"
+              ? t("Shown as top level: listed parent forms a cycle.")
+              : node.ancestryNote === "self-parent"
+                ? t("Shown as top level: entity lists itself as parent.")
+                : t("Shown as top level: listed parent is not visible.")}
+          </span>
+        ) : null}
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
