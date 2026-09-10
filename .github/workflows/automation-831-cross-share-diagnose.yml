@@ -1,0 +1,37 @@
+name: Diagnose #831 cross-share reconstruction
+
+on:
+  push:
+    branches:
+      - automation/831-cross-share-reconstruct-20260911
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: automation/831-cross-share-reconstruct-20260911
+          fetch-depth: 0
+      - name: Inspect historical cross-share application to current #830
+        shell: bash
+        run: |
+          set -uo pipefail
+          git fetch origin 2cefc0b63436989210bca3204e7750e87edba662
+          set +e
+          git cherry-pick -n 2cefc0b63436989210bca3204e7750e87edba662
+          rc=$?
+          set -e
+          echo "cherry-pick rc=$rc"
+          echo "=== unmerged ==="
+          git diff --name-status --diff-filter=U || true
+          echo "=== staged ==="
+          git diff --cached --name-status || true
+          echo "=== worktree ==="
+          git diff --name-status || true
+          echo "=== conflict markers ==="
+          git grep -n '^<<<<<<<\|^=======\|^>>>>>>>' -- . ':(exclude).github/workflows/automation-831-cross-share-diagnose.yml' || true
+          exit "$rc"
