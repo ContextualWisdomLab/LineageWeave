@@ -2,6 +2,8 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-30
+**Amended by:** [ADR 0315](0315-leftover-map-compare-plot-residual.md)
+(leftover residual on the grouping comparison leftover-map graphic)
 
 Amends [ADR 0268](0268-leftover-map-graphic-display.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and leftover residual
