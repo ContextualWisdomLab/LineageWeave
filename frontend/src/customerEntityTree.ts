@@ -35,10 +35,10 @@ export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): Custo
   }
 
   // Each entity joins at most one parent, so the visible hierarchy is a
-  // functional graph. Settle each path once: if the current path revisits
-  // one of its own members, cut only the edge that closes that cycle. The
-  // first input-order traversal therefore keeps the same deterministic
-  // presentation rule without repeatedly walking already-settled ancestry.
+  // functional graph. Settle each path once. If the current path revisits one
+  // of its own members, choose the greatest canonical entity id inside the
+  // cycle as the presentation root. That keeps cycle repair stable when the
+  // API returns the same authorized entity set in a different row order.
   const settled = new Set<string>();
   for (const entity of entities) {
     const start = entity.corporate_entity_id;
@@ -53,10 +53,19 @@ export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): Custo
       path.push(cursor);
       cursor = parentOf.get(cursor) ?? null;
     }
-    if (cursor !== null && pathIndex.has(cursor)) {
-      const predecessor = path[path.length - 1];
-      parentOf.set(predecessor, null);
-      noteOf.set(predecessor, "cycle-broken");
+    if (cursor !== null) {
+      const cycleStartIndex = pathIndex.get(cursor);
+      if (cycleStartIndex !== undefined) {
+        let cycleBreakId = path[cycleStartIndex];
+        for (let index = cycleStartIndex + 1; index < path.length; index += 1) {
+          const candidateId = path[index];
+          if (candidateId > cycleBreakId) {
+            cycleBreakId = candidateId;
+          }
+        }
+        parentOf.set(cycleBreakId, null);
+        noteOf.set(cycleBreakId, "cycle-broken");
+      }
     }
     for (const id of path) {
       settled.add(id);
