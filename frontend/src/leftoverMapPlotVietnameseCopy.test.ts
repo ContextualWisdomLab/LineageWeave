@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setLocale, tf } from "./i18n";
-import { LEFTOVER_MAP_PLOT_CAPTION } from "./leftoverMapPlotLayout";
+import {
+  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE,
+  LEFTOVER_MAP_PLOT_CAPTION,
+} from "./leftoverMapPlotLayout";
 
 afterEach(() => {
   setLocale("en");
@@ -20,6 +23,18 @@ describe("leftover-map Vietnamese copy inheritance", () => {
 
     expect(tf(LEFTOVER_MAP_PLOT_CAPTION, {})).toContain(
       "tỷ phần phần dư được giải thích e",
+    );
+  });
+
+  it("keeps comparison graphic explained share terminology explicit", () => {
+    setLocale("vi");
+
+    expect(
+      tf(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE, {
+        label: "R̂²/R² 0.76",
+      }),
+    ).toBe(
+      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76",
     );
   });
 });
