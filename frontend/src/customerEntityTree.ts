@@ -14,19 +14,6 @@ export interface CustomerEntityTreeNode {
 // emitted exactly once, ordinary order is preserved, and only the
 // presentation edge needed to establish a root is broken (#906).
 export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
-  const seenIds = new Set<string>();
-  for (const entity of entities) {
-    const id = entity.corporate_entity_id;
-    if (seenIds.has(id)) {
-      // React identity, expansion ownership, and lineage parentage all use
-      // this canonical id. Choosing either duplicate would silently bind
-      // buyer-visible evidence to an ambiguous entity, so reject the read
-      // model instead of deduplicating or inventing a winner.
-      throw new Error(`Duplicate Customer Master entity identity: ${id}`);
-    }
-    seenIds.add(id);
-  }
-
   const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
   // Tentative presentation parents: visible and non-self only.
   const parentOf = new Map<string, string | null>();
