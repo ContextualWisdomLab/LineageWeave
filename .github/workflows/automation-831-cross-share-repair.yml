@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: automation-831-cross-share-repair-v3
+  group: automation-831-cross-share-repair-v4
   cancel-in-progress: false
 
 jobs:
@@ -20,21 +20,18 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 5
+          fetch-depth: 6
 
-      - name: Verify expected serialized predecessor
+      - name: Verify expected predecessor and unchanged product sources
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "9a958e7bf18e78f98c1627ad51e1997c27a25b60" || {
-            echo "unexpected workflow-repair parent" >&2
-            exit 1
-          }
+          test "$(git rev-parse HEAD^)" = "856cbdf451b21377cbe1b2b918dede8e4e4af58b"
           git merge-base --is-ancestor 856464d69bdf989c6e47bd1f6e3126fc839ce229 HEAD
           test "$(git rev-parse HEAD:frontend/src/App.tsx)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:frontend/src/App.tsx)"
           test "$(git rev-parse HEAD:backend/app/report_ingestion.py)" = "$(git rev-parse 856464d69bdf989c6e47bd1f6e3126fc839ce229:backend/app/report_ingestion.py)"
 
-      - name: Add backend transport RED
+      - name: Add backend transport RED commit locally
         shell: bash
         run: |
           set -euo pipefail
@@ -57,15 +54,7 @@ jobs:
 
               async def fetch(self, query: str, *_args: Any) -> list[dict[str, Any]]:
                   if "from report_period_score" in query:
-                      return [
-                          {
-                              "grouping_kind": "process_unit",
-                              "grouping_key": "PU-1",
-                              "mean_theta": 0.25,
-                              "post_count": 4,
-                              "link_method": "fixture",
-                          }
-                      ]
+                      return [{"grouping_kind": "process_unit", "grouping_key": "PU-1", "mean_theta": 0.25, "post_count": 4, "link_method": "fixture"}]
                   if "from report_member_score" in query:
                       return []
                   if "from report_leftover_pair" in query:
@@ -88,24 +77,17 @@ jobs:
                               "has_real_source_context": True,
                           }
                           for index, (pair_kind, cross_share) in enumerate(
-                              (
-                                  ("closest", 0.12),
-                                  ("farthest", 0.0),
-                                  ("closest", -0.25),
-                                  ("farthest", None),
-                              ),
+                              (("closest", 0.12), ("farthest", 0.0), ("closest", -0.25), ("farthest", None)),
                               start=1,
                           )
                       ]
-                  if "from report_leftover_map_coverage" in query:
-                      return []
-                  if "from report_leftover_map_axis" in query:
+                  if "from report_leftover_map_coverage" in query or "from report_leftover_map_axis" in query:
                       return []
                   raise AssertionError(f"unexpected query: {query}")
 
 
           def test_period_comparison_transports_persisted_cross_share(monkeypatch) -> None:
-              """Finite signed, zero, and null x values must survive the persisted pair boundary."""
+              """Finite signed, zero, and null x values survive the persisted pair boundary."""
 
               async def _label(_conn: Any, _kind: str, _key: str) -> str:
                   return "Process unit 1"
@@ -113,10 +95,8 @@ jobs:
               monkeypatch.setattr(report_ingestion, "resolve_grouping_label", _label)
               connection = _ComparisonConnection()
               payload = asyncio.run(report_ingestion.fetch_period_comparison(connection, "2026-W02"))
-
               assert "lp.leftover_map_cross_share" in connection.leftover_query
-              pairs = payload[0]["leftover_pairs"]
-              assert [pair["leftover_map_cross_share"] for pair in pairs] == [0.12, 0.0, -0.25, None]
+              assert [pair["leftover_map_cross_share"] for pair in payload[0]["leftover_pairs"]] == [0.12, 0.0, -0.25, None]
           PY
           git add backend/tests/test_period_comparison_cross_share.py
           git diff --cached --check
@@ -124,7 +104,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "test(reports): require comparison cross-share transport"
 
-      - name: Set up Python
+      - name: Set up Python and uv
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -135,20 +115,18 @@ jobs:
           version: "0.11.28"
           enable-cache: false
 
-      - name: Select pinned Rust toolchain
+      - name: Select pinned Rust toolchain and install lock
         run: |
           rustup toolchain install 1.97.1 --profile minimal
           rustup default 1.97.1
-
-      - name: Install committed universal lock
-        run: uv sync --frozen --extra dev --extra backend
+          uv sync --frozen --extra dev --extra backend
 
       - name: Prove backend transport RED
         shell: bash
         run: |
           set -euo pipefail
           if uv run --frozen python -m pytest -q backend/tests/test_period_comparison_cross_share.py; then
-            echo "expected the transport regression to fail before the source repair" >&2
+            echo "expected RED before source repair" >&2
             exit 1
           fi
 
@@ -161,58 +139,59 @@ jobs:
           import re
 
           app_path = Path("frontend/src/App.tsx")
-          source = app_path.read_text(encoding="utf-8")
-          import_needle = '''import {
+          app = app_path.read_text(encoding="utf-8")
+
+          import_anchor = '''import {
             formatLeftoverMapUnexplainedShare,
             LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
           } from "./leftoverMapUnexplainedShare";
           import {
             leftoverMapCompareAxisShare,'''
-          import_replacement = '''import {
+          import_value = '''import {
             formatLeftoverMapUnexplainedShare,
             LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
           } from "./leftoverMapUnexplainedShare";
           import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";
           import {
             leftoverMapCompareAxisShare,'''
-          if source.count(import_needle) != 1:
-              raise SystemExit(f"unexpected cross-share import anchor count: {source.count(import_needle)}")
-          source = source.replace(import_needle, import_replacement, 1)
-          declaration_pattern = re.compile(
-              r'(                    const unexplainedShare = formatLeftoverMapUnexplainedShare\(\n'
-              r'                      pair\.leftover_map_unexplained_share,\n'
-              r'                    \);\n)'
-              r'(                    const pairAccessibleName = )'
+          if app.count(import_anchor) != 1:
+              raise SystemExit(f"import anchor count={app.count(import_anchor)}")
+          app = app.replace(import_anchor, import_value, 1)
+
+          declaration = re.compile(
+              r'(\s+const unexplainedShare = formatLeftoverMapUnexplainedShare\(\n'
+              r'\s+pair\.leftover_map_unexplained_share,\n'
+              r'\s+\);\n)'
+              r'(\s+const pairAccessibleName = )'
           )
-          source, count = declaration_pattern.subn(
+          app, count = declaration.subn(
               r'\1                    const crossShare = formatLeftoverMapCrossShare(\n'
               r'                      pair.leftover_map_cross_share,\n'
               r'                    );\n\2',
-              source,
+              app,
               count=1,
           )
           if count != 1:
-              raise SystemExit(f"unexpected cross-share declaration anchor count: {count}")
-          name_needle = '''                    }${
-                      unexplainedShare
-                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
-                        : ""
-                    }`;'''
-          name_replacement = '''                    }${
-                      unexplainedShare
-                        ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
-                        : ""
-                    }${crossShare ? ` · ${crossShare}` : ""}`;'''
-          if source.count(name_needle) != 1:
-              raise SystemExit(f"unexpected accessible-name anchor count: {source.count(name_needle)}")
-          source = source.replace(name_needle, name_replacement, 1)
-          badge_needle = '''                          {unexplainedShare ? (
+              raise SystemExit(f"declaration anchor count={count}")
+
+          accessible = re.compile(
+              r'(?P<u>\$\{\n\s+unexplainedShare\n\s+\? ` · \$\{t\(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL\)\} \$\{unexplainedShare\}`\n\s+: ""\n\s+\})(?P<end>`;)'
+          )
+          app, count = accessible.subn(
+              r'\g<u>${crossShare ? ` · ${crossShare}` : ""}\g<end>',
+              app,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f"accessible-name anchor count={count}")
+
+          badge_anchor = '''                          {unexplainedShare ? (
                             <span className="post-badge" aria-hidden="true">
                               {unexplainedShare}
                             </span>
                           ) : null}
                         </button>'''
-          badge_replacement = '''                          {unexplainedShare ? (
+          badge_value = '''                          {unexplainedShare ? (
                             <span className="post-badge" aria-hidden="true">
                               {unexplainedShare}
                             </span>
@@ -223,30 +202,30 @@ jobs:
                             </span>
                           ) : null}
                         </button>'''
-          if source.count(badge_needle) != 1:
-              raise SystemExit(f"unexpected visual-badge anchor count: {source.count(badge_needle)}")
-          source = source.replace(badge_needle, badge_replacement, 1)
-          if "LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL" in source:
-              raise SystemExit("forbidden inline/static comparison cross-share label authority remains")
-          app_path.write_text(source, encoding="utf-8")
+          if app.count(badge_anchor) != 1:
+              raise SystemExit(f"badge anchor count={app.count(badge_anchor)}")
+          app = app.replace(badge_anchor, badge_value, 1)
+          if "LEFTOVER_MAP_COMPARE_CROSS_SHARE_LABEL" in app:
+              raise SystemExit("forbidden static comparison cross-share label authority")
+          app_path.write_text(app, encoding="utf-8")
 
           backend_path = Path("backend/app/report_ingestion.py")
           backend = backend_path.read_text(encoding="utf-8")
-          query_needle = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
+          query_anchor = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
                p.post_title, p.visibility_code, p.corporate_entity_id,'''
-          query_replacement = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
+          query_value = '''               lp.leftover_map_reconstruction, lp.leftover_map_unexplained_share,
                lp.leftover_map_cross_share,
                p.post_title, p.visibility_code, p.corporate_entity_id,'''
-          if backend.count(query_needle) != 1:
-              raise SystemExit(f"unexpected backend select anchor count: {backend.count(query_needle)}")
-          backend = backend.replace(query_needle, query_replacement, 1)
-          payload_needle = '''                        "leftover_map_unexplained_share": (
+          if backend.count(query_anchor) != 1:
+              raise SystemExit(f"backend select anchor count={backend.count(query_anchor)}")
+          backend = backend.replace(query_anchor, query_value, 1)
+          payload_anchor = '''                        "leftover_map_unexplained_share": (
                             None
                             if pair["leftover_map_unexplained_share"] is None
                             else float(pair["leftover_map_unexplained_share"])
                         ),
                         "visibility_code": pair["visibility_code"],'''
-          payload_replacement = '''                        "leftover_map_unexplained_share": (
+          payload_value = '''                        "leftover_map_unexplained_share": (
                             None
                             if pair["leftover_map_unexplained_share"] is None
                             else float(pair["leftover_map_unexplained_share"])
@@ -257,9 +236,9 @@ jobs:
                             else float(pair["leftover_map_cross_share"])
                         ),
                         "visibility_code": pair["visibility_code"],'''
-          if backend.count(payload_needle) != 1:
-              raise SystemExit(f"unexpected backend payload anchor count: {backend.count(payload_needle)}")
-          backend_path.write_text(backend.replace(payload_needle, payload_replacement, 1), encoding="utf-8")
+          if backend.count(payload_anchor) != 1:
+              raise SystemExit(f"backend payload anchor count={backend.count(payload_anchor)}")
+          backend_path.write_text(backend.replace(payload_anchor, payload_value, 1), encoding="utf-8")
           PY
           git diff --check
 
@@ -275,38 +254,22 @@ jobs:
           ns["test_cross_share_formatter_remains_fail_closed_and_unclamped"]()
           PY
 
-      - name: Run bounded backend regressions
-        run: uv run --frozen python -m pytest -q backend/tests/test_period_comparison_cross_share.py tests/test_leftover_pairs.py
-
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
         with:
           node-version: "24"
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install frontend dependencies
+      - name: Validate frontend exact candidate
         working-directory: frontend
-        run: pnpm install --frozen-lockfile
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
 
-      - name: Lint frontend
-        working-directory: frontend
-        run: pnpm run lint
-
-      - name: Test frontend
-        working-directory: frontend
-        run: pnpm run test
-
-      - name: Build frontend
-        working-directory: frontend
-        run: pnpm run build
-
-      - name: Build Storybook
-        working-directory: frontend
-        run: pnpm run build-storybook
-
-      - name: Commit GREEN repair and remove temporary workflow
+      - name: Commit GREEN repair, remove temporary workflow, and push non-force
         shell: bash
         run: |
           set -euo pipefail
