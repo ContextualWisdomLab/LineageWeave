@@ -1,10 +1,7 @@
 # ADR 0316 — Name leftover observed on the grouping comparison leftover-map graphic
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
-
-**Amended by:** [ADR 0317](0317-leftover-map-compare-plot-expected.md)
-(leftover expected on the grouping comparison leftover-map graphic)
 
 Amends leftover observed on graphic-display pair segments
 ([ADR 0278](0278-leftover-map-segment-observed.md)), leftover observed
