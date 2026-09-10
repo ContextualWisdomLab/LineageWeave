@@ -21,9 +21,9 @@ describe("leftover-map Vietnamese copy inheritance", () => {
   it("keeps the expanded graphic description explicit about explained share e", () => {
     setLocale("vi");
 
-    expect(tf(LEFTOVER_MAP_PLOT_CAPTION, {})).toContain(
-      "tỷ phần phần dư được giải thích e",
-    );
+    const caption = tf(LEFTOVER_MAP_PLOT_CAPTION, {});
+    expect(caption).toContain("tỷ phần phần dư được giải thích e");
+    expect(caption).not.toContain("phần dư giải thích e");
   });
 
   it("keeps comparison graphic explained share terminology explicit", () => {
