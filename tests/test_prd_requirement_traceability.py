@@ -10,8 +10,8 @@ _ADR_DIR = _ROOT / "docs" / "adr"
 _TESTS_DIR = _ROOT / "tests"
 
 _HEADING_RE = re.compile(r"^###\s+(PRD-[A-Z0-9]+(?:-[A-Z0-9]+)*)\s", re.MULTILINE)
-_ADR_RE = re.compile(r"ADR (\d{4})")
-_TEST_RE = re.compile(r"tests/(test_[A-Za-z0-9_]+\.py)")
+_ADR_RE = re.compile(r"ADR (\d{4})(?![A-Za-z0-9_])")
+_TEST_RE = re.compile(r"tests/(test_[A-Za-z0-9_]+\.py)(?![A-Za-z0-9_./-])")
 
 
 def test_reference_patterns_reject_longer_token_prefixes() -> None:
