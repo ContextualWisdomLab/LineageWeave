@@ -1,0 +1,194 @@
+name: Temporary LineageWeave 851 causal repair
+
+on:
+  push:
+    branches:
+      - automation/lineageweave-851-causal-repair-20260911
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout automation branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up repository-authoritative uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Repair #851 and converge #852-#857 atomically
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="ContextualWisdomLab/LineageWeave"
+          prs=(851 852 853 854 855 856 857)
+          declare -A expected=(
+            [851]="f7d1c1741598023eaac199efd0fd605304bb5945"
+            [852]="3630fc5452042b18bbdb099e556f044867bec2ce"
+            [853]="4eae8473e760f3cb74679b53f9ebc83f68d02345"
+            [854]="467b0a865a0661a275b456a1d7ea689755ec3610"
+            [855]="0766e6388db875c53ea2981155045015b240c67c"
+            [856]="e4035cce6d771d372d5e5ee5ec29492c4af8a1e6"
+            [857]="98b303ad8a3bb043603b528c6d6280fa82d7eaab"
+          )
+          declare -A branch
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for pr in "${prs[@]}"; do
+            payload="$(gh api "repos/${repo}/pulls/${pr}")"
+            state="$(jq -r '.state' <<<"$payload")"
+            sha="$(jq -r '.head.sha' <<<"$payload")"
+            branch[$pr]="$(jq -r '.head.ref' <<<"$payload")"
+            test "$state" = "open"
+            if [ "$sha" != "${expected[$pr]}" ]; then
+              echo "PR #${pr} moved: expected ${expected[$pr]}, found ${sha}; fail closed."
+              exit 64
+            fi
+            git fetch --no-tags origin "+refs/heads/${branch[$pr]}:refs/remotes/origin/${branch[$pr]}"
+            git branch -f "work-${pr}" "$sha"
+          done
+
+          git switch work-851
+          python - <<'PY'
+          from pathlib import Path
+
+          test_path = Path("frontend/src/leftoverMapPlotVietnameseCopy.test.ts")
+          text = test_path.read_text()
+          anchor = 'import { LEFTOVER_MAP_PLOT_CAPTION } from "./leftoverMapPlotLayout";\n'
+          import_line = 'import { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE } from "./leftoverMapExplainedShare";\n'
+          if import_line not in text:
+              if text.count(anchor) != 1:
+                  raise SystemExit("unexpected Vietnamese regression import anchor")
+              text = text.replace(anchor, import_line + anchor)
+          old = '''    expect(\n      tf("leftover-map explained leftover share {label}", { label: "R̂²/R² 0.76" }),\n    ).toBe("tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76");\n'''
+          new = old + '''    expect(\n      tf(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPLAINED_SHARE, { label: "R̂²/R² 0.76" }),\n    ).toBe(\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76",\n    );\n'''
+          if new not in text:
+              if text.count(old) != 1:
+                  raise SystemExit("unexpected Vietnamese regression assertion anchor")
+              text = text.replace(old, new)
+          test_path.write_text(text)
+          PY
+          git add frontend/src/leftoverMapPlotVietnameseCopy.test.ts
+          git commit -m "test(i18n): bind comparison explained share to Vietnamese share wording"
+          red_sha="$(git rev-parse HEAD)"
+
+          corepack enable
+          (cd frontend && pnpm install --frozen-lockfile)
+          set +e
+          (cd frontend && pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts) | tee /tmp/lineageweave-851-red.log
+          red_rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$red_rc" -eq 0 ]; then
+            echo "Expected Vietnamese terminology RED did not reproduce."
+            exit 65
+          fi
+          grep -F "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư" /tmp/lineageweave-851-red.log >/dev/null
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/i18n.ts")
+          text = path.read_text()
+          replacements = {
+              '"leftover map comparison graphic explained leftover share {label}":\n      "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",':
+                  '"leftover map comparison graphic explained leftover share {label}":\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",',
+              '"leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",':
+                  '"leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",',
+              'phần dư giải thích e': 'tỷ phần phần dư được giải thích e',
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one translation occurrence, found {count}: {old}")
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+
+          uv lock
+          git add frontend/src/i18n.ts uv.lock
+          git commit -m "fix(i18n): make Vietnamese explained-share semantics explicit"
+          green_851="$(git rev-parse HEAD)"
+          git diff --check "${expected[851]}..${green_851}"
+
+          (cd frontend && pnpm run lint)
+          (cd frontend && pnpm run test)
+          (cd frontend && pnpm run build)
+          (cd frontend && pnpm run build-storybook)
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q
+
+          parent_pr=851
+          for pr in 852 853 854 855 856 857; do
+            git switch "work-${pr}"
+            git merge --no-ff --no-commit "work-${parent_pr}"
+            uv lock
+            git add -A
+            git commit -m "chore(stack): converge #${pr} on repaired #${parent_pr}"
+            git diff --check "${expected[$pr]}..HEAD"
+            (cd frontend && pnpm install --frozen-lockfile >/dev/null)
+            (cd frontend && pnpm run lint)
+            (cd frontend && pnpm exec vitest run src/leftoverMapPlotVietnameseCopy.test.ts)
+            uv sync --frozen --extra dev --extra backend >/dev/null
+            uv run --frozen python -m pytest -q tests/test_project_lock_version_parity.py
+            parent_pr="$pr"
+          done
+
+          # Re-read remote PR heads immediately before publishing. Any concurrent writer wins;
+          # this job fails closed rather than force-updating or hiding intervening deltas.
+          for pr in "${prs[@]}"; do
+            live="$(gh api "repos/${repo}/pulls/${pr}" --jq '.head.sha')"
+            if [ "$live" != "${expected[$pr]}" ]; then
+              echo "PR #${pr} moved during validation: expected ${expected[$pr]}, found ${live}; no product branch will be pushed."
+              exit 66
+            fi
+          done
+
+          push_args=()
+          for pr in "${prs[@]}"; do
+            push_args+=("work-${pr}:refs/heads/${branch[$pr]}")
+          done
+          git push --atomic origin "${push_args[@]}"
+
+          echo "RED commit: ${red_sha}"
+          echo "#851 GREEN head: ${green_851}"
+          for pr in "${prs[@]}"; do
+            echo "#${pr}: $(git rev-parse work-${pr})"
+          done
+
+          # Remove the temporary automation branch after all product refs are published.
+          git push origin --delete automation/lineageweave-851-causal-repair-20260911 || true
