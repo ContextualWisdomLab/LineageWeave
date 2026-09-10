@@ -4625,7 +4625,7 @@ interface CustomerEntityTreeNode {
 // entity list (a real possibility -- ABAC can authorize a child entity
 // without its parent) is not dropped; that entity becomes a root here
 // instead of disappearing.
-function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
+export function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
   const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
   const childrenByParent = new Map<string, CustomerMasterEntity[]>();
   const roots: CustomerMasterEntity[] = [];
