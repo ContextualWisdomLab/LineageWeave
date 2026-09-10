@@ -159,7 +159,6 @@ import {
   leftoverMapCompareAxisShare,
   leftoverMapCompareAxisSingular,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE,
-  LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL,
   LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,
 } from "./leftoverMapCompareAxis";
 import "./App.css";
@@ -4086,8 +4085,7 @@ function ReportsPanel({
                     {comparisonAxisShare !== null ? (
                       <span
                         className="post-badge"
-                        aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_SHARE_LABEL)}
-                      >
+                          >
                         {tf(LEFTOVER_MAP_COMPARE_AXIS_SHARE, comparisonAxisShare)}
                       </span>
                     ) : null}
