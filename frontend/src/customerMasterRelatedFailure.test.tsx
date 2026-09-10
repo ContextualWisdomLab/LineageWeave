@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "./App";
 import { BackendError, fetchRelatedEntity } from "./api";
-import { setLocale } from "./i18n";
 
 let mockAuth: Record<string, unknown>;
 
@@ -59,7 +58,6 @@ vi.mock("./api", async (importOriginal) => {
 });
 
 beforeEach(() => {
-  setLocale("en");
   mockAuth = {
     isLoading: false,
     isAuthenticated: true,
@@ -81,17 +79,19 @@ it("keeps a failed Customer Master relationship lookup retryable instead of pres
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(await screen.findByRole("button", { name: "Customer master" }));
+  await user.click(
+    await screen.findByRole("button", { name: /^(?:Customer master|고객 마스터)$/ }),
+  );
   await user.click(await screen.findByRole("button", { name: /Demo Corp/ }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "This request failed. Retry the same action.",
+    /(?:This request failed\. Retry the same action\.|요청이 실패했습니다\. 같은 조치를 다시 시도하세요\.)/,
   );
-  expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
+  expect(screen.queryByText(/^(?:No linked posts yet\.|아직 연결된 게시물이 없습니다\.)$/)).not.toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: "Retry" }));
+  await user.click(screen.getByRole("button", { name: /^(?:Retry|다시 시도)$/ }));
   expect(fetchRelatedEntity).toHaveBeenCalledTimes(2);
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "This request failed. Retry the same action.",
+    /(?:This request failed\. Retry the same action\.|요청이 실패했습니다\. 같은 조치를 다시 시도하세요\.)/,
   );
 });
