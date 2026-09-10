@@ -1,6 +1,6 @@
 # ADR 0314 — Name leftover-map unexplained leftover on the grouping comparison leftover-map graphic
 
-**Decision status:** Accepted
+**Decision status:** Proposed
 **Date:** 2026-08-31
 
 Amends leftover-map unexplained leftover on graphic-display pair segments
