@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: automation-851-causal-repair-20260911
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   repair-and-validate:
@@ -37,20 +37,19 @@ jobs:
           fetch-depth: 20
 
       - name: Verify staging ancestry
-        shell: bash
-        run: |
-          set -euo pipefail
-          git merge-base --is-ancestor 9a3dbe93b72fadba588bad89d34fa5049954f70f HEAD
+        run: git merge-base --is-ancestor 9a3dbe93b72fadba588bad89d34fa5049954f70f HEAD
 
       - name: Apply bounded layout and Vietnamese copy repair
         shell: python
         run: |
           from pathlib import Path
+          from textwrap import dedent, indent
 
           layout_path = Path("frontend/src/leftoverMapPlotLayout.ts")
           layout = layout_path.read_text()
 
-          old_to_svg = '''function toSvg(
+          old_to_svg = dedent("""\
+          function toSvg(
             axis1: number,
             axis2: number,
             minAxis: number,
@@ -70,8 +69,10 @@ jobs:
               x: offsetX + (axis1 - minAxis) * pixelsPerUnit,
               y: offsetY + (minAxis + scaleSpan - axis2) * pixelsPerUnit,
             };
-          }'''
-          new_to_svg = '''function toSvg(
+          }
+          """).rstrip()
+          new_to_svg = dedent("""\
+          function toSvg(
             axis1: number,
             axis2: number,
             minAxis: number,
@@ -96,14 +97,18 @@ jobs:
               x: offsetX + (axis1 - minAxis) * pixelsPerUnit,
               y: offsetY + (minAxis + scaleSpan - axis2) * pixelsPerUnit,
             };
-          }'''
+          }
+          """).rstrip()
           assert layout.count(old_to_svg) == 1
           layout = layout.replace(old_to_svg, new_to_svg)
 
-          old_helpers = '''function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
+          old_helper = dedent("""\
+          function leftoverMapStackedCaptionY(labelY: number, stackedAbove: number): number {
             return stackedAbove > 0 ? labelY + stackedAbove * RECONSTRUCTION_LABEL_OFFSET : labelY;
-          }'''
-          new_helpers = '''function leftoverMapCaptionStack(
+          }
+          """).rstrip()
+          new_helper = dedent("""\
+          function leftoverMapCaptionStack(
             labelY: number,
             captionCount: number,
             height: number,
@@ -136,196 +141,125 @@ jobs:
             step: number,
           ): number {
             return stackedAbove > 0 ? labelY + stackedAbove * step : labelY;
-          }'''
-          assert layout.count(old_helpers) == 1
-          layout = layout.replace(old_helpers, new_helpers)
+          }
+          """).rstrip()
+          assert layout.count(old_helper) == 1
+          layout = layout.replace(old_helper, new_helper)
 
-          old_segment = '''    const labelPosition = leftoverMapSegmentLabelPosition(
-              personPos.x,
-              personPos.y,
-              itemPos.x,
-              itemPos.y,
-            );
-            const reconstructionY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
-            );
-            const explainedShareY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
-            );
-            const unexplainedShareY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0),
-            );
-            const crossShareY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0),
-            );
-            const unexplainedLeftoverY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0),
-            );
-            const residualY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0),
-            );
-            const observedY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0) +
-                (residualLabel !== null ? 1 : 0),
-            );
-            const expectedY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0) +
-                (residualLabel !== null ? 1 : 0) +
-                (observedLabel !== null ? 1 : 0),
-            );
-            const rankY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0) +
-                (residualLabel !== null ? 1 : 0) +
-                (observedLabel !== null ? 1 : 0) +
-                (expectedLabel !== null ? 1 : 0),
-            );'''
-          new_segment = '''    const rawLabelPosition = leftoverMapSegmentLabelPosition(
-              personPos.x,
-              personPos.y,
-              itemPos.x,
-              itemPos.y,
-            );
-            const captionCount = [
-              distanceLabel,
-              reconstructionLabel,
-              explainedShareLabel,
-              unexplainedShareLabel,
-              crossShareLabel,
-              unexplainedLeftoverLabel,
-              residualLabel,
-              observedLabel,
-              expectedLabel,
-              rankLabel,
-            ].filter((label) => label !== null).length;
-            const captionStack = leftoverMapCaptionStack(
-              rawLabelPosition.labelY,
-              captionCount,
-              height,
-            );
-            const labelPosition = {
-              labelX: rawLabelPosition.labelX,
-              labelY: captionStack.labelY,
-            };
-            const reconstructionY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
-              captionStack.step,
-            );
-            const explainedShareY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const unexplainedShareY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const crossShareY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const unexplainedLeftoverY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const residualY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const observedY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0) +
-                (residualLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const expectedY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0) +
-                (residualLabel !== null ? 1 : 0) +
-                (observedLabel !== null ? 1 : 0),
-              captionStack.step,
-            );
-            const rankY = leftoverMapStackedCaptionY(
-              labelPosition.labelY,
-              (distanceLabel !== null ? 1 : 0) +
-                (reconstructionLabel !== null ? 1 : 0) +
-                (explainedShareLabel !== null ? 1 : 0) +
-                (unexplainedShareLabel !== null ? 1 : 0) +
-                (crossShareLabel !== null ? 1 : 0) +
-                (unexplainedLeftoverLabel !== null ? 1 : 0) +
-                (residualLabel !== null ? 1 : 0) +
-                (observedLabel !== null ? 1 : 0) +
-                (expectedLabel !== null ? 1 : 0),
-              captionStack.step,
-            );'''
-          assert layout.count(old_segment) == 1
-          layout = layout.replace(old_segment, new_segment)
+          segment_start = layout.index("    const labelPosition = leftoverMapSegmentLabelPosition(")
+          segment_end = layout.index("    segments.push({", segment_start)
+          old_segment = layout[segment_start:segment_end]
+          assert old_segment.count("leftoverMapStackedCaptionY(") == 9
+          new_segment = indent(dedent("""\
+          const rawLabelPosition = leftoverMapSegmentLabelPosition(
+            personPos.x,
+            personPos.y,
+            itemPos.x,
+            itemPos.y,
+          );
+          const captionCount = [
+            distanceLabel,
+            reconstructionLabel,
+            explainedShareLabel,
+            unexplainedShareLabel,
+            crossShareLabel,
+            unexplainedLeftoverLabel,
+            residualLabel,
+            observedLabel,
+            expectedLabel,
+            rankLabel,
+          ].filter((label) => label !== null).length;
+          const captionStack = leftoverMapCaptionStack(
+            rawLabelPosition.labelY,
+            captionCount,
+            height,
+          );
+          const labelPosition = {
+            labelX: rawLabelPosition.labelX,
+            labelY: captionStack.labelY,
+          };
+          const reconstructionY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+            captionStack.step,
+          );
+          const explainedShareY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const unexplainedShareY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const crossShareY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0) +
+              (unexplainedShareLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const unexplainedLeftoverY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0) +
+              (unexplainedShareLabel !== null ? 1 : 0) +
+              (crossShareLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const residualY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0) +
+              (unexplainedShareLabel !== null ? 1 : 0) +
+              (crossShareLabel !== null ? 1 : 0) +
+              (unexplainedLeftoverLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const observedY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0) +
+              (unexplainedShareLabel !== null ? 1 : 0) +
+              (crossShareLabel !== null ? 1 : 0) +
+              (unexplainedLeftoverLabel !== null ? 1 : 0) +
+              (residualLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const expectedY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0) +
+              (unexplainedShareLabel !== null ? 1 : 0) +
+              (crossShareLabel !== null ? 1 : 0) +
+              (unexplainedLeftoverLabel !== null ? 1 : 0) +
+              (residualLabel !== null ? 1 : 0) +
+              (observedLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          const rankY = leftoverMapStackedCaptionY(
+            labelPosition.labelY,
+            (distanceLabel !== null ? 1 : 0) +
+              (reconstructionLabel !== null ? 1 : 0) +
+              (explainedShareLabel !== null ? 1 : 0) +
+              (unexplainedShareLabel !== null ? 1 : 0) +
+              (crossShareLabel !== null ? 1 : 0) +
+              (unexplainedLeftoverLabel !== null ? 1 : 0) +
+              (residualLabel !== null ? 1 : 0) +
+              (observedLabel !== null ? 1 : 0) +
+              (expectedLabel !== null ? 1 : 0),
+            captionStack.step,
+          );
+          """), "    ")
+          layout = layout[:segment_start] + new_segment + layout[segment_end:]
           layout_path.write_text(layout)
 
           i18n_path = Path("frontend/src/i18n.ts")
@@ -339,18 +273,15 @@ jobs:
           assert vi.count(old_general) == 1
           vi = vi.replace(old_general, new_general)
 
-          old_compare = '''    "leftover map comparison graphic explained leftover share {label}":
-              "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",'''
-          new_compare = '''    "leftover map comparison graphic explained leftover share {label}":
-              "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",'''
+          old_compare = '    "leftover map comparison graphic explained leftover share {label}":\n      "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",'
+          new_compare = '    "leftover map comparison graphic explained leftover share {label}":\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",'
           assert vi.count(old_compare) == 1
           vi = vi.replace(old_compare, new_compare)
 
           full_key = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.":'
           full_old_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
           full_new_vi = '      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",'
-          assert vi.count(full_key) == 1
-          assert vi.count(full_old_vi) == 1
+          assert vi.count(full_key) == 1 and vi.count(full_old_vi) == 1
           vi = vi.replace(full_old_vi, full_new_vi)
 
           legacy_key = '    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. Click a post marker to open that post. The plot does not invent a leftover score.":'
@@ -359,7 +290,6 @@ jobs:
           anchor = full_key + "\n" + full_new_vi
           assert vi.count(anchor) == 1
           vi = vi.replace(anchor, anchor + "\n" + legacy_key + "\n" + legacy_vi)
-
           i18n = i18n[:vi_start] + vi + i18n[vi_end:]
           i18n_path.write_text(i18n)
 
@@ -423,7 +353,6 @@ jobs:
         run: pnpm run build-storybook
 
       - name: Commit workflow-free validated tree
-        shell: bash
         run: |
           set -euo pipefail
           git diff --check
