@@ -422,3 +422,51 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Agent loop discipline for PRs and Issues
+
+Nested loops carry a ledger: loop id, parent id, goal, owner/scope,
+dependencies, pass/retry/block conditions, evidence SHAs, next action
+(tool plus arguments), and return point. Goal:PR and PR:loop are not
+1:1; no fixed depth, no needless decomposition, and shared work is
+never duplicated. Finishing investigation, finding a gap, or defining
+a KPI completes only that step -- never the gap fix, the goal, or the
+merge. Never auto-complete a parent; on evidence-SHA change, re-verify
+only the affected nodes.
+
+Chain Todo to READY to RUNNING to a real lookup, repair, or test call
+to a verdict to the next call in the same run. Plans, reports, and
+step-by-step reasoning are not execution; a RUNNING mark without
+linked tool results proves nothing. Scope waits narrowly: external
+CI/review waits attach to that node and its real depends_on path
+only, never as a global stop -- keep executing READY siblings, other
+PRs and issues, and acceptance gaps. Never dispatch healthy CI twice;
+never self-approve or forge approvals; request review only when no
+valid request exists for that head. Reuse valid evidence and do not
+re-run completed same-SHA tests to manufacture activity, but that
+never halts other work. Do independent work on a separate
+branch/worktree that respects single-writer and dependency
+boundaries.
+
+Measurement loops follow the autoresearch shape: goal, metric command
+with extraction and direction, scope, isolated change, commit,
+measure, keep-or-revert, log. Keep the journal as tab-separated
+experiment/commit/metric/status/description rows outside git. Never
+install dependencies, change environments, or push without explicit
+approval; shared-branch reset --hard, force push, and discarding
+others' deltas are forbidden. Missing skills install only to
+supported project paths after license, permission, and SHA review --
+no personal, global, duplicate, or bulk installs, no permission
+widening, no paid services. Use step-by-step machine reasoning only
+for genuinely complex judgment, interleaved with real lookups, and
+never count its calls or verdicts as execution, verification, review
+approval, or KPI improvement.
+
+Merge decisions distinguish failure kinds. Infrastructure, CI,
+runner, and workflow failures may bypass-merge with the failure SHA,
+alternative verification, impact, and recovery recorded in the PR,
+bypassing only the minimal protection within authority. Code,
+security, contract, orchestrator-routing, and secret-policy failures
+are never bypassed. Completion evidence is tool events plus
+dependency and acceptance checks -- never planned commands,
+summaries, or idle and finish markers.
