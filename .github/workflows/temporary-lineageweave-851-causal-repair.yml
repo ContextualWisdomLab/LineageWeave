@@ -122,25 +122,41 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("frontend/src/i18n.ts")
-          text = path.read_text()
-          replacements = {
+          source_path = Path("frontend/src/i18n.ts")
+          source = source_path.read_text()
+          source_replacements = {
               '"leftover map comparison graphic explained leftover share {label}":\n      "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}",':
                   '"leftover map comparison graphic explained leftover share {label}":\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}",',
               '"leftover-map explained leftover share {label}": "phần dư giải thích bản đồ phần dư {label}",':
                   '"leftover-map explained leftover share {label}": "tỷ phần phần dư được giải thích trên bản đồ phần dư {label}",',
               'phần dư giải thích e': 'tỷ phần phần dư được giải thích e',
           }
-          for old, new in replacements.items():
-              count = text.count(old)
+          for old, new in source_replacements.items():
+              count = source.count(old)
               if count != 1:
-                  raise SystemExit(f"expected exactly one translation occurrence, found {count}: {old}")
-              text = text.replace(old, new)
-          path.write_text(text)
+                  raise SystemExit(f"expected exactly one production translation occurrence, found {count}: {old}")
+              source = source.replace(old, new)
+          source_path.write_text(source)
+
+          fixture_path = Path("frontend/src/i18n.test.ts")
+          fixtures = fixture_path.read_text()
+          fixture_replacements = {
+              "phần dư giải thích e": "tỷ phần phần dư được giải thích e",
+              "phần dư giải thích đồ họa so sánh bản đồ phần dư R̂²/R² 0.76":
+                  "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76",
+              "phần dư giải thích bản đồ phần dư R̂²/R² 0.76":
+                  "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76",
+          }
+          for old, new in fixture_replacements.items():
+              count = fixtures.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one stale Vietnamese fixture occurrence, found {count}: {old}")
+              fixtures = fixtures.replace(old, new)
+          fixture_path.write_text(fixtures)
           PY
 
           uv lock
-          git add frontend/src/i18n.ts uv.lock
+          git add frontend/src/i18n.ts frontend/src/i18n.test.ts uv.lock
           git commit -m "fix(i18n): make Vietnamese explained-share semantics explicit"
           green_851="$(git rev-parse HEAD)"
           git diff --check "${expected[851]}..${green_851}"
