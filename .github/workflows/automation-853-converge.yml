@@ -1,0 +1,148 @@
+name: automation-853-converge
+
+on:
+  push:
+    branches: [automation/853-converge-20260911]
+
+permissions:
+  contents: write
+
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Converge repaired parent and exercise Vietnamese cross-share RED to GREEN
+        env:
+          PARENT_BRANCH: feat/leftover-map-compare-plot-unexplained-share-v2690
+          PARENT_SHA: de9e7b3b9f2348145177e2593b19d1e7babf7ac3
+          PRODUCT_HEAD: 4eae8473e760f3cb74679b53f9ebc83f68d02345
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_HEAD"
+          git config user.name "LineageWeave automation"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch --no-tags origin "$PARENT_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$PARENT_SHA"
+
+          set +e
+          git merge --no-ff --no-commit "$PARENT_SHA"
+          merge_rc=$?
+          set -e
+          echo "merge exit=$merge_rc"
+          git status --short
+
+          for path in frontend/src/i18n.ts frontend/src/i18n.test.ts uv.lock; do
+            if git ls-files -u -- "$path" | grep -q .; then
+              git checkout --theirs -- "$path"
+              git add "$path"
+            fi
+          done
+          remaining="$(git diff --name-only --diff-filter=U)"
+          if [ -n "$remaining" ]; then
+            echo "Unexpected unresolved conflicts:"
+            echo "$remaining"
+            exit 1
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path("frontend/src/i18n.ts")
+          text = source.read_text()
+          inserts = {
+              '    "Leftover map comparison cross share": "잔여 지도 비교 교차 점유율",':
+                  '    "leftover map comparison graphic cross share {label}": "잔여 지도 비교 그림 교차 점유율 {label}",\n',
+              '    "Leftover map comparison cross share": "残差地图比较交叉份额",':
+                  '    "leftover map comparison graphic cross share {label}": "残差地图比较图形交叉份额 {label}",\n',
+              '    "Leftover map comparison cross share": "残差マップの比較交差割合",':
+                  '    "leftover map comparison graphic cross share {label}": "残差マップの比較図交差割合 {label}",\n',
+              '    "Leftover map comparison cross share": "Phần giao so sánh bản đồ phần dư",':
+                  '    "leftover map comparison graphic cross share {label}": "phần giao đồ họa so sánh bản đồ phần dư {label}",\n',
+          }
+          for anchor, addition in inserts.items():
+              if addition.strip() not in text:
+                  if text.count(anchor) != 1:
+                      raise SystemExit(f"source anchor count != 1: {anchor}")
+                  text = text.replace(anchor, addition + anchor)
+          source.write_text(text)
+
+          test = Path("frontend/src/i18n.test.ts")
+          text = test.read_text()
+          key_anchor = '    "Leftover map comparison cross share",'
+          key_line = '    "leftover map comparison graphic cross share {label}",\n'
+          if key_line.strip() not in text:
+              if text.count(key_anchor) != 1:
+                  raise SystemExit("test key anchor count != 1")
+              text = text.replace(key_anchor, key_line + key_anchor)
+
+          block_anchor = '''  it.each([\n    ["ko", "잔여 지도 비교 설명 잔여 점유율"],'''
+          cross_block = '''  it.each([\n    ["ko", "잔여 지도 비교 그림 교차 점유율 2R̂U/R² 0.12"],\n    ["zh", "残差地图比较图形交叉份额 2R̂U/R² 0.12"],\n    ["ja", "残差マップの比較図交差割合 2R̂U/R² 0.12"],\n    ["vi", "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"],\n  ] as const)(\n    "formats leftover map comparison graphic cross share in %s",\n    (locale, expected) => {\n      setLocale(locale);\n      expect(\n        tf("leftover map comparison graphic cross share {label}", {\n          label: "2R̂U/R² 0.12",\n        }),\n      ).toBe(expected);\n    },\n  );\n\n'''
+          if 'formats leftover map comparison graphic cross share in %s' not in text:
+              if text.count(block_anchor) != 1:
+                  raise SystemExit("cross test insertion anchor count != 1")
+              text = text.replace(block_anchor, cross_block + block_anchor)
+          test.write_text(text)
+          PY
+
+          corepack enable
+          (cd frontend && pnpm install --frozen-lockfile)
+          set +e
+          red_output="$(cd frontend && pnpm exec vitest run src/i18n.test.ts -t 'formats leftover map comparison graphic cross share in vi' 2>&1)"
+          red_rc=$?
+          set -e
+          echo "$red_output"
+          test "$red_rc" -ne 0
+          echo "$red_output" | grep -F "tỷ phần giao trên đồ họa so sánh bản đồ phần dư"
+          echo "$red_output" | grep -F "phần giao đồ họa so sánh bản đồ phần dư"
+
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("frontend/src/i18n.ts")
+          text = source.read_text()
+          old = '"leftover map comparison graphic cross share {label}": "phần giao đồ họa so sánh bản đồ phần dư {label}"'
+          new = '"leftover map comparison graphic cross share {label}": "tỷ phần giao trên đồ họa so sánh bản đồ phần dư {label}"'
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one Vietnamese cross-share defect, found {text.count(old)}")
+          source.write_text(text.replace(old, new))
+          PY
+
+          uv lock
+          uv lock --check
+          grep -F 'version = "2.70.0"' pyproject.toml
+          grep -F '__version__ = "2.70.0"' lineageweave/__init__.py
+          awk '/name = "lineageweave"/{seen=1; next} seen && /version =/{print; exit}' uv.lock | grep -F 'version = "2.70.0"'
+
+          (cd frontend && pnpm run lint)
+          (cd frontend && pnpm exec vitest run src/i18n.test.ts src/leftoverMapCrossShare.test.ts src/leftoverMapPlotVietnameseCopy.test.ts src/leftoverMapCompareUnexplainedVietnameseCopy.test.ts)
+          (cd frontend && pnpm run build)
+          (cd frontend && pnpm run build-storybook)
+
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q tests/test_project_lock_version_parity.py
+
+          git add -A
+          git rm .github/workflows/automation-853-converge.yml
+          git status --short
+          git commit -m "fix(reports): converge #853 and preserve Vietnamese cross-share semantics" -m "Adopt exact repaired #852, preserve #853 cross-share product delta, regenerate v2.70 lock with repository-authoritative uv, and repair the exercised Vietnamese accessible-name share-semantic RED."
+          git push origin HEAD:automation/853-converge-20260911
