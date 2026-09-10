@@ -366,7 +366,7 @@ function splitSemanticParagraphs(text: string): string[] {
   const flushPipeTableRows = () => {
     const hasSeparator = pipeTableRows.some((row) => {
       const cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
-      return cells.length >= 2 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
+      return cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
     });
     if (pipeTableRows.length >= 2 && hasSeparator) {
       flush();
@@ -381,7 +381,7 @@ function splitSemanticParagraphs(text: string): string[] {
     const trimmed = line.trim();
     if (trimmed.includes("|")) {
       const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
-      if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
+      if (cells.some((cell) => cell.trim())) {
         pipeTableRows.push(line);
         continue;
       }

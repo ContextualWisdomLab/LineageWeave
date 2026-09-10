@@ -2489,7 +2489,10 @@ describe("App, authenticated", () => {
     const entityButton = (await screen.findByText("DEMO-CORP-01 · Company")).closest("button");
     expect(entityButton).not.toBeNull();
     await userEvent.click(entityButton as HTMLElement);
-    expect(await screen.findByText("No linked posts yet.")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This request failed. Retry the same action.",
+    );
+    expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
     await userEvent.click(entityButton as HTMLElement);
     expect(entityButton).toHaveAttribute("aria-expanded", "false");
   });
