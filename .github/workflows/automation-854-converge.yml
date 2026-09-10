@@ -1,0 +1,83 @@
+name: automation-854-converge
+on:
+  push:
+    branches: [automation/854-converge-20260911]
+permissions:
+  contents: write
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with: {python-version: "3.12"}
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with: {version: "0.11.28", enable-cache: false}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with: {node-version: "24"}
+      - name: converge and validate
+        env:
+          PARENT_SHA: ef02b1d2fab4f9f7a8db797a29acda93e156847d
+          PRODUCT_HEAD: 467b0a865a0661a275b456a1d7ea689755ec3610
+        run: |
+          set -euo pipefail
+          git config user.name "LineageWeave automation"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch --no-tags origin feat/leftover-map-compare-plot-cross-share-v2700
+          test "$(git rev-parse FETCH_HEAD)" = "$PARENT_SHA"
+          set +e
+          git merge --no-ff --no-commit "$PARENT_SHA"
+          rc=$?
+          set -e
+          echo "merge exit=$rc"
+          git status --short
+          for path in frontend/src/i18n.ts frontend/src/i18n.test.ts uv.lock; do
+            if git ls-files -u -- "$path" | grep -q .; then
+              git checkout --ours -- "$path"
+              git add "$path"
+            fi
+          done
+          for path in frontend/src/leftoverMapCompareCrossShareVietnameseCopy.test.ts frontend/src/leftoverMapCompareUnexplainedVietnameseCopy.test.ts frontend/src/leftoverMapPlotVietnameseCopy.test.ts; do
+            if git ls-files -u -- "$path" | grep -q .; then
+              git checkout --theirs -- "$path"
+              git add "$path"
+            fi
+          done
+          test -z "$(git diff --name-only --diff-filter=U)"
+          python - <<'PY'
+          from pathlib import Path
+          replacements = {
+            '"leftover map comparison graphic explained leftover share {label}":\n      "phần dư giải thích đồ họa so sánh bản đồ phần dư {label}"': '"leftover map comparison graphic explained leftover share {label}":\n      "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư {label}"',
+            '"leftover map comparison graphic unexplained leftover share {label}": "phần dư chưa giải thích đồ họa so sánh bản đồ phần dư {label}"': '"leftover map comparison graphic unexplained leftover share {label}": "tỷ phần phần dư chưa giải thích trên đồ họa so sánh bản đồ phần dư {label}"',
+            '"leftover map comparison graphic cross share {label}": "phần giao đồ họa so sánh bản đồ phần dư {label}"': '"leftover map comparison graphic cross share {label}": "tỷ phần giao trên đồ họa so sánh bản đồ phần dư {label}"',
+          }
+          p=Path('frontend/src/i18n.ts'); s=p.read_text()
+          for old,new in replacements.items():
+            if old in s: s=s.replace(old,new)
+          p.write_text(s)
+          t=Path('frontend/src/i18n.test.ts'); s=t.read_text()
+          pairs=[
+            ('["vi", "phần dư giải thích đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"]','["vi", "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"]'),
+            ('["vi", "phần dư chưa giải thích đồ họa so sánh bản đồ phần dư U²/R² 0.02"]','["vi", "tỷ phần phần dư chưa giải thích trên đồ họa so sánh bản đồ phần dư U²/R² 0.02"]'),
+            ('["vi", "phần giao đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"]','["vi", "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"]')]
+          for old,new in pairs:
+            if old in s: s=s.replace(old,new)
+          t.write_text(s)
+          PY
+          uv lock
+          uv lock --check
+          grep -F 'version = "2.71.0"' pyproject.toml
+          grep -F '__version__ = "2.71.0"' lineageweave/__init__.py
+          awk '/name = "lineageweave"/{seen=1; next} seen && /version =/{print; exit}' uv.lock | grep -F 'version = "2.71.0"'
+          corepack enable
+          (cd frontend && pnpm install --frozen-lockfile)
+          (cd frontend && pnpm run lint)
+          (cd frontend && pnpm exec vitest run src/i18n.test.ts src/leftoverMapCompareCrossShareVietnameseCopy.test.ts src/leftoverMapCompareUnexplainedVietnameseCopy.test.ts src/leftoverMapPlotVietnameseCopy.test.ts)
+          (cd frontend && pnpm run build)
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q tests/test_project_lock_version_parity.py
+          git add -A
+          git rm .github/workflows/automation-854-converge.yml
+          git commit -m "chore(stack): converge #854 onto repaired #853" -m "Preserve the v2.71 persisted-U delta while adopting exact repaired #853 and regenerating the child lock with repository-authoritative uv."
+          git push origin HEAD:automation/854-converge-20260911
