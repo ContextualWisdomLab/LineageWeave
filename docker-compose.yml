@@ -86,7 +86,11 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER:-lineageweave}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-lineageweave_dev_only}
-      KC_HOSTNAME: localhost
+      # Pin the full public URL, not a bare host. Keycloak 26's hostname v2
+      # derives the ``iss`` claim from the request host, so a bare "localhost"
+      # makes an in-network call to keycloak:8080 mint an issuer the backend
+      # rejects. A full URL here keeps one issuer for every caller.
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-18080}
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"

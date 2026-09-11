@@ -32,3 +32,17 @@ def test_default_compose_keeps_llm_runtime_optional() -> None:
     assert "ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}" in mcp
     assert "ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}" in mcp
     assert "      orchestrator:\n" not in _depends_on_block(mcp)
+
+
+def test_keycloak_pins_issuer_to_public_url() -> None:
+    """Keycloak's ``iss`` must not depend on which host calls it.
+
+    Keycloak 26 hostname v2 derives the issuer from the request host. A bare
+    ``localhost`` therefore makes the in-network ``keycloak:8080`` call that
+    seeds demo content mint an issuer the backend (``KEYCLOAK_ISSUER`` on the
+    public URL) rejects with 401. A full public URL keeps one issuer for every
+    caller, in-network or browser.
+    """
+    keycloak = _service_block("keycloak", "orchestrator")
+    assert "KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-18080}" in keycloak
+    assert "KC_HOSTNAME: localhost\n" not in keycloak
