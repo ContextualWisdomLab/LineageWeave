@@ -11,21 +11,21 @@ permissions:
 
 jobs:
   repair:
-    if: github.event.head_commit.message == 'chore(automation): stage #831 nonfinite repair'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact staging head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: true
 
       - name: Verify single-writer staging ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "ee88c921b17632523db7d413291c262abc909f2a"
-          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/automation-831-nonfinite-cross-share-repair.yml"
+          test "$(git rev-parse HEAD^)" = "071fe46d7decacbc058c43f3b0c53cf590d5f84c"
+          test "$(git rev-parse HEAD^^)" = "ee88c921b17632523db7d413291c262abc909f2a"
+          test "$(git diff --name-only ee88c921b17632523db7d413291c262abc909f2a HEAD)" = ".github/workflows/automation-831-nonfinite-cross-share-repair.yml"
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
