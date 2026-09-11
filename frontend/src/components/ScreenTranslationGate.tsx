@@ -59,30 +59,6 @@ const BOOTSTRAP_COPY: Record<Locale, BootstrapCopy> = {
     nextAction: "Hãy thử lại. Nếu sự cố vẫn tiếp diễn, hãy liên hệ với quản trị viên.",
     retryAction: "Thử lại",
   },
-  es: {
-    loading: "Cargando esta pantalla en el idioma seleccionado...",
-    retryLabel: "Es necesario reintentar",
-    retryDescription: "La solicitud ha fallado. Vuelva a intentar la misma acción.",
-    failure: "No se pudo cargar esta pantalla en el idioma seleccionado.",
-    nextAction: "Vuelva a intentarlo. Si el problema persiste, póngase en contacto con su administrador.",
-    retryAction: "Reintentar",
-  },
-  de: {
-    loading: "Dieser Bildschirm wird in der ausgewählten Sprache geladen...",
-    retryLabel: "Erneuter Versuch erforderlich",
-    retryDescription: "Die Anfrage ist fehlgeschlagen. Versuchen Sie dieselbe Aktion erneut.",
-    failure: "Dieser Bildschirm konnte in der ausgewählten Sprache nicht geladen werden.",
-    nextAction: "Versuchen Sie es erneut. Wenn das Problem weiterhin besteht, wenden Sie sich an die Administration.",
-    retryAction: "Erneut versuchen",
-  },
-  fr: {
-    loading: "Chargement de cet écran dans la langue sélectionnée…",
-    retryLabel: "Nouvelle tentative requise",
-    retryDescription: "La demande a échoué. Réessayez la même action.",
-    failure: "Impossible de charger cet écran dans la langue sélectionnée.",
-    nextAction: "Réessayez. Si le problème persiste, contactez votre administrateur.",
-    retryAction: "Réessayer",
-  },
 };
 
 /** Keep an untranslated screen hidden while offering one concrete recovery action. */
