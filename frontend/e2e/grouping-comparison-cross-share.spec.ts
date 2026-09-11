@@ -23,7 +23,7 @@ async function openGroupingComparison(page: Page) {
 async function expectNoHorizontalOverflow(page: Page) {
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= Math.ceil(window.innerWidth) + 1,
+      "document.documentElement.scrollWidth <= Math.ceil(window.innerWidth) + 1",
     ),
   ).toBe(true);
 }
@@ -55,9 +55,9 @@ test("keeps persisted cross-share actionable in the rendered accessibility tree"
   // translation-ledger owner adds ES/DE/FR, this loop covers them without a
   // LineageWeave-local locale fork.
   const localeSelect = page.locator(".language-switcher select");
-  const locales = await localeSelect.locator("option").evaluateAll((options) =>
-    options.map((option) => (option as HTMLOptionElement).value),
-  );
+  const locales = (await localeSelect
+    .locator("option")
+    .evaluateAll("options => options.map(option => option.value)")) as string[];
   expect(locales).toEqual(expect.arrayContaining(["en", "ko", "zh", "ja", "vi"]));
   for (const locale of locales) {
     await localeSelect.selectOption(locale);
