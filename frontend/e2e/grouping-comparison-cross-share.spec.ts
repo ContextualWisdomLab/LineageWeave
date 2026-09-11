@@ -56,9 +56,9 @@ test("keeps persisted cross-share actionable in the rendered accessibility tree"
   // translation-ledger owner adds ES/DE/FR, this loop covers them without a
   // LineageWeave-local locale fork.
   const localeSelect = page.locator(".language-switcher select");
-  const locales = (await localeSelect
-    .locator("option")
-    .evaluateAll("options => options.map(option => option.value)")) as string[];
+  const locales = await localeSelect.locator("option").evaluateAll((options) =>
+    options.map((option) => option.getAttribute("value") ?? ""),
+  );
   expect(locales).toEqual(expect.arrayContaining(["en", "ko", "zh", "ja", "vi"]));
   for (const locale of locales) {
     await localeSelect.selectOption(locale);
