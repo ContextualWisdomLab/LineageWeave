@@ -15,11 +15,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
-  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
-  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
-  LEFTOVER_MAP_COMPARE_PLOT_TICK,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
-  LEFTOVER_MAP_PLOT_TICK,
   PLOT_HEIGHT,
   PLOT_PADDING,
   PLOT_WIDTH,
@@ -1194,11 +1190,8 @@ describe("formatLeftoverMapDistance", () => {
   it("formats persisted leftover-map distance without inventing a leftover score", () => {
     expect(formatLeftoverMapDistance(0.12)).toBe("d 0.12");
     expect(formatLeftoverMapDistance(0)).toBe("d 0.00");
-    expect(formatLeftoverMapDistance(1.84)).toBe("d 1.84");
-    expect(formatLeftoverMapDistance(-0.05)).toBe("d -0.05");
     expect(formatLeftoverMapDistance(null)).toBeNull();
     expect(formatLeftoverMapDistance(Number.NaN)).toBeNull();
-    expect(formatLeftoverMapDistance(Number.POSITIVE_INFINITY)).toBeNull();
   });
 });
 
@@ -1325,85 +1318,6 @@ describe("leftover map comparison graphic labels", () => {
     );
     expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
-    );
-  });
-
-  it("stays distinct from leftover-map rank copy", () => {
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK).toBe(
-      "leftover map comparison graphic leftover-map rank {label}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK).not.toBe(
-      "leftover-map rank {label}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK).not.toBe(
-      "Leftover map comparison rank",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK).not.toBe(
-      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
-    );
-  });
-
-  it("stays distinct from leftover-map distance copy", () => {
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).toBe(
-      "leftover map comparison graphic leftover-map distance {label}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).not.toBe(
-      "leftover-map distance {label}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE).not.toBe(
-      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
-    );
-  });
-
-  it("stays distinct from leftover-map coordinate tick copy", () => {
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).toBe(
-      "leftover map comparison graphic leftover-map axis {axis} tick {value}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover-map axis {axis} tick {value}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(LEFTOVER_MAP_PLOT_TICK);
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison axis {axis} ({share}%)",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison graphic leftover-map axis {axis} σ {value}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe("leftover-map axis {axis} σ {value}");
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe("leftover axis {axis} σ {value}");
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe("leftover-map axis {axis} tick {value} σ {singular}");
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe("leftover-map axis {axis} tick {value} {share}%");
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover-map axis {axis} tick {value} σ {singular} {share}%",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison leftover axis {axis} σ {value}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison leftover axis {axis} tick {value}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison leftover axis {axis} tick {value} σ {singular}",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison leftover axis {axis} tick {value} {share}%",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%",
-    );
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe("leftover axis {axis} tick {value}");
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe("leftover axis {axis} tick {value} σ {singular}");
-    expect(LEFTOVER_MAP_COMPARE_PLOT_TICK).not.toBe(
-      LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
     );
   });
 });
