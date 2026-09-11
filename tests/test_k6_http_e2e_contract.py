@@ -41,7 +41,20 @@ def test_mcp_k6_harness_attributes_only_matching_jsonrpc_replies() -> None:
     assert 'envelope.jsonrpc !== "2.0" || envelope.id !== expectedId' in source
     assert "hasResult === hasError" in source
     assert source.count("result(response, 1)") == 1
-    assert source.count("structured(response, 2)") == 1
-    assert source.count("structured(response, 3)") == 1
+    assert source.count("structured(submitted, 3)") == 1
+    assert source.count("structured(response, 4)") == 1
     assert "${response.body" not in source
     assert "JSON.stringify(envelope.error)" not in source
+
+
+def test_mcp_k6_harness_observes_submit_inside_the_iteration() -> None:
+    """Submit latency is sampled per iteration, not once in setup()."""
+    source = MCP_SCRIPT.read_text(encoding="utf-8")
+    setup_body = source[
+        source.index("export function setup") : source.index("export default function")
+    ]
+
+    assert "submitDuration.add(submitted.timings.duration)" in source
+    assert "submitDuration.add(response.timings.duration)" not in source
+    assert '"submit_global_ask"' not in setup_body
+    assert '"submit_global_ask"' in source[source.index("export default function") :]

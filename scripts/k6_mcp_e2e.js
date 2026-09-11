@@ -141,34 +141,48 @@ function structured(response, expectedId) {
   return toolResult.structuredContent;
 }
 
-/** Seed one durable synthetic Ask job and expose only its identifier to VUs. */
+/** Measure the authenticated submit -> read buyer path once per VU iteration. */
 export function setup() {
   if (!requestTimeout) fail("REQUEST_TIMEOUT is required");
   if (unitlessDuration.test(requestTimeout)) fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
-  const token = authenticate();
-  const session = isModern ? null : initialize(token);
-  const response = callTool(token, session, 2, "submit_global_ask", {
-    question: "Summarize the authorized synthetic evidence.",
-  });
-  submitDuration.add(response.timings.duration);
-  if (response.status !== 200) fail(`MCP Ask submit failed with HTTP ${response.status}`);
-  return { token, askJobId: structured(response, 2).ask_job_id };
+  return { token: authenticate() };
 }
 
-/** Repeatedly read the durable Ask job while measuring authenticated transport latency. */
+/** Submit one durable Ask job, then read that job back, timing each transport hop.
+ *
+ * Submitting inside the default function yields the repeated observations a
+ * p95 needs; the earlier single `setup()` submit could only produce one sample.
+ * The submit stays a queue transport call — multi-minute answer orchestration
+ * remains asynchronous and outside this measured boundary.
+ */
 export default function (data) {
   vuToken ||= data.token;
   vuSession ||= isModern ? null : initialize(vuToken);
-  let response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
+  let submitted = callTool(vuToken, vuSession, 3, "submit_global_ask", {
+    question: "Summarize the authorized synthetic evidence.",
+  });
+  if (submitted.status === 401) {
+    vuToken = authenticate();
+    vuSession = isModern ? null : initialize(vuToken);
+    submitted = callTool(vuToken, vuSession, 3, "submit_global_ask", {
+      question: "Summarize the authorized synthetic evidence.",
+    });
+  }
+  submitDuration.add(submitted.timings.duration);
+  const submittedOk = check(submitted, { "MCP Ask submit succeeds": (item) => item.status === 200 });
+  if (!submittedOk) return;
+  const askJobId = structured(submitted, 3).ask_job_id;
+
+  let response = callTool(vuToken, vuSession, 4, "read_global_ask_job", { ask_job_id: askJobId });
   if (response.status === 401) {
     vuToken = authenticate();
     vuSession = isModern ? null : initialize(vuToken);
-    response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
+    response = callTool(vuToken, vuSession, 4, "read_global_ask_job", { ask_job_id: askJobId });
   }
   readDuration.add(response.timings.duration);
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });
   if (ok) {
-    const payload = structured(response, 3);
+    const payload = structured(response, 4);
     jobStateObservations.add(1, { job_status: String(payload.job_status_code || "unknown") });
   }
 }
