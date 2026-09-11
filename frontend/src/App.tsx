@@ -123,6 +123,7 @@ import {
   useLocale,
 } from "./i18n";
 import { ScreenTranslationGate } from "./components/ScreenTranslationGate";
+import { StatusNotice } from "./components/StatusNotice";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4654,19 +4655,25 @@ function CustomerEntityTreeRow({
   depth,
   expandedEntityId,
   relatedByEntity,
+  relatedErrorByEntity,
   relatedLoading,
   onToggle,
+  onRetry,
   onOpenPost,
 }: {
   node: CustomerEntityTreeNode;
   depth: number;
   expandedEntityId: string | null;
   relatedByEntity: Record<string, RelatedNode[]>;
+  relatedErrorByEntity: Record<string, boolean>;
   relatedLoading: string | null;
   onToggle: (entityId: string) => void;
+  onRetry: (entityId: string) => void;
   onOpenPost: (postId: string) => void;
 }) {
   const { entity, children } = node;
+  const hasRelatedResult = Object.prototype.hasOwnProperty.call(relatedByEntity, entity.corporate_entity_id);
+  const relatedError = relatedErrorByEntity[entity.corporate_entity_id] === true;
   const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
     (related) => related.node_type_code === NODE_POST,
   );
@@ -4683,11 +4690,20 @@ function CustomerEntityTreeRow({
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p role="status">{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+          {relatedError ? (
+            <StatusNotice
+              kind="retry"
+              message={t("This request failed. Retry the same action.")}
+              onRetry={() => onRetry(entity.corporate_entity_id)}
+            />
+          ) : null}
+          {!relatedError && relatedLoading === entity.corporate_entity_id ? (
+            <p role="status">{t("Loading related posts...")}</p>
+          ) : null}
+          {!relatedError && relatedLoading !== entity.corporate_entity_id && hasRelatedResult && relatedPosts.length === 0 ? (
             <p className="popup-placeholder">{t("No linked posts yet.")}</p>
           ) : null}
-          {relatedPosts.length > 0 ? (
+          {!relatedError && relatedPosts.length > 0 ? (
             <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
               {relatedPosts.map((related) => (
                 <li key={related.node_id}>
@@ -4713,8 +4729,10 @@ function CustomerEntityTreeRow({
               depth={depth + 1}
               expandedEntityId={expandedEntityId}
               relatedByEntity={relatedByEntity}
+              relatedErrorByEntity={relatedErrorByEntity}
               relatedLoading={relatedLoading}
               onToggle={onToggle}
+              onRetry={onRetry}
               onOpenPost={onOpenPost}
             />
           ))}
@@ -4774,6 +4792,7 @@ function CustomerMasterPanel({
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+  const [relatedErrorByEntity, setRelatedErrorByEntity] = useState<Record<string, boolean>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   // Opening a customer's related post stays IN this panel (the Board
   // hand-off was the reported bug: clicking a customer's post jumped the
@@ -4791,6 +4810,7 @@ function CustomerMasterPanel({
     let active = true;
     setCanResolveHints(false);
     setRelatedByEntity({});
+    setRelatedErrorByEntity({});
     setExpandedEntityId(null);
     setRelatedLoading(null);
     setSelectedPostId(null);
@@ -4905,28 +4925,40 @@ function CustomerMasterPanel({
     }
   }
 
-  async function toggleEntity(entityId: string) {
+  async function loadRelatedEntity(entityId: string) {
     const requestAccessToken = accessToken;
     const requestAuthGeneration = authGeneration.current;
+    setRelatedLoading(entityId);
+    setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
+    try {
+      const response = await fetchRelatedEntity(requestAccessToken, entityId);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
+      }
+    } catch {
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: true }));
+      }
+    } finally {
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+        setRelatedLoading((owner) => (owner === entityId ? null : owner));
+      }
+    }
+  }
+
+  function toggleEntity(entityId: string) {
     if (expandedEntityId === entityId) {
       setExpandedEntityId(null);
       return;
     }
     setExpandedEntityId(entityId);
-    if (relatedByEntity[entityId]) return;
-    setRelatedLoading(entityId);
-    try {
-      const response = await fetchRelatedEntity(requestAccessToken, entityId);
-      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
-        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
-      }
-    } catch {
-      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
-        setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
-      }
-    } finally {
-      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) setRelatedLoading(null);
-    }
+    if (Object.prototype.hasOwnProperty.call(relatedByEntity, entityId)) return;
+    void loadRelatedEntity(entityId);
+  }
+
+  function retryRelatedEntity(entityId: string) {
+    void loadRelatedEntity(entityId);
   }
 
   if (copyState === "retry") {
@@ -4954,8 +4986,10 @@ function CustomerMasterPanel({
               depth={0}
               expandedEntityId={expandedEntityId}
               relatedByEntity={relatedByEntity}
+              relatedErrorByEntity={relatedErrorByEntity}
               relatedLoading={relatedLoading}
               onToggle={toggleEntity}
+              onRetry={retryRelatedEntity}
               onOpenPost={openPost}
             />
           ))}
