@@ -159,7 +159,9 @@ it("keeps the newest same-entity lookup authoritative when an older success sett
     first.resolve({
       corporate_entity_id: "corp-a",
       entity_name: "Alpha Corp",
-      related: [{ node_id: "old-post", node_type_code: "node_post", label: "Old result" }],
+      related: [
+        { node_id: "old-post", node_type_code: "node_post", label: "Old result", relevance: 1 },
+      ],
     });
     await first.promise;
   });
@@ -171,7 +173,9 @@ it("keeps the newest same-entity lookup authoritative when an older success sett
     second.resolve({
       corporate_entity_id: "corp-a",
       entity_name: "Alpha Corp",
-      related: [{ node_id: "new-post", node_type_code: "node_post", label: "Newest result" }],
+      related: [
+        { node_id: "new-post", node_type_code: "node_post", label: "Newest result", relevance: 1 },
+      ],
     });
     await second.promise;
   });
