@@ -144,8 +144,12 @@ jobs:
 
       - name: Capture product stack logs on browser failure
         if: failure()
-        run: docker compose --env-file "$HOME/.env" logs --no-color --tail=400
+        run: |
+          touch "$HOME/.env"
+          docker compose --env-file "$HOME/.env" logs --no-color --tail=400
 
       - name: Tear down product stack
         if: always()
-        run: docker compose --env-file "$HOME/.env" down -v --remove-orphans
+        run: |
+          touch "$HOME/.env"
+          docker compose --env-file "$HOME/.env" down -v --remove-orphans
