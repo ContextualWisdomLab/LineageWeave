@@ -1,6 +1,7 @@
 import type { LeftoverMapAxis, LeftoverMapCoverage, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
+import { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK } from "../leftoverMapRank";
 import {
   leftoverMapCoverageCounts,
   leftoverMapIncompleteItemCount,
@@ -20,21 +21,16 @@ import {
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE_LABEL,
 } from "../leftoverMapCoverage";
 import {
+  formatLeftoverMapPlotAxisShare,
   leftoverShareForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_1,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_2,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
+  LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
-import {
-  leftoverMapComparePlotAxisBadge,
-  leftoverMapComparePlotTickAxisBadge,
-  leftoverMapPlotAxisBadge,
-  leftoverMapPlotTickAxisBadge,
-  leftoverSingularForAxis,
-} from "../leftoverMapPlotAxisSingular";
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
-  leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -46,8 +42,6 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_OBSERVED,
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
-  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK,
-  LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
@@ -60,6 +54,7 @@ import {
   LEFTOVER_MAP_PLOT_SEGMENT_RESIDUAL,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED,
   LEFTOVER_MAP_PLOT_SEGMENT_UNEXPLAINED_SHARE,
+  LEFTOVER_MAP_PLOT_TICK,
 } from "../leftoverMapPlotLayout";
 import "./LeftoverMapPlot.css";
 
@@ -83,68 +78,27 @@ function leftoverMapPlotAxisText(
   leftoverMapAxes: LeftoverMapAxis[] | undefined,
   variant: LeftoverMapPlotVariant,
 ): string {
-  const leftoverShare = leftoverShareForAxis(leftoverMapAxes, axisIndex);
-  const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
+  const percent = formatLeftoverMapPlotAxisShare(
+    leftoverShareForAxis(leftoverMapAxes, axisIndex),
+  );
   if (variant === "comparison") {
-    const badge = leftoverMapComparePlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
-    if (badge === null) {
+    if (percent === null) {
       return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
     }
-    return tf(badge.key, badge.values);
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
   }
-  const badge = leftoverMapPlotAxisBadge(axisIndex, leftoverSingular, leftoverShare);
-  if (badge === null) {
+  if (percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
-  return tf(badge.key, badge.values);
-}
-
-function leftoverMapPlotTickText(
-  axisIndex: number,
-  tickLabel: string,
-  leftoverMapAxes: LeftoverMapAxis[] | undefined,
-  variant: LeftoverMapPlotVariant,
-): string {
-  const leftoverSingular = leftoverSingularForAxis(leftoverMapAxes, axisIndex);
-  const leftoverShare = leftoverShareForAxis(leftoverMapAxes, axisIndex);
-  if (variant === "comparison") {
-    const badge = leftoverMapComparePlotTickAxisBadge(
-      axisIndex,
-      tickLabel,
-      leftoverSingular,
-      leftoverShare,
-    );
-    return tf(badge.key, badge.values);
-  }
-  const badge = leftoverMapPlotTickAxisBadge(axisIndex, tickLabel, leftoverSingular, leftoverShare);
-  return tf(badge.key, badge.values);
-}
-
-function leftoverMapPlotCriterionText(
-  marker: { label: string; axis1: number; axis2: number },
-  variant: LeftoverMapPlotVariant,
-): string {
-  if (variant === "comparison") {
-    return `${t("Criterion ζ")} ${marker.label}`;
-  }
-  const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
-  if (badge === null) {
-    return `${t("Criterion ζ")} ${marker.label}`;
-  }
-  return tf(badge.key, badge.values);
+  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
 }
 
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
  * Person markers are posts; item markers are leftover criteria. Click a
- * post marker to open that post. Caption leftover-map graphic leftover-map
- * criterion markers with persisted leftover-map item coordinates ``ζ_{1:2}``
- * when leftoverMapPlotCriterionBadge returns a usable leftover-map criterion
- * leftover-map item coordinate caption. Leftover-map comparison graphic leftover-map
- * criterion markers stay ``Criterion ζ {label}`` this increment. Caption leftover-map axes with persisted
- * leftover-map singular values ``σ_k`` and Gabriel inertia share when finite,
- * including rank-0 zero-share axes.
+ * post marker to open that post. Caption leftover-map axes with persisted
+ * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -173,10 +127,8 @@ function leftoverMapPlotCriterionText(
  * caption when incomplete post coverage is missing or not a usable integer.
  * Omit that leftover-map incomplete item caption when incomplete item
  * coverage is missing or not a usable integer.
- * Omit that axis singular-value badge when ``σ_k`` is missing, non-finite,
- * or negative, independently of leftover-map axis share. Omit that axis badge when share is
- * missing or non-finite and keep the existing leftover-map axis text,
- * including any leftover-map comparison graphic leftover-map axis singular value.
+ * Omit that axis badge when share is
+ * missing or non-finite and keep the existing leftover-map axis text.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * ADR 0304 reuses this graphic on the grouping comparison strip from
  * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis
@@ -218,37 +170,9 @@ function leftoverMapPlotCriterionText(
  * labels. ADR 0317 captions leftover expected on that
  * comparison graphic from already-named leftover expected
  * with distinct leftover map comparison graphic leftover expected
- * labels. ADR 0318 captions leftover-map rank on that
- * comparison graphic from already-named leftover-map rank
- * with distinct leftover map comparison graphic leftover-map rank
- * labels. ADR 0319 captions leftover-map distance on that
- * comparison graphic from already-named leftover-map distance
- * with distinct leftover map comparison graphic leftover-map distance
- * labels. ADR 0320 captions leftover-map coordinate ticks on that
- * comparison graphic from already-named leftover-map coordinates
- * with distinct leftover map comparison graphic leftover-map axis tick
- * labels. ADR 0321 captions leftover-map singular values on that
- * comparison graphic from already-named leftover-map axes
- * with distinct leftover map comparison graphic leftover-map axis σ
- * labels. ADR 0322 captions leftover-axis report badges with persisted
- * leftover-map singular values, not this graphic. ADR 0323 captions leftover-axis
- * report badges on the grouping comparison strip with persisted leftover-map
- * singular values, not this graphic. ADR 0324 captions leftover-map
- * graphic-display axes with persisted leftover-map singular values.
- * ADR 0326 fail-closes leftover-map comparison graphic leftover-map axis leftover-map
- * singular values through leftoverMapComparePlotAxisBadge.
- * ADR 0327 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
- * singular values through leftoverMapPlotTickAxisBadge independently of leftover-map
- * axis share.
- * ADR 0328 fail-closes leftover-map comparison graphic leftover-map axis ticks leftover-map
- * singular values through leftoverMapComparePlotTickAxisBadge independently of leftover-map
- * axis share.
- * ADR 0331 fail-closes leftover-map comparison graphic leftover-map axis ticks leftover-map
- * axis share through leftoverMapComparePlotTickAxisBadge independently of leftover-map
- * singular values.
- * ADR 0332 fail-closes leftover-map graphic leftover-map axis ticks leftover-map
- * axis share through leftoverMapPlotTickAxisBadge independently of leftover-map
- * singular values.
+ * labels. ADR 0318 captions leftover-map rank on that comparison graphic
+ * from already-named leftover-map rank with a distinct comparison graphic
+ * accessible name.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -376,12 +300,7 @@ export function LeftoverMapPlot({
             <g
               key={`tick:${tick.axis}:${tick.label}`}
               className="leftover-map-plot-tick"
-              aria-label={leftoverMapPlotTickText(
-                tick.axis,
-                tick.label,
-                leftoverMapAxes,
-                variant,
-              )}
+              aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
             >
               <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
               <text
@@ -409,12 +328,9 @@ export function LeftoverMapPlot({
                   x={segment.labelX}
                   y={segment.labelY}
                   textAnchor="middle"
-                  aria-label={tf(
-                    variant === "comparison"
-                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE
-                      : LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
-                    { label: segment.distanceLabel },
-                  )}
+                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {
+                    label: segment.distanceLabel,
+                  })}
                 >
                   {segment.distanceLabel}
                 </text>
@@ -566,7 +482,7 @@ export function LeftoverMapPlot({
             </g>
           ))}
           {layout.items.map((marker) => (
-            <g key={`item:${marker.id}`} aria-label={leftoverMapPlotCriterionText(marker, variant)}>
+            <g key={`item:${marker.id}`} aria-label={`${t("Criterion ζ")} ${marker.label}`}>
               <polygon className="leftover-map-plot-item" points={diamondPoints(marker.x, marker.y, 7)} />
               <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y + 14}>
                 {marker.label}

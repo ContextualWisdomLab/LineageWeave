@@ -6,9 +6,7 @@
 **Amended by:** [ADR 0268](0268-leftover-map-graphic-display.md)
 (leftover-map graphic display);
 [ADR 0270](0270-leftover-map-coordinate-ticks.md)
-(leftover-map coordinate ticks);
-[ADR 0335](0335-leftover-map-plot-criterion-coordinates.md)
-(leftover-map item coordinates on leftover-map graphic leftover-map criterion markers)
+(leftover-map coordinate ticks)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
 [ADR 0049](0049-leftover-pair-report-ui.md), and
