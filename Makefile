@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke seed ps load-http load-mcp
+.PHONY: up up-llm down logs smoke seed ps load-http load-mcp
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.
@@ -6,6 +6,12 @@ COMPOSE := docker compose --env-file "$$HOME/.env"
 
 up:
 	$(COMPOSE) up -d
+
+# Opt in to the pinned contextual-orchestrator service. Provider credentials
+# remain external to the repository; absent credentials fail that optional
+# service closed instead of making the default product profile unbootable.
+up-llm:
+	$(COMPOSE) --profile llm up -d
 
 down:
 	$(COMPOSE) down
