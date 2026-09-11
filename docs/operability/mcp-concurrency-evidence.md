@@ -18,7 +18,9 @@ recommendation. The committed `scripts/k6_mcp_e2e.js` ran its default
 ```shell
 KEYCLOAK_URL=http://127.0.0.1:18080 MCP_URL=http://127.0.0.1:18001/mcp \
   REQUEST_TIMEOUT=20s k6 run --vus 3 --duration 5s scripts/k6_mcp_e2e.js
-MCP_PROTOCOL_VERSION=2025-11-25 ... k6 run --vus 3 --duration 5s scripts/k6_mcp_e2e.js
+KEYCLOAK_URL=http://127.0.0.1:18080 MCP_URL=http://127.0.0.1:18001/mcp \
+  MCP_PROTOCOL_VERSION=2025-11-25 REQUEST_TIMEOUT=20s \
+  k6 run --vus 3 --duration 5s scripts/k6_mcp_e2e.js
 ```
 
 | Observation | Modern 2026-07-28 | Legacy 2025-11-25 |
@@ -33,9 +35,10 @@ MCP_PROTOCOL_VERSION=2025-11-25 ... k6 run --vus 3 --duration 5s scripts/k6_mcp_
 | Initialize duration, average / p95 / maximum | not applicable (stateless) | 78.97 / 202.46 / 230.71 ms |
 
 An earlier run on the saturated stack reported two Ask-read check failures
-while every MCP POST still returned 200; the repeat after the synthetic
-queue drained shows 0 failed checks and 0 HTTP failures, so the earlier
-failures were queue saturation, not transport.
+while every MCP POST still returned 200. The repeat after the synthetic queue
+drained shows 0 failed checks and 0 HTTP failures. Queue saturation may have
+contributed to the earlier failures, but this record has no queue/worker
+telemetry that would establish a transport-independent root cause.
 
 This workstation result proves only that the declared synthetic workload
 completed on this candidate. Representative infrastructure telemetry and an
