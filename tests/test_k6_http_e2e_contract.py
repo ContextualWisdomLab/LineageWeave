@@ -44,10 +44,10 @@ def test_mcp_k6_harness_rejects_cleartext_remote_credentials() -> None:
     assert "function assertCredentialTransport" in source
     assert 'assertCredentialTransport(mcpUrl, "MCP_URL")' in setup_body
     assert 'assertCredentialTransport(keycloakUrl, "KEYCLOAK_URL")' in setup_body
-    assert 'rawUrl.startsWith("https://")' in source
-    assert 'rawUrl.startsWith("http://localhost")' in source
-    assert 'rawUrl.startsWith("http://127.0.0.1")' in source
-    assert 'rawUrl.startsWith("http://[::1]")' in source
+    assert "LOOPBACK_HTTP" in source
+    assert "^https:" in source
+    assert "localhost|127\\.0\\.0\\.1|\\[::1\\]" in source
+    assert "(?::\\d+)?(?:/|$)" in source
 
 
 def test_mcp_k6_harness_attributes_only_matching_jsonrpc_replies() -> None:
