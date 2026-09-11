@@ -821,10 +821,8 @@ async def fetch_period_reports(
                             if row["leftover_map_unexplained"] is None
                             else float(row["leftover_map_unexplained"])
                         ),
-                        "leftover_map_cross_share": (
-                            None
-                            if row["leftover_map_cross_share"] is None
-                            else float(row["leftover_map_cross_share"])
+                        "leftover_map_cross_share": _finite_float_or_none(
+                            row["leftover_map_cross_share"]
                         ),
                         "leftover_map_reconstruction": (
                             None
