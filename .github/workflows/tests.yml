@@ -64,7 +64,7 @@ jobs:
         run: uv run --frozen python -m pytest -q
 
   frontend:
-    name: Frontend lint, test, build
+    name: Frontend lint, test, build, browser acceptance
     if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     steps:
@@ -100,3 +100,52 @@ jobs:
       - name: Build Storybook
         working-directory: frontend
         run: pnpm run build-storybook
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start authenticated product stack
+        run: |
+          touch "$HOME/.env"
+          docker compose --env-file "$HOME/.env" up -d --build --wait
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error \
+              http://localhost:18080/realms/master/.well-known/openid-configuration \
+              >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Keycloak did not become ready" >&2
+          exit 1
+
+      - name: Seed synthetic authenticated product data
+        run: |
+          docker compose --env-file "$HOME/.env" run --rm --no-deps \
+            -v "$PWD/scripts:/app/scripts:ro" \
+            -v "$PWD/migrations:/app/migrations:ro" \
+            backend python /app/scripts/seed_demo_data.py \
+              --postgres-dsn postgresql://lineageweave:lineageweave_dev_only@postgres:5432/lineageweave \
+              --keycloak-base-url http://keycloak:8080 \
+              --keycloak-admin-password admin_dev_only \
+              --valkey-url redis://valkey:6379/0 \
+              --backend-base-url http://backend:8000
+
+      - name: Pin signed cross-share browser fixture
+        run: |
+          docker compose --env-file "$HOME/.env" exec -T postgres \
+            psql -X -v ON_ERROR_STOP=1 -U lineageweave -d lineageweave \
+            -c "update report_leftover_pair set leftover_map_cross_share = -0.24;"
+
+      - name: Run authenticated grouping-comparison browser acceptance
+        working-directory: frontend
+        run: pnpm exec playwright test grouping-comparison-cross-share.spec.ts --project=chromium
+
+      - name: Capture product stack logs on browser failure
+        if: failure()
+        run: docker compose --env-file "$HOME/.env" logs --no-color --tail=400
+
+      - name: Tear down product stack
+        if: always()
+        run: docker compose --env-file "$HOME/.env" down -v --remove-orphans
