@@ -47,7 +47,7 @@ def test_mcp_k6_harness_rejects_cleartext_remote_credentials() -> None:
     assert "LOOPBACK_HTTP" in source
     assert "^https:" in source
     assert "localhost|127\\.0\\.0\\.1|\\[::1\\]" in source
-    assert "(?::\\d+)?(?:/|$)" in source
+    assert r"(?::\d+)?(?:\/|$)" in source
 
 
 def test_mcp_k6_harness_attributes_only_matching_jsonrpc_replies() -> None:
