@@ -1,0 +1,85 @@
+name: automation-932-related-generation-repair
+
+on:
+  push:
+    branches:
+      - feat/i18n-ledger-frontend-consumer
+    paths:
+      - .github/workflows/automation-932-related-generation-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/i18n-ledger-frontend-consumer
+          fetch-depth: 0
+
+      - name: Apply bounded same-entity request-generation repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          text = path.read_text()
+
+          ref_anchor = """  const [master, setMaster] = useState<CustomerMasterResponse | null>(null);\n  const masterRequestGeneration = useRef(0);\n  const authGeneration = useRef(0);\n"""
+          ref_replacement = """  const [master, setMaster] = useState<CustomerMasterResponse | null>(null);\n  const masterRequestGeneration = useRef(0);\n  const relatedRequestGenerationByEntity = useRef<Record<string, number>>({});\n  const authGeneration = useRef(0);\n"""
+          if text.count(ref_anchor) != 1:
+              raise SystemExit("expected exactly one Customer Master request-generation ref anchor")
+          text = text.replace(ref_anchor, ref_replacement, 1)
+
+          old = """  async function loadRelatedEntity(entityId: string) {\n    const requestAccessToken = accessToken;\n    const requestAuthGeneration = authGeneration.current;\n    setRelatedLoading(entityId);\n    setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));\n    try {\n      const response = await fetchRelatedEntity(requestAccessToken, entityId);\n      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {\n        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));\n        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));\n      }\n    } catch {\n      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {\n        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: true }));\n      }\n    } finally {\n      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {\n        setRelatedLoading((owner) => (owner === entityId ? null : owner));\n      }\n    }\n  }\n"""
+          new = """  async function loadRelatedEntity(entityId: string) {\n    const requestAccessToken = accessToken;\n    const requestAuthGeneration = authGeneration.current;\n    const requestGeneration = (relatedRequestGenerationByEntity.current[entityId] ?? 0) + 1;\n    relatedRequestGenerationByEntity.current[entityId] = requestGeneration;\n    const ownsRequest = () =>\n      requestAccessToken === currentAccessTokenRef.current &&\n      requestAuthGeneration === authGeneration.current &&\n      relatedRequestGenerationByEntity.current[entityId] === requestGeneration;\n    setRelatedLoading(entityId);\n    setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));\n    try {\n      const response = await fetchRelatedEntity(requestAccessToken, entityId);\n      if (ownsRequest()) {\n        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));\n        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));\n      }\n    } catch {\n      if (ownsRequest()) {\n        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: true }));\n      }\n    } finally {\n      if (ownsRequest()) {\n        setRelatedLoading((owner) => (owner === entityId ? null : owner));\n      }\n    }\n  }\n"""
+          if text.count(old) != 1:
+              raise SystemExit("expected exactly one unrepaired loadRelatedEntity implementation")
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify focused realistic regressions
+        working-directory: frontend
+        run: pnpm exec vitest run src/customerMasterRelatedLoadingOwnership.test.tsx src/customerMasterRelatedFailureState.test.tsx
+
+      - name: Verify frontend lint and production build
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run build
+
+      - name: Remove purpose-complete workflow and publish causal source repair
+        shell: bash
+        run: |
+          rm .github/workflows/automation-932-related-generation-repair.yml
+          git diff --check
+          python - <<'PY'
+          import subprocess
+          changed = set(subprocess.check_output(["git", "status", "--short"], text=True).splitlines())
+          names = {line[3:] for line in changed}
+          expected = {"frontend/src/App.tsx", ".github/workflows/automation-932-related-generation-repair.yml"}
+          if names != expected:
+              raise SystemExit(f"unexpected changed paths: {sorted(names)}")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/App.tsx .github/workflows/automation-932-related-generation-repair.yml
+          git commit -m "fix(customer-master): fence same-entity related requests"
+          git push origin HEAD:feat/i18n-ledger-frontend-consumer
