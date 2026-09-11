@@ -155,6 +155,7 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL,
 } from "./leftoverMapUnexplainedShare";
+import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";
 import {
   leftoverMapCompareAxisShare,
   leftoverMapCompareAxisSingular,
@@ -4116,6 +4117,9 @@ function ReportsPanel({
                     const unexplainedShare = formatLeftoverMapUnexplainedShare(
                       pair.leftover_map_unexplained_share,
                     );
+                    const crossShare = formatLeftoverMapCrossShare(
+                      pair.leftover_map_cross_share,
+                    );
                     const pairAccessibleName = `Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}${
                       reconstruction
                         ? ` · ${t(LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL)} ${reconstruction}`
@@ -4128,7 +4132,7 @@ function ReportsPanel({
                       unexplainedShare
                         ? ` · ${t(LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL)} ${unexplainedShare}`
                         : ""
-                    }`;
+                    }${crossShare ? ` · ${crossShare}` : ""}`;
                     return (
                       <li
                         key={`${row.grouping_kind}:${row.grouping_key}:${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -4168,6 +4172,11 @@ function ReportsPanel({
                           {unexplainedShare ? (
                             <span className="post-badge" aria-hidden="true">
                               {unexplainedShare}
+                            </span>
+                          ) : null}
+                          {crossShare ? (
+                            <span className="post-badge" aria-hidden="true">
+                              {crossShare}
                             </span>
                           ) : null}
                         </button>

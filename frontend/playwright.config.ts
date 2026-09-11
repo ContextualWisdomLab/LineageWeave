@@ -2,10 +2,12 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Runs against the already-running docker-compose stack (`make up`), not a
- * dev-server Playwright starts itself -- the app needs Postgres, Keycloak,
- * Valkey, and the orchestrator alongside it, which `webServer` can't provide.
- * Point `LINEAGEWEAVE_E2E_BASE_URL` at a different origin if the compose
- * port mapping changes.
+ * dev-server Playwright starts itself -- authenticated product paths need
+ * Postgres, Keycloak, Valkey, backend, and frontend together. LLM/vision is a
+ * separate optional Compose profile; browser contracts that do not invoke it
+ * must not require provider credentials just to boot. Point
+ * `LINEAGEWEAVE_E2E_BASE_URL` at a different origin if the compose port mapping
+ * changes.
  */
 export default defineConfig({
   testDir: "./e2e",

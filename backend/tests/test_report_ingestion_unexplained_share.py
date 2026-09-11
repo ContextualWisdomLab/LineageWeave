@@ -27,6 +27,7 @@ class _ComparisonConnection:
                 "leftover_distance": 0.5,
                 "leftover_residual": 0.4,
                 "leftover_map_reconstruction": Decimal("0.25"),
+                "leftover_map_cross_share": None,
                 "visibility_code": "public",
                 "corporate_entity_id": "00000000-0000-0000-0000-000000000002",
                 "has_real_source_context": False,
