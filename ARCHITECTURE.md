@@ -256,7 +256,10 @@ handshake revisions from the pinned official SDK's same app: modern
 requests carry the `_meta` protocol/capability envelope and `Mcp-Method` /
 `Mcp-Name` routing headers with no `Mcp-Session-Id`, legacy clients keep
 `initialize` and session state, and a routing-header mismatch fails closed
-before any tool call or quota consumption. The pre-auth admission boundary
+before any tool call or quota consumption. Legacy sessions are process-local
+in the pinned SDK, so an MCP deployment with more than one process must route
+a given `Mcp-Session-Id` to its initializing process; the modern lane is
+self-contained and needs no affinity. The pre-auth admission boundary
 allows those two headers in CORS without widening origins, Host, audience,
 or quota policy.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
