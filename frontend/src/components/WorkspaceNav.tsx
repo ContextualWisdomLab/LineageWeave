@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ANALYST_GNB_ITEMS, type AnalystGnbId } from "../gnbChrome";
 import { t } from "../i18n";
+import "./WorkspaceNav.css";
 
 export type WorkspaceDestination = AnalystGnbId | "admin";
 
@@ -12,7 +13,10 @@ export type WorkspaceNavProps = {
 
 export function WorkspaceNav({ destination, onChange, tools }: WorkspaceNavProps) {
   return (
-    <nav className="workspace-gnb" aria-label={t("Workspace navigation")}>
+    <nav
+      className="workspace-gnb workspace-gnb-responsive"
+      aria-label={t("Workspace navigation")}
+    >
       {ANALYST_GNB_ITEMS.map((item) => (
         <button
           key={item.id}

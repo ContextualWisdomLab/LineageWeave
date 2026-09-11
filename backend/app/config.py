@@ -26,12 +26,12 @@ class Settings:
     keycloak_base_url: str
     keycloak_realm: str
     keycloak_client_id: str
-    # The issuer string real tokens actually carry -- whatever hostname the
-    # browser/client used to log in (Keycloak's hostname-strict=false mode
-    # reflects the request's Host header into the `iss` claim). This is
-    # deliberately a *separate* setting from keycloak_base_url: inside
-    # docker-compose the two differ (internal DNS name vs. the
-    # host-published port a browser actually hits).
+    # The issuer string real tokens actually carry -- the identity provider's
+    # configured public URL, which Compose pins with KC_HOSTNAME so every
+    # caller (browser or in-network service) sees one issuer. It stays a
+    # *separate* setting from keycloak_base_url because the two differ inside
+    # docker-compose: the issuer is the host-published URL a browser reaches,
+    # while keycloak_base_url is the internal DNS name used only for JWKS.
     keycloak_issuer: str
     # Production may use the organization's Keyverse OIDC issuer. The
     # keycloak fields above remain the explicit local-development fallback.

@@ -86,7 +86,11 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER:-lineageweave}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-lineageweave_dev_only}
-      KC_HOSTNAME: localhost
+      # Pin the full public URL, not a bare host. Keycloak 26's hostname v2
+      # derives the ``iss`` claim from the request host, so a bare "localhost"
+      # makes an in-network call to keycloak:8080 mint an issuer the backend
+      # rejects. A full URL here keeps one issuer for every caller.
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-18080}
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
@@ -98,8 +102,11 @@ services:
         condition: service_healthy
 
   orchestrator:
-    # Consume the paper-grounded orchestration service from main; inference
-    # remains behind its authenticated OpenAI-compatible boundary.
+    # LLM/vision is an optional product capability. The default profile must
+    # remain runnable without provider credentials, matching .env.example;
+    # enabling this profile consumes the canonical contextual-orchestrator
+    # boundary instead of creating a LineageWeave-local provider path.
+    profiles: ["llm"]
     build:
       context: ./docker/contextual-orchestrator
       dockerfile: Dockerfile
@@ -129,11 +136,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-      # Warm-up window: failures inside start_period do not consume the retry
-      # budget, so a booting orchestrator that becomes healthy within 50s is
-      # never counted against retries. A dead service trips the gate at
-      # ~100s (start_period + 10 x 5s), matching the previous retries: 20
-      # budget exactly; the win is boot tolerance, not faster dead detection.
       start_period: 50s
 
   backend:
@@ -142,16 +144,10 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
-      # Internal DNS name for JWKS fetches (always reachable from inside the
-      # compose network); KEYCLOAK_ISSUER is the *external*, host-published
-      # URL a browser/token actually carries -- see backend/app/config.py.
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
       KEYCLOAK_REALM: lineageweave-demo
       KEYCLOAK_CLIENT_ID: lineageweave-frontend
-      # Production may set these to the real Keyverse OIDC provider. Empty
-      # values keep this stack on its explicit local Keycloak development mode;
-      # no Keyverse-shaped identity service is created by Compose.
       KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-}
       KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
       KEYVERSE_AUDIENCE: ${KEYVERSE_AUDIENCE:-}
@@ -168,11 +164,10 @@ services:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-lineageweave}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # Empty by default: every LLM/vision channel stays the Null client
-      # (dropped, not faked). Set these to a running contextual-orchestrator
-      # to turn the channels on. Provider credentials use LLM_GATEWAY_API_URL /
-      # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
-      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      # (dropped, not faked). Opt into the llm Compose profile and point these
+      # at its contextual-orchestrator service to turn the channels on.
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
@@ -180,8 +175,6 @@ services:
       NARUON_CALENDAR_BASE_URL: ${NARUON_CALENDAR_BASE_URL:-}
       NARUON_CALENDAR_SERVICE_TOKEN: ${NARUON_CALENDAR_SERVICE_TOKEN:-}
       RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
-      # Process HMAC for ontology source-window continuation. Empty keeps the
-      # truncated-without-cursor contract. Never reuse an OIDC or orchestrator secret.
       ONTOLOGY_SOURCE_CURSOR_SECRET: ${ONTOLOGY_SOURCE_CURSOR_SECRET:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
@@ -190,8 +183,6 @@ services:
         condition: service_healthy
       database_migration:
         condition: service_completed_successfully
-      orchestrator:
-        condition: service_healthy
       keycloak:
         condition: service_started
       valkey:
@@ -222,17 +213,13 @@ services:
       OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
       OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       VALKEY_URL: redis://valkey:6379/0
-      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
-      # Local Keycloak mints this exact fixed audience. Production Keyverse
-      # deployments configure both values together outside this demo stack.
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       MCP_RESOURCE_URL: http://localhost:18001/mcp
       MCP_AUDIENCE: http://localhost:18001/mcp
       MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp:8001
       MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
       MCP_MAX_REQUEST_BYTES: ${MCP_MAX_REQUEST_BYTES:-65536}
-      # No guessed quota: operators must supply values justified by the k6
-      # capacity artifact for their deployment before enabling this profile.
       MCP_RATE_LIMIT_REQUESTS: ${MCP_RATE_LIMIT_REQUESTS:-}
       MCP_RATE_LIMIT_WINDOW_SECONDS: ${MCP_RATE_LIMIT_WINDOW_SECONDS:-}
     ports:
@@ -242,8 +229,6 @@ services:
         condition: service_healthy
       database_migration:
         condition: service_completed_successfully
-      orchestrator:
-        condition: service_healthy
       keycloak:
         condition: service_started
       valkey:
