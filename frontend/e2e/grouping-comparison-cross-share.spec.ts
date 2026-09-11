@@ -3,6 +3,7 @@ import { loginAsDemoAdmin } from "./support/auth.ts";
 
 const CROSS_SHARE = "2R̂U/R² -0.24";
 const CROSS_SHARE_NAME = /2R̂U\/R² -0\.24/;
+const PIXEL_7 = devices["Pixel 7"];
 
 async function openGroupingComparison(page: Page) {
   await loginAsDemoAdmin(page);
@@ -67,7 +68,16 @@ test("keeps persisted cross-share actionable in the rendered accessibility tree"
 });
 
 test.describe("touch interaction", () => {
-  test.use({ ...devices["Pixel 7"] });
+  // `defaultBrowserType` is worker-scoped, so a describe-local override must
+  // apply only Pixel 7 browser-context options or Playwright aborts collection.
+  test.use({
+    userAgent: PIXEL_7.userAgent,
+    viewport: PIXEL_7.viewport,
+    screen: PIXEL_7.screen,
+    deviceScaleFactor: PIXEL_7.deviceScaleFactor,
+    isMobile: PIXEL_7.isMobile,
+    hasTouch: PIXEL_7.hasTouch,
+  });
 
   test("keeps the cross-share pair tappable on a phone viewport", async ({ page }) => {
     const comparison = await openGroupingComparison(page);
