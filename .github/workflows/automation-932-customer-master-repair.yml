@@ -1,0 +1,287 @@
+name: automation-932-customer-master-repair
+
+on:
+  push:
+    branches:
+      - feat/i18n-ledger-frontend-consumer
+    paths:
+      - .github/workflows/automation-932-customer-master-repair.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-932-customer-master-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact automation head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Verify single-writer parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "bdfcdd2c23df9d691f539edbfc85602610607ad4"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/automation-932-customer-master-repair.yml"
+
+      - name: Apply minimal Customer Master causal repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          app_path = Path("frontend/src/App.tsx")
+          app = app_path.read_text()
+
+          replacements = []
+
+          replacements.append((
+          '''  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+            const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+          ''',
+          '''  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+            const [relatedErrorByEntity, setRelatedErrorByEntity] = useState<Record<string, boolean>>({});
+            const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+          '''))
+
+          replacements.append((
+          '''    setRelatedByEntity({});
+              setExpandedEntityId(null);
+          ''',
+          '''    setRelatedByEntity({});
+              setRelatedErrorByEntity({});
+              setExpandedEntityId(null);
+          '''))
+
+          replacements.append((
+          '''  async function toggleEntity(entityId: string) {
+              const requestAccessToken = accessToken;
+              const requestAuthGeneration = authGeneration.current;
+              if (expandedEntityId === entityId) {
+                setExpandedEntityId(null);
+                return;
+              }
+              setExpandedEntityId(entityId);
+              if (relatedByEntity[entityId]) return;
+              setRelatedLoading(entityId);
+              try {
+                const response = await fetchRelatedEntity(requestAccessToken, entityId);
+                if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+                  setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+                }
+              } catch {
+                if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+                  setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+                }
+              } finally {
+                if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) setRelatedLoading(null);
+              }
+            }
+          ''',
+          '''  async function loadRelatedEntity(entityId: string) {
+              const requestAccessToken = accessToken;
+              const requestAuthGeneration = authGeneration.current;
+              setRelatedLoading(entityId);
+              setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
+              try {
+                const response = await fetchRelatedEntity(requestAccessToken, entityId);
+                if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+                  setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+                  setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
+                }
+              } catch {
+                if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+                  setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: true }));
+                }
+              } finally {
+                if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+                  setRelatedLoading((owner) => (owner === entityId ? null : owner));
+                }
+              }
+            }
+
+            function toggleEntity(entityId: string) {
+              if (expandedEntityId === entityId) {
+                setExpandedEntityId(null);
+                return;
+              }
+              setExpandedEntityId(entityId);
+              if (Object.prototype.hasOwnProperty.call(relatedByEntity, entityId)) return;
+              void loadRelatedEntity(entityId);
+            }
+
+            function retryRelatedEntity(entityId: string) {
+              void loadRelatedEntity(entityId);
+            }
+          '''))
+
+          replacements.append((
+          '''              relatedByEntity={relatedByEntity}
+                        relatedLoading={relatedLoading}
+                        onToggle={toggleEntity}
+                        onOpenPost={openPost}
+          ''',
+          '''              relatedByEntity={relatedByEntity}
+                        relatedErrorByEntity={relatedErrorByEntity}
+                        relatedLoading={relatedLoading}
+                        onToggle={toggleEntity}
+                        onRetry={retryRelatedEntity}
+                        onOpenPost={openPost}
+          '''))
+
+          replacements.append((
+          '''  relatedByEntity,
+            relatedLoading,
+            onToggle,
+            onOpenPost,
+          ''',
+          '''  relatedByEntity,
+            relatedErrorByEntity,
+            relatedLoading,
+            onToggle,
+            onRetry,
+            onOpenPost,
+          '''))
+
+          replacements.append((
+          '''  relatedByEntity: Record<string, RelatedNode[]>;
+            relatedLoading: string | null;
+            onToggle: (entityId: string) => void;
+            onOpenPost: (postId: string) => void;
+          ''',
+          '''  relatedByEntity: Record<string, RelatedNode[]>;
+            relatedErrorByEntity: Record<string, boolean>;
+            relatedLoading: string | null;
+            onToggle: (entityId: string) => void;
+            onRetry: (entityId: string) => void;
+            onOpenPost: (postId: string) => void;
+          '''))
+
+          replacements.append((
+          '''  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
+              (related) => related.node_type_code === NODE_POST,
+            );
+          ''',
+          '''  const hasRelatedResult = Object.prototype.hasOwnProperty.call(relatedByEntity, entity.corporate_entity_id);
+            const relatedError = relatedErrorByEntity[entity.corporate_entity_id] === true;
+            const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
+              (related) => related.node_type_code === NODE_POST,
+            );
+          '''))
+
+          replacements.append((
+          '''          {relatedLoading === entity.corporate_entity_id ? <p role="status">{t("Loading related posts...")}</p> : null}
+                    {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+                      <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+                    ) : null}
+                    {relatedPosts.length > 0 ? (
+          ''',
+          '''          {relatedError ? (
+                      <StatusNotice
+                        kind="retry"
+                        message={t("This request failed. Retry the same action.")}
+                        onRetry={() => onRetry(entity.corporate_entity_id)}
+                      />
+                    ) : null}
+                    {!relatedError && relatedLoading === entity.corporate_entity_id ? (
+                      <p role="status">{t("Loading related posts...")}</p>
+                    ) : null}
+                    {!relatedError && relatedLoading !== entity.corporate_entity_id && hasRelatedResult && relatedPosts.length === 0 ? (
+                      <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+                    ) : null}
+                    {!relatedError && relatedPosts.length > 0 ? (
+          '''))
+
+          replacements.append((
+          '''              relatedByEntity={relatedByEntity}
+                          relatedLoading={relatedLoading}
+                          onToggle={onToggle}
+                          onOpenPost={onOpenPost}
+          ''',
+          '''              relatedByEntity={relatedByEntity}
+                          relatedErrorByEntity={relatedErrorByEntity}
+                          relatedLoading={relatedLoading}
+                          onToggle={onToggle}
+                          onRetry={onRetry}
+                          onOpenPost={onOpenPost}
+          '''))
+
+          for old, new in replacements:
+              count = app.count(old)
+              if count != 1:
+                  raise SystemExit(f"App.tsx expected exactly one anchor, found {count}: {old[:80]!r}")
+              app = app.replace(old, new, 1)
+          app_path.write_text(app)
+
+          i18n_path = Path("frontend/src/i18n.ts")
+          i18n = i18n_path.read_text()
+          old = '''  "Post body preview", "Related posts", "Relationship network", "Resolve", "Resolving...",
+            "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.",
+          '''
+          new = '''  "Post body preview", "Related posts", "Relationship network", "Resolve", "Resolving...", "Retry", "Retry needed",
+            "Shown as top level: listed parent forms a cycle.",
+            "Shown as top level: entity lists itself as parent.",
+            "Shown as top level: listed parent is not visible.",
+            "This request failed. Retry the same action.",
+            "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.",
+          '''
+          count = i18n.count(old)
+          if count != 1:
+              raise SystemExit(f"i18n.ts expected exactly one anchor, found {count}")
+          i18n_path.write_text(i18n.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- frontend/src/App.tsx frontend/src/i18n.ts
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Customer Master RED-to-GREEN regressions
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/customerMasterAncestryTranslationContract.test.ts
+          src/customerMasterRelatedFailureState.test.tsx
+          src/customerMasterRelatedLoadingOwnership.test.tsx
+
+      - name: Run frontend lint and full test suite
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+
+      - name: Run production build and Storybook build
+        working-directory: frontend
+        run: |
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Publish workflow-free product tree without force
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin refs/heads/feat/i18n-ledger-frontend-consumer | awk '{print $1}')"
+          test "$remote_head" = "$(git rev-parse HEAD)"
+          rm .github/workflows/automation-932-customer-master-repair.yml
+          git add frontend/src/App.tsx frontend/src/i18n.ts .github/workflows/automation-932-customer-master-repair.yml
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(customer-master): preserve related request state"
+          git push origin HEAD:feat/i18n-ledger-frontend-consumer
