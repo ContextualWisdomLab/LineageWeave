@@ -5,15 +5,25 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import uuid
 
 import asyncpg
+import jwt
 import psycopg2
+import pytest
 
 from backend.app.report_ingestion import fetch_period_reports
 from backend.tests.test_api import seeded_db as _seeded_db_fixture
 from scripts.seed_demo_data import _seed_demo_period_report
 
 seeded_db = _seeded_db_fixture
+
+
+@pytest.fixture(scope="module")
+def demo_analyst_token() -> str:
+    """Supply only the subject claim needed by the PostgreSQL seed fixture."""
+
+    return jwt.encode({"sub": str(uuid.uuid4())}, key="", algorithm="none")
 
 
 def test_fetch_period_reports_normalizes_persisted_nonfinite_cross_share(
