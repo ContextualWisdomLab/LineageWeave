@@ -105,9 +105,9 @@ describe("i18n", () => {
     "Compare these cutoff-grounded citations with live evidence next.",
   ] as const;
 
-  it("supports the governed eight product locales", () => {
-    expect(SUPPORTED_LOCALES).toEqual(["ko", "en", "ja", "zh", "vi", "es", "de", "fr"]);
-    expect(Object.keys(LOCALE_LABELS)).toHaveLength(8);
+  it("admits only product-wide complete locales globally", () => {
+    expect(SUPPORTED_LOCALES).toEqual(["ko", "en", "ja", "zh", "vi"]);
+    expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
   });
 
   it("admits only a complete Customer Master screen projection", () => {
