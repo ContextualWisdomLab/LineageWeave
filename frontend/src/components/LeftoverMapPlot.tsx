@@ -1,7 +1,6 @@
 import type { LeftoverMapAxis, LeftoverMapCoverage, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import { formatLeftoverMapCoordinatePair } from "../leftoverMapCoordinates";
-import { LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK } from "../leftoverMapRank";
 import {
   leftoverMapCoverageCounts,
   leftoverMapIncompleteItemCount,
@@ -171,8 +170,8 @@ function leftoverMapPlotAxisText(
  * comparison graphic from already-named leftover expected
  * with distinct leftover map comparison graphic leftover expected
  * labels. ADR 0318 captions leftover-map rank on that comparison graphic
- * from already-named leftover-map rank with a distinct comparison graphic
- * accessible name.
+ * from already-named leftover-map rank while composing existing localized
+ * comparison-graphic and rank labels rather than adding SPA translation debt.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -469,12 +468,13 @@ export function LeftoverMapPlot({
                   x={segment.rankX}
                   y={segment.rankY}
                   textAnchor="middle"
-                  aria-label={tf(
+                  aria-label={
                     variant === "comparison"
-                      ? LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK
-                      : LEFTOVER_MAP_PLOT_SEGMENT_RANK,
-                    { label: segment.rankLabel },
-                  )}
+                      ? `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_SEGMENT_RANK, {
+                          label: segment.rankLabel,
+                        })}`
+                      : tf(LEFTOVER_MAP_PLOT_SEGMENT_RANK, { label: segment.rankLabel })
+                  }
                 >
                   {segment.rankLabel}
                 </text>
