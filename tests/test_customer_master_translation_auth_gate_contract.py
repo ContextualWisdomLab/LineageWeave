@@ -68,7 +68,7 @@ def test_customer_master_render_gate_rejects_stale_token_copy() -> None:
 
 
 def test_customer_master_auth_transition_invalidates_secondary_authorization_projections() -> None:
-    """Related data, post detail, and privileges from the old token must be discarded on transition."""
+    """Related data, errors, post detail, and privileges from the old token must be discarded."""
     panel = _customer_master_panel_source()
     fetch_me = panel.index("fetchMe(accessToken)")
     effect_start = panel.rfind("  useEffect(() => {", 0, fetch_me)
@@ -78,6 +78,7 @@ def test_customer_master_auth_transition_invalidates_secondary_authorization_pro
     for statement in (
         "setCanResolveHints(false);",
         "setRelatedByEntity({});",
+        "setRelatedErrorByEntity({});",
         "setExpandedEntityId(null);",
         "setRelatedLoading(null);",
         "setSelectedPostId(null);",
@@ -101,11 +102,14 @@ def test_customer_master_secondary_async_completions_are_bound_to_current_auth_i
     assert "requestAccessToken === currentAccessTokenRef.current" in load_master
 
     resolve_start = panel.index("  async function handleResolveHint(")
-    resolve_end = panel.index("\n  async function toggleEntity(", resolve_start)
+    resolve_end = panel.index("\n  async function loadRelatedEntity(", resolve_start)
     resolve_hint = panel[resolve_start:resolve_end]
     assert "requestAccessToken === currentAccessTokenRef.current" in resolve_hint
+    assert "requestAuthGeneration === authGeneration.current" in resolve_hint
 
-    toggle_start = panel.index("  async function toggleEntity(")
-    toggle_end = panel.index('\n  if (copyState === "retry")', toggle_start)
-    toggle_entity = panel[toggle_start:toggle_end]
-    assert "requestAccessToken === currentAccessTokenRef.current" in toggle_entity
+    related_start = panel.index("  async function loadRelatedEntity(")
+    related_end = panel.index("\n  function toggleEntity(", related_start)
+    load_related = panel[related_start:related_end]
+    assert "requestAccessToken === currentAccessTokenRef.current" in load_related
+    assert "requestAuthGeneration === authGeneration.current" in load_related
+    assert "setRelatedLoading((owner) => (owner === entityId ? null : owner));" in load_related
