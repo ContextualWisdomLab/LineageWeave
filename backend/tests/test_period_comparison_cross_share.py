@@ -39,7 +39,15 @@ class _ComparisonConnection:
                     "has_real_source_context": True,
                 }
                 for index, (pair_kind, cross_share) in enumerate(
-                    (("closest", 0.12), ("farthest", 0.0), ("closest", -0.25), ("farthest", None)),
+                    (
+                        ("closest", 0.12),
+                        ("farthest", 0.0),
+                        ("closest", -0.25),
+                        ("farthest", None),
+                        ("closest", float("nan")),
+                        ("farthest", float("inf")),
+                        ("closest", float("-inf")),
+                    ),
                     start=1,
                 )
             ]
@@ -49,7 +57,7 @@ class _ComparisonConnection:
 
 
 def test_period_comparison_transports_persisted_cross_share(monkeypatch) -> None:
-    """Finite signed, zero, and null x values survive the persisted pair boundary."""
+    """Preserve finite signed x values and normalize null or non-finite x to null."""
 
     async def _label(_conn: Any, _kind: str, _key: str) -> str:
         return "Process unit 1"
@@ -58,4 +66,12 @@ def test_period_comparison_transports_persisted_cross_share(monkeypatch) -> None
     connection = _ComparisonConnection()
     payload = asyncio.run(report_ingestion.fetch_period_comparison(connection, "2026-W02"))
     assert "lp.leftover_map_cross_share" in connection.leftover_query
-    assert [pair["leftover_map_cross_share"] for pair in payload[0]["leftover_pairs"]] == [0.12, 0.0, -0.25, None]
+    assert [pair["leftover_map_cross_share"] for pair in payload[0]["leftover_pairs"]] == [
+        0.12,
+        0.0,
+        -0.25,
+        None,
+        None,
+        None,
+        None,
+    ]
