@@ -35,6 +35,7 @@ const jobStateObservations = new Counter("lineageweave_mcp_job_state_observation
 let vuToken;
 let vuSession;
 
+/** Authenticate the synthetic buyer principal through the configured Keycloak boundary. */
 function authenticate() {
   const headers = keycloakHost ? { Host: keycloakHost } : {};
   const response = http.post(
@@ -46,6 +47,7 @@ function authenticate() {
   return response.json("access_token");
 }
 
+/** Accept only the JSON-RPC response that belongs to the current observation. */
 function result(response, expectedId) {
   const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
   const envelope = line ? JSON.parse(line.slice(6)) : response.json();
@@ -61,6 +63,7 @@ function result(response, expectedId) {
   return envelope.result;
 }
 
+/** Build the self-describing metadata required by the 2026-07-28 stateless lane. */
 function modernMeta() {
   return {
     "io.modelcontextprotocol/protocolVersion": protocolVersion,
@@ -68,6 +71,7 @@ function modernMeta() {
   };
 }
 
+/** Send one generic MCP request while preserving the selected protocol-era contract. */
 function request(token, session, id, method, params) {
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -87,6 +91,7 @@ function request(token, session, id, method, params) {
   );
 }
 
+/** Establish only the legacy handshake-era worker-local MCP session. */
 function initialize(token) {
   const response = request(token, null, 1, "initialize", {
     protocolVersion,
@@ -103,6 +108,7 @@ function initialize(token) {
   return session;
 }
 
+/** Call one durable Global Ask tool without duplicating modern and legacy harnesses. */
 function callTool(token, session, id, name, args) {
   if (isModern) {
     const headers = {
@@ -128,12 +134,14 @@ function callTool(token, session, id, name, args) {
   return request(token, session, id, "tools/call", { name, arguments: args });
 }
 
+/** Return structured tool content only after transport and tool-level error checks. */
 function structured(response, expectedId) {
   const toolResult = result(response, expectedId);
   if (toolResult.isError) fail(`MCP tool returned an error result: HTTP ${response.status}`);
   return toolResult.structuredContent;
 }
 
+/** Seed one durable synthetic Ask job and expose only its identifier to VUs. */
 export function setup() {
   if (!requestTimeout) fail("REQUEST_TIMEOUT is required");
   if (unitlessDuration.test(requestTimeout)) fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
@@ -147,6 +155,7 @@ export function setup() {
   return { token, askJobId: structured(response, 2).ask_job_id };
 }
 
+/** Repeatedly read the durable Ask job while measuring authenticated transport latency. */
 export default function (data) {
   vuToken ||= data.token;
   vuSession ||= isModern ? null : initialize(vuToken);
