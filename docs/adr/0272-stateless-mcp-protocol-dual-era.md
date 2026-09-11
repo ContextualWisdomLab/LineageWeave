@@ -57,6 +57,12 @@ routing into LineageWeave.
    audience/scope, protected-resource metadata, PostgreSQL evidence
    authorization, Valkey quota, and the contextual-orchestrator boundary all
    remain as accepted in ADR 0218.
+6. Legacy sessions are worker-local SDK state. A multi-worker deployment that
+   keeps the handshake-era lane must preserve affinity for follow-up requests
+   carrying the same `Mcp-Session-Id`; otherwise a different worker can reject
+   a valid legacy session as unknown. Deployments that instead select the SDK's
+   stateless HTTP mode do not mint those sessions, but must treat features that
+   depend on session state or server-to-client back-channel state as unavailable.
 
 ## Consequences
 
@@ -64,7 +70,10 @@ routing into LineageWeave.
   discover the server and call both Global Ask tools; two sequential modern
   calls are served independently without sticky routing.
 - A handshake-era client keeps initializing, receiving `Mcp-Session-Id`, and
-  calling the same tools during the upstream deprecation window.
+  calling the same tools during the upstream deprecation window. In a
+  multi-worker deployment, those follow-up requests require session affinity
+  unless the deployment deliberately chooses the SDK's stateless mode and its
+  reduced session-dependent feature set.
 - Browser clients can preflight the modern routing headers; the admitted
   request still crosses the same OAuth, body-admission, and quota order.
 - The load lane no longer names the legacy handshake the current protocol;
