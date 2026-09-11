@@ -42,12 +42,13 @@ routing into LineageWeave.
    before any tool invocation or quota consumption.
 3. `scripts/k6_mcp_e2e.js` exercises the modern stateless lane by default —
    `MCP_PROTOCOL_VERSION` defaults to `2026-07-28`, every `tools/call` is
-   self-contained, carries the `_meta` envelope and routing headers, and
-   carries no session — and retains the 2025-11-25 handshake lane as an
-   explicitly named compatibility selection through the same script. The
-   harness attributes a reply to an observation only when `jsonrpc` and the
-   request `id` match and exactly one of `result` / `error` is present;
-   response content never reaches diagnostics.
+   self-contained, carries the `_meta` protocol version, client capabilities,
+   and explicit `clientInfo` identity plus the routing headers, and carries no
+   session — and retains the 2025-11-25 handshake lane as an explicitly named
+   compatibility selection through the same script. The harness attributes a
+   reply to an observation only when `jsonrpc` and the request `id` match and
+   exactly one of `result` / `error` is present; response content never reaches
+   diagnostics.
 4. The isolated modern lane, the legacy lane, the fail-closed routing-header
    mismatch, and the browser preflight are covered by contract tests; the
    load harness measures the same authenticated durable Global Ask submit/read
