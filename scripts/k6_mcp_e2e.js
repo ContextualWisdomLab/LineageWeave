@@ -26,6 +26,8 @@ const protocolVersion = __ENV.MCP_PROTOCOL_VERSION || "2026-07-28";
 const HANDSHAKE_VERSIONS = ["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"];
 const isModern = !HANDSHAKE_VERSIONS.includes(protocolVersion);
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
+const HTTPS_URL = /^https:\/\//i;
+const LOOPBACK_HTTP = /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i;
 
 const initializeDuration = new Trend("lineageweave_mcp_initialize_duration", true);
 const submitDuration = new Trend("lineageweave_mcp_submit_duration", true);
@@ -34,6 +36,12 @@ const jobStateObservations = new Counter("lineageweave_mcp_job_state_observation
 
 let vuToken;
 let vuSession;
+
+/** Reject credential-bearing plaintext transport outside the isolated loopback boundary. */
+function assertCredentialTransport(rawUrl, label) {
+  if (HTTPS_URL.test(rawUrl) || LOOPBACK_HTTP.test(rawUrl)) return;
+  fail(`${label} must use HTTPS unless it targets localhost, 127.0.0.1, or [::1]`);
+}
 
 /** Authenticate the synthetic buyer principal through the configured Keycloak boundary. */
 function authenticate() {
@@ -143,6 +151,8 @@ function structured(response, expectedId) {
 
 /** Measure the authenticated submit -> read buyer path once per VU iteration. */
 export function setup() {
+  assertCredentialTransport(mcpUrl, "MCP_URL");
+  assertCredentialTransport(keycloakUrl, "KEYCLOAK_URL");
   if (!requestTimeout) fail("REQUEST_TIMEOUT is required");
   if (unitlessDuration.test(requestTimeout)) fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
   return { token: authenticate() };
