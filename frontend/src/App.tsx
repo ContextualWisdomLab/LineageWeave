@@ -138,19 +138,6 @@ import {
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
 } from "./leftoverMapCoverage";
 import {
-  leftoverMapAxisBadge,
-  leftoverMapAxisTickBadge,
-} from "./leftoverMapAxisBadge";
-import {
-  leftoverMapCompareAxisBadge,
-  leftoverMapCompareAxisTickBadge,
-  leftoverSingularForAxis,
-  LEFTOVER_MAP_COMPARE_AXIS_CAPTION,
-  LEFTOVER_MAP_COMPARE_AXIS_LABEL,
-} from "./leftoverMapPlotAxisSingular";
-import { leftoverShareForAxis } from "./leftoverMapPlotAxisShare";
-import { layoutLeftoverMapPlot } from "./leftoverMapPlotLayout";
-import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
 } from "./leftoverMapReconstruction";
@@ -3936,47 +3923,21 @@ function ReportsPanel({
                 {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, incompleteItemCount)}
               </p>
             ) : null}
-            {report.leftover_map_axes?.map((axis) => {
-              const badge = leftoverMapAxisBadge(
-                axis.axis_index,
-                leftoverSingularForAxis([axis], axis.axis_index),
-                leftoverShareForAxis([axis], axis.axis_index),
-              );
-              if (badge === null) {
-                return null;
-              }
-              return (
-                <span key={axis.axis_index} className="post-badge">
-                  {tf(badge.key, badge.values)}
-                </span>
-              );
-            })}
-            {report.leftover_map_axes?.some(
-              (axis) =>
-                leftoverMapAxisBadge(
-                  axis.axis_index,
-                  leftoverSingularForAxis([axis], axis.axis_index),
-                  leftoverShareForAxis([axis], axis.axis_index),
-                ) !== null,
-            ) ? (
+            {report.leftover_map_axes?.map((axis) => (
+              <span key={axis.axis_index} className="post-badge">
+                {tf("leftover axis {axis} {share}%", {
+                  axis: axis.axis_index,
+                  share: (axis.leftover_share * 100).toFixed(0),
+                })}
+              </span>
+            ))}
+            {report.leftover_map_axes && report.leftover_map_axes.length > 0 && (
               <p aria-label={t("Leftover-map axis share")}>
                 {t(
-                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
+                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
                 )}
               </p>
-            ) : null}
-            {layoutLeftoverMapPlot(report.leftover_pairs ?? [], criterionShortLabel)?.ticks.map((tick) => {
-              const badge = leftoverMapAxisTickBadge(
-                tick.axis,
-                tick.label,
-                leftoverSingularForAxis(report.leftover_map_axes, tick.axis),
-              );
-              return (
-                <span key={`leftover-axis-tick:${tick.axis}:${tick.label}`} className="post-badge">
-                  {tf(badge.key, badge.values)}
-                </span>
-              );
-            })}
+            )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
               <SurfaceBoundary>
                 <LeftoverPairList
@@ -4127,45 +4088,6 @@ function ReportsPanel({
                   {tf(LEFTOVER_MAP_PLOT_INCOMPLETE_ITEM, comparisonIncompleteItemCount)}
                 </p>
               ) : null}
-              {row.leftover_map_axes?.map((axis) => {
-                const badge = leftoverMapCompareAxisBadge(
-                  axis.axis_index,
-                  leftoverSingularForAxis([axis], axis.axis_index),
-                  leftoverShareForAxis([axis], axis.axis_index),
-                );
-                if (badge === null) {
-                  return null;
-                }
-                return (
-                  <span key={axis.axis_index} className="post-badge">
-                    {tf(badge.key, badge.values)}
-                  </span>
-                );
-              })}
-              {row.leftover_map_axes?.some(
-                (axis) =>
-                  leftoverMapCompareAxisBadge(
-                    axis.axis_index,
-                    leftoverSingularForAxis([axis], axis.axis_index),
-                    leftoverShareForAxis([axis], axis.axis_index),
-                  ) !== null,
-              ) ? (
-                <p aria-label={t(LEFTOVER_MAP_COMPARE_AXIS_LABEL)}>
-                  {t(LEFTOVER_MAP_COMPARE_AXIS_CAPTION)}
-                </p>
-              ) : null}
-              {layoutLeftoverMapPlot(row.leftover_pairs ?? [], criterionShortLabel)?.ticks.map((tick) => {
-                const badge = leftoverMapCompareAxisTickBadge(
-                  tick.axis,
-                  tick.label,
-                  leftoverSingularForAxis(row.leftover_map_axes, tick.axis),
-                );
-                return (
-                  <span key={`leftover-axis-tick:${tick.axis}:${tick.label}`} className="post-badge">
-                    {tf(badge.key, badge.values)}
-                  </span>
-                );
-              })}
               {row.leftover_pairs && row.leftover_pairs.length > 0 && (
                 <>
                 <SurfaceBoundary>
