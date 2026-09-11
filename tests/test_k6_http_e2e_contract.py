@@ -24,6 +24,8 @@ def test_mcp_k6_harness_measures_modern_stateless_contract() -> None:
     assert '"Mcp-Method"' in source
     assert '"Mcp-Name"' in source
     assert "io.modelcontextprotocol/clientCapabilities" in source
+    assert "io.modelcontextprotocol/clientInfo" in source
+    assert 'name: "lineageweave-k6", version: "1"' in source
     assert "HANDSHAKE_VERSIONS" in source
     assert '"initialize"' in source
     assert '"notifications/initialized"' in source
