@@ -4786,6 +4786,7 @@ function CustomerMasterPanel({
   const [copyAttempt, setCopyAttempt] = useState(0);
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const masterRequestGeneration = useRef(0);
+  const relatedRequestGenerationByEntity = useRef<Record<string, number>>({});
   const authGeneration = useRef(0);
   const currentAccessTokenRef = useRef(accessToken);
   currentAccessTokenRef.current = accessToken;
@@ -4928,20 +4929,26 @@ function CustomerMasterPanel({
   async function loadRelatedEntity(entityId: string) {
     const requestAccessToken = accessToken;
     const requestAuthGeneration = authGeneration.current;
+    const requestGeneration = (relatedRequestGenerationByEntity.current[entityId] ?? 0) + 1;
+    relatedRequestGenerationByEntity.current[entityId] = requestGeneration;
+    const ownsRequest = () =>
+      requestAccessToken === currentAccessTokenRef.current &&
+      requestAuthGeneration === authGeneration.current &&
+      relatedRequestGenerationByEntity.current[entityId] === requestGeneration;
     setRelatedLoading(entityId);
     setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
     try {
       const response = await fetchRelatedEntity(requestAccessToken, entityId);
-      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+      if (ownsRequest()) {
         setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
         setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
       }
     } catch {
-      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+      if (ownsRequest()) {
         setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: true }));
       }
     } finally {
-      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+      if (ownsRequest()) {
         setRelatedLoading((owner) => (owner === entityId ? null : owner));
       }
     }
