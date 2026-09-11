@@ -14,6 +14,8 @@ from starlette.testclient import TestClient
 from backend.app.config import load_settings
 
 ROOT = Path(__file__).resolve().parents[1]
+# The value is a synthetic bearer placeholder for the HTTP boundary, never a credential.
+SYNTHETIC_BEARER = "token"
 
 
 def test_mcp_quota_has_no_library_default(monkeypatch) -> None:
@@ -233,7 +235,7 @@ async def test_mcp_tools_delegate_to_current_service_once(monkeypatch) -> None:
     monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
     monkeypatch.setattr(mcp_server, "read_global_ask_job_service", read)
     token = AccessToken(
-        token="token",
+        token=SYNTHETIC_BEARER,
         client_id="client-1",
         scopes=[],
         subject="subject-1",
@@ -389,7 +391,7 @@ def _build_test_server(settings, *, token, account, pool, limiter, resolve):
 def _access_token(settings):
     """Build one authenticated MCP token for the configured audience."""
     return AccessToken(
-        token="token",
+        token=SYNTHETIC_BEARER,
         client_id="client",
         scopes=["lineageweave:ask"],
         subject="subject-1",
@@ -685,7 +687,7 @@ def test_exhausted_http_tool_emits_retry_after(monkeypatch) -> None:
 
     settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
     token = AccessToken(
-        token="token",
+        token=SYNTHETIC_BEARER,
         client_id="client",
         scopes=["lineageweave:ask"],
         subject="subject-1",
@@ -904,7 +906,7 @@ async def test_tool_auth_and_quota_fail_closed(monkeypatch, mode) -> None:
         None
         if mode == "missing_token"
         else AccessToken(
-            token="token",
+            token=SYNTHETIC_BEARER,
             client_id="client",
             scopes=[],
             subject="subject-1",
