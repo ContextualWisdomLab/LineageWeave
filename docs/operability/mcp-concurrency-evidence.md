@@ -1,7 +1,46 @@
 # MCP concurrency evidence
 
-This supporting record is governed by [ADR 0218](../adr/0218-current-contract-mcp-global-ask.md).
-It reports an observation, not an SLO or production capacity claim.
+This supporting record is governed by [ADR 0218](../adr/0218-current-contract-mcp-global-ask.md)
+and its current-protocol amendment
+[ADR 0272](../adr/0272-stateless-mcp-protocol-dual-era.md). It reports
+observations, not an SLO or production capacity claim.
+
+## 2026-09-11 synthetic isolated-Compose observation (dual era)
+
+The current-protocol candidate was run in the isolated synthetic Compose
+stack with the operator-declared diagnostic quota envelope of 1,000
+authenticated tool calls per 60 seconds; this value is not a deployment
+recommendation. The committed `scripts/k6_mcp_e2e.js` ran its default
+2026-07-28 stateless lane (self-contained requests, `Mcp-Method` /
+`Mcp-Name` routing headers, no session) and then the explicitly selected
+2025-11-25 handshake lane as a compatibility regression.
+
+```shell
+KEYCLOAK_URL=http://127.0.0.1:18080 MCP_URL=http://127.0.0.1:18001/mcp \
+  REQUEST_TIMEOUT=20s k6 run --vus 3 --duration 5s scripts/k6_mcp_e2e.js
+MCP_PROTOCOL_VERSION=2025-11-25 ... k6 run --vus 3 --duration 5s scripts/k6_mcp_e2e.js
+```
+
+| Observation | Modern 2026-07-28 | Legacy 2025-11-25 |
+| --- | ---: | ---: |
+| Completed iterations | 112 | 64 |
+| Interrupted iterations | 0 | 0 |
+| HTTP requests | 114 | 74 |
+| HTTP request failures | 0 | 0 |
+| Successful MCP Ask-read checks | 112 / 112 | 64 / 64 |
+| Submit duration, average | 1.39 s | 765.23 ms |
+| Read duration, average / p95 / maximum | 136.05 / 575.86 / 1010 ms | 246.28 / 695.31 / 926.78 ms |
+| Initialize duration, average / p95 / maximum | not applicable (stateless) | 78.97 / 202.46 / 230.71 ms |
+
+An earlier run on the saturated stack reported two Ask-read check failures
+while every MCP POST still returned 200; the repeat after the synthetic
+queue drained shows 0 failed checks and 0 HTTP failures, so the earlier
+failures were queue saturation, not transport.
+
+This workstation result proves only that the declared synthetic workload
+completed on this candidate. Representative infrastructure telemetry and an
+approved quota/SLO decision remain required before a production capacity
+claim.
 
 ## 2026-08-26 synthetic isolated-Compose observation
 

@@ -420,10 +420,15 @@ the retained revision and full/partial grounding state.
   call; preflight and rejected admission consume none.
 - Require deployment-supplied, load-evidence-backed quota parameters and fail
   closed when shared Valkey cannot decide.
+- Serve the current stateless MCP revision (self-describing requests, optional
+  `server/discover`, `Mcp-Method` / `Mcp-Name` routing headers with fail-closed
+  mismatch) while legacy handshake clients keep working through the upstream
+  deprecation window (ADR 0272).
 
 Acceptance: MCP and REST produce the same scope snapshot, verification opt-in,
 knowledge cutoff, status, citations, and limitations; cross-account reads are
-404-equivalent; and exhaustion returns the bounded actual retry interval.
+404-equivalent; exhaustion returns the bounded actual retry interval; and a
+modern stateless client and a legacy session client both reach the same tools.
 
 ### PRD-FR-6 — Measurement boundary
 
