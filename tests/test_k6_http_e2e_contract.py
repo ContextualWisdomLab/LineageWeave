@@ -34,6 +34,22 @@ def test_mcp_k6_harness_measures_modern_stateless_contract() -> None:
     assert "REQUEST_TIMEOUT must include a duration unit" in source
 
 
+def test_mcp_k6_harness_rejects_cleartext_remote_credentials() -> None:
+    """Bearer tokens and synthetic login credentials never cross remote plaintext HTTP."""
+    source = MCP_SCRIPT.read_text(encoding="utf-8")
+    setup_body = source[
+        source.index("export function setup") : source.index("export default function")
+    ]
+
+    assert "function assertCredentialTransport" in source
+    assert 'assertCredentialTransport(mcpUrl, "MCP_URL")' in setup_body
+    assert 'assertCredentialTransport(keycloakUrl, "KEYCLOAK_URL")' in setup_body
+    assert 'rawUrl.startsWith("https://")' in source
+    assert 'rawUrl.startsWith("http://localhost")' in source
+    assert 'rawUrl.startsWith("http://127.0.0.1")' in source
+    assert 'rawUrl.startsWith("http://[::1]")' in source
+
+
 def test_mcp_k6_harness_attributes_only_matching_jsonrpc_replies() -> None:
     """A mismatched or ambiguous JSON-RPC reply is never attributed to the observation."""
     source = MCP_SCRIPT.read_text(encoding="utf-8")
