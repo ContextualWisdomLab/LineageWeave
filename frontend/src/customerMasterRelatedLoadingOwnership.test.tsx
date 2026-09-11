@@ -77,10 +77,12 @@ vi.mock("./api", async (importOriginal) => {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolver) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolver, rejecter) => {
     resolve = resolver;
+    reject = rejecter;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 beforeEach(() => {
@@ -132,4 +134,86 @@ it("keeps entity B loading when an older same-auth entity A lookup settles first
   });
 
   await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+});
+
+it("keeps the newest same-entity lookup authoritative when an older success settles first", async () => {
+  const user = userEvent.setup();
+  const first = deferred<Awaited<ReturnType<typeof fetchRelatedEntity>>>();
+  const second = deferred<Awaited<ReturnType<typeof fetchRelatedEntity>>>();
+  vi.mocked(fetchRelatedEntity)
+    .mockImplementationOnce(() => first.promise)
+    .mockImplementationOnce(() => second.promise);
+
+  render(<App />);
+  await user.click(
+    await screen.findByRole("button", { name: /^(?:Customer master|고객 마스터)$/ }),
+  );
+  const alpha = await screen.findByRole("button", { name: /Alpha Corp/ });
+  await user.click(alpha);
+  await waitFor(() => expect(fetchRelatedEntity).toHaveBeenCalledTimes(1));
+  await user.click(alpha);
+  await user.click(alpha);
+  await waitFor(() => expect(fetchRelatedEntity).toHaveBeenCalledTimes(2));
+
+  await act(async () => {
+    first.resolve({
+      corporate_entity_id: "corp-a",
+      entity_name: "Alpha Corp",
+      related: [{ node_id: "old-post", node_type_code: "node_post", label: "Old result" }],
+    });
+    await first.promise;
+  });
+
+  expect(screen.getByRole("status")).toHaveTextContent("Loading related posts...");
+  expect(screen.queryByText("Old result")).not.toBeInTheDocument();
+
+  await act(async () => {
+    second.resolve({
+      corporate_entity_id: "corp-a",
+      entity_name: "Alpha Corp",
+      related: [{ node_id: "new-post", node_type_code: "node_post", label: "Newest result" }],
+    });
+    await second.promise;
+  });
+
+  await screen.findByText("Newest result");
+  expect(screen.queryByText("Old result")).not.toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+it("does not let an older same-entity failure replace a newer in-flight lookup", async () => {
+  const user = userEvent.setup();
+  const first = deferred<Awaited<ReturnType<typeof fetchRelatedEntity>>>();
+  const second = deferred<Awaited<ReturnType<typeof fetchRelatedEntity>>>();
+  vi.mocked(fetchRelatedEntity)
+    .mockImplementationOnce(() => first.promise)
+    .mockImplementationOnce(() => second.promise);
+
+  render(<App />);
+  await user.click(
+    await screen.findByRole("button", { name: /^(?:Customer master|고객 마스터)$/ }),
+  );
+  const alpha = await screen.findByRole("button", { name: /Alpha Corp/ });
+  await user.click(alpha);
+  await waitFor(() => expect(fetchRelatedEntity).toHaveBeenCalledTimes(1));
+  await user.click(alpha);
+  await user.click(alpha);
+  await waitFor(() => expect(fetchRelatedEntity).toHaveBeenCalledTimes(2));
+
+  await act(async () => {
+    first.reject(new Error("stale failure"));
+    await first.promise.catch(() => undefined);
+  });
+
+  expect(screen.getByRole("status")).toHaveTextContent("Loading related posts...");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+  await act(async () => {
+    second.resolve({ corporate_entity_id: "corp-a", entity_name: "Alpha Corp", related: [] });
+    await second.promise;
+  });
+
+  await screen.findByText("No linked posts yet.");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
 });
