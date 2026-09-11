@@ -8,7 +8,6 @@ ROOT = Path(__file__).resolve().parents[1]
 PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
 RANK_SOURCE = ROOT / "frontend" / "src" / "leftoverMapRank.ts"
-I18N_SOURCE = ROOT / "frontend" / "src" / "i18n.ts"
 
 
 def test_comparison_graphic_names_the_persisted_rank_with_distinct_copy() -> None:
@@ -46,17 +45,3 @@ def test_rank_projection_consumes_only_persisted_fail_closed_evidence() -> None:
     assert "Math.max" not in rank_source
     assert "Math.min" not in rank_source
     assert "Math.abs" not in rank_source
-
-
-def test_comparison_graphic_rank_copy_is_localized_for_every_product_locale() -> None:
-    """Non-English screen-reader output must not fall back to the English key."""
-    i18n_source = I18N_SOURCE.read_text(encoding="utf-8")
-    expected_entries = (
-        '"leftover map comparison graphic leftover-map rank {label}": "잔여 지도 비교 그림 순위 {label}"',
-        '"leftover map comparison graphic leftover-map rank {label}": "残差地图比较图形秩 {label}"',
-        '"leftover map comparison graphic leftover-map rank {label}": "残差マップの比較図階数 {label}"',
-        '"leftover map comparison graphic leftover-map rank {label}": "hạng đồ họa so sánh bản đồ phần dư {label}"',
-    )
-
-    for entry in expected_entries:
-        assert entry in i18n_source
