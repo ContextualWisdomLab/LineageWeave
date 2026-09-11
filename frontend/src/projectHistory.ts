@@ -189,7 +189,7 @@ const EN: Record<ProjectHistoryMessageKey, string> = {
   sourceRecorded: "Source record",
 };
 
-const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
+const MESSAGES: Partial<Record<Locale, Record<ProjectHistoryMessageKey, string>>> = {
   en: EN,
   ko: {
     heading: "프로젝트 이벤트 타임라인",
@@ -378,7 +378,7 @@ export function projectHistoryText(
   key: ProjectHistoryMessageKey,
   params: MessageParams = {},
 ): string {
-  let value = MESSAGES[locale][key];
+  let value = MESSAGES[locale]?.[key] ?? EN[key];
   for (const [name, replacement] of Object.entries(params)) {
     value = value.replaceAll(`{${name}}`, String(replacement));
   }

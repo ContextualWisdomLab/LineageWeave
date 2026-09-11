@@ -87,6 +87,7 @@ import {
   type VocEvidence,
   type SimilarVocItem,
   fetchTenantConfig,
+  fetchTranslationScreen,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
@@ -115,10 +116,14 @@ import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
   setLocale,
+  setCustomerMasterTranslations,
+  clearCustomerMasterTranslations,
   t,
   tf,
   useLocale,
 } from "./i18n";
+import { ScreenTranslationGate } from "./components/ScreenTranslationGate";
+import { StatusNotice } from "./components/StatusNotice";
 import "./App.css";
 
 const AdminPanel = lazy(() => import("./components/AdminPanel").then((module) => ({ default: module.AdminPanel })));
@@ -4650,19 +4655,25 @@ function CustomerEntityTreeRow({
   depth,
   expandedEntityId,
   relatedByEntity,
+  relatedErrorByEntity,
   relatedLoading,
   onToggle,
+  onRetry,
   onOpenPost,
 }: {
   node: CustomerEntityTreeNode;
   depth: number;
   expandedEntityId: string | null;
   relatedByEntity: Record<string, RelatedNode[]>;
+  relatedErrorByEntity: Record<string, boolean>;
   relatedLoading: string | null;
   onToggle: (entityId: string) => void;
+  onRetry: (entityId: string) => void;
   onOpenPost: (postId: string) => void;
 }) {
   const { entity, children } = node;
+  const hasRelatedResult = Object.prototype.hasOwnProperty.call(relatedByEntity, entity.corporate_entity_id);
+  const relatedError = relatedErrorByEntity[entity.corporate_entity_id] === true;
   const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
     (related) => related.node_type_code === NODE_POST,
   );
@@ -4679,11 +4690,20 @@ function CustomerEntityTreeRow({
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p role="status">{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+          {relatedError ? (
+            <StatusNotice
+              kind="retry"
+              message={t("This request failed. Retry the same action.")}
+              onRetry={() => onRetry(entity.corporate_entity_id)}
+            />
+          ) : null}
+          {!relatedError && relatedLoading === entity.corporate_entity_id ? (
+            <p role="status">{t("Loading related posts...")}</p>
+          ) : null}
+          {!relatedError && relatedLoading !== entity.corporate_entity_id && hasRelatedResult && relatedPosts.length === 0 ? (
             <p className="popup-placeholder">{t("No linked posts yet.")}</p>
           ) : null}
-          {relatedPosts.length > 0 ? (
+          {!relatedError && relatedPosts.length > 0 ? (
             <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
               {relatedPosts.map((related) => (
                 <li key={related.node_id}>
@@ -4709,8 +4729,10 @@ function CustomerEntityTreeRow({
               depth={depth + 1}
               expandedEntityId={expandedEntityId}
               relatedByEntity={relatedByEntity}
+              relatedErrorByEntity={relatedErrorByEntity}
               relatedLoading={relatedLoading}
               onToggle={onToggle}
+              onRetry={onRetry}
               onOpenPost={onOpenPost}
             />
           ))}
@@ -4757,10 +4779,21 @@ function CustomerMasterPanel({
 }: {
   accessToken: string;
 }) {
+  const locale = useLocale();
+  const [copyState, setCopyState] = useState<"loading" | "ready" | "retry">("loading");
+  const [copyLocale, setCopyLocale] = useState<string | null>(null);
+  const [copyAccessToken, setCopyAccessToken] = useState<string | null>(null);
+  const [copyAttempt, setCopyAttempt] = useState(0);
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
+  const masterRequestGeneration = useRef(0);
+  const relatedRequestGenerationByEntity = useRef<Record<string, number>>({});
+  const authGeneration = useRef(0);
+  const currentAccessTokenRef = useRef(accessToken);
+  currentAccessTokenRef.current = accessToken;
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+  const [relatedErrorByEntity, setRelatedErrorByEntity] = useState<Record<string, boolean>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   // Opening a customer's related post stays IN this panel (the Board
   // hand-off was the reported bug: clicking a customer's post jumped the
@@ -4776,6 +4809,15 @@ function CustomerMasterPanel({
 
   useEffect(() => {
     let active = true;
+    setCanResolveHints(false);
+    setRelatedByEntity({});
+    setRelatedErrorByEntity({});
+    setExpandedEntityId(null);
+    setRelatedLoading(null);
+    setSelectedPostId(null);
+    setSelectedPostGraph(null);
+    setResolvingHint(null);
+    setResolveError(null);
     fetchMe(accessToken)
       .then((member) => {
         if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));
@@ -4785,20 +4827,64 @@ function CustomerMasterPanel({
       });
     return () => {
       active = false;
+      authGeneration.current += 1;
     };
   }, [accessToken]);
 
   const loadMaster = useCallback(() => {
+    const requestAccessToken = accessToken;
+    const requestAuthGeneration = authGeneration.current;
+    const requestGeneration = ++masterRequestGeneration.current;
     setError(null);
-    return fetchCustomerMaster(accessToken)
-      .then(setMaster)
-      .catch(() => setError(t("Customer master could not be loaded.")));
+    return fetchCustomerMaster(requestAccessToken)
+      .then((nextMaster) => {
+        if (
+          requestGeneration === masterRequestGeneration.current &&
+          requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current
+        ) {
+          setMaster(nextMaster);
+        }
+      })
+      .catch(() => {
+        if (
+          requestGeneration === masterRequestGeneration.current &&
+          requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current
+        ) {
+          setError(t("Customer master could not be loaded."));
+        }
+      });
   }, [accessToken]);
 
   useEffect(() => {
+    let active = true;
+    masterRequestGeneration.current += 1;
+    setMaster(null);
+    setCopyState("loading");
+    setCopyLocale(null);
+    setCopyAccessToken(null);
+    clearCustomerMasterTranslations();
+    fetchTranslationScreen(accessToken, "customer-master", locale)
+      .then((screen) => {
+        if (!active || screen.screen_key !== "customer-master" || screen.locale !== locale) return;
+        setCustomerMasterTranslations(screen.translations);
+        setCopyLocale(locale);
+        setCopyAccessToken(accessToken);
+        setCopyState("ready");
+      })
+      .catch(() => {
+        if (active) setCopyState("retry");
+      });
+    return () => {
+      active = false;
+      clearCustomerMasterTranslations();
+    };
+  }, [accessToken, locale, copyAttempt]);
+
+  useEffect(() => {
+    if (copyState !== "ready" || copyLocale !== locale || copyAccessToken !== accessToken) return;
     setMaster(null);
     void loadMaster();
-  }, [loadMaster]);
+  }, [accessToken, copyAccessToken, copyLocale, copyState, loadMaster, locale]);
 
   useEffect(() => {
     if (!selectedPostId) {
@@ -4824,36 +4910,70 @@ function CustomerMasterPanel({
   }
 
   async function handleResolveHint(hintCode: string) {
+    const requestAccessToken = accessToken;
+    const requestAuthGeneration = authGeneration.current;
     setResolvingHint(hintCode);
     setResolveError(null);
     try {
-      await resolveCustomerHint(accessToken, hintCode);
-      await loadMaster();
+      await resolveCustomerHint(requestAccessToken, hintCode);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) await loadMaster();
     } catch {
-      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) {
+        setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      }
     } finally {
-      setResolvingHint(null);
+      if (requestAccessToken === currentAccessTokenRef.current && requestAuthGeneration === authGeneration.current) setResolvingHint(null);
     }
   }
 
-  async function toggleEntity(entityId: string) {
+  async function loadRelatedEntity(entityId: string) {
+    const requestAccessToken = accessToken;
+    const requestAuthGeneration = authGeneration.current;
+    const requestGeneration = (relatedRequestGenerationByEntity.current[entityId] ?? 0) + 1;
+    relatedRequestGenerationByEntity.current[entityId] = requestGeneration;
+    const ownsRequest = () =>
+      requestAccessToken === currentAccessTokenRef.current &&
+      requestAuthGeneration === authGeneration.current &&
+      relatedRequestGenerationByEntity.current[entityId] === requestGeneration;
+    setRelatedLoading(entityId);
+    setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
+    try {
+      const response = await fetchRelatedEntity(requestAccessToken, entityId);
+      if (ownsRequest()) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: false }));
+      }
+    } catch {
+      if (ownsRequest()) {
+        setRelatedErrorByEntity((previous) => ({ ...previous, [entityId]: true }));
+      }
+    } finally {
+      if (ownsRequest()) {
+        setRelatedLoading((owner) => (owner === entityId ? null : owner));
+      }
+    }
+  }
+
+  function toggleEntity(entityId: string) {
     if (expandedEntityId === entityId) {
       setExpandedEntityId(null);
       return;
     }
     setExpandedEntityId(entityId);
-    if (relatedByEntity[entityId]) return;
-    setRelatedLoading(entityId);
-    try {
-      const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
-    } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
-    } finally {
-      setRelatedLoading(null);
-    }
+    if (Object.prototype.hasOwnProperty.call(relatedByEntity, entityId)) return;
+    void loadRelatedEntity(entityId);
   }
 
+  function retryRelatedEntity(entityId: string) {
+    void loadRelatedEntity(entityId);
+  }
+
+  if (copyState === "retry") {
+    return <ScreenTranslationGate state="retry" onRetry={() => setCopyAttempt((attempt) => attempt + 1)} />;
+  }
+  if (copyState === "loading" || copyLocale !== locale || copyAccessToken !== accessToken) {
+    return <ScreenTranslationGate state="loading" />;
+  }
   return (
     <section className="workspace-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
@@ -4873,8 +4993,10 @@ function CustomerMasterPanel({
               depth={0}
               expandedEntityId={expandedEntityId}
               relatedByEntity={relatedByEntity}
+              relatedErrorByEntity={relatedErrorByEntity}
               relatedLoading={relatedLoading}
               onToggle={toggleEntity}
+              onRetry={retryRelatedEntity}
               onOpenPost={openPost}
             />
           ))}

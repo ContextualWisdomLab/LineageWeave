@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { SurfaceBoundary } from "./App";
 import { optionalKnowledgeCutoffIso } from "./api";
-import { setLocale } from "./i18n";
+import { CUSTOMER_MASTER_TRANSLATION_KEYS, clearCustomerMasterTranslations, setLocale } from "./i18n";
 import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
@@ -15,6 +15,7 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 beforeEach(() => {
+  clearCustomerMasterTranslations();
   setLocale("en");
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
@@ -39,6 +40,7 @@ it("normalizes valid knowledge cutoffs and rejects invalid input", () => {
 });
 
 afterEach(() => {
+  clearCustomerMasterTranslations();
   vi.unstubAllGlobals();
   window.history.replaceState({}, "", "/");
   window.sessionStorage.clear();
@@ -1905,6 +1907,19 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.includes("/api/translations/customer-master?") && method === "GET") {
+        const translations = Object.fromEntries(
+          CUSTOMER_MASTER_TRANSLATION_KEYS.map((key) => [key, key]),
+        );
+        return Promise.resolve(
+          jsonResponse({
+            screen_key: "customer-master",
+            resource_version: 1,
+            locale: new URL(url).searchParams.get("locale") ?? "en",
+            translations,
+          }),
+        );
+      }
       if (url.endsWith("/api/customer-master") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -2250,6 +2265,51 @@ describe("App, authenticated", () => {
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
   });
 
+  it.each(["success", "failure"])("rejects a related %s from before an A-B-A authorization transition", async (outcome) => {
+    stubBackend();
+    const backend = fetch;
+    let releaseRelated!: (response: Response) => void;
+    let rejectRelated!: (error: Error) => void;
+    const oldRelated = new Promise<Response>((resolve, reject) => {
+      releaseRelated = resolve;
+      rejectRelated = reject;
+    });
+    let relatedRequests = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/corporate-entities/corp-demo/related")) {
+        relatedRequests += 1;
+        if (relatedRequests === 1) return oldRelated;
+      }
+      return backend(input, init);
+    }));
+    const { rerender } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click((await screen.findByText("DEMO-CORP-01 · Company")).closest("button")!);
+    expect(relatedRequests).toBe(1);
+
+    for (const accessToken of ["other-access-token", "test-access-token"]) {
+      mockAuth = { ...mockAuth, user: {
+        access_token: accessToken, profile: { preferred_username: "demo.analyst" },
+      } };
+      rerender(<App />);
+      await screen.findByText("DEMO-CORP-01 · Company");
+    }
+    await userEvent.click(screen.getByText("DEMO-CORP-01 · Company").closest("button")!);
+    await screen.findByRole("button", { name: "Open related post: Linked post" });
+    expect(relatedRequests).toBe(2);
+
+    await act(async () => {
+      if (outcome === "failure") rejectRelated(new Error("Superseded request failed"));
+      else releaseRelated(jsonResponse({ related: [{
+        node_id: "superseded-post", node_type_code: "node_post",
+        label: "Superseded related post", relevance: 0.5,
+      }] }));
+      await oldRelated.catch(() => undefined);
+    });
+    expect(screen.queryByRole("button", { name: "Open related post: Superseded related post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
+  });
+
   it("opens a customer's related post in place instead of jumping to the Board", async () => {
     // Live bug (2026-08-19): opening a related post from Customer
     // Master swapped the whole workspace to the Board and opened the
@@ -2296,6 +2356,42 @@ describe("App, authenticated", () => {
     const soloRow = screen.getByText("Solo Role Corp").closest("li");
     expect(soloRow).not.toBeNull();
     expect(within(soloRow as HTMLElement).queryByText("Multiple roles observed")).not.toBeInTheDocument();
+  });
+
+  it.each(["success", "failure"])("ignores hint %s from before an A-B-A authorization transition", async (outcome) => {
+    stubBackend({ admin: true, manyCustomerHints: 1 });
+    const backend = fetch;
+    let releaseHint!: (response: Response) => void;
+    let rejectHint!: (error: Error) => void;
+    const oldHint = new Promise<Response>((resolve, reject) => {
+      releaseHint = resolve;
+      rejectHint = reject;
+    });
+    let masterRequests = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/customer-master/resolve-hint")) return oldHint;
+      if (String(input).endsWith("/api/customer-master")) masterRequests += 1;
+      return backend(input, init);
+    }));
+    const { rerender } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Resolve" }));
+    for (const accessToken of ["other-access-token", "test-access-token"]) {
+      mockAuth = { ...mockAuth, user: {
+        access_token: accessToken, profile: { preferred_username: "demo.analyst" },
+      } };
+      rerender(<App />);
+      await screen.findByRole("button", { name: "Resolve" });
+    }
+    const currentRequests = masterRequests;
+    await act(async () => {
+      if (outcome === "failure") rejectHint(new Error("Superseded hint failed"));
+      else releaseHint(jsonResponse({ corporate_entity_id: "corp-demo", linked_post_count: 1 }));
+      await oldHint.catch(() => undefined);
+    });
+    expect(masterRequests).toBe(currentRequests);
+    expect(screen.queryByText("This hint could not be resolved to a corroborated organization name.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
   });
 
   it("lets a post_admin account resolve an unresolved customer hint into a real name", async () => {

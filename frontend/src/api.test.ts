@@ -5,6 +5,7 @@ import {
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   fetchOperationsDashboard,
+  fetchTranslationScreen,
   fetchRatingSourceOccupations,
   updateTenantConfig,
 } from "./api";
@@ -14,6 +15,19 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it("requests one authenticated screen and locale without a bundled corpus", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ screen_key: "customer-master", resource_version: 3, locale: "de", translations: { title: "Kundenstamm" } }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchTranslationScreen("access-token", "customer-master", "de");
+
+    expect(fetchMock.mock.calls[0][0]).toContain("/api/translations/customer-master?locale=de");
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer access-token");
+  });
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),

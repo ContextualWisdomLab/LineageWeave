@@ -51,6 +51,26 @@ export interface PostPage {
   visibility_options?: PostFilterOption[];
 }
 
+export interface TranslationScreenResponse {
+  screen_key: string;
+  resource_version: number;
+  locale: string;
+  translations: Record<string, string>;
+}
+
+/** Fetch the latest complete published copy for one authenticated screen. */
+export function fetchTranslationScreen(
+  accessToken: string,
+  screenKey: string,
+  locale: string,
+): Promise<TranslationScreenResponse> {
+  const query = new URLSearchParams({ locale });
+  return backendFetch(
+    `/api/translations/${encodeURIComponent(screenKey)}?${query.toString()}`,
+    accessToken,
+  );
+}
+
 export interface OperationsDashboardFact {
   fact_type_code: string;
   fact_type_label: string;
