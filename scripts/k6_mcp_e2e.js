@@ -76,6 +76,7 @@ function modernMeta() {
   return {
     "io.modelcontextprotocol/protocolVersion": protocolVersion,
     "io.modelcontextprotocol/clientCapabilities": {},
+    "io.modelcontextprotocol/clientInfo": { name: "lineageweave-k6", version: "1" },
   };
 }
 
