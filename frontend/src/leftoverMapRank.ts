@@ -7,6 +7,12 @@ export const LEFTOVER_RANK_STRUCTURE_ACTION =
 
 export const LEFTOVER_MAP_COMPARE_RANK_LABEL = "Leftover map comparison rank";
 
+/**
+ * Format persisted rank evidence without coercion or inference.
+ *
+ * Missing, negative, fractional, and non-finite evidence is omitted; zero is a
+ * valid persisted rank and remains explicit.
+ */
 export function formatLeftoverMapRank(rank: number | null | undefined): string | null {
   if (rank == null || !Number.isInteger(rank) || rank < 0) {
     return null;
