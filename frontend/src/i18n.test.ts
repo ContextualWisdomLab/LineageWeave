@@ -43,14 +43,8 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "leftover axis {axis} {share}%",
-    "leftover axis {axis} σ {value}",
-    "leftover axis {axis} σ {value} {share}%",
-    "leftover axis {axis} tick {value}",
-    "leftover axis {axis} tick {value} σ {singular}",
-    "leftover axis {axis} tick {value} {share}%",
-    "leftover axis {axis} tick {value} σ {singular} {share}%",
     "Leftover-map axis share",
-    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
     "Leftover pairs",
     "Closest leftover",
     "Farthest leftover",
@@ -71,12 +65,7 @@ describe("i18n", () => {
     "leftover-map axis 1",
     "leftover-map axis 2",
     "leftover-map axis {axis} ({share}%)",
-    "leftover-map axis {axis} σ {value}",
-    "leftover-map axis {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}",
-    "leftover-map axis {axis} tick {value} σ {singular}",
-    "leftover-map axis {axis} tick {value} {share}%",
-    "leftover-map axis {axis} tick {value} σ {singular} {share}%",
     "leftover-map distance {label}",
     "leftover-map reconstruction {label}",
     "leftover-map explained leftover share {label}",
@@ -112,24 +101,7 @@ describe("i18n", () => {
     "Leftover map comparison observed",
     "leftover map comparison graphic leftover expected {label}",
     "Leftover map comparison expected",
-    "leftover map comparison graphic leftover-map rank {label}",
     "Leftover map comparison rank",
-    "leftover map comparison graphic leftover-map distance {label}",
-    "leftover map comparison graphic leftover-map axis {axis} tick {value}",
-    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}",
-    "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%",
-    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%",
-    "leftover map comparison graphic leftover-map axis {axis} σ {value}",
-    "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)",
-    "leftover map comparison leftover axis {axis} σ {value}",
-    "leftover map comparison leftover axis {axis} σ {value} {share}%",
-    "leftover map comparison leftover axis {axis} {share}%",
-    "leftover map comparison leftover axis {axis} tick {value}",
-    "leftover map comparison leftover axis {axis} tick {value} σ {singular}",
-    "leftover map comparison leftover axis {axis} tick {value} {share}%",
-    "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%",
-    "Leftover map comparison leftover axis",
-    "Leftover map comparison leftover-axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
     "Leftover map comparison coordinates",
     "Leftover map comparison graphic",
     "Leftover map comparison",
@@ -419,7 +391,7 @@ describe("i18n", () => {
     ],
     [
       "vi",
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, phần dư giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     ],
   ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
     setLocale(locale);
@@ -546,7 +518,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 설명 잔여 점유율 R̂²/R² 0.76"],
     ["zh", "残差地图比较图形已解释残差份额 R̂²/R² 0.76"],
     ["ja", "残差マップの比較図説明済み残差割合 R̂²/R² 0.76"],
-    ["vi", "phần dư giải thích đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"],
+    ["vi", "tỷ phần phần dư được giải thích trên đồ họa so sánh bản đồ phần dư R̂²/R² 0.76"],
   ] as const)(
     "formats leftover map comparison graphic explained leftover share in %s",
     (locale, expected) => {
@@ -563,7 +535,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 미설명 잔여 점유율 U²/R² 0.02"],
     ["zh", "残差地图比较图形未解释残差份额 U²/R² 0.02"],
     ["ja", "残差マップの比較図未説明残差割合 U²/R² 0.02"],
-    ["vi", "phần dư chưa giải thích đồ họa so sánh bản đồ phần dư U²/R² 0.02"],
+    ["vi", "tỷ phần phần dư chưa giải thích trên đồ họa so sánh bản đồ phần dư U²/R² 0.02"],
   ] as const)(
     "formats leftover map comparison graphic unexplained leftover share in %s",
     (locale, expected) => {
@@ -580,7 +552,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 비교 그림 교차 점유율 2R̂U/R² 0.12"],
     ["zh", "残差地图比较图形交叉份额 2R̂U/R² 0.12"],
     ["ja", "残差マップの比較図交差割合 2R̂U/R² 0.12"],
-    ["vi", "phần giao đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"],
+    ["vi", "tỷ phần giao trên đồ họa so sánh bản đồ phần dư 2R̂U/R² 0.12"],
   ] as const)(
     "formats leftover map comparison graphic cross share in %s",
     (locale, expected) => {
@@ -656,353 +628,6 @@ describe("i18n", () => {
       expect(
         tf("leftover map comparison graphic leftover expected {label}", {
           label: "E 2.00",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 순위 rank 1"],
-    ["zh", "残差地图比较图形秩 rank 1"],
-    ["ja", "残差マップの比較図階数 rank 1"],
-    ["vi", "hạng đồ họa so sánh bản đồ phần dư rank 1"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map rank in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map rank {label}", {
-          label: "rank 1",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 거리 d 0.12"],
-    ["zh", "残差地图比较图形距离 d 0.12"],
-    ["ja", "残差マップの比較図距離 d 0.12"],
-    ["vi", "khoảng cách đồ họa so sánh bản đồ phần dư d 0.12"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map distance in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map distance {label}", {
-          label: "d 0.12",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 눈금 +0.50"],
-    ["zh", "残差地图比较图形轴 1 刻度 +0.50"],
-    ["ja", "残差マップの比較図軸 1 目盛 +0.50"],
-    ["vi", "vạch trục đồ họa so sánh bản đồ phần dư 1 +0.50"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map axis ticks in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map axis {axis} tick {value}", {
-          axis: 1,
-          value: "+0.50",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 눈금 +0.50 σ 1.84"],
-    ["zh", "残差地图比较图形轴 1 刻度 +0.50 σ 1.84"],
-    ["ja", "残差マップの比較図軸 1 目盛 +0.50 σ 1.84"],
-    ["vi", "vạch trục đồ họa so sánh bản đồ phần dư 1 +0.50 σ 1.84"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map axis tick singular values in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}", {
-          axis: 1,
-          value: "+0.50",
-          singular: "1.84",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 눈금 +0.50 82%"],
-    ["zh", "残差地图比较图形轴 1 刻度 +0.50 82%"],
-    ["ja", "残差マップの比較図軸 1 目盛 +0.50 82%"],
-    ["vi", "vạch trục đồ họa so sánh bản đồ phần dư 1 +0.50 82%"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map axis tick leftover-map axis share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%", {
-          axis: 1,
-          value: "+0.50",
-          share: "82",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 눈금 +0.50 σ 1.84 82%"],
-    ["zh", "残差地图比较图形轴 1 刻度 +0.50 σ 1.84 82%"],
-    ["ja", "残差マップの比較図軸 1 目盛 +0.50 σ 1.84 82%"],
-    ["vi", "vạch trục đồ họa so sánh bản đồ phần dư 1 +0.50 σ 1.84 82%"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map axis tick leftover-map singular values and leftover-map axis share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf(
-          "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%",
-          {
-            axis: 1,
-            value: "+0.50",
-            singular: "1.84",
-            share: "82",
-          },
-        ),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 σ 1.84"],
-    ["zh", "残差地图比较图形轴 1 σ 1.84"],
-    ["ja", "残差マップの比較図軸 1 σ 1.84"],
-    ["vi", "trục đồ họa so sánh bản đồ phần dư 1 σ 1.84"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map axis singular values in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map axis {axis} σ {value}", {
-          axis: 1,
-          value: "1.84",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 그림 축 1 σ 1.84 (82%)"],
-    ["zh", "残差地图比较图形轴 1 σ 1.84 (82%)"],
-    ["ja", "残差マップの比較図軸 1 σ 1.84 (82%)"],
-    ["vi", "trục đồ họa so sánh bản đồ phần dư 1 σ 1.84 (82%)"],
-  ] as const)(
-    "formats leftover map comparison graphic leftover-map axis singular share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)", {
-          axis: 1,
-          value: "1.84",
-          share: "82",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔차 축 1 σ 1.84 82%"],
-    ["zh", "残差轴 1 σ 1.84 82%"],
-    ["ja", "残差軸 1 σ 1.84 82%"],
-    ["vi", "trục phần dư 1 σ 1.84 82%"],
-  ] as const)("formats leftover-axis badge singular value with share in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf("leftover axis {axis} σ {value} {share}%", { axis: 1, value: "1.84", share: "82" }),
-    ).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔차 축 1 σ 1.84"],
-    ["zh", "残差轴 1 σ 1.84"],
-    ["ja", "残差軸 1 σ 1.84"],
-    ["vi", "trục phần dư 1 σ 1.84"],
-  ] as const)("formats leftover-axis badge singular values without share in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(tf("leftover axis {axis} σ {value}", { axis: 1, value: "1.84" })).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔차 축 1 눈금 +0.50"],
-    ["zh", "残差轴 1 刻度 +0.50"],
-    ["ja", "残差軸 1 目盛 +0.50"],
-    ["vi", "vạch trục phần dư 1 +0.50"],
-  ] as const)("formats leftover-axis ticks in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(tf("leftover axis {axis} tick {value}", { axis: 1, value: "+0.50" })).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔차 축 1 눈금 +0.50 σ 1.84"],
-    ["zh", "残差轴 1 刻度 +0.50 σ 1.84"],
-    ["ja", "残差軸 1 目盛 +0.50 σ 1.84"],
-    ["vi", "vạch trục phần dư 1 +0.50 σ 1.84"],
-  ] as const)("formats leftover-axis tick singular values in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf("leftover axis {axis} tick {value} σ {singular}", {
-        axis: 1,
-        value: "+0.50",
-        singular: "1.84",
-      }),
-    ).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔차 축 1 눈금 +0.50 82%"],
-    ["zh", "残差轴 1 刻度 +0.50 82%"],
-    ["ja", "残差軸 1 目盛 +0.50 82%"],
-    ["vi", "vạch trục phần dư 1 +0.50 82%"],
-  ] as const)("formats leftover-axis tick leftover-map axis share in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf("leftover axis {axis} tick {value} {share}%", {
-        axis: 1,
-        value: "+0.50",
-        share: "82",
-      }),
-    ).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔차 축 1 눈금 +0.50 σ 1.84 82%"],
-    ["zh", "残差轴 1 刻度 +0.50 σ 1.84 82%"],
-    ["ja", "残差軸 1 目盛 +0.50 σ 1.84 82%"],
-    ["vi", "vạch trục phần dư 1 +0.50 σ 1.84 82%"],
-  ] as const)(
-    "formats leftover-axis tick leftover-map singular values and leftover-map axis share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover axis {axis} tick {value} σ {singular} {share}%", {
-          axis: 1,
-          value: "+0.50",
-          singular: "1.84",
-          share: "82",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 잔차 축 1 σ 1.84"],
-    ["zh", "残差地图比较残差轴 1 σ 1.84"],
-    ["ja", "残差マップの比較残差軸 1 σ 1.84"],
-    ["vi", "trục phần dư so sánh bản đồ phần dư 1 σ 1.84"],
-  ] as const)(
-    "formats leftover map comparison leftover-axis singular values in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison leftover axis {axis} σ {value}", {
-          axis: 1,
-          value: "1.84",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 잔차 축 1 눈금 +0.50"],
-    ["zh", "残差地图比较残差轴 1 刻度 +0.50"],
-    ["ja", "残差マップの比較残差軸 1 目盛 +0.50"],
-    ["vi", "vạch trục phần dư so sánh bản đồ phần dư 1 +0.50"],
-  ] as const)(
-    "formats leftover map comparison leftover-axis ticks in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison leftover axis {axis} tick {value}", {
-          axis: 1,
-          value: "+0.50",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 잔차 축 1 눈금 +0.50 σ 1.84"],
-    ["zh", "残差地图比较残差轴 1 刻度 +0.50 σ 1.84"],
-    ["ja", "残差マップの比較残差軸 1 目盛 +0.50 σ 1.84"],
-    ["vi", "vạch trục phần dư so sánh bản đồ phần dư 1 +0.50 σ 1.84"],
-  ] as const)(
-    "formats leftover map comparison leftover-axis tick singular values in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison leftover axis {axis} tick {value} σ {singular}", {
-          axis: 1,
-          value: "+0.50",
-          singular: "1.84",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 잔차 축 1 눈금 +0.50 82%"],
-    ["zh", "残差地图比较残差轴 1 刻度 +0.50 82%"],
-    ["ja", "残差マップの比較残差軸 1 目盛 +0.50 82%"],
-    ["vi", "vạch trục phần dư so sánh bản đồ phần dư 1 +0.50 82%"],
-  ] as const)(
-    "formats leftover map comparison leftover-axis tick leftover-map axis share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison leftover axis {axis} tick {value} {share}%", {
-          axis: 1,
-          value: "+0.50",
-          share: "82",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 잔차 축 1 눈금 +0.50 σ 1.84 82%"],
-    ["zh", "残差地图比较残差轴 1 刻度 +0.50 σ 1.84 82%"],
-    ["ja", "残差マップの比較残差軸 1 目盛 +0.50 σ 1.84 82%"],
-    ["vi", "vạch trục phần dư so sánh bản đồ phần dư 1 +0.50 σ 1.84 82%"],
-  ] as const)(
-    "formats leftover map comparison leftover-axis tick leftover-map singular values and leftover-map axis share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%", {
-          axis: 1,
-          value: "+0.50",
-          singular: "1.84",
-          share: "82",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
-    ["ko", "잔여 지도 비교 잔차 축 1 σ 1.84 82%"],
-    ["zh", "残差地图比较残差轴 1 σ 1.84 82%"],
-    ["ja", "残差マップの比較残差軸 1 σ 1.84 82%"],
-    ["vi", "trục phần dư so sánh bản đồ phần dư 1 σ 1.84 82%"],
-  ] as const)(
-    "formats leftover map comparison leftover-axis singular share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover map comparison leftover axis {axis} σ {value} {share}%", {
-          axis: 1,
-          value: "1.84",
-          share: "82",
         }),
       ).toBe(expected);
     },
@@ -1224,58 +849,6 @@ describe("i18n", () => {
   });
 
   it.each([
-    ["ko", "잔여 지도 축 1 눈금 +0.50 σ 1.84"],
-    ["zh", "残差图轴 1 刻度 +0.50 σ 1.84"],
-    ["ja", "残差マップ軸 1 目盛 +0.50 σ 1.84"],
-    ["vi", "vạch trục bản đồ phần dư 1 +0.50 σ 1.84"],
-  ] as const)("formats leftover-map graphic leftover-map axis tick singular values in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf("leftover-map axis {axis} tick {value} σ {singular}", {
-        axis: 1,
-        value: "+0.50",
-        singular: "1.84",
-      }),
-    ).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔여 지도 축 1 눈금 +0.50 82%"],
-    ["zh", "残差图轴 1 刻度 +0.50 82%"],
-    ["ja", "残差マップ軸 1 目盛 +0.50 82%"],
-    ["vi", "vạch trục bản đồ phần dư 1 +0.50 82%"],
-  ] as const)("formats leftover-map graphic leftover-map axis tick leftover-map axis share in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf("leftover-map axis {axis} tick {value} {share}%", {
-        axis: 1,
-        value: "+0.50",
-        share: "82",
-      }),
-    ).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔여 지도 축 1 눈금 +0.50 σ 1.84 82%"],
-    ["zh", "残差图轴 1 刻度 +0.50 σ 1.84 82%"],
-    ["ja", "残差マップ軸 1 目盛 +0.50 σ 1.84 82%"],
-    ["vi", "vạch trục bản đồ phần dư 1 +0.50 σ 1.84 82%"],
-  ] as const)(
-    "formats leftover-map graphic leftover-map axis tick leftover-map singular values and leftover-map axis share in %s",
-    (locale, expected) => {
-      setLocale(locale);
-      expect(
-        tf("leftover-map axis {axis} tick {value} σ {singular} {share}%", {
-          axis: 1,
-          value: "+0.50",
-          singular: "1.84",
-          share: "82",
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it.each([
     ["ko", "잔여 지도 거리 d 0.12"],
     ["zh", "残差图距离 d 0.12"],
     ["ja", "残差マップ距離 d 0.12"],
@@ -1299,7 +872,7 @@ describe("i18n", () => {
     ["ko", "잔여 지도 설명 잔여 점유율 R̂²/R² 0.76"],
     ["zh", "残差图已解释残差份额 R̂²/R² 0.76"],
     ["ja", "残差マップ説明済み残差割合 R̂²/R² 0.76"],
-    ["vi", "phần dư giải thích bản đồ phần dư R̂²/R² 0.76"],
+    ["vi", "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"],
   ] as const)("formats leftover-map segment explained leftover share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map explained leftover share {label}", { label: "R̂²/R² 0.76" })).toBe(
@@ -1387,28 +960,6 @@ describe("i18n", () => {
   ] as const)("formats leftover-map plot axis share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map axis {axis} ({share}%)", { axis: 1, share: "82" })).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔여 지도 축 1 σ 1.84"],
-    ["zh", "残差图轴 1 σ 1.84"],
-    ["ja", "残差マップ軸 1 σ 1.84"],
-    ["vi", "trục bản đồ phần dư 1 σ 1.84"],
-  ] as const)("formats leftover-map plot axis singular values in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(tf("leftover-map axis {axis} σ {value}", { axis: 1, value: "1.84" })).toBe(expected);
-  });
-
-  it.each([
-    ["ko", "잔여 지도 축 1 σ 1.84 (82%)"],
-    ["zh", "残差图轴 1 σ 1.84 (82%)"],
-    ["ja", "残差マップ軸 1 σ 1.84 (82%)"],
-    ["vi", "trục bản đồ phần dư 1 σ 1.84 (82%)"],
-  ] as const)("formats leftover-map plot axis singular share in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(
-      tf("leftover-map axis {axis} σ {value} ({share}%)", { axis: 1, value: "1.84", share: "82" }),
-    ).toBe(expected);
   });
 
   it.each([
