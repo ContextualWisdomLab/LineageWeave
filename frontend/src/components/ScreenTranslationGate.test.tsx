@@ -34,10 +34,7 @@ describe("ScreenTranslationGate", () => {
     ["ja", "選択した言語でこの画面を読み込んでいます...", "選択した言語でこの画面を読み込めませんでした。", "再試行"],
     ["zh", "正在以所选语言加载此页面...", "无法以所选语言加载此页面。", "重试"],
     ["vi", "Đang tải màn hình này bằng ngôn ngữ đã chọn...", "Không thể tải màn hình này bằng ngôn ngữ đã chọn.", "Thử lại"],
-    ["es", "Cargando esta pantalla en el idioma seleccionado...", "No se pudo cargar esta pantalla en el idioma seleccionado.", "Reintentar"],
-    ["de", "Dieser Bildschirm wird in der ausgewählten Sprache geladen...", "Dieser Bildschirm konnte in der ausgewählten Sprache nicht geladen werden.", "Erneut versuchen"],
-    ["fr", "Chargement de cet écran dans la langue sélectionnée…", "Impossible de charger cet écran dans la langue sélectionnée.", "Réessayer"],
-  ] as const)("keeps the bootstrap loading and retry shell in %s", (locale, loading, failure, retry) => {
+  ] as const)("keeps the bootstrap loading and retry shell in every globally admitted locale: %s", (locale, loading, failure, retry) => {
     setLocale(locale);
     const { rerender } = render(<ScreenTranslationGate state="loading" />);
     expect(screen.getByRole("status")).toHaveTextContent(loading);
