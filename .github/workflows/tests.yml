@@ -142,15 +142,20 @@ jobs:
 
       - name: Run authenticated grouping-comparison browser acceptance
         working-directory: frontend
-        run: pnpm exec playwright test grouping-comparison-cross-share.spec.ts --project=chromium
+        run: |
+          set -o pipefail
+          pnpm exec playwright test grouping-comparison-cross-share.spec.ts --project=chromium \
+            2>&1 | tee playwright-grouping-comparison.log
 
       - name: Retain Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: playwright-grouping-comparison-${{ github.run_id }}-${{ github.run_attempt }}
-          path: frontend/test-results
-          if-no-files-found: warn
+          path: |
+            frontend/playwright-grouping-comparison.log
+            frontend/test-results
+          if-no-files-found: error
           retention-days: 7
 
       - name: Capture product stack logs on browser failure
