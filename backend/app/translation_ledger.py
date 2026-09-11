@@ -400,7 +400,7 @@ def _maximum_cache_payload_units(
     )
     # JSON may expand each UTF-8 source byte to at most one six-character
     # ``\uXXXX`` escape. The empty payload already includes member syntax.
-    return len(empty_payload) + 6 * sum(expected_text_octets.values())
+    return len(empty_payload.encode("utf-8")) + 6 * sum(expected_text_octets.values())
 
 
 async def _read_exact_cache_payload(
