@@ -17,7 +17,7 @@ vi.mock("./api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./api")>();
   const { CUSTOMER_MASTER_TRANSLATION_KEYS: customerMasterKeys } = await import("./i18n");
   const translations = Object.fromEntries(customerMasterKeys.map((key) => [key, key]));
-  translations[RELATED_FAILURE_COPY] = RELATED_FAILURE_COPY;
+  translations["This request failed. Retry the same action."] = "This request failed. Retry the same action.";
   translations.Retry = "Retry";
   return {
     ...actual,
