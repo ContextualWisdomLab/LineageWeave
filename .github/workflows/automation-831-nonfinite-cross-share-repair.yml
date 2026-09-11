@@ -16,15 +16,16 @@ jobs:
       - name: Checkout exact staging head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          fetch-depth: 3
+          fetch-depth: 4
           persist-credentials: true
 
       - name: Verify single-writer staging ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "071fe46d7decacbc058c43f3b0c53cf590d5f84c"
-          test "$(git rev-parse HEAD^^)" = "ee88c921b17632523db7d413291c262abc909f2a"
+          test "$(git rev-parse HEAD^)" = "e6c17e23ce36b11c1a0c2c019bdb9cdb12cd8413"
+          test "$(git rev-parse HEAD^^)" = "071fe46d7decacbc058c43f3b0c53cf590d5f84c"
+          test "$(git rev-parse HEAD^^^)" = "ee88c921b17632523db7d413291c262abc909f2a"
           test "$(git diff --name-only ee88c921b17632523db7d413291c262abc909f2a HEAD)" = ".github/workflows/automation-831-nonfinite-cross-share-repair.yml"
 
       - name: Set up Python
@@ -90,7 +91,7 @@ jobs:
           app_text = app_test.read_text()
           needle = '    expect(unexplainedSharePair).toHaveTextContent("U²/R² 0.02");\n'
           assert app_text.count(needle) == 1
-          rendered_regression = needle + '''    const negativeCrossSharePair = within(\n      screen.getByLabelText("Grouping comparison"),\n    ).getByRole("button", {\n      name: /open leftover farthest pair from comparison: .*2R̂U\\/R² -0\\.24/i,\n    });\n    expect(negativeCrossSharePair).toHaveTextContent("2R̂U/R² -0.24");\n    expect(within(negativeCrossSharePair).getByText("2R̂U/R² -0.24")).toHaveAttribute(\n      "aria-hidden",\n      "true",\n    );\n'''
+          rendered_regression = needle + '''    const comparisonCrossSharePair = screen.getByRole("button", {\n      name: /open leftover farthest pair from comparison: specification revision requested.*2R̂U\\/R² -0\\.24/i,\n    });\n    expect(comparisonCrossSharePair).toHaveTextContent("2R̂U/R² -0.24");\n    expect(within(comparisonCrossSharePair).getByText("2R̂U/R² -0.24")).toHaveAttribute(\n      "aria-hidden",\n      "true",\n    );\n'''
           app_text = app_text.replace(needle, rendered_regression, 1)
           app_test.write_text(app_text)
           PY
