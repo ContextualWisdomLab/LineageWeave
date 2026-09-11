@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -26,6 +27,15 @@ SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
 _MONTH_PERIOD = re.compile(r"^(\d{4})-(\d{2})$")
 _SOURCE_CONTEXT_PRESENT_SQL = source_context_present_sql("p")
+
+
+def _finite_float_or_none(value: Any) -> float | None:
+    """Return a strict-JSON finite float for an optional persisted numeric."""
+
+    if value is None:
+        return None
+    result = float(value)
+    return result if math.isfinite(result) else None
 
 
 def parse_period_code(period_code: str) -> tuple[str, int, int]:
@@ -1144,10 +1154,8 @@ async def fetch_period_comparison(
                             if pair["leftover_map_unexplained_share"] is None
                             else float(pair["leftover_map_unexplained_share"])
                         ),
-                        "leftover_map_cross_share": (
-                            None
-                            if pair["leftover_map_cross_share"] is None
-                            else float(pair["leftover_map_cross_share"])
+                        "leftover_map_cross_share": _finite_float_or_none(
+                            pair["leftover_map_cross_share"]
                         ),
                         "visibility_code": pair["visibility_code"],
                         "corporate_entity_id": str(pair["corporate_entity_id"]),
