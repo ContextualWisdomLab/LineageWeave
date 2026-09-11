@@ -13,6 +13,11 @@ def _service_block(name: str, next_name: str) -> str:
     return _COMPOSE[start:end]
 
 
+def _depends_on_block(service: str) -> str:
+    """Return only dependency declarations, excluding environment references."""
+    return service.split("    depends_on:\n", maxsplit=1)[1]
+
+
 def test_default_compose_keeps_llm_runtime_optional() -> None:
     """Match the documented clean-checkout default with fail-closed LLM absence."""
     assert "`docker compose up` succeeds from a clean checkout" in _ENV_EXAMPLE
@@ -23,6 +28,7 @@ def test_default_compose_keeps_llm_runtime_optional() -> None:
     assert 'profiles: ["llm"]' in orchestrator
     assert "ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}" in backend
     assert "ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}" in backend
-    assert "condition: service_healthy\n      orchestrator:" not in backend
+    assert "      orchestrator:\n" not in _depends_on_block(backend)
     assert "ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}" in mcp
     assert "ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}" in mcp
+    assert "      orchestrator:\n" not in _depends_on_block(mcp)
