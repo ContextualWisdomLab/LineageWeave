@@ -141,6 +141,7 @@ jobs:
             -c "update report_leftover_pair set leftover_map_cross_share = -0.24;"
 
       - name: Run authenticated grouping-comparison browser acceptance
+        id: browser_acceptance
         working-directory: frontend
         run: |
           set -o pipefail
@@ -148,7 +149,7 @@ jobs:
             2>&1 | tee playwright-grouping-comparison.log
 
       - name: Retain Playwright failure evidence
-        if: failure()
+        if: failure() && steps.browser_acceptance.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: playwright-grouping-comparison-${{ github.run_id }}-${{ github.run_attempt }}
@@ -159,7 +160,7 @@ jobs:
           retention-days: 7
 
       - name: Capture product stack logs on browser failure
-        if: failure()
+        if: failure() && steps.browser_acceptance.outcome == 'failure'
         run: |
           touch "$HOME/.env"
           docker compose --env-file "$HOME/.env" logs --no-color --tail=400
