@@ -73,7 +73,6 @@ test.describe("touch interaction", () => {
   test.use({
     userAgent: PIXEL_7.userAgent,
     viewport: PIXEL_7.viewport,
-    screen: PIXEL_7.screen,
     deviceScaleFactor: PIXEL_7.deviceScaleFactor,
     isMobile: PIXEL_7.isMobile,
     hasTouch: PIXEL_7.hasTouch,
