@@ -16,15 +16,63 @@ def test_k6_harness_renews_expired_auth_and_discloses_job_state() -> None:
     assert "REQUEST_TIMEOUT must include a duration unit" in source
 
 
-def test_mcp_k6_harness_measures_current_authenticated_contract() -> None:
-    """MCP observations initialize sessions and exercise both durable Ask tools."""
+def test_mcp_k6_harness_measures_modern_stateless_contract() -> None:
+    """MCP observations default to the 2026-07-28 stateless lane with a named legacy lane."""
     source = MCP_SCRIPT.read_text(encoding="utf-8")
 
+    assert '__ENV.MCP_PROTOCOL_VERSION || "2026-07-28"' in source
+    assert '"Mcp-Method"' in source
+    assert '"Mcp-Name"' in source
+    assert "io.modelcontextprotocol/clientCapabilities" in source
+    assert "io.modelcontextprotocol/clientInfo" in source
+    assert 'name: "lineageweave-k6", version: "1"' in source
+    assert "HANDSHAKE_VERSIONS" in source
     assert '"initialize"' in source
     assert '"notifications/initialized"' in source
-    assert "id === null" in source
     assert '"submit_global_ask"' in source
     assert '"read_global_ask_job"' in source
     assert "Mcp-Session-Id" in source
     assert "thresholds" not in source
     assert "REQUEST_TIMEOUT must include a duration unit" in source
+
+
+def test_mcp_k6_harness_rejects_cleartext_remote_credentials() -> None:
+    """Bearer tokens and synthetic login credentials never cross remote plaintext HTTP."""
+    source = MCP_SCRIPT.read_text(encoding="utf-8")
+    setup_body = source[
+        source.index("export function setup") : source.index("export default function")
+    ]
+
+    assert "function assertCredentialTransport" in source
+    assert 'assertCredentialTransport(mcpUrl, "MCP_URL")' in setup_body
+    assert 'assertCredentialTransport(keycloakUrl, "KEYCLOAK_URL")' in setup_body
+    assert "LOOPBACK_HTTP" in source
+    assert "^https:" in source
+    assert "localhost|127\\.0\\.0\\.1|\\[::1\\]" in source
+    assert r"(?::\d+)?(?:\/|$)" in source
+
+
+def test_mcp_k6_harness_attributes_only_matching_jsonrpc_replies() -> None:
+    """A mismatched or ambiguous JSON-RPC reply is never attributed to the observation."""
+    source = MCP_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'envelope.jsonrpc !== "2.0" || envelope.id !== expectedId' in source
+    assert "hasResult === hasError" in source
+    assert source.count("result(response, 1)") == 1
+    assert source.count("structured(submitted, 3)") == 1
+    assert source.count("structured(response, 4)") == 1
+    assert "${response.body" not in source
+    assert "JSON.stringify(envelope.error)" not in source
+
+
+def test_mcp_k6_harness_observes_submit_inside_the_iteration() -> None:
+    """Submit latency is sampled per iteration, not once in setup()."""
+    source = MCP_SCRIPT.read_text(encoding="utf-8")
+    setup_body = source[
+        source.index("export function setup") : source.index("export default function")
+    ]
+
+    assert "submitDuration.add(submitted.timings.duration)" in source
+    assert "submitDuration.add(response.timings.duration)" not in source
+    assert '"submit_global_ask"' not in setup_body
+    assert '"submit_global_ask"' in source[source.index("export default function") :]

@@ -14,6 +14,8 @@ from starlette.testclient import TestClient
 from backend.app.config import load_settings
 
 ROOT = Path(__file__).resolve().parents[1]
+# The value is a synthetic bearer placeholder for the HTTP boundary, never a credential.
+SYNTHETIC_BEARER = "token"
 
 
 def test_mcp_quota_has_no_library_default(monkeypatch) -> None:
@@ -233,7 +235,7 @@ async def test_mcp_tools_delegate_to_current_service_once(monkeypatch) -> None:
     monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
     monkeypatch.setattr(mcp_server, "read_global_ask_job_service", read)
     token = AccessToken(
-        token="token",
+        token=SYNTHETIC_BEARER,
         client_id="client-1",
         scopes=[],
         subject="subject-1",
@@ -336,6 +338,345 @@ def test_http_boundary_rejects_origin_and_challenges_trusted_host(monkeypatch) -
     assert challenged.status_code == 401
 
 
+MODERN_PROTOCOL_VERSION = "2026-07-28"
+_MODERN_META = {
+    "io.modelcontextprotocol/protocolVersion": MODERN_PROTOCOL_VERSION,
+    "io.modelcontextprotocol/clientCapabilities": {},
+}
+
+
+class StaticTokenVerifier:
+    """Return one pre-built access token for every bearer credential."""
+
+    def __init__(self, token: AccessToken) -> None:
+        """Retain the token the HTTP boundary should accept."""
+        self._token = token
+
+    async def verify_token(self, _token: str) -> AccessToken:
+        """Return the fixed token so HTTP admission reaches the tools."""
+        return self._token
+
+
+def _modern_server(settings, token, account, pool, limiter):
+    """Build an MCP server whose HTTP boundary accepts one fixed principal."""
+
+    async def resolve(*_args):
+        return account
+
+    return _build_test_server(
+        settings,
+        token=token,
+        account=account,
+        pool=pool,
+        limiter=limiter,
+        resolve=resolve,
+    )
+
+
+def _build_test_server(settings, *, token, account, pool, limiter, resolve):
+    """Build an MCP server wired to HTTP-level test doubles."""
+    from backend.app import mcp_server
+
+    return mcp_server.build_mcp_server(
+        settings,
+        pool_factory=lambda _url: _return(pool),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda *_args: limiter,
+        token_verifier=StaticTokenVerifier(token),
+        account_resolver=resolve,
+        access_token_provider=lambda: token,
+    )
+
+
+def _access_token(settings):
+    """Build one authenticated MCP token for the configured audience."""
+    return AccessToken(
+        token=SYNTHETIC_BEARER,
+        client_id="client",
+        scopes=["lineageweave:ask"],
+        subject="subject-1",
+        resource=settings.mcp_audience,
+        claims={"sub": "subject-1"},
+    )
+
+
+def _analyst_account():
+    """Build one provisioned account with the read permission MCP requires."""
+    from backend.app.auth import CurrentAccount
+
+    return CurrentAccount(
+        "account-1",
+        "subject-1",
+        "Analyst",
+        None,
+        frozenset({"entity-1"}),
+        frozenset({"unit-1"}),
+        frozenset({"post_read"}),
+    )
+
+
+def _modern_headers(
+    method: str, name: str | None = None, origin: str | None = None
+) -> dict[str, str]:
+    """Build a self-describing 2026-07-28 request without any session state."""
+    headers = {
+        "Authorization": "Bearer token",
+        "Accept": "application/json, text/event-stream",
+        "Content-Type": "application/json",
+        "MCP-Protocol-Version": MODERN_PROTOCOL_VERSION,
+        "Mcp-Method": method,
+    }
+    if name is not None:
+        headers["Mcp-Name"] = name
+    if origin is not None:
+        headers["Origin"] = origin
+    return headers
+
+
+def _jsonrpc_result(response):
+    """Decode a modern reply whether it is JSON or one SSE data event."""
+    if response.headers.get("content-type", "").startswith("application/json"):
+        return response.json()["result"]
+    for line in response.text.splitlines():
+        if line.startswith("data: "):
+            return json.loads(line.removeprefix("data: "))["result"]
+    raise AssertionError(f"no JSON-RPC result in response: {response.text!r}")
+
+
+def test_http_boundary_admits_modern_browser_preflight(monkeypatch) -> None:
+    """A browser may preflight the 2026-07-28 routing headers without OAuth."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(
+        load_settings(),
+        mcp_allowed_hosts=["testserver"],
+        mcp_allowed_origins=["https://trusted.example"],
+    )
+    server = _modern_server(
+        settings, _access_token(settings), _analyst_account(), FakePool(), FakeLimiter()
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    with TestClient(app) as client:
+        preflight = client.options(
+            "/mcp",
+            headers={
+                "Origin": "https://trusted.example",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": (
+                    "authorization,content-type,mcp-protocol-version,mcp-method,mcp-name"
+                ),
+            },
+        )
+    assert preflight.status_code == 200
+    allowed = {
+        header.strip().lower()
+        for header in preflight.headers["access-control-allow-headers"].split(",")
+    }
+    assert {"mcp-method", "mcp-name", "mcp-protocol-version"} <= allowed
+
+
+def test_modern_stateless_requests_reach_tools_without_a_session(monkeypatch) -> None:
+    """Two sequential modern calls are served with no handshake or session id."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(
+        load_settings(),
+        mcp_allowed_hosts=["testserver"],
+        mcp_allowed_origins=["https://trusted.example"],
+    )
+    pool = FakePool()
+    limiter = FakeLimiter()
+    submitted = []
+
+    async def submit(**kwargs):
+        submitted.append(kwargs)
+        return {
+            "ask_job_id": "00000000-0000-0000-0000-000000000123",
+            "job_status_code": "queued",
+        }
+
+    async def read(**kwargs):
+        return {"ask_job_id": str(kwargs["ask_job_id"]), "job_status_code": "running"}
+
+    monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
+    monkeypatch.setattr(mcp_server, "read_global_ask_job_service", read)
+    server = _modern_server(
+        settings, _access_token(settings), _analyst_account(), pool, limiter
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    body = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": "submit_global_ask",
+            "arguments": {"question": "What changed?"},
+            "_meta": _MODERN_META,
+        },
+    }
+    browser = _modern_headers(
+        "tools/call", "submit_global_ask", origin="https://trusted.example"
+    )
+    with TestClient(app) as client:
+        first = client.post("/mcp", headers=browser, json=body)
+        second = client.post("/mcp", headers=browser, json=body)
+    assert first.status_code == 200 and second.status_code == 200
+    assert "mcp-session-id" not in {name.lower() for name in first.headers}
+    assert "mcp-session-id" not in {name.lower() for name in second.headers}
+    assert first.headers["access-control-allow-origin"] == "https://trusted.example"
+    assert _jsonrpc_result(first)["structuredContent"]["job_status_code"] == "queued"
+    assert len(submitted) == 2
+    assert limiter.accounts == ["account-1", "account-1"]
+
+
+def test_modern_server_discover_lists_current_versions(monkeypatch) -> None:
+    """A modern client can discover the served protocol revisions statelessly."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
+    server = _modern_server(
+        settings, _access_token(settings), _analyst_account(), FakePool(), FakeLimiter()
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            headers=_modern_headers("server/discover"),
+            json={
+                "jsonrpc": "2.0",
+                "id": 7,
+                "method": "server/discover",
+                "params": {"_meta": _MODERN_META},
+            },
+        )
+    assert response.status_code == 200
+    result = _jsonrpc_result(response)
+    assert MODERN_PROTOCOL_VERSION in result["supportedVersions"]
+    assert "tools" in result["capabilities"]
+
+
+def test_modern_request_with_mismatched_routing_header_fails_closed(monkeypatch) -> None:
+    """A self-describing request whose Mcp-Method disagrees never invokes a tool."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
+    pool = FakePool()
+    limiter = FakeLimiter()
+    invoked = []
+
+    async def submit(**kwargs):
+        invoked.append(kwargs)
+        return {}
+
+    monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
+    server = _modern_server(
+        settings, _access_token(settings), _analyst_account(), pool, limiter
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            headers=_modern_headers("tools/list"),
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "submit_global_ask",
+                    "arguments": {"question": "question"},
+                    "_meta": _MODERN_META,
+                },
+            },
+        )
+    assert response.status_code == 400
+    assert invoked == []
+    assert limiter.accounts == []
+
+
+def test_legacy_handshake_client_still_reaches_tools(monkeypatch) -> None:
+    """A 2025-11-25 client still initializes, uses its session, and calls a tool."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
+    pool = FakePool()
+    limiter = FakeLimiter()
+    submitted = []
+
+    async def submit(**kwargs):
+        submitted.append(kwargs)
+        return {
+            "ask_job_id": "00000000-0000-0000-0000-000000000123",
+            "job_status_code": "queued",
+        }
+
+    monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
+    server = _modern_server(
+        settings, _access_token(settings), _analyst_account(), pool, limiter
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    legacy = {
+        "Authorization": "Bearer token",
+        "Accept": "application/json, text/event-stream",
+        "Content-Type": "application/json",
+    }
+    with TestClient(app) as client:
+        initialized = client.post(
+            "/mcp",
+            headers=legacy,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-11-25",
+                    "capabilities": {},
+                    "clientInfo": {"name": "legacy", "version": "1"},
+                },
+            },
+        )
+        assert initialized.status_code == 200
+        session = initialized.headers["mcp-session-id"]
+        followed = {
+            **legacy,
+            "Mcp-Session-Id": session,
+            "MCP-Protocol-Version": "2025-11-25",
+        }
+        client.post(
+            "/mcp",
+            headers=followed,
+            json={
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {},
+            },
+        )
+        called = client.post(
+            "/mcp",
+            headers=followed,
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "submit_global_ask",
+                    "arguments": {"question": "question"},
+                },
+            },
+        )
+    assert called.status_code == 200
+    assert len(submitted) == 1
+
+
 def test_exhausted_http_tool_emits_retry_after(monkeypatch) -> None:
     """The complete Streamable HTTP path returns the measured quota delay."""
     monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
@@ -346,7 +687,7 @@ def test_exhausted_http_tool_emits_retry_after(monkeypatch) -> None:
 
     settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
     token = AccessToken(
-        token="token",
+        token=SYNTHETIC_BEARER,
         client_id="client",
         scopes=["lineageweave:ask"],
         subject="subject-1",
@@ -565,7 +906,7 @@ async def test_tool_auth_and_quota_fail_closed(monkeypatch, mode) -> None:
         None
         if mode == "missing_token"
         else AccessToken(
-            token="token",
+            token=SYNTHETIC_BEARER,
             client_id="client",
             scopes=[],
             subject="subject-1",

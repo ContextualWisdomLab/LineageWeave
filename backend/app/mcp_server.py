@@ -338,6 +338,8 @@ def build_mcp_http_app(server: MCPServer[McpAppContext], settings: Settings) -> 
             "Content-Type",
             "Last-Event-ID",
             "MCP-Protocol-Version",
+            "Mcp-Method",
+            "Mcp-Name",
             "Mcp-Session-Id",
         ],
         expose_headers=["MCP-Protocol-Version", "Mcp-Session-Id", "WWW-Authenticate"],
