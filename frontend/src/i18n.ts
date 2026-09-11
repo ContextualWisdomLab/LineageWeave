@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-export const SUPPORTED_LOCALES = ["ko", "en", "ja", "zh", "vi", "es", "de", "fr"] as const;
+export const SUPPORTED_LOCALES = ["ko", "en", "ja", "zh", "vi"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const LOCALE_LABELS: Record<Locale, string> = {
@@ -9,9 +9,6 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   zh: "中文",
   ja: "日本語",
   vi: "Tiếng Việt",
-  es: "Español",
-  de: "Deutsch",
-  fr: "Français",
 };
 
 export const CUSTOMER_MASTER_TRANSLATION_KEYS = [
@@ -183,7 +180,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author code": "원천 작성자 코드",
     "Source author name": "원천 작성자 이름",
     "Source company code": "원천 법인 코드",
-    "Source company name": "원천 법인 이름",
+    "Source company name": "원천 법인명",
     "Source business unit": "원천 사업부(PU)",
     "Source process unit name": "원천 사업부(PU) 이름",
     "Source sales pool": "원천 수주풀",
@@ -404,7 +401,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Verify against web search": "웹 검색 검증",
     "Deriving...": "찾는 중...",
     "Derive commitment": "Commitment 도출",
-    "Creating...": "생성하는 중...",
+    "Creating...": "생성 중...",
     "Embedded image": "삽입 이미지",
     "Text detected in image": "이미지에서 인식된 텍스트",
     "Image regions": "이미지 영역",
@@ -645,7 +642,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 잔여 맵 랭크 {rank}, 관측 Y {observed}, 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
-      "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+      "잔여 맵 랭크 0은 IRT 주효과 이후 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
     "Connect another perspective": "关联另一个观点",
@@ -728,7 +725,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic extraction": "语义提取",
     "Recorded extraction": "已记录的提取",
     "Stored semantic evidence": "已存储的语义证据",
-    "Recorded evidence": "已记录的证据",
+    "Recorded evidence": "记录的证据",
     "Lineage maintenance": "谱系维护",
     "Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.": "验证功能尚未配置公开搜索。请请求管理员启用后再试。",
     "No customer commitment found in this post.": "未在此文章中找到客户承诺。",
@@ -950,7 +947,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading lineage...": "正在加载谱系...",
     "Loading VOC evidence...": "正在加载客户之声证据...",
     "No extractive excerpt -- no named organization appears in this post.":
-      "没有提取出的摘录。此文章中没有出现组织名称。",
+      "没有提取出的摘录。此文章中没有组织名称。",
     "No Keymen extracted yet.": "尚未提取关键联系人。",
     "Loading evaluation...": "正在加载评估...",
     "Not yet evaluated.": "尚未评估。",
@@ -1164,7 +1161,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Exact values": "精确值",
     Source: "起点",
     Property: "属性",
-    Target: "终点",
+    Target: "目标",
     "Truth status": "真值状态",
     "Recorded at": "记录时间",
     "Node evidence": "节点证据",
