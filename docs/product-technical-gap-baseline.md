@@ -1,5 +1,42 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-12 18:32 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). The live
+> inventory contains 152 open PRs and 28 open issues. These counts are
+> operational metadata, not release evidence. Every open PR observed in this
+> pass was Draft before intervention; therefore its skipped repository-local
+> test jobs are not successful Checks. PR #996 was moved to Ready and normal
+> squash auto-merge was enabled at exact head
+> `65d3020d819f9b5d294d2c80c8a4e93a7802c65f`; fresh tests and review are now
+> pending, and independent APPROVE remains required. Earlier CodeQL
+> compatibility and Strix failures on that SHA remain failed evidence until a
+> current authoritative rerun classifies or replaces them. No self-approval,
+> Admin bypass, force push, or stale-head transfer is permitted.
+>
+> Largest buyer-visible gap advanced in this pass: Customer Master can lose
+> every organization in a visible parent cycle. PR #996 keeps each authorized
+> organization visible exactly once, breaks only the presentation edge needed
+> to draw a stable forest, labels the affected top-level row with an actionable
+> ancestry explanation, and retains missing-parent and self-parent distinctions.
+> The implementation is linear in the visible entity count and carries focused
+> cycle, input-permutation, large-hierarchy, rendering, and responsive
+> Storybook regressions. Focused local tests passed with a single-worker pool;
+> an earlier fork-worker start timed out under host contention and is not a
+> product failure or a successful full-suite result. Authenticated PostgreSQL
+> API and rendered desktop/mobile acceptance are still unverified for this
+> exact head, so this remains an active candidate rather than a protected-main
+> capability.
+>
+> Authority and collision audit: `ContextualWisdomLab/LineageWeave`,
+> `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase canonical
+> `ContextualWisdomLab/disksage` were rechecked against their remotes. The
+> Customer Master slice changes no ADR, API, schema, model boundary, or release
+> number. It does not overlap Voice-of-X persistence/export work, the
+> RankWeave/ThreadWeave/TEPP calculation owners, or DiskSage safety ownership.
+> PR #997 separately repairs duplicated occupational PRD identifiers, and the
+> stacked #984/#992 documentation line remains non-authoritative until its
+> parent is protected-merged and the child is retargeted and revalidated.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
