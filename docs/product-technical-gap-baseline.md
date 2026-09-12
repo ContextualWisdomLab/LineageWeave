@@ -1,48 +1,49 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-13 07:07 KST. Protected `main` remains
+> Exact-head loop overlay: 2026-09-13 08:51 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
 > search reports 158 open PRs and 36 open issues. Exactly one open PR is
 > non-Draft: #1042, whose Ready state is validation admission only.
 >
-> Customer Master process-unit authorization remains issue #1045 / PR #1042.
-> Current exact head is `f23f5a567bd66113603837f86f030c3c459e69e6`.
-> After predecessor Strix `34704740554` terminalized FAILURE, the touched-surface
-> docstring warning was repaired and CodeRabbit verified 100% docstring coverage.
-> The same review then found a valid reduced-coverage collector defect: arbitrary
-> `pytest.mark.<name>` values could masquerade as optional-module imports. Current
-> head recognizes only an explicit plugin-marker map (`pytest.mark.anyio -> anyio`)
-> and has a regression proving `pytest.mark.redis` does not suppress an unrelated
-> test when Redis is absent. Current-head Tests `34721721155`, Required CodeQL
-> `34721721113`, Security `34721721167`, and SAST `34721721186` are newly queued or
-> pending; predecessor receipts do not transfer.
+> Customer Master process-unit authorization remains issue #1045 / PR #1042
+> at exact `f23f5a567bd66113603837f86f030c3c459e69e6`. Repository Tests
+> `34721721155`, Security `34721721167`, and SAST `34721721186` are terminal
+> GREEN. Required CodeQL `34721721113`, OpenCode `34721720227`, and Noema
+> `34721720347` are terminal FAILURE. Strix `34721720240` is still genuinely
+> in progress on the same exact head, so the admission is preserved without
+> elapsed-time cancellation or source churn. The later CodeQL producer dispatch
+> succeeded only after compatibility consumers had already failed; canonical
+> owner repair remains `.github#1929` and predecessor receipts do not transfer.
 >
-> The retained predecessor Strix artifact remains sha256
-> `bcdc13b76adf4a2b5b9cbbcab2de217db2e25f445f69d2de20a7d9f4cdf19b72`.
-> Its persisted Post Chat cited-source disclosure corroborates existing #1044 /
-> Draft PR #1047. Separate issues #1050, #1051, #1052 and #1053 own mixed-
-> visibility report aggregates, REST/shared Global Ask admission, Customer Master
-> customer-hint tenant scoping/rebind, and Post Chat shared-persistence mutation.
->
-> #1050 has executable Draft RED PR #1054 at exact
-> `49a47c81eb53cf65877813b53424a2e20a6e1e05`; its net candidate delta is one
-> regression file. Report list, detail and comparison paths must suppress a
-> precomputed aggregate when any stored contributor or leftover-pair evidence is
-> not visible, while preserving a fully visible aggregate. Bounded diagnostic run
-> `34721645807` was admitted on predecessor `4d846afc...` and is not a promotion
-> receipt. The minimal production fix and authenticated PostgreSQL/HTTP evidence
-> remain absent. Do not recompute psychometric truth over the visible subset;
-> fast-mlsirm/TEPP remain measurement owners.
+> Mixed-visibility period-report authorization remains issue #1050 / Draft PR
+> #1054 at exact `4519c101f13e08c10653b95ff88d66b4ce47f0b8`. Whole-population
+> admission now suppresses a precomputed report aggregate when any persisted
+> member or leftover-pair contributor is not visible; comparison evidence carries
+> `process_unit_id`, and authenticated Keycloak + PostgreSQL regression proves
+> detail/list/comparison visible before scope contraction and suppressed after a
+> contributor becomes foreign-private. Repository Tests `34723167232` is terminal
+> GREEN, including the full PostgreSQL suite, and dynamic GitHub CodeQL reports no
+> new alerts. Draft-push central Security `34723086654`, SAST `34723086683`, and
+> Required CodeQL `34723086691` stayed `action_required`; after Ready only the
+> repository Tests identity rematerialized. With no live validation lane left,
+> #1054 returned to Draft on the unchanged head. Canonical lifecycle repair is
+> `.github#2045`; do not use empty commits, Draft/Ready oscillation, manual status,
+> or leaf-side gate weakening.
 >
 > Persisted Post Chat replay authorization remains Draft PR #1047 at exact
 > `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`. Repository Tests, Security,
 > SAST, dynamic CodeQL and Code Quality are GREEN there, while Required CodeQL,
-> OpenCode, Noema and Strix are terminal FAILURE.
->
-> Dependency advisory GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046
-> at `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`. Duplicate migration ordinal
+> OpenCode, Noema and Strix are terminal FAILURE. Dependency advisory
+> GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046 at
+> `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`; duplicate migration ordinal
 > 0233 remains issue #1048 / Draft PR #1049 at
 > `5322971193d1ff4e0ae13c054d8f99615934d4dc`.
+>
+> Customer Master customer-hint repair remains issue #1052. ADR 0042 requires
+> source-post tenant/access ownership to stay distinct from resolved customer
+> identity and provenance; do not repair that issue by rebinding
+> `source_post.corporate_entity_id`. Post Chat shared-persistence mutation remains
+> issue #1053 and must not duplicate #1044/#1047 replay-authorization ownership.
 >
 > Protected-main release metadata is still inconsistent: `pyproject.toml` declares
 > 2.28.0 while `lineageweave.__version__` declares 2.20.0. Keep this as a release
