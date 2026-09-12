@@ -77,40 +77,40 @@ def test_deleting_contributing_source_atomically_invalidates_parent_answer(
         contributing_post_id = str(uuid.uuid4())
         cursor.execute(
             "insert into source_post (post_id) values (%s), (%s)",
-            (focal_post_id, contributing_post_id),
+            (str(focal_post_id), str(contributing_post_id)),
         )
         cursor.execute(
             "insert into post_chat_result "
             "(post_id, question_norm, question_text, answer_text) values (%s, %s, %s, %s)",
-            (focal_post_id, "what happened?", "What happened?", "Derived answer"),
+            (str(focal_post_id), "what happened?", "What happened?", "Derived answer"),
         )
         cursor.execute(
             "insert into post_chat_authorization_receipt "
             "(post_id, question_norm, process_scope_limited) values (%s, %s, false)",
-            (focal_post_id, "what happened?"),
+            (str(focal_post_id), "what happened?"),
         )
         cursor.execute(
             "insert into post_chat_source "
             "(post_id, question_norm, source_ordinal, source_post_id) values (%s, %s, 0, %s)",
-            (focal_post_id, "what happened?", contributing_post_id),
+            (str(focal_post_id), "what happened?", str(contributing_post_id)),
         )
 
-        cursor.execute("delete from source_post where post_id = %s", (contributing_post_id,))
+        cursor.execute("delete from source_post where post_id = %s", (str(contributing_post_id),))
         cursor.execute(
             "select count(*) from post_chat_result where post_id = %s and question_norm = %s",
-            (focal_post_id, "what happened?"),
+            (str(focal_post_id), "what happened?"),
         )
         assert cursor.fetchone()[0] == 0
         cursor.execute(
             "select count(*) from post_chat_authorization_receipt "
             "where post_id = %s and question_norm = %s",
-            (focal_post_id, "what happened?"),
+            (str(focal_post_id), "what happened?"),
         )
         assert cursor.fetchone()[0] == 0
         cursor.execute(
             "select count(*) from post_chat_source "
             "where post_id = %s and question_norm = %s",
-            (focal_post_id, "what happened?"),
+            (str(focal_post_id), "what happened?"),
         )
         assert cursor.fetchone()[0] == 0
 

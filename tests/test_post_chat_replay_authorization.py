@@ -12,6 +12,21 @@ from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 class EmptyConnection:
     """Connection sentinel for an endpoint test that must not rely on database behavior."""
 
+    async def fetchrow(self, query: str, *_args: object) -> None:
+        """Represent a legacy answer by returning no authorization receipt."""
+        assert "post_chat_authorization_receipt" in query
+
+    def transaction(self, **_kwargs: object):
+        """Provide the read-only replay snapshot context used in production."""
+        return self
+
+    async def __aenter__(self):
+        """Enter the replay snapshot without external resources."""
+        return self
+
+    async def __aexit__(self, _exc_type: object, _exc: object, _tb: object) -> None:
+        """Exit the replay snapshot."""
+
 
 class AcquireConnection:
     """Async pool acquisition shim that yields the endpoint-test connection sentinel."""
@@ -22,7 +37,6 @@ class AcquireConnection:
 
     async def __aexit__(self, _exc_type: object, _exc: object, _tb: object) -> None:
         """Release the test connection without side effects."""
-        return None
 
 
 class EmptyPool:
@@ -60,14 +74,6 @@ def test_legacy_unscoped_chat_row_is_not_replayed(monkeypatch) -> None:
         """Return the focal post as visible to isolate derived-answer authorization."""
         return {"post_id": "post-1", "post_title": "Visible focal post"}
 
-    async def legacy_chat(*_args: object, **_kwargs: object) -> dict[str, Any]:
-        """Represent a historical cached answer that has no generation-scope receipt."""
-        return {
-            "answer_text": "legacy answer derived without a generation-scope receipt",
-            "cited_post_ids": ["post-1"],
-            "cited_posts": [{"post_id": "post-1", "post_title": "Visible focal post"}],
-        }
-
     async def scoped_sources(
         _conn: object,
         _post_id: str,
@@ -85,7 +91,18 @@ def test_legacy_unscoped_chat_row_is_not_replayed(monkeypatch) -> None:
 
     async def record_live_answer(*args: object, **_kwargs: object) -> None:
         """Capture replacement persistence after the legacy cache is rejected."""
-        _conn, post_id, question, answer_text, cited_post_ids, *_rest = args
+        (
+            _conn,
+            post_id,
+            question,
+            answer_text,
+            cited_post_ids,
+            generation_scope,
+            source_post_ids,
+        ) = args
+        assert generation_scope.corporate_entity_ids == account.corporate_entity_ids
+        assert generation_scope.process_unit_ids == account.process_unit_ids
+        assert source_post_ids == ["post-1"]
         persisted_calls.append(
             (
                 str(post_id),
@@ -97,13 +114,11 @@ def test_legacy_unscoped_chat_row_is_not_replayed(monkeypatch) -> None:
 
     async def no_activity(*_args: object, **_kwargs: object) -> None:
         """Suppress unrelated activity publication in this authorization regression."""
-        return None
 
     monkeypatch.setattr(main, "_load_visible_post", visible_post)
     monkeypatch.setattr(main, "build_post_llm_metadata", lambda *_args: {})
     monkeypatch.setattr(main, "use_llm_metadata", lambda _metadata: nullcontext())
     monkeypatch.setattr(main, "traced", lambda *_args, **_kwargs: nullcontext())
-    monkeypatch.setattr(main, "fetch_persisted_chat", legacy_chat)
     monkeypatch.setattr(main, "_post_chat_client", LiveChatClient)
     monkeypatch.setattr(main, "_vision_client", object)
     monkeypatch.setattr(main, "gather_chat_sources", scoped_sources)

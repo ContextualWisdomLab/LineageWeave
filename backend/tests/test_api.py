@@ -247,6 +247,11 @@ _EVENT_OCCURRED_AT_MIGRATION = (
     / "migrations"
     / "0183_source_post_event_occurred_at.sql"
 )
+_POST_CHAT_AUTHORIZATION_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0249_post_chat_authorization_scope.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -425,6 +430,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
+            cur.execute(_POST_CHAT_AUTHORIZATION_SCOPE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -2274,6 +2280,24 @@ def test_persisted_chat_is_returned_without_an_llm(client, demo_analyst_token, s
             cur.execute(
                 "insert into post_chat_citation "
                 "(post_id, question_norm, citation_ordinal, cited_post_id) "
+                "values (%s, 'what happened between these events', 0, %s)",
+                (seeded_db["public_post_id"], seeded_db["public_post_id"]),
+            )
+            cur.execute(
+                "insert into post_chat_authorization_receipt "
+                "(post_id, question_norm, process_scope_limited) "
+                "values (%s, 'what happened between these events', false)",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "insert into post_chat_corporate_entity_scope "
+                "(post_id, question_norm, corporate_entity_id) "
+                "values (%s, 'what happened between these events', %s)",
+                (seeded_db["public_post_id"], seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                "insert into post_chat_source "
+                "(post_id, question_norm, source_ordinal, source_post_id) "
                 "values (%s, 'what happened between these events', 0, %s)",
                 (seeded_db["public_post_id"], seeded_db["public_post_id"]),
             )

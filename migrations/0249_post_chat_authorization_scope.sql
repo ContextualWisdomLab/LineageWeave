@@ -40,6 +40,9 @@ create table if not exists post_chat_source (
         references post_chat_authorization_receipt (post_id, question_norm) on delete cascade
 );
 
+create index if not exists post_chat_source_source_post_idx
+    on post_chat_source (source_post_id, post_id, question_norm);
+
 -- Derived text is no longer replay-safe once any source that influenced it is
 -- deleted. Run before the source_post FK cascade so the captured source rows
 -- are still available to locate and atomically delete their parent answers.

@@ -745,7 +745,7 @@ def _write_post_summary(cur, post_id, summary) -> None:
 
 
 def _write_post_chat(cur, post_id, question: str, chat) -> None:
-    """Replace the stored Ask exchange for ``(post_id, question)``."""
+    """Replace a demo exchange with the generating account's replay receipt."""
     from lineageweave.post_chat import normalize_chat_question
 
     norm = normalize_chat_question(question)
@@ -759,6 +759,7 @@ def _write_post_chat(cur, post_id, question: str, chat) -> None:
         (post_id, norm, question, chat.answer_text),
     )
     seen: set[str] = set()
+    source_ids = [post_id]
     ordinal = 0
     for title in chat.cited_titles:
         if title in seen:
@@ -778,7 +779,45 @@ def _write_post_chat(cur, post_id, question: str, chat) -> None:
             "values (%s, %s, %s, %s)",
             (post_id, norm, ordinal, cited_id),
         )
+        if cited_id not in source_ids:
+            source_ids.append(cited_id)
         ordinal += 1
+    cur.execute(
+        "select affiliation.corporate_entity_id, affiliation.process_unit_id "
+        "from source_post post "
+        "join account_affiliation affiliation "
+        "on affiliation.user_account_id = post.author_account_id "
+        "where post.post_id = %s order by affiliation.corporate_entity_id, "
+        "affiliation.process_unit_id nulls first",
+        (post_id,),
+    )
+    affiliations = cur.fetchall()
+    corporate_entity_ids = sorted({row[0] for row in affiliations})
+    process_unit_ids = sorted({row[1] for row in affiliations if row[1] is not None})
+    cur.execute(
+        "insert into post_chat_authorization_receipt "
+        "(post_id, question_norm, process_scope_limited) values (%s, %s, %s)",
+        (post_id, norm, bool(process_unit_ids)),
+    )
+    for corporate_entity_id in corporate_entity_ids:
+        cur.execute(
+            "insert into post_chat_corporate_entity_scope "
+            "(post_id, question_norm, corporate_entity_id) values (%s, %s, %s)",
+            (post_id, norm, corporate_entity_id),
+        )
+    for process_unit_id in process_unit_ids:
+        cur.execute(
+            "insert into post_chat_process_unit_scope "
+            "(post_id, question_norm, process_unit_id) values (%s, %s, %s)",
+            (post_id, norm, process_unit_id),
+        )
+    for source_ordinal, source_post_id in enumerate(source_ids):
+        cur.execute(
+            "insert into post_chat_source "
+            "(post_id, question_norm, source_ordinal, source_post_id) "
+            "values (%s, %s, %s, %s)",
+            (post_id, norm, source_ordinal, source_post_id),
+        )
 
 
 def _seed_demo_public_chat(cur, post_id) -> None:
