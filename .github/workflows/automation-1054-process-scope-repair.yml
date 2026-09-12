@@ -56,31 +56,33 @@ jobs:
 
           path = Path("backend/app/report_ingestion.py")
           text = path.read_text()
-          old_select = '''               p.post_title, p.visibility_code, p.corporate_entity_id,
-               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
-        from report_leftover_pair lp
-'''
-          new_select = '''               p.post_title, p.visibility_code, p.corporate_entity_id,
-               p.process_unit_id,
-               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
-        from report_leftover_pair lp
-'''
+          old_select = (
+              "               p.post_title, p.visibility_code, p.corporate_entity_id,\n"
+              "               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context\n"
+              "        from report_leftover_pair lp\n"
+          )
+          new_select = (
+              "               p.post_title, p.visibility_code, p.corporate_entity_id,\n"
+              "               p.process_unit_id,\n"
+              "               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context\n"
+              "        from report_leftover_pair lp\n"
+          )
           if text.count(old_select) != 1:
               raise SystemExit(f"comparison leftover SELECT anchor count={text.count(old_select)}")
           text = text.replace(old_select, new_select, 1)
-          old_payload = '''                        "corporate_entity_id": str(pair["corporate_entity_id"]),
-                        "has_real_source_context": bool(pair["has_real_source_context"]),
-'''
-          new_payload = '''                        "corporate_entity_id": str(pair["corporate_entity_id"]),
-                        "process_unit_id": (
-                            None
-                            if pair["process_unit_id"] is None
-                            else str(pair["process_unit_id"])
-                        ),
-                        "has_real_source_context": bool(pair["has_real_source_context"]),
-'''
-          # The same shape appears in detailed report payloads; replace only the final
-          # comparison occurrence, which follows fetch_period_comparison.
+          old_payload = (
+              '                        "corporate_entity_id": str(pair["corporate_entity_id"]),\n'
+              '                        "has_real_source_context": bool(pair["has_real_source_context"]),\n'
+          )
+          new_payload = (
+              '                        "corporate_entity_id": str(pair["corporate_entity_id"]),\n'
+              '                        "process_unit_id": (\n'
+              '                            None\n'
+              '                            if pair["process_unit_id"] is None\n'
+              '                            else str(pair["process_unit_id"])\n'
+              '                        ),\n'
+              '                        "has_real_source_context": bool(pair["has_real_source_context"]),\n'
+          )
           marker = text.index("async def fetch_period_comparison(")
           suffix = text[marker:]
           if suffix.count(old_payload) != 1:
