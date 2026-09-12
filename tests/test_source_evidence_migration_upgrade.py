@@ -29,6 +29,7 @@ _CONSTRAINT = "post_content_unit_source_evidence_reference_check"
 
 
 def _postgres_available() -> bool:
+    """Return whether the configured PostgreSQL admin endpoint is reachable."""
     try:
         connection = psycopg2.connect(_ADMIN_DSN, connect_timeout=2)
         connection.close()
@@ -38,6 +39,7 @@ def _postgres_available() -> bool:
 
 
 def _dsn_for_database(admin_dsn: str, database_name: str) -> str:
+    """Replace only the database path in the configured URI-style admin DSN."""
     parsed_admin_dsn = urlsplit(admin_dsn)
     return urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
 
@@ -49,6 +51,7 @@ def _apply_migration(connection, migration_path: Path) -> None:
 
 
 def _source_evidence_shape(connection) -> tuple[int, int]:
+    """Return source-evidence column and named-constraint cardinalities."""
     with connection.cursor() as cursor:
         cursor.execute(
             """
