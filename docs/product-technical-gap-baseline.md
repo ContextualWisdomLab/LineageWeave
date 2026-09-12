@@ -1,12 +1,14 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-12 20:01 KST. Protected `main` remains
+> Exact-head loop overlay: 2026-09-12 21:55 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). A fresh,
 > date-partitioned repository search found 157 open PRs and 32 open issues.
 > These counts are operational metadata, not release evidence. PR #996 is
-> Draft at exact head `a640df40839ed7e2a15b9ab95a7f86faa050a248`;
-> its cycle presentation remains candidate evidence only, and no Ready,
-> auto-merge, protected-main, or authenticated acceptance claim is made.
+> Ready at exact head `a640df40839ed7e2a15b9ab95a7f86faa050a248`,
+> with normal squash auto-merge armed. Its cycle presentation remains
+> candidate evidence only: current-head Checks restarted after the Ready
+> transition, independent approval is absent, and authenticated PostgreSQL
+> acceptance is still unverified.
 >
 > Current buyer-visible security gaps have explicit product owners. Issue
 > #1045 and Draft PR #1042 own Customer Master process-unit authorization;
@@ -19,9 +21,11 @@
 > presentation data or copying authorization logic.
 >
 > Current dependency and data-operability gaps are also separated. Issue
-> #1043 and PR #1046 own GHSA-82fw-gwwq-j7x9: the source manifest has moved
-> to Vitest 4.1.11, while the generated pnpm lock and frozen-install evidence
-> are still RED and require canonical regeneration. Issue #1048 and Draft PR
+> #1043 and Ready PR #1046 own GHSA-82fw-gwwq-j7x9: the source manifest,
+> generated pnpm lock, frozen install, frontend suite, and full suite now pass
+> on exact head `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`.
+> Normal squash auto-merge is armed, but dependency-review evidence failed
+> closed on a GitHub HTTP 403 and independent approval is absent. Issue #1048 and Draft PR
 > #1049 own the duplicate forward-migration ordinal `0233`; both shipped
 > deltas remain valid, so repair requires an ADR-backed compatibility identity,
 > clean-install and pre-0233 replay evidence rather than deleting or casually
@@ -31,9 +35,11 @@
 > ThreadWeave, TEPP, and lowercase canonical
 > `ContextualWisdomLab/disksage` retain their existing bounded
 > responsibilities. This overlay changes no ADR, API, schema, release number,
-> or owner implementation. PR #1041 remains Draft until documentation hygiene
-> is rerun on its new exact head and all ordinary review/check gates are
-> satisfied; historical receipts from its prior head are not reused.
+> or owner implementation. PR #1041 is Ready at exact head
+> `b3a4824009d1553f9f7cf73953224fcbfdde4aff` with normal squash auto-merge
+> armed. Its current-head repository tests and review workflows pass, while
+> independent approval remains absent; historical approval from its prior head
+> is not reused.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
