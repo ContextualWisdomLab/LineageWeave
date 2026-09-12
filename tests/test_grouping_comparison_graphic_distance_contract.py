@@ -9,23 +9,20 @@ PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
 
 
-def test_comparison_graphic_names_persisted_distance_with_distinct_copy() -> None:
-    """Comparison SVG distance captions must not reuse the report accessible name."""
+def test_comparison_graphic_names_persisted_distance_with_distinct_localized_copy() -> None:
+    """Comparison distance composes localized graphic and distance vocabulary."""
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
     layout_source = LAYOUT_SOURCE.read_text(encoding="utf-8")
 
+    assert "LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE" not in layout_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE" not in plot_source
+    assert 'variant === "comparison"' in plot_source
     assert (
-        'export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE =\n'
-        '  "leftover map comparison graphic leftover-map distance {label}";'
-        in layout_source
-    )
-    assert "LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE" in plot_source
-    assert re.search(
-        r'variant\s*===\s*"comparison"\s*\?\s*LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_DISTANCE\s*:\s*LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE',
-        plot_source,
-        re.DOTALL,
+        '`${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {'
+        in plot_source
     )
     assert "label: segment.distanceLabel" in plot_source
+    assert ': tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, { label: segment.distanceLabel })' in plot_source
 
 
 def test_distance_projection_consumes_persisted_fail_closed_evidence() -> None:
