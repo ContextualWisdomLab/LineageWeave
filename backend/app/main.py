@@ -132,6 +132,7 @@ from backend.app.iopsy_ontology_api import (
     construct_catalog_payload,
     worker_function_profile_payload,
 )
+from backend.app.post_chat_replay_policy import PostChatAuthorizationScope
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -3352,15 +3353,14 @@ async def read_post_chat(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Stored Ask exchanges for this post.
-
-    Seeded fixture answers (and any later live persist) so the popup is
-    not an empty Ask box when the orchestrator is off. Missing rows are
-    an empty list, not a fabricated transcript.
-    """
+    """Return only stored Ask exchanges whose replay evidence is authorized now."""
     await _load_visible_post(post_id, account, pool)
+    current_scope = PostChatAuthorizationScope.captured(
+        corporate_entity_ids=account.corporate_entity_ids,
+        process_unit_ids=account.process_unit_ids,
+    )
     async with pool.acquire() as conn:
-        exchanges = await fetch_persisted_chats(conn, post_id)
+        exchanges = await fetch_persisted_chats(conn, post_id, current_scope)
     return {"post_id": post_id, "exchanges": exchanges}
 
 
@@ -3372,34 +3372,30 @@ async def chat_about_post(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """In-popup chat: answers `request.question` using this post's own
-    content plus its Event-Lineage-linked posts (direct and Knowledge-
-    Graph-indirect) as context, and returns which source post(s) the
-    answer drew from -- the sliding evidence panel's citation data.
+    """Answer from authorized lineage evidence, revalidating any persisted replay first.
 
-    A persisted (seeded or previously live) row is returned first so
-    Ask works on the demo stack without an orchestrator. Live
-    reason-and-cite still runs only when no stored match exists and
-    the orchestrator is configured -- never a fabricated reply.
+    Cached derived text is replayed only when its generation scope is subsumed by
+    the current reader and every captured source remains visible. No database
+    transaction is held while the orchestrator performs LLM work.
     """
     question = request.question.strip()
     if not question:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required"
-        )
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    current_scope = PostChatAuthorizationScope.captured(
+        corporate_entity_ids=account.corporate_entity_ids,
+        process_unit_ids=account.process_unit_ids,
+    )
     async with pool.acquire() as conn:
-        stored = await fetch_persisted_chat(conn, post_id, question)
-        if stored is not None:
-            source_ids = [post_id]
-            source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+        stored = await fetch_persisted_chat(conn, post_id, question, current_scope)
+        if stored is not None and stored.get("_authorization_validated") is True:
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
-                "source_post_ids": source_ids,
+                "source_post_ids": list(stored.get("_source_post_ids", ())),
             }
     with use_llm_metadata(post_metadata):
         with traced(
@@ -3416,8 +3412,7 @@ async def chat_about_post(
                     )
                     raise HTTPException(
                         status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "Post chat is temporarily unavailable. "
-                        "Saved evidence is still available.",
+                        "Post chat is temporarily unavailable. Saved evidence is still available.",
                     )
                 async with pool.acquire() as conn:
                     sources = await gather_chat_sources(
@@ -3440,19 +3435,26 @@ async def chat_about_post(
                 record_server_failure("post_chat", exc, outcome="provider_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    "Post chat is temporarily unavailable. Saved evidence is still available.",
                 ) from exc
             except Exception as exc:
                 record_server_failure("post_chat", exc, outcome="internal_error")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    "Post chat is temporarily unavailable. Saved evidence is still available.",
                 ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_post_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
-        await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        await persist_post_chat(
+            conn,
+            post_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+            current_scope,
+            source_post_ids,
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -3465,7 +3467,7 @@ async def chat_about_post(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_post_ids,
     }
 
 
