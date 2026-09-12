@@ -1,46 +1,48 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-13 04:48 KST. Protected `main` remains
+> Exact-head loop overlay: 2026-09-13 06:48 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
-> search reports 157 open PRs and 32 open issues. These counts and every
-> candidate state below are operational evidence, not protected-main capability.
+> search reports 157 open PRs and 36 open issues; all 157 open PRs are Draft.
+> Candidate state is operational evidence, not protected-main capability.
 >
-> Customer Master hierarchy PR #996 remains Draft at exact
-> `a640df40839ed7e2a15b9ab95a7f86faa050a248`; its interrupted prior Ready
-> admission is not a full repository receipt. Process-unit authorization is
-> owned separately by issue #1045 / Ready PR #1042 at exact
-> `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`. Repository Tests, Security,
-> and SAST are GREEN there, while canonical promotion gates are incomplete and
-> exact-head Strix run 34704740554 is still executing `Run Strix (quick)`.
-> Do not copy that authorization rule into hierarchy presentation code.
+> Customer Master process-unit authorization remains owned by issue #1045 / Draft
+> PR #1042 at exact `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`.
+> Repository Tests, Security and SAST are GREEN, while Required CodeQL and Noema
+> are non-GREEN. Exact-head Strix run 34704740554 is now terminal FAILURE after
+> successful admission/materialization/contextual-orchestrator setup; its retained
+> `strix-reports` artifact is sha256
+> `bcdc13b76adf4a2b5b9cbbcab2de217db2e25f445f69d2de20a7d9f4cdf19b72`.
+> #1042 returned to Draft without moving source head.
 >
-> Persisted Post Chat replay authorization is owned by issue #1044 / Ready PR
-> #1047 at exact `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`.
-> The consumer now delegates captured-source authorization to the literal-query
-> repository operation in `post_eligibility.py`; the predecessor full suite
-> exposed one stale contract that still required the consumer to mention
-> `source_post_scope_sql`. That contract has been repaired to assert owner
-> delegation instead, and fresh exact-head Tests run 34715131667 is active.
-> Ready means validation admission only; it is not merge readiness.
+> The retained #1042 Strix artifact produced five source-traced security findings.
+> Persisted Post Chat cited-source replay disclosure is the same causal defect
+> already owned by #1044 / Draft PR #1047, so #1044 records the independent
+> corroboration instead of creating a competing replay lane. New issues #1050,
+> #1051, #1052 and #1053 own, respectively: mixed-visibility period-report
+> aggregate disclosure; unbounded durable REST Global Ask admission; cross-tenant
+> Customer Master customer-hint evidence/rebind; and Post Chat shared-persistence
+> mutation authority. These lanes must reproduce their own REDs; generated Strix
+> patch suggestions are not accepted as source authority.
 >
-> Dependency advisory GHSA-82fw-gwwq-j7x9 remains owned by issue #1043 /
-> Draft PR #1046 at exact `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`.
-> Duplicate migration ordinal 0233 remains owned by issue #1048 / Draft PR
-> #1049 at exact `5322971193d1ff4e0ae13c054d8f99615934d4dc`.
-> #1049's repository Tests, including its real-PostgreSQL repeated production
-> `migrate.sh` rehearsal, are GREEN, but all exact-head workflows are terminal
-> with Required CodeQL PR 34712361297 and Required Noema 34712358391 failed;
-> repository-local GREEN therefore cannot promote the migration repair.
+> Persisted Post Chat replay authorization remains Draft PR #1047 at exact
+> `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`. Repository Tests, Security,
+> SAST, dynamic CodeQL and Code Quality are GREEN there, while Required CodeQL,
+> OpenCode, Noema and Strix are terminal FAILURE. #1047 therefore has no live
+> validation lane and is not merge-ready.
 >
-> Release metadata is still internally inconsistent on protected main:
-> `pyproject.toml` declares 2.28.0 while `lineageweave.__version__` declares
-> 2.20.0. Keep this as a release blocker rather than normalizing it in a docs
-> candidate. ADR 0251 remains the I/O-psychology authority and ADR 0256 the
-> extensible Voice-combination contract. RankWeave, ThreadWeave, TEPP, and
-> lowercase canonical `ContextualWisdomLab/disksage` retain their own bounded
-> responsibilities. PR #1041 itself remains Draft; its exact head belongs in PR
-> metadata rather than a self-referential document SHA. Earlier overlays below
-> are dated historical evidence only.
+> Dependency advisory GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046
+> at exact `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`. Duplicate migration ordinal
+> 0233 remains issue #1048 / Draft PR #1049 at exact
+> `5322971193d1ff4e0ae13c054d8f99615934d4dc`; its repository/PostgreSQL tests
+> are GREEN but canonical Required CodeQL/Noema promotion controls are not.
+>
+> Release metadata is still inconsistent on protected main: `pyproject.toml`
+> declares 2.28.0 while `lineageweave.__version__` declares 2.20.0. Keep this as
+> a release blocker rather than normalizing it in documentation. ADR 0251 remains
+> the I/O-psychology authority and ADR 0256 the extensible Voice-combination
+> contract. RankWeave, ThreadWeave, TEPP, and lowercase canonical
+> `ContextualWisdomLab/disksage` retain their own bounded responsibilities.
+> PR #1041 remains Draft; earlier overlays below are dated historical evidence only.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
