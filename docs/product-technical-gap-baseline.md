@@ -21,7 +21,7 @@
 > still absent; a Noema 502 is provider evidence, not a source-code finding.
 > Issue #1044 and Ready PR #1047 own persisted post-chat derived-data replay
 > authorization at exact head
-> `7e04f5df1b65ce485f619ce45189858f45223789`. The production replay path now
+> `7e04f5df1e39a9477ddbec628ff4944ebfc176f7`. The production replay path now
 > requires the immutable reader-scope receipt, reauthorizes every captured
 > contributing Post, fails legacy receipt-less rows closed to live generation,
 > and persists answer, scope, sources, and citations atomically. Focused
