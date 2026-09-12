@@ -8,6 +8,38 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Issue-ticket persistence now uses explicit database-connection,
+  issue-ticket-row, issue-ticket collection, ticket-status-label, and
+  existing/updated-ticket-row identifiers. Public function names, positional
+  callers, JSON fields, PostgreSQL schema and SQL behavior remain unchanged.
+
+- Operations dashboard projection now uses explicit database-connection,
+  query-parameter, visible-period-predicate, dashboard-metric,
+  operations-case-row/fact, case-identity, and post-count identifiers. Public
+  response fields, ABAC/event-clock SQL, ordering, and percentage behavior
+  remain unchanged.
+
+- Buyer-visible RankWeave ingestion now uses explicit current-account,
+  database-pool, database-connection, source-post-row, and
+  visible-ranking-post identifiers from the authorized SQL read through the
+  API projection. The `/api/rankings` route, source-post SQL columns, ABAC
+  predicate, RankWeave adapter contract, and response payload remain unchanged.
+
+- Source-post valid-time revision lookup now uses explicit timestamp-value,
+  query-clock, database-connection, and source-post-revision-row identifiers
+  across parsing, interval coverage, persistence reads, serialization, and
+  focused fixtures. Public helper names, positional behavior, PostgreSQL
+  table/column names, SQL predicates and ordering, and returned API keys are
+  unchanged.
+
+- Global Ask relative-time source selection now uses explicit source-post,
+  timestamp, candidate-channel, lineage-edge, and source-document identifiers
+  across the time-axis helper, authorized retrieval caller, and focused
+  fixtures. Public helper names and positional behavior remain stable; semantic
+  keyword parameters replace generic owned names. Source-post SQL columns,
+  evidence-fact text, result order, visibility filtering, and API payload keys
+  are unchanged.
+
 - Period leftover pairs now caption leftover-map graphic-display pair
   segments with persisted leftover-map distance `d` (ADR 0271 /
   v2.28.0). After `make seed`, closest and farthest leftover pairs sit
@@ -261,6 +293,113 @@ All notable changes to this project are documented here. Format follows
   invent a leftover score.
 
 ### Changed
+
+- Customer-hint resolution and ingestion now use customer-context,
+  orchestrator-response, verified-resolution, corporate-entity, and linked-post
+  identifiers throughout their owned implementation and regression fixtures.
+  The context-qualified resolver protocol, orchestrator request keys, SQL/schema,
+  and published API response keys are unchanged.
+
+- Extractive VOC evidence and affiliate-tree construction/ingestion now use
+  bounded-context identifiers for source text, evidence excerpts, organization
+  names, corporate entities, affiliation leaves, hierarchy nodes, lookup labels,
+  database connections, and counterparties. Published Python dataclass fields,
+  JSON keys, SQL/schema, lookup codes, sentence matching, hierarchy ordering,
+  and missing-evidence behavior are unchanged.
+
+- The evidence-only 5W1H projection and its authorized read caller now use
+  semantic evidence-slot, post-summary-role, key-event, counterparty, ontology,
+  and deduplication identifiers. Published slot/value JSON keys, ontology
+  codes, source codes, ordering, and evidence-only behavior remain unchanged.
+
+- The Ask delivery projection and its direct empty-result caller now use
+  semantic cited-post, post-evidence, source-document, encoded-post-ID, and
+  Ask-delivery identifiers. The published report/alert JSON keys, URL quoting,
+  citation order, evidence facts, and subscription eligibility remain
+  unchanged.
+
+- The post-evaluation judge, IRT projection, persistence, API handlers, SQL
+  aliases, and focused fixtures now use semantic judge-result,
+  criterion-response, database-connection, persisted-evaluation-row, and
+  orchestrator-response names. Existing route paths, JSON fields, SQL tables,
+  fast-mlsirm projection entry point, and external adapter signatures remain
+  unchanged.
+
+- The authorized job-architecture importer and its behavioral fixture now use
+  semantic source-snapshot, job-architecture node, hierarchy-edge,
+  occupation-binding, database, digest, and command identifiers while
+  preserving CSV columns, CLI flags, SQL/schema, aggregate JSON fields,
+  transaction behavior, and connection close.
+
+- The governed ontology-site publisher now uses semantic renderer, ontology
+  graph, namespace-mapping, SHACL-resource, source-path, output-path, and CLI
+  identifiers while preserving public function signatures, CLI flags, RDF
+  validation, fail-closed replacement, cleanup, and generated-site behavior.
+
+- The legacy ontology-namespace migration operator and behavioral fixture now
+  use semantic ontology-IRI, database, source-mention, rewrite-plan, and command
+  identifiers while preserving CLI flags, SQL, dry-run/fail-closed output,
+  idempotence, transactional updates, and connection-close behavior.
+
+- The explicit post-content requeue operator now uses semantic command,
+  database, source-post, job-request, Valkey-stream, and runtime-settings
+  identifiers while preserving CLI flags, SQL, transaction, publication,
+  JSON output keys, and resource-close behavior.
+
+- The deterministic ontology-site builder now uses semantic ontology-resource,
+  RDF-graph, source-path, publication-output, JSON-LD item, relation-row,
+  manifest-payload, digest, and CLI identifiers while preserving public URLs,
+  formats, manifest fields, generated bytes, and flags.
+
+- The queued LLM channel-weight estimator behavior tests now name their module
+  boundary explicitly instead of using the generic `script` alias.
+
+- The deterministic channel-weight estimator tests now use semantic source-post,
+  thread-group, sampling-index, digest, database, query, and persistence names
+  while preserving estimator behavior and external database protocol signatures.
+
+- The thread-group-key backfill test doubles now use semantic database,
+  placeholder-post, analysis-run, query, and result identifiers while preserving
+  the operator's behavior and external `asyncpg` protocol method names.
+
+- The post-summary backfill operator now uses semantic parser, orchestrator
+  gateway, database, source-post, client, content, failure, and aggregate
+  identifiers while preserving CLI flags, JSON result keys, SQL selection,
+  transactions, persistence, and connection-close behavior.
+
+- The synchronous post-content backfill now uses semantic command, database,
+  source-post, normalized-content, image-result, aggregate-result, and SQL
+  aliases while preserving CLI flags, JSON result keys, source selection,
+  persistence, transaction, and connection-close behavior.
+
+- The post-content queue backfill now uses semantic command, database, Valkey,
+  source-record, job-request, and aggregate-result identifiers while preserving
+  CLI flags, JSON result keys, selection SQL, transaction boundaries, and event
+  publication behavior.
+
+- The ADR 0250 occupational catalog synchronization command now uses semantic
+  catalog, database, payload, configuration, and result identifiers while
+  preserving the fixed O*NET URL, `--target-dsn`, release/result output, digest
+  validation, transactional UPSERT, and connection-close behavior.
+
+- The deterministic channel-weight estimator now uses semantic source-post,
+  candidate-window, database, estimate, and command identifiers while
+  preserving pair sampling, fitting, CLI, JSON, SQL, and persisted provenance
+  contracts. The fast-mlsirm `v0.9.1` consumer cutover remains isolated in
+  #967.
+
+- The queued LLM channel-weight estimator now uses semantic batch-submission,
+  estimation-run, pair-judgment, orchestrator, and command identifiers while
+  preserving provider payload fields, CLI and JSON contracts, SQL, transaction
+  boundaries, and incomplete-judgment behavior.
+
+- The bounded thread-group-key backfill now uses semantic command, database,
+  record, and count identifiers while preserving `--dry-run`, aggregate JSON,
+  SQL, transaction rollback, and persistence behavior.
+
+- The bounded post-Keyman operator now uses semantic package-owned command,
+  database, record, and result identifiers while preserving every CLI flag,
+  JSON result field, SQL statement, and persistence boundary.
 
 - ADRs 0011 and 0065 now include APA 7th References for the dated W3C
   PROV-O and PROV-DM Recommendations (30 April 2013). Decisions are

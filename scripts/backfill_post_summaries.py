@@ -23,38 +23,44 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.post_summary_ingestion import persist_post_summary
-from lineageweave.corporate_hierarchy_inference import NullCorporateHierarchyInferenceClient
+from lineageweave.corporate_hierarchy_inference import (
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
 
 
-def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+def _post_summary_backfill_parser() -> argparse.ArgumentParser:
+    """Build the post-summary backfill command-line parser."""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument(
         "--target-dsn",
         default=os.environ.get(
             "DATABASE_URL",
             "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave",
         ),
     )
-    parser.add_argument("--post-id", action="append", dest="post_ids")
-    parser.add_argument("--limit", type=int, default=5)
-    parser.add_argument(
+    argument_parser.add_argument("--post-id", action="append", dest="post_ids")
+    argument_parser.add_argument("--limit", type=int, default=5)
+    argument_parser.add_argument(
         "--all",
         action="store_true",
         help="process every eligible post without an explicit project field",
     )
-    return parser
+    return argument_parser
 
 
-def _gateway_config() -> tuple[str, str]:
+def _orchestrator_gateway_config() -> tuple[str, str]:
     """Resolve only the contextual-orchestrator boundary, never its provider."""
     return (
         os.environ.get("ORCHESTRATOR_BASE_URL", ""),
@@ -62,47 +68,55 @@ def _gateway_config() -> tuple[str, str]:
     )
 
 
-def _semantic_hints(row: asyncpg.Record) -> str:
-    source_author_name = row["source_author_name"]
-    if source_author_name and source_author_name == row["source_author_code"]:
+def _post_semantic_hints(source_post_record: asyncpg.Record) -> str:
+    """Format semantic hints from one selected source-post record."""
+    source_author_name = source_post_record["source_author_name"]
+    if (
+        source_author_name
+        and source_author_name == source_post_record["source_author_code"]
+    ):
         source_author_name = None
     return format_semantic_hints(
-        author_name=source_author_name or row["author_name"],
-        author_affiliations=row["author_affiliations"] or (),
-        order_pool_code=row["source_sales_pool_code"],
-        order_pool_name=row["source_sales_pool_name"],
-        project_field=row["project_field"],
-        customer_name=row["customer_name"],
+        author_name=source_author_name or source_post_record["author_name"],
+        author_affiliations=source_post_record["author_affiliations"] or (),
+        order_pool_code=source_post_record["source_sales_pool_code"],
+        order_pool_name=source_post_record["source_sales_pool_name"],
+        project_field=source_post_record["project_field"],
+        customer_name=source_post_record["customer_name"],
         author_account_id=(
-            str(row["author_account_id"]) if row["author_account_id"] is not None else None
+            str(source_post_record["author_account_id"])
+            if source_post_record["author_account_id"] is not None
+            else None
         ),
-        author_account_name=row["author_name"],
-        source_author_code=row["source_author_code"],
+        author_account_name=source_post_record["author_name"],
+        source_author_code=source_post_record["source_author_code"],
         source_author_name=source_author_name,
-        source_company_code=row["source_company_code"],
-        source_company_name=row["source_company_name"],
-        source_company_catalog_name=row["source_company_catalog_name"],
-        source_business_unit_code=row["source_process_unit_code"],
-        source_process_unit_name=row["source_process_unit_name"],
-        source_process_unit_catalog_name=row["source_process_unit_catalog_name"],
-        source_sales_pool_code=row["source_sales_pool_code"],
-        source_sales_pool_name=row["source_sales_pool_name"],
-        source_customer_code=row["source_customer_code"],
-        source_customer_name=row["source_customer_name"],
-        source_customer_catalog_name=row["source_customer_catalog_name"],
-        source_project_code=row["source_project_code"],
-        source_project_name=row["source_project_name"],
+        source_company_code=source_post_record["source_company_code"],
+        source_company_name=source_post_record["source_company_name"],
+        source_company_catalog_name=source_post_record["source_company_catalog_name"],
+        source_business_unit_code=source_post_record["source_process_unit_code"],
+        source_process_unit_name=source_post_record["source_process_unit_name"],
+        source_process_unit_catalog_name=source_post_record[
+            "source_process_unit_catalog_name"
+        ],
+        source_sales_pool_code=source_post_record["source_sales_pool_code"],
+        source_sales_pool_name=source_post_record["source_sales_pool_name"],
+        source_customer_code=source_post_record["source_customer_code"],
+        source_customer_name=source_post_record["source_customer_name"],
+        source_customer_catalog_name=source_post_record["source_customer_catalog_name"],
+        source_project_code=source_post_record["source_project_code"],
+        source_project_name=source_post_record["source_project_name"],
     )
 
 
-async def _load_posts(
-    conn: asyncpg.Connection,
-    post_ids: list[str],
-    limit: int | None,
+async def _load_summary_source_posts(
+    database_connection: asyncpg.Connection,
+    requested_post_ids: list[str],
+    post_limit: int | None,
 ) -> list[asyncpg.Record]:
     """Load explicit IDs or one bounded unprojected-post batch."""
     return list(
-        await conn.fetch(
+        await database_connection.fetch(
             """
             select post.post_id,
                    post.post_title,
@@ -202,8 +216,8 @@ async def _load_posts(
              order by post.created_at, post.post_id
              limit $2::bigint
             """,
-            post_ids or None,
-            limit,
+            requested_post_ids or None,
+            post_limit,
         )
     )
 
@@ -211,87 +225,138 @@ async def _load_posts(
 async def backfill_post_summaries(
     target_dsn: str,
     raw_post_ids: list[str] | None,
-    limit: int | None,
+    post_limit: int | None,
 ) -> dict[str, object]:
-    post_ids = [str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])]
-    base_url, api_key = _gateway_config()
-    if not base_url or not api_key:
-        raise RuntimeError("contextual-orchestrator gateway credentials are unavailable")
+    """Backfill summaries for explicit posts or one bounded eligible batch."""
+    requested_post_ids = [
+        str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])
+    ]
+    orchestrator_base_url, orchestrator_api_key = _orchestrator_gateway_config()
+    if not orchestrator_base_url or not orchestrator_api_key:
+        raise RuntimeError(
+            "contextual-orchestrator gateway credentials are unavailable"
+        )
 
-    vision_client = orchestrator_vision_client(base_url, api_key)
-    if not vision_client.available:
-        raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
-    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=180.0)
-    embedding_client = orchestrator_embedding_client(base_url, api_key)
-    structure_client = (
-        ContextualOrchestratorPostStructureClient(base_url, api_key)
-        if base_url and api_key
+    post_vision_client = orchestrator_vision_client(
+        orchestrator_base_url,
+        orchestrator_api_key,
+    )
+    if not post_vision_client.available:
+        raise RuntimeError(
+            "VISION is unavailable; configure contextual-orchestrator before backfill"
+        )
+    post_summary_client = ContextualOrchestratorPostSummaryClient(
+        orchestrator_base_url,
+        orchestrator_api_key,
+        timeout=180.0,
+    )
+    post_embedding_client = orchestrator_embedding_client(
+        orchestrator_base_url,
+        orchestrator_api_key,
+    )
+    post_structure_client = (
+        ContextualOrchestratorPostStructureClient(
+            orchestrator_base_url,
+            orchestrator_api_key,
+        )
+        if orchestrator_base_url and orchestrator_api_key
         else NullPostStructureClient()
     )
-    conn = await asyncpg.connect(target_dsn)
+    database_connection = await asyncpg.connect(target_dsn)
     try:
-        rows = await _load_posts(conn, post_ids, limit)
-        result: dict[str, object] = {
-            "requested_posts": len(post_ids),
-            "selected_posts": len(rows),
+        source_post_records = await _load_summary_source_posts(
+            database_connection,
+            requested_post_ids,
+            post_limit,
+        )
+        backfill_summary: dict[str, object] = {
+            "requested_posts": len(requested_post_ids),
+            "selected_posts": len(source_post_records),
             "processed_posts": 0,
             "project_mentions": 0,
             "failed_posts": 0,
             "failure_types": {},
         }
-        for row in rows:
+        for source_post_record in source_post_records:
             try:
-                with use_llm_metadata(build_post_llm_metadata(str(row["post_id"]), row)):
-                    normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
-                    if not normalized.text.strip():
+                with use_llm_metadata(
+                    build_post_llm_metadata(
+                        str(source_post_record["post_id"]),
+                        source_post_record,
+                    )
+                ):
+                    normalized_post_content = normalize_post_body(
+                        source_post_record["post_body"],
+                        vision_client=post_vision_client,
+                    )
+                    if not normalized_post_content.text.strip():
                         raise ValueError("normalized post body is empty")
                     await persist_post_content(
-                        conn,
-                        str(row["post_id"]),
-                        row["post_body"],
-                        vision_client=vision_client,
-                        embedding_client=embedding_client,
-                        normalized_result=normalized,
-                        structure_client=structure_client,
-                        post_title=row["post_title"],
+                        database_connection,
+                        str(source_post_record["post_id"]),
+                        source_post_record["post_body"],
+                        vision_client=post_vision_client,
+                        embedding_client=post_embedding_client,
+                        normalized_result=normalized_post_content,
+                        structure_client=post_structure_client,
+                        post_title=source_post_record["post_title"],
                     )
-                    summary = await asyncio.to_thread(
-                        summary_client.summarize_with_hints,
-                        row["post_title"],
-                        normalized.text,
-                        _semantic_hints(row),
+                    post_summary = await asyncio.to_thread(
+                        post_summary_client.summarize_with_hints,
+                        source_post_record["post_title"],
+                        normalized_post_content.text,
+                        _post_semantic_hints(source_post_record),
                     )
                     await persist_post_summary(
-                        conn,
-                        str(row["post_id"]),
-                        summary,
-                        post_body=normalized.text,
+                        database_connection,
+                        str(source_post_record["post_id"]),
+                        post_summary,
+                        post_body=normalized_post_content.text,
                         hierarchy_inference_client=NullCorporateHierarchyInferenceClient(),
                         verification_client=NullRelationVerificationClient(),
                     )
-                result["processed_posts"] = int(result["processed_posts"]) + 1
-                result["project_mentions"] = int(result["project_mentions"]) + len(summary.project_mentions)
-            except Exception as exc:  # noqa: BLE001 - one post must not hide other progress.
-                result["failed_posts"] = int(result["failed_posts"]) + 1
-                failures = result["failure_types"]
-                assert isinstance(failures, dict)
-                name = type(exc).__name__
-                failures[name] = int(failures.get(name, 0)) + 1
-        return result
+                backfill_summary["processed_posts"] = (
+                    int(backfill_summary["processed_posts"]) + 1
+                )
+                backfill_summary["project_mentions"] = int(
+                    backfill_summary["project_mentions"]
+                ) + len(post_summary.project_mentions)
+            except Exception as post_failure:  # noqa: BLE001 - continue the batch.
+                backfill_summary["failed_posts"] = (
+                    int(backfill_summary["failed_posts"]) + 1
+                )
+                failure_type_counts = backfill_summary["failure_types"]
+                assert isinstance(failure_type_counts, dict)
+                failure_type_name = type(post_failure).__name__
+                failure_type_counts[failure_type_name] = (
+                    int(failure_type_counts.get(failure_type_name, 0)) + 1
+                )
+        return backfill_summary
     finally:
-        await conn.close()
+        await database_connection.close()
 
 
 def main() -> None:
-    args = _parser().parse_args()
-    if args.limit < 1:
+    """Validate command arguments, run the backfill, and print JSON counts."""
+    command_arguments = _post_summary_backfill_parser().parse_args()
+    if command_arguments.limit < 1:
         raise SystemExit("--limit must be positive")
-    if args.all and args.post_ids:
+    if command_arguments.all and command_arguments.post_ids:
         raise SystemExit("--all cannot be combined with --post-id")
-    limit = None if args.all or args.post_ids else args.limit
+    post_limit = (
+        None
+        if command_arguments.all or command_arguments.post_ids
+        else command_arguments.limit
+    )
     print(
         json.dumps(
-            asyncio.run(backfill_post_summaries(args.target_dsn, args.post_ids, limit)),
+            asyncio.run(
+                backfill_post_summaries(
+                    command_arguments.target_dsn,
+                    command_arguments.post_ids,
+                    post_limit,
+                )
+            ),
             sort_keys=True,
         )
     )

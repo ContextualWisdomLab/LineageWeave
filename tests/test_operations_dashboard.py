@@ -1,10 +1,47 @@
 """Focused tests for the operational dashboard evidence projection."""
 
-from datetime import date, datetime, timezone
+import ast
+from datetime import UTC, date, datetime
+from pathlib import Path
 
 import pytest
 
 from backend.app.operations_dashboard import fetch_operations_dashboard
+
+
+def test_operations_dashboard_uses_semantic_owned_identifiers() -> None:
+    """Keep internal projection names tied to their operations-case roles."""
+    source_path = Path("backend/app/operations_dashboard.py")
+    source_tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    dashboard_function = next(
+        syntax_node
+        for syntax_node in source_tree.body
+        if isinstance(syntax_node, ast.AsyncFunctionDef)
+        and syntax_node.name == "fetch_operations_dashboard"
+    )
+    owned_identifiers = {
+        syntax_node.arg
+        for syntax_node in ast.walk(dashboard_function)
+        if isinstance(syntax_node, ast.arg)
+    } | {
+        syntax_node.id
+        for syntax_node in ast.walk(dashboard_function)
+        if isinstance(syntax_node, ast.Name) and isinstance(syntax_node.ctx, ast.Store)
+    }
+
+    assert owned_identifiers.isdisjoint(
+        {
+            "args",
+            "conn",
+            "external",
+            "facts",
+            "key",
+            "metrics",
+            "row",
+            "total",
+            "visible",
+        }
+    )
 
 
 class _Connection:
@@ -45,7 +82,7 @@ class _Connection:
                 "evidence_text": "Synthetic cited sentence",
                 "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
-                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                "occurred_at": datetime(2026, 8, 12, tzinfo=UTC),
             }
         ]
 
@@ -93,7 +130,11 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         assert "corporate_entity_id::text = any($1::text[])" in query
         assert "process_unit_id::text = any($2::text[])" in query
         assert "coalesce(post.event_occurred_at, post.created_at)" in query
-        assert args[1:] == (["00000000-0000-0000-0000-000000000008"], date(2026, 8, 1), date(2026, 8, 31))
+        assert args[1:] == (
+            ["00000000-0000-0000-0000-000000000008"],
+            date(2026, 8, 1),
+            date(2026, 8, 31),
+        )
 
 
 @pytest.mark.anyio
@@ -104,7 +145,13 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
         async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
             self.queries.append((query, args))
             return dict.fromkeys(
-                ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count", "failed_analysis_count"),
+                (
+                    "total_post_count",
+                    "total_event_count",
+                    "external_post_count",
+                    "pending_analysis_count",
+                    "failed_analysis_count",
+                ),
                 0,
             )
 
@@ -112,7 +159,9 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
             self.queries.append((query, args))
             return []
 
-    assert (await fetch_operations_dashboard(EmptyConnection(), []))["external_percent"] == 0.0
+    assert (await fetch_operations_dashboard(EmptyConnection(), []))[
+        "external_percent"
+    ] == 0.0
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
             EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)

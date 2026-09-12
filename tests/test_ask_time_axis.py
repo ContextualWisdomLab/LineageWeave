@@ -20,19 +20,43 @@ _LAST_WEEK_EVENT = datetime(2026, 8, 12, 3, 0, tzinfo=timezone.utc)
 
 
 def test_event_time_wins_over_clustered_created_at() -> None:
-    row = {"event_occurred_at": _YESTERDAY_EVENT, "created_at": _IMPORT_CLUSTER}
+    source_post_row = {
+        "event_occurred_at": _YESTERDAY_EVENT,
+        "created_at": _IMPORT_CLUSTER,
+    }
 
-    assert ask_filter_instant(row) == _YESTERDAY_EVENT
-    assert seoul_calendar_date(ask_filter_instant(row)) == date(2026, 8, 21)
-    assert time_axis_evidence_fact(row, time_filter_active=True) == (TIME_AXIS_EVENT,)
+    assert ask_filter_instant(source_post_row) == _YESTERDAY_EVENT
+    assert seoul_calendar_date(ask_filter_instant(source_post_row)) == date(2026, 8, 21)
+    assert time_axis_evidence_fact(source_post_row, time_filter_active=True) == (
+        TIME_AXIS_EVENT,
+    )
 
 
 def test_missing_event_time_falls_back_to_created_at_and_names_that_axis() -> None:
-    row = {"event_occurred_at": None, "created_at": _IMPORT_CLUSTER}
+    source_post_row = {"event_occurred_at": None, "created_at": _IMPORT_CLUSTER}
 
-    assert ask_filter_instant(row) == _IMPORT_CLUSTER
-    assert time_axis_evidence_fact(row, time_filter_active=True) == (TIME_AXIS_CREATED,)
-    assert time_axis_evidence_fact(row, time_filter_active=False) == ()
+    assert ask_filter_instant(source_post_row) == _IMPORT_CLUSTER
+    assert time_axis_evidence_fact(source_post_row, time_filter_active=True) == (
+        TIME_AXIS_CREATED,
+    )
+    assert time_axis_evidence_fact(source_post_row, time_filter_active=False) == ()
+
+
+def test_semantic_keyword_parameters_preserve_time_axis_behavior() -> None:
+    source_post_row = {
+        "event_occurred_at": _YESTERDAY_EVENT,
+        "created_at": _IMPORT_CLUSTER,
+    }
+
+    assert ask_filter_instant(source_post_row=source_post_row) == _YESTERDAY_EVENT
+    assert seoul_calendar_date(timestamp_value=_YESTERDAY_EVENT) == date(2026, 8, 21)
+    assert time_axis_evidence_fact(
+        source_post_row=source_post_row, time_filter_active=True
+    ) == (TIME_AXIS_EVENT,)
+    assert row_matches_time_range(
+        source_post_row=source_post_row,
+        time_range=(date(2026, 8, 21), date(2026, 8, 21)),
+    )
 
 
 def test_bulk_import_cluster_keeps_spread_event_days() -> None:

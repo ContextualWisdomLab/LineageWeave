@@ -61,7 +61,9 @@ import asyncpg
 from backend.app.config import load_settings
 
 
-async def backfill_thread_group_keys(conn: asyncpg.Connection, *, dry_run: bool) -> dict[str, int]:
+async def backfill_thread_group_keys(
+    database_connection: asyncpg.Connection, *, dry_run: bool
+) -> dict[str, int]:
     """Clear placeholder grouping keys and route project codes to the
     secondary-key channel.
 
@@ -72,8 +74,8 @@ async def backfill_thread_group_keys(conn: asyncpg.Connection, *, dry_run: bool)
     resolved live against `thread_group_key` on every read, not frozen in
     its snapshot.
     """
-    async with conn.transaction():
-        anchored_runs = await conn.fetch(
+    async with database_connection.transaction():
+        anchored_analysis_runs = await database_connection.fetch(
             """
             select scope.analysis_run_id, scope.scope_key
               from analysis_run_scope scope
@@ -85,18 +87,21 @@ async def backfill_thread_group_keys(conn: asyncpg.Connection, *, dry_run: bool)
                )
             """
         )
-        if anchored_runs:
-            run_ids = ", ".join(str(row["analysis_run_id"]) for row in anchored_runs)
+        if anchored_analysis_runs:
+            analysis_run_ids = ", ".join(
+                str(anchored_run["analysis_run_id"])
+                for anchored_run in anchored_analysis_runs
+            )
             raise RuntimeError(
                 "refusing to rewrite thread_group_key: existing "
-                f"analysis_scope_thread_group run(s) [{run_ids}] resolve their "
+                f"analysis_scope_thread_group run(s) [{analysis_run_ids}] resolve their "
                 "scope against values this backfill would change. Retire or "
                 "re-scope those runs first."
             )
         # Only rows carrying the placeholder signature -- a thread key equal
         # to the row's own record key groups nothing and can only be import
         # damage; a seeded or genuinely-mapped key never self-references.
-        rows = await conn.fetch(
+        updated_post_records = await database_connection.fetch(
             """
             update source_post
                set source_thread_group_key = coalesce(
@@ -112,55 +117,81 @@ async def backfill_thread_group_keys(conn: asyncpg.Connection, *, dry_run: bool)
             returning (nullif(btrim(source_project_code), '') is not null) as had_project_code
             """
         )
-        project_evidence = sum(1 for row in rows if row["had_project_code"])
-        cleared = len(rows)
+        project_evidence_post_count = sum(
+            1
+            for updated_post_record in updated_post_records
+            if updated_post_record["had_project_code"]
+        )
+        cleared_post_count = len(updated_post_records)
         if dry_run:
-            raise _RollbackDryRun(project_evidence, cleared)
+            raise _RollbackDryRun(
+                project_evidence_post_count,
+                cleared_post_count,
+            )
     return {
-        "cleared_placeholder_posts": cleared,
-        "project_secondary_evidence_posts": project_evidence,
+        "cleared_placeholder_posts": cleared_post_count,
+        "project_secondary_evidence_posts": project_evidence_post_count,
     }
 
 
 class _RollbackDryRun(Exception):
     """Raised inside the transaction to force a rollback for --dry-run."""
 
-    def __init__(self, project_evidence: int, cleared: int) -> None:
+    def __init__(
+        self,
+        project_evidence_post_count: int,
+        cleared_post_count: int,
+    ) -> None:
         """Retain the aggregate counts that the rolled-back operator run reports."""
         super().__init__("dry run -- rolled back")
-        self.project_evidence = project_evidence
-        self.cleared = cleared
+        self.project_evidence_post_count = project_evidence_post_count
+        self.cleared_post_count = cleared_post_count
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
+async def _run_thread_group_key_backfill(
+    command_arguments: argparse.Namespace,
+) -> dict[str, object]:
     """Execute one pooled backfill and convert dry-run rollback into counts."""
-    settings = load_settings()
-    pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
+    runtime_settings = load_settings()
+    database_pool = await asyncpg.create_pool(
+        runtime_settings.database_url, min_size=1, max_size=1
+    )
     try:
-        async with pool.acquire() as conn:
+        async with database_pool.acquire() as database_connection:
             try:
-                counts = await backfill_thread_group_keys(conn, dry_run=args.dry_run)
-                return {**counts, "dry_run": False}
+                backfill_counts = await backfill_thread_group_keys(
+                    database_connection,
+                    dry_run=command_arguments.dry_run,
+                )
+                return {**backfill_counts, "dry_run": False}
             except _RollbackDryRun as rolled_back:
                 return {
-                    "cleared_placeholder_posts": rolled_back.cleared,
-                    "project_secondary_evidence_posts": rolled_back.project_evidence,
+                    "cleared_placeholder_posts": rolled_back.cleared_post_count,
+                    "project_secondary_evidence_posts": (
+                        rolled_back.project_evidence_post_count
+                    ),
                     "dry_run": True,
                 }
     finally:
-        await pool.close()
+        await database_pool.close()
 
 
 def main() -> None:
     """Parse operator arguments and print aggregate, non-identifying evidence."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Report counts without writing (rolls back the transaction)",
     )
-    args = parser.parse_args()
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    command_arguments = argument_parser.parse_args()
+    print(
+        json.dumps(
+            asyncio.run(_run_thread_group_key_backfill(command_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":

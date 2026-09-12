@@ -22,22 +22,22 @@ def build_ask_delivery(
     answer is eligible for evidence-change alerts, but this function never
     guesses urgency from words in the answer.
     """
-    evidence_by_post = {
-        str(item["post_id"]): list(item.get("facts") or ())
-        for item in cited_post_evidence
-        if item.get("post_id")
+    evidence_facts_by_post_id = {
+        str(post_evidence["post_id"]): list(post_evidence.get("facts") or ())
+        for post_evidence in cited_post_evidence
+        if post_evidence.get("post_id")
     }
-    documents = []
-    for post in cited_posts:
-        post_id = str(post["post_id"])
-        encoded_id = quote(post_id, safe="")
-        documents.append(
+    source_documents = []
+    for cited_post in cited_posts:
+        post_id = str(cited_post["post_id"])
+        encoded_post_id = quote(post_id, safe="")
+        source_documents.append(
             {
                 "post_id": post_id,
-                "title": str(post["post_title"]),
-                "api_path": f"/api/posts/{encoded_id}",
-                "resource_uri": f"lineageweave://posts/{encoded_id}",
-                "evidence_facts": evidence_by_post.get(post_id, []),
+                "title": str(cited_post["post_title"]),
+                "api_path": f"/api/posts/{encoded_post_id}",
+                "resource_uri": f"lineageweave://posts/{encoded_post_id}",
+                "evidence_facts": evidence_facts_by_post_id.get(post_id, []),
             }
         )
     return {
@@ -45,12 +45,14 @@ def build_ask_delivery(
         "report": {
             "media_type": "text/markdown",
             "body": answer_text,
-            "source_documents": documents,
+            "source_documents": source_documents,
         },
         "alert": {
             "trigger_code": "cited_evidence_changed",
             "delivery_status_code": "not_subscribed",
-            "eligible": bool(documents),
-            "watched_resource_uris": [item["resource_uri"] for item in documents],
+            "eligible": bool(source_documents),
+            "watched_resource_uris": [
+                source_document["resource_uri"] for source_document in source_documents
+            ],
         },
     }
