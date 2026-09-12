@@ -28,20 +28,8 @@ jobs:
 
           path = Path("backend/app/post_chat_ingestion.py")
           text = path.read_text()
-          old = '''    rows = await conn.fetch(
-    _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,
-    sorted(current_scope.corporate_entity_ids),
-    sorted(current_scope.process_unit_ids),
-    list(source_post_ids),
-)
-'''
-          new = '''    rows = await conn.fetch(
-        _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,
-        sorted(current_scope.corporate_entity_ids),
-        sorted(current_scope.process_unit_ids),
-        list(source_post_ids),
-    )
-'''
+          old = "    rows = await conn.fetch(\n    _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,\n    sorted(current_scope.corporate_entity_ids),\n    sorted(current_scope.process_unit_ids),\n    list(source_post_ids),\n)\n"
+          new = "    rows = await conn.fetch(\n        _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,\n        sorted(current_scope.corporate_entity_ids),\n        sorted(current_scope.process_unit_ids),\n        list(source_post_ids),\n    )\n"
           if text.count(old) != 1:
               raise SystemExit("exact indentation target missing")
           text = text.replace(old, new, 1)
