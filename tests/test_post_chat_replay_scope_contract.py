@@ -110,13 +110,16 @@ def test_source_deletion_invalidates_answers_that_used_the_source() -> None:
 
 
 def test_application_boundary_consumes_receipt_validated_replay_policy() -> None:
-    """Require production persistence and API boundaries to consume the replay policy."""
+    """Require the replay consumer to delegate source authorization to its owner boundary."""
     main_source = Path("backend/app/main.py").read_text()
     ingestion_source = Path("backend/app/post_chat_ingestion.py").read_text()
+    eligibility_source = Path("backend/app/post_eligibility.py").read_text()
 
     assert "PostChatAuthorizationScope" in ingestion_source
     assert "post_chat_authorization_receipt" in ingestion_source
-    assert "source_post_scope_sql" in ingestion_source
+    assert "fetch_visible_eligible_source_post_ids_for_share" in ingestion_source
+    assert "source_post_scope_sql" in eligibility_source
+    assert "SOURCE_POST_ELIGIBILITY_SQL" in eligibility_source
     assert "account.corporate_entity_ids" in main_source
     assert "account.process_unit_ids" in main_source
 
