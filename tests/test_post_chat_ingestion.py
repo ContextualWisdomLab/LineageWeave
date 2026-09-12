@@ -35,6 +35,18 @@ class _Transaction:
         return None
 
 
+class _PreparedStatement:
+    """Prepared-statement double retaining the production SQL text."""
+
+    def __init__(self, connection: _Connection, query: str) -> None:
+        self.connection = connection
+        self.query = query
+
+    async def fetch(self, *args: object):
+        """Delegate execution to the connection's query-aware fixture."""
+        return await self.connection.fetch(self.query, *args)
+
+
 class _Connection:
     def __init__(self, *, header: dict[str, str] | None, citations: list[dict[str, str]]) -> None:
         self.header = header
@@ -44,6 +56,10 @@ class _Connection:
     def transaction(self) -> _Transaction:
         """Return the short transaction boundary used by production replay code."""
         return _Transaction()
+
+    async def prepare(self, query: str) -> _PreparedStatement:
+        """Return a prepared-statement double backed by this connection."""
+        return _PreparedStatement(self, query)
 
     async def execute(self, query: str, *args: object) -> str:
         self.executed.append((query, args))
