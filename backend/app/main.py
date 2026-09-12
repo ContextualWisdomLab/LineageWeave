@@ -3356,7 +3356,8 @@ async def read_post_chat(
     """Return only stored Ask exchanges whose replay evidence is authorized now."""
     await _load_visible_post(post_id, account, pool)
     current_scope = PostChatAuthorizationScope.captured(
-        account.corporate_entity_ids, account.process_unit_ids
+        corporate_entity_ids=account.corporate_entity_ids,
+        process_unit_ids=account.process_unit_ids,
     )
     async with pool.acquire() as conn:
         exchanges = await fetch_persisted_chats(conn, post_id, current_scope)
@@ -3383,7 +3384,8 @@ async def chat_about_post(
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     current_scope = PostChatAuthorizationScope.captured(
-        account.corporate_entity_ids, account.process_unit_ids
+        corporate_entity_ids=account.corporate_entity_ids,
+        process_unit_ids=account.process_unit_ids,
     )
     async with pool.acquire() as conn:
         stored = await fetch_persisted_chat(conn, post_id, question, current_scope)
