@@ -1,5 +1,72 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-12 20:39 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`; GitHub reports 157
+> open PRs and 32 open non-PR issues. Canonical remotes were rechecked as
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, and `TEPP`. The current LineageWeave PRD and the available
+> RankWeave architecture authority, ThreadWeave PRD, DiskSage PRD, and TEPP
+> approved PRD were read before this loop. DeepWiki has no index for the
+> private LineageWeave repository, so no DeepWiki claim is promoted here.
+>
+> The largest bounded buyer-visible gap already has a minimal candidate in
+> PR #780 at `1d8fa267b059289e77301a09985dfac70a439814`: exact-value UI/CSV
+> distinguish the carrying Post from authorized derivation evidence, hidden
+> evidence is not substituted, and paged JSON-LD unions properties and
+> multi-Voice relations for the same subject. The candidate preserves ADR
+> 0246's twelve extensible atomic Voice classifications and ADR 0256's
+> per-assignment evidence, PROV-O derivation, truth status, and cutoff contract;
+> it does not enumerate combination codes or narrow the model to B2B2C.
+> Focused local evidence on that exact head is 53 backend tests and 29 frontend
+> tests passing, plus frontend lint and production build. The wider frontend
+> run experienced 25 timeouts/failures under one-process saturation and is not
+> promoted to suite success; hosted exact-head Tests had previously succeeded.
+> Desktop and mobile candidate screenshots were inspected: the exact-value
+> region remains available at both widths and uses horizontal scrolling on the
+> narrow view. Authenticated PostgreSQL API and rendered runtime acceptance are
+> still unavailable, so this acceptance condition remains open.
+>
+> PR #897 is `c4194085f7bc0c7383f994da81d6a8146b695dc8`; its focused accepted-
+> receipt/start/release regression is 51 tests passing. PR #899 advanced to
+> `d331d1f6b05d39385a652be6dbb8f279871a2e2e` after removing Markdown trailing
+> whitespace without suppressing a check; its owner-boundary fitness suite is
+> 10 tests passing. PR #897 and #899 both currently claim release `2.29.0`, so
+> #899 must not merge with that identity: after #897 is protected-merged, #899
+> must adopt the new `main`, advance to the next unclaimed release, and collect
+> fresh exact-head evidence. Draft/auto-merge state changed while this loop was
+> running, so no actor or policy cause is inferred. Neither independent
+> approval, protected merge, merge SHA, nor deployed behavior is claimed.
+> This documentation child remains stacked on PR #780 and must be retargeted
+> to `main` only after the parent is protected-merged.
+
+> Exact-head development-loop snapshot: 2026-09-02 18:24 KST. Protected
+> `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; a fresh REST inventory
+> contains 112 open PRs and 15 open non-PR issues. The largest buyer-visible
+> candidate remains PR #780 at
+> `df6aac995176f64b184aaa2f6e34a064af20cc64`, based directly on `main`.
+> It distinguishes the carrying Post from genuine derivation evidence in the
+> exact-value UI and CSV, preserves authorized evidence, PROV-O derivation,
+> truth status, and cutoff for every additional atomic Voice, omits hidden
+> evidence without substitution, and unions same-subject properties and
+> multi-Voice relations in paged JSON-LD. ADR 0246's twelve classifications
+> remain extensible atomic assignments; ADR 0256, not the unrelated ADR 0251,
+> governs their evidence-bearing composition. Its 19 exact-head checks are
+> currently three skipped and sixteen queued. No independent `APPROVED`
+> review, protected merge, merge SHA, or freshly authenticated deployed
+> PostgreSQL/API/rendered-UI acceptance is claimed.
+>
+> PR #897 moved to `12caa9264b394c3b2ebd995943f3c8e42d01c0bd`
+> after a review-rooted test-contract repair; its focused TEPP receipt/start/
+> release suite passes 51 tests. One exact-head check is cancelled, four are
+> skipped, and sixteen are queued. Normal auto-merge could not be armed because
+> GitHub's GraphQL rate limit is exhausted; no bypass or self-approval was
+> attempted. This documentation child, PR #901, is still stacked on #780 at
+> pre-update head `5560958c9f70acaa4f0c6711ea0d132dbec45f6a` and must not be
+> retargeted to `main` until #780 is protected-merged. Canonical remote names
+> were rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+> `ThreadWeave`, lowercase `disksage`, `TEPP`, and
+> `contextual-orchestrator`.
+>
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
@@ -1557,7 +1624,7 @@ give this delivery matrix:
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
 | ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
-| ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
+| ADR 0134 token-backed exception messages | Partial: protected `main` delivers shared `StatusNotice` under ADR 0220 for token-backed success/unavailable/retry states, but complete Storybook/browser/a11y error-state evidence remains incomplete | Reuse `StatusNotice` as the single status-message authority; add the missing Storybook/browser/a11y success, unavailable, retry, and permission-state evidence rather than creating a second exception component |
 | ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
 | ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
 | ADR 0137 cross-post customer identity | Partial foundation: protected `main` preserves source customer hints and has corporate-catalog unique/miss/tie safeguards, but it has no normalized cross-post customer-identity judgment, supporting-post binding, or corporate-name-history workflow | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
