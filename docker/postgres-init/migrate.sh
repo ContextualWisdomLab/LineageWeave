@@ -27,6 +27,14 @@ for migration in /opt/lineageweave/migrations/*.sql; do
         [0-9][0-9][0-9][0-9]_*) ;;
         *) continue ;;
     esac
+    # Historical file paths may remain as explicit compatibility aliases for
+    # audit/tooling references. Their canonical replacement is replayed under
+    # its unique ordinal, so executing the alias as well would manufacture a
+    # second migration identity even when the SQL happens to be idempotent.
+    if grep -q '^-- lineageweave-compatibility-alias-of: ' "$migration"; then
+        printf 'Skipping compatibility alias %s\n' "$migration_name"
+        continue
+    fi
     printf 'Applying %s\n' "$migration_name"
     psql -X -v ON_ERROR_STOP=1 \
         -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
