@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from backend.app import main
+from backend.app import main, report_ingestion
 from backend.app.auth import CurrentAccount
 
 
@@ -26,6 +26,61 @@ class _Pool:
     def acquire(self) -> _Acquire:
         """Return an inert asynchronous connection acquisition."""
         return _Acquire()
+
+
+class _ComparisonConnection:
+    """Repository double that exposes process scope only when the SQL selects it."""
+
+    async def fetch(self, query: str, *_args: object) -> list[dict[str, Any]]:
+        """Return the minimum stored report population required by comparison loading."""
+        normalized = " ".join(query.split())
+        if "from report_period_score" in normalized:
+            return [
+                {
+                    "grouping_kind": "corporate_entity",
+                    "grouping_key": "tenant-a",
+                    "mean_theta": 2.0,
+                    "post_count": 1,
+                    "link_method": "reference",
+                }
+            ]
+        if "from report_member_score" in normalized:
+            return [
+                {
+                    "grouping_kind": "corporate_entity",
+                    "grouping_key": "tenant-a",
+                    "visibility_code": "public",
+                    "corporate_entity_id": "tenant-a",
+                    "process_unit_id": "unit-a",
+                    "has_real_source_context": True,
+                }
+            ]
+        if "from report_leftover_pair" in normalized:
+            row: dict[str, Any] = {
+                "grouping_kind": "corporate_entity",
+                "grouping_key": "tenant-a",
+                "pair_kind": "closest",
+                "post_id": "private-pair",
+                "criterion_code": "criterion-a",
+                "leftover_distance": 0.1,
+                "leftover_residual": 0.2,
+                "leftover_map_reconstruction": 0.3,
+                "post_title": "Hidden process-unit evidence",
+                "visibility_code": "private",
+                "corporate_entity_id": "tenant-a",
+                "has_real_source_context": True,
+            }
+            if "p.process_unit_id" in normalized:
+                row["process_unit_id"] = "unit-b"
+            return [row]
+        raise AssertionError(f"unexpected comparison query: {normalized}")
+
+    async def fetchrow(self, query: str, *_args: object) -> dict[str, str] | None:
+        """Resolve the one corporate-entity grouping label used by the fixture."""
+        normalized = " ".join(query.split())
+        if "from corporate_entity" in normalized:
+            return {"entity_name": "Tenant A"}
+        raise AssertionError(f"unexpected comparison label query: {normalized}")
 
 
 def _account() -> CurrentAccount:
@@ -175,6 +230,24 @@ async def test_period_report_comparison_hides_aggregate_when_any_member_is_invis
     async def fetch_rows(_conn: object, _period_code: str) -> list[dict[str, Any]]:
         """Return one comparison row with a hidden contributor."""
         return rows
+
+    monkeypatch.setattr(main, "fetch_period_comparison", fetch_rows)
+    monkeypatch.setattr(main, "has_real_source_context", _no_real_source_context)
+    monkeypatch.setattr(main, "parse_period_code", lambda _period_code: None)
+
+    payload = await main.compare_period_groupings("2026-W36", _account(), _Pool())
+
+    assert payload["groupings"] == []
+
+
+@pytest.mark.anyio
+async def test_period_report_comparison_preserves_leftover_process_scope(monkeypatch) -> None:
+    """Comparison loading must carry process-unit identity into leftover evidence ABAC."""
+    connection = _ComparisonConnection()
+
+    async def fetch_rows(_conn: object, period_code: str) -> list[dict[str, Any]]:
+        """Exercise the production comparison repository instead of a shaped payload."""
+        return await report_ingestion.fetch_period_comparison(connection, period_code)
 
     monkeypatch.setattr(main, "fetch_period_comparison", fetch_rows)
     monkeypatch.setattr(main, "has_real_source_context", _no_real_source_context)
