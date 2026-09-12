@@ -1,0 +1,47 @@
+name: Final current gap baseline refresh
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+    paths:
+      - .github/workflows/automation-1041-gap-refresh-0707.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: codex/gap-loop-20260912
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Replace live overlay and remove this workflow
+        env:
+          OVERLAY_B64: PiBFeGFjdC1oZWFkIGxvb3Agb3ZlcmxheTogMjAyNi0wOS0xMyAwNzowNyBLU1QuIFByb3RlY3RlZCBgbWFpbmAgcmVtYWlucwo+IGA4M2ViYTU2MTQ5ZWI4MDJjZDYzNjQyYzUwN2MzMjRjOTk3NmVjNzhlYCAodjIuMjguMDsgIzkzMSkuIEZyZXNoIGxpdmUKPiBzZWFyY2ggcmVwb3J0cyAxNTggb3BlbiBQUnMgYW5kIDM2IG9wZW4gaXNzdWVzLiBFeGFjdGx5IG9uZSBvcGVuIFBSIGlzCj4gbm9uLURyYWZ0OiAjMTA0Miwgd2hvc2UgUmVhZHkgc3RhdGUgaXMgdmFsaWRhdGlvbiBhZG1pc3Npb24gb25seS4KPgo+IEN1c3RvbWVyIE1hc3RlciBwcm9jZXNzLXVuaXQgYXV0aG9yaXphdGlvbiByZW1haW5zIGlzc3VlICMxMDQ1IC8gUFIgIzEwNDIuCj4gQ3VycmVudCBleGFjdCBoZWFkIGlzIGBmMjNmNWE1NjdiZDY2MTEzNjAzODM3Zjg2ZjAzMGMzYzQ1OWU2OWU2YC4KPiBBZnRlciBwcmVkZWNlc3NvciBTdHJpeCBgMzQ3MDQ3NDA1NTRgIHRlcm1pbmFsaXplZCBGQUlMVVJFLCB0aGUgdG91Y2hlZC1zdXJmYWNlCj4gZG9jc3RyaW5nIHdhcm5pbmcgd2FzIHJlcGFpcmVkIGFuZCBDb2RlUmFiYml0IHZlcmlmaWVkIDEwMCUgZG9jc3RyaW5nIGNvdmVyYWdlLgo+IFRoZSBzYW1lIHJldmlldyB0aGVuIGZvdW5kIGEgdmFsaWQgcmVkdWNlZC1jb3ZlcmFnZSBjb2xsZWN0b3IgZGVmZWN0OiBhcmJpdHJhcnkKPiBgcHl0ZXN0Lm1hcmsuPG5hbWU+YCB2YWx1ZXMgY291bGQgbWFzcXVlcmFkZSBhcyBvcHRpb25hbC1tb2R1bGUgaW1wb3J0cy4gQ3VycmVudAo+IGhlYWQgcmVjb2duaXplcyBvbmx5IGFuIGV4cGxpY2l0IHBsdWdpbi1tYXJrZXIgbWFwIChgcHl0ZXN0Lm1hcmsuYW55aW8gLT4gYW55aW9gKQo+IGFuZCBoYXMgYSByZWdyZXNzaW9uIHByb3ZpbmcgYHB5dGVzdC5tYXJrLnJlZGlzYCBkb2VzIG5vdCBzdXBwcmVzcyBhbiB1bnJlbGF0ZWQKPiB0ZXN0IHdoZW4gUmVkaXMgaXMgYWJzZW50LiBDdXJyZW50LWhlYWQgVGVzdHMgYDM0NzIxNzIxMTU1YCwgUmVxdWlyZWQgQ29kZVFMCj4gYDM0NzIxNzIxMTEzYCwgU2VjdXJpdHkgYDM0NzIxNzIxMTY3YCwgYW5kIFNBU1QgYDM0NzIxNzIxMTg2YCBhcmUgbmV3bHkgcXVldWVkIG9yCj4gcGVuZGluZzsgcHJlZGVjZXNzb3IgcmVjZWlwdHMgZG8gbm90IHRyYW5zZmVyLgo+Cj4gVGhlIHJldGFpbmVkIHByZWRlY2Vzc29yIFN0cml4IGFydGlmYWN0IHJlbWFpbnMgc2hhMjU2Cj4gYGJjZGMxM2I3NmFkZjRhMmI1YjljYmJjYWIyZGUyMTdkYjJlMjVmNDQ1ZjY5ZDJkZTIwYTdkOWY0Y2RmMTliNzJgLgo+IEl0cyBwZXJzaXN0ZWQgUG9zdCBDaGF0IGNpdGVkLXNvdXJjZSBkaXNjbG9zdXJlIGNvcnJvYm9yYXRlcyBleGlzdGluZyAjMTA0NCAvCj4gRHJhZnQgUFIgIzEwNDcuIFNlcGFyYXRlIGlzc3VlcyAjMTA1MCwgIzEwNTEsICMxMDUyIGFuZCAjMTA1MyBvd24gbWl4ZWQtCj4gdmlzaWJpbGl0eSByZXBvcnQgYWdncmVnYXRlcywgUkVTVC9zaGFyZWQgR2xvYmFsIEFzayBhZG1pc3Npb24sIEN1c3RvbWVyIE1hc3Rlcgo+IGN1c3RvbWVyLWhpbnQgdGVuYW50IHNjb3BpbmcvcmViaW5kLCBhbmQgUG9zdCBDaGF0IHNoYXJlZC1wZXJzaXN0ZW5jZSBtdXRhdGlvbi4KPgo+ICMxMDUwIGhhcyBleGVjdXRhYmxlIERyYWZ0IFJFRCBQUiAjMTA1NCBhdCBleGFjdAo+IGA0OWE0N2M4MWViNTNjZjY1ODc3ODEzYjUzNDI0YTJlMjBhNmUxZTA1YDsgaXRzIG5ldCBjYW5kaWRhdGUgZGVsdGEgaXMgb25lCj4gcmVncmVzc2lvbiBmaWxlLiBSZXBvcnQgbGlzdCwgZGV0YWlsIGFuZCBjb21wYXJpc29uIHBhdGhzIG11c3Qgc3VwcHJlc3MgYQo+IHByZWNvbXB1dGVkIGFnZ3JlZ2F0ZSB3aGVuIGFueSBzdG9yZWQgY29udHJpYnV0b3Igb3IgbGVmdG92ZXItcGFpciBldmlkZW5jZSBpcwo+IG5vdCB2aXNpYmxlLCB3aGlsZSBwcmVzZXJ2aW5nIGEgZnVsbHkgdmlzaWJsZSBhZ2dyZWdhdGUuIEJvdW5kZWQgZGlhZ25vc3RpYyBydW4KPiBgMzQ3MjE2NDU4MDdgIHdhcyBhZG1pdHRlZCBvbiBwcmVkZWNlc3NvciBgNGQ4NDZhZmMuLi5gIGFuZCBpcyBub3QgYSBwcm9tb3Rpb24KPiByZWNlaXB0LiBUaGUgbWluaW1hbCBwcm9kdWN0aW9uIGZpeCBhbmQgYXV0aGVudGljYXRlZCBQb3N0Z3JlU1FML0hUVFAgZXZpZGVuY2UKPiByZW1haW4gYWJzZW50LiBEbyBub3QgcmVjb21wdXRlIHBzeWNob21ldHJpYyB0cnV0aCBvdmVyIHRoZSB2aXNpYmxlIHN1YnNldDsKPiBmYXN0LW1sc2lybS9URVBQIHJlbWFpbiBtZWFzdXJlbWVudCBvd25lcnMuCj4KPiBQZXJzaXN0ZWQgUG9zdCBDaGF0IHJlcGxheSBhdXRob3JpemF0aW9uIHJlbWFpbnMgRHJhZnQgUFIgIzEwNDcgYXQgZXhhY3QKPiBgNDFjN2E4NmY3OGRkZGYwYmNkOWU5ZjBlYjA3MGJmOTA3MzJmNjhlM2AuIFJlcG9zaXRvcnkgVGVzdHMsIFNlY3VyaXR5LAo+IFNBU1QsIGR5bmFtaWMgQ29kZVFMIGFuZCBDb2RlIFF1YWxpdHkgYXJlIEdSRUVOIHRoZXJlLCB3aGlsZSBSZXF1aXJlZCBDb2RlUUwsCj4gT3BlbkNvZGUsIE5vZW1hIGFuZCBTdHJpeCBhcmUgdGVybWluYWwgRkFJTFVSRS4KPgo+IERlcGVuZGVuY3kgYWR2aXNvcnkgR0hTQS04MmZ3LWd3d3Etajd4OSByZW1haW5zIGlzc3VlICMxMDQzIC8gRHJhZnQgUFIgIzEwNDYKPiBhdCBgZjgwYzBlYzVmMzVmZDRmYzBhODY3MTI1YmM0NmRmZDJkMmRlZTlhOWAuIER1cGxpY2F0ZSBtaWdyYXRpb24gb3JkaW5hbAo+IDAyMzMgcmVtYWlucyBpc3N1ZSAjMTA0OCAvIERyYWZ0IFBSICMxMDQ5IGF0Cj4gYDUzMjI5NzExOTNkMWZmNGUwYWUxM2MwNTRkOGY5OTYxNTkzNGQ0ZGNgLgo+Cj4gUHJvdGVjdGVkLW1haW4gcmVsZWFzZSBtZXRhZGF0YSBpcyBzdGlsbCBpbmNvbnNpc3RlbnQ6IGBweXByb2plY3QudG9tbGAgZGVjbGFyZXMKPiAyLjI4LjAgd2hpbGUgYGxpbmVhZ2V3ZWF2ZS5fX3ZlcnNpb25fX2AgZGVjbGFyZXMgMi4yMC4wLiBLZWVwIHRoaXMgYXMgYSByZWxlYXNlCj4gYmxvY2tlciByYXRoZXIgdGhhbiBub3JtYWxpemluZyBpdCBpbiBkb2N1bWVudGF0aW9uLiBBRFIgMDI1MSByZW1haW5zIHRoZSBJL08tCj4gcHN5Y2hvbG9neSBhdXRob3JpdHkgYW5kIEFEUiAwMjU2IHRoZSBleHRlbnNpYmxlIFZvaWNlLWNvbWJpbmF0aW9uIGNvbnRyYWN0Lgo+IFJhbmtXZWF2ZSwgVGhyZWFkV2VhdmUsIFRFUFAsIGFuZCBjYW5vbmljYWwgbG93ZXJjYXNlCj4gYENvbnRleHR1YWxXaXNkb21MYWIvZGlza3NhZ2VgIHJldGFpbiB0aGVpciBvd24gYm91bmRlZCByZXNwb25zaWJpbGl0aWVzLgo+IFBSICMxMDQxIHJlbWFpbnMgRHJhZnQ7IGVhcmxpZXIgb3ZlcmxheXMgYmVsb3cgYXJlIGRhdGVkIGhpc3RvcmljYWwgZXZpZGVuY2Ugb25seS4KCg==
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          title = "# Product & Technical Gap Baseline\n\n"
+          marker = "> Exact-head loop overlay: 2026-08-29 13:20 KST."
+          if not text.startswith(title) or marker not in text:
+              raise SystemExit("unexpected baseline shape")
+          overlay = base64.b64decode(os.environ["OVERLAY_B64"]).decode("utf-8")
+          path.write_text(title + overlay + text[text.index(marker):], encoding="utf-8")
+          PY
+          git diff --check
+          git rm .github/workflows/automation-1041-gap-refresh-0707.yml
+          git add docs/product-technical-gap-baseline.md
+          git config user.name "LineageWeave maintenance"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(gaps): refresh current security evidence"
+          git push origin HEAD:codex/gap-loop-20260912
