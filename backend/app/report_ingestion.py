@@ -1054,6 +1054,7 @@ async def fetch_period_comparison(
                lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
                lp.leftover_map_reconstruction,
                p.post_title, p.visibility_code, p.corporate_entity_id,
+               p.process_unit_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
         join source_post p on p.post_id = lp.post_id
@@ -1109,6 +1110,11 @@ async def fetch_period_comparison(
                         ),
                         "visibility_code": pair["visibility_code"],
                         "corporate_entity_id": str(pair["corporate_entity_id"]),
+                        "process_unit_id": (
+                            None
+                            if pair["process_unit_id"] is None
+                            else str(pair["process_unit_id"])
+                        ),
                         "has_real_source_context": bool(pair["has_real_source_context"]),
                     }
                     for pair in leftover_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
