@@ -1,0 +1,76 @@
+name: Temporary PR 1047 demo receipt scope repair
+
+on:
+  push:
+    branches:
+      - fix/post-chat-replay-scope
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: fix/post-chat-replay-scope
+          fetch-depth: 0
+
+      - name: Bind seeded replay receipt to explicit generation account
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+
+          seed_path = Path("scripts/seed_demo_data.py")
+          seed = seed_path.read_text()
+          replacements = [
+              (
+                  "def _write_post_chat(cur, post_id, question: str, chat) -> None:\n    \"\"\"Replace a demo exchange with the generating account's replay receipt.\"\"\"\n",
+                  "def _write_post_chat(cur, post_id, question: str, chat, generation_account_id) -> None:\n    \"\"\"Replace a demo exchange with an explicit generating account replay receipt.\"\"\"\n",
+              ),
+              (
+                  "        \"select affiliation.corporate_entity_id, affiliation.process_unit_id \"\n        \"from source_post post \"\n        \"join account_affiliation affiliation \"\n        \"on affiliation.user_account_id = post.author_account_id \"\n        \"where post.post_id = %s order by affiliation.corporate_entity_id, \"\n        \"affiliation.process_unit_id nulls first\",\n        (post_id,),\n",
+                  "        \"select affiliation.corporate_entity_id, affiliation.process_unit_id \"\n        \"from account_affiliation affiliation \"\n        \"where affiliation.user_account_id = %s order by affiliation.corporate_entity_id, \"\n        \"affiliation.process_unit_id nulls first\",\n        (generation_account_id,),\n",
+              ),
+              (
+                  "def _seed_demo_public_chat(cur, post_id) -> None:\n",
+                  "def _seed_demo_public_chat(cur, post_id, generation_account_id) -> None:\n",
+              ),
+              (
+                  "        _write_post_chat(cur, post_id, question, chat)\n",
+                  "        _write_post_chat(cur, post_id, question, chat, generation_account_id)\n",
+              ),
+              (
+                  "            _seed_demo_public_chat(cur, demo_public_post_id)\n",
+                  "            _seed_demo_public_chat(\n                cur, demo_public_post_id, account_ids[\"demo.analyst\"]\n            )\n",
+              ),
+          ]
+          for old, new in replacements:
+              if seed.count(old) != 1:
+                  raise SystemExit(f"seed target count mismatch: {old[:60]!r}")
+              seed = seed.replace(old, new, 1)
+          ast.parse(seed, filename=str(seed_path))
+          seed_path.write_text(seed)
+
+          test_path = Path("backend/tests/test_api.py")
+          test = test_path.read_text()
+          old = "            _seed_demo_public_chat(cur, seeded_db[\"public_post_id\"])\n"
+          new = "            cur.execute(\n                \"select author_account_id from source_post where post_id = %s\",\n                (seeded_db[\"public_post_id\"],),\n            )\n            generation_account_id = cur.fetchone()[0]\n            _seed_demo_public_chat(\n                cur, seeded_db[\"public_post_id\"], generation_account_id\n            )\n"
+          if test.count(old) != 1:
+              raise SystemExit("API seed helper call target missing")
+          test = test.replace(old, new, 1)
+          ast.parse(test, filename=str(test_path))
+          test_path.write_text(test)
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/seed_demo_data.py backend/tests/test_api.py
+          git diff --cached --check
+          git commit -m "fix(security): bind demo replay receipt to generator scope"
+          git push origin HEAD:fix/post-chat-replay-scope
