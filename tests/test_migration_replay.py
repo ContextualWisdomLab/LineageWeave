@@ -296,7 +296,7 @@ def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
 
 
 def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
-    """Existing queue tables accept the optional as-of clock on old and new volumes."""
+    """Existing queue tables accept the optional as-of clock on every restart."""
 
     sql = (
         Path(__file__).resolve().parents[1]
