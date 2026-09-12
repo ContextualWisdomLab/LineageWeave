@@ -1175,8 +1175,8 @@ async def _captured_sources_are_visible(
     """Reauthorize every captured source during a short replay transaction."""
     if not source_post_ids:
         return False
-    rows = await conn.fetch(
-        _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,
+    statement = await conn.prepare(_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL)
+    rows = await statement.fetch(
         sorted(current_scope.corporate_entity_ids),
         sorted(current_scope.process_unit_ids),
         list(source_post_ids),
