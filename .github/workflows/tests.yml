@@ -67,10 +67,9 @@ jobs:
           PGPASSWORD: postgres
         run: |
           set -euo pipefail
-          actual_collate="$(psql -h localhost -U postgres -d postgres -Atc 'show lc_collate')"
-          actual_ctype="$(psql -h localhost -U postgres -d postgres -Atc 'show lc_ctype')"
-          test "$actual_collate" = "en_US.utf8"
-          test "$actual_ctype" = "en_US.utf8"
+          locale_row="$(psql -h localhost -U postgres -d postgres -AtF '|' \
+            -c 'select datcollate, datctype from pg_database where datname = current_database()')"
+          test "$locale_row" = "en_US.utf8|en_US.utf8"
 
       - name: Run full test suite against PostgreSQL
         run: uv run --frozen python -m pytest -q
