@@ -8,6 +8,11 @@ set -eu
 : "${POSTGRES_DB:?POSTGRES_DB is required}"
 export PGPASSWORD="$POSTGRES_PASSWORD"
 
+# Production uses the image-baked migration directory. An explicit directory
+# argument exists for recovery rehearsal and repository integration tests so
+# they exercise this exact replay loop instead of reimplementing it.
+migration_root=${1:-/opt/lineageweave/migrations}
+
 until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; do
     sleep 1
 done
@@ -19,13 +24,23 @@ done
 # It silently fell behind at 0103. Keep one fixed lower-bound pattern instead;
 # shell arithmetic would treat leading zeroes as octal, and base#value is not
 # portable under this script's POSIX /bin/sh contract (ADR 0166).
-for migration in /opt/lineageweave/migrations/*.sql; do
+for migration in "$migration_root"/*.sql; do
     [ -f "$migration" ] || continue
     migration_name=${migration##*/}
     case "$migration_name" in
         000[0-9]_*|001[01]_*) continue ;;
         [0-9][0-9][0-9][0-9]_*) ;;
         *) continue ;;
+    esac
+    # Historical file paths may remain as explicit compatibility aliases for
+    # audit/tooling references. Only the first line is control metadata: a
+    # matching string deeper in executable SQL must never suppress a migration.
+    first_line=$(sed -n '1p' "$migration")
+    case "$first_line" in
+        "-- lineageweave-compatibility-alias-of: "*)
+            printf 'Skipping compatibility alias %s\n' "$migration_name"
+            continue
+            ;;
     esac
     printf 'Applying %s\n' "$migration_name"
     psql -X -v ON_ERROR_STOP=1 \

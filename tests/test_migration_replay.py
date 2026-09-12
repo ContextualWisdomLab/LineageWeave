@@ -73,10 +73,11 @@ def test_semantic_content_unit_kind_migration_is_replay_safe() -> None:
 
 
 def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
+    """The canonical migration identity remains safe on existing volumes."""
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0233_source_conversation_turn_evidence.sql"
+        / "0248_source_conversation_turn_evidence.sql"
     ).read_text(encoding="utf-8").lower()
 
     assert "add column if not exists source_evidence_reference" in sql
@@ -86,12 +87,12 @@ def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
 
 
 def test_source_conversation_turn_evidence_rollback_matches_forward_number() -> None:
-    """Operators can locate the rollback by the forward migration number."""
+    """Operators can locate the rollback by the canonical forward migration number."""
     rollback_path = (
         Path(__file__).resolve().parents[1]
         / "migrations"
         / "rollback"
-        / "0233_source_conversation_turn_evidence.sql"
+        / "0248_source_conversation_turn_evidence.sql"
     )
 
     assert rollback_path.exists()
