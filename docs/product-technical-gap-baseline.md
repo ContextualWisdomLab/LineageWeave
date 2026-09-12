@@ -1,43 +1,39 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-12 18:32 KST. Protected `main` is
-> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). The live
-> inventory contains 152 open PRs and 28 open issues. These counts are
-> operational metadata, not release evidence. Every open PR observed in this
-> pass was Draft before intervention; therefore its skipped repository-local
-> test jobs are not successful Checks. PR #996 was moved to Ready and normal
-> squash auto-merge was enabled at exact head
-> `a640df40839ed7e2a15b9ab95a7f86faa050a248`; fresh tests and review are now
-> pending, and independent APPROVE remains required. Earlier CodeQL
-> compatibility and Strix failures on that SHA remain failed evidence until a
-> current authoritative rerun classifies or replaces them. No self-approval,
-> Admin bypass, force push, or stale-head transfer is permitted.
+> Exact-head loop overlay: 2026-09-12 20:01 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). A fresh,
+> date-partitioned repository search found 157 open PRs and 32 open issues.
+> These counts are operational metadata, not release evidence. PR #996 is
+> Draft at exact head `a640df40839ed7e2a15b9ab95a7f86faa050a248`;
+> its cycle presentation remains candidate evidence only, and no Ready,
+> auto-merge, protected-main, or authenticated acceptance claim is made.
 >
-> Largest buyer-visible gap advanced in this pass: Customer Master can lose
-> every organization in a visible parent cycle. PR #996 keeps each authorized
-> organization visible exactly once, breaks only the presentation edge needed
-> to draw a stable forest, labels the affected top-level row with an actionable
-> ancestry explanation, and retains missing-parent and self-parent distinctions.
-> The implementation is linear in the visible entity count and carries focused
-> cycle, input-permutation, large-hierarchy, rendering, and responsive
-> Storybook regressions. Focused local tests passed with a single-worker pool;
-> an earlier fork-worker start timed out under host contention and is not a
-> product failure or a successful full-suite result. The exact-head Storybook
-> scene was rendered and visually inspected at 1440x900 and 390x844: identity,
-> level, and ancestry guidance remain distinct, and the mobile scene has no
-> horizontal clipping. Authenticated PostgreSQL API acceptance remains
-> unverified for this exact head, so this remains an active candidate rather
-> than a protected-main capability.
+> Current buyer-visible security gaps have explicit product owners. Issue
+> #1045 and Draft PR #1042 own Customer Master process-unit authorization;
+> the PR's current caller-level contract is intentionally RED until the
+> authenticated account scope reaches the relationship-network boundary.
+> Issue #1044 and Draft PR #1047 own persisted post-chat derived-data replay
+> authorization; legacy rows without a generation-scope receipt remain
+> intentionally non-replayable in the required design. Neither candidate is
+> a protected-main capability, and neither owner may be bypassed by filtering
+> presentation data or copying authorization logic.
 >
-> Authority and collision audit: `ContextualWisdomLab/LineageWeave`,
-> `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase canonical
-> `ContextualWisdomLab/disksage` were rechecked against their remotes. The
-> Customer Master slice changes no ADR, API, schema, model boundary, or release
-> number. It does not overlap Voice-of-X persistence/export work, the
-> RankWeave/ThreadWeave/TEPP calculation owners, or DiskSage safety ownership.
-> PR #997 separately repairs duplicated occupational PRD identifiers, and the
-> stacked #984/#992 documentation line remains non-authoritative until its
-> parent is protected-merged and the child is retargeted and revalidated.
+> Current dependency and data-operability gaps are also separated. Issue
+> #1043 and PR #1046 own GHSA-82fw-gwwq-j7x9: the source manifest has moved
+> to Vitest 4.1.11, while the generated pnpm lock and frozen-install evidence
+> are still RED and require canonical regeneration. Issue #1048 and Draft PR
+> #1049 own the duplicate forward-migration ordinal `0233`; both shipped
+> deltas remain valid, so repair requires an ADR-backed compatibility identity,
+> clean-install and pre-0233 replay evidence rather than deleting or casually
+> renaming history.
+>
+> Authority remains in `ContextualWisdomLab/LineageWeave`. RankWeave,
+> ThreadWeave, TEPP, and lowercase canonical
+> `ContextualWisdomLab/disksage` retain their existing bounded
+> responsibilities. This overlay changes no ADR, API, schema, release number,
+> or owner implementation. PR #1041 remains Draft until documentation hygiene
+> is rerun on its new exact head and all ordinary review/check gates are
+> satisfied; historical receipts from its prior head are not reused.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
