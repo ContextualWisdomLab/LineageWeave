@@ -55,7 +55,7 @@ def test_interval_relation_backfill_uses_utc_created_day() -> None:
         Path(__file__).resolve().parents[1]
         / "migrations"
         / "0140_post_lineage_interval_relation.sql"
-    ).read_text(encoding="utf-8")
+    ).read_text(encoding="utf-8").lower()
 
     assert "created_at at time zone 'UTC'" in sql
 
@@ -73,10 +73,11 @@ def test_semantic_content_unit_kind_migration_is_replay_safe() -> None:
 
 
 def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
+    """The canonical migration identity remains safe on existing volumes."""
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0233_source_conversation_turn_evidence.sql"
+        / "0248_source_conversation_turn_evidence.sql"
     ).read_text(encoding="utf-8").lower()
 
     assert "add column if not exists source_evidence_reference" in sql
@@ -86,12 +87,12 @@ def test_source_conversation_turn_evidence_migration_is_replay_safe() -> None:
 
 
 def test_source_conversation_turn_evidence_rollback_matches_forward_number() -> None:
-    """Operators can locate the rollback by the forward migration number."""
+    """Operators can locate the rollback by the canonical forward migration number."""
     rollback_path = (
         Path(__file__).resolve().parents[1]
         / "migrations"
         / "rollback"
-        / "0233_source_conversation_turn_evidence.sql"
+        / "0248_source_conversation_turn_evidence.sql"
     )
 
     assert rollback_path.exists()
@@ -266,6 +267,7 @@ def test_tepp_receipt_read_requires_the_replayed_schema() -> None:
 
     assert "from analysis_run_tepp_receipt" in receipt_block
     assert "UndefinedTableError" not in receipt_block
+
 
 def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
     """Existing volumes must replay the queue and authorization scope safely."""
