@@ -54,23 +54,12 @@ from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import load_settings
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
-from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_scope_sql
+from .post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    fetch_visible_eligible_source_post_ids_for_share,
+)
 from .post_chat_replay_policy import PostChatAuthorizationScope
 from .source_post_revision import fetch_known_at_revisions
-
-
-_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL = (
-    "select source_post.post_id::text as post_id "
-    "from source_post "
-    "where source_post.post_id = any($3::uuid[]) "
-    "and {visibility} "
-    "and {eligibility} "
-    "order by source_post.post_id "
-    "for share"
-).format(
-    visibility=source_post_scope_sql("source_post"),
-    eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),
-)
 
 
 @dataclass(frozen=True)
@@ -1177,16 +1166,14 @@ async def _captured_sources_are_visible(
     source_post_ids: tuple[str, ...],
     current_scope: PostChatAuthorizationScope,
 ) -> bool:
-    """Reauthorize every captured source during a short replay transaction."""
-    if not source_post_ids:
-        return False
-    statement = await conn.prepare(_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL)
-    rows = await statement.fetch(
-        sorted(current_scope.corporate_entity_ids),
-        sorted(current_scope.process_unit_ids),
-        list(source_post_ids),
+    """Reauthorize every captured source through the shared repository boundary."""
+    visible_source_post_ids = await fetch_visible_eligible_source_post_ids_for_share(
+        conn,
+        current_scope.corporate_entity_ids,
+        current_scope.process_unit_ids,
+        source_post_ids,
     )
-    return {str(row["post_id"]) for row in rows} == set(source_post_ids)
+    return visible_source_post_ids == frozenset(source_post_ids)
 
 
 async def _fetch_authorized_persisted_chat(
