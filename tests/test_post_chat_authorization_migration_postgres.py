@@ -1,0 +1,133 @@
+"""PostgreSQL evidence for Post Chat replay authorization migration 0249."""
+
+from __future__ import annotations
+
+import os
+import uuid
+from pathlib import Path
+
+import pytest
+
+psycopg2 = pytest.importorskip("psycopg2")
+
+_POSTGRES_DSN = os.environ.get(
+    "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN",
+    "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave",
+)
+_FORWARD_MIGRATION = Path("migrations/0249_post_chat_authorization_scope.sql")
+_ROLLBACK_MIGRATION = Path("migrations/rollback/0249_post_chat_authorization_scope.sql")
+
+
+@pytest.fixture
+def isolated_postgres_schema():
+    """Yield a disposable schema or skip when the repository PostgreSQL service is absent."""
+    try:
+        conn = psycopg2.connect(_POSTGRES_DSN)
+    except psycopg2.OperationalError:
+        pytest.skip("repository PostgreSQL service is not reachable")
+
+    conn.autocommit = True
+    schema_name = f"post_chat_replay_{uuid.uuid4().hex}"
+    with conn.cursor() as cursor:
+        cursor.execute(f'create schema "{schema_name}"')
+        cursor.execute(f'set search_path to "{schema_name}"')
+    try:
+        yield conn
+    finally:
+        with conn.cursor() as cursor:
+            cursor.execute("set search_path to public")
+            cursor.execute(f'drop schema if exists "{schema_name}" cascade')
+        conn.close()
+
+
+def _create_minimal_parent_schema(conn) -> None:
+    """Create only the parent relations migration 0249 requires for lifecycle proof."""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            create table corporate_entity (
+                corporate_entity_id uuid primary key
+            );
+            create table process_unit (
+                process_unit_id uuid primary key
+            );
+            create table source_post (
+                post_id uuid primary key
+            );
+            create table post_chat_result (
+                post_id uuid not null references source_post(post_id) on delete cascade,
+                question_norm text not null,
+                question_text text not null,
+                answer_text text not null,
+                primary key (post_id, question_norm)
+            );
+            """
+        )
+
+
+def test_deleting_contributing_source_atomically_invalidates_parent_answer(
+    isolated_postgres_schema,
+) -> None:
+    """A non-focal source deletion must remove the derived answer and its receipt."""
+    conn = isolated_postgres_schema
+    _create_minimal_parent_schema(conn)
+    with conn.cursor() as cursor:
+        cursor.execute(_FORWARD_MIGRATION.read_text())
+        focal_post_id = uuid.uuid4()
+        contributing_post_id = uuid.uuid4()
+        cursor.execute(
+            "insert into source_post (post_id) values (%s), (%s)",
+            (focal_post_id, contributing_post_id),
+        )
+        cursor.execute(
+            "insert into post_chat_result "
+            "(post_id, question_norm, question_text, answer_text) values (%s, %s, %s, %s)",
+            (focal_post_id, "what happened?", "What happened?", "Derived answer"),
+        )
+        cursor.execute(
+            "insert into post_chat_authorization_receipt "
+            "(post_id, question_norm, process_scope_limited) values (%s, %s, false)",
+            (focal_post_id, "what happened?"),
+        )
+        cursor.execute(
+            "insert into post_chat_source "
+            "(post_id, question_norm, source_ordinal, source_post_id) values (%s, %s, 0, %s)",
+            (focal_post_id, "what happened?", contributing_post_id),
+        )
+
+        cursor.execute("delete from source_post where post_id = %s", (contributing_post_id,))
+        cursor.execute(
+            "select count(*) from post_chat_result where post_id = %s and question_norm = %s",
+            (focal_post_id, "what happened?"),
+        )
+        assert cursor.fetchone()[0] == 0
+        cursor.execute(
+            "select count(*) from post_chat_authorization_receipt "
+            "where post_id = %s and question_norm = %s",
+            (focal_post_id, "what happened?"),
+        )
+        assert cursor.fetchone()[0] == 0
+        cursor.execute(
+            "select count(*) from post_chat_source "
+            "where post_id = %s and question_norm = %s",
+            (focal_post_id, "what happened?"),
+        )
+        assert cursor.fetchone()[0] == 0
+
+
+def test_rollback_removes_source_delete_trigger_and_function(isolated_postgres_schema) -> None:
+    """Rollback must restore the parent source table without replay invalidation hooks."""
+    conn = isolated_postgres_schema
+    _create_minimal_parent_schema(conn)
+    with conn.cursor() as cursor:
+        cursor.execute(_FORWARD_MIGRATION.read_text())
+        cursor.execute(_ROLLBACK_MIGRATION.read_text())
+        cursor.execute(
+            "select count(*) from pg_trigger "
+            "where tgname = 'invalidate_post_chat_replay_on_source_delete' and not tgisinternal"
+        )
+        assert cursor.fetchone()[0] == 0
+        cursor.execute(
+            "select to_regprocedure('invalidate_post_chat_replay_on_source_post_delete()')"
+        )
+        assert cursor.fetchone()[0] is None
