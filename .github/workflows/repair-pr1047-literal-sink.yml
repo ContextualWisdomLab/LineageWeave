@@ -14,10 +14,11 @@ jobs:
   repair:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: fix/post-chat-replay-scope
           fetch-depth: 0
+          persist-credentials: true
       - name: Apply causal owner-boundary repair
         shell: bash
         run: |
@@ -68,7 +69,7 @@ jobs:
               raise SystemExit('expected replay query block not found')
           ingestion_source = ingestion_source.replace(old_query_block, '', 1)
 
-          old_function = '''async def _captured_sources_are_visible(\n    conn: asyncpg.Connection,\n    source_post_ids: tuple[str, ...],\n    current_scope: PostChatAuthorizationScope,\n) -> bool:\n    \"\"\"Reauthorize every captured source during a short replay transaction.\"\"\"\n    if not source_post_ids:\n        return False\n    statement = await conn.prepare(_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL)\n    rows = await statement.fetch(\n        sorted(current_scope.corporate_entity_ids),\n        sorted(current_scope.process_unit_ids),\n        list(source_post_ids),\n    )\n    return {{str(row[\"post_id\"]) for row in rows}} == set(source_post_ids)\n'''
+          old_function = '''async def _captured_sources_are_visible(\n    conn: asyncpg.Connection,\n    source_post_ids: tuple[str, ...],\n    current_scope: PostChatAuthorizationScope,\n) -> bool:\n    \"\"\"Reauthorize every captured source during a short replay transaction.\"\"\"\n    if not source_post_ids:\n        return False\n    statement = await conn.prepare(_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL)\n    rows = await statement.fetch(\n        sorted(current_scope.corporate_entity_ids),\n        sorted(current_scope.process_unit_ids),\n        list(source_post_ids),\n    )\n    return {str(row[\"post_id\"]) for row in rows} == set(source_post_ids)\n'''
           new_function = '''async def _captured_sources_are_visible(\n    conn: asyncpg.Connection,\n    source_post_ids: tuple[str, ...],\n    current_scope: PostChatAuthorizationScope,\n) -> bool:\n    \"\"\"Reauthorize every captured source through the shared repository boundary.\"\"\"\n    visible_source_post_ids = await fetch_visible_eligible_source_post_ids_for_share(\n        conn,\n        current_scope.corporate_entity_ids,\n        current_scope.process_unit_ids,\n        source_post_ids,\n    )\n    return visible_source_post_ids == frozenset(source_post_ids)\n'''
           if old_function not in ingestion_source:
               raise SystemExit('expected replay authorization function not found')
