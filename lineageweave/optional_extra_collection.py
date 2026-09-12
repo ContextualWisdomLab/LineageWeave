@@ -2,7 +2,8 @@
 
 OpenCode coverage-evidence runs in a networkless sandbox that supplies
 pytest and coverage but not LineageWeave's optional backend extras
-(``asyncpg``, ``psycopg2``, ``redis``, ``fast_mlsirm``, ``numpy``). Hosted CI
+(``asyncpg``, ``psycopg2``, ``redis``, ``fast_mlsirm``, ``numpy``, and the
+backend HTTP/MCP validation packages). Hosted CI
 installs those extras and collects every suite. This helper keeps
 collection from failing with ``ModuleNotFoundError`` when extras are
 absent, without skipping anything when they are present.
@@ -21,6 +22,10 @@ OPTIONAL_EXTRA_MODULES: tuple[str, ...] = (
     "redis",
     "fast_mlsirm",
     "numpy",
+    "anyio",
+    "mcp",
+    "pyshacl",
+    "starlette",
 )
 
 _HELPER_TEST_NAME = "test_optional_extra_collection.py"
@@ -28,17 +33,30 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _imported_module_names(source: str) -> frozenset[str]:
-    """Return exact top-level module paths from syntactically valid imports."""
+    """Return imports and optional pytest plugin markers used by one test tree."""
     try:
         tree = ast.parse(source)
     except (SyntaxError, ValueError):
         return frozenset()
     imported: set[str] = set()
-    for node in tree.body:
+    for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             imported.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module)
+            imported.update(
+                f"{node.module}.{alias.name}"
+                for alias in node.names
+                if alias.name != "*"
+            )
+        elif (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Attribute)
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "pytest"
+            and node.value.attr == "mark"
+        ):
+            imported.add(node.attr)
     return frozenset(imported)
 
 

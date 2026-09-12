@@ -119,7 +119,49 @@ def test_collection_path_skips_known_transitive_optional_importers(
     assert collection_path_requires_missing_extras(post_import, ("asyncpg",)) is True
     seed = tmp_path / "test_seed.py"
     seed.write_text("from scripts.seed_demo_data import seed\n", encoding="utf-8")
-    assert collection_path_requires_missing_extras(seed, ("redis",)) is False
+    assert collection_path_requires_missing_extras(seed, ("redis",)) is True
+
+
+def test_collection_path_follows_from_package_submodule_imports(tmp_path: Path) -> None:
+    """A package-level submodule import must expose its collection-time extras."""
+    path = tmp_path / "test_ingestion.py"
+    path.write_text(
+        "from backend.app import corporate_entity_ingestion\n",
+        encoding="utf-8",
+    )
+
+    assert collection_path_requires_missing_extras(path, ("asyncpg",)) is True
+
+
+def test_collection_path_skips_other_uninstalled_backend_runtime_modules(
+    tmp_path: Path,
+) -> None:
+    """The reduced coverage sandbox skips direct imports from every backend extra."""
+    assert {"mcp", "pyshacl", "starlette"}.issubset(OPTIONAL_EXTRA_MODULES)
+    imports = tmp_path / "test_backend_extras.py"
+    imports.write_text(
+        "from mcp.client import Client\n"
+        "from pyshacl import validate\n"
+        "from starlette.types import ASGIApp\n",
+        encoding="utf-8",
+    )
+
+    for missing in ("mcp", "pyshacl", "starlette"):
+        assert collection_path_requires_missing_extras(imports, (missing,)) is True
+
+
+def test_collection_path_treats_pytest_anyio_marker_as_optional_import(
+    tmp_path: Path,
+) -> None:
+    """Async tests require the optional AnyIO pytest plugin during collection."""
+    assert "anyio" in OPTIONAL_EXTRA_MODULES
+    path = tmp_path / "test_async_feature.py"
+    path.write_text(
+        "import pytest\n\n@pytest.mark.anyio\nasync def test_feature():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    assert collection_path_requires_missing_extras(path, ("anyio",)) is True
 
 
 def test_helper_test_module_is_never_ignored(tmp_path: Path) -> None:
