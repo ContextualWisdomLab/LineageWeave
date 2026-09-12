@@ -5660,6 +5660,104 @@ def test_seed_fixture_tickets_surface_on_get_activity(client, demo_analyst_token
     assert events[0]["actor_account_id"] == str(author_id)
 
 
+def test_period_reports_hide_full_aggregate_when_one_member_crosses_tenant_boundary(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Real bearer + PostgreSQL path hides an aggregate only after scope contracts."""
+    from scripts.seed_demo_data import _seed_demo_period_report
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-MIXED-AUTH', 'Mixed authorization unit' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            _seed_demo_period_report(cur, author_id, corp_id, process_unit_id)
+            cur.execute(
+                "select grouping_key from report_member_score "
+                "where grouping_kind = 'process_unit' and period_code = '2026-W02' "
+                "group by grouping_key having count(*) >= 2 order by grouping_key limit 1"
+            )
+            target_grouping_key = str(cur.fetchone()[0])
+            cur.execute(
+                "select post_id from report_member_score "
+                "where grouping_kind = 'process_unit' and grouping_key = %s "
+                "and period_code = '2026-W02' order by post_id limit 1",
+                (target_grouping_key,),
+            )
+            hidden_post_id = cur.fetchone()[0]
+            cur.execute(
+                "select corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["other_private_post_id"],),
+            )
+            foreign_corporate_entity_id = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    baseline_detail = client.get("/api/reports/process_unit/2026-W02", headers=headers)
+    assert baseline_detail.status_code == 200, baseline_detail.text
+    assert target_grouping_key in {
+        str(report["grouping_key"]) for report in baseline_detail.json()["reports"]
+    }
+    baseline_index = client.get("/api/reports/process_unit", headers=headers)
+    assert baseline_index.status_code == 200, baseline_index.text
+    assert (target_grouping_key, "2026-W02") in {
+        (str(row["grouping_key"]), row["period_code"])
+        for row in baseline_index.json()["periods"]
+    }
+    baseline_compare = client.get("/api/reports/compare/2026-W02", headers=headers)
+    assert baseline_compare.status_code == 200, baseline_compare.text
+    assert target_grouping_key in {
+        str(row["grouping_key"])
+        for row in baseline_compare.json()["groupings"]
+        if row["grouping_kind"] == "process_unit"
+    }
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update source_post set visibility_code = 'private', corporate_entity_id = %s "
+                "where post_id = %s",
+                (foreign_corporate_entity_id, hidden_post_id),
+            )
+    finally:
+        admin_conn.close()
+
+    detail = client.get("/api/reports/process_unit/2026-W02", headers=headers)
+    assert detail.status_code == 200, detail.text
+    assert target_grouping_key not in {
+        str(report["grouping_key"]) for report in detail.json()["reports"]
+    }
+
+    index = client.get("/api/reports/process_unit", headers=headers)
+    assert index.status_code == 200, index.text
+    assert (target_grouping_key, "2026-W02") not in {
+        (str(row["grouping_key"]), row["period_code"])
+        for row in index.json()["periods"]
+    }
+
+    compare = client.get("/api/reports/compare/2026-W02", headers=headers)
+    assert compare.status_code == 200, compare.text
+    assert target_grouping_key not in {
+        str(row["grouping_key"])
+        for row in compare.json()["groupings"]
+        if row["grouping_kind"] == "process_unit"
+    }
+
+
 def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must produce a 2026-W02 report
     GET /api/reports returns -- high-band posts outrank low-band posts
