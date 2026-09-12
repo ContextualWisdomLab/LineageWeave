@@ -95,6 +95,19 @@ def test_migration_models_receipt_scope_sources_and_reverse_dependency_order() -
     )
 
 
+def test_source_deletion_invalidates_answers_that_used_the_source() -> None:
+    """Require source deletion to atomically invalidate derived replay state."""
+    forward = Path("migrations/0249_post_chat_authorization_scope.sql").read_text().lower()
+    rollback = Path("migrations/rollback/0249_post_chat_authorization_scope.sql").read_text().lower()
+
+    assert "invalidate_post_chat_replay_on_source_post_delete" in forward
+    assert "before delete on source_post" in forward
+    assert "delete from post_chat_result" in forward
+    assert "source_post_id = old.post_id" in forward
+    assert "drop trigger if exists invalidate_post_chat_replay_on_source_delete" in rollback
+    assert "drop function if exists invalidate_post_chat_replay_on_source_post_delete" in rollback
+
+
 def test_application_boundary_red_still_requires_receipt_validated_replay() -> None:
     """Keep the endpoint/persistence integration RED until production consumes the policy."""
     main_source = Path("backend/app/main.py").read_text()
