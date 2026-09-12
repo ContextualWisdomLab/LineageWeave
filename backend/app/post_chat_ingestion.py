@@ -1123,8 +1123,13 @@ async def _load_post_chat_authorization_receipt(
 ) -> tuple[PostChatAuthorizationScope, tuple[str, ...]] | None:
     """Load immutable generation scope and every source that could influence an answer."""
     receipt = await conn.fetchrow(
-        "select process_scope_limited from post_chat_authorization_receipt "
-        "where post_id = $1 and question_norm = $2",
+        "select receipt.process_scope_limited "
+        "from post_chat_authorization_receipt receipt "
+        "join post_chat_result result "
+        "on result.post_id = receipt.post_id "
+        "and result.question_norm = receipt.question_norm "
+        "where receipt.post_id = $1 and receipt.question_norm = $2 "
+        "for key share of result",
         post_id,
         question_norm,
     )
