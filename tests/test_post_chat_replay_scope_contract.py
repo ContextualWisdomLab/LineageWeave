@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from backend.app.post_chat_replay_policy import PostChatAuthorizationScope
 
 
 def test_restricted_generation_scope_allows_only_equal_or_broader_reader() -> None:
+    """Reject a reader whose corporate or process scope is narrower than generation."""
     captured = PostChatAuthorizationScope.captured(
         corporate_entity_ids={"corp-a"},
         process_unit_ids={"pu-a"},
@@ -30,6 +33,7 @@ def test_restricted_generation_scope_allows_only_equal_or_broader_reader() -> No
 
 
 def test_unrestricted_generation_process_scope_rejects_later_restriction() -> None:
+    """Preserve the authenticated empty-set meaning as unrestricted process scope."""
     captured = PostChatAuthorizationScope.captured(
         corporate_entity_ids={"corp-a"},
         process_unit_ids=set(),
@@ -47,6 +51,7 @@ def test_unrestricted_generation_process_scope_rejects_later_restriction() -> No
 
 
 def test_scope_identity_values_are_normalized_to_strings() -> None:
+    """Normalize heterogeneous identity values before scope comparison or persistence."""
     captured = PostChatAuthorizationScope.captured(
         corporate_entity_ids={1, "2"},
         process_unit_ids={3},
@@ -56,7 +61,25 @@ def test_scope_identity_values_are_normalized_to_strings() -> None:
     assert captured.process_unit_ids == frozenset({"3"})
 
 
+def test_inconsistent_process_scope_receipt_is_rejected() -> None:
+    """Fail closed when persisted limited/unrestricted metadata contradicts child rows."""
+    with pytest.raises(ValueError, match="process_scope_limited"):
+        PostChatAuthorizationScope(
+            corporate_entity_ids=frozenset({"corp-a"}),
+            process_unit_ids=frozenset(),
+            process_scope_limited=True,
+        )
+
+    with pytest.raises(ValueError, match="process_scope_limited"):
+        PostChatAuthorizationScope(
+            corporate_entity_ids=frozenset({"corp-a"}),
+            process_unit_ids=frozenset({"pu-a"}),
+            process_scope_limited=False,
+        )
+
+
 def test_migration_models_receipt_scope_sources_and_reverse_dependency_order() -> None:
+    """Keep normalized replay evidence and rollback dependency order executable."""
     forward = Path("migrations/0249_post_chat_authorization_scope.sql").read_text()
     rollback = Path("migrations/rollback/0249_post_chat_authorization_scope.sql").read_text()
 
@@ -73,6 +96,7 @@ def test_migration_models_receipt_scope_sources_and_reverse_dependency_order() -
 
 
 def test_application_boundary_red_still_requires_receipt_validated_replay() -> None:
+    """Keep the endpoint/persistence integration RED until production consumes the policy."""
     main_source = Path("backend/app/main.py").read_text()
     ingestion_source = Path("backend/app/post_chat_ingestion.py").read_text()
 
