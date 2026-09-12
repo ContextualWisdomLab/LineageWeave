@@ -1,0 +1,42 @@
+name: Temporary PR 1047 prepared-query test repair
+
+on:
+  push:
+    branches:
+      - fix/post-chat-replay-scope
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: fix/post-chat-replay-scope
+          fetch-depth: 0
+      - name: Align prepared-query fixture with source SHARE lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+          path = Path("tests/test_post_chat_ingestion.py")
+          text = path.read_text()
+          old = '        if "from source_post" in query and "for key share" in query.lower():\n'
+          new = '        if "from source_post" in query and "for share" in query.lower():\n'
+          if text.count(old) != 1:
+              raise SystemExit("prepared-query test-double lock target missing")
+          text = text.replace(old, new, 1)
+          ast.parse(text, filename=str(path))
+          path.write_text(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/test_post_chat_ingestion.py
+          git diff --cached --check
+          git commit -m "test(security): model source SHARE replay lock"
+          git push origin HEAD:fix/post-chat-replay-scope
