@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from backend.app.post_chat_replay_policy import PostChatAuthorizationScope
+
+
+def test_restricted_generation_scope_allows_only_equal_or_broader_reader() -> None:
+    captured = PostChatAuthorizationScope.captured(
+        corporate_entity_ids={"corp-a"},
+        process_unit_ids={"pu-a"},
+    )
+
+    assert captured.is_subsumed_by(
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids={"pu-a", "pu-b"},
+    )
+    assert captured.is_subsumed_by(
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids=set(),
+    )
+    assert not captured.is_subsumed_by(
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids={"pu-b"},
+    )
+    assert not captured.is_subsumed_by(
+        current_corporate_entity_ids={"corp-b"},
+        current_process_unit_ids=set(),
+    )
+
+
+def test_unrestricted_generation_process_scope_rejects_later_restriction() -> None:
+    captured = PostChatAuthorizationScope.captured(
+        corporate_entity_ids={"corp-a"},
+        process_unit_ids=set(),
+    )
+
+    assert captured.process_scope_limited is False
+    assert captured.is_subsumed_by(
+        current_corporate_entity_ids={"corp-a", "corp-b"},
+        current_process_unit_ids=set(),
+    )
+    assert not captured.is_subsumed_by(
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids={"pu-a"},
+    )
+
+
+def test_scope_identity_values_are_normalized_to_strings() -> None:
+    captured = PostChatAuthorizationScope.captured(
+        corporate_entity_ids={1, "2"},
+        process_unit_ids={3},
+    )
+
+    assert captured.corporate_entity_ids == frozenset({"1", "2"})
+    assert captured.process_unit_ids == frozenset({"3"})
+
+
+def test_migration_models_receipt_scope_sources_and_reverse_dependency_order() -> None:
+    forward = Path("migrations/0249_post_chat_authorization_scope.sql").read_text()
+    rollback = Path("migrations/rollback/0249_post_chat_authorization_scope.sql").read_text()
+
+    assert "post_chat_authorization_receipt" in forward
+    assert "process_scope_limited boolean not null" in forward
+    assert "post_chat_corporate_entity_scope" in forward
+    assert "post_chat_process_unit_scope" in forward
+    assert "post_chat_source" in forward
+    assert "unique (post_id, question_norm, source_post_id)" in forward
+    assert "references post_chat_authorization_receipt" in forward
+    assert rollback.index("drop table if exists post_chat_source") < rollback.index(
+        "drop table if exists post_chat_authorization_receipt"
+    )
+
+
+def test_application_boundary_red_still_requires_receipt_validated_replay() -> None:
+    main_source = Path("backend/app/main.py").read_text()
+    ingestion_source = Path("backend/app/post_chat_ingestion.py").read_text()
+
+    assert "PostChatAuthorizationScope" in ingestion_source, (
+        "RED: persistence/replay code has not yet consumed the generation-scope value object"
+    )
+    assert "post_chat_authorization_receipt" in ingestion_source, (
+        "RED: persisted replay still does not load/store an immutable authorization receipt"
+    )
+    assert "source_post_scope_sql" in ingestion_source, (
+        "RED: replay still does not reauthorize every captured source through shared scope SQL"
+    )
+    assert "account.corporate_entity_ids" in main_source and "account.process_unit_ids" in main_source
