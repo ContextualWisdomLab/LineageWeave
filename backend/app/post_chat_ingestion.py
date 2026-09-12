@@ -59,6 +59,20 @@ from .post_chat_replay_policy import PostChatAuthorizationScope
 from .source_post_revision import fetch_known_at_revisions
 
 
+_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL = (
+    "select source_post.post_id::text as post_id "
+    "from source_post "
+    "where source_post.post_id = any($3::uuid[]) "
+    "and {visibility} "
+    "and {eligibility} "
+    "order by source_post.post_id "
+    "for key share"
+).format(
+    visibility=source_post_scope_sql("source_post"),
+    eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),
+)
+
+
 @dataclass(frozen=True)
 class LinkedPostIds:
     """A post's Event-Lineage neighbors, kept distinguishable by how they
@@ -1162,19 +1176,11 @@ async def _captured_sources_are_visible(
     if not source_post_ids:
         return False
     rows = await conn.fetch(
-        f"""
-        select source_post.post_id::text as post_id
-          from source_post
-         where source_post.post_id = any($3::uuid[])
-           and {source_post_scope_sql("source_post")}
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
-         order by source_post.post_id
-         for key share
-        """,
-        sorted(current_scope.corporate_entity_ids),
-        sorted(current_scope.process_unit_ids),
-        list(source_post_ids),
-    )
+    _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,
+    sorted(current_scope.corporate_entity_ids),
+    sorted(current_scope.process_unit_ids),
+    list(source_post_ids),
+)
     return {str(row["post_id"]) for row in rows} == set(source_post_ids)
 
 
