@@ -17,6 +17,7 @@ jobs:
         with:
           ref: fix/post-chat-replay-scope
           fetch-depth: 0
+
       - name: Normalize replay query indentation
         shell: bash
         run: |
@@ -24,6 +25,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import ast
+
           path = Path("backend/app/post_chat_ingestion.py")
           text = path.read_text()
           old = '''    rows = await conn.fetch(
@@ -46,6 +48,7 @@ jobs:
           ast.parse(text, filename=str(path))
           path.write_text(text)
           PY
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add backend/app/post_chat_ingestion.py
