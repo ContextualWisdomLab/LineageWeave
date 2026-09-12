@@ -1,0 +1,41 @@
+name: Temporary PR 1047 test-scope repair
+on:
+  push:
+    branches: [fix/post-chat-replay-scope]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: fix/post-chat-replay-scope
+          fetch-depth: 0
+      - name: Repair test helper scope construction
+        shell: python
+        run: |
+          from pathlib import Path
+          import ast
+          path = Path("tests/test_post_chat_ingestion.py")
+          text = path.read_text()
+          old = 'return PostChatAuthorizationScope.captured({"corp-a"}, {"pu-a"})'
+          new = '''return PostChatAuthorizationScope.captured(
+                  corporate_entity_ids={"corp-a"},
+                  process_unit_ids={"pu-a"},
+              )'''
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one test scope call, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1))
+          ast.parse(path.read_text(), filename=str(path))
+          Path(".github/workflows/pr1047-fix-test-scope-call.yml").unlink()
+      - name: Commit ordinary repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/test_post_chat_ingestion.py .github/workflows/pr1047-fix-test-scope-call.yml
+          git diff --cached --check
+          git commit -m "test(security): construct replay fixture scope explicitly"
+          git push origin HEAD:fix/post-chat-replay-scope
