@@ -55,7 +55,7 @@ def test_interval_relation_backfill_uses_utc_created_day() -> None:
         Path(__file__).resolve().parents[1]
         / "migrations"
         / "0140_post_lineage_interval_relation.sql"
-    ).read_text(encoding="utf-8").lower()
+    ).read_text(encoding="utf-8")
 
     assert "created_at at time zone 'UTC'" in sql
 
@@ -268,7 +268,6 @@ def test_tepp_receipt_read_requires_the_replayed_schema() -> None:
     assert "from analysis_run_tepp_receipt" in receipt_block
     assert "UndefinedTableError" not in receipt_block
 
-
 def test_global_ask_job_migrations_are_idempotent_for_replay() -> None:
     """Existing volumes must replay the queue and authorization scope safely."""
     migrations = Path(__file__).resolve().parents[1] / "migrations"
@@ -297,7 +296,7 @@ def test_global_ask_public_verification_opt_in_is_replay_safe() -> None:
 
 
 def test_global_ask_knowledge_cutoff_is_replay_safe() -> None:
-    """Existing queue tables accept the optional as-of clock on every restart."""
+    """Existing queue tables accept the optional as-of clock on old and new volumes."""
 
     sql = (
         Path(__file__).resolve().parents[1]
