@@ -153,7 +153,7 @@ def test_collection_path_skips_other_uninstalled_backend_runtime_modules(
 def test_collection_path_treats_pytest_anyio_marker_as_optional_import(
     tmp_path: Path,
 ) -> None:
-    """Async tests require the optional AnyIO pytest plugin during collection."""
+    """Async tests require the explicitly supported AnyIO plugin marker."""
     assert "anyio" in OPTIONAL_EXTRA_MODULES
     path = tmp_path / "test_async_feature.py"
     path.write_text(
@@ -162,6 +162,19 @@ def test_collection_path_treats_pytest_anyio_marker_as_optional_import(
     )
 
     assert collection_path_requires_missing_extras(path, ("anyio",)) is True
+
+
+def test_collection_path_does_not_treat_arbitrary_marker_as_optional_import(
+    tmp_path: Path,
+) -> None:
+    """A custom marker sharing an extra's name must not suppress unrelated tests."""
+    path = tmp_path / "test_cache_contract.py"
+    path.write_text(
+        "import pytest\n\n@pytest.mark.redis\ndef test_contract():\n    pass\n",
+        encoding="utf-8",
+    )
+
+    assert collection_path_requires_missing_extras(path, ("redis",)) is False
 
 
 def test_helper_test_module_is_never_ignored(tmp_path: Path) -> None:
