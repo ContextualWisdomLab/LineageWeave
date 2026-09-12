@@ -49,7 +49,7 @@ def test_legacy_unscoped_chat_row_is_not_replayed(monkeypatch) -> None:
     async def visible_post(_post_id: str, _account: CurrentAccount, _pool: object) -> dict[str, Any]:
         return {"post_id": "post-1", "post_title": "Visible focal post"}
 
-    async def legacy_chat(_conn: object, _post_id: str, _question: str) -> dict[str, Any]:
+    async def legacy_chat(*_args: object, **_kwargs: object) -> dict[str, Any]:
         return {
             "answer_text": "legacy answer derived without a generation-scope receipt",
             "cited_post_ids": ["post-1"],
@@ -60,10 +60,8 @@ def test_legacy_unscoped_chat_row_is_not_replayed(monkeypatch) -> None:
         _conn: object,
         _post_id: str,
         _can_see_post: object,
-        *,
-        vision_client: object,
+        **_kwargs: object,
     ) -> list[ChatSourceDocument]:
-        del vision_client
         return [
             ChatSourceDocument(
                 post_id="post-1",
@@ -72,14 +70,16 @@ def test_legacy_unscoped_chat_row_is_not_replayed(monkeypatch) -> None:
             )
         ]
 
-    async def record_live_answer(
-        _conn: object,
-        post_id: str,
-        question: str,
-        answer_text: str,
-        cited_post_ids: list[str],
-    ) -> None:
-        persisted_calls.append((post_id, question, answer_text, cited_post_ids))
+    async def record_live_answer(*args: object, **_kwargs: object) -> None:
+        _conn, post_id, question, answer_text, cited_post_ids, *_rest = args
+        persisted_calls.append(
+            (
+                str(post_id),
+                str(question),
+                str(answer_text),
+                [str(post_id) for post_id in cited_post_ids],
+            )
+        )
 
     async def no_activity(*_args: object, **_kwargs: object) -> None:
         return None
