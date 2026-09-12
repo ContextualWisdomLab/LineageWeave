@@ -1,0 +1,103 @@
+name: Refresh PR1041 product gap baseline
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+    paths:
+      - .github/workflows/pr1041-refresh-gap-baseline.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: codex/gap-loop-20260912
+          persist-credentials: false
+
+      - name: Replace only the live overlay and remove this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          start_marker = "> Exact-head loop overlay: 2026-09-13 04:48 KST."
+          end_marker = "> Exact-head loop overlay: 2026-08-29 13:20 KST."
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
+          overlay = """> Exact-head loop overlay: 2026-09-13 05:46 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
+> search reports 157 open PRs and 32 open issues. These counts and every
+> candidate state below are operational evidence, not protected-main capability.
+>
+> Customer Master hierarchy PR #996 remains Draft at exact
+> `a640df40839ed7e2a15b9ab95a7f86faa050a248`; its interrupted prior Ready
+> admission is not a full repository receipt. Process-unit authorization is
+> owned separately by issue #1045 / Ready PR #1042 at exact
+> `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`. Repository Tests, Security,
+> and SAST are GREEN there, canonical promotion gates remain incomplete, and
+> exact-head Strix run 34704740554 is still executing `Run Strix (quick)`.
+> Ready therefore means live-lane preservation only, not merge readiness. Do
+> not copy that authorization rule into hierarchy presentation code.
+>
+> Persisted Post Chat replay authorization remains owned by issue #1044 /
+> Draft PR #1047 at exact `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`.
+> Its product repair delegates captured-source authorization to the literal-query
+> repository operation in `post_eligibility.py` and the stale consumer/owner
+> executable contract is repaired. Exact-head Tests 34715131667, Security
+> 34715131625, SAST 34715131624, dynamic GitHub CodeQL 34715130159, and Code
+> Quality 34715130627 are GREEN. Required CodeQL PR 34715131636, Required
+> OpenCode 34715130589, Required Noema 34715130587, and Strix 34715130596 are
+> terminal FAILURE, so all validation lanes are terminal and the PR has returned
+> to Draft. CodeQL again failed its compatibility consumers before the producer
+> dispatch started; OpenCode likewise failed closed before a later same-head
+> review appeared. Both unchanged-head canaries are recorded in canonical
+> `.github#1929`. Noema failed before verdict publication; Strix failed in its
+> scan step after setup and uploaded reports. Do not infer a leaf vulnerability
+> or provider fault from those wrapper outcomes without stronger evidence.
+>
+> Dependency advisory GHSA-82fw-gwwq-j7x9 remains owned by issue #1043 /
+> Draft PR #1046 at exact `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`.
+> Duplicate migration ordinal 0233 remains owned by issue #1048 / Draft PR
+> #1049 at exact `5322971193d1ff4e0ae13c054d8f99615934d4dc`.
+> #1049's repository Tests, including its real-PostgreSQL repeated production
+> `migrate.sh` rehearsal, are GREEN, but exact-head Required CodeQL and Required
+> Noema are terminal FAILURE; repository-local GREEN therefore cannot promote
+> the migration repair.
+>
+> Release metadata is still internally inconsistent on protected main:
+> `pyproject.toml` declares 2.28.0 while `lineageweave.__version__` declares
+> 2.20.0. Keep this as a release blocker rather than normalizing it in a docs
+> candidate. ADR 0251 remains the I/O-psychology authority and ADR 0256 the
+> extensible Voice-combination contract. RankWeave, ThreadWeave, TEPP, and
+> lowercase canonical `ContextualWisdomLab/disksage` retain their own bounded
+> responsibilities. PR #1041 itself remains Draft; its exact head belongs in PR
+> metadata rather than a self-referential document SHA. Earlier overlays below
+> are dated historical evidence only.
+
+"""
+          path.write_text(text[:start] + overlay + text[end:], encoding="utf-8")
+          PY
+          rm -- .github/workflows/pr1041-refresh-gap-baseline.yml
+
+      - name: Commit bounded documentation refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/product-technical-gap-baseline.md .github/workflows/pr1041-refresh-gap-baseline.yml
+          git diff --cached --check
+          git commit -m "docs(gaps): refresh terminal validation evidence"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
