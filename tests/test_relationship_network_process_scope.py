@@ -22,10 +22,10 @@ def test_relationship_network_fails_closed_without_process_scope() -> None:
 
     assert result == []
     scoped_sql, scoped_args = conn.calls[0]
-    assert scoped_args == (["00000000-0000-0000-0000-000000000001"], None)
-    assert "post.process_unit_id is null" in scoped_sql
-    assert "$2::uuid[] is not null" in scoped_sql
-    assert "post.process_unit_id = any($2::uuid[])" in scoped_sql
+    assert scoped_args == (["00000000-0000-0000-0000-000000000001"], [], False)
+    assert "($3::boolean or post.visibility_code = 'public')" in scoped_sql
+    assert "cardinality($2::text[]) = 0" in scoped_sql
+    assert "post.process_unit_id::text = any($2::text[])" in scoped_sql
 
 
 def test_relationship_network_binds_explicit_process_scope() -> None:
@@ -44,4 +44,21 @@ def test_relationship_network_binds_explicit_process_scope() -> None:
     assert scoped_args == (
         ["00000000-0000-0000-0000-000000000001"],
         ["00000000-0000-0000-0000-000000000010"],
+        True,
     )
+
+
+def test_relationship_network_preserves_explicit_unrestricted_process_scope() -> None:
+    conn = RecordingConnection()
+
+    result = asyncio.run(
+        fetch_relationship_network(
+            conn,
+            ["00000000-0000-0000-0000-000000000001"],
+            [],
+        )
+    )
+
+    assert result == []
+    _, scoped_args = conn.calls[0]
+    assert scoped_args == (["00000000-0000-0000-0000-000000000001"], [], True)
