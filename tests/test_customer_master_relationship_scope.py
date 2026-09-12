@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 from typing import Any
 
 from backend.app import main
@@ -52,10 +53,10 @@ def test_customer_master_passes_authenticated_process_scope(monkeypatch) -> None
     async def capture_relationship_network(
         _conn: object,
         corporate_entity_ids: list[object],
-        process_unit_ids: frozenset[str],
+        process_unit_ids: Iterable[str],
     ) -> list[dict[str, Any]]:
         observed["corporate_entity_ids"] = corporate_entity_ids
-        observed["process_unit_ids"] = process_unit_ids
+        observed["process_unit_ids"] = frozenset(process_unit_ids)
         return []
 
     monkeypatch.setattr(main, "has_real_source_context", no_real_source_context)
