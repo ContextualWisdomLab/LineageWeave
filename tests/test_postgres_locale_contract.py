@@ -22,6 +22,8 @@ def test_acceptance_workflows_pin_one_debian_postgres_locale_contract() -> None:
         assert f"image: {POSTGRES_IMAGE}" in workflow
         assert "LANG: en_US.utf8" in workflow
         assert 'POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"' in workflow
+        assert "select datcollate, datctype from pg_database" in workflow
+        assert "show lc_collate" not in workflow
         assert "postgres:16-alpine" not in workflow
 
 
