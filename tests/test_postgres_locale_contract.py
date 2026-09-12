@@ -14,14 +14,39 @@ SERVICE_WORKFLOWS = (
 )
 
 
+def _mapping_block(document: str, key: str) -> str:
+    """Return one indentation-scoped YAML mapping block without parsing values."""
+
+    lines = document.splitlines()
+    for index, line in enumerate(lines):
+        stripped = line.lstrip()
+        if stripped != f"{key}:":
+            continue
+        indentation = len(line) - len(stripped)
+        block = [line]
+        for nested_line in lines[index + 1 :]:
+            nested_stripped = nested_line.lstrip()
+            if nested_stripped:
+                nested_indentation = len(nested_line) - len(nested_stripped)
+                if nested_indentation <= indentation:
+                    break
+            block.append(nested_line)
+        return "\n".join(block)
+    raise AssertionError(f"missing YAML mapping: {key}")
+
+
 def test_acceptance_workflows_pin_one_debian_postgres_locale_contract() -> None:
-    """Both PostgreSQL acceptance lanes must use the same explicit locale."""
+    """Both PostgreSQL acceptance lanes must use the same service locale."""
 
     for workflow_path in SERVICE_WORKFLOWS:
         workflow = workflow_path.read_text(encoding="utf-8")
-        assert f"image: {POSTGRES_IMAGE}" in workflow
-        assert "LANG: en_US.utf8" in workflow
-        assert 'POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"' in workflow
+        services = _mapping_block(workflow, "services")
+        postgres = _mapping_block(services, "postgres")
+        environment = _mapping_block(postgres, "env")
+
+        assert f"image: {POSTGRES_IMAGE}" in postgres
+        assert "LANG: en_US.utf8" in environment
+        assert 'POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"' in environment
         assert "select datcollate, datctype from pg_database" in workflow
         assert "show lc_collate" not in workflow
         assert "postgres:16-alpine" not in workflow
