@@ -5663,7 +5663,7 @@ def test_seed_fixture_tickets_surface_on_get_activity(client, demo_analyst_token
 def test_period_reports_hide_full_aggregate_when_one_member_crosses_tenant_boundary(
     client, demo_analyst_token, seeded_db
 ) -> None:
-    """Real bearer + PostgreSQL path fails closed for a mixed-tenant population."""
+    """Real bearer + PostgreSQL path hides an aggregate only after scope contracts."""
     from scripts.seed_demo_data import _seed_demo_period_report
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
@@ -5701,6 +5701,33 @@ def test_period_reports_hide_full_aggregate_when_one_member_crosses_tenant_bound
                 (seeded_db["other_private_post_id"],),
             )
             foreign_corporate_entity_id = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    baseline_detail = client.get("/api/reports/process_unit/2026-W02", headers=headers)
+    assert baseline_detail.status_code == 200, baseline_detail.text
+    assert target_grouping_key in {
+        str(report["grouping_key"]) for report in baseline_detail.json()["reports"]
+    }
+    baseline_index = client.get("/api/reports/process_unit", headers=headers)
+    assert baseline_index.status_code == 200, baseline_index.text
+    assert (target_grouping_key, "2026-W02") in {
+        (str(row["grouping_key"]), row["period_code"])
+        for row in baseline_index.json()["periods"]
+    }
+    baseline_compare = client.get("/api/reports/compare/2026-W02", headers=headers)
+    assert baseline_compare.status_code == 200, baseline_compare.text
+    assert target_grouping_key in {
+        str(row["grouping_key"])
+        for row in baseline_compare.json()["groupings"]
+        if row["grouping_kind"] == "process_unit"
+    }
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
             cur.execute(
                 "update source_post set visibility_code = 'private', corporate_entity_id = %s "
                 "where post_id = %s",
@@ -5709,7 +5736,6 @@ def test_period_reports_hide_full_aggregate_when_one_member_crosses_tenant_bound
     finally:
         admin_conn.close()
 
-    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     detail = client.get("/api/reports/process_unit/2026-W02", headers=headers)
     assert detail.status_code == 200, detail.text
     assert target_grouping_key not in {
