@@ -25,6 +25,22 @@ class PostChatAuthorizationScope:
     process_unit_ids: frozenset[str]
     process_scope_limited: bool
 
+    def __post_init__(self) -> None:
+        """Normalize reconstructed receipts and reject contradictory process metadata."""
+        normalized_corporate_ids = _normalized_identity_set(self.corporate_entity_ids)
+        normalized_process_ids = _normalized_identity_set(self.process_unit_ids)
+        object.__setattr__(self, "corporate_entity_ids", normalized_corporate_ids)
+        object.__setattr__(self, "process_unit_ids", normalized_process_ids)
+
+        expected_process_scope_limited = bool(normalized_process_ids)
+        if (
+            not isinstance(self.process_scope_limited, bool)
+            or self.process_scope_limited != expected_process_scope_limited
+        ):
+            raise ValueError(
+                "process_scope_limited must be true exactly when captured process-unit scope is non-empty"
+            )
+
     @classmethod
     def captured(
         cls,
