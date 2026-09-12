@@ -127,9 +127,11 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
 
 
 async def fetch_relationship_network(
-    conn: asyncpg.Connection, corporate_entity_ids: Sequence[str]
+    conn: asyncpg.Connection,
+    corporate_entity_ids: Sequence[str],
+    process_unit_ids: Sequence[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Every counterparty's full observed relationship network, entity-level.
+    """Every counterparty's observed relationship network within reader scope.
 
     ``post_counterparty_entity`` classifies one counterparty name's
     relationship to us per post (e.g. this specific post is
@@ -146,6 +148,13 @@ async def fetch_relationship_network(
     Competitor and know that reflects the real, mixed relationship
     rather than a classification error.
 
+    Private posts are never authorized by corporate entity alone. When
+    ``process_unit_ids`` is supplied, a private post must be corp-wide
+    (``process_unit_id is null``) or belong to one of those process units.
+    A caller that has not yet supplied process scope gets only public and
+    corp-wide private evidence; process-unit-scoped evidence fails closed
+    instead of widening authorization implicitly.
+
     Unresolved names keep ``corporate_entity_id`` null, same
     missing-vs-guessed discipline as :func:`attach_resolved_entity_ids`.
     Capped at the 100 entities with the most total observed posts; ties
@@ -153,7 +162,8 @@ async def fetch_relationship_network(
     """
     if not corporate_entity_ids:
         return []
-    # Safe SQL: this is immutable schema text; authorized entity ids are bound through $1.
+    bound_process_unit_ids = None if process_unit_ids is None else list(process_unit_ids)
+    # Safe SQL: this is immutable schema text; authorized entity and process-unit ids are bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         with scoped as (
@@ -165,7 +175,16 @@ async def fetch_relationship_network(
               join common_lookup_value lookup
                 on lookup.lookup_code = counterparty.relationship_type_code
              where (post.visibility_code = 'public'
-                    or post.corporate_entity_id = any($1::uuid[]))
+                    or (
+                        post.corporate_entity_id = any($1::uuid[])
+                        and (
+                            post.process_unit_id is null
+                            or (
+                                $2::uuid[] is not null
+                                and post.process_unit_id = any($2::uuid[])
+                            )
+                        )
+                    ))
                and nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
                and not (
@@ -241,6 +260,7 @@ async def fetch_relationship_network(
                   top_entities.counterparty_entity_name
         """,
         list(corporate_entity_ids),
+        bound_process_unit_ids,
     )
     candidate_rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
     candidates = [
