@@ -1,44 +1,50 @@
 name: Temporary PR 1047 static replay SQL repair
+
 on:
   push:
-    branches: [fix/post-chat-replay-scope]
+    branches:
+      - fix/post-chat-replay-scope
+
 permissions:
   contents: write
+
 jobs:
   repair:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: fix/post-chat-replay-scope
           fetch-depth: 0
-      - name: Replace runtime-formatted authorization query with module constant
-        shell: python
+
+      - name: Apply static replay SQL repair and remove this workflow
+        shell: bash
         run: |
+          set -euo pipefail
+          python - <<'PY'
           from pathlib import Path
           import ast
+
           path = Path("backend/app/post_chat_ingestion.py")
           text = path.read_text()
           import_anchor = "from .source_post_revision import fetch_known_at_revisions\n"
           constant = '''from .source_post_revision import fetch_known_at_revisions
 
 
-_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL = (
-    "select source_post.post_id::text as post_id "
-    "from source_post "
-    "where source_post.post_id = any($3::uuid[]) "
-    "and {visibility} "
-    "and {eligibility} "
-    "order by source_post.post_id "
-    "for key share"
-).format(
-    visibility=source_post_scope_sql("source_post"),
-    eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),
-)
-'''
-          if text.count(import_anchor) != 1:
-              raise SystemExit("source_post_revision import anchor missing")
-          text = text.replace(import_anchor, constant, 1)
+          _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL = (
+              "select source_post.post_id::text as post_id "
+              "from source_post "
+              "where source_post.post_id = any($3::uuid[]) "
+              "and {visibility} "
+              "and {eligibility} "
+              "order by source_post.post_id "
+              "for key share"
+          ).format(
+              visibility=source_post_scope_sql("source_post"),
+              eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),
+          )
+          '''
           old = '''    rows = await conn.fetch(
               f"""
               select source_post.post_id::text as post_id
@@ -61,15 +67,19 @@ _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL = (
               list(source_post_ids),
           )
           '''
-          if text.count(old) != 1:
+
+          if "_POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL" not in text:
+              if text.count(import_anchor) != 1:
+                  raise SystemExit("source_post_revision import anchor missing")
+              text = text.replace(import_anchor, constant, 1)
+          if old not in text:
               raise SystemExit("runtime-formatted replay SQL target missing")
-          path.write_text(text.replace(old, new, 1))
-          ast.parse(path.read_text(), filename=str(path))
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          ast.parse(text, filename=str(path))
           Path(".github/workflows/pr1047-static-replay-sql.yml").unlink()
-      - name: Commit ordinary repair
-        shell: bash
-        run: |
-          set -euo pipefail
+          PY
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add backend/app/post_chat_ingestion.py .github/workflows/pr1047-static-replay-sql.yml
