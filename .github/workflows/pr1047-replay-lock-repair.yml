@@ -1,0 +1,127 @@
+name: Temporary PR 1047 replay snapshot lock repair
+
+on:
+  push:
+    branches:
+      - fix/post-chat-replay-scope
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: fix/post-chat-replay-scope
+          fetch-depth: 0
+
+      - name: Lock replay parent across receipt validation and serialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+
+          ingestion_path = Path("backend/app/post_chat_ingestion.py")
+          ingestion = ingestion_path.read_text()
+          old = '''    receipt = await conn.fetchrow(
+        "select process_scope_limited from post_chat_authorization_receipt "
+        "where post_id = $1 and question_norm = $2",
+        post_id,
+        question_norm,
+    )
+'''
+          new = '''    receipt = await conn.fetchrow(
+        "select receipt.process_scope_limited "
+        "from post_chat_authorization_receipt receipt "
+        "join post_chat_result result "
+        "on result.post_id = receipt.post_id "
+        "and result.question_norm = receipt.question_norm "
+        "where receipt.post_id = $1 and receipt.question_norm = $2 "
+        "for key share of result",
+        post_id,
+        question_norm,
+    )
+'''
+          if ingestion.count(old) != 1:
+              raise SystemExit("receipt lookup target missing")
+          ingestion = ingestion.replace(old, new, 1)
+          ast.parse(ingestion, filename=str(ingestion_path))
+          ingestion_path.write_text(ingestion)
+
+          test_path = Path("tests/test_post_chat_authorization_migration_postgres.py")
+          test = test_path.read_text()
+          addition = r'''
+
+
+def test_replay_parent_key_share_blocks_concurrent_answer_replacement(
+    isolated_postgres_schema,
+) -> None:
+    """Receipt validation must hold the derived-answer identity stable until replay finishes."""
+    conn = isolated_postgres_schema
+    _create_minimal_parent_schema(conn)
+    focal_post_id = str(uuid.uuid4())
+    with conn.cursor() as cursor:
+        cursor.execute(_FORWARD_MIGRATION.read_text())
+        cursor.execute("select current_schema()")
+        schema_name = cursor.fetchone()[0]
+        cursor.execute("insert into source_post (post_id) values (%s)", (focal_post_id,))
+        cursor.execute(
+            "insert into post_chat_result "
+            "(post_id, question_norm, question_text, answer_text) values (%s, %s, %s, %s)",
+            (focal_post_id, "what happened?", "What happened?", "Original answer"),
+        )
+        cursor.execute(
+            "insert into post_chat_authorization_receipt "
+            "(post_id, question_norm, process_scope_limited) values (%s, %s, false)",
+            (focal_post_id, "what happened?"),
+        )
+
+    conn.autocommit = False
+    writer = psycopg2.connect(_POSTGRES_DSN)
+    writer.autocommit = False
+    try:
+        with conn.cursor() as reader_cursor:
+            reader_cursor.execute(
+                "select receipt.process_scope_limited "
+                "from post_chat_authorization_receipt receipt "
+                "join post_chat_result result "
+                "on result.post_id = receipt.post_id "
+                "and result.question_norm = receipt.question_norm "
+                "where receipt.post_id = %s and receipt.question_norm = %s "
+                "for key share of result",
+                (focal_post_id, "what happened?"),
+            )
+            assert reader_cursor.fetchone()[0] is False
+
+        with writer.cursor() as writer_cursor:
+            writer_cursor.execute(f'set search_path to "{schema_name}"')
+            writer_cursor.execute("set local lock_timeout = '250ms'")
+            with pytest.raises(psycopg2.errors.LockNotAvailable):
+                writer_cursor.execute(
+                    "delete from post_chat_result where post_id = %s and question_norm = %s",
+                    (focal_post_id, "what happened?"),
+                )
+        writer.rollback()
+    finally:
+        conn.rollback()
+        conn.autocommit = True
+        writer.close()
+'''
+          if "test_replay_parent_key_share_blocks_concurrent_answer_replacement" in test:
+              raise SystemExit("concurrency regression already exists")
+          test += addition
+          ast.parse(test, filename=str(test_path))
+          test_path.write_text(test)
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/app/post_chat_ingestion.py tests/test_post_chat_authorization_migration_postgres.py
+          git diff --cached --check
+          git commit -m "fix(security): hold replay snapshot across authorization"
+          git push origin HEAD:fix/post-chat-replay-scope
