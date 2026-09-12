@@ -35,11 +35,11 @@
 > ThreadWeave, TEPP, and lowercase canonical
 > `ContextualWisdomLab/disksage` retain their existing bounded
 > responsibilities. This overlay changes no ADR, API, schema, release number,
-> or owner implementation. PR #1041 is Ready at exact head
-> `b3a4824009d1553f9f7cf73953224fcbfdde4aff` with normal squash auto-merge
-> armed. Its current-head repository tests and review workflows pass, while
-> independent approval remains absent; historical approval from its prior head
-> is not reused.
+> or owner implementation. PR #1041 is Draft after documentation advanced beyond
+> validated candidate `b3a4824009d1553f9f7cf73953224fcbfdde4aff`. That
+> candidate's repository tests and review workflows are historical evidence only;
+> the current candidate requires fresh exact-head validation and an independent
+> approval before Ready, auto-merge, or protected-main integration.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
