@@ -172,6 +172,9 @@ function leftoverMapPlotAxisText(
  * labels. ADR 0318 captions leftover-map rank on that comparison graphic
  * from already-named leftover-map rank while composing existing localized
  * comparison-graphic and rank labels rather than adding SPA translation debt.
+ * ADR 0319 captions leftover-map distance on that comparison graphic using
+ * the same localized composition boundary rather than adding another static
+ * comparison-only translation key.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -327,9 +330,13 @@ export function LeftoverMapPlot({
                   x={segment.labelX}
                   y={segment.labelY}
                   textAnchor="middle"
-                  aria-label={tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {
-                    label: segment.distanceLabel,
-                  })}
+                  aria-label={
+                    variant === "comparison"
+                      ? `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, {
+                          label: segment.distanceLabel,
+                        })}`
+                      : tf(LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE, { label: segment.distanceLabel })
+                  }
                 >
                   {segment.distanceLabel}
                 </text>
