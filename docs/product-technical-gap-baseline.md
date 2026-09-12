@@ -1,14 +1,14 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-12 21:55 KST. Protected `main` remains
+> Exact-head loop overlay: 2026-09-12 23:28 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). A fresh,
 > date-partitioned repository search found 157 open PRs and 32 open issues.
 > These counts are operational metadata, not release evidence. PR #996 is
-> Ready at exact head `a640df40839ed7e2a15b9ab95a7f86faa050a248`,
-> with normal squash auto-merge armed. Its cycle presentation remains
-> candidate evidence only: current-head Checks restarted after the Ready
-> transition, independent approval is absent, and authenticated PostgreSQL
-> acceptance is still unverified.
+> Draft at exact head `a640df40839ed7e2a15b9ab95a7f86faa050a248`;
+> normal auto-merge is not armed. Its cycle presentation remains candidate
+> evidence only: repository tests are skipped by Draft policy, historical
+> Checks do not transfer, independent approval is absent, and authenticated
+> PostgreSQL acceptance is still unverified.
 >
 > Current buyer-visible security gaps have explicit product owners. Issue
 > #1045 and Draft PR #1042 own Customer Master process-unit authorization;
@@ -21,11 +21,13 @@
 > presentation data or copying authorization logic.
 >
 > Current dependency and data-operability gaps are also separated. Issue
-> #1043 and Ready PR #1046 own GHSA-82fw-gwwq-j7x9: the source manifest,
-> generated pnpm lock, frozen install, frontend suite, and full suite now pass
-> on exact head `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`.
-> Normal squash auto-merge is armed, but dependency-review evidence failed
-> closed on a GitHub HTTP 403 and independent approval is absent. Issue #1048 and Draft PR
+> #1043 and Ready PR #1046 own GHSA-82fw-gwwq-j7x9 at exact head
+> `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`. The advisory regression,
+> frozen install, lint, isolated previously timing-out test file, and production
+> build pass locally. A resource-contended full frontend run is not promoted to
+> passing evidence: worker-start timeouts left it non-terminal as acceptance.
+> Normal squash auto-merge is armed while fresh exact-head Checks and
+> independent approval remain pending. Issue #1048 and Draft PR
 > #1049 own the duplicate forward-migration ordinal `0233`; both shipped
 > deltas remain valid, so repair requires an ADR-backed compatibility identity,
 > clean-install and pre-0233 replay evidence rather than deleting or casually
