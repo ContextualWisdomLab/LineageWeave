@@ -79,7 +79,7 @@ class _Connection:
             return [{"process_unit_id": "pu-a"}]
         if "from post_chat_source" in query:
             return [{"source_post_id": "post-1"}]
-        if "from source_post" in query and "for key share" in query.lower():
+        if "from source_post" in query and "for share" in query.lower():
             return [{"post_id": "post-1"}]
         return self.citations
 
