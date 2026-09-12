@@ -7,7 +7,7 @@
 > pass was Draft before intervention; therefore its skipped repository-local
 > test jobs are not successful Checks. PR #996 was moved to Ready and normal
 > squash auto-merge was enabled at exact head
-> `65d3020d819f9b5d294d2c80c8a4e93a7802c65f`; fresh tests and review are now
+> `a640df40839ed7e2a15b9ab95a7f86faa050a248`; fresh tests and review are now
 > pending, and independent APPROVE remains required. Earlier CodeQL
 > compatibility and Strix failures on that SHA remain failed evidence until a
 > current authoritative rerun classifies or replaces them. No self-approval,
@@ -22,10 +22,12 @@
 > cycle, input-permutation, large-hierarchy, rendering, and responsive
 > Storybook regressions. Focused local tests passed with a single-worker pool;
 > an earlier fork-worker start timed out under host contention and is not a
-> product failure or a successful full-suite result. Authenticated PostgreSQL
-> API and rendered desktop/mobile acceptance are still unverified for this
-> exact head, so this remains an active candidate rather than a protected-main
-> capability.
+> product failure or a successful full-suite result. The exact-head Storybook
+> scene was rendered and visually inspected at 1440x900 and 390x844: identity,
+> level, and ancestry guidance remain distinct, and the mobile scene has no
+> horizontal clipping. Authenticated PostgreSQL API acceptance remains
+> unverified for this exact head, so this remains an active candidate rather
+> than a protected-main capability.
 >
 > Authority and collision audit: `ContextualWisdomLab/LineageWeave`,
 > `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase canonical
