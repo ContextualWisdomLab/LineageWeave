@@ -1202,7 +1202,7 @@ async def read_customer_master(
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
         relationship_network = await fetch_relationship_network(
             conn,
-            entity_ids,
+            [str(entity_id) for entity_id in entity_ids],
             account.process_unit_ids,
         )
 
