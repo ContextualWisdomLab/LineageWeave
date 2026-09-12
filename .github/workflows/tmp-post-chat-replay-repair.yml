@@ -1,0 +1,614 @@
+name: Temporary post-chat replay repair
+
+on:
+  push:
+    branches:
+      - fix/post-chat-replay-scope
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/post-chat-replay-scope
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply causal replay authorization repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ingestion = Path('backend/app/post_chat_ingestion.py')
+          text = ingestion.read_text()
+          old = 'from collections.abc import Callable, Iterable\n'
+          new = 'from collections.abc import Callable, Collection, Iterable\n'
+          if old not in text:
+              raise SystemExit('collections import anchor missing')
+          text = text.replace(old, new, 1)
+
+          old = 'from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL\n'
+          new = 'from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_scope_sql\n'
+          if old not in text:
+              raise SystemExit('post eligibility import anchor missing')
+          text = text.replace(old, new, 1)
+
+          start = text.index('async def _serialize_chat(')
+          end = text.index('\n\ndef seeded_demo_chat()', start)
+          replacement = r'''async def _serialize_chat(
+              conn: asyncpg.Connection, post_id: str, question_norm: str
+          ) -> dict[str, Any] | None:
+              """Serialize one stored exchange without deciding replay authorization."""
+              header = await conn.fetchrow(
+                  "select question_text, answer_text from post_chat_result "
+                  "where post_id = $1 and question_norm = $2",
+                  post_id,
+                  question_norm,
+              )
+              if header is None:
+                  return None
+              cites = await conn.fetch(
+                  "select c.cited_post_id, p.post_title from post_chat_citation c "
+                  "join source_post p on p.post_id = c.cited_post_id "
+                  "where c.post_id = $1 and c.question_norm = $2 "
+                  "order by c.citation_ordinal",
+                  post_id,
+                  question_norm,
+              )
+              cited_ids = [str(row["cited_post_id"]) for row in cites]
+              return {
+                  "question_text": header["question_text"],
+                  "answer_text": header["answer_text"],
+                  "cited_post_ids": cited_ids,
+                  "cited_posts": [
+                      {"post_id": str(row["cited_post_id"]), "post_title": row["post_title"]}
+                      for row in cites
+                  ],
+              }
+
+
+          def _scope_subsumes_generation(
+              *,
+              generation_corporate_entity_ids: Collection[str],
+              generation_process_unit_ids: Collection[str],
+              generation_process_scope_limited: bool,
+              current_corporate_entity_ids: Collection[str],
+              current_process_unit_ids: Collection[str],
+          ) -> bool:
+              """Return whether the current reader is at least as broad as generation scope.
+
+              An empty current process-unit set is the product's authenticated
+              unrestricted-process scope. A generation receipt whose process scope was
+              unrestricted can therefore replay only to another unrestricted reader;
+              a restricted generation set may replay to an unrestricted reader or to a
+              current restricted superset.
+              """
+              generation_entities = frozenset(str(value) for value in generation_corporate_entity_ids)
+              current_entities = frozenset(str(value) for value in current_corporate_entity_ids)
+              if not generation_entities.issubset(current_entities):
+                  return False
+              current_processes = frozenset(str(value) for value in current_process_unit_ids)
+              generation_processes = frozenset(str(value) for value in generation_process_unit_ids)
+              if not generation_process_scope_limited:
+                  return not current_processes
+              return not current_processes or generation_processes.issubset(current_processes)
+
+
+          async def _authorized_post_chat_replay(
+              conn: asyncpg.Connection,
+              post_id: str,
+              question_norm: str,
+              *,
+              corporate_entity_ids: Collection[str],
+              process_unit_ids: Collection[str],
+          ) -> dict[str, Any] | None:
+              """Return a stored answer only when its immutable generation evidence is still authorized."""
+              receipt = await conn.fetchrow(
+                  "select process_scope_limited from post_chat_authorization_receipt "
+                  "where post_id = $1 and question_norm = $2",
+                  post_id,
+                  question_norm,
+              )
+              if receipt is None:
+                  return None
+              corporate_rows = await conn.fetch(
+                  "select corporate_entity_id from post_chat_corporate_entity_scope "
+                  "where post_id = $1 and question_norm = $2 order by corporate_entity_id",
+                  post_id,
+                  question_norm,
+              )
+              process_rows = await conn.fetch(
+                  "select process_unit_id from post_chat_process_unit_scope "
+                  "where post_id = $1 and question_norm = $2 order by process_unit_id",
+                  post_id,
+                  question_norm,
+              )
+              if not _scope_subsumes_generation(
+                  generation_corporate_entity_ids=[str(row["corporate_entity_id"]) for row in corporate_rows],
+                  generation_process_unit_ids=[str(row["process_unit_id"]) for row in process_rows],
+                  generation_process_scope_limited=bool(receipt["process_scope_limited"]),
+                  current_corporate_entity_ids=corporate_entity_ids,
+                  current_process_unit_ids=process_unit_ids,
+              ):
+                  return None
+
+              source_rows = await conn.fetch(
+                  "select source_post_id from post_chat_source "
+                  "where post_id = $1 and question_norm = $2 order by source_ordinal",
+                  post_id,
+                  question_norm,
+              )
+              source_ids = [str(row["source_post_id"]) for row in source_rows]
+              if not source_ids or post_id not in source_ids:
+                  return None
+              unique_source_ids = list(dict.fromkeys(source_ids))
+              # Shared eligibility/scope SQL remains the sole database ABAC contract.
+              visible_count = await conn.fetchval(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                  f"""
+                  select count(*)
+                    from source_post source_post
+                   where source_post.post_id = any($3::uuid[])
+                     and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+                     and {source_post_scope_sql('source_post')}
+                  """,
+                  list(corporate_entity_ids),
+                  list(process_unit_ids),
+                  unique_source_ids,
+              )
+              if int(visible_count or 0) != len(unique_source_ids):
+                  return None
+
+              payload = await _serialize_chat(conn, post_id, question_norm)
+              if payload is None:
+                  return None
+              if not set(payload["cited_post_ids"]).issubset(unique_source_ids):
+                  return None
+              payload["source_post_ids"] = unique_source_ids
+              payload["_authorization_scope_valid"] = True
+              return payload
+
+
+          async def fetch_persisted_chat(
+              conn: asyncpg.Connection,
+              post_id: str,
+              question: str,
+              *,
+              corporate_entity_ids: Collection[str] | None = None,
+              process_unit_ids: Collection[str] | None = None,
+          ) -> dict[str, Any] | None:
+              """Return a replay-safe stored answer, failing closed without reader scope."""
+              norm = normalize_chat_question(question)
+              if not norm or corporate_entity_ids is None or process_unit_ids is None:
+                  return None
+              return await _authorized_post_chat_replay(
+                  conn,
+                  post_id,
+                  norm,
+                  corporate_entity_ids=corporate_entity_ids,
+                  process_unit_ids=process_unit_ids,
+              )
+
+
+          async def fetch_persisted_chats(
+              conn: asyncpg.Connection,
+              post_id: str,
+              *,
+              corporate_entity_ids: Collection[str] | None = None,
+              process_unit_ids: Collection[str] | None = None,
+          ) -> list[dict[str, Any]]:
+              """Return only replay-safe stored exchanges for the current reader scope."""
+              if corporate_entity_ids is None or process_unit_ids is None:
+                  return []
+              rows = await conn.fetch(
+                  "select question_norm from post_chat_result where post_id = $1 order by computed_at, question_norm",
+                  post_id,
+              )
+              exchanges: list[dict[str, Any]] = []
+              for row in rows:
+                  payload = await _authorized_post_chat_replay(
+                      conn,
+                      post_id,
+                      row["question_norm"],
+                      corporate_entity_ids=corporate_entity_ids,
+                      process_unit_ids=process_unit_ids,
+                  )
+                  if payload is not None:
+                      payload.pop("_authorization_scope_valid", None)
+                      exchanges.append(payload)
+              return exchanges
+
+
+          async def persist_post_chat(
+              conn: asyncpg.Connection,
+              post_id: str,
+              question: str,
+              answer_text: str,
+              cited_post_ids: list[str] | tuple[str, ...],
+              *,
+              source_post_ids: Collection[str],
+              corporate_entity_ids: Collection[str],
+              process_unit_ids: Collection[str],
+          ) -> dict[str, Any]:
+              """Atomically replace one answer and its generation authorization evidence."""
+              norm = normalize_chat_question(question)
+              if not norm:
+                  raise ValueError("question is empty after normalize")
+              unique_sources = list(dict.fromkeys(str(value) for value in source_post_ids))
+              if post_id not in unique_sources:
+                  raise ValueError("source_post_ids must include the focal post")
+              unique_citations = list(dict.fromkeys(str(value) for value in cited_post_ids))
+              if not set(unique_citations).issubset(unique_sources):
+                  raise ValueError("citations must be drawn from source_post_ids")
+              entity_scope = sorted({str(value) for value in corporate_entity_ids})
+              process_scope = sorted({str(value) for value in process_unit_ids})
+
+              # Model/retrieval work is complete before this function is called. Keep
+              # only the small persistence unit atomic; never hold this transaction
+              # while contextual-orchestrator is running.
+              async with conn.transaction():
+                  await conn.execute(
+                      "delete from post_chat_result where post_id = $1 and question_norm = $2",
+                      post_id,
+                      norm,
+                  )
+                  await conn.execute(
+                      "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
+                      "values ($1, $2, $3, $4)",
+                      post_id,
+                      norm,
+                      question.strip(),
+                      answer_text,
+                  )
+                  for ordinal, cited_id in enumerate(unique_citations):
+                      await conn.execute(
+                          "insert into post_chat_citation "
+                          "(post_id, question_norm, citation_ordinal, cited_post_id) "
+                          "values ($1, $2, $3, $4)",
+                          post_id,
+                          norm,
+                          ordinal,
+                          cited_id,
+                      )
+                  for ordinal, source_id in enumerate(unique_sources):
+                      await conn.execute(
+                          "insert into post_chat_source "
+                          "(post_id, question_norm, source_ordinal, source_post_id) "
+                          "values ($1, $2, $3, $4)",
+                          post_id,
+                          norm,
+                          ordinal,
+                          source_id,
+                      )
+                  await conn.execute(
+                      "insert into post_chat_authorization_receipt "
+                      "(post_id, question_norm, process_scope_limited) values ($1, $2, $3)",
+                      post_id,
+                      norm,
+                      bool(process_scope),
+                  )
+                  for corporate_entity_id in entity_scope:
+                      await conn.execute(
+                          "insert into post_chat_corporate_entity_scope "
+                          "(post_id, question_norm, corporate_entity_id) values ($1, $2, $3)",
+                          post_id,
+                          norm,
+                          corporate_entity_id,
+                      )
+                  for process_unit_id in process_scope:
+                      await conn.execute(
+                          "insert into post_chat_process_unit_scope "
+                          "(post_id, question_norm, process_unit_id) values ($1, $2, $3)",
+                          post_id,
+                          norm,
+                          process_unit_id,
+                      )
+              payload = await _authorized_post_chat_replay(
+                  conn,
+                  post_id,
+                  norm,
+                  corporate_entity_ids=corporate_entity_ids,
+                  process_unit_ids=process_unit_ids,
+              )
+              if payload is None:
+                  raise RuntimeError("persist_post_chat wrote a non-replayable row")
+              payload.pop("_authorization_scope_valid", None)
+              return payload
+          '''
+          text = text[:start] + replacement + text[end:]
+          ingestion.write_text(text)
+
+          main_path = Path('backend/app/main.py')
+          main = main_path.read_text()
+          old = '''        exchanges = await fetch_persisted_chats(conn, post_id)'''
+          new = '''        exchanges = await fetch_persisted_chats(
+              conn,
+              post_id,
+              corporate_entity_ids=account.corporate_entity_ids,
+              process_unit_ids=account.process_unit_ids,
+          )'''
+          if old not in main:
+              raise SystemExit('history replay anchor missing')
+          main = main.replace(old, new, 1)
+
+          old = '''        stored = await fetch_persisted_chat(conn, post_id, question)
+              if stored is not None:
+                  source_ids = [post_id]
+                  source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+                  return {
+                      "post_id": post_id,
+                      "answer_text": stored["answer_text"],
+                      "cited_post_ids": stored["cited_post_ids"],
+                      "cited_posts": stored["cited_posts"],
+                      "source_post_ids": source_ids,
+                  }'''
+          new = '''        stored = await fetch_persisted_chat(
+              conn,
+              post_id,
+              question,
+              corporate_entity_ids=account.corporate_entity_ids,
+              process_unit_ids=account.process_unit_ids,
+          )
+              if stored is not None and stored.get("_authorization_scope_valid") is True:
+                  return {
+                      "post_id": post_id,
+                      "answer_text": stored["answer_text"],
+                      "cited_post_ids": stored["cited_post_ids"],
+                      "cited_posts": stored["cited_posts"],
+                      "source_post_ids": stored["source_post_ids"],
+                  }'''
+          if old not in main:
+              raise SystemExit('POST replay anchor missing')
+          main = main.replace(old, new, 1)
+
+          old = '''    cited_ids = list(answer.cited_post_ids)
+              async with pool.acquire() as conn:
+                  await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)'''
+          new = '''    cited_ids = list(answer.cited_post_ids)
+              source_ids = [source.post_id for source in sources]
+              async with pool.acquire() as conn:
+                  await persist_post_chat(
+                      conn,
+                      post_id,
+                      question,
+                      answer.answer_text,
+                      cited_ids,
+                      source_post_ids=source_ids,
+                      corporate_entity_ids=account.corporate_entity_ids,
+                      process_unit_ids=account.process_unit_ids,
+                  )'''
+          if old not in main:
+              raise SystemExit('persistence anchor missing')
+          main = main.replace(old, new, 1)
+          main = main.replace('''        "source_post_ids": [source.post_id for source in sources],''', '''        "source_post_ids": source_ids,''', 1)
+          main = main.replace(
+              '''    A persisted (seeded or previously live) row is returned first so
+              Ask works on the demo stack without an orchestrator. Live
+              reason-and-cite still runs only when no stored match exists and
+              the orchestrator is configured -- never a fabricated reply.''',
+              '''    A persisted answer is replayed only when its captured generation
+              scope is still subsumed by the current reader and every contributing
+              source remains currently visible. Legacy or narrowed-scope rows fail
+              closed to live reason-and-cite; model work happens outside any DB
+              transaction.''',
+              1,
+          )
+          main_path.write_text(main)
+
+          migration = Path('migrations/0249_post_chat_authorization_scope.sql')
+          migration.write_text('''-- Bind persisted Post Chat derived text to generation scope and contributing sources.\n\ncreate table if not exists post_chat_authorization_receipt (\n    post_id uuid not null,\n    question_norm text not null,\n    process_scope_limited boolean not null,\n    captured_at timestamptz not null default now(),\n    primary key (post_id, question_norm),\n    foreign key (post_id, question_norm)\n        references post_chat_result (post_id, question_norm) on delete cascade\n);\n\ncreate table if not exists post_chat_corporate_entity_scope (\n    post_id uuid not null,\n    question_norm text not null,\n    corporate_entity_id uuid not null references corporate_entity (corporate_entity_id),\n    primary key (post_id, question_norm, corporate_entity_id),\n    foreign key (post_id, question_norm)\n        references post_chat_authorization_receipt (post_id, question_norm) on delete cascade\n);\n\ncreate table if not exists post_chat_process_unit_scope (\n    post_id uuid not null,\n    question_norm text not null,\n    process_unit_id uuid not null references process_unit (process_unit_id),\n    primary key (post_id, question_norm, process_unit_id),\n    foreign key (post_id, question_norm)\n        references post_chat_authorization_receipt (post_id, question_norm) on delete cascade\n);\n\ncreate table if not exists post_chat_source (\n    post_id uuid not null,\n    question_norm text not null,\n    source_ordinal integer not null check (source_ordinal >= 0),\n    source_post_id uuid not null references source_post (post_id) on delete cascade,\n    primary key (post_id, question_norm, source_ordinal),\n    unique (post_id, question_norm, source_post_id),\n    foreign key (post_id, question_norm)\n        references post_chat_authorization_receipt (post_id, question_norm) on delete cascade\n);\n\ncomment on table post_chat_authorization_receipt is\n    'Presence distinguishes scoped replay evidence from legacy unscoped answers; process_scope_limited preserves unrestricted empty-set semantics.';\ncomment on table post_chat_source is\n    'Every source post that could have contributed to persisted Post Chat derived text, reauthorized before replay.';\n''')
+          rollback = Path('migrations/rollback/0249_post_chat_authorization_scope.sql')
+          rollback.write_text('''drop table if exists post_chat_source;\ndrop table if exists post_chat_process_unit_scope;\ndrop table if exists post_chat_corporate_entity_scope;\ndrop table if exists post_chat_authorization_receipt;\n''')
+
+          contract_test = Path('tests/test_post_chat_replay_scope_contract.py')
+          contract_test.write_text(r'''from __future__ import annotations
+
+import asyncio
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from backend.app.post_chat_ingestion import _scope_subsumes_generation, persist_post_chat
+
+
+class RecordingConnection:
+    """Record the bounded persistence unit without emulating PostgreSQL policy."""
+
+    def __init__(self) -> None:
+        self.executed: list[tuple[str, tuple[object, ...]]] = []
+        self.in_transaction = False
+
+    @asynccontextmanager
+    async def transaction(self):
+        assert not self.in_transaction
+        self.in_transaction = True
+        try:
+            yield
+        finally:
+            self.in_transaction = False
+
+    async def execute(self, query: str, *args: object) -> str:
+        assert self.in_transaction
+        self.executed.append((query, args))
+        return "OK"
+
+    async def fetchrow(self, query: str, *_args: object):
+        if "post_chat_authorization_receipt" in query:
+            return {"process_scope_limited": True}
+        if "post_chat_result" in query:
+            return {"question_text": "Question", "answer_text": "Answer"}
+        return None
+
+    async def fetch(self, query: str, *_args: object):
+        if "post_chat_corporate_entity_scope" in query:
+            return [{"corporate_entity_id": "corp-a"}]
+        if "post_chat_process_unit_scope" in query:
+            return [{"process_unit_id": "pu-a"}]
+        if "post_chat_source" in query:
+            return [{"source_post_id": "post-1"}]
+        if "post_chat_citation" in query:
+            return []
+        return []
+
+    async def fetchval(self, _query: str, *_args: object) -> int:
+        return 1
+
+
+def test_generation_scope_subsumption_preserves_unrestricted_semantics() -> None:
+    assert _scope_subsumes_generation(
+        generation_corporate_entity_ids={"corp-a"},
+        generation_process_unit_ids=set(),
+        generation_process_scope_limited=False,
+        current_corporate_entity_ids={"corp-a", "corp-b"},
+        current_process_unit_ids=set(),
+    )
+    assert not _scope_subsumes_generation(
+        generation_corporate_entity_ids={"corp-a"},
+        generation_process_unit_ids=set(),
+        generation_process_scope_limited=False,
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids={"pu-a"},
+    )
+    assert _scope_subsumes_generation(
+        generation_corporate_entity_ids={"corp-a"},
+        generation_process_unit_ids={"pu-a"},
+        generation_process_scope_limited=True,
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids={"pu-a", "pu-b"},
+    )
+    assert not _scope_subsumes_generation(
+        generation_corporate_entity_ids={"corp-a", "corp-b"},
+        generation_process_unit_ids={"pu-a"},
+        generation_process_scope_limited=True,
+        current_corporate_entity_ids={"corp-a"},
+        current_process_unit_ids=set(),
+    )
+
+
+def test_persisted_answer_scope_and_sources_share_one_short_transaction() -> None:
+    conn = RecordingConnection()
+    payload = asyncio.run(
+        persist_post_chat(
+            conn,
+            "post-1",
+            "Question",
+            "Answer",
+            [],
+            source_post_ids=["post-1"],
+            corporate_entity_ids={"corp-a"},
+            process_unit_ids={"pu-a"},
+        )
+    )
+    assert payload["answer_text"] == "Answer"
+    statements = "\n".join(query for query, _args in conn.executed)
+    assert "insert into post_chat_authorization_receipt" in statements
+    assert "insert into post_chat_corporate_entity_scope" in statements
+    assert "insert into post_chat_process_unit_scope" in statements
+    assert "insert into post_chat_source" in statements
+
+
+def test_migration_has_receipt_sources_and_reversible_children() -> None:
+    forward = Path("migrations/0249_post_chat_authorization_scope.sql").read_text()
+    rollback = Path("migrations/rollback/0249_post_chat_authorization_scope.sql").read_text()
+    assert "post_chat_authorization_receipt" in forward
+    assert "process_scope_limited boolean not null" in forward
+    assert "post_chat_corporate_entity_scope" in forward
+    assert "post_chat_process_unit_scope" in forward
+    assert "post_chat_source" in forward
+    assert "references post_chat_authorization_receipt" in forward
+    assert rollback.index("drop table if exists post_chat_source") < rollback.index(
+        "drop table if exists post_chat_authorization_receipt"
+    )
+''')
+
+          # Update the existing low-level persistence unit test to the new atomic contract.
+          test_path = Path('tests/test_post_chat_ingestion.py')
+          tests = test_path.read_text()
+          tests = tests.replace('from threading import Event, Timer\n', 'from contextlib import asynccontextmanager\nfrom threading import Event, Timer\n', 1)
+          old = '''    async def execute(self, query: str, *args: object) -> str:
+                  self.executed.append((query, args))
+                  return "OK"
+          '''
+          new = '''    @asynccontextmanager
+              async def transaction(self):
+                  yield
+
+              async def execute(self, query: str, *args: object) -> str:
+                  self.executed.append((query, args))
+                  return "OK"
+          '''
+          if old not in tests:
+              raise SystemExit('test connection execute anchor missing')
+          tests = tests.replace(old, new, 1)
+          old = '''        persist_post_chat(conn, "post-1", "  What   happened? ", "A synthetic answer.", ["post-a", "post-a", "post-b"])
+              )'''
+          new = '''        persist_post_chat(
+                  conn,
+                  "post-1",
+                  "  What   happened? ",
+                  "A synthetic answer.",
+                  ["post-a", "post-a", "post-b"],
+                  source_post_ids=["post-1", "post-a", "post-b"],
+                  corporate_entity_ids=[],
+                  process_unit_ids=[],
+              )
+              )'''
+          if old not in tests:
+              raise SystemExit('persist test anchor missing')
+          tests = tests.replace(old, new, 1)
+          test_path.write_text(tests)
+
+          # The application-boundary RED intentionally mocks an unscoped helper payload;
+          # keep that payload invalid and make the live persistence capture kwargs too.
+          red_path = Path('tests/test_post_chat_replay_authorization.py')
+          red = red_path.read_text()
+          old = '''    persisted_calls: list[tuple[str, str, str, list[str]]] = []'''
+          new = '''    persisted_calls: list[tuple[str, str, str, list[str], list[str]]] = []'''
+          red = red.replace(old, new, 1)
+          old = '''        persisted_calls.append(
+                  (
+                      str(post_id),
+                      str(question),
+                      str(answer_text),
+                      [str(post_id) for post_id in cited_post_ids],
+                  )
+              )'''
+          new = '''        persisted_calls.append(
+                  (
+                      str(post_id),
+                      str(question),
+                      str(answer_text),
+                      [str(post_id) for post_id in cited_post_ids],
+                      [str(post_id) for post_id in _kwargs["source_post_ids"]],
+                  )
+              )'''
+          if old not in red:
+              raise SystemExit('red persistence capture anchor missing')
+          red = red.replace(old, new, 1)
+          old = '''        ("post-1", "What happened?", "live scoped answer", ["post-1"])
+              ]'''
+          new = '''        ("post-1", "What happened?", "live scoped answer", ["post-1"], ["post-1"])
+              ]'''
+          if old not in red:
+              raise SystemExit('red expected call anchor missing')
+          red = red.replace(old, new, 1)
+          red_path.write_text(red)
+
+          # Purpose-complete helper: remove this workflow in the same causal commit.
+          Path('.github/workflows/tmp-post-chat-replay-repair.yml').unlink()
+          PY
+          python -m compileall -q backend/app tests scripts
+          git diff --check
+      - name: Commit repaired boundary
+        shell: bash
+        run: |
+          git config user.name 'LineageWeave maintainer'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/app/main.py backend/app/post_chat_ingestion.py migrations/0249_post_chat_authorization_scope.sql migrations/rollback/0249_post_chat_authorization_scope.sql tests/test_post_chat_ingestion.py tests/test_post_chat_replay_authorization.py tests/test_post_chat_replay_scope_contract.py .github/workflows/tmp-post-chat-replay-repair.yml
+          git commit -m 'fix(security): bind post-chat replay to generation scope'
+          git push origin HEAD:fix/post-chat-replay-scope
