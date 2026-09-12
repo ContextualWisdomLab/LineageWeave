@@ -3000,6 +3000,29 @@ async def evaluate_post(
     }
 
 
+def _report_population_is_fully_visible(
+    account: CurrentAccount,
+    aggregate: Any,
+    demo_entity_ids: set[str],
+) -> bool:
+    """Require every persisted contributor before exposing a precomputed aggregate.
+
+    Period-report statistics are calibrated over the persisted member/evidence
+    population. Filtering that population after calibration would disclose a
+    statistic that includes hidden evidence, so any invisible or synthetic-only
+    contributor suppresses the aggregate as a whole.
+    """
+    members = list(aggregate["members"])
+    if not members:
+        return False
+    contributors = members + list(aggregate.get("leftover_pairs", []))
+    return all(
+        _can_see_post(account, contributor)
+        and not _is_synthetic_demo_member(contributor, demo_entity_ids)
+        for contributor in contributors
+    )
+
+
 @app.get("/api/reports/compare/{period_code}")
 async def compare_period_groupings(
     period_code: str,
@@ -3019,20 +3042,9 @@ async def compare_period_groupings(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for row in rows:
-        members = [
-            member
-            for member in row["members"]
-            if _can_see_post(account, member)
-            and not _is_synthetic_demo_member(member, demo_entity_ids)
-        ]
-        if not members:
+        if not _report_population_is_fully_visible(account, row, demo_entity_ids):
             continue
-        leftover_pairs = [
-            pair
-            for pair in row.get("leftover_pairs", [])
-            if _can_see_post(account, pair)
-            and not _is_synthetic_demo_member(pair, demo_entity_ids)
-        ]
+        members = list(row["members"])
         leftover_pairs = [
             {
                 key: value
@@ -3045,7 +3057,7 @@ async def compare_period_groupings(
                     "process_unit_id",
                 }
             }
-            for pair in leftover_pairs
+            for pair in row.get("leftover_pairs", [])
         ]
         visible.append(
             {
@@ -3075,15 +3087,11 @@ async def list_period_reports(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for summary in summaries:
-        members = [
-            member
-            for member in summary["members"]
-            if _can_see_post(account, member)
-            and not _is_synthetic_demo_member(member, demo_entity_ids)
-        ]
-        if not members:
+        if not _report_population_is_fully_visible(account, summary, demo_entity_ids):
             continue
-        visible.append({**summary, "members": [], "post_count": len(members)})
+        visible.append(
+            {**summary, "members": [], "post_count": len(summary["members"])}
+        )
     return {"grouping_kind": grouping_kind, "periods": visible}
 
 
@@ -3109,20 +3117,8 @@ async def read_period_reports(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for report in reports:
-        members = [
-            member
-            for member in report["members"]
-            if _can_see_post(account, member)
-            and not _is_synthetic_demo_member(member, demo_entity_ids)
-        ]
-        if not members:
+        if not _report_population_is_fully_visible(account, report, demo_entity_ids):
             continue
-        leftover_pairs = [
-            pair
-            for pair in report.get("leftover_pairs", [])
-            if _can_see_post(account, pair)
-            and not _is_synthetic_demo_member(pair, demo_entity_ids)
-        ]
         members = [
             {
                 key: value
@@ -3135,7 +3131,7 @@ async def read_period_reports(
                     "process_unit_id",
                 }
             }
-            for member in members
+            for member in report["members"]
         ]
         leftover_pairs = [
             {
@@ -3149,7 +3145,7 @@ async def read_period_reports(
                     "process_unit_id",
                 }
             }
-            for pair in leftover_pairs
+            for pair in report.get("leftover_pairs", [])
         ]
         leftover_map_axes = list(report.get("leftover_map_axes", []))
         visible.append(
