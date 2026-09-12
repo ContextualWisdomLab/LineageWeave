@@ -24,6 +24,7 @@ At this decision point, active translation-ledger work reserves migrations 0246â
 - Canonical forward migrations need a unique ordinal namespace so tooling and release evidence can identify one migration unambiguously.
 - Rollback discoverability must remain deterministic.
 - The replay gate remains POSIX `/bin/sh`; no database migration ledger is introduced by this repair because all affected SQL is already replay-safe and a ledger would be a broader operational migration.
+- Production replay keeps `/opt/lineageweave/migrations` as its no-argument authority. A caller may pass one explicit migration-root argument only so recovery rehearsal and repository integration tests can exercise the exact production replay loop against an isolated migration set instead of reimplementing that loop.
 
 ## Alternatives considered
 
@@ -43,7 +44,7 @@ Chosen. The historical `0233_source_conversation_turn_evidence.sql` remains exec
 
 1. `0248_source_conversation_turn_evidence.sql` becomes the canonical forward identity for the source-evidence delta.
 2. `0233_source_conversation_turn_evidence.sql` remains at its historical path with a first-line `lineageweave-compatibility-alias-of` declaration.
-3. `migrate.sh` skips declared compatibility aliases and continues to execute the canonical target through the normal four-digit replay path.
+3. `migrate.sh` skips declared compatibility aliases and continues to execute the canonical target through the normal four-digit replay path. With no argument it reads the image-baked `/opt/lineageweave/migrations`; an explicit migration-root argument is reserved for recovery rehearsal and repository integration testing of that same loop.
 4. Both the historical and canonical rollback paths remain available; automated contract tests require equivalent rollback effects.
 5. CI treats alias-declared files as compatibility paths rather than canonical forward identities, verifies alias targets are real non-alias migrations with different ordinals, and rejects duplicate ordinals among canonical migrations.
 6. Alias chains and alias-specific schema divergence are forbidden.
@@ -54,6 +55,8 @@ Existing databases may execute the canonical 0248 SQL after having executed the 
 
 The marker is a repository contract understood by LineageWeave replay tooling, not a generic PostgreSQL feature. Any future deployment path that executes root migration files independently must either honor the marker or use only the canonical migration set. This must be reflected in operability/recovery documentation before the ADR can become Accepted.
 
+The optional migration-root argument does not replace the production image path and is not populated from mutable application configuration. Its purpose is to run the exact production shell control flow against a bounded recovery/test set, including real `pg_isready` and `psql` calls, so alias handling is verified behaviorally rather than inferred from source text.
+
 A database-backed migration ledger remains the preferred successor when a non-idempotent migration family requires stronger once-only execution semantics, consistent with ADR 0166. This ADR does not manufacture such a ledger prematurely.
 
 ## Promotion evidence
@@ -63,7 +66,7 @@ Before changing this ADR to Accepted, one exact head must prove:
 - canonical ordinal uniqueness and alias-contract tests;
 - clean PostgreSQL install;
 - upgrade/replay from a database predating both historical 0233 deltas;
-- repeated `migrate.sh` replay with one effective source-evidence schema delta;
+- two consecutive executions of the exact production `migrate.sh` loop against real PostgreSQL, with `0233_report_leftover_map_unexplained_share.sql` and canonical `0248_source_conversation_turn_evidence.sql` applied, the historical source-evidence alias skipped, and both intended schema effects present exactly once;
 - both historical and canonical rollback discoverability;
 - full PostgreSQL suite and migration replay suite;
 - current migration/operability/recovery documentation and protected-base collision recheck.
