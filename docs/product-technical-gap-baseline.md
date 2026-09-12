@@ -11,9 +11,12 @@
 > PostgreSQL acceptance is still unverified.
 >
 > Current buyer-visible security gaps have explicit product owners. Issue
-> #1045 and Draft PR #1042 own Customer Master process-unit authorization;
-> the PR's current caller-level contract is intentionally RED until the
-> authenticated account scope reaches the relationship-network boundary.
+> #1045 and Ready PR #1042 own Customer Master process-unit authorization at
+> exact head `7381233b12b7160a0c0c08d9749334a9e05eb862`. The authenticated
+> account scope now reaches the relationship-network boundary, and a synthetic
+> OIDC/PostgreSQL API regression passes without exposing record content.
+> Normal squash auto-merge is armed while fresh exact-head Checks and
+> independent approval remain pending.
 > Issue #1044 and Draft PR #1047 own persisted post-chat derived-data replay
 > authorization; legacy rows without a generation-scope receipt remain
 > intentionally non-replayable in the required design. Neither candidate is
