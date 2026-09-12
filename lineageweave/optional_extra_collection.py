@@ -28,12 +28,15 @@ OPTIONAL_EXTRA_MODULES: tuple[str, ...] = (
     "starlette",
 )
 
+_OPTIONAL_EXTRA_PYTEST_MARKERS: dict[str, str] = {
+    "anyio": "anyio",
+}
 _HELPER_TEST_NAME = "test_optional_extra_collection.py"
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _imported_module_names(source: str) -> frozenset[str]:
-    """Return imports and optional pytest plugin markers used by one test tree."""
+    """Return imports plus explicitly mapped optional-plugin pytest markers."""
     try:
         tree = ast.parse(source)
     except (SyntaxError, ValueError):
@@ -55,8 +58,9 @@ def _imported_module_names(source: str) -> frozenset[str]:
             and isinstance(node.value.value, ast.Name)
             and node.value.value.id == "pytest"
             and node.value.attr == "mark"
+            and node.attr in _OPTIONAL_EXTRA_PYTEST_MARKERS
         ):
-            imported.add(node.attr)
+            imported.add(_OPTIONAL_EXTRA_PYTEST_MARKERS[node.attr])
     return frozenset(imported)
 
 
