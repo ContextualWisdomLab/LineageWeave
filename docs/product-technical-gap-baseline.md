@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-12 23:28 KST. Protected `main` remains
+> Exact-head loop overlay: 2026-09-13 02:16 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). A fresh,
 > date-partitioned repository search found 157 open PRs and 32 open issues.
 > These counts are operational metadata, not release evidence. PR #996 is
@@ -12,16 +12,24 @@
 >
 > Current buyer-visible security gaps have explicit product owners. Issue
 > #1045 and Ready PR #1042 own Customer Master process-unit authorization at
-> exact head `7381233b12b7160a0c0c08d9749334a9e05eb862`. The authenticated
+> exact head `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`. The authenticated
 > account scope now reaches the relationship-network boundary, and a synthetic
-> OIDC/PostgreSQL API regression passes without exposing record content.
-> Normal squash auto-merge is armed while fresh exact-head Checks and
-> independent approval remain pending.
-> Issue #1044 and Draft PR #1047 own persisted post-chat derived-data replay
-> authorization; legacy rows without a generation-scope receipt remain
-> intentionally non-replayable in the required design. Neither candidate is
-> a protected-main capability, and neither owner may be bypassed by filtering
-> presentation data or copying authorization logic.
+> OIDC/PostgreSQL API regression passes without exposing record content. The
+> reduced/offline coverage collector now discovers optional imports and pytest
+> markers without duplicating the OpenTelemetry repair owned by Draft PR #973.
+> Normal squash auto-merge remains armed. Exact-head independent approval is
+> still absent; a Noema 502 is provider evidence, not a source-code finding.
+> Issue #1044 and Ready PR #1047 own persisted post-chat derived-data replay
+> authorization at exact head
+> `560890db5bf4b83d37bf6470cd0bc4fcce4ba795`. The production replay path now
+> requires the immutable reader-scope receipt, reauthorizes every captured
+> contributing Post, fails legacy receipt-less rows closed to live generation,
+> and persists answer, scope, sources, and citations atomically. A focused
+> synthetic regression slice passed (22 passed, 3 skipped; authenticated
+> PostgreSQL/API cases were unavailable in that exact-head run). Normal squash
+> auto-merge is armed while hosted Checks and independent approval remain
+> pending. Neither candidate is a protected-main capability, and neither owner
+> may be bypassed by presentation filtering or copied authorization logic.
 >
 > Current dependency and data-operability gaps are also separated. Issue
 > #1043 and Ready PR #1046 own GHSA-82fw-gwwq-j7x9 at exact head
@@ -39,12 +47,15 @@
 > Authority remains in `ContextualWisdomLab/LineageWeave`. RankWeave,
 > ThreadWeave, TEPP, and lowercase canonical
 > `ContextualWisdomLab/disksage` retain their existing bounded
-> responsibilities. This overlay changes no ADR, API, schema, release number,
-> or owner implementation. PR #1041 is Draft after documentation advanced beyond
-> validated candidate `b3a4824009d1553f9f7cf73953224fcbfdde4aff`. That
-> candidate's repository tests and review workflows are historical evidence only;
-> the current candidate requires fresh exact-head validation and an independent
-> approval before Ready, auto-merge, or protected-main integration.
+> responsibilities. PR #1041 remains Draft at exact head
+> `530eec65f8b0c13aa0d9e87090ee612a8246ab63` until this overlay is committed.
+> Its earlier tests and reviews are historical evidence only. The release
+> metadata conflict (`pyproject.toml` 2.28.0 versus
+> `lineageweave.__version__` 2.20.0), duplicate migration ordinal 0233
+> (#1048/#1049), and Voice authority numbering conflict remain explicit:
+> ADR 0251 governs I/O psychology, while the extensible Voice-combination
+> contract is ADR 0256. No release, schema, or ADR collision is silently
+> repaired in this documentation-only owner PR.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
