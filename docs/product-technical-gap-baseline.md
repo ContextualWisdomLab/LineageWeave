@@ -21,18 +21,18 @@
 > still absent; a Noema 502 is provider evidence, not a source-code finding.
 > Issue #1044 and Ready PR #1047 own persisted post-chat derived-data replay
 > authorization at exact head
-> `560890db5bf4b83d37bf6470cd0bc4fcce4ba795`. The production replay path now
+> `7e04f5df1b65ce485f619ce45189858f45223789`. The production replay path now
 > requires the immutable reader-scope receipt, reauthorizes every captured
 > contributing Post, fails legacy receipt-less rows closed to live generation,
-> and persists answer, scope, sources, and citations atomically. A focused
-> synthetic regression slice passed (22 passed, 3 skipped; authenticated
-> PostgreSQL/API cases were unavailable in that exact-head run). Normal squash
+> and persists answer, scope, sources, and citations atomically. Focused
+> synthetic regression slices passed during repair; authenticated
+> PostgreSQL/API cases remain unavailable on this exact head. Normal squash
 > auto-merge is armed while hosted Checks and independent approval remain
 > pending. Neither candidate is a protected-main capability, and neither owner
 > may be bypassed by presentation filtering or copied authorization logic.
 >
 > Current dependency and data-operability gaps are also separated. Issue
-> #1043 and Ready PR #1046 own GHSA-82fw-gwwq-j7x9 at exact head
+> #1043 and Draft PR #1046 own GHSA-82fw-gwwq-j7x9 at exact head
 > `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`. The advisory regression,
 > frozen install, lint, isolated previously timing-out test file, and production
 > build pass locally. A resource-contended full frontend run is not promoted to
