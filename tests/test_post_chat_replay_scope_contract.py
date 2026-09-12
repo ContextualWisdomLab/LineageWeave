@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -108,18 +109,35 @@ def test_source_deletion_invalidates_answers_that_used_the_source() -> None:
     assert "drop function if exists invalidate_post_chat_replay_on_source_post_delete" in rollback
 
 
-def test_application_boundary_red_still_requires_receipt_validated_replay() -> None:
-    """Keep the endpoint/persistence integration RED until production consumes the policy."""
+def test_application_boundary_consumes_receipt_validated_replay_policy() -> None:
+    """Require production persistence and API boundaries to consume the replay policy."""
     main_source = Path("backend/app/main.py").read_text()
     ingestion_source = Path("backend/app/post_chat_ingestion.py").read_text()
 
-    assert "PostChatAuthorizationScope" in ingestion_source, (
-        "RED: persistence/replay code has not yet consumed the generation-scope value object"
-    )
-    assert "post_chat_authorization_receipt" in ingestion_source, (
-        "RED: persisted replay still does not load/store an immutable authorization receipt"
-    )
-    assert "source_post_scope_sql" in ingestion_source, (
-        "RED: replay still does not reauthorize every captured source through shared scope SQL"
-    )
-    assert "account.corporate_entity_ids" in main_source and "account.process_unit_ids" in main_source
+    assert "PostChatAuthorizationScope" in ingestion_source
+    assert "post_chat_authorization_receipt" in ingestion_source
+    assert "source_post_scope_sql" in ingestion_source
+    assert "account.corporate_entity_ids" in main_source
+    assert "account.process_unit_ids" in main_source
+
+
+def test_api_constructs_reader_scope_with_keyword_identity_contract() -> None:
+    """Pin the keyword-only scope factory so endpoint wiring cannot regress at runtime."""
+    tree = ast.parse(Path("backend/app/main.py").read_text())
+    scope_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "captured"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "PostChatAuthorizationScope"
+    ]
+
+    assert len(scope_calls) >= 2
+    for call in scope_calls:
+        assert call.args == []
+        assert {keyword.arg for keyword in call.keywords} == {
+            "corporate_entity_ids",
+            "process_unit_ids",
+        }
