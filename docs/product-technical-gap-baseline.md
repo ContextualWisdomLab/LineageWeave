@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-12 20:39 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`; GitHub reports 157
+> open PRs and 32 open non-PR issues. Canonical remotes were rechecked as
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, and `TEPP`. The current LineageWeave PRD and the available
+> RankWeave architecture authority, ThreadWeave PRD, DiskSage PRD, and TEPP
+> approved PRD were read before this loop. DeepWiki has no index for the
+> private LineageWeave repository, so no DeepWiki claim is promoted here.
+>
+> The largest bounded buyer-visible gap already has a minimal candidate in
+> PR #780 at `1d8fa267b059289e77301a09985dfac70a439814`: exact-value UI/CSV
+> distinguish the carrying Post from authorized derivation evidence, hidden
+> evidence is not substituted, and paged JSON-LD unions properties and
+> multi-Voice relations for the same subject. The candidate preserves ADR
+> 0246's twelve extensible atomic Voice classifications and ADR 0256's
+> per-assignment evidence, PROV-O derivation, truth status, and cutoff contract;
+> it does not enumerate combination codes or narrow the model to B2B2C.
+> Focused local evidence on that exact head is 53 backend tests and 29 frontend
+> tests passing, plus frontend lint and production build. The wider frontend
+> run experienced 25 timeouts/failures under one-process saturation and is not
+> promoted to suite success; hosted exact-head Tests had previously succeeded.
+> Desktop and mobile candidate screenshots were inspected: the exact-value
+> region remains available at both widths and uses horizontal scrolling on the
+> narrow view. Authenticated PostgreSQL API and rendered runtime acceptance are
+> still unavailable, so this acceptance condition remains open.
+>
+> PR #897 is `c4194085f7bc0c7383f994da81d6a8146b695dc8`; its focused accepted-
+> receipt/start/release regression is 51 tests passing. PR #899 advanced to
+> `d331d1f6b05d39385a652be6dbb8f279871a2e2e` after removing Markdown trailing
+> whitespace without suppressing a check; its owner-boundary fitness suite is
+> 10 tests passing. PR #897 and #899 both currently claim release `2.29.0`, so
+> #899 must not merge with that identity: after #897 is protected-merged, #899
+> must adopt the new `main`, advance to the next unclaimed release, and collect
+> fresh exact-head evidence. Draft/auto-merge state changed while this loop was
+> running, so no actor or policy cause is inferred. Neither independent
+> approval, protected merge, merge SHA, nor deployed behavior is claimed.
+> This documentation child remains stacked on PR #780 and must be retargeted
+> to `main` only after the parent is protected-merged.
+
 > Exact-head development-loop snapshot: 2026-09-02 18:24 KST. Protected
 > `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; a fresh REST inventory
 > contains 112 open PRs and 15 open non-PR issues. The largest buyer-visible
