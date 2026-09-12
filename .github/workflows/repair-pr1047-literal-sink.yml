@@ -24,7 +24,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import runpy
-          import textwrap
 
           eligibility_path = Path('backend/app/post_eligibility.py')
           ingestion_path = Path('backend/app/post_chat_ingestion.py')
@@ -77,18 +76,16 @@ jobs:
           ingestion_path.write_text(ingestion_source, encoding='utf-8')
 
           test_source = eligibility_test_path.read_text(encoding='utf-8')
-          if 'import inspect\n' not in test_source:
-              test_source = test_source.replace('"""', '"""', 1)
-              first_import = test_source.find('import ')
-              if first_import < 0:
-                  raise SystemExit('could not locate test import block')
-              test_source = test_source[:first_import] + 'import inspect\n' + test_source[first_import:]
-          import_anchor = '    source_post_scope_sql,\n'
+          if not test_source.startswith('import inspect\n'):
+              test_source = 'import inspect\n\n' + test_source
+          import_anchor = '    SOURCE_POST_ELIGIBILITY_SQL,\n'
           if import_anchor not in test_source:
-              raise SystemExit('expected source_post_scope_sql import anchor not found')
+              raise SystemExit('expected eligibility import anchor not found')
           test_source = test_source.replace(
               import_anchor,
-              '    fetch_visible_eligible_source_post_ids_for_share,\n' + import_anchor,
+              import_anchor
+              + '    fetch_visible_eligible_source_post_ids_for_share,\n'
+              + '    source_post_scope_sql,\n',
               1,
           )
           test_name = 'test_locked_replay_query_tracks_shared_visibility_and_eligibility_contract'
