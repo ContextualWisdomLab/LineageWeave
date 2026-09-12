@@ -1176,11 +1176,11 @@ async def _captured_sources_are_visible(
     if not source_post_ids:
         return False
     rows = await conn.fetch(
-    _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,
-    sorted(current_scope.corporate_entity_ids),
-    sorted(current_scope.process_unit_ids),
-    list(source_post_ids),
-)
+        _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL,
+        sorted(current_scope.corporate_entity_ids),
+        sorted(current_scope.process_unit_ids),
+        list(source_post_ids),
+    )
     return {str(row["post_id"]) for row in rows} == set(source_post_ids)
 
 
