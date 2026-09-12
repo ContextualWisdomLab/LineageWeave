@@ -1,6 +1,6 @@
+import subprocess
 from collections import defaultdict
 from pathlib import Path
-import subprocess
 
 
 _ROOT = Path(__file__).resolve().parents[1]
