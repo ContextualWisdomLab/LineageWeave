@@ -7,15 +7,20 @@ from backend.app.entity_relationship_ingestion import fetch_relationship_network
 
 
 class RecordingConnection:
+    """Asyncpg-shaped connection that records relationship-network SQL binds."""
+
     def __init__(self) -> None:
+        """Start with no captured database calls."""
         self.calls: list[tuple[str, tuple[Any, ...]]] = []
 
     async def fetch(self, sql: str, *args: Any) -> list[dict[str, Any]]:
+        """Record the literal query and bound scope values without returning rows."""
         self.calls.append((sql, args))
         return []
 
 
 def test_relationship_network_fails_closed_without_process_scope() -> None:
+    """Omitted process scope must expose only public evidence."""
     conn = RecordingConnection()
 
     result = asyncio.run(fetch_relationship_network(conn, ["00000000-0000-0000-0000-000000000001"]))
@@ -29,6 +34,7 @@ def test_relationship_network_fails_closed_without_process_scope() -> None:
 
 
 def test_relationship_network_binds_explicit_process_scope() -> None:
+    """A non-empty authenticated process scope must be bound into the query."""
     conn = RecordingConnection()
 
     result = asyncio.run(
@@ -49,6 +55,7 @@ def test_relationship_network_binds_explicit_process_scope() -> None:
 
 
 def test_relationship_network_preserves_explicit_unrestricted_process_scope() -> None:
+    """An explicit empty collection retains unrestricted-process authenticated scope."""
     conn = RecordingConnection()
 
     result = asyncio.run(
