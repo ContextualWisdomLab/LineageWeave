@@ -12,10 +12,14 @@ _VITEST_4_PATCHED_MINIMUM = (4, 1, 11)
 
 
 def _manifest_vitest_version() -> tuple[int, int, int]:
+    """Return a caret-bounded Vitest v4 requirement as a semantic version tuple."""
     manifest = json.loads(_FRONTEND_PACKAGE.read_text(encoding="utf-8"))
     specifier = manifest["devDependencies"]["vitest"]
-    match = re.search(r"(\d+)\.(\d+)\.(\d+)", specifier)
-    assert match is not None, f"unparseable Vitest requirement: {specifier!r}"
+    match = re.fullmatch(r"\^(\d+)\.(\d+)\.(\d+)", specifier)
+    assert match is not None, (
+        "Vitest must use one caret-bounded v4 requirement; "
+        f"got {specifier!r}"
+    )
     return tuple(int(part) for part in match.groups())
 
 
