@@ -1,17 +1,21 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-13 07:01 KST. Protected `main` remains
+> Exact-head loop overlay: 2026-09-13 07:07 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
 > search reports 158 open PRs and 36 open issues. Exactly one open PR is
-> non-Draft: #1042, and its Ready state is validation admission only.
+> non-Draft: #1042, whose Ready state is validation admission only.
 >
 > Customer Master process-unit authorization remains issue #1045 / PR #1042.
-> After predecessor Strix `34704740554` terminalized FAILURE, the remaining
-> CodeRabbit touched-surface docstring warning was repaired by ordinary commits.
-> Current #1042 exact head is `88fa1605ccbc52a972917019a9ef05f6a5d3d026`;
-> Tests `34721305441` is in progress and current-head CodeQL/Security/SAST are
-> queued. Predecessor receipts do not transfer to this causal head. Return #1042
-> to Draft when these lanes terminalize unless every authoritative gate is GREEN.
+> Current exact head is `f23f5a567bd66113603837f86f030c3c459e69e6`.
+> After predecessor Strix `34704740554` terminalized FAILURE, the touched-surface
+> docstring warning was repaired and CodeRabbit verified 100% docstring coverage.
+> The same review then found a valid reduced-coverage collector defect: arbitrary
+> `pytest.mark.<name>` values could masquerade as optional-module imports. Current
+> head recognizes only an explicit plugin-marker map (`pytest.mark.anyio -> anyio`)
+> and has a regression proving `pytest.mark.redis` does not suppress an unrelated
+> test when Redis is absent. Current-head Tests `34721721155`, Required CodeQL
+> `34721721113`, Security `34721721167`, and SAST `34721721186` are newly queued or
+> pending; predecessor receipts do not transfer.
 >
 > The retained predecessor Strix artifact remains sha256
 > `bcdc13b76adf4a2b5b9cbbcab2de217db2e25f445f69d2de20a7d9f4cdf19b72`.
@@ -20,18 +24,19 @@
 > visibility report aggregates, REST/shared Global Ask admission, Customer Master
 > customer-hint tenant scoping/rebind, and Post Chat shared-persistence mutation.
 >
-> #1050 now has executable Draft RED PR #1054 at exact
-> `f2481fb301344017eaab4971dbc734511ece7d10`. It proves that report list,
-> detail and comparison paths must suppress precomputed aggregates when any stored
-> contributor or leftover-pair evidence is not visible, while preserving a fully
-> visible aggregate. The minimal production fix and authenticated PostgreSQL/HTTP
-> evidence are still absent, so #1054 is deliberately not merge-ready. Do not
-> recompute psychometric truth over the visible subset; fast-mlsirm/TEPP remain
-> measurement owners.
+> #1050 has executable Draft RED PR #1054 at exact
+> `49a47c81eb53cf65877813b53424a2e20a6e1e05`; its net candidate delta is one
+> regression file. Report list, detail and comparison paths must suppress a
+> precomputed aggregate when any stored contributor or leftover-pair evidence is
+> not visible, while preserving a fully visible aggregate. Bounded diagnostic run
+> `34721645807` was admitted on predecessor `4d846afc...` and is not a promotion
+> receipt. The minimal production fix and authenticated PostgreSQL/HTTP evidence
+> remain absent. Do not recompute psychometric truth over the visible subset;
+> fast-mlsirm/TEPP remain measurement owners.
 >
 > Persisted Post Chat replay authorization remains Draft PR #1047 at exact
 > `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`. Repository Tests, Security,
-> SAST, dynamic CodeQL and Code Quality are GREE8 there, while Required CodeQL,
+> SAST, dynamic CodeQL and Code Quality are GREEN there, while Required CodeQL,
 > OpenCode, Noema and Strix are terminal FAILURE.
 >
 > Dependency advisory GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046
