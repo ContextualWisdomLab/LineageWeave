@@ -1,0 +1,95 @@
+name: Bounded gap baseline refresh
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+    paths:
+      - .github/workflows/bounded-gap-baseline-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: codex/gap-loop-20260912
+          fetch-depth: 0
+      - name: Refresh current overlay and remove bounded workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          marker = "> Exact-head loop overlay:"
+          first = text.index(marker)
+          second = text.index(marker, first + len(marker))
+          overlay = """> Exact-head loop overlay: 2026-09-13 08:51 KST. Protected `main` remains
+          > `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
+          > search reports 158 open PRs and 36 open issues. Exactly one open PR is
+          > non-Draft: #1042, whose Ready state is validation admission only.
+          >
+          > Customer Master process-unit authorization remains issue #1045 / PR #1042
+          > at exact `f23f5a567bd66113603837f86f030c3c459e69e6`. Repository Tests
+          > `34721721155`, Security `34721721167`, and SAST `34721721186` are terminal
+          > GREEN. Required CodeQL `34721721113`, OpenCode `34721720227`, and Noema
+          > `34721720347` are terminal FAILURE. Strix `34721720240` is still genuinely
+          > in progress on the same exact head, so the admission is preserved without
+          > elapsed-time cancellation or source churn. The later CodeQL producer dispatch
+          > succeeded only after compatibility consumers had already failed; canonical
+          > owner repair remains `.github#1929` and predecessor receipts do not transfer.
+          >
+          > Mixed-visibility period-report authorization remains issue #1050 / Draft PR
+          > #1054 at exact `4519c101f13e08c10653b95ff88d66b4ce47f0b8`. Whole-population
+          > admission now suppresses a precomputed report aggregate when any persisted
+          > member or leftover-pair contributor is not visible; comparison evidence carries
+          > `process_unit_id`, and authenticated Keycloak + PostgreSQL regression proves
+          > detail/list/comparison visible before scope contraction and suppressed after a
+          > contributor becomes foreign-private. Repository Tests `34723167232` is terminal
+          > GREEN, including the full PostgreSQL suite, and dynamic GitHub CodeQL reports no
+          > new alerts. Draft-push central Security `34723086654`, SAST `34723086683`, and
+          > Required CodeQL `34723086691` stayed `action_required`; after Ready only the
+          > repository Tests identity rematerialized. With no live validation lane left,
+          > #1054 returned to Draft on the unchanged head. Canonical lifecycle repair is
+          > `.github#2045`; do not use empty commits, Draft/Ready oscillation, manual status,
+          > or leaf-side gate weakening.
+          >
+          > Persisted Post Chat replay authorization remains Draft PR #1047 at exact
+          > `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`. Repository Tests, Security,
+          > SAST, dynamic CodeQL and Code Quality are GREEN there, while Required CodeQL,
+          > OpenCode, Noema and Strix are terminal FAILURE. Dependency advisory
+          > GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046 at
+          > `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`; duplicate migration ordinal
+          > 0233 remains issue #1048 / Draft PR #1049 at
+          > `5322971193d1ff4e0ae13c054d8f99615934d4dc`.
+          >
+          > Customer Master customer-hint repair remains issue #1052. ADR 0042 requires
+          > source-post tenant/access ownership to stay distinct from resolved customer
+          > identity and provenance; do not repair that issue by rebinding
+          > `source_post.corporate_entity_id`. Post Chat shared-persistence mutation remains
+          > issue #1053 and must not duplicate #1044/#1047 replay-authorization ownership.
+          >
+          > Protected-main release metadata is still inconsistent: `pyproject.toml` declares
+          > 2.28.0 while `lineageweave.__version__` declares 2.20.0. Keep this as a release
+          > blocker rather than normalizing it in documentation. ADR 0251 remains the I/O-
+          > psychology authority and ADR 0256 the extensible Voice-combination contract.
+          > RankWeave, ThreadWeave, TEPP, and canonical lowercase
+          > `ContextualWisdomLab/disksage` retain their own bounded responsibilities.
+          > PR #1041 remains Draft; earlier overlays below are dated historical evidence only."""
+          overlay = "\n".join(line.strip() for line in overlay.splitlines())
+          path.write_text(text[:first] + overlay + "\n\n" + text[second:], encoding="utf-8")
+          PY
+          rm .github/workflows/bounded-gap-baseline-refresh.yml
+          git config user.name "lineageweave-maintainer[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/product-technical-gap-baseline.md .github/workflows/bounded-gap-baseline-refresh.yml
+          git diff --cached --check
+          git commit -m "docs(gaps): refresh live exact-head overlay"
+          git push origin HEAD:codex/gap-loop-20260912
