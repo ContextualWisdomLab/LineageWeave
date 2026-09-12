@@ -7,9 +7,6 @@ export const LEFTOVER_RANK_STRUCTURE_ACTION =
 
 export const LEFTOVER_MAP_COMPARE_RANK_LABEL = "Leftover map comparison rank";
 
-export const LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_RANK =
-  "leftover map comparison graphic leftover-map rank {label}";
-
 /**
  * Format persisted rank evidence without coercion or inference.
  *
