@@ -1,0 +1,98 @@
+name: Bounded gap baseline refresh
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+    paths:
+      - .github/workflows/automation-1041-gap-refresh-0648.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact pushed branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: codex/gap-loop-20260912
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refresh only the live overlay and remove this workflow
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          title = "# Product & Technical Gap Baseline\n\n"
+          if not text.startswith(title):
+              raise SystemExit("unexpected baseline title")
+          marker = "> Exact-head loop overlay: 2026-08-29 13:20 KST."
+          marker_index = text.find(marker)
+          if marker_index < 0:
+              raise SystemExit("historical overlay anchor missing")
+
+          overlay = '''> Exact-head loop overlay: 2026-09-13 06:48 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
+> search reports 157 open PRs and 36 open issues; all 157 open PRs are Draft.
+> Candidate state is operational evidence, not protected-main capability.
+>
+> Customer Master process-unit authorization remains owned by issue #1045 / Draft
+> PR #1042 at exact `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`.
+> Repository Tests, Security and SAST are GREEN, while Required CodeQL and Noema
+> are non-GREEN. Exact-head Strix run 34704740554 is now terminal FAILURE after
+> successful admission/materialization/contextual-orchestrator setup; its retained
+> `strix-reports` artifact is sha256
+> `bcdc13b76adf4a2b5b9cbbcab2de217db2e25f445f69d2de20a7d9f4cdf19b72`.
+> #1042 returned to Draft without moving source head.
+>
+> The retained #1042 Strix artifact produced five source-traced security findings.
+> Persisted Post Chat cited-source replay disclosure is the same causal defect
+> already owned by #1044 / Draft PR #1047, so #1044 records the independent
+> corroboration instead of creating a competing replay lane. New issues #1050,
+> #1051, #1052 and #1053 own, respectively: mixed-visibility period-report
+> aggregate disclosure; unbounded durable REST Global Ask admission; cross-tenant
+> Customer Master customer-hint evidence/rebind; and Post Chat shared-persistence
+> mutation authority. These lanes must reproduce their own REDs; generated Strix
+> patch suggestions are not accepted as source authority.
+>
+> Persisted Post Chat replay authorization remains Draft PR #1047 at exact
+> `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`. Repository Tests, Security,
+> SAST, dynamic CodeQL and Code Quality are GREEN there, while Required CodeQL,
+> OpenCode, Noema and Strix are terminal FAILURE. #1047 therefore has no live
+> validation lane and is not merge-ready.
+>
+> Dependency advisory GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046
+> at exact `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`. Duplicate migration ordinal
+> 0233 remains issue #1048 / Draft PR #1049 at exact
+> `5322971193d1ff4e0ae13c054d8f99615934d4dc`; its repository/PostgreSQL tests
+> are GREEN but canonical Required CodeQL/Noema promotion controls are not.
+>
+> Release metadata is still inconsistent on protected main: `pyproject.toml`
+> declares 2.28.0 while `lineageweave.__version__` declares 2.20.0. Keep this as
+> a release blocker rather than normalizing it in documentation. ADR 0251 remains
+> the I/O-psychology authority and ADR 0256 the extensible Voice-combination
+> contract. RankWeave, ThreadWeave, TEPP, and lowercase canonical
+> `ContextualWisdomLab/disksage` retain their own bounded responsibilities.
+> PR #1041 remains Draft; earlier overlays below are dated historical evidence only.
+
+'''
+          path.write_text(title + overlay + text[marker_index:], encoding="utf-8")
+          PY
+
+          git diff --check
+          test "$(git status --short docs/product-technical-gap-baseline.md | wc -l)" -eq 1
+          git rm .github/workflows/automation-1041-gap-refresh-0648.yml
+          git add docs/product-technical-gap-baseline.md
+          git config user.name "LineageWeave maintenance"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(gaps): refresh terminal Strix security evidence"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin HEAD:codex/gap-loop-20260912
