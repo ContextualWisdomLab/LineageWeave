@@ -399,7 +399,9 @@ def seed(
                 (demo_public_post_id, demo_public_post_id),
             )
             _seed_demo_public_summary(cur, demo_public_post_id)
-            _seed_demo_public_chat(cur, demo_public_post_id)
+            _seed_demo_public_chat(
+                cur, demo_public_post_id, account_ids["demo.analyst"]
+            )
             cur.execute("select person_id from cataloged_person where person_name = 'Ada West'")
             if cur.fetchone() is None:
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
@@ -744,8 +746,8 @@ def _write_post_summary(cur, post_id, summary) -> None:
             )
 
 
-def _write_post_chat(cur, post_id, question: str, chat) -> None:
-    """Replace a demo exchange with the generating account's replay receipt."""
+def _write_post_chat(cur, post_id, question: str, chat, generation_account_id) -> None:
+    """Replace a demo exchange with an explicit generating account replay receipt."""
     from lineageweave.post_chat import normalize_chat_question
 
     norm = normalize_chat_question(question)
@@ -784,12 +786,10 @@ def _write_post_chat(cur, post_id, question: str, chat) -> None:
         ordinal += 1
     cur.execute(
         "select affiliation.corporate_entity_id, affiliation.process_unit_id "
-        "from source_post post "
-        "join account_affiliation affiliation "
-        "on affiliation.user_account_id = post.author_account_id "
-        "where post.post_id = %s order by affiliation.corporate_entity_id, "
+        "from account_affiliation affiliation "
+        "where affiliation.user_account_id = %s order by affiliation.corporate_entity_id, "
         "affiliation.process_unit_id nulls first",
-        (post_id,),
+        (generation_account_id,),
     )
     affiliations = cur.fetchall()
     corporate_entity_ids = sorted({row[0] for row in affiliations})
@@ -820,7 +820,7 @@ def _write_post_chat(cur, post_id, question: str, chat) -> None:
         )
 
 
-def _seed_demo_public_chat(cur, post_id) -> None:
+def _seed_demo_public_chat(cur, post_id, generation_account_id) -> None:
     """Write the popup Ask answers for the demo public post.
 
     Idempotent: re-seed replaces the same rows so GET/POST chat stay
@@ -830,7 +830,7 @@ def _seed_demo_public_chat(cur, post_id) -> None:
     from backend.app.post_chat_ingestion import seeded_demo_exchanges
 
     for question, chat in seeded_demo_exchanges():
-        _write_post_chat(cur, post_id, question, chat)
+        _write_post_chat(cur, post_id, question, chat, generation_account_id)
 
 
 def _seed_fixture_chats(cur) -> None:

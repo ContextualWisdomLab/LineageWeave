@@ -2341,7 +2341,14 @@ def test_seed_demo_chat_surfaces_on_get_and_post_chat(client, demo_analyst_token
                 "update source_post set post_title = 'Demo public post' where post_id = %s",
                 (seeded_db["public_post_id"],),
             )
-            _seed_demo_public_chat(cur, seeded_db["public_post_id"])
+            cur.execute(
+                "select author_account_id from source_post where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            generation_account_id = cur.fetchone()[0]
+            _seed_demo_public_chat(
+                cur, seeded_db["public_post_id"], generation_account_id
+            )
     finally:
         admin_conn.close()
 
