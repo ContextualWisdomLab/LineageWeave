@@ -23,9 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        image: postgres:16.15-bookworm@sha256:bb3e1a57e5407e0a5280b4211980a5e537f4abd234a87014ac979849a78dd825
         env:
           POSTGRES_PASSWORD: postgres
+          LANG: en_US.utf8
+          POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"
         ports:
           - 5432:5432
         options: >-
@@ -59,6 +61,16 @@ jobs:
 
       - name: Install the committed universal lock
         run: uv sync --frozen --extra dev --extra backend
+
+      - name: Verify PostgreSQL locale contract
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          actual_collate="$(psql -h localhost -U postgres -d postgres -Atc 'show lc_collate')"
+          actual_ctype="$(psql -h localhost -U postgres -d postgres -Atc 'show lc_ctype')"
+          test "$actual_collate" = "en_US.utf8"
+          test "$actual_ctype" = "en_US.utf8"
 
       - name: Run full test suite against PostgreSQL
         run: uv run --frozen python -m pytest -q
