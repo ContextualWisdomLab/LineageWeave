@@ -69,6 +69,7 @@ def test_migration_replay_skips_declared_compatibility_aliases() -> None:
     script_path = _ROOT / "docker" / "postgres-init" / "migrate.sh"
     script = script_path.read_text(encoding="utf-8")
 
-    assert "^-- lineageweave-compatibility-alias-of: " in script
+    assert "first_line=$(sed -n '1p' \"$migration\")" in script
+    assert "-- lineageweave-compatibility-alias-of: " in script
     assert "Skipping compatibility alias %s" in script
     subprocess.run(["sh", "-n", str(script_path)], check=True)
