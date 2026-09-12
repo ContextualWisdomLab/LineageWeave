@@ -1,0 +1,229 @@
+name: Report authorization repair
+
+on:
+  push:
+    branches: [fix/report-aggregate-whole-population-auth]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: fix/report-aggregate-whole-population-auth
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Apply whole-population authorization fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("backend/app/main.py")
+          text = path.read_text()
+          start = text.index('@app.get("/api/reports/compare/{period_code}")')
+          end = text.index('@app.post("/api/reports/{grouping_kind}/{period_code}/rebuild")', start)
+          replacement = '''def _report_population_is_fully_visible(
+              account: CurrentAccount,
+              aggregate: Any,
+              demo_entity_ids: set[str],
+          ) -> bool:
+              """Require every persisted contributor before exposing a precomputed aggregate.
+
+              Period-report statistics are calibrated over the persisted member/evidence
+              population. Filtering that population after calibration would disclose a
+              statistic that includes hidden evidence, so any invisible or synthetic-only
+              contributor suppresses the aggregate as a whole.
+              """
+              members = list(aggregate["members"])
+              if not members:
+                  return False
+              contributors = members + list(aggregate.get("leftover_pairs", []))
+              return all(
+                  _can_see_post(account, contributor)
+                  and not _is_synthetic_demo_member(contributor, demo_entity_ids)
+                  for contributor in contributors
+              )
+
+
+          @app.get("/api/reports/compare/{period_code}")
+          async def compare_period_groupings(
+              period_code: str,
+              account: CurrentAccount = Depends(get_current_account),
+              pool: asyncpg.Pool = Depends(get_pool),
+          ) -> dict[str, Any]:
+              """PU / corp / thread scores for one period on the shared metric."""
+              _require_post_read(account)
+              try:
+                  parse_period_code(period_code)
+              except ValueError as exc:
+                  raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+              async with pool.acquire() as conn:
+                  rows = await fetch_period_comparison(conn, period_code)
+                  demo_entity_ids: set[str] = set()
+                  if rows and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+                      demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
+              visible: list[dict[str, Any]] = []
+              for row in rows:
+                  if not _report_population_is_fully_visible(account, row, demo_entity_ids):
+                      continue
+                  members = list(row["members"])
+                  leftover_pairs = [
+                      {
+                          key: value
+                          for key, value in pair.items()
+                          if key
+                          not in {
+                              "has_real_source_context",
+                              "visibility_code",
+                              "corporate_entity_id",
+                              "process_unit_id",
+                          }
+                      }
+                      for pair in row.get("leftover_pairs", [])
+                  ]
+                  visible.append(
+                      {
+                          **row,
+                          "members": [],
+                          "leftover_pairs": leftover_pairs,
+                          "post_count": len(members),
+                      }
+                  )
+              return {"period_code": period_code, "groupings": visible}
+
+
+          @app.get("/api/reports/{grouping_kind}")
+          async def list_period_reports(
+              grouping_kind: str,
+              account: CurrentAccount = Depends(get_current_account),
+              pool: asyncpg.Pool = Depends(get_pool),
+          ) -> dict[str, Any]:
+              """Available calibrated periods for one grouping kind (FIPC trend)."""
+              _require_post_read(account)
+              if grouping_kind not in GROUPING_KINDS:
+                  raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
+              async with pool.acquire() as conn:
+                  summaries = await list_period_report_summaries(conn, grouping_kind)
+                  demo_entity_ids: set[str] = set()
+                  if summaries and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+                      demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
+              visible: list[dict[str, Any]] = []
+              for summary in summaries:
+                  if not _report_population_is_fully_visible(account, summary, demo_entity_ids):
+                      continue
+                  visible.append(
+                      {**summary, "members": [], "post_count": len(summary["members"])}
+                  )
+              return {"grouping_kind": grouping_kind, "periods": visible}
+
+
+          @app.get("/api/reports/{grouping_kind}/{period_code}")
+          async def read_period_reports(
+              grouping_kind: str,
+              period_code: str,
+              account: CurrentAccount = Depends(get_current_account),
+              pool: asyncpg.Pool = Depends(get_pool),
+          ) -> dict[str, Any]:
+              """Calibrated IRT scores for one grouping kind and calendar period."""
+              _require_post_read(account)
+              if grouping_kind not in GROUPING_KINDS:
+                  raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
+              try:
+                  parse_period_code(period_code)
+              except ValueError as exc:
+                  raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+              async with pool.acquire() as conn:
+                  reports = await fetch_period_reports(conn, grouping_kind, period_code)
+                  demo_entity_ids: set[str] = set()
+                  if reports and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+                      demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
+              visible: list[dict[str, Any]] = []
+              for report in reports:
+                  if not _report_population_is_fully_visible(account, report, demo_entity_ids):
+                      continue
+                  members = [
+                      {
+                          key: value
+                          for key, value in member.items()
+                          if key
+                          not in {
+                              "has_real_source_context",
+                              "visibility_code",
+                              "corporate_entity_id",
+                              "process_unit_id",
+                          }
+                      }
+                      for member in report["members"]
+                  ]
+                  leftover_pairs = [
+                      {
+                          key: value
+                          for key, value in pair.items()
+                          if key
+                          not in {
+                              "has_real_source_context",
+                              "visibility_code",
+                              "corporate_entity_id",
+                              "process_unit_id",
+                          }
+                      }
+                      for pair in report.get("leftover_pairs", [])
+                  ]
+                  leftover_map_axes = list(report.get("leftover_map_axes", []))
+                  visible.append(
+                      {
+                          **report,
+                          "members": members,
+                          "leftover_pairs": leftover_pairs,
+                          "leftover_map_axes": leftover_map_axes,
+                          "post_count": len(members),
+                      }
+                  )
+              return {"grouping_kind": grouping_kind, "period_code": period_code, "reports": visible}
+
+
+          '''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+
+      - name: Prove mixed-visibility regressions GREEN
+        run: uv run --frozen python -m pytest -q tests/test_period_report_whole_population_authorization.py
+
+      - name: Keep touched production code formatted
+        run: uv run --frozen ruff check backend/app/main.py tests/test_period_report_whole_population_authorization.py
+
+      - name: Publish ordinary repair commit and remove purpose-complete workflow
+        env:
+          TARGET_BRANCH: fix/report-aggregate-whole-population-auth
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/automation-1054-repair.yml
+          git add backend/app/main.py
+          git diff --cached --check
+          git commit -m "fix(security): fail closed mixed-visibility report aggregates"
+          git push origin "HEAD:${TARGET_BRANCH}"
