@@ -54,7 +54,8 @@ from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import load_settings
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
-from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_scope_sql
+from .post_chat_replay_policy import PostChatAuthorizationScope
 from .source_post_revision import fetch_known_at_revisions
 
 
@@ -1101,26 +1102,142 @@ async def _serialize_chat(
     }
 
 
-async def fetch_persisted_chat(
-    conn: asyncpg.Connection, post_id: str, question: str
+async def _load_post_chat_authorization_receipt(
+    conn: asyncpg.Connection,
+    post_id: str,
+    question_norm: str,
+) -> tuple[PostChatAuthorizationScope, tuple[str, ...]] | None:
+    """Load immutable generation scope and every source that could influence an answer."""
+    receipt = await conn.fetchrow(
+        "select process_scope_limited from post_chat_authorization_receipt "
+        "where post_id = $1 and question_norm = $2",
+        post_id,
+        question_norm,
+    )
+    if receipt is None:
+        return None
+    corporate_rows = await conn.fetch(
+        "select corporate_entity_id::text as corporate_entity_id "
+        "from post_chat_corporate_entity_scope "
+        "where post_id = $1 and question_norm = $2 order by corporate_entity_id",
+        post_id,
+        question_norm,
+    )
+    process_rows = await conn.fetch(
+        "select process_unit_id::text as process_unit_id "
+        "from post_chat_process_unit_scope "
+        "where post_id = $1 and question_norm = $2 order by process_unit_id",
+        post_id,
+        question_norm,
+    )
+    source_rows = await conn.fetch(
+        "select source_post_id::text as source_post_id from post_chat_source "
+        "where post_id = $1 and question_norm = $2 order by source_ordinal",
+        post_id,
+        question_norm,
+    )
+    if not source_rows:
+        return None
+    try:
+        scope = PostChatAuthorizationScope(
+            corporate_entity_ids=frozenset(
+                str(row["corporate_entity_id"]) for row in corporate_rows
+            ),
+            process_unit_ids=frozenset(
+                str(row["process_unit_id"]) for row in process_rows
+            ),
+            process_scope_limited=receipt["process_scope_limited"],
+        )
+    except (TypeError, ValueError):
+        return None
+    return scope, tuple(str(row["source_post_id"]) for row in source_rows)
+
+
+async def _captured_sources_are_visible(
+    conn: asyncpg.Connection,
+    source_post_ids: tuple[str, ...],
+    current_scope: PostChatAuthorizationScope,
+) -> bool:
+    """Reauthorize every captured source during a short replay transaction."""
+    if not source_post_ids:
+        return False
+    rows = await conn.fetch(
+        f"""
+        select source_post.post_id::text as post_id
+          from source_post
+         where source_post.post_id = any($3::uuid[])
+           and {source_post_scope_sql("source_post")}
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+         order by source_post.post_id
+         for key share
+        """,
+        sorted(current_scope.corporate_entity_ids),
+        sorted(current_scope.process_unit_ids),
+        list(source_post_ids),
+    )
+    return {str(row["post_id"]) for row in rows} == set(source_post_ids)
+
+
+async def _fetch_authorized_persisted_chat(
+    conn: asyncpg.Connection,
+    post_id: str,
+    question_norm: str,
+    current_scope: PostChatAuthorizationScope,
 ) -> dict[str, Any] | None:
-    """Return the stored answer for ``question``, or None when none written."""
+    """Return one replay only when generation scope and all sources remain authorized."""
+    receipt = await _load_post_chat_authorization_receipt(conn, post_id, question_norm)
+    if receipt is None:
+        return None
+    generation_scope, source_post_ids = receipt
+    if not generation_scope.is_subsumed_by(
+        current_corporate_entity_ids=current_scope.corporate_entity_ids,
+        current_process_unit_ids=current_scope.process_unit_ids,
+    ):
+        return None
+    if not await _captured_sources_are_visible(conn, source_post_ids, current_scope):
+        return None
+    payload = await _serialize_chat(conn, post_id, question_norm)
+    if payload is None:
+        return None
+    payload["_authorization_validated"] = True
+    payload["_source_post_ids"] = list(source_post_ids)
+    return payload
+
+
+async def fetch_persisted_chat(
+    conn: asyncpg.Connection,
+    post_id: str,
+    question: str,
+    current_scope: PostChatAuthorizationScope,
+) -> dict[str, Any] | None:
+    """Return a cached answer only after current-reader replay authorization succeeds."""
     norm = normalize_chat_question(question)
     if not norm:
         return None
-    return await _serialize_chat(conn, post_id, norm)
+    async with conn.transaction():
+        return await _fetch_authorized_persisted_chat(conn, post_id, norm, current_scope)
 
 
-async def fetch_persisted_chats(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
-    """Every stored exchange for ``post_id``, oldest first."""
+async def fetch_persisted_chats(
+    conn: asyncpg.Connection,
+    post_id: str,
+    current_scope: PostChatAuthorizationScope,
+) -> list[dict[str, Any]]:
+    """Return only stored exchanges whose generation evidence is replay-safe now."""
     rows = await conn.fetch(
-        "select question_norm from post_chat_result where post_id = $1 order by computed_at, question_norm",
+        "select question_norm from post_chat_result where post_id = $1 "
+        "order by computed_at, question_norm",
         post_id,
     )
     exchanges: list[dict[str, Any]] = []
     for row in rows:
-        payload = await _serialize_chat(conn, post_id, row["question_norm"])
+        async with conn.transaction():
+            payload = await _fetch_authorized_persisted_chat(
+                conn, post_id, row["question_norm"], current_scope
+            )
         if payload is not None:
+            payload.pop("_authorization_validated", None)
+            payload.pop("_source_post_ids", None)
             exchanges.append(payload)
     return exchanges
 
@@ -1131,45 +1248,79 @@ async def persist_post_chat(
     question: str,
     answer_text: str,
     cited_post_ids: list[str] | tuple[str, ...],
+    generation_scope: PostChatAuthorizationScope,
+    source_post_ids: list[str] | tuple[str, ...],
 ) -> dict[str, Any]:
-    """Replace the stored exchange for ``(post_id, question)`` and return it."""
+    """Atomically replace one answer together with immutable replay evidence."""
     norm = normalize_chat_question(question)
     if not norm:
         raise ValueError("question is empty after normalize")
-    await conn.execute(
-        "delete from post_chat_result where post_id = $1 and question_norm = $2",
-        post_id,
-        norm,
-    )
-    await conn.execute(
-        "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
-        "values ($1, $2, $3, $4)",
-        post_id,
-        norm,
-        question.strip(),
-        answer_text,
-    )
-    seen: set[str] = set()
-    ordinal = 0
-    for cited_id in cited_post_ids:
-        if cited_id in seen:
-            continue
-        seen.add(cited_id)
+    captured_sources = tuple(dict.fromkeys(str(value) for value in source_post_ids))
+    if not captured_sources or post_id not in captured_sources:
+        raise ValueError("post chat replay evidence must include the focal source post")
+    cited = tuple(dict.fromkeys(str(value) for value in cited_post_ids))
+    if not set(cited).issubset(captured_sources):
+        raise ValueError("every cited post must be part of the captured source set")
+
+    async with conn.transaction():
         await conn.execute(
-            "insert into post_chat_citation "
-            "(post_id, question_norm, citation_ordinal, cited_post_id) "
+            "delete from post_chat_result where post_id = $1 and question_norm = $2",
+            post_id,
+            norm,
+        )
+        await conn.execute(
+            "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
             "values ($1, $2, $3, $4)",
             post_id,
             norm,
-            ordinal,
-            cited_id,
+            question.strip(),
+            answer_text,
         )
-        ordinal += 1
-    payload = await _serialize_chat(conn, post_id, norm)
+        for ordinal, cited_id in enumerate(cited):
+            await conn.execute(
+                "insert into post_chat_citation "
+                "(post_id, question_norm, citation_ordinal, cited_post_id) values ($1, $2, $3, $4)",
+                post_id,
+                norm,
+                ordinal,
+                cited_id,
+            )
+        await conn.execute(
+            "insert into post_chat_authorization_receipt "
+            "(post_id, question_norm, process_scope_limited) values ($1, $2, $3)",
+            post_id,
+            norm,
+            generation_scope.process_scope_limited,
+        )
+        for corporate_entity_id in sorted(generation_scope.corporate_entity_ids):
+            await conn.execute(
+                "insert into post_chat_corporate_entity_scope "
+                "(post_id, question_norm, corporate_entity_id) values ($1, $2, $3)",
+                post_id,
+                norm,
+                corporate_entity_id,
+            )
+        for process_unit_id in sorted(generation_scope.process_unit_ids):
+            await conn.execute(
+                "insert into post_chat_process_unit_scope "
+                "(post_id, question_norm, process_unit_id) values ($1, $2, $3)",
+                post_id,
+                norm,
+                process_unit_id,
+            )
+        for source_ordinal, source_post_id in enumerate(captured_sources):
+            await conn.execute(
+                "insert into post_chat_source "
+                "(post_id, question_norm, source_ordinal, source_post_id) values ($1, $2, $3, $4)",
+                post_id,
+                norm,
+                source_ordinal,
+                source_post_id,
+            )
+        payload = await _serialize_chat(conn, post_id, norm)
     if payload is None:
         raise RuntimeError("persist_post_chat wrote no row")
     return payload
-
 
 def seeded_demo_chat() -> SeededChat:
     """Synthetic Ask answer for the demo public post -- not an LLM result."""

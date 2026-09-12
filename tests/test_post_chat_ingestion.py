@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from backend.app.post_chat_replay_policy import PostChatAuthorizationScope
 from backend.app.post_chat_ingestion import (
     LinkedPostIds,
     cited_post_images,
@@ -22,22 +23,48 @@ from lineageweave.post_chat import (
 )
 
 
+class _Transaction:
+    """No-op async transaction for replay/persistence unit doubles."""
+
+    async def __aenter__(self) -> None:
+        """Enter the unit-test transaction."""
+        return None
+
+    async def __aexit__(self, _exc_type: object, _exc: object, _tb: object) -> None:
+        """Exit the unit-test transaction."""
+        return None
+
+
 class _Connection:
     def __init__(self, *, header: dict[str, str] | None, citations: list[dict[str, str]]) -> None:
         self.header = header
         self.citations = citations
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
+    def transaction(self) -> _Transaction:
+        """Return the short transaction boundary used by production replay code."""
+        return _Transaction()
+
     async def execute(self, query: str, *args: object) -> str:
         self.executed.append((query, args))
         return "OK"
 
-    async def fetchrow(self, _query: str, *_args: object):
+    async def fetchrow(self, query: str, *_args: object):
+        if "post_chat_authorization_receipt" in query:
+            return None if self.header is None else {"process_scope_limited": True}
         return self.header
 
     async def fetch(self, query: str, *_args: object):
         if "question_norm from post_chat_result" in query:
-            return [{"question_norm": "question"}]
+            return [] if self.header is None else [{"question_norm": "question"}]
+        if "post_chat_corporate_entity_scope" in query:
+            return [{"corporate_entity_id": "corp-a"}]
+        if "post_chat_process_unit_scope" in query:
+            return [{"process_unit_id": "pu-a"}]
+        if "from post_chat_source" in query:
+            return [{"source_post_id": "post-1"}]
+        if "from source_post" in query and "for key share" in query.lower():
+            return [{"post_id": "post-1"}]
         return self.citations
 
 
@@ -234,6 +261,11 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
     assert graph_fact_calls == [[root_id, *expected_candidates[:7]]]
 
 
+def _replay_scope() -> PostChatAuthorizationScope:
+    """Return one deterministic restricted scope for replay unit tests."""
+    return PostChatAuthorizationScope.captured({"corp-a"}, {"pu-a"})
+
+
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
     assert normalize_chat_question("  What   happened? ") == "what happened between these events"
     assert normalize_chat_question(" \t ") == ""
@@ -249,7 +281,15 @@ def test_persist_chat_deduplicates_citations_and_serializes_result() -> None:
     )
 
     payload = asyncio.run(
-        persist_post_chat(conn, "post-1", "  What   happened? ", "A synthetic answer.", ["post-a", "post-a", "post-b"])
+        persist_post_chat(
+            conn,
+            "post-1",
+            "  What   happened? ",
+            "A synthetic answer.",
+            ["post-a", "post-a", "post-b"],
+            _replay_scope(),
+            ["post-1", "post-a", "post-b"],
+        )
     )
 
     assert payload["cited_post_ids"] == ["post-a", "post-b"]
@@ -259,9 +299,9 @@ def test_persist_chat_deduplicates_citations_and_serializes_result() -> None:
 
 def test_fetch_chat_handles_empty_and_missing_rows() -> None:
     missing = _Connection(header=None, citations=[])
-    assert asyncio.run(fetch_persisted_chat(missing, "post-1", " ")) is None
-    assert asyncio.run(fetch_persisted_chat(missing, "post-1", "question")) is None
-    assert asyncio.run(fetch_persisted_chats(missing, "post-1")) == []
+    assert asyncio.run(fetch_persisted_chat(missing, "post-1", " ", _replay_scope())) is None
+    assert asyncio.run(fetch_persisted_chat(missing, "post-1", "question", _replay_scope())) is None
+    assert asyncio.run(fetch_persisted_chats(missing, "post-1", _replay_scope())) == []
 
 
 def test_fetch_chat_list_serializes_existing_exchange() -> None:
@@ -269,7 +309,7 @@ def test_fetch_chat_list_serializes_existing_exchange() -> None:
         header={"question_text": "Question", "answer_text": "Answer"},
         citations=[{"cited_post_id": "post-a", "post_title": "Evidence A"}],
     )
-    exchanges = asyncio.run(fetch_persisted_chats(conn, "post-1"))
+    exchanges = asyncio.run(fetch_persisted_chats(conn, "post-1", _replay_scope()))
     assert len(exchanges) == 1
     assert exchanges[0]["cited_posts"][0]["post_title"] == "Evidence A"
 
