@@ -1,5 +1,6 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
+import { buildCustomerEntityTree, type CustomerEntityTreeNode } from "./customerEntityTree";
 
 import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -59,7 +60,6 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
-  type CustomerMasterEntity,
   type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
@@ -4610,42 +4610,9 @@ function PostList({
   );
 }
 
-interface CustomerEntityTreeNode {
-  entity: CustomerMasterEntity;
-  children: CustomerEntityTreeNode[];
-}
+// Customer forest builder lives in ./customerEntityTree (cycle-safe, #906).
 
-// Live bug (2026-08-19): Customer Master's own entity list rendered every
-// corporate_entity as an independent top-level row, even though the API
-// already carries parent_entity_id and the codebase already knows how to
-// build a real forest from it (lineageweave/affiliate_tree.py, used for
-// the post-detail popup's Affiliate tree) -- a group holding company and
-// its subsidiaries showed up as an unrelated flat list with no visual
-// hierarchy at all. A parent not present in this account's own visible
-// entity list (a real possibility -- ABAC can authorize a child entity
-// without its parent) is not dropped; that entity becomes a root here
-// instead of disappearing.
-function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
-  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
-  for (const entity of entities) {
-    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
-      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
-      siblings.push(entity);
-      childrenByParent.set(entity.parent_entity_id, siblings);
-    } else {
-      roots.push(entity);
-    }
-  }
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
-  });
-  return roots.map(toNode);
-}
-
-function CustomerEntityTreeRow({
+export function CustomerEntityTreeRow({
   node,
   depth,
   expandedEntityId,
@@ -4676,6 +4643,15 @@ function CustomerEntityTreeRow({
       >
         <strong>{entity.entity_name}</strong>
         <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+        {node.ancestryNote ? (
+          <span className="customer-ancestry-note">
+            {node.ancestryNote === "cycle-broken"
+              ? t("Shown as top level: listed parent forms a cycle.")
+              : node.ancestryNote === "self-parent"
+                ? t("Shown as top level: entity lists itself as parent.")
+                : t("Shown as top level: listed parent is not visible.")}
+          </span>
+        ) : null}
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
