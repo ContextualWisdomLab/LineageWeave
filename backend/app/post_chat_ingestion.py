@@ -66,7 +66,7 @@ _POST_CHAT_VISIBLE_CAPTURED_SOURCE_SQL = (
     "and {visibility} "
     "and {eligibility} "
     "order by source_post.post_id "
-    "for key share"
+    "for share"
 ).format(
     visibility=source_post_scope_sql("source_post"),
     eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),

@@ -52,7 +52,8 @@ def _create_minimal_parent_schema(conn) -> None:
                 process_unit_id uuid primary key
             );
             create table source_post (
-                post_id uuid primary key
+                post_id uuid primary key,
+                visibility_code text not null default 'private'
             );
             create table post_chat_result (
                 post_id uuid not null references source_post(post_id) on delete cascade,
@@ -180,6 +181,44 @@ def test_replay_parent_key_share_blocks_concurrent_answer_replacement(
                 writer_cursor.execute(
                     "delete from post_chat_result where post_id = %s and question_norm = %s",
                     (focal_post_id, "what happened?"),
+                )
+        writer.rollback()
+    finally:
+        conn.rollback()
+        conn.autocommit = True
+        writer.close()
+
+
+def test_replay_source_share_blocks_concurrent_visibility_change(
+    isolated_postgres_schema,
+) -> None:
+    """Source authorization remains stable until the short replay transaction ends."""
+    conn = isolated_postgres_schema
+    _create_minimal_parent_schema(conn)
+    source_post_id = str(uuid.uuid4())
+    with conn.cursor() as cursor:
+        cursor.execute("select current_schema()")
+        schema_name = cursor.fetchone()[0]
+        cursor.execute("insert into source_post (post_id) values (%s)", (source_post_id,))
+
+    conn.autocommit = False
+    writer = psycopg2.connect(_POSTGRES_DSN)
+    writer.autocommit = False
+    try:
+        with conn.cursor() as reader_cursor:
+            reader_cursor.execute(
+                "select post_id from source_post where post_id = %s for share",
+                (source_post_id,),
+            )
+            assert str(reader_cursor.fetchone()[0]) == source_post_id
+
+        with writer.cursor() as writer_cursor:
+            writer_cursor.execute(f'set search_path to "{schema_name}"')
+            writer_cursor.execute("set local lock_timeout = '250ms'")
+            with pytest.raises(psycopg2.errors.LockNotAvailable):
+                writer_cursor.execute(
+                    "update source_post set visibility_code = 'public' where post_id = %s",
+                    (source_post_id,),
                 )
         writer.rollback()
     finally:
