@@ -173,7 +173,10 @@ async def persist_estimate(
     return estimation_run_id
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
+async def _run_channel_weight_estimation(
+    estimation_arguments: argparse.Namespace,
+) -> dict[str, object]:
+    """Execute one bounded lineage channel-weight estimation run."""
     settings = load_settings()
     # Short-lived fetch connection; nothing stays open while fitting.
     conn = await asyncpg.connect(settings.database_url)
@@ -184,7 +187,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             "secondary_grouping_key "
             f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_id limit $1::bigint",
-            args.post_limit,
+            estimation_arguments.post_limit,
         )
     finally:
         await conn.close()
@@ -206,7 +209,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             "named condition"
         )
     estimation_run_id = None
-    if not args.dry_run:
+    if not estimation_arguments.dry_run:
         conn = await asyncpg.connect(settings.database_url)
         try:
             estimation_run_id = await persist_estimate(
@@ -227,7 +230,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
         "estimation_run_id": estimation_run_id,
         "source_snapshot_sha256": snapshot_sha256,
         "knowledge_cutoff": knowledge_cutoff.isoformat(),
-        "persisted": not args.dry_run,
+        "persisted": not estimation_arguments.dry_run,
         "activation": (
             "blocked_until_anchor_authorized (ADR 0200 point 3): the "
             "product loader refuses every anchor method today, so these "
@@ -250,10 +253,16 @@ def main() -> None:
         action="store_true",
         help="Estimate and report, but persist nothing",
     )
-    args = parser.parse_args()
-    if args.post_limit < 1:
+    estimation_arguments = parser.parse_args()
+    if estimation_arguments.post_limit < 1:
         parser.error("--post-limit must be positive")
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            asyncio.run(_run_channel_weight_estimation(estimation_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
