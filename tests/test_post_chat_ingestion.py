@@ -263,7 +263,10 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
 
 def _replay_scope() -> PostChatAuthorizationScope:
     """Return one deterministic restricted scope for replay unit tests."""
-    return PostChatAuthorizationScope.captured({"corp-a"}, {"pu-a"})
+    return PostChatAuthorizationScope.captured(
+        corporate_entity_ids={"corp-a"},
+        process_unit_ids={"pu-a"},
+    )
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
