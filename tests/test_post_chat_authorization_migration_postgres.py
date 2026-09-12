@@ -73,8 +73,8 @@ def test_deleting_contributing_source_atomically_invalidates_parent_answer(
     _create_minimal_parent_schema(conn)
     with conn.cursor() as cursor:
         cursor.execute(_FORWARD_MIGRATION.read_text())
-        focal_post_id = uuid.uuid4()
-        contributing_post_id = uuid.uuid4()
+        focal_post_id = str(uuid.uuid4())
+        contributing_post_id = str(uuid.uuid4())
         cursor.execute(
             "insert into source_post (post_id) values (%s), (%s)",
             (focal_post_id, contributing_post_id),
