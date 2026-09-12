@@ -121,9 +121,19 @@ def test_application_boundary_consumes_receipt_validated_replay_policy() -> None
     assert "account.process_unit_ids" in main_source
 
 
-def test_api_constructs_reader_scope_with_keyword_identity_contract() -> None:
-    """Pin the keyword-only scope factory so endpoint wiring cannot regress at runtime."""
-    tree = ast.parse(Path("backend/app/main.py").read_text())
+@pytest.mark.parametrize(
+    ("path", "minimum_calls"),
+    [
+        ("backend/app/main.py", 2),
+        ("tests/test_post_chat_ingestion.py", 1),
+    ],
+)
+def test_replay_scope_factory_calls_keep_keyword_identity_contract(
+    path: str,
+    minimum_calls: int,
+) -> None:
+    """Pin keyword-only scope construction at both endpoint and regression-test boundaries."""
+    tree = ast.parse(Path(path).read_text())
     scope_calls = [
         node
         for node in ast.walk(tree)
@@ -134,7 +144,7 @@ def test_api_constructs_reader_scope_with_keyword_identity_contract() -> None:
         and node.func.value.id == "PostChatAuthorizationScope"
     ]
 
-    assert len(scope_calls) >= 2
+    assert len(scope_calls) >= minimum_calls
     for call in scope_calls:
         assert call.args == []
         assert {keyword.arg for keyword in call.keywords} == {
