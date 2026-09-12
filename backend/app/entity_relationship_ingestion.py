@@ -24,6 +24,7 @@ from lineageweave.entity_relationship_classification import (
 from lineageweave.organization_alias import attach_organization_aliases
 
 from .organization_name_resolution_ingestion import fetch_corroborated_organization_aliases
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_scope_sql
 
 
 async def ingest_post_entity_relationships(
@@ -127,9 +128,11 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
 
 
 async def fetch_relationship_network(
-    conn: asyncpg.Connection, corporate_entity_ids: Sequence[str]
+    conn: asyncpg.Connection,
+    corporate_entity_ids: Sequence[str],
+    process_unit_ids: Sequence[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Every counterparty's full observed relationship network, entity-level.
+    """Every counterparty's observed relationship network within reader scope.
 
     ``post_counterparty_entity`` classifies one counterparty name's
     relationship to us per post (e.g. this specific post is
@@ -146,6 +149,13 @@ async def fetch_relationship_network(
     Competitor and know that reflects the real, mixed relationship
     rather than a classification error.
 
+    The shared source-post ABAC contract remains authoritative. An explicit
+    empty ``process_unit_ids`` collection means the authenticated reader is
+    unrestricted within its corporate-entity scope; a non-empty collection
+    restricts private posts to those process units. ``None`` means the caller
+    failed to supply process scope, so private evidence fails closed and only
+    public evidence can contribute to the network.
+
     Unresolved names keep ``corporate_entity_id`` null, same
     missing-vs-guessed discipline as :func:`attach_resolved_entity_ids`.
     Capped at the 100 entities with the most total observed posts; ties
@@ -153,9 +163,13 @@ async def fetch_relationship_network(
     """
     if not corporate_entity_ids:
         return []
-    # Safe SQL: this is immutable schema text; authorized entity ids are bound through $1.
+    process_scope_supplied = process_unit_ids is not None
+    bound_process_unit_ids = [] if process_unit_ids is None else list(process_unit_ids)
+    scope_sql = source_post_scope_sql("post")
+    eligibility_sql = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
+    # Safe SQL: both fragments are immutable shared-kernel schema text; all reader scope is bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        """
+        f"""
         with scoped as (
             select counterparty.counterparty_entity_name,
                    counterparty.relationship_type_code,
@@ -164,44 +178,9 @@ async def fetch_relationship_network(
               join source_post post on post.post_id = counterparty.post_id
               join common_lookup_value lookup
                 on lookup.lookup_code = counterparty.relationship_type_code
-             where (post.visibility_code = 'public'
-                    or post.corporate_entity_id = any($1::uuid[]))
-               and nullif(btrim(post.source_draft_code), '') is null
-               and nullif(btrim(post.source_deleted_flag), '') is null
-               and not (
-                   (
-                       nullif(btrim(post.source_author_code), '') is null
-                       and nullif(btrim(post.source_author_name), '') is null
-                       and nullif(btrim(post.source_company_code), '') is null
-                       and nullif(btrim(post.source_company_name), '') is null
-                       and nullif(btrim(post.source_process_unit_code), '') is null
-                       and nullif(btrim(post.source_process_unit_name), '') is null
-                       and nullif(btrim(post.source_sales_pool_code), '') is null
-                       and nullif(btrim(post.source_sales_pool_name), '') is null
-                       and nullif(btrim(post.source_customer_code), '') is null
-                       and nullif(btrim(post.source_customer_name), '') is null
-                       and nullif(btrim(post.source_project_code), '') is null
-                       and nullif(btrim(post.source_project_name), '') is null
-                   )
-                   and exists (
-                       select 1
-                         from source_post real_post
-                        where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
-                            or nullif(btrim(real_post.source_author_name), '') is not null
-                            or nullif(btrim(real_post.source_company_code), '') is not null
-                            or nullif(btrim(real_post.source_company_name), '') is not null
-                            or nullif(btrim(real_post.source_process_unit_code), '') is not null
-                            or nullif(btrim(real_post.source_process_unit_name), '') is not null
-                            or nullif(btrim(real_post.source_sales_pool_code), '') is not null
-                            or nullif(btrim(real_post.source_sales_pool_name), '') is not null
-                            or nullif(btrim(real_post.source_customer_code), '') is not null
-                            or nullif(btrim(real_post.source_customer_name), '') is not null
-                            or nullif(btrim(real_post.source_project_code), '') is not null
-                            or nullif(btrim(real_post.source_project_name), '') is not null
-                        )
-                   )
-               )
+             where ($3::boolean or post.visibility_code = 'public')
+               and {scope_sql}
+               and {eligibility_sql}
         ), grouped as (
             select counterparty_entity_name,
                    relationship_type_code,
@@ -241,6 +220,8 @@ async def fetch_relationship_network(
                   top_entities.counterparty_entity_name
         """,
         list(corporate_entity_ids),
+        bound_process_unit_ids,
+        process_scope_supplied,
     )
     candidate_rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
     candidates = [

@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("asyncpg", reason="migration integration requires the backend extra")
+
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "migrate_legacy_namespace.py"
 _spec = importlib.util.spec_from_file_location("migrate_legacy_namespace", _SCRIPT)
 migrate_legacy_namespace = importlib.util.module_from_spec(_spec)

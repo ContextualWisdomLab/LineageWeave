@@ -1200,7 +1200,11 @@ async def read_customer_master(
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        relationship_network = await fetch_relationship_network(
+            conn,
+            [str(entity_id) for entity_id in entity_ids],
+            account.process_unit_ids,
+        )
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
