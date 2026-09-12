@@ -1,61 +1,46 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-13 02:16 KST. Protected `main` remains
-> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). A fresh,
-> date-partitioned repository search found 157 open PRs and 32 open issues.
-> These counts are operational metadata, not release evidence. PR #996 is
-> Draft at exact head `a640df40839ed7e2a15b9ab95a7f86faa050a248`;
-> normal auto-merge is not armed. Its cycle presentation remains candidate
-> evidence only: repository tests are skipped by Draft policy, historical
-> Checks do not transfer, independent approval is absent, and authenticated
-> PostgreSQL acceptance is still unverified.
+> Exact-head loop overlay: 2026-09-13 04:48 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
+> search reports 157 open PRs and 32 open issues. These counts and every
+> candidate state below are operational evidence, not protected-main capability.
 >
-> Current buyer-visible security gaps have explicit product owners. Issue
-> #1045 and Ready PR #1042 own Customer Master process-unit authorization at
-> exact head `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`. The authenticated
-> account scope now reaches the relationship-network boundary, and a synthetic
-> OIDC/PostgreSQL API regression passes without exposing record content. The
-> reduced/offline coverage collector now discovers optional imports and pytest
-> markers without duplicating the OpenTelemetry repair owned by Draft PR #973.
-> Normal squash auto-merge remains armed. Exact-head independent approval is
-> still absent; a Noema 502 is provider evidence, not a source-code finding.
-> Issue #1044 and Ready PR #1047 own persisted post-chat derived-data replay
-> authorization at exact head
-> `7e04f5df1e39a9477ddbec628ff4944ebfc176f7`. The production replay path now
-> requires the immutable reader-scope receipt, reauthorizes every captured
-> contributing Post, fails legacy receipt-less rows closed to live generation,
-> and persists answer, scope, sources, and citations atomically. Focused
-> synthetic regression slices passed during repair; authenticated
-> PostgreSQL/API cases remain unavailable on this exact head. Normal squash
-> auto-merge is armed while hosted Checks and independent approval remain
-> pending. Neither candidate is a protected-main capability, and neither owner
-> may be bypassed by presentation filtering or copied authorization logic.
+> Customer Master hierarchy PR #996 remains Draft at exact
+> `a640df40839ed7e2a15b9ab95a7f86faa050a248`; its interrupted prior Ready
+> admission is not a full repository receipt. Process-unit authorization is
+> owned separately by issue #1045 / Ready PR #1042 at exact
+> `d39ec8cdfa1164ce2efa2bb87a836a0d22037181`. Repository Tests, Security,
+> and SAST are GREEN there, while canonical promotion gates are incomplete and
+> exact-head Strix run 34704740554 is still executing `Run Strix (quick)`.
+> Do not copy that authorization rule into hierarchy presentation code.
 >
-> Current dependency and data-operability gaps are also separated. Issue
-> #1043 and Draft PR #1046 own GHSA-82fw-gwwq-j7x9 at exact head
-> `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`. The advisory regression,
-> frozen install, lint, isolated previously timing-out test file, and production
-> build pass locally. A resource-contended full frontend run is not promoted to
-> passing evidence: worker-start timeouts left it non-terminal as acceptance.
-> Normal squash auto-merge is armed while fresh exact-head Checks and
-> independent approval remain pending. Issue #1048 and Draft PR
-> #1049 own the duplicate forward-migration ordinal `0233`; both shipped
-> deltas remain valid, so repair requires an ADR-backed compatibility identity,
-> clean-install and pre-0233 replay evidence rather than deleting or casually
-> renaming history.
+> Persisted Post Chat replay authorization is owned by issue #1044 / Ready PR
+> #1047 at exact `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`.
+> The consumer now delegates captured-source authorization to the literal-query
+> repository operation in `post_eligibility.py`; the predecessor full suite
+> exposed one stale contract that still required the consumer to mention
+> `source_post_scope_sql`. That contract has been repaired to assert owner
+> delegation instead, and fresh exact-head Tests run 34715131667 is active.
+> Ready means validation admission only; it is not merge readiness.
 >
-> Authority remains in `ContextualWisdomLab/LineageWeave`. RankWeave,
-> ThreadWeave, TEPP, and lowercase canonical
-> `ContextualWisdomLab/disksage` retain their existing bounded
-> responsibilities. PR #1041 remains Draft at exact head
-> `530eec65f8b0c13aa0d9e87090ee612a8246ab63` until this overlay is committed.
-> Its earlier tests and reviews are historical evidence only. The release
-> metadata conflict (`pyproject.toml` 2.28.0 versus
-> `lineageweave.__version__` 2.20.0), duplicate migration ordinal 0233
-> (#1048/#1049), and Voice authority numbering conflict remain explicit:
-> ADR 0251 governs I/O psychology, while the extensible Voice-combination
-> contract is ADR 0256. No release, schema, or ADR collision is silently
-> repaired in this documentation-only owner PR.
+> Dependency advisory GHSA-82fw-gwwq-j7x9 remains owned by issue #1043 /
+> Draft PR #1046 at exact `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`.
+> Duplicate migration ordinal 0233 remains owned by issue #1048 / Draft PR
+> #1049 at exact `5322971193d1ff4e0ae13c054d8f99615934d4dc`.
+> #1049's repository Tests, including its real-PostgreSQL repeated production
+> `migrate.sh` rehearsal, are GREEN, but all exact-head workflows are terminal
+> with Required CodeQL PR 34712361297 and Required Noema 34712358391 failed;
+> repository-local GREEN therefore cannot promote the migration repair.
+>
+> Release metadata is still internally inconsistent on protected main:
+> `pyproject.toml` declares 2.28.0 while `lineageweave.__version__` declares
+> 2.20.0. Keep this as a release blocker rather than normalizing it in a docs
+> candidate. ADR 0251 remains the I/O-psychology authority and ADR 0256 the
+> extensible Voice-combination contract. RankWeave, ThreadWeave, TEPP, and
+> lowercase canonical `ContextualWisdomLab/disksage` retain their own bounded
+> responsibilities. PR #1041 itself remains Draft; its exact head belongs in PR
+> metadata rather than a self-referential document SHA. Earlier overlays below
+> are dated historical evidence only.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
