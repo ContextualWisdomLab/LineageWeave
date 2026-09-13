@@ -1835,7 +1835,8 @@ def test_resolve_customer_hint_persists_only_authorized_resolution_without_rebin
 
             def resolve(self, hint_code: str, context_text: str) -> str | None:
                 assert hint_code == "HINT-CODE-001"
-                assert "own" in context_text.lower() or context_text
+                assert "Own-corp private post" in context_text
+                assert "Other-corp private post" not in context_text
                 return "Northridge Grid"
 
         class _FakeVerificationClient:
