@@ -1,0 +1,210 @@
+name: Bounded customer-hint ownership repair
+
+on:
+  push:
+    branches:
+      - fix/customer-hint-resolution-ownership
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: fix/customer-hint-resolution-ownership
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Apply bounded application-boundary repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('backend/app/main.py')
+          text = path.read_text(encoding='utf-8')
+
+          start_marker = '@app.post("/api/customer-master/resolve-hint")\n'
+          end_marker = '\n\n@app.get("/api/lineage")\n'
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
+          replacement = '''@app.post("/api/customer-master/resolve-hint")
+          async def resolve_customer_master_hint(
+              request: CustomerHintResolveRequest,
+              account: CurrentAccount = Depends(get_current_account),
+              pool: asyncpg.Pool = Depends(get_pool),
+          ) -> dict[str, Any]:
+              """Corroborate one visible customer hint without changing source ownership.
+
+              ``post_admin`` admits the write action, while the authenticated
+              corporate/process scope bounds every source post used as model evidence.
+              Customer identity is persisted separately from the tenant fields that
+              authorize source-post access (ADR 0042 / Proposed ADR 0374).
+              """
+              _require_post_admin(account)
+              try:
+                  resolution = await resolve_customer_hint(
+                      pool,
+                      _customer_hint_resolution_client(),
+                      _relation_verification_client(),
+                      request.hint_code,
+                      list(account.corporate_entity_ids),
+                      list(account.process_unit_ids),
+                  )
+              except (HttpClientError, OSError) as exc:
+                  raise HTTPException(
+                      status.HTTP_503_SERVICE_UNAVAILABLE,
+                      "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+                  ) from exc
+              except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                  raise HTTPException(
+                      status.HTTP_503_SERVICE_UNAVAILABLE,
+                      "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+                  ) from exc
+              if resolution is None:
+                  raise HTTPException(
+                      status.HTTP_422_UNPROCESSABLE_CONTENT,
+                      "this hint could not be resolved to a corroborated organization name",
+                  )
+              return resolution
+          '''
+          replacement = '\n'.join(line[10:] if line.startswith('          ') else line for line in replacement.splitlines())
+          text = text[:start] + replacement.rstrip() + text[end:]
+
+          old_from = '''                  from source_post
+                 where (nullif(btrim(source_customer_code), '') is not null
+          '''
+          new_from = '''                  from (
+                        select source_post.*,
+                               resolution.resolved_corporate_entity_id::text
+                                   as resolved_corporate_entity_id,
+                               resolution.resolved_entity_name,
+                               resolution.verification_status_code,
+                               resolution.verification_evidence_url
+                          from source_post
+                          left join source_post_customer_resolution resolution
+                            on resolution.post_id = source_post.post_id
+                           and resolution.source_customer_code = btrim(source_post.source_customer_code)
+                       ) source_post
+                 where (nullif(btrim(source_customer_code), '') is not null
+          '''
+          if text.count(old_from) != 1:
+              raise SystemExit(f'expected one customer source FROM anchor, found {text.count(old_from)}')
+          text = text.replace(old_from, new_from, 1)
+
+          old_group = '''                select customer_code, customer_name_group,
+                       max(customer_name) as customer_name,
+                       count(*) as post_count
+                  from ranked
+                 group by customer_code, customer_name_group
+          '''
+          new_group = '''                select customer_code, customer_name_group,
+                       max(customer_name) as customer_name,
+                       count(*) as post_count,
+                       case when count(distinct resolved_corporate_entity_id) = 1
+                            then max(resolved_corporate_entity_id) end
+                           as resolved_corporate_entity_id,
+                       case when count(distinct resolved_corporate_entity_id) = 1
+                            then max(resolved_entity_name) end as resolved_entity_name,
+                       case when count(distinct resolved_corporate_entity_id) = 1
+                            then max(verification_status_code) end as verification_status_code,
+                       case when count(distinct resolved_corporate_entity_id) = 1
+                            then max(verification_evidence_url) end as verification_evidence_url
+                  from ranked
+                 group by customer_code, customer_name_group
+          '''
+          if text.count(old_group) != 1:
+              raise SystemExit(f'expected one customer group anchor, found {text.count(old_group)}')
+          text = text.replace(old_group, new_group, 1)
+
+          old_select = '''            select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
+                   coalesce(related.related_posts, '[]'::json) as related_posts
+          '''
+          new_select = '''            select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
+                   top_groups.resolved_corporate_entity_id,
+                   top_groups.resolved_entity_name,
+                   top_groups.verification_status_code,
+                   top_groups.verification_evidence_url,
+                   coalesce(related.related_posts, '[]'::json) as related_posts
+          '''
+          if text.count(old_select) != 1:
+              raise SystemExit(f'expected one customer result anchor, found {text.count(old_select)}')
+          text = text.replace(old_select, new_select, 1)
+
+          old_projection = '''                "resolution_status": "hint_only",
+                "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
+                "provenance": "source_post.source_customer_code/source_post.source_customer_name",
+          '''
+          new_projection = '''                "resolution_status": row["verification_status_code"] or "hint_only",
+                "resolved_corporate_entity_id": row["resolved_corporate_entity_id"],
+                "resolved_entity_name": row["resolved_entity_name"],
+                "verification_evidence_url": row["verification_evidence_url"],
+                "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
+                "provenance": (
+                    "source_post.source_customer_code/source_post.source_customer_name/"
+                    "source_post_customer_resolution.resolved_corporate_entity_id"
+                ),
+          '''
+          if text.count(old_projection) != 1:
+              raise SystemExit(f'expected one customer projection anchor, found {text.count(old_projection)}')
+          text = text.replace(old_projection, new_projection, 1)
+          path.write_text(text, encoding='utf-8')
+
+          red_path = Path('tests/test_customer_hint_resolution_ownership.py')
+          red_path.write_text('''"""Regression contract for customer identity versus source ownership."""
+
+          from __future__ import annotations
+
+          from pathlib import Path
+
+          import backend.app.customer_hint_ingestion as ingestion
+
+
+          def test_resolution_contract_keeps_source_ownership_separate() -> None:
+              source = Path(ingestion.__file__).read_text(encoding="utf-8")
+              assert "update source_post" not in source.lower()
+              assert "source_post_customer_resolution" in source
+              assert "corporate_entity_ids" in source
+              assert "process_unit_ids" in source
+
+
+          def test_http_boundary_passes_explicit_account_scope() -> None:
+              source = (Path(__file__).resolve().parents[1] / "backend" / "app" / "main.py").read_text(
+                  encoding="utf-8"
+              )
+              start = source.index('async def resolve_customer_master_hint(')
+              end = source.index('@app.get("/api/lineage")', start)
+              endpoint = source[start:end]
+              assert "list(account.corporate_entity_ids)" in endpoint
+              assert "list(account.process_unit_ids)" in endpoint
+              assert "async with pool.acquire()" not in endpoint
+
+
+          def test_customer_master_projection_reads_normalized_resolution() -> None:
+              source = (Path(__file__).resolve().parents[1] / "backend" / "app" / "main.py").read_text(
+                  encoding="utf-8"
+              )
+              assert "left join source_post_customer_resolution resolution" in source
+              assert '"resolved_corporate_entity_id": row["resolved_corporate_entity_id"]' in source
+          '''.replace('\n          ', '\n').lstrip(), encoding='utf-8')
+          PY
+
+          python -m compileall -q backend/app/customer_hint_ingestion.py backend/app/post_eligibility.py backend/app/main.py tests/test_customer_hint_ingestion.py tests/test_customer_hint_resolution_ownership.py
+          git diff --check
+
+      - name: Commit repair and remove purpose-complete workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm .github/workflows/bounded-customer-hint-ownership-repair.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/app/main.py tests/test_customer_hint_resolution_ownership.py .github/workflows/bounded-customer-hint-ownership-repair.yml
+          git commit -m 'fix(customer-master): bind hint resolution to caller scope'
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fix/customer-hint-resolution-ownership
