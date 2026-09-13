@@ -4,41 +4,58 @@
 Customer Master identity is persisted separately in
 `source_post_customer_resolution`; `source_post.corporate_entity_id` and
 `process_unit_id` remain authorization ownership (ADR 0042 / ADR 0374).
+Corporate catalog binding remains owned by `corporate_entity_ingestion`
+(ADR 0010 / ADR 0012 / ADR 0160); Customer Master never creates a competing
+name-only identity path.
 """
 
 from __future__ import annotations
 
 import asyncio
-import hashlib
 from collections.abc import Sequence
 from typing import Any
 
 import asyncpg
 
-from backend.app.post_eligibility import (
-    fetch_visible_customer_hint_evidence,
-    lock_visible_customer_hint_sources,
-)
+from lineageweave.corporate_hierarchy_inference import CorporateHierarchyInferenceClient
+from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
 from lineageweave.customer_hint_resolution import CustomerHintResolutionClient
 from lineageweave.image_content import NullImageContentClient
 from lineageweave.organization_name_resolution import resolve_and_verify_organization_name
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationClient
 
+from backend.app.corporate_entity_ingestion import get_or_create_corporate_entity
+from backend.app.post_eligibility import (
+    fetch_visible_customer_hint_evidence,
+    lock_visible_customer_hint_sources,
+)
+
 
 _EXCERPT_LENGTH = 1500
 
 
-def _resolved_customer_code(entity_name: str) -> str:
-    """Return a stable catalog code derived from corroborated identity, not tenant hint."""
-    digest = hashlib.sha256(entity_name.strip().casefold().encode("utf-8")).hexdigest()[:24]
-    return f"RESOLVED-{digest}"
+async def _load_corporate_entity_candidates(
+    database_connection: asyncpg.Connection,
+) -> list[CorporateEntityCandidate]:
+    """Load the catalog snapshot consumed by the canonical organization resolver."""
+    rows = await database_connection.fetch(
+        "select corporate_entity_id, entity_name from corporate_entity"
+    )
+    return [
+        CorporateEntityCandidate(
+            corporate_entity_id=str(row["corporate_entity_id"]),
+            entity_name=row["entity_name"],
+        )
+        for row in rows
+    ]
 
 
 async def resolve_customer_hint(
     pool: asyncpg.Pool,
     resolution_client: CustomerHintResolutionClient,
     verification_client: RelationVerificationClient,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient,
     hint_code: str,
     corporate_entity_ids: Sequence[str],
     process_unit_ids: Sequence[str],
@@ -46,8 +63,10 @@ async def resolve_customer_hint(
     """Resolve one visible raw hint to separately persisted customer identity.
 
     Evidence capture is bounded to the authenticated caller's explicit
-    corporate/process scope. The database connection is released before
-    external resolution/verification. Persistence then reacquires a short
+    corporate/process scope. The connection used for source evidence is
+    released before customer-name resolution/verification. Corporate catalog
+    binding is delegated to the existing ADR 0010/0012/0160 owner; it never
+    runs while source rows are locked. Persistence then reacquires a short
     transaction, revalidates and share-locks the exact captured source set,
     and fails closed if authorization-relevant state changed meanwhile.
     """
@@ -92,6 +111,26 @@ async def resolve_customer_hint(
     if not entity_name:
         return None
 
+    # Customer Master does not own corporate catalog identity rules. The
+    # canonical owner applies similarity/tie handling, corroborated aliases,
+    # hierarchy inference, and the creation advisory-lock contract. Source
+    # authorization rows are not locked while that independent catalog work
+    # performs network I/O.
+    async with pool.acquire() as database_connection:
+        corporate_entity_candidates = await _load_corporate_entity_candidates(
+            database_connection
+        )
+        resolved_corporate_entity_id = await get_or_create_corporate_entity(
+            database_connection,
+            entity_name,
+            excerpts,
+            hierarchy_inference_client,
+            verification_client,
+            corporate_entity_candidates,
+        )
+    if resolved_corporate_entity_id is None:
+        return None
+
     async with pool.acquire() as database_connection:
         async with database_connection.transaction():
             revalidated_rows = await lock_visible_customer_hint_sources(
@@ -104,30 +143,6 @@ async def resolve_customer_hint(
             revalidated_post_ids = {str(row["post_id"]) for row in revalidated_rows}
             if revalidated_post_ids != set(captured_post_ids):
                 return None
-
-            existing_entity = await database_connection.fetchrow(
-                "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
-                entity_name,
-            )
-            if existing_entity is not None:
-                resolved_corporate_entity_id = existing_entity["corporate_entity_id"]
-            else:
-                created_entity = await database_connection.fetchrow(
-                    """
-                    insert into corporate_entity (
-                        corporate_entity_code,
-                        entity_name,
-                        entity_level_code
-                    )
-                    values ($1, $2, 'company')
-                    on conflict (corporate_entity_code)
-                    do update set entity_name = excluded.entity_name
-                    returning corporate_entity_id
-                    """,
-                    _resolved_customer_code(entity_name),
-                    entity_name,
-                )
-                resolved_corporate_entity_id = created_entity["corporate_entity_id"]
 
             linked_rows = await database_connection.fetch(
                 """
