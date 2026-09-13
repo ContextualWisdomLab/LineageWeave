@@ -200,6 +200,12 @@ class _VerificationClient:
     pass
 
 
+class _HierarchyClient:
+    """Unavailable hierarchy client; the seeded exact catalog match must make it unnecessary."""
+
+    available = False
+
+
 def _corroborated_resolution():
     """Return deterministic externally corroborated customer identity evidence."""
     return SimpleNamespace(
@@ -213,7 +219,7 @@ def _corroborated_resolution():
 def test_live_resolution_uses_only_visible_sources_and_preserves_tenant_ownership(
     customer_resolution_dsn: str, monkeypatch
 ) -> None:
-    """Only caller-visible posts may resolve while both tenants keep original ownership."""
+    """Only caller-visible posts may resolve while canonical catalog identity is reused."""
     seeded = _seed_cross_tenant_hint(customer_resolution_dsn)
     monkeypatch.setattr(
         ingestion,
@@ -229,6 +235,7 @@ def test_live_resolution_uses_only_visible_sources_and_preserves_tenant_ownershi
                 pool,
                 _ResolutionClient(),
                 _VerificationClient(),
+                _HierarchyClient(),
                 seeded["hint_code"],
                 [seeded["tenant_a_id"]],
                 [seeded["tenant_a_pu"]],
