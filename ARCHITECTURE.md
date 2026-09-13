@@ -1057,3 +1057,7 @@ so it also covers the multi-entity opposite-order case a per-name lock
 would still deadlock on. Every already-cataloged entity still resolves
 through the unchanged, lock-free similarity-matching fast path; only
 the rare creation branch serializes.
+
+## Summary shared-catalog authorization boundary (ADR 0375)
+
+Summary evidence is post-owned and readable under `post_read`; shared identity catalogs are not. The summary application service converts `post_admin` into an explicit enrichment capability. Reader materialization may bind known identities but cannot create corporate hierarchy state, admit mutation-capable hierarchy/relation clients, or upsert `cataloged_team`.

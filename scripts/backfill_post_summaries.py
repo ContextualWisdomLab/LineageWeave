@@ -268,6 +268,7 @@ async def backfill_post_summaries(
                         post_body=normalized.text,
                         hierarchy_inference_client=NullCorporateHierarchyInferenceClient(),
                         verification_client=NullRelationVerificationClient(),
+                        allow_catalog_enrichment=False,
                     )
                 result["processed_posts"] = int(result["processed_posts"]) + 1
                 result["project_mentions"] = int(result["project_mentions"]) + len(summary.project_mentions)

@@ -3190,6 +3190,37 @@ async def rebuild_period_report_endpoint(
     }
 
 
+async def _persist_post_summary_for_account(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: Any,
+    *,
+    post_body: str,
+    account: CurrentAccount,
+) -> dict[str, Any]:
+    """Persist post-owned summary evidence without granting catalog-write authority."""
+    allow_catalog_enrichment = account.has_permission(_POST_ADMIN)
+    hierarchy_inference_client = (
+        _corporate_hierarchy_inference_client()
+        if allow_catalog_enrichment
+        else NullCorporateHierarchyInferenceClient()
+    )
+    verification_client = (
+        _relation_verification_client()
+        if allow_catalog_enrichment
+        else NullRelationVerificationClient()
+    )
+    return await persist_post_summary(
+        conn,
+        post_id,
+        summary,
+        post_body=post_body,
+        hierarchy_inference_client=hierarchy_inference_client,
+        verification_client=verification_client,
+        allow_catalog_enrichment=allow_catalog_enrichment,
+    )
+
+
 @app.get("/api/posts/{post_id}/summary")
 async def read_post_summary(
     post_id: str,
@@ -3271,13 +3302,12 @@ async def read_post_summary(
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
             try:
-                payload = await persist_post_summary(
+                payload = await _persist_post_summary_for_account(
                     conn,
                     post_id,
                     summary,
                     post_body=normalized_body,
-                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                    verification_client=_relation_verification_client(),
+                    account=account,
                 )
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 if stale is not None:
