@@ -1,5 +1,232 @@
 # Product & Technical Gap Baseline
 
+
+> Live-authority overlay: 2026-09-13 12:11 KST. Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
+> inventory is 159 open PR / 36 open issue.
+> Customer Master ownership repair #1055 is Ready validation admission at exact
+> `08a08108a87657ad427a6b6fa9b1b327166b0c9e`. Current repair separates source-post corporate/process
+> authorization ownership from corroborated customer identity and delegates corporate
+> catalog binding to the accepted `get_or_create_corporate_entity` owner (ADR 0010,
+> ADR 0012, ADR 0160) instead of a Customer Master-local display-name lookup/direct
+> insert. Source authorization locks are reacquired only for the short exact-source
+> revalidation/persistence transaction after external corroboration/catalog resolution.
+> Validation evidence from predecessor heads does not transfer across this head.
+>
+> #1042, #1054, #1047, #1049 and #1046 remain repair prerequisites/Draft unless
+> their own live PR authority says otherwise. #1042's Medium CWE-862 period-report
+> aggregate disclosure remains owned by #1050/#1054, not duplicated into Customer
+> Master relationship code. Canonical central workflow defects remain `.github#1929`
+> (required CodeQL producer/consumer ordering) and `.github#2045` (unchanged-head
+> Ready reconciliation). Protected-main release metadata is still blocked by the
+> tracked `pyproject.toml` 2.28.0 versus `lineageweave.__version__` 2.20.0 mismatch;
+> no release is admitted from this overlay. Older overlays below are dated evidence.
+
+
+> Exact-head loop overlay: 2026-09-13 11:55 KST. Protected `main` is still
+> `83eba56149eb802cd63642c507c324c9976ec78e`. Customer Master customer-hint
+> ownership repair #1055 now has final causal head
+> `b26e5391d087e2e9610a8c0d52eaeb68f1f912a7`. Predecessor `7dbd1333...`
+> completed repository/full-PostgreSQL Tests, Security, SAST, dynamic CodeQL,
+> Noema and Strix successfully but remained blocked by Required CodeQL/OpenCode;
+> it returned to Draft before further changes, and those receipts do not transfer.
+>
+> Three ordinary non-force follow-ups close the remaining docstring/test-contract
+> acceptance without changing Customer Master production semantics: focused unit
+> helpers now have meaningful docstrings and assert the exact association INSERT
+> tuple, the live PostgreSQL ownership proof is documented, and
+> `tests/test_customer_hint_docstring_contract.py` AST-enforces docstrings on every
+> production function owned/touched by this repair. #1055 is Ready only as exact-head
+> validation admission. The causal `b26e5391...` push materialized ten fresh lanes,
+> including repository Tests/Security/SAST/CodeQL, dynamic CodeQL/Code Quality,
+> Required scheduler, Strix, OpenCode and Noema; they are currently queued/running.
+> No predecessor GREEN or approval counts toward promotion.
+>
+> #1042, #1054, #1047, #1049 and #1046 remain Draft. #1042's real Medium CWE-862
+> period-report aggregate finding remains owned by #1050/#1054 rather than duplicated
+> into Customer Master relationship-network code. Canonical central workflow defects
+> remain `.github#1929` (CodeQL producer/consumer ordering) and `.github#2045`
+> (unchanged-head Ready reconciliation). Protected-main release metadata remains
+> inconsistent (`pyproject.toml` 2.28.0 versus `lineageweave.__version__` 2.20.0),
+> so no release is admitted. PR #1041 remains Draft; older overlays are dated evidence.
+
+> Exact-head loop overlay: 2026-09-13 11:00 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e`. Customer Master process-unit
+> repair #1042 is now Draft at exact
+> `f23f5a567bd66113603837f86f030c3c459e69e6`: Strix `34721720240`
+> terminalized FAILURE after setup and scan execution. Immutable artifact
+> `10309695301` (95,509 bytes,
+> `sha256:47822709dfdc45968569dbd4adf6bde167ba5eb46277503e906ee9625262d8b8`)
+> contains one real Medium CWE-862 finding: mixed-visibility project/thread/team
+> period-report endpoints could disclose full-population stored aggregates when
+> at least one contributor remained visible. That defect is already isolated in
+> #1050/#1054; #1054 is the security prerequisite and report authorization is not
+> duplicated into #1042. Future #1042 integration requires a non-force descendant
+> restack/reconstruction after that prerequisite lands.
+>
+> Customer-hint ownership repair #1055 is on exact
+> `7dbd133320d8b12bde394569955e0ae6503f8f39`. Predecessor repository validation
+> reached 1771 passed / 147 skipped and then exposed two owned REDs: migration
+> 0250 was not replay-safe and the static SQL-review ledger still expected 36
+> suppressions after the repair legitimately removed one. Exact head now uses
+> `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` and tracks 35
+> reviewed suppressions. Security `34731558854`, SAST `34731558875`, dynamic
+> GitHub CodeQL `34731558343`, and Code Quality `34731558308` are GREEN.
+> Repository Tests `34731586226`, Required Noema `34731558900`, and Strix
+> `34731558917` are still live. Required CodeQL `34731558861` failed because
+> compatibility consumers terminalized before the producer dispatch later
+> succeeded; canonical owner `.github#1929` carries the unchanged-head canary.
+> Required OpenCode `34731558957` failed closed without a current-head verdict.
+> #1055 is Ready only as a live validation admission, not a merge-ready claim.
+>
+> #1054 remains Draft at `4519c101f13e08c10653b95ff88d66b4ce47f0b8` with
+> repository Tests GREEN and central unchanged-head workflow reconciliation owned
+> by `.github#2045`. Protected-main release metadata remains inconsistent:
+> `pyproject.toml` declares 2.28.0 while `lineageweave.__version__` declares 2.20.0.
+> No release is admitted while that blocker or any current required gate remains.
+> PR #1041 remains Draft; every older overlay below is dated evidence only.
+
+
+> Exact-head loop overlay: 2026-09-13 10:14 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e`, protected with a valid verified
+> commit signature. Fresh non-Draft inventory contains exactly #1042 and #1055;
+> both are validation admissions only, not merge-ready claims.
+>
+> Customer Master process-unit repair #1042 remains at exact
+> `f23f5a567bd66113603837f86f030c3c459e69e6`. Repository Tests/Security/SAST
+> are terminal GREEN while Required CodeQL/OpenCode/Noema are terminal FAILURE.
+> Strix `34721720240` is still genuinely in progress on the unchanged head, so
+> elapsed time alone is not used to cancel it. If that lane terminalizes while
+> authoritative failures remain, #1042 returns to Draft.
+>
+> Customer-hint ownership issue #1052 / PR #1055 advanced after review to exact
+> `e11ff8698f20afc4ac628a6a86611ad1348c3fcb`. Migration 0250 and Proposed ADR
+> 0374 keep `source_post.corporate_entity_id` / `process_unit_id` as access
+> ownership and persist resolved customer identity in
+> `source_post_customer_resolution`. Request identity is whitespace-normalized
+> for matching and corroboration while the association preserves the actual raw
+> `source_post.source_customer_code`. External resolution still runs with the DB
+> resource released; a short persistence transaction then revalidates and
+> `FOR SHARE` locks the exact captured source set before writing the association.
+> Customer Master now selects resolved id/name/status/evidence coherently from one
+> deterministic newest resolution row rather than independent aggregate maxima.
+> The bearer + PostgreSQL regression also excludes foreign same-hint evidence,
+> preserves source ownership and raw spaced hints, rejects blank HTTP hints, and
+> checks coherent newest-resolution metadata. The four validated CodeRabbit
+> findings are repaired and their outdated threads resolved.
+>
+> #1055 was marked Ready on the unchanged exact head only to admit fresh
+> validation. Repository Tests `34730379137` rematerialized; frontend
+> lint/test/build/Storybook is GREEN and the PostgreSQL job is still active.
+> Draft-time Security `34730262196`, SAST `34730262117`, and Required CodeQL
+> `34730262172` are `action_required`; no fresh central Security/SAST/Required
+> CodeQL/OpenCode/Noema/Strix identity appeared at the first Ready reconciliation
+> read. Canonical owner `.github#2045` now carries this unchanged-head canary.
+> Do not use a no-op commit, Draft/Ready oscillation, or synthetic status to
+> manufacture promotion evidence.
+>
+> #1054, #1047, #1046 and #1049 remain Draft. Protected-main release metadata
+> remains inconsistent (`pyproject.toml` 2.28.0 versus
+> `lineageweave.__version__` 2.20.0), so release remains blocked. PR #1041 stays
+> Draft; every older overlay below is dated evidence only.
+
+
+> Exact-head loop overlay: 2026-09-13 09:46 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e`. Fresh live inventory reports
+> 159 open PRs and 36 open issues. Exactly two open PRs are non-Draft, #1042
+> and #1055; both are Ready only to preserve or obtain exact-head validation,
+> not as merge-ready claims.
+>
+> Customer Master process-unit repair #1042 remains on exact
+> `f23f5a567bd66113603837f86f030c3c459e69e6`. Repository Tests/Security/SAST
+> are terminal GREEN and Required CodeQL/OpenCode/Noema are terminal FAILURE.
+> Strix `34721720240` remains genuinely in progress on the unchanged head, so
+> elapsed time alone is not used to cancel it. If that lane terminalizes while
+> required failures remain, #1042 returns to Draft.
+>
+> Customer Master customer-hint ownership issue #1052 now has repair PR #1055
+> at exact `77e7c8bd8bacb8f0ce30dd9e5ddd71c30a7632da`. Migration 0250 and Proposed
+> ADR 0374 introduce normalized `source_post_customer_resolution`; hint
+> corroboration captures only caller-visible eligible evidence, releases its DB
+> resource before external resolution/verification, then reacquires a short
+> transaction and `FOR SHARE` revalidates the exact captured sources before an
+> idempotent association write. `source_post.corporate_entity_id` and
+> `process_unit_id` remain authorization ownership and are never rebound to the
+> resolved customer. Customer Master read models consume the normalized
+> association only after source-post ABAC. A live PostgreSQL regression covers
+> two private tenants sharing one synthetic hint and requires that only the
+> authorized tenant's source receives the resolution association while both
+> source ownership tuples remain unchanged.
+>
+> On #1055, fresh repository Tests `34729447666` rematerialized after Ready;
+> frontend lint/test/build/Storybook is GREEN and the full PostgreSQL suite is
+> still running. Draft-time central Security `34729440550`, SAST `34729440465`,
+> and Required CodeQL `34729440480` remain `action_required` and did not obtain
+> fresh identities on the unchanged Ready head. Canonical Ready reconciliation
+> owner `.github#2045` has this canary; no no-op commit, lifecycle flip loop, or
+> manual success status is used. Authenticated HTTP/E2E cross-tenant evidence,
+> central security/model gates and independent current-head approval are still
+> required before integration.
+>
+> #1054, #1047, #1046 and #1049 remain Draft. #1053 still owns Post Chat
+> read-derived compute versus shared-persistence mutation authority and must not
+> duplicate #1044/#1047 replay-disclosure ownership. Protected-main release
+> metadata remains inconsistent (`pyproject.toml` 2.28.0 versus
+> `lineageweave.__version__` 2.20.0), so protected release remains blocked.
+> PR #1041 remains Draft; every older overlay below is dated evidence only.
+
+> Exact-head loop overlay: 2026-09-13 08:51 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (v2.28.0; #931). Fresh live
+> search reports 158 open PRs and 36 open issues. Exactly one open PR is
+> non-Draft: #1042, whose Ready state is validation admission only.
+>
+> Customer Master process-unit authorization remains issue #1045 / PR #1042
+> at exact `f23f5a567bd66113603837f86f030c3c459e69e6`. Repository Tests
+> `34721721155`, Security `34721721167`, and SAST `34721721186` are terminal
+> GREEN. Required CodeQL `34721721113`, OpenCode `34721720227`, and Noema
+> `34721720347` are terminal FAILURE. Strix `34721720240` is still genuinely
+> in progress on the same exact head, so the admission is preserved without
+> elapsed-time cancellation or source churn. The later CodeQL producer dispatch
+> succeeded only after compatibility consumers had already failed; canonical
+> owner repair remains `.github#1929` and predecessor receipts do not transfer.
+>
+> Mixed-visibility period-report authorization remains issue #1050 / Draft PR
+> #1054 at exact `4519c101f13e08c10653b95ff88d66b4ce47f0b8`. Whole-population
+> admission now suppresses a precomputed report aggregate when any persisted
+> member or leftover-pair contributor is not visible; comparison evidence carries
+> `process_unit_id`, and authenticated Keycloak + PostgreSQL regression proves
+> detail/list/comparison visible before scope contraction and suppressed after a
+> contributor becomes foreign-private. Repository Tests `34723167232` is terminal
+> GREEN, including the full PostgreSQL suite, and dynamic GitHub CodeQL reports no
+> new alerts. Draft-push central Security `34723086654`, SAST `34723086683`, and
+> Required CodeQL `34723086691` stayed `action_required`; after Ready only the
+> repository Tests identity rematerialized. With no live validation lane left,
+> #1054 returned to Draft on the unchanged head. Canonical lifecycle repair is
+> `.github#2045`; do not use empty commits, Draft/Ready oscillation, manual status,
+> or leaf-side gate weakening.
+>
+> Persisted Post Chat replay authorization remains Draft PR #1047 at exact
+> `41c7a86f78dddf0bcd9e9f0eb070bf90732f68e3`. Repository Tests, Security,
+> SAST, dynamic CodeQL and Code Quality are GREEN there, while Required CodeQL,
+> OpenCode, Noema and Strix are terminal FAILURE. Dependency advisory
+> GHSA-82fw-gwwq-j7x9 remains issue #1043 / Draft PR #1046 at
+> `f80c0ec5f35fd4fc0a867125bc46dfd2d2dee9a9`; duplicate migration ordinal
+> 0233 remains issue #1048 / Draft PR #1049 at
+> `5322971193d1ff4e0ae13c054d8f99615934d4dc`.
+>
+> Customer Master customer-hint repair remains issue #1052. ADR 0042 requires
+> source-post tenant/access ownership to stay distinct from resolved customer
+> identity and provenance; do not repair that issue by rebinding
+> `source_post.corporate_entity_id`. Post Chat shared-persistence mutation remains
+> issue #1053 and must not duplicate #1044/#1047 replay-authorization ownership.
+>
+> Protected-main release metadata is still inconsistent: `pyproject.toml` declares
+> 2.28.0 while `lineageweave.__version__` declares 2.20.0. Keep this as a release
+> blocker rather than normalizing it in documentation. ADR 0251 remains the I/O-
+> psychology authority and ADR 0256 the extensible Voice-combination contract.
+> RankWeave, ThreadWeave, TEPP, and canonical lowercase
+> `ContextualWisdomLab/disksage` retain their own bounded responsibilities.
+> PR #1041 remains Draft; earlier overlays below are dated historical evidence only.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
