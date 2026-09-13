@@ -21,6 +21,12 @@ class _UnavailableClient:
     available = False
 
 
+class _HierarchyClient:
+    """Unavailable hierarchy client; exact catalog matches must not invoke inference."""
+
+    available = False
+
+
 _DEFAULT_CLIENT = _Client()
 
 
@@ -67,10 +73,10 @@ class _Pool:
 
 
 class _Connection:
-    """Query-recording connection for capture, revalidation, and persistence assertions."""
+    """Query-recording connection for capture, catalog binding, and persistence assertions."""
 
     def __init__(self, *, sample_rows=None, existing_entity=None) -> None:
-        """Seed visible rows and an optional pre-existing catalog entity."""
+        """Seed visible rows and the catalog id used by canonical exact-name matching."""
         self._sample_rows = sample_rows or []
         self._existing_entity = existing_entity
         self.executed: list[tuple[str, tuple[object, ...]]] = []
@@ -80,11 +86,18 @@ class _Connection:
         return _Transaction()
 
     async def fetch(self, query: str, *args: object):
-        """Return rows for scoped capture, revalidation, or association persistence."""
+        """Return rows for scoped capture, catalog matching, revalidation, or persistence."""
         normalized = " ".join(query.lower().split())
         self.executed.append((normalized, args))
         if "select post_id, post_title" in normalized:
             return self._sample_rows
+        if "select corporate_entity_id, entity_name from corporate_entity" in normalized:
+            entity_id = (
+                self._existing_entity["corporate_entity_id"]
+                if self._existing_entity is not None
+                else "new-entity-id"
+            )
+            return [{"corporate_entity_id": entity_id, "entity_name": "Northridge Grid"}]
         if "select post_id from source_post" in normalized and "for share" in normalized:
             return [{"post_id": row["post_id"]} for row in self._sample_rows]
         if "insert into source_post_customer_resolution" in normalized:
@@ -92,13 +105,9 @@ class _Connection:
         return []
 
     async def fetchrow(self, query: str, *args: object):
-        """Return an existing or newly created catalog entity identity."""
+        """Record an unexpected row-returning query for easier contract diagnosis."""
         normalized = " ".join(query.lower().split())
         self.executed.append((normalized, args))
-        if "from corporate_entity" in normalized:
-            return self._existing_entity
-        if "insert into corporate_entity" in normalized:
-            return {"corporate_entity_id": "new-entity-id"}
         return None
 
 
@@ -115,11 +124,12 @@ def _resolution(status: str):
 
 
 def _resolve(pool, resolution_client=_DEFAULT_CLIENT):
-    """Call the production resolver with one explicit corporate/process scope."""
+    """Call the production resolver with explicit scope and the canonical catalog client."""
     return ingestion.resolve_customer_hint(
         pool,
         resolution_client,
         _Client(),
+        _HierarchyClient(),
         "0019999999",
         ["corp-a"],
         ["pu-a"],
@@ -144,7 +154,7 @@ def test_no_visible_sample_posts_resolves_nothing() -> None:
 
 
 def test_uncorroborated_resolution_does_not_create_or_persist(monkeypatch) -> None:
-    """Uncorroborated identity must not create catalog or association state."""
+    """Uncorroborated identity must not bind catalog or association state."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -160,15 +170,15 @@ def test_uncorroborated_resolution_does_not_create_or_persist(monkeypatch) -> No
 
     assert result is None
     assert pool.acquire_count == 1
-    assert all("insert into corporate_entity" not in query for query, _ in connection.executed)
+    assert all("select corporate_entity_id, entity_name" not in query for query, _ in connection.executed)
     assert all(
         "insert into source_post_customer_resolution" not in query
         for query, _ in connection.executed
     )
 
 
-def test_corroborated_resolution_creates_separate_association(monkeypatch) -> None:
-    """Corroborated identity persists association values without rebinding source ownership."""
+def test_corroborated_resolution_persists_separate_association(monkeypatch) -> None:
+    """A canonical catalog binding is associated without rebinding source ownership."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -188,8 +198,12 @@ def test_corroborated_resolution_creates_separate_association(monkeypatch) -> No
         "linked_post_count": 1,
         "verification_evidence_url": "https://evidence.example/result",
     }
-    assert pool.acquire_count == 2
+    assert pool.acquire_count == 3
     assert all("update source_post" not in query for query, _ in connection.executed)
+    assert any(
+        "select corporate_entity_id, entity_name from corporate_entity" in query
+        for query, _ in connection.executed
+    )
     association_args = next(
         args
         for query, args in connection.executed
@@ -205,7 +219,7 @@ def test_corroborated_resolution_creates_separate_association(monkeypatch) -> No
 
 
 def test_corroborated_resolution_reuses_existing_catalog_entity(monkeypatch) -> None:
-    """An existing catalog identity is reused while a fresh source association is written."""
+    """Canonical catalog matching reuses an existing entity before association persistence."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -224,7 +238,7 @@ def test_corroborated_resolution_reuses_existing_catalog_entity(monkeypatch) -> 
 
 
 def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) -> None:
-    """Losing source visibility after corroboration must prevent all persistence."""
+    """Losing source visibility after corroboration must prevent association persistence."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -235,11 +249,13 @@ def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) 
         """Connection whose revalidation step simulates a concurrent scope contraction."""
 
         async def fetch(self, query: str, *args: object):
-            """Return capture evidence first and no rows once the share lock is requested."""
+            """Return capture/catalog evidence first and no rows once share lock is requested."""
             normalized = " ".join(query.lower().split())
             self.executed.append((normalized, args))
             if "select post_id, post_title" in normalized:
                 return self._sample_rows
+            if "select corporate_entity_id, entity_name from corporate_entity" in normalized:
+                return [{"corporate_entity_id": "new-entity-id", "entity_name": "Northridge Grid"}]
             if "for share" in normalized:
                 return []
             return []
@@ -252,4 +268,7 @@ def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) 
     result = asyncio.run(_resolve(_Pool(connection)))
 
     assert result is None
-    assert all("insert into corporate_entity" not in query for query, _ in connection.executed)
+    assert all(
+        "insert into source_post_customer_resolution" not in query
+        for query, _ in connection.executed
+    )
