@@ -1,6 +1,39 @@
 # Product & Technical Gap Baseline
 
 
+> Live-authority overlay: 2026-09-13 15:24 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` pending final double sweep.
+> Customer Master ownership issue #1052 / Draft PR #1055 is now at exact
+> `831fc52a1969f2999109da2c061067a9dc0ae954`. Bounded repair run
+> `34741807255 / 103682639248` reproduced the ordinary-hosted response-contract
+> RED, applied the minimal serializer/E2E expectation repair, obtained focused
+> GREEN, and published a self-cleaning ordinary commit. The current head adds
+> `tests/test_customer_master_hint_response_contract.py`, updates the real-service
+> `backend/tests/test_api.py` expectation, and contains no temporary repair workflow.
+> All #1055 inline review threads are resolved.
+>
+> Current-head central workflow identities are Draft lifecycle `action_required`,
+> not GREEN receipts. Immediate parent `b9346dc681997a0274194d2ed913a22bb7488cca`
+> has SAST/Security/dynamic-CodeQL/Code-Quality/OpenCode/Strix success; Required
+> CodeQL remains the canonical `.github#1929` ordering/reconciliation failure, and
+> predecessor Noema evidence cannot authorize `831fc52...`. `.github#2045` remains
+> open for unchanged-head Draft-to-Ready materialization, so no empty commit or
+> lifecycle-flip loop is used to manufacture current-head evidence.
+>
+> Issue #1057 still owns the hosted PostgreSQL + local Keycloak development fixture
+> + Valkey bearer/JWKS/RBAC/ABAC lane. Its original #1055 response-shape canary is
+> repaired, but the service-wide-skip topology defect remains. #1042/#1054/#1047/
+> #1049/#1046 remain Draft under their own live authority. Protected-main release
+> identity source repair is existing Draft PR #961 at exact
+> `3bdec0504a65e63f44bd49ba15de37182a1672cc`; issue #1056 now converges release,
+> SBOM, provenance, reproducibility and rollback acceptance onto that single writer
+> rather than spawning a competing lane. Protected main itself still reports
+> `pyproject.toml` 2.28.0 versus runtime `lineageweave.__version__` 2.20.0 until
+> normal integration. OpenTelemetry and PostgreSQL warning owners remain #1036/#973
+> and #1038/#1040. No release is admitted by this overlay. Older overlays below are
+> dated evidence only.
+
+
 > Live-authority overlay: 2026-09-13 12:11 KST. Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > inventory is 159 open PR / 36 open issue.
 > Customer Master ownership repair #1055 is Ready validation admission at exact
