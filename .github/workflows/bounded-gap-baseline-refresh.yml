@@ -1,0 +1,87 @@
+name: Bounded gap baseline refresh
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+    paths:
+      - .github/workflows/bounded-gap-baseline-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: codex/gap-loop-20260912
+          fetch-depth: 1
+
+      - name: Prepend current authority overlay
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          prefix = "# Product & Technical Gap Baseline\n\n"
+          if not text.startswith(prefix):
+              raise SystemExit("baseline heading changed; refusing bounded rewrite")
+          marker = "> Live-authority overlay: 2026-09-13 12:31 KST."
+          if marker in text:
+              raise SystemExit("current overlay already present")
+          overlay = """> Live-authority overlay: 2026-09-13 12:31 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`; fresh inventory is 159 open PR /
+> 37 open issue. #1055 remains the only active Customer Master source lane, Ready
+> solely as exact-head validation admission at `08a08108a87657ad427a6b6fa9b1b327166b0c9e`.
+> Frontend lint/test/build/Storybook, SAST, dynamic GitHub CodeQL/Code Quality,
+> Security Scorecard and Trivy are GREEN. Full PostgreSQL Tests `34734746020`,
+> Required Noema, Strix and OpenCode remain live. Required CodeQL `34734709986`
+> reproduced `.github#1929`: JavaScript/Python/Actions compatibility consumers
+> terminalized FAILURE before the producer dispatch job existed; the producer later
+> succeeded, which does not reconcile those required contexts.
+>
+> Current review also found one LineageWeave-owned executable RED on #1055: the
+> existing exact Customer Master `source_customer_hints` assertion still expects
+> the pre-resolution response shape, while production now returns resolved corporate
+> id/name/evidence plus normalized-resolution provenance. Preserve the live
+> PostgreSQL lane until that hosted RED terminalizes; then repair only the stale
+> expected contract and revalidate the resulting causal head. Do not weaken the
+> production serialization or manufacture validation with no-op commits/lifecycle
+> churn.
+>
+> Post Chat persistence issue #1053 now owns the next buyer/security gap: protected
+> `persist_post_chat` deletes and reinserts durable state keyed only by
+> `(post_id, question_norm)`. Its chosen invariant is scope-owned durable answers
+> whose identity also binds the #1047 authorization/evidence receipt; #1047 remains
+> the replay-disclosure owner. No competing source PR is opened while #1055 is live.
+>
+> Release identity mismatch now has dedicated owner #1056. Protected `pyproject.toml`
+> declares 2.28.0 while runtime `lineageweave.__version__` is 2.20.0 and feeds
+> persisted analysis/reconstruction version evidence. LineageWeave currently has no
+> GitHub Release and no local release/SBOM workflow caller; implementation must use
+> a thin exact-SHA caller of canonical `.github` artifact/SBOM attestation rather
+> than copying verifier policy. No immutable release is admitted until #1056 and
+> all promotion gates converge. Older overlays below remain dated evidence only.
+
+"""
+          path.write_text(prefix + overlay + text[len(prefix):], encoding="utf-8")
+          PY
+
+      - name: Remove purpose-complete workflow and publish ordinary commit
+        shell: bash
+        run: |
+          git rm .github/workflows/bounded-gap-baseline-refresh.yml
+          git add docs/product-technical-gap-baseline.md
+          if git diff --cached --quiet; then
+            echo "no bounded delta"
+            exit 1
+          fi
+          git config user.name "Seongho Bae"
+          git config user.email "me@seonghobae.me"
+          git commit -m "docs(gaps): refresh exact-head authority"
+          git push origin HEAD:codex/gap-loop-20260912
