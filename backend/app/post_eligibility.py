@@ -89,35 +89,37 @@ async def fetch_visible_customer_hint_evidence(
     """
     return await database_connection.fetch(
         """
-        select post_id, post_title, left(post_body, 20000) as post_body
+        select source_post.post_id,
+               source_post.post_title,
+               left(source_post.post_body, 20000) as post_body
           from source_post
-         where btrim(source_customer_code) = $3
+         where btrim(source_post.source_customer_code) = $3
            and (
-               visibility_code = 'public'
+               source_post.visibility_code = 'public'
                or (
-                   corporate_entity_id::text = any($1::text[])
+                   source_post.corporate_entity_id::text = any($1::text[])
                    and (
                        cardinality($2::text[]) = 0
-                       or process_unit_id::text = any($2::text[])
+                       or source_post.process_unit_id::text = any($2::text[])
                    )
                )
            )
-           and nullif(btrim(source_draft_code), '') is null
-           and nullif(btrim(source_deleted_flag), '') is null
+           and nullif(btrim(source_post.source_draft_code), '') is null
+           and nullif(btrim(source_post.source_deleted_flag), '') is null
            and not (
                (
-                   nullif(btrim(source_author_code), '') is null
-                   and nullif(btrim(source_author_name), '') is null
-                   and nullif(btrim(source_company_code), '') is null
-                   and nullif(btrim(source_company_name), '') is null
-                   and nullif(btrim(source_process_unit_code), '') is null
-                   and nullif(btrim(source_process_unit_name), '') is null
-                   and nullif(btrim(source_sales_pool_code), '') is null
-                   and nullif(btrim(source_sales_pool_name), '') is null
-                   and nullif(btrim(source_customer_code), '') is null
-                   and nullif(btrim(source_customer_name), '') is null
-                   and nullif(btrim(source_project_code), '') is null
-                   and nullif(btrim(source_project_name), '') is null
+                   nullif(btrim(source_post.source_author_code), '') is null
+                   and nullif(btrim(source_post.source_author_name), '') is null
+                   and nullif(btrim(source_post.source_company_code), '') is null
+                   and nullif(btrim(source_post.source_company_name), '') is null
+                   and nullif(btrim(source_post.source_process_unit_code), '') is null
+                   and nullif(btrim(source_post.source_process_unit_name), '') is null
+                   and nullif(btrim(source_post.source_sales_pool_code), '') is null
+                   and nullif(btrim(source_post.source_sales_pool_name), '') is null
+                   and nullif(btrim(source_post.source_customer_code), '') is null
+                   and nullif(btrim(source_post.source_customer_name), '') is null
+                   and nullif(btrim(source_post.source_project_code), '') is null
+                   and nullif(btrim(source_post.source_project_name), '') is null
                )
                and exists (
                    select 1
@@ -138,7 +140,7 @@ async def fetch_visible_customer_hint_evidence(
                     )
                )
            )
-         order by created_at desc, post_id desc
+         order by source_post.created_at desc, source_post.post_id desc
          limit 5
         """,
         list(corporate_entity_ids),
@@ -157,36 +159,36 @@ async def lock_visible_customer_hint_sources(
     """Revalidate and share-lock the captured hint sources before persistence."""
     return await database_connection.fetch(
         """
-        select post_id
+        select source_post.post_id
           from source_post
-         where post_id::text = any($4::text[])
-           and btrim(source_customer_code) = $3
+         where source_post.post_id::text = any($4::text[])
+           and btrim(source_post.source_customer_code) = $3
            and (
-               visibility_code = 'public'
+               source_post.visibility_code = 'public'
                or (
-                   corporate_entity_id::text = any($1::text[])
+                   source_post.corporate_entity_id::text = any($1::text[])
                    and (
                        cardinality($2::text[]) = 0
-                       or process_unit_id::text = any($2::text[])
+                       or source_post.process_unit_id::text = any($2::text[])
                    )
                )
            )
-           and nullif(btrim(source_draft_code), '') is null
-           and nullif(btrim(source_deleted_flag), '') is null
+           and nullif(btrim(source_post.source_draft_code), '') is null
+           and nullif(btrim(source_post.source_deleted_flag), '') is null
            and not (
                (
-                   nullif(btrim(source_author_code), '') is null
-                   and nullif(btrim(source_author_name), '') is null
-                   and nullif(btrim(source_company_code), '') is null
-                   and nullif(btrim(source_company_name), '') is null
-                   and nullif(btrim(source_process_unit_code), '') is null
-                   and nullif(btrim(source_process_unit_name), '') is null
-                   and nullif(btrim(source_sales_pool_code), '') is null
-                   and nullif(btrim(source_sales_pool_name), '') is null
-                   and nullif(btrim(source_customer_code), '') is null
-                   and nullif(btrim(source_customer_name), '') is null
-                   and nullif(btrim(source_project_code), '') is null
-                   and nullif(btrim(source_project_name), '') is null
+                   nullif(btrim(source_post.source_author_code), '') is null
+                   and nullif(btrim(source_post.source_author_name), '') is null
+                   and nullif(btrim(source_post.source_company_code), '') is null
+                   and nullif(btrim(source_post.source_company_name), '') is null
+                   and nullif(btrim(source_post.source_process_unit_code), '') is null
+                   and nullif(btrim(source_post.source_process_unit_name), '') is null
+                   and nullif(btrim(source_post.source_sales_pool_code), '') is null
+                   and nullif(btrim(source_post.source_sales_pool_name), '') is null
+                   and nullif(btrim(source_post.source_customer_code), '') is null
+                   and nullif(btrim(source_post.source_customer_name), '') is null
+                   and nullif(btrim(source_post.source_project_code), '') is null
+                   and nullif(btrim(source_post.source_project_name), '') is null
                )
                and exists (
                    select 1
@@ -207,7 +209,7 @@ async def lock_visible_customer_hint_sources(
                     )
                )
            )
-         order by post_id
+         order by source_post.post_id
          for share
         """,
         list(corporate_entity_ids),
