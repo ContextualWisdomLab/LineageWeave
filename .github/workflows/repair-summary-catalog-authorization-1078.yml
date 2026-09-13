@@ -1,0 +1,162 @@
+name: Repair summary catalog authorization 1078
+
+on:
+  push:
+    branches:
+      - fix/summary-catalog-authorization-1078
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/summary-catalog-authorization-1078
+          fetch-depth: 0
+
+      - name: Confirm realistic RED on protected-main-derived source
+        shell: bash
+        run: |
+          set +e
+          python - <<'PY'
+          from pathlib import Path
+
+          main = Path('backend/app/main.py').read_text()
+          ingestion = Path('backend/app/post_summary_ingestion.py').read_text()
+          vulnerabilities = []
+          if 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' in main:
+              vulnerabilities.append('summary GET admits live hierarchy inference without checking post_admin')
+          if 'verification_client=_relation_verification_client(),' in main:
+              vulnerabilities.append('summary GET admits live relation verification without checking post_admin')
+          if 'cataloged_team_id = await upsert_team(' in ingestion:
+              vulnerabilities.append('summary persistence unconditionally upserts shared cataloged_team')
+          if vulnerabilities:
+              raise AssertionError('RED: ' + '; '.join(vulnerabilities))
+          PY
+          red_status=$?
+          set -e
+          if [ "$red_status" -eq 0 ]; then
+            echo 'Expected #1078 RED did not reproduce; refusing to patch a moved source.' >&2
+            exit 1
+          fi
+          echo 'Expected #1078 RED reproduced.'
+
+      - name: Apply minimal causal authorization repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file_path = Path(path)
+              text = file_path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one replacement target, found {count}')
+              file_path.write_text(text.replace(old, new, 1))
+
+          main_path = Path('backend/app/main.py')
+          main_text = main_path.read_text()
+          endpoint_marker = '@app.get("/api/posts/{post_id}/summary")\nasync def read_post_summary('
+          if main_text.count(endpoint_marker) != 1:
+              raise SystemExit('summary endpoint marker moved')
+          helper = '''async def _persist_post_summary_for_account(\n    conn: asyncpg.Connection,\n    post_id: str,\n    summary: Any,\n    *,\n    post_body: str,\n    account: CurrentAccount,\n) -> dict[str, Any]:\n    """Persist a summary without granting read-only callers shared-catalog writes.\n\n    The summary projection itself is post-owned and may be materialized for a\n    ``post_read`` caller. Shared identity enrichment is a separate write\n    capability: only ``post_admin`` may admit hierarchy/search clients or\n    create catalog identities. Existing identities remain readable in either\n    mode.\n    """\n    allow_catalog_enrichment = account.has_permission(_POST_ADMIN)\n    hierarchy_inference_client = (\n        _corporate_hierarchy_inference_client()\n        if allow_catalog_enrichment\n        else NullCorporateHierarchyInferenceClient()\n    )\n    verification_client = (\n        _relation_verification_client()\n        if allow_catalog_enrichment\n        else NullRelationVerificationClient()\n    )\n    return await persist_post_summary(\n        conn,\n        post_id,\n        summary,\n        post_body=post_body,\n        hierarchy_inference_client=hierarchy_inference_client,\n        verification_client=verification_client,\n        allow_catalog_enrichment=allow_catalog_enrichment,\n    )\n\n\n'''
+          main_text = main_text.replace(endpoint_marker, helper + endpoint_marker, 1)
+          old_call = '''                payload = await persist_post_summary(\n                    conn,\n                    post_id,\n                    summary,\n                    post_body=normalized_body,\n                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),\n                    verification_client=_relation_verification_client(),\n                )'''
+          new_call = '''                payload = await _persist_post_summary_for_account(\n                    conn,\n                    post_id,\n                    summary,\n                    post_body=normalized_body,\n                    account=account,\n                )'''
+          if main_text.count(old_call) != 1:
+              raise SystemExit('summary persistence call moved')
+          main_path.write_text(main_text.replace(old_call, new_call, 1))
+
+          replace_once(
+              'backend/app/post_summary_ingestion.py',
+              '''    hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,\n    verification_client: RelationVerificationClient | None = None,\n) -> dict[str, Any]:''',
+              '''    hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,\n    verification_client: RelationVerificationClient | None = None,\n    allow_catalog_enrichment: bool = True,\n) -> dict[str, Any]:''',
+          )
+          replace_once(
+              'backend/app/post_summary_ingestion.py',
+              '''    hierarchy_inference_client = (\n        hierarchy_inference_client or NullCorporateHierarchyInferenceClient()\n    )\n    verification_client = verification_client or NullRelationVerificationClient()\n''',
+              '''    if allow_catalog_enrichment:\n        hierarchy_inference_client = (\n            hierarchy_inference_client or NullCorporateHierarchyInferenceClient()\n        )\n        verification_client = verification_client or NullRelationVerificationClient()\n    else:\n        # Authorization is enforced at the application boundary. Even if a\n        # caller accidentally supplies live clients, a read-only capability\n        # cannot cross into shared corporate-catalog creation.\n        hierarchy_inference_client = NullCorporateHierarchyInferenceClient()\n        verification_client = NullRelationVerificationClient()\n''',
+          )
+          replace_once(
+              'backend/app/post_summary_ingestion.py',
+              '''        await _replace_summary_projection(\n            conn,\n            post_id,\n            summary,\n            candidates,\n            resolved_organization_ids,\n        )''',
+              '''        await _replace_summary_projection(\n            conn,\n            post_id,\n            summary,\n            candidates,\n            resolved_organization_ids,\n            allow_catalog_enrichment=allow_catalog_enrichment,\n        )''',
+          )
+          ingestion_path = Path('backend/app/post_summary_ingestion.py')
+          ingestion_text = ingestion_path.read_text()
+          replace_marker = '''async def _replace_summary_projection(\n    conn: asyncpg.Connection,\n    post_id: str,\n    summary: PostSummary,\n    candidates: list[Any],\n    resolved_organization_ids: dict[int, str],\n) -> None:'''
+          new_signature = '''async def _replace_summary_projection(\n    conn: asyncpg.Connection,\n    post_id: str,\n    summary: PostSummary,\n    candidates: list[Any],\n    resolved_organization_ids: dict[int, str],\n    *,\n    allow_catalog_enrichment: bool,\n) -> None:'''
+          if ingestion_text.count(replace_marker) != 1:
+              raise SystemExit('summary projection signature moved')
+          ingestion_text = ingestion_text.replace(replace_marker, new_signature, 1)
+          team_helper_marker = 'async def _replace_summary_projection('
+          team_helper = '''async def _resolve_summary_team_id(\n    conn: asyncpg.Connection,\n    team_name: str,\n    affiliated_organization_name: str | None,\n    candidates: list[Any],\n    *,\n    allow_catalog_enrichment: bool,\n) -> str | None:\n    """Resolve a team without creating shared identity state for readers."""\n    if allow_catalog_enrichment:\n        return await upsert_team(\n            conn, team_name, affiliated_organization_name, candidates\n        )\n    row = await conn.fetchrow(\n        "select team_id from cataloged_team "\n        "where team_name = $1 "\n        "and affiliated_organization_name is not distinct from $2",\n        team_name,\n        affiliated_organization_name,\n    )\n    return None if row is None else str(row["team_id"])\n\n\n'''
+          if ingestion_text.count(team_helper_marker) != 1:
+              raise SystemExit('team helper insertion marker moved')
+          ingestion_text = ingestion_text.replace(team_helper_marker, team_helper + team_helper_marker, 1)
+          old_team = '''        if role.actor_type_code == ACTOR_TYPE_TEAM:\n            cataloged_team_id = await upsert_team(\n                conn,\n                role.actor_name,\n                role.affiliated_organization_name,\n                candidates,\n            )'''
+          new_team = '''        if role.actor_type_code == ACTOR_TYPE_TEAM:\n            cataloged_team_id = await _resolve_summary_team_id(\n                conn,\n                role.actor_name,\n                role.affiliated_organization_name,\n                candidates,\n                allow_catalog_enrichment=allow_catalog_enrichment,\n            )'''
+          if ingestion_text.count(old_team) != 1:
+              raise SystemExit('team upsert block moved')
+          ingestion_path.write_text(ingestion_text.replace(old_team, new_team, 1))
+
+          test_path = Path('tests/test_summary_catalog_authorization.py')
+          if test_path.exists():
+              raise SystemExit('test path already exists; refusing competing writer')
+          test_path.write_text('''"""Authorization contracts for summary-driven shared-catalog enrichment."""\n\nfrom __future__ import annotations\n\nimport asyncio\nfrom types import SimpleNamespace\n\nfrom backend.app import main\nfrom backend.app.auth import CurrentAccount\nfrom backend.app import post_summary_ingestion as summary_ingestion\n\n\ndef _account(*permissions: str) -> CurrentAccount:\n    return CurrentAccount(\n        user_account_id="synthetic-account",\n        external_subject_id="synthetic-subject",\n        display_name="Synthetic Reader",\n        preferred_locale="ko",\n        corporate_entity_ids=frozenset({"synthetic-corp"}),\n        process_unit_ids=frozenset({"synthetic-pu"}),\n        permission_codes=frozenset(permissions),\n    )\n\n\ndef test_post_read_summary_persistence_never_admits_shared_catalog_clients(monkeypatch) -> None:\n    captured: dict[str, object] = {}\n\n    async def fake_persist(*_args, **kwargs):\n        captured.update(kwargs)\n        return {"post_id": "synthetic-post"}\n\n    def forbidden_live_client():\n        raise AssertionError("post_read must not construct a catalog-mutation client")\n\n    monkeypatch.setattr(main, "persist_post_summary", fake_persist)\n    monkeypatch.setattr(main, "_corporate_hierarchy_inference_client", forbidden_live_client)\n    monkeypatch.setattr(main, "_relation_verification_client", forbidden_live_client)\n\n    payload = asyncio.run(\n        main._persist_post_summary_for_account(\n            object(),\n            "synthetic-post",\n            object(),\n            post_body="synthetic evidence",\n            account=_account("post_read"),\n        )\n    )\n\n    assert payload == {"post_id": "synthetic-post"}\n    assert captured["allow_catalog_enrichment"] is False\n    assert captured["hierarchy_inference_client"].available is False\n    assert captured["verification_client"].available is False\n\n\ndef test_post_admin_summary_persistence_retains_explicit_catalog_capability(monkeypatch) -> None:\n    captured: dict[str, object] = {}\n    hierarchy = SimpleNamespace(available=True)\n    verification = SimpleNamespace(available=True)\n\n    async def fake_persist(*_args, **kwargs):\n        captured.update(kwargs)\n        return {"post_id": "synthetic-post"}\n\n    monkeypatch.setattr(main, "persist_post_summary", fake_persist)\n    monkeypatch.setattr(main, "_corporate_hierarchy_inference_client", lambda: hierarchy)\n    monkeypatch.setattr(main, "_relation_verification_client", lambda: verification)\n\n    asyncio.run(\n        main._persist_post_summary_for_account(\n            object(),\n            "synthetic-post",\n            object(),\n            post_body="synthetic evidence",\n            account=_account("post_read", "post_admin"),\n        )\n    )\n\n    assert captured["allow_catalog_enrichment"] is True\n    assert captured["hierarchy_inference_client"] is hierarchy\n    assert captured["verification_client"] is verification\n\n\ndef test_post_read_team_resolution_is_lookup_only(monkeypatch) -> None:\n    class Connection:\n        async def fetchrow(self, query, *args):\n            assert query.startswith("select team_id from cataloged_team")\n            assert args == ("Synthetic Team", "Synthetic Org")\n            return {"team_id": "known-team"}\n\n    async def forbidden_upsert(*_args, **_kwargs):\n        raise AssertionError("post_read must not upsert cataloged_team")\n\n    monkeypatch.setattr(summary_ingestion, "upsert_team", forbidden_upsert)\n    team_id = asyncio.run(\n        summary_ingestion._resolve_summary_team_id(\n            Connection(),\n            "Synthetic Team",\n            "Synthetic Org",\n            [],\n            allow_catalog_enrichment=False,\n        )\n    )\n    assert team_id == "known-team"\n\n\ndef test_post_admin_team_resolution_retains_upsert(monkeypatch) -> None:\n    async def fake_upsert(_conn, team_name, affiliation, candidates):\n        assert team_name == "Synthetic Team"\n        assert affiliation == "Synthetic Org"\n        assert candidates == []\n        return "created-team"\n\n    monkeypatch.setattr(summary_ingestion, "upsert_team", fake_upsert)\n    team_id = asyncio.run(\n        summary_ingestion._resolve_summary_team_id(\n            object(),\n            "Synthetic Team",\n            "Synthetic Org",\n            [],\n            allow_catalog_enrichment=True,\n        )\n    )\n    assert team_id == "created-team"\n''')
+
+          adr = Path('docs/adr/0375-summary-read-catalog-authorization.md')
+          if adr.exists():
+              raise SystemExit('ADR 0375 already exists; refuse number collision')
+          adr.write_text('''# ADR 0375 — summary reads cannot grant shared-catalog write authority\n\n**Decision status:** Proposed\n**Date:** 2026-09-13\n\n## Problem\n\n`GET /api/posts/{post_id}/summary` is authorized by the normal `post_read` + ABAC visibility boundary. When no current summary exists, the application derives and persists the post-owned summary projection. Before this decision, that persistence path also admitted live corporate-hierarchy inference and relation-verification clients and unconditionally upserted R&R teams. A read-only caller could therefore create or update shared `corporate_entity` / `cataloged_team` identity state as a side effect of GET. Strix run `34746057545` on #1055 exposed the corporate-entity case as CWE-862; protected `main@83eba56149eb802cd63642c507c324c9976ec78e` independently reproduces the path. Fresh code review found the same root cause in `cataloged_team` upsert.\n\n## Constraints\n\n- Preserve `post_read` access to visible summaries and the ability to materialize the post-owned summary projection.\n- Preserve read-only binding to already-known corporate, team, and person identities.\n- Keep ADR 0010's verified corporate-hierarchy creation available where explicit write authority exists.\n- Do not duplicate corporate matching, provider routing, or catalog ownership in the API layer.\n- Do not turn every summary GET into `post_admin`; reading and catalog enrichment are separate operations.\n\n## Decision\n\nThe FastAPI application boundary converts the authenticated account's `post_admin` permission into an explicit `allow_catalog_enrichment` capability passed to summary persistence. Without that capability, hierarchy inference and relation-verification are replaced by unavailable Null clients even if live clients were accidentally supplied downstream. Corporate actors may still bind to an existing unique identity, but cannot enter the verified creation fallback. Team actors use a read-only exact lookup and never call `upsert_team`. Person actors already use an existing-row lookup and require no change. With `post_admin`, the existing ADR 0010 corporate creation and team upsert behavior is preserved.\n\nThe summary projection remains writable under `post_read` because it is post-scoped derived evidence for the requested object; shared identity registries are a distinct write authority. This follows the ABAC principle that authorization evaluates subject, object, requested operation, and policy rather than treating endpoint access as authority for unrelated side effects. It also follows OWASP's requirement to authorize modification of sensitive object state rather than assuming permission to read an API object implies permission to mutate adjacent state.\n\n## Alternatives rejected\n\n- Require `post_admin` for the whole GET: rejected because it breaks the buyer read contract and conflates summary access with catalog administration.\n- Disable summary persistence for readers: rejected because it removes deterministic/idempotent materialization without addressing the capability boundary.\n- Clone a reader-local corporate/team catalog: rejected because shared identity has one canonical owner and duplication would create divergent truth.\n- Rely only on Null hierarchy/search clients: rejected because `cataloged_team` was still mutated through unconditional `upsert_team`.\n\n## Risks and verification\n\nThe main regression risk is losing catalog binding for readers. Tests therefore require low-privilege readers to retain existing-identity lookup while proving live mutation clients and team upsert are not admitted; admin tests prove the enrichment path remains. The real PostgreSQL + Keycloak + Valkey authenticated topology remains #1057's owner and must prove the same invariant before #1055 promotion. Strix must be rerun on the repaired exact source head.\n\n## Related\n\n- ADR 0010 — verified corporate hierarchy auto-creation\n- ADR 0028 — Keyverse/OIDC identity boundary\n- ADR 0041 — source context versus authorization scope\n- Issues #1078 (security owner), #1077 (separate DB connection-lease invariant), #1057 (real authenticated topology)\n\n## References — APA 7th\n\nHu, V. C., Ferraiolo, D. F., Kuhn, D. R., Schnitzer, A., Sandlin, K., Miller, R., & Scarfone, K. (2019). *Guide to attribute based access control (ABAC) definition and considerations* (NIST Special Publication 800-162, updated August 2, 2019). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-162\n\nOWASP Foundation. (2023). *OWASP API Security Top 10 — API1:2023 Broken Object Level Authorization*. https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/\n''')
+
+          architecture = Path('ARCHITECTURE.md')
+          architecture_text = architecture.read_text()
+          architecture_heading = '## Summary shared-catalog authorization boundary (ADR 0375)'
+          if architecture_heading not in architecture_text:
+              architecture.write_text(architecture_text.rstrip() + '''\n\n## Summary shared-catalog authorization boundary (ADR 0375)\n\nA visible summary is a `post_read` projection, but shared actor catalogs are not. The summary application service derives one explicit catalog-enrichment capability from `post_admin`. Reader materialization may bind already-known identities but cannot admit hierarchy/search creation clients or upsert `cataloged_team`; administrators retain the verified ADR 0010 enrichment path. This keeps post-owned summary persistence separate from shared master-data mutation and prevents a GET permission from becoming implicit catalog-write authority.\n''')
+
+          changelog = Path('CHANGELOG.d/2.28.1-summary-catalog-authorization.md')
+          if changelog.exists():
+              raise SystemExit('changelog fragment already exists')
+          changelog.write_text('''### Security\n\n- Summary GET materialization now separates `post_read` projection writes from shared identity-catalog enrichment. Read-only callers can reuse existing corporate/team/person identities but cannot create corporate hierarchy rows, admit mutation-capable hierarchy/search providers, or upsert `cataloged_team`; `post_admin` retains the explicit enrichment capability (ADR 0375, #1078).\n''')
+          PY
+
+      - name: Verify repaired source contract and syntax
+        shell: bash
+        run: |
+          python -m compileall -q backend/app/main.py backend/app/post_summary_ingestion.py tests/test_summary_catalog_authorization.py
+          python - <<'PY'
+          from pathlib import Path
+          main = Path('backend/app/main.py').read_text()
+          ingestion = Path('backend/app/post_summary_ingestion.py').read_text()
+          tests = Path('tests/test_summary_catalog_authorization.py').read_text()
+          assert '_persist_post_summary_for_account(' in main
+          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main
+          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in main
+          assert 'verification_client=_relation_verification_client(),' not in main
+          assert 'if allow_catalog_enrichment:' in ingestion
+          assert '_resolve_summary_team_id(' in ingestion
+          assert 'allow_catalog_enrichment=False' in tests
+          assert 'forbidden_upsert' in tests
+          print('GREEN: reader summary path no longer owns shared-catalog mutation capability')
+          PY
+
+      - name: Remove purpose-complete repair workflow
+        shell: bash
+        run: rm .github/workflows/repair-summary-catalog-authorization-1078.yml
+
+      - name: Commit repaired source
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(security): gate summary catalog enrichment (#1078)'
+          git push origin HEAD:fix/summary-catalog-authorization-1078
