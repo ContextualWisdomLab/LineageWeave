@@ -23,22 +23,24 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
           path = Path('.github/workflows/repair-summary-catalog-authorization-1078.yml')
           text = path.read_text()
-          old = """          assert '_persist_post_summary_for_account(' in main
-          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main
-          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in main
-          assert 'verification_client=_relation_verification_client(),' not in main
-"""
-          new = """          assert '_persist_post_summary_for_account(' in main
-          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main
-          summary_endpoint = main.split('@app.get(\"/api/posts/{post_id}/summary\")', 1)[1].split('\\n@app.', 1)[0]
-          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in summary_endpoint
-          assert 'verification_client=_relation_verification_client(),' not in summary_endpoint
-"""
-          if text.count(old) != 1:
-              raise SystemExit(f'expected exactly one stale verification block, found {text.count(old)}')
+          old = (
+              "          assert '_persist_post_summary_for_account(' in main\n"
+              "          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main\n"
+              "          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in main\n"
+              "          assert 'verification_client=_relation_verification_client(),' not in main\n"
+          )
+          new = (
+              "          assert '_persist_post_summary_for_account(' in main\n"
+              "          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main\n"
+              "          summary_endpoint = main.split('@app.get(\\\"/api/posts/{post_id}/summary\\\")', 1)[1].split('\\\\n@app.', 1)[0]\n"
+              "          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in summary_endpoint\n"
+              "          assert 'verification_client=_relation_verification_client(),' not in summary_endpoint\n"
+          )
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one stale verification block, found {count}')
           path.write_text(text.replace(old, new, 1))
           PY
 
