@@ -1,0 +1,75 @@
+name: Repair PR 859 comparison distance assertions
+
+on:
+  push:
+    branches:
+      - feat/leftover-map-compare-plot-distance-v2760
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact triggering head
+        uses: actions/checkout@v5
+        with:
+          ref: feat/leftover-map-compare-plot-distance-v2760
+          fetch-depth: 0
+
+      - name: Repair only comparison-variant stale distance assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('frontend/src/components/LeftoverMapPlot.test.tsx')
+          text = path.read_text()
+          marker = '  it("omits leftover-map comparison graphic reconstruction when R̂ is missing or not usable", () => {'
+          prefix, sep, suffix = text.partition(marker)
+          if not sep:
+              raise SystemExit('comparison omission marker not found')
+
+          old_012 = 'screen.getByLabelText("leftover-map distance d 0.12")'
+          old_184 = 'screen.getByLabelText("leftover-map distance d 1.84")'
+          new_012 = 'screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")'
+          new_184 = 'screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")'
+
+          if suffix.count(old_012) != 8 or suffix.count(old_184) != 8:
+              raise SystemExit(
+                  f'unexpected stale comparison assertion counts: 0.12={suffix.count(old_012)} 1.84={suffix.count(old_184)}'
+              )
+
+          repaired = suffix.replace(old_012, new_012).replace(old_184, new_184)
+          if old_012 in repaired or old_184 in repaired:
+              raise SystemExit('stale comparison distance assertions remain')
+          path.write_text(prefix + sep + repaired)
+          PY
+
+          git diff --check
+          changed="$(git diff --name-only)"
+          test "$changed" = "frontend/src/components/LeftoverMapPlot.test.tsx"
+
+      - name: Remove purpose-complete repair workflow
+        shell: bash
+        run: rm .github/workflows/repair-pr-859-distance-assertions.yml
+
+      - name: Commit and fast-forward publish exact repair
+        shell: bash
+        env:
+          BRANCH: feat/leftover-map-compare-plot-distance-v2760
+        run: |
+          set -euo pipefail
+          remote_sha="$(git ls-remote origin "refs/heads/${BRANCH}" | cut -f1)"
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "branch moved: expected $GITHUB_SHA, found $remote_sha" >&2
+            exit 1
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add frontend/src/components/LeftoverMapPlot.test.tsx .github/workflows/repair-pr-859-distance-assertions.yml
+          git commit -m "test(reports): align comparison distance a11y assertions"
+          git push origin "HEAD:${BRANCH}"
