@@ -53,27 +53,31 @@ jobs:
           kst = timezone(timedelta(hours=9))
           now = datetime.now(kst).strftime("%Y-%m-%d %H:%M KST")
           readiness = "Draft" if os.environ["PR_DRAFT"] == "true" else "Ready validation admission"
-          overlay = f'''\n\n> Live-authority overlay: {now}. Protected `main` is `{os.environ["MAIN_SHA"]}`;
-> inventory is {os.environ["OPEN_PRS"]} open PR / {os.environ["OPEN_ISSUES"]} open issue.
-> Customer Master ownership repair #1055 is {readiness} at exact
-> `{os.environ["PR_HEAD"]}`. Current repair separates source-post corporate/process
-> authorization ownership from corroborated customer identity and delegates corporate
-> catalog binding to the accepted `get_or_create_corporate_entity` owner (ADR 0010,
-> ADR 0012, ADR 0160) instead of a Customer Master-local display-name lookup/direct
-> insert. Source authorization locks are reacquired only for the short exact-source
-> revalidation/persistence transaction after external corroboration/catalog resolution.
-> Validation evidence from predecessor heads does not transfer across this head.
->
-> #1042, #1054, #1047, #1049 and #1046 remain repair prerequisites/Draft unless
-> their own live PR authority says otherwise. #1042's Medium CWE-862 period-report
-> aggregate disclosure remains owned by #1050/#1054, not duplicated into Customer
-> Master relationship code. Canonical central workflow defects remain `.github#1929`
-> (required CodeQL producer/consumer ordering) and `.github#2045` (unchanged-head
-> Ready reconciliation). Protected-main release metadata is still blocked by the
-> tracked `pyproject.toml` 2.28.0 versus `lineageweave.__version__` 2.20.0 mismatch;
-> no release is admitted from this overlay. Older overlays below are dated evidence.
-'''
-          path.write_text(marker + overlay + text[len(marker):], encoding="utf-8")
+          lines = [
+              "",
+              "",
+              f"> Live-authority overlay: {now}. Protected `main` is `{os.environ['MAIN_SHA']}`;",
+              f"> inventory is {os.environ['OPEN_PRS']} open PR / {os.environ['OPEN_ISSUES']} open issue.",
+              f"> Customer Master ownership repair #1055 is {readiness} at exact",
+              f"> `{os.environ['PR_HEAD']}`. Current repair separates source-post corporate/process",
+              "> authorization ownership from corroborated customer identity and delegates corporate",
+              "> catalog binding to the accepted `get_or_create_corporate_entity` owner (ADR 0010,",
+              "> ADR 0012, ADR 0160) instead of a Customer Master-local display-name lookup/direct",
+              "> insert. Source authorization locks are reacquired only for the short exact-source",
+              "> revalidation/persistence transaction after external corroboration/catalog resolution.",
+              "> Validation evidence from predecessor heads does not transfer across this head.",
+              ">",
+              "> #1042, #1054, #1047, #1049 and #1046 remain repair prerequisites/Draft unless",
+              "> their own live PR authority says otherwise. #1042's Medium CWE-862 period-report",
+              "> aggregate disclosure remains owned by #1050/#1054, not duplicated into Customer",
+              "> Master relationship code. Canonical central workflow defects remain `.github#1929`",
+              "> (required CodeQL producer/consumer ordering) and `.github#2045` (unchanged-head",
+              "> Ready reconciliation). Protected-main release metadata is still blocked by the",
+              "> tracked `pyproject.toml` 2.28.0 versus `lineageweave.__version__` 2.20.0 mismatch;",
+              "> no release is admitted from this overlay. Older overlays below are dated evidence.",
+              "",
+          ]
+          path.write_text(marker + "\n".join(lines) + text[len(marker):], encoding="utf-8")
           PY
       - name: Remove purpose-complete workflow and publish normally
         shell: bash
