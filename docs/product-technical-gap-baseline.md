@@ -1,6 +1,27 @@
 # Product & Technical Gap Baseline
 
 
+> Live-authority overlay: 2026-09-13 12:11 KST. Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
+> inventory is 159 open PR / 36 open issue.
+> Customer Master ownership repair #1055 is Ready validation admission at exact
+> `08a08108a87657ad427a6b6fa9b1b327166b0c9e`. Current repair separates source-post corporate/process
+> authorization ownership from corroborated customer identity and delegates corporate
+> catalog binding to the accepted `get_or_create_corporate_entity` owner (ADR 0010,
+> ADR 0012, ADR 0160) instead of a Customer Master-local display-name lookup/direct
+> insert. Source authorization locks are reacquired only for the short exact-source
+> revalidation/persistence transaction after external corroboration/catalog resolution.
+> Validation evidence from predecessor heads does not transfer across this head.
+>
+> #1042, #1054, #1047, #1049 and #1046 remain repair prerequisites/Draft unless
+> their own live PR authority says otherwise. #1042's Medium CWE-862 period-report
+> aggregate disclosure remains owned by #1050/#1054, not duplicated into Customer
+> Master relationship code. Canonical central workflow defects remain `.github#1929`
+> (required CodeQL producer/consumer ordering) and `.github#2045` (unchanged-head
+> Ready reconciliation). Protected-main release metadata is still blocked by the
+> tracked `pyproject.toml` 2.28.0 versus `lineageweave.__version__` 2.20.0 mismatch;
+> no release is admitted from this overlay. Older overlays below are dated evidence.
+
+
 > Exact-head loop overlay: 2026-09-13 11:55 KST. Protected `main` is still
 > `83eba56149eb802cd63642c507c324c9976ec78e`. Customer Master customer-hint
 > ownership repair #1055 now has final causal head
