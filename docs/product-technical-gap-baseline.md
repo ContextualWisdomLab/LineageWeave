@@ -1,5 +1,33 @@
 # Product & Technical Gap Baseline
 
+
+> Exact-head loop overlay: 2026-09-13 11:55 KST. Protected `main` is still
+> `83eba56149eb802cd63642c507c324c9976ec78e`. Customer Master customer-hint
+> ownership repair #1055 now has final causal head
+> `b26e5391d087e2e9610a8c0d52eaeb68f1f912a7`. Predecessor `7dbd1333...`
+> completed repository/full-PostgreSQL Tests, Security, SAST, dynamic CodeQL,
+> Noema and Strix successfully but remained blocked by Required CodeQL/OpenCode;
+> it returned to Draft before further changes, and those receipts do not transfer.
+>
+> Three ordinary non-force follow-ups close the remaining docstring/test-contract
+> acceptance without changing Customer Master production semantics: focused unit
+> helpers now have meaningful docstrings and assert the exact association INSERT
+> tuple, the live PostgreSQL ownership proof is documented, and
+> `tests/test_customer_hint_docstring_contract.py` AST-enforces docstrings on every
+> production function owned/touched by this repair. #1055 is Ready only as exact-head
+> validation admission. The causal `b26e5391...` push materialized ten fresh lanes,
+> including repository Tests/Security/SAST/CodeQL, dynamic CodeQL/Code Quality,
+> Required scheduler, Strix, OpenCode and Noema; they are currently queued/running.
+> No predecessor GREEN or approval counts toward promotion.
+>
+> #1042, #1054, #1047, #1049 and #1046 remain Draft. #1042's real Medium CWE-862
+> period-report aggregate finding remains owned by #1050/#1054 rather than duplicated
+> into Customer Master relationship-network code. Canonical central workflow defects
+> remain `.github#1929` (CodeQL producer/consumer ordering) and `.github#2045`
+> (unchanged-head Ready reconciliation). Protected-main release metadata remains
+> inconsistent (`pyproject.toml` 2.28.0 versus `lineageweave.__version__` 2.20.0),
+> so no release is admitted. PR #1041 remains Draft; older overlays are dated evidence.
+
 > Exact-head loop overlay: 2026-09-13 11:00 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e`. Customer Master process-unit
 > repair #1042 is now Draft at exact
