@@ -1,5 +1,41 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-13 11:00 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e`. Customer Master process-unit
+> repair #1042 is now Draft at exact
+> `f23f5a567bd66113603837f86f030c3c459e69e6`: Strix `34721720240`
+> terminalized FAILURE after setup and scan execution. Immutable artifact
+> `10309695301` (95,509 bytes,
+> `sha256:47822709dfdc45968569dbd4adf6bde167ba5eb46277503e906ee9625262d8b8`)
+> contains one real Medium CWE-862 finding: mixed-visibility project/thread/team
+> period-report endpoints could disclose full-population stored aggregates when
+> at least one contributor remained visible. That defect is already isolated in
+> #1050/#1054; #1054 is the security prerequisite and report authorization is not
+> duplicated into #1042. Future #1042 integration requires a non-force descendant
+> restack/reconstruction after that prerequisite lands.
+>
+> Customer-hint ownership repair #1055 is on exact
+> `7dbd133320d8b12bde394569955e0ae6503f8f39`. Predecessor repository validation
+> reached 1771 passed / 147 skipped and then exposed two owned REDs: migration
+> 0250 was not replay-safe and the static SQL-review ledger still expected 36
+> suppressions after the repair legitimately removed one. Exact head now uses
+> `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` and tracks 35
+> reviewed suppressions. Security `34731558854`, SAST `34731558875`, dynamic
+> GitHub CodeQL `34731558343`, and Code Quality `34731558308` are GREEN.
+> Repository Tests `34731586226`, Required Noema `34731558900`, and Strix
+> `34731558917` are still live. Required CodeQL `34731558861` failed because
+> compatibility consumers terminalized before the producer dispatch later
+> succeeded; canonical owner `.github#1929` carries the unchanged-head canary.
+> Required OpenCode `34731558957` failed closed without a current-head verdict.
+> #1055 is Ready only as a live validation admission, not a merge-ready claim.
+>
+> #1054 remains Draft at `4519c101f13e08c10653b95ff88d66b4ce47f0b8` with
+> repository Tests GREEN and central unchanged-head workflow reconciliation owned
+> by `.github#2045`. Protected-main release metadata remains inconsistent:
+> `pyproject.toml` declares 2.28.0 while `lineageweave.__version__` declares 2.20.0.
+> No release is admitted while that blocker or any current required gate remains.
+> PR #1041 remains Draft; every older overlay below is dated evidence only.
+
 
 > Exact-head loop overlay: 2026-09-13 10:14 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e`, protected with a valid verified
