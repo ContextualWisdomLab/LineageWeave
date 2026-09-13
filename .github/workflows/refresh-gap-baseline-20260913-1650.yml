@@ -1,87 +1,98 @@
-name: Refresh gap baseline 2026-09-13 1650
+name: Bounded product gap baseline refresh
 
 on:
   push:
-    branches: [codex/gap-loop-20260912]
-    paths:
-      - .github/workflows/refresh-gap-baseline-20260913-1650.yml
+    branches:
+      - codex/gap-loop-20260912
 
 permissions:
   contents: write
 
-concurrency:
-  group: refresh-gap-baseline-20260913-1650
-  cancel-in-progress: false
-
 jobs:
   refresh:
-    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout documentation lane
+      - name: Checkout exact branch head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           ref: codex/gap-loop-20260912
-          fetch-depth: 1
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Prepend current live-authority overlay
+      - name: Verify single-writer head
         shell: bash
         run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin refs/heads/codex/gap-loop-20260912 | cut -f1)"
+          test "$remote_head" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Refresh current authority overlay
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
 
-          path = Path("docs/product-technical-gap-baseline.md")
-          text = path.read_text(encoding="utf-8")
-          title = "# Product & Technical Gap Baseline\n"
+          path = Path('docs/product-technical-gap-baseline.md')
+          text = path.read_text()
+          title = '# Product & Technical Gap Baseline\n'
           if not text.startswith(title):
-              raise SystemExit("unexpected baseline title")
-
-          overlay = r'''
-
-> Live-authority overlay: 2026-09-13 16:50 KST. Protected `main` remains
-> `83eba56149eb802cd63642c507c324c9976ec78e`, protected and signed/verified.
-> Customer Master ownership issue #1052 / PR #1055 advanced to exact
+              raise SystemExit('unexpected baseline title')
+          stamp = datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M KST')
+          overlay = f'''\n\n> Live-authority overlay: {stamp}. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` pending final double sweep.
+> Customer Master ownership issue #1052 / PR #1055 is on exact
 > `50c4935eef1029467595f7004818643598b737c9`, Ready only for validation
 > admission. Predecessor `8448a2b4e06c6ef415dd98b3eaa1f7f36669fe94`
 > exposed a real repository RED after the shared eligibility SQL qualification:
 > Tests `34743575403` ended `2 failed, 1777 passed, 147 skipped`. The two failures
-> were the corroborated-association/reused-catalog unit tests. RCA showed their
-> fake query recognizers still expected the old unqualified `select post_id ...`
-> SQL, so they returned no captured evidence after production queries were
-> correctly qualified with `source_post.*`; the scope-change test also stopped
-> reaching its intended revalidation phase.
+> were the corroborated-association/reused-catalog unit tests. Their fake query
+> recognizers still expected the old unqualified capture/revalidation SQL, so
+> they returned no evidence after production queries were correctly qualified
+> with `source_post.*`; the scope-change test also stopped reaching revalidation.
 >
-> Causal commit `50c4935e...` changes only those unit-fake recognizers to the
-> canonical qualified capture/revalidation SQL. It does not change production
-> authorization, persistence, locking, provider/model selection or workflow
-> gates. Fresh exact-head validation materialized without no-op churn. Frontend
-> lint/test/build/Storybook is GREEN; Security `34746058657` and SAST
-> `34746058639` are GREEN. Full PostgreSQL Tests `34746058653`, Required CodeQL
-> `34746058693`, Noema `34746057619` and Strix `34746057545` remain live at this
-> snapshot. Required OpenCode `34746057593` is terminal FAILURE, so #1055 is not
-> merge-ready and no predecessor review receipt transfers. All visible inline
-> review threads are resolved/outdated.
+> Causal commit `50c4935e...` changes only those test fake recognizers to the
+> canonical qualified SQL. Production authorization, persistence, locking,
+> provider/model selection and workflow gates are unchanged. Fresh exact-head
+> validation materialized from this causal commit without no-op churn. Frontend
+> lint/test/build/Storybook, Security `34746058657`, and SAST `34746058639` are
+> GREEN. Full PostgreSQL Tests `34746058653`, Required CodeQL `34746058693`,
+> Noema `34746057619`, and Strix `34746057545` were still live at this snapshot;
+> Required OpenCode `34746057593` is terminal FAILURE. No predecessor review
+> receipt transfers, and #1055 is not merge-ready.
 >
-> #1057 remains the separate required PostgreSQL + Keycloak + Valkey
-> bearer/JWKS/RBAC/ABAC hosted-topology owner. Central required-workflow repair
-> remains in `.github#1929/#2106` for CodeQL producer/consumer settlement and
-> `.github#2045/#2109` for Ready-transition/model-review reconciliation;
-> LineageWeave does not copy those owner implementations. Draft #961 remains the
-> package/runtime-version source repair and #1056 carries immutable
-> release/SBOM/provenance/reproducibility/rollback acceptance. Protected main
-> still has package/frontend `2.28.0` versus runtime `2.20.0` until normal
-> integration. No release is admitted by this overlay. Older overlays below are
-> dated evidence only.
+> #1057 remains the separate PostgreSQL + Keycloak + Valkey bearer/JWKS/RBAC/ABAC
+> hosted-topology owner. Central workflow repair remains `.github#1929/#2106`
+> for CodeQL producer/consumer settlement and `.github#2045/#2109` for Ready
+> transition/model-review reconciliation; LineageWeave does not copy those owner
+> implementations. Draft #961 remains the package/runtime-version source repair
+> and #1056 carries immutable release/SBOM/provenance/reproducibility/rollback
+> acceptance. Protected main still has package/frontend `2.28.0` versus runtime
+> `2.20.0` until normal integration. No release is admitted by this overlay.
+> Older overlays below are dated evidence only.
 '''
-          path.write_text(title + overlay + text[len(title):], encoding="utf-8")
+          path.write_text(title + overlay + text[len(title):])
           PY
 
-      - name: Publish ordinary self-cleaning documentation commit
+      - name: Publish ordinary self-cleaning docs commit
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "LineageWeave maintenance"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/refresh-gap-baseline-20260913-1650.yml
-          git add docs/product-technical-gap-baseline.md
-          git diff --cached --check
-          git commit -m "docs(gaps): refresh current Customer Master evidence"
-          git push origin HEAD:codex/gap-loop-20260912
+          set -euo pipefail
+          rm .github/workflows/refresh-gap-baseline-20260913-1650.yml
+          git add docs/product-technical-gap-baseline.md .github/workflows/refresh-gap-baseline-20260913-1650.yml
+          if git diff --cached --quiet; then
+            echo 'No baseline delta to publish' >&2
+            exit 1
+          fi
+          remote_head="$(git ls-remote origin refs/heads/codex/gap-loop-20260912 | cut -f1)"
+          test "$remote_head" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs(gaps): refresh current Customer Master evidence'
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:codex/gap-loop-20260912
