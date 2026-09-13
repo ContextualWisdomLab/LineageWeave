@@ -29,6 +29,7 @@ _MIGRATIONS_DIR = _ROOT / "migrations"
 
 
 def _postgres_available() -> bool:
+    """Return whether the configured PostgreSQL admin endpoint is reachable."""
     try:
         connection = psycopg2.connect(_ADMIN_DSN, connect_timeout=2)
         connection.close()
@@ -47,11 +48,13 @@ pytestmark = pytest.mark.skipif(
 
 
 def _database_dsn(database_name: str) -> str:
+    """Derive an isolated database DSN from the configured admin DSN."""
     parsed = urlsplit(_ADMIN_DSN)
     return urlunsplit(parsed._replace(path=f"/{database_name}"))
 
 
 def _apply_migrations(database_dsn: str) -> None:
+    """Apply the repository migration sequence exactly through psql."""
     for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
         subprocess.run(
             ["psql", "-X", "-v", "ON_ERROR_STOP=1", database_dsn, "-f", str(migration)],
@@ -63,6 +66,7 @@ def _apply_migrations(database_dsn: str) -> None:
 
 @pytest.fixture(scope="module")
 def customer_resolution_dsn():
+    """Yield a fully migrated disposable database for cross-tenant resolution tests."""
     database_name = f"lineageweave_customer_resolution_{uuid.uuid4().hex[:10]}"
     admin_connection = psycopg2.connect(_ADMIN_DSN)
     admin_connection.autocommit = True
@@ -87,6 +91,7 @@ def customer_resolution_dsn():
 
 
 def _seed_cross_tenant_hint(database_dsn: str) -> dict[str, str]:
+    """Seed two private tenants sharing one raw hint plus one resolved catalog identity."""
     connection = psycopg2.connect(database_dsn)
     connection.autocommit = True
     with connection.cursor() as cursor:
@@ -184,14 +189,19 @@ def _seed_cross_tenant_hint(database_dsn: str) -> dict[str, str]:
 
 
 class _ResolutionClient:
+    """Available client marker; the external resolver is monkeypatched for determinism."""
+
     available = True
 
 
 class _VerificationClient:
+    """Verification marker consumed only by the monkeypatched corroboration boundary."""
+
     pass
 
 
 def _corroborated_resolution():
+    """Return deterministic externally corroborated customer identity evidence."""
     return SimpleNamespace(
         raw_organization_name="SYNTH-CUSTOMER-001",
         resolved_organization_name="Resolved Customer",
@@ -203,6 +213,7 @@ def _corroborated_resolution():
 def test_live_resolution_uses_only_visible_sources_and_preserves_tenant_ownership(
     customer_resolution_dsn: str, monkeypatch
 ) -> None:
+    """Only caller-visible posts may resolve while both tenants keep original ownership."""
     seeded = _seed_cross_tenant_hint(customer_resolution_dsn)
     monkeypatch.setattr(
         ingestion,
@@ -211,6 +222,7 @@ def test_live_resolution_uses_only_visible_sources_and_preserves_tenant_ownershi
     )
 
     async def exercise() -> dict:
+        """Execute the production async resolver against the disposable PostgreSQL database."""
         pool = await asyncpg.create_pool(customer_resolution_dsn, min_size=1, max_size=2)
         try:
             return await ingestion.resolve_customer_hint(
