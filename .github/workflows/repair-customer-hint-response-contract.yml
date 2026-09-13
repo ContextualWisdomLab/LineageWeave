@@ -183,23 +183,55 @@ jobs:
 
           api_path = Path("backend/tests/test_api.py")
           api = api_path.read_text()
-          old = '''            "resolution_status": "hint_only",
-              "hint_trust": "normal",
-              "provenance": "source_post.source_customer_code/source_post.source_customer_name",
-          '''
-          new = '''            "resolution_status": "hint_only",
-              "resolved_corporate_entity_id": None,
-              "resolved_entity_name": None,
-              "verification_evidence_url": None,
-              "hint_trust": "normal",
-              "provenance": (
-                  "source_post.source_customer_code/source_post.source_customer_name/"
-                  "source_post_customer_resolution.resolved_corporate_entity_id"
-              ),
-          '''
-          if api.count(old) != 1:
-              raise SystemExit(f"stale E2E response expectation count is {api.count(old)}, expected 1")
-          api_path.write_text(api.replace(old, new, 1))
+          function_marker = "def test_customer_master_returns_authorized_catalog_contract"
+          fn_start = api.find(function_marker)
+          if fn_start < 0:
+              raise SystemExit("authenticated Customer Master contract function not found")
+          fn_end = api.find("\ndef ", fn_start + len(function_marker))
+          if fn_end < 0:
+              fn_end = len(api)
+          block = api[fn_start:fn_end]
+
+          status_token = '"resolution_status": "hint_only",'
+          provenance_token = (
+              '"provenance": '
+              '"source_post.source_customer_code/source_post.source_customer_name",'
+          )
+          if block.count(status_token) != 1:
+              raise SystemExit(
+                  f"authenticated status token count is {block.count(status_token)}, expected 1"
+              )
+          if block.count(provenance_token) != 1:
+              raise SystemExit(
+                  f"authenticated provenance token count is {block.count(provenance_token)}, expected 1"
+              )
+          if '"resolved_corporate_entity_id"' in block:
+              raise SystemExit("authenticated response expectation already contains resolution fields")
+
+          status_pos = block.index(status_token)
+          status_line_start = block.rfind("\n", 0, status_pos) + 1
+          indent = block[status_line_start:status_pos]
+          status_replacement = (
+              f'{indent}{status_token}\n'
+              f'{indent}"resolved_corporate_entity_id": None,\n'
+              f'{indent}"resolved_entity_name": None,\n'
+              f'{indent}"verification_evidence_url": None,'
+          )
+          old_status_line = f"{indent}{status_token}"
+          block = block.replace(old_status_line, status_replacement, 1)
+
+          provenance_pos = block.index(provenance_token)
+          provenance_line_start = block.rfind("\n", 0, provenance_pos) + 1
+          provenance_indent = block[provenance_line_start:provenance_pos]
+          old_provenance_line = f"{provenance_indent}{provenance_token}"
+          provenance_replacement = (
+              f'{provenance_indent}"provenance": (\n'
+              f'{provenance_indent}    "source_post.source_customer_code/source_post.source_customer_name/"\n'
+              f'{provenance_indent}    "source_post_customer_resolution.resolved_corporate_entity_id"\n'
+              f'{provenance_indent}),'
+          )
+          block = block.replace(old_provenance_line, provenance_replacement, 1)
+          api_path.write_text(api[:fn_start] + block + api[fn_end:])
           PY
 
       - name: Exact-head focused GREEN
