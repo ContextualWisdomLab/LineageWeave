@@ -26,55 +26,30 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import ast
-
           api_path = Path("backend/tests/test_api.py")
           api = api_path.read_text()
-          target = """    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
-
-    class _FakeSummaryClient:
-"""
-          replacement = """    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
-
-    _grant_post_admin(seeded_db["dsn"])
-
-    class _FakeSummaryClient:
-"""
+          target = "    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility\n\n    class _FakeSummaryClient:\n"
+          replacement = "    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility\n\n    _grant_post_admin(seeded_db[\"dsn\"])\n\n    class _FakeSummaryClient:\n"
           if api.count(target) != 1:
               raise SystemExit(f"expected one same-team admin insertion point, found {api.count(target)}")
           api = api.replace(target, replacement, 1)
           ast.parse(api)
           api_path.write_text(api)
-
           contract_path = Path("tests/test_ingestion_transaction_contracts.py")
           contracts = contract_path.read_text()
-
           def add_explicit_enrichment(function_name: str, source: str) -> str:
               start = source.index(f"def {function_name}")
               next_def = source.find("\ndef ", start + 4)
               end = len(source) if next_def == -1 else next_def
               section = source[start:end]
-              needle = """            str(uuid.uuid4()),
-            summary,
-        )"""
+              needle = "            str(uuid.uuid4()),\n            summary,\n        )"
               if section.count(needle) != 1:
-                  raise SystemExit(
-                      f"expected one persist call in {function_name}, found {section.count(needle)}"
-                  )
-              replacement_call = """            str(uuid.uuid4()),
-            summary,
-            allow_catalog_enrichment=True,
-        )"""
+                  raise SystemExit(f"expected one persist call in {function_name}, found {section.count(needle)}")
+              replacement_call = "            str(uuid.uuid4()),\n            summary,\n            allow_catalog_enrichment=True,\n        )"
               section = section.replace(needle, replacement_call, 1)
               return source[:start] + section + source[end:]
-
-          contracts = add_explicit_enrichment(
-              "test_post_summary_replacement_mentions_and_edges_share_one_transaction",
-              contracts,
-          )
-          contracts = add_explicit_enrichment(
-              "test_organization_enrichment_finishes_before_summary_transaction",
-              contracts,
-          )
+          contracts = add_explicit_enrichment("test_post_summary_replacement_mentions_and_edges_share_one_transaction", contracts)
+          contracts = add_explicit_enrichment("test_organization_enrichment_finishes_before_summary_transaction", contracts)
           ast.parse(contracts)
           contract_path.write_text(contracts)
           PY
