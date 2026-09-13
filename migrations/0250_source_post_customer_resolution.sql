@@ -1,6 +1,6 @@
 begin;
 
-create table source_post_customer_resolution (
+create table if not exists source_post_customer_resolution (
     post_id uuid primary key references source_post(post_id) on delete cascade,
     source_customer_code text not null,
     resolved_corporate_entity_id uuid not null references corporate_entity(corporate_entity_id),
@@ -14,7 +14,7 @@ create table source_post_customer_resolution (
         check (btrim(resolved_entity_name) <> '')
 );
 
-create index source_post_customer_resolution_entity_idx
+create index if not exists source_post_customer_resolution_entity_idx
     on source_post_customer_resolution (resolved_corporate_entity_id, post_id);
 
 comment on table source_post_customer_resolution is
