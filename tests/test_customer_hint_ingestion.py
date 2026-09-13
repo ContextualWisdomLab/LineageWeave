@@ -17,6 +17,9 @@ class _UnavailableClient:
     available = False
 
 
+_DEFAULT_CLIENT = _Client()
+
+
 class _Transaction:
     async def __aenter__(self):
         return self
@@ -87,7 +90,7 @@ def _resolution(status: str):
     )
 
 
-def _resolve(pool, resolution_client=_Client()):
+def _resolve(pool, resolution_client=_DEFAULT_CLIENT):
     return ingestion.resolve_customer_hint(
         pool,
         resolution_client,

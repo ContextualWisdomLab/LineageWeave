@@ -25,14 +25,14 @@ import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date, datetime, timezone
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 
 from lineageweave.claim_verification import (
     NullClaimVerificationClient,
@@ -912,7 +912,7 @@ class LocalePreferenceRequest(BaseModel):
 class CustomerHintResolveRequest(BaseModel):
     """Body of a POST /api/customer-master/resolve-hint request."""
 
-    hint_code: str
+    hint_code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 @app.patch("/api/me/preferences")
@@ -962,11 +962,12 @@ async def read_customer_master(
                            as resolved_corporate_entity_id,
                        resolution.resolved_entity_name,
                        resolution.verification_status_code,
-                       resolution.verification_evidence_url
+                       resolution.verification_evidence_url,
+                       resolution.resolved_at
                   from source_post
                   left join source_post_customer_resolution resolution
                     on resolution.post_id = source_post.post_id
-                   and resolution.source_customer_code = btrim(source_post.source_customer_code)
+                   and resolution.source_customer_code = source_post.source_customer_code
                  where (nullif(btrim(source_post.source_customer_code), '') is not null
                         or nullif(btrim(source_post.source_customer_name), '') is not null)
                    and (visibility_code = 'public' or (
@@ -979,17 +980,25 @@ async def read_customer_master(
                        row_number() over (
                            partition by customer_code, customer_name_group
                            order by created_at desc, post_id desc
-                       ) as related_rank
+                       ) as related_rank,
+                       row_number() over (
+                           partition by customer_code, customer_name_group
+                           order by resolved_at desc nulls last, post_id desc
+                       ) as resolution_rank
                   from scoped
             ), groups as (
                 select customer_code, customer_name_group,
                        max(customer_name) as customer_name,
                        count(*) as post_count,
                        count(distinct resolved_corporate_entity_id) as resolution_entity_count,
-                       max(resolved_corporate_entity_id) as resolved_corporate_entity_id,
-                       max(resolved_entity_name) as resolved_entity_name,
-                       max(verification_status_code) as verification_status_code,
-                       max(verification_evidence_url) as verification_evidence_url
+                       max(resolved_corporate_entity_id) filter (where resolution_rank = 1)
+                           as resolved_corporate_entity_id,
+                       max(resolved_entity_name) filter (where resolution_rank = 1)
+                           as resolved_entity_name,
+                       max(verification_status_code) filter (where resolution_rank = 1)
+                           as verification_status_code,
+                       max(verification_evidence_url) filter (where resolution_rank = 1)
+                           as verification_evidence_url
                   from ranked
                  group by customer_code, customer_name_group
             ), top_groups as materialized (

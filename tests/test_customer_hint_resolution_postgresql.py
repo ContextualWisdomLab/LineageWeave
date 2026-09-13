@@ -146,6 +146,7 @@ def _seed_cross_tenant_hint(database_dsn: str) -> dict[str, str]:
         )
         author_id = str(cursor.fetchone()[0])
         hint_code = "SYNTH-CUSTOMER-001"
+        stored_hint_code = f"  {hint_code}  "
         posts: dict[str, str] = {}
         for tenant_name, entity_id in (("a", tenant_a_id), ("b", tenant_b_id)):
             cursor.execute(
@@ -165,7 +166,7 @@ def _seed_cross_tenant_hint(database_dsn: str) -> dict[str, str]:
                     process_by_entity[entity_id],
                     f"Tenant {tenant_name.upper()} evidence",
                     f"Synthetic {tenant_name} body",
-                    hint_code,
+                    stored_hint_code,
                 ),
             )
             posts[tenant_name] = str(cursor.fetchone()[0])
@@ -178,6 +179,7 @@ def _seed_cross_tenant_hint(database_dsn: str) -> dict[str, str]:
         "post_a": posts["a"],
         "post_b": posts["b"],
         "hint_code": hint_code,
+        "stored_hint_code": stored_hint_code,
     }
 
 
@@ -244,7 +246,7 @@ def test_live_resolution_uses_only_visible_sources_and_preserves_tenant_ownershi
 
         cursor.execute(
             """
-            select post_id::text, resolved_corporate_entity_id::text
+            select post_id::text, resolved_corporate_entity_id::text, source_customer_code
               from source_post_customer_resolution
              order by post_id
             """
@@ -252,4 +254,6 @@ def test_live_resolution_uses_only_visible_sources_and_preserves_tenant_ownershi
         associations = cursor.fetchall()
     connection.close()
 
-    assert associations == [(seeded["post_a"], seeded["resolved_id"])]
+    assert associations == [
+        (seeded["post_a"], seeded["resolved_id"], seeded["stored_hint_code"])
+    ]

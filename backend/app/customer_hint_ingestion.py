@@ -54,12 +54,16 @@ async def resolve_customer_hint(
     if not resolution_client.available:
         return None
 
+    normalized_hint_code = hint_code.strip()
+    if not normalized_hint_code:
+        return None
+
     async with pool.acquire() as database_connection:
         evidence_rows = await fetch_visible_customer_hint_evidence(
             database_connection,
             corporate_entity_ids,
             process_unit_ids,
-            hint_code,
+            normalized_hint_code,
         )
     if not evidence_rows:
         return None
@@ -73,7 +77,7 @@ async def resolve_customer_hint(
     )
     verified_customer_resolution = await asyncio.to_thread(
         resolve_and_verify_organization_name,
-        hint_code,
+        normalized_hint_code,
         excerpts,
         resolution_client,
         verification_client,
@@ -94,7 +98,7 @@ async def resolve_customer_hint(
                 database_connection,
                 corporate_entity_ids,
                 process_unit_ids,
-                hint_code,
+                normalized_hint_code,
                 captured_post_ids,
             )
             revalidated_post_ids = {str(row["post_id"]) for row in revalidated_rows}
@@ -136,8 +140,10 @@ async def resolve_customer_hint(
                     verification_evidence_url,
                     resolved_at
                 )
-                select source_post_id::uuid, $2, $3::uuid, $4, $5, $6, now()
+                select source_post.post_id, source_post.source_customer_code,
+                       $2::uuid, $3, $4, $5, now()
                   from unnest($1::text[]) as captured(source_post_id)
+                  join source_post on source_post.post_id = captured.source_post_id::uuid
                 on conflict (post_id)
                 do update set
                     source_customer_code = excluded.source_customer_code,
@@ -149,7 +155,6 @@ async def resolve_customer_hint(
                 returning post_id
                 """,
                 list(captured_post_ids),
-                hint_code,
                 resolved_corporate_entity_id,
                 entity_name,
                 verified_customer_resolution.verification_status_code,

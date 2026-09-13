@@ -91,7 +91,7 @@ async def fetch_visible_customer_hint_evidence(
         """
         select post_id, post_title, left(post_body, 20000) as post_body
           from source_post
-         where source_customer_code = $3
+         where btrim(source_customer_code) = $3
            and (
                visibility_code = 'public'
                or (
@@ -160,7 +160,7 @@ async def lock_visible_customer_hint_sources(
         select post_id
           from source_post
          where post_id::text = any($4::text[])
-           and source_customer_code = $3
+           and btrim(source_customer_code) = $3
            and (
                visibility_code = 'public'
                or (

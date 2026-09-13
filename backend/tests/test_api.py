@@ -1806,6 +1806,13 @@ def test_resolve_customer_hint_persists_only_authorized_resolution_without_rebin
     )
 
     _grant_post_admin(seeded_db["dsn"])
+    blank_response = client.post(
+        "/api/customer-master/resolve-hint",
+        json={"hint_code": "   "},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert blank_response.status_code == 422, blank_response.text
+
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with admin_conn.cursor() as cur:
@@ -1813,7 +1820,7 @@ def test_resolve_customer_hint_persists_only_authorized_resolution_without_rebin
                 "update source_post set source_customer_code = %s "
                 "where post_id in (%s, %s)",
                 (
-                    "HINT-CODE-001",
+                    "  HINT-CODE-001  ",
                     seeded_db["own_private_post_id"],
                     seeded_db["other_private_post_id"],
                 ),
@@ -1863,7 +1870,7 @@ def test_resolve_customer_hint_persists_only_authorized_resolution_without_rebin
 
         response = client.post(
             "/api/customer-master/resolve-hint",
-            json={"hint_code": "HINT-CODE-001"},
+            json={"hint_code": "  HINT-CODE-001  "},
             headers={"Authorization": f"Bearer {demo_analyst_token}"},
         )
         assert response.status_code == 200, response.text
@@ -1894,13 +1901,68 @@ def test_resolve_customer_hint_persists_only_authorized_resolution_without_rebin
             assert ownership_after == ownership_before
 
             cur.execute(
-                "select post_id::text, resolved_corporate_entity_id::text "
+                "select post_id::text, resolved_corporate_entity_id::text, source_customer_code "
                 "from source_post_customer_resolution order by post_id"
             )
             associations = cur.fetchall()
             assert associations == [
-                (seeded_db["own_private_post_id"], body["corporate_entity_id"])
+                (
+                    seeded_db["own_private_post_id"],
+                    body["corporate_entity_id"],
+                    "  HINT-CODE-001  ",
+                )
             ]
+
+            cur.execute(
+                """
+                insert into source_post (
+                    author_account_id, corporate_entity_id, process_unit_id,
+                    post_title, post_body, voc_type_code, visibility_code,
+                    source_customer_code, source_customer_name
+                )
+                select author_account_id, corporate_entity_id, process_unit_id,
+                       'Older resolved hint', post_body, voc_type_code, visibility_code,
+                       source_customer_code, source_customer_name
+                  from source_post
+                 where post_id = %s
+                returning post_id::text
+                """,
+                (seeded_db["own_private_post_id"],),
+            )
+            older_post_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into source_post_customer_resolution (
+                    post_id, source_customer_code, resolved_corporate_entity_id,
+                    resolved_entity_name, verification_status_code,
+                    verification_evidence_url, resolved_at
+                )
+                values (%s, %s, %s, 'Stale Name', %s,
+                        'https://example.test/stale', now() - interval '1 day')
+                """,
+                (
+                    older_post_id,
+                    "  HINT-CODE-001  ",
+                    body["corporate_entity_id"],
+                    STATUS_CORROBORATED,
+                ),
+            )
+        admin_conn.commit()
+
+        customer_master_response = client.get(
+            "/api/customer-master",
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert customer_master_response.status_code == 200, customer_master_response.text
+        hint = next(
+            item
+            for item in customer_master_response.json()["source_customer_hints"]
+            if item["customer_code"] == "HINT-CODE-001"
+        )
+        assert hint["resolved_corporate_entity_id"] == body["corporate_entity_id"]
+        assert hint["resolved_entity_name"] == "Northridge Grid"
+        assert hint["resolution_status"] == STATUS_CORROBORATED
+        assert hint["verification_evidence_url"] == "https://example.test/northridge-grid"
     finally:
         admin_conn.close()
 
