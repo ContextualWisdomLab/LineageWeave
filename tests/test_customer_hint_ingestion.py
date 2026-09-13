@@ -10,10 +10,14 @@ from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCOR
 
 
 class _Client:
+    """Available resolver stub used when availability itself is not under test."""
+
     available = True
 
 
 class _UnavailableClient:
+    """Resolver stub that proves unavailable clients do not acquire database resources."""
+
     available = False
 
 
@@ -21,44 +25,62 @@ _DEFAULT_CLIENT = _Client()
 
 
 class _Transaction:
+    """Minimal async transaction context used by the ingestion unit boundary."""
+
     async def __aenter__(self):
+        """Enter the synthetic transaction without changing connection state."""
         return self
 
     async def __aexit__(self, *_exc):
+        """Propagate exceptions so fail-closed paths remain observable."""
         return False
 
 
 class _Acquire:
+    """Pool-acquire context that exposes one deterministic fake connection."""
+
     def __init__(self, connection) -> None:
+        """Bind the connection returned for this acquisition."""
         self.connection = connection
 
     async def __aenter__(self):
+        """Return the bound fake connection."""
         return self.connection
 
     async def __aexit__(self, *_exc):
+        """Propagate exceptions rather than hiding persistence failures."""
         return False
 
 
 class _Pool:
+    """Fake pool that records whether external corroboration holds a DB resource."""
+
     def __init__(self, connection) -> None:
+        """Initialize one reusable connection and its acquisition counter."""
         self.connection = connection
         self.acquire_count = 0
 
     def acquire(self):
+        """Record and return one bounded acquisition context."""
         self.acquire_count += 1
         return _Acquire(self.connection)
 
 
 class _Connection:
+    """Query-recording connection for capture, revalidation, and persistence assertions."""
+
     def __init__(self, *, sample_rows=None, existing_entity=None) -> None:
+        """Seed visible rows and an optional pre-existing catalog entity."""
         self._sample_rows = sample_rows or []
         self._existing_entity = existing_entity
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
     def transaction(self):
+        """Return the short persistence transaction context."""
         return _Transaction()
 
     async def fetch(self, query: str, *args: object):
+        """Return rows for scoped capture, revalidation, or association persistence."""
         normalized = " ".join(query.lower().split())
         self.executed.append((normalized, args))
         if "select post_id, post_title" in normalized:
@@ -70,6 +92,7 @@ class _Connection:
         return []
 
     async def fetchrow(self, query: str, *args: object):
+        """Return an existing or newly created catalog entity identity."""
         normalized = " ".join(query.lower().split())
         self.executed.append((normalized, args))
         if "from corporate_entity" in normalized:
@@ -80,6 +103,7 @@ class _Connection:
 
 
 def _resolution(status: str):
+    """Build deterministic corroboration output for the requested verification status."""
     return SimpleNamespace(
         raw_organization_name="0019999999",
         resolved_organization_name="Northridge Grid",
@@ -91,6 +115,7 @@ def _resolution(status: str):
 
 
 def _resolve(pool, resolution_client=_DEFAULT_CLIENT):
+    """Call the production resolver with one explicit corporate/process scope."""
     return ingestion.resolve_customer_hint(
         pool,
         resolution_client,
@@ -102,6 +127,7 @@ def _resolve(pool, resolution_client=_DEFAULT_CLIENT):
 
 
 def test_unavailable_client_resolves_nothing() -> None:
+    """Unavailable resolution must fail before any database acquisition."""
     connection = _Connection()
     pool = _Pool(connection)
     result = asyncio.run(_resolve(pool, _UnavailableClient()))
@@ -110,6 +136,7 @@ def test_unavailable_client_resolves_nothing() -> None:
 
 
 def test_no_visible_sample_posts_resolves_nothing() -> None:
+    """An empty authorized evidence set must stop before external corroboration."""
     pool = _Pool(_Connection(sample_rows=[]))
     result = asyncio.run(_resolve(pool))
     assert result is None
@@ -117,6 +144,7 @@ def test_no_visible_sample_posts_resolves_nothing() -> None:
 
 
 def test_uncorroborated_resolution_does_not_create_or_persist(monkeypatch) -> None:
+    """Uncorroborated identity must not create catalog or association state."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -140,6 +168,7 @@ def test_uncorroborated_resolution_does_not_create_or_persist(monkeypatch) -> No
 
 
 def test_corroborated_resolution_creates_separate_association(monkeypatch) -> None:
+    """Corroborated identity persists association values without rebinding source ownership."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -161,13 +190,22 @@ def test_corroborated_resolution_creates_separate_association(monkeypatch) -> No
     }
     assert pool.acquire_count == 2
     assert all("update source_post" not in query for query, _ in connection.executed)
-    assert any(
-        "insert into source_post_customer_resolution" in query
-        for query, _ in connection.executed
+    association_args = next(
+        args
+        for query, args in connection.executed
+        if "insert into source_post_customer_resolution" in query
+    )
+    assert association_args == (
+        ["post-1"],
+        "new-entity-id",
+        "Northridge Grid",
+        STATUS_CORROBORATED,
+        "https://evidence.example/result",
     )
 
 
 def test_corroborated_resolution_reuses_existing_catalog_entity(monkeypatch) -> None:
+    """An existing catalog identity is reused while a fresh source association is written."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -186,6 +224,7 @@ def test_corroborated_resolution_reuses_existing_catalog_entity(monkeypatch) -> 
 
 
 def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) -> None:
+    """Losing source visibility after corroboration must prevent all persistence."""
     monkeypatch.setattr(
         ingestion,
         "resolve_and_verify_organization_name",
@@ -193,7 +232,10 @@ def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) 
     )
 
     class _ChangedConnection(_Connection):
+        """Connection whose revalidation step simulates a concurrent scope contraction."""
+
         async def fetch(self, query: str, *args: object):
+            """Return capture evidence first and no rows once the share lock is requested."""
             normalized = " ".join(query.lower().split())
             self.executed.append((normalized, args))
             if "select post_id, post_title" in normalized:
