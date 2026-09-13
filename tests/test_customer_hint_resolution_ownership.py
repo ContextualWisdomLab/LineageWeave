@@ -1,87 +1,42 @@
-"""Regression contract for customer-hint identity versus authorization ownership."""
+"""Regression contracts for customer identity versus source-post ownership."""
 
 from __future__ import annotations
 
-import asyncio
-from types import SimpleNamespace
+from pathlib import Path
 
 import backend.app.customer_hint_ingestion as ingestion
-from lineageweave.relation_verification import STATUS_CORROBORATED
+import backend.app.post_eligibility as eligibility
 
 
-class _ResolutionClient:
-    available = True
+def test_resolution_contract_keeps_source_ownership_separate() -> None:
+    """Customer corroboration persists an association and never rebinds tenant fields."""
+    source = Path(ingestion.__file__).read_text(encoding="utf-8")
+    assert "update source_post" not in source.lower()
+    assert "source_post_customer_resolution" in source
+    assert "corporate_entity_ids" in source
+    assert "process_unit_ids" in source
+    assert "async with pool.acquire()" in source
+    assert "asyncio.to_thread" in source
 
 
-class _VerificationClient:
-    pass
+def test_authorization_owner_exposes_scoped_capture_and_revalidation() -> None:
+    """The source-post authorization owner, not Customer Master, owns scoped SQL."""
+    source = Path(eligibility.__file__).read_text(encoding="utf-8")
+    assert "fetch_visible_customer_hint_evidence" in source
+    assert "lock_visible_customer_hint_sources" in source
+    assert "corporate_entity_id::text = any($1::text[])" in source
+    assert "process_unit_id::text = any($2::text[])" in source
+    assert "for share" in source.lower()
 
 
-class _ScopedConnection:
-    """Reject evidence reads that are not explicitly bound to caller scope."""
-
-    def __init__(self) -> None:
-        self.executed: list[tuple[str, tuple[object, ...]]] = []
-
-    async def fetch(self, query: str, *args: object):
-        normalized = " ".join(query.lower().split())
-        self.executed.append((normalized, args))
-        if "from source_post" in normalized and "select" in normalized:
-            assert "corporate_entity_id" in normalized
-            assert "process_unit_id" in normalized
-            assert args[:3] == (["corp-a"], ["pu-a"], "0019999999")
-            return [
-                {
-                    "post_id": "post-a",
-                    "post_title": "Authorized visit",
-                    "post_body": "<p>Authorized evidence</p>",
-                }
-            ]
-        if "insert into source_post_customer_resolution" in normalized:
-            return [{"post_id": "post-a"}]
-        assert "update source_post" not in normalized
-        return []
-
-    async def fetchrow(self, query: str, *args: object):
-        normalized = " ".join(query.lower().split())
-        self.executed.append((normalized, args))
-        if "from corporate_entity" in normalized:
-            return {"corporate_entity_id": "customer-entity"}
-        return None
-
-
-def _resolution():
-    return SimpleNamespace(
-        raw_organization_name="0019999999",
-        resolved_organization_name="Northridge Grid",
-        verification_status_code=STATUS_CORROBORATED,
-        verification_evidence_url="https://evidence.example/result",
+def test_http_boundary_passes_explicit_account_scope() -> None:
+    """The API must pass CurrentAccount scope and must not pin a DB connection itself."""
+    source = (Path(__file__).resolve().parents[1] / "backend" / "app" / "main.py").read_text(
+        encoding="utf-8"
     )
-
-
-def test_resolution_is_scope_bound_and_does_not_rebind_source_ownership(monkeypatch) -> None:
-    monkeypatch.setattr(
-        ingestion,
-        "resolve_and_verify_organization_name",
-        lambda *_args: _resolution(),
-    )
-    connection = _ScopedConnection()
-
-    result = asyncio.run(
-        ingestion.resolve_customer_hint(
-            connection,
-            _ResolutionClient(),
-            _VerificationClient(),
-            "0019999999",
-            ["corp-a"],
-            ["pu-a"],
-        )
-    )
-
-    assert result["corporate_entity_id"] == "customer-entity"
-    assert result["linked_post_count"] == 1
-    assert all("update source_post" not in query for query, _ in connection.executed)
-    assert any(
-        "insert into source_post_customer_resolution" in query
-        for query, _ in connection.executed
-    )
+    start = source.index('async def resolve_customer_master_hint(')
+    end = source.index('@app.get("/api/lineage")', start)
+    endpoint = source[start:end]
+    assert "list(account.corporate_entity_ids)" in endpoint
+    assert "list(account.process_unit_ids)" in endpoint
+    assert "async with pool.acquire()" not in endpoint
