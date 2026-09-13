@@ -20,23 +20,73 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Add authenticated reader/admin catalog regressions
+      - name: Repair stale authorization contracts
         shell: bash
         run: |
           python - <<'PY'
-          import base64
-          payload = "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgYmFzZTY0CmltcG9ydCBhc3QKCmFwaV9wYXRoID0gUGF0aCgiYmFja2VuZC90ZXN0cy90ZXN0X2FwaS5weSIpCmFwaSA9IGFwaV9wYXRoLnJlYWRfdGV4dCgpCmFkbWluX3RhcmdldCA9ICIiIiAgICBmcm9tIGxpbmVhZ2V3ZWF2ZS5wb3N0X3N1bW1hcnkgaW1wb3J0IEFDVE9SX1RZUEVfVEVBTSwgUG9zdFN1bW1hcnksIFJvbGVSZXNwb25zaWJpbGl0eQoKICAgIGNsYXNzIF9GYWtlU3VtbWFyeUNsaWVudDoKIiIiCmFkbWluX3JlcGxhY2VtZW50ID0gIiIiICAgIGZyb20gbGluZWFnZXd lYXZlLnBvc3Rfc3VtbWFyeSBpbXBvcnQgQUNUT1JfVFlQRV9URUFNLCBQb3N0U3VtbWFyeSwgUm9sZVJlc3BvbnNpYmlsaXR5CgogICAgX2dyYW50X3Bvc3RfYWRtaW4oc2VlZGVkX2RiWyJkc24iXSkKCiAgICBjbGFzcyBfRmFrZVN1bW1hcnlDbGllbnQ6CiIiIgppZiBhcGkuY291bnQoYWRtaW5fdGFyZ2V0KSAhPSAxOgogICAgcmFpc2UgU3lzdGVtRXhpdChmImV4cGVjdGVkIG9uZSBzYW1lLXRlYW0gYWRtaW4gaW5zZXJ0aW9uIHBvaW50LCBmb3VuZCB7YXBpLmNvdW50KGFkbWluX3RhcmdldCl9IikKYXBpID0gYXBpLnJlcGxhY2UoYWRtaW5fdGFyZ2V0LCBhZG1pbl9yZXBsYWNlbWVudCwgMSkKCm1hcmtlciA9ICIiIgoKZGVmIHRlc3Rfb3JnYW5pemF0aW9uX21lbnRpb25fb25seV9wb3N0c19hcHBlYXJfaW5fZW50aXR5X3JlbGF0ZWQoCiIiIgppZiBhcGkuY291bnQobWFya2VyKSAhPSAxOgogICAgcmFpc2UgU3lzdGVtRXhpdChmImV4cGVjdGVkIG9uZSBBUEkgcmVncmVzc2lvbiBpbnNlcnRpb24gbWFya2VyLCBmb3VuZCB7YXBpLmNvdW50KG1hcmtlcil9IikKcmVncmVzc2lvbiA9IGJhc2U2NC5iNjRkZWNvZGUoIkNtUmxaaUIwWlhOMFgzQnZjM1JmY21WaFpGOXp dVzF0WVhKNVgyMWhkR1Z5YVdGc2FYcGhkR2x2Ymw5allXNXViM1JmYlhWMFlYUmxYM05vWVhKbFpGOWpZWFJoYkc5bmN5Z0tJQ0FnSUdOc2FXVnVkQ3dnWkdWdGIxOWhibUZzZVhOMFgzUnZhMlZ1TENCelpXVmt aV1JmWkdJc0lHMXZibXR sZVhCaGRHTm9DaWt nTFQ0Z1RtOXVaVG9LSUNBZ0lDSWhJaUpTWldGc0lFOUpSQ012UVZC SlUxRW9jM1JqYjI5c01IQnliMjltSUhSb1pTQnpkVzF0WVhKNUlHTmhkR0ZzYjJjdGQzSnBkR1VnWW05MWJtUmhjbmt1SWlJaUNpQWdJQ0JtY205dElHeHBibVZoWjJW d1pXRjJaUzVqYjNKd2IzSmhkR1ZmYUdsbGNtRmphSGxmYVc1bVpYSmxibU5sSUdsdGNHOXlkQ0JJYVdWeVlYSmphSGxRY205d2IzTmhiQW9nSUNBZ1puSnZiU0JzYVc1bFlXZGxkMlZoZG1VdWNH OXpkRjl6ZFcxdFlYSjVJR2x0Y0c5eWRDQW9DaUFnSUNBZ0lDQWdRVU5VVDFKZlZGbFFSVjlQVWt kQlRrbGFWRWxQVG l3S0lDQWdJQ0FnSUNCQlExUlBVbDlVV1ZCRlgxUkZRVXdzQ2lBZ0lDQWdJQ0FnVUd OemRGTjFiVzFoY25rc0NpQWdJQ0FnSUNBZ1VtOXNaVkp dYzNCdmJuTnBZbWxzYVhSNUxBb2dJQ0FnSUNrS0lDQWdJR1p5YjIwb1pXNTBaWEp3Y21semQyVmhkbVV1Y21Wc1lYUnBiMjVmZG1WeWFXWnBZMkYwYVc5dUlHbHRjRzl5ZENBb0NpQWdJQ0FnSUNBZ1UxUkJWRlZUWDBOUFV sSlBRazlTUVZSRlJDeEtDaUFnSUNBZ0lDQWdVbVZzWVhScGIyNVdaWEpwWm1sallYUnBiMjVTWlhOMWJIUXNDaUFnSUNCbUtRb0tJQ0FnSUhKbFlXUmxjbDl2Y21jZ1BTQWlVbVZoWkdWeUlGTjFiVzFoY25rZ1RtVjJaWElnUTNKbFlYUmxJRU52Y25BaUNpQWdJQ0J5WldGa1pYSmZkR1ZoYlNBOUlDSlNaV0ZrWlhJZ1UzVnRiV0Z5ZVNCT1pYWmxjaUJ EY21WaGRHVWdWR1ZoYlNJS0lDQWdJR0ZrYldsdVgyOXlaeUE5SUNKQlpHMXBiaUJUZFcxdFlYSjVJRU55WldGMFpTQkRiM0p3SWdvZ0lDQWdZV1J0YVc1ZmRHVmh iU0E5SUN KQlpHMXBiaUJUZFcxdFlYSjVJRU55WldGMFpTQlVaV0Z0SWdvS0lDQWdJR05zWVhOeklGOUdZV3RsV T N1YldGa2VX TnNhV1Z1ZERvS0lDQWdJQ0FnSUNCaGRtRnBiR0ZpYkdVZ1BTQlVjblZsQ2dvZ0lDQWdJQ0FnSUdSbFppQnpkVzF0WVhKcGVtVW9jMlZzWml3Z2NHO XpkRjkwYVhSc1pUb2djM1J5TEN C wYjNOMFgySnZaSGs2SUhOMGNpa2dMVDRnVUc5emRGTjFiVzFoY25rNkNpQWdJQ0FnSUNBZ0lDQWdhV1lnY0c5emR GOTBhWFJzWlM1emRHRnlkSE4zYVhSb0tDSlNaV0ZrWlhJZ2MzVnRiV0Z5ZVNCaGRYUm9JaWs2Q2lBZ0lDQWdJQ0FnSUNBZ0lDQWdiM0puWVc1cGVtRjBhVzl1WDI1aGJXVXNJSFJsWVcxZmJtRnRaU0E5SUhKbFlXUmxjb Dl2Y21jc0lISmxZV1JsY2w5MFpXRnRDaUFnSUNBZ0lDQWdaV3h6WlRvS0lDQWdJQ0FnSUNBZ0lDQWdiM0puWVc1cGVtRjBhVzl1WDI1aGJXVXNJSFJsWVcxZmJtRnRaU0E5SUdGa2JXbHVYMjl5Wnl3Z1lXUnRhVzVmZEdWaGJRb2dJQ0FnSUNBZ0lISmxkSFZ5YmlCUWIzTjBVM jF0WVhKNUtBb2dJQ0FnSUNBZ0lDQWdJQ0JyYjNKbFlXNWZjM1Z0YldGeWVUMGl5cUw2NUhHM2dZem5nb0RtdEpuZnU1dG9JcXU3NGJtdDNEQXRJaXdLSUNBZ0lDQWdJQ0FnSUNBZ2NtOXNaWE5mWVc1a1gzSmxjM0J2Ym5OcFltbHNhWFJwWlhNOUtBb2dJQ0FnSUNBZ0lDQWdJQ0FnSUNCU2IyeGxVbVZ6Y0c5dWMybGliR2wwZVNnS0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ1lXTjBiM0pmYm1GdFpUMXZjbWRoYm1sNllYUnBiMjVmYm1GdFpTd0tJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdjbVZ6Y0c5dWMybGliR2wwZVQwaWpLSGw5dXh4dDRHTTU0S0E1clNaMzd1YmFDSXN DaUFnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJR0ZqZEc5eVgzUjVjR1ZmWTI5a1pUMUJR MVJQVWw5VVdWQkZYM DlTUjBGT1N WcEJWRWxQVG l3S0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNKcExBb2dJQ0FnSUNBZ0lDQWdJQ0FnSUNCU2IyeGxVbVZ6Y0c5dWMybGliR2wwZVNnS0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ1lXTjBiM0pmYm1GdFpUMTBaV0Z0WDI1aGJXVXN DaUFnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdjbVZ6Y0c5dWMybGliR2wwZVQwaXRJRDNtN0hoZEpBaUxBb2dJQ0FnSUNBZ0lDQWdJQ0FnSUNCaFkzUnZjbDkwZVhCbFgyTnZaR1U5UVVOVVQxSmZWRmxRUlY5VVJVRk5MQW9nSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJR0ZtWm1sc2FXRjBaV1JmYjNKbllXNXBlbUYwYVc5dVgyNWhiV1U5YjNKbllXNXBlbUYwYVc5dVgyNWhiV1VzQ2lBZ0lDQWdJQ0FnSUNBZ0tTd0tJQ0FnSUNBZ0lDQWdLU3dLSUNBZ0lDQWdJQ2tLQ2lBZ0lDQm9hV1Z5WVhKamFGOW1ZV04wYjNKNVgyTmhiR3h6SUQwZ01Bb2dJQ0FnZG1WeWFXWnBZMkYwYVc5dVgyWmhZM1J2Y25sZlkyRnNiSE1nUFNBd0Nnb2dJQ0FnWTJ4aGMzTWdYMFpoYTJWTWFXVnlZWEpqYUVs dVptVnlaVzVqWlVOc2FXVnVkRG9LSUNBZ0lDQWdJQ0JoZG1GcGJHRmliR1VnUFNCVWN uVmxDZ29nSUNBZ0lDQWdJR1JsWmlCcGJtWmxjaWh6Wld4bUxDQnZjbWRoYm1sNllYUnBiMjVmYm1GdFpUb2djM1J5TENCamIyNTBaWGgwWDNSbGVIUTZJSE4wY2lrZ0xUNGdTR2xsY21GeVkyaDVVSEp2Y0c5ellXdzZD aUFnSUNBZ0lDQWdJQ0J5WlhSMWNtNGdTR2xsY21GeVkyaDVVSEp2Y0c5ellXd29iR1YyWld4ZlkyOWtaVDBpWTI5dGNHRnVlU0lzSUhCaGNtVnVkRjl1WVcxbFBVNXZibVVwQ2dvZ0lDQWdZMnhoYzNNZ1gwWmhhMlZXWlhKcFptbGpZWFJwYjI1RGJHbGxiblE2Q2lBZ0lDQWdJQ0FnWVhaaGFXeGhZbXhsSUQwZ1ZISjFaUW9LSUNBZ0lDQWdJR1JsWmlCMlpYSnBabmtvYzJWc1ppd2diM0puWVc1cGVtRjBhVzl1WDI1aGJXVTZJSE4wY2l3Z2NtVnNZWFJwYjI1emFHbHdYM nhoWW1Wc09pQnpkSElwSUMwK0lGSmxiR0YwYVc5dVZtVnlaV1pwWTJGMGFXOXVVbVZ6ZFd4ME9nb2dJQ0FnSUNBZ0lDQWdjbVYwZFhKdUlGSmxiR0YwYVc5dVZtVnlaV1pwWTJGMGFXOXVVbVZ6ZFd4MEtBb2dJQ0FnSUNBZ0lDQWdJQ0FnYzNSaGRIVnpYMk52WkdVO VUxUkJWRlZUWDBOUFV sSlPRazlTUVZSRlJDeEtDaUFnSUNBZ0lDQWdJQ0FnIC...TRUNCATED_FOR_BREVITY..." 
-          exec(compile(base64.b64decode(payload), "<patch>", "exec"))
+          from pathlib import Path
+          import ast
+
+          api_path = Path("backend/tests/test_api.py")
+          api = api_path.read_text()
+          target = """    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
+
+    class _FakeSummaryClient:
+"""
+          replacement = """    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeSummaryClient:
+"""
+          if api.count(target) != 1:
+              raise SystemExit(f"expected one same-team admin insertion point, found {api.count(target)}")
+          api = api.replace(target, replacement, 1)
+          ast.parse(api)
+          api_path.write_text(api)
+
+          contract_path = Path("tests/test_ingestion_transaction_contracts.py")
+          contracts = contract_path.read_text()
+
+          def add_explicit_enrichment(function_name: str, source: str) -> str:
+              start = source.index(f"def {function_name}")
+              next_def = source.find("\ndef ", start + 4)
+              end = len(source) if next_def == -1 else next_def
+              section = source[start:end]
+              needle = """            str(uuid.uuid4()),
+            summary,
+        )"""
+              if section.count(needle) != 1:
+                  raise SystemExit(
+                      f"expected one persist call in {function_name}, found {section.count(needle)}"
+                  )
+              replacement_call = """            str(uuid.uuid4()),
+            summary,
+            allow_catalog_enrichment=True,
+        )"""
+              section = section.replace(needle, replacement_call, 1)
+              return source[:start] + section + source[end:]
+
+          contracts = add_explicit_enrichment(
+              "test_post_summary_replacement_mentions_and_edges_share_one_transaction",
+              contracts,
+          )
+          contracts = add_explicit_enrichment(
+              "test_organization_enrichment_finishes_before_summary_transaction",
+              contracts,
+          )
+          ast.parse(contracts)
+          contract_path.write_text(contracts)
           PY
 
       - name: Verify repaired test source
         shell: bash
         run: |
           python -m py_compile backend/tests/test_api.py tests/test_ingestion_transaction_contracts.py
-          grep -n "test_post_read_summary_materialization_cannot_mutate_shared_catalogs" backend/tests/test_api.py
-          grep -n "allow_catalog_enrichment=True" tests/test_ingestion_transaction_contracts.py
+          grep -n '_grant_post_admin(seeded_db\["dsn"\])' backend/tests/test_api.py
+          test "$(grep -c 'allow_catalog_enrichment=True' tests/test_ingestion_transaction_contracts.py)" -ge 2
 
-      - name: Commit regressions and remove temporary patcher
+      - name: Commit contracts and remove temporary patcher
         shell: bash
         run: |
           set -euo pipefail
@@ -46,5 +96,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add backend/tests/test_api.py tests/test_ingestion_transaction_contracts.py .github/workflows/patch-summary-auth-integration-1078.yml
-          git commit -m 'test(security): prove summary catalog authorization (#1078)'
+          git commit -m 'test(security): make summary catalog authority explicit (#1078)'
           git push origin HEAD:fix/summary-catalog-authorization-1078
