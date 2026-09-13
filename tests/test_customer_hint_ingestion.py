@@ -1,8 +1,4 @@
-"""Tests for backend.app.customer_hint_ingestion.
-
-Deterministic FakeConnection, same style as
-tests/test_organization_name_resolution_ingestion.py.
-"""
+"""Tests for backend.app.customer_hint_ingestion."""
 
 from __future__ import annotations
 
@@ -21,25 +17,61 @@ class _UnavailableClient:
     available = False
 
 
+class _Transaction:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_exc):
+        return False
+
+
+class _Acquire:
+    def __init__(self, connection) -> None:
+        self.connection = connection
+
+    async def __aenter__(self):
+        return self.connection
+
+    async def __aexit__(self, *_exc):
+        return False
+
+
+class _Pool:
+    def __init__(self, connection) -> None:
+        self.connection = connection
+        self.acquire_count = 0
+
+    def acquire(self):
+        self.acquire_count += 1
+        return _Acquire(self.connection)
+
+
 class _Connection:
     def __init__(self, *, sample_rows=None, existing_entity=None) -> None:
         self._sample_rows = sample_rows or []
         self._existing_entity = existing_entity
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
+    def transaction(self):
+        return _Transaction()
+
     async def fetch(self, query: str, *args: object):
-        if "from source_post" in query:
+        normalized = " ".join(query.lower().split())
+        self.executed.append((normalized, args))
+        if "select post_id, post_title" in normalized:
             return self._sample_rows
-        if "update source_post" in query:
-            self.executed.append((query, args))
-            return [{"post_id": "post-1"}, {"post_id": "post-2"}]
+        if "select post_id from source_post" in normalized and "for share" in normalized:
+            return [{"post_id": row["post_id"]} for row in self._sample_rows]
+        if "insert into source_post_customer_resolution" in normalized:
+            return [{"post_id": row["post_id"]} for row in self._sample_rows]
         return []
 
     async def fetchrow(self, query: str, *args: object):
-        if "from corporate_entity" in query:
+        normalized = " ".join(query.lower().split())
+        self.executed.append((normalized, args))
+        if "from corporate_entity" in normalized:
             return self._existing_entity
-        if "insert into corporate_entity" in query:
-            self.executed.append((query, args))
+        if "insert into corporate_entity" in normalized:
             return {"corporate_entity_id": "new-entity-id"}
         return None
 
@@ -49,68 +81,130 @@ def _resolution(status: str):
         raw_organization_name="0019999999",
         resolved_organization_name="Northridge Grid",
         verification_status_code=status,
-        verification_evidence_url="https://evidence.example/result" if status == STATUS_CORROBORATED else None,
+        verification_evidence_url=(
+            "https://evidence.example/result" if status == STATUS_CORROBORATED else None
+        ),
+    )
+
+
+def _resolve(pool, resolution_client=_Client()):
+    return ingestion.resolve_customer_hint(
+        pool,
+        resolution_client,
+        _Client(),
+        "0019999999",
+        ["corp-a"],
+        ["pu-a"],
     )
 
 
 def test_unavailable_client_resolves_nothing() -> None:
-    conn = _Connection()
-    result = asyncio.run(
-        ingestion.resolve_customer_hint(conn, _UnavailableClient(), _Client(), "0019999999")
-    )
+    connection = _Connection()
+    pool = _Pool(connection)
+    result = asyncio.run(_resolve(pool, _UnavailableClient()))
     assert result is None
+    assert pool.acquire_count == 0
 
 
-def test_no_sample_posts_resolves_nothing() -> None:
-    conn = _Connection(sample_rows=[])
-    result = asyncio.run(ingestion.resolve_customer_hint(conn, _Client(), _Client(), "0019999999"))
+def test_no_visible_sample_posts_resolves_nothing() -> None:
+    pool = _Pool(_Connection(sample_rows=[]))
+    result = asyncio.run(_resolve(pool))
     assert result is None
+    assert pool.acquire_count == 1
 
 
-def test_uncorroborated_resolution_does_not_create_or_link_an_entity(monkeypatch) -> None:
+def test_uncorroborated_resolution_does_not_create_or_persist(monkeypatch) -> None:
     monkeypatch.setattr(
-        ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_UNCORROBORATED)
+        ingestion,
+        "resolve_and_verify_organization_name",
+        lambda *_args: _resolution(STATUS_UNCORROBORATED),
     )
-    conn = _Connection(sample_rows=[{"post_title": "Visit", "post_body": "<p>Visit notes</p>"}])
-    result = asyncio.run(ingestion.resolve_customer_hint(conn, _Client(), _Client(), "0019999999"))
+    connection = _Connection(
+        sample_rows=[
+            {"post_id": "post-1", "post_title": "Visit", "post_body": "<p>Visit notes</p>"}
+        ]
+    )
+    pool = _Pool(connection)
+    result = asyncio.run(_resolve(pool))
 
     assert result is None
-    assert conn.executed == []
-
-
-def test_corroborated_resolution_creates_and_links_a_new_entity(monkeypatch) -> None:
-    monkeypatch.setattr(
-        ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_CORROBORATED)
+    assert pool.acquire_count == 1
+    assert all("insert into corporate_entity" not in query for query, _ in connection.executed)
+    assert all(
+        "insert into source_post_customer_resolution" not in query
+        for query, _ in connection.executed
     )
-    conn = _Connection(sample_rows=[{"post_title": "Visit", "post_body": "<p>Visit notes</p>"}])
-    result = asyncio.run(ingestion.resolve_customer_hint(conn, _Client(), _Client(), "0019999999"))
+
+
+def test_corroborated_resolution_creates_separate_association(monkeypatch) -> None:
+    monkeypatch.setattr(
+        ingestion,
+        "resolve_and_verify_organization_name",
+        lambda *_args: _resolution(STATUS_CORROBORATED),
+    )
+    connection = _Connection(
+        sample_rows=[
+            {"post_id": "post-1", "post_title": "Visit", "post_body": "<p>Visit notes</p>"}
+        ]
+    )
+    pool = _Pool(connection)
+    result = asyncio.run(_resolve(pool))
 
     assert result == {
         "corporate_entity_id": "new-entity-id",
         "entity_name": "Northridge Grid",
-        "linked_post_count": 2,
+        "linked_post_count": 1,
         "verification_evidence_url": "https://evidence.example/result",
     }
-    insert_calls = [call for call in conn.executed if "insert into corporate_entity" in call[0]]
-    assert len(insert_calls) == 1
-    assert insert_calls[0][1] == ("HINT-0019999999", "Northridge Grid")
-    # Live-shaped bug: re-resolving the same hint_code is not guaranteed to
-    # get byte-identical LLM phrasing back, so the create path must key off
-    # corporate_entity_code (deterministic from hint_code), not rely on the
-    # name-based lookup alone -- otherwise a second resolve with slightly
-    # different wording collides on the unique code and raises uncaught.
-    assert "on conflict (corporate_entity_code)" in insert_calls[0][0]
-
-
-def test_corroborated_resolution_reuses_an_existing_entity_by_name(monkeypatch) -> None:
-    monkeypatch.setattr(
-        ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_CORROBORATED)
+    assert pool.acquire_count == 2
+    assert all("update source_post" not in query for query, _ in connection.executed)
+    assert any(
+        "insert into source_post_customer_resolution" in query
+        for query, _ in connection.executed
     )
-    conn = _Connection(
-        sample_rows=[{"post_title": "Visit", "post_body": "<p>Visit notes</p>"}],
+
+
+def test_corroborated_resolution_reuses_existing_catalog_entity(monkeypatch) -> None:
+    monkeypatch.setattr(
+        ingestion,
+        "resolve_and_verify_organization_name",
+        lambda *_args: _resolution(STATUS_CORROBORATED),
+    )
+    connection = _Connection(
+        sample_rows=[
+            {"post_id": "post-1", "post_title": "Visit", "post_body": "<p>Visit notes</p>"}
+        ],
         existing_entity={"corporate_entity_id": "existing-entity-id"},
     )
-    result = asyncio.run(ingestion.resolve_customer_hint(conn, _Client(), _Client(), "0019999999"))
+    result = asyncio.run(_resolve(_Pool(connection)))
 
     assert result["corporate_entity_id"] == "existing-entity-id"
-    assert all("insert into corporate_entity" not in call[0] for call in conn.executed)
+    assert all("insert into corporate_entity" not in query for query, _ in connection.executed)
+
+
+def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) -> None:
+    monkeypatch.setattr(
+        ingestion,
+        "resolve_and_verify_organization_name",
+        lambda *_args: _resolution(STATUS_CORROBORATED),
+    )
+
+    class _ChangedConnection(_Connection):
+        async def fetch(self, query: str, *args: object):
+            normalized = " ".join(query.lower().split())
+            self.executed.append((normalized, args))
+            if "select post_id, post_title" in normalized:
+                return self._sample_rows
+            if "for share" in normalized:
+                return []
+            return []
+
+    connection = _ChangedConnection(
+        sample_rows=[
+            {"post_id": "post-1", "post_title": "Visit", "post_body": "<p>Visit notes</p>"}
+        ]
+    )
+    result = asyncio.run(_resolve(_Pool(connection)))
+
+    assert result is None
+    assert all("insert into corporate_entity" not in query for query, _ in connection.executed)
