@@ -43,38 +43,41 @@ jobs:
           if not text.startswith(title):
               raise SystemExit('unexpected baseline title')
           stamp = datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M KST')
-          overlay = f'''\n\n> Live-authority overlay: {stamp}. Protected `main` remains
-> `83eba56149eb802cd63642c507c324c9976ec78e` pending final double sweep.
-> Customer Master ownership issue #1052 / PR #1055 is on exact
-> `50c4935eef1029467595f7004818643598b737c9`, Ready only for validation
-> admission. Predecessor `8448a2b4e06c6ef415dd98b3eaa1f7f36669fe94`
-> exposed a real repository RED after the shared eligibility SQL qualification:
-> Tests `34743575403` ended `2 failed, 1777 passed, 147 skipped`. The two failures
-> were the corroborated-association/reused-catalog unit tests. Their fake query
-> recognizers still expected the old unqualified capture/revalidation SQL, so
-> they returned no evidence after production queries were correctly qualified
-> with `source_post.*`; the scope-change test also stopped reaching revalidation.
->
-> Causal commit `50c4935e...` changes only those test fake recognizers to the
-> canonical qualified SQL. Production authorization, persistence, locking,
-> provider/model selection and workflow gates are unchanged. Fresh exact-head
-> validation materialized from this causal commit without no-op churn. Frontend
-> lint/test/build/Storybook, Security `34746058657`, and SAST `34746058639` are
-> GREEN. Full PostgreSQL Tests `34746058653`, Required CodeQL `34746058693`,
-> Noema `34746057619`, and Strix `34746057545` were still live at this snapshot;
-> Required OpenCode `34746057593` is terminal FAILURE. No predecessor review
-> receipt transfers, and #1055 is not merge-ready.
->
-> #1057 remains the separate PostgreSQL + Keycloak + Valkey bearer/JWKS/RBAC/ABAC
-> hosted-topology owner. Central workflow repair remains `.github#1929/#2106`
-> for CodeQL producer/consumer settlement and `.github#2045/#2109` for Ready
-> transition/model-review reconciliation; LineageWeave does not copy those owner
-> implementations. Draft #961 remains the package/runtime-version source repair
-> and #1056 carries immutable release/SBOM/provenance/reproducibility/rollback
-> acceptance. Protected main still has package/frontend `2.28.0` versus runtime
-> `2.20.0` until normal integration. No release is admitted by this overlay.
-> Older overlays below are dated evidence only.
-'''
+          lines = [
+              f'> Live-authority overlay: {stamp}. Protected `main` remains',
+              '> `83eba56149eb802cd63642c507c324c9976ec78e` pending final double sweep.',
+              '> Customer Master ownership issue #1052 / PR #1055 is on exact',
+              '> `50c4935eef1029467595f7004818643598b737c9`, Ready only for validation',
+              '> admission. Predecessor `8448a2b4e06c6ef415dd98b3eaa1f7f36669fe94`',
+              '> exposed a real repository RED after shared eligibility SQL qualification:',
+              '> Tests `34743575403` ended `2 failed, 1777 passed, 147 skipped`. The two',
+              '> failures were the corroborated-association/reused-catalog unit tests. Their',
+              '> fake query recognizers still expected old unqualified capture/revalidation',
+              '> SQL, so they returned no evidence after production queries were correctly',
+              '> qualified with `source_post.*`; the scope-change test also stopped reaching',
+              '> its intended revalidation phase.',
+              '>',
+              '> Causal commit `50c4935e...` changes only those unit-fake recognizers to the',
+              '> canonical qualified SQL. Production authorization, persistence, locking,',
+              '> provider/model selection and workflow gates are unchanged. Fresh exact-head',
+              '> validation materialized without no-op churn. Frontend lint/test/build/',
+              '> Storybook, Security `34746058657`, and SAST `34746058639` are GREEN. Full',
+              '> PostgreSQL Tests `34746058653`, Required CodeQL `34746058693`, Noema',
+              '> `34746057619`, and Strix `34746057545` were still live at this snapshot;',
+              '> Required OpenCode `34746057593` is terminal FAILURE. No predecessor review',
+              '> receipt transfers, and #1055 is not merge-ready.',
+              '>',
+              '> #1057 remains the separate PostgreSQL + Keycloak + Valkey bearer/JWKS/RBAC/',
+              '> ABAC hosted-topology owner. Central workflow repair remains `.github#1929/',
+              '> #2106` for CodeQL producer/consumer settlement and `.github#2045/#2109` for',
+              '> Ready-transition/model-review reconciliation; LineageWeave does not copy',
+              '> those owner implementations. Draft #961 remains the package/runtime-version',
+              '> source repair and #1056 carries immutable release/SBOM/provenance/',
+              '> reproducibility/rollback acceptance. Protected main still has package/',
+              '> frontend `2.28.0` versus runtime `2.20.0` until normal integration. No',
+              '> release is admitted by this overlay. Older overlays below are dated evidence only.',
+          ]
+          overlay = '\n\n' + '\n'.join(lines) + '\n'
           path.write_text(title + overlay + text[len(title):])
           PY
 
