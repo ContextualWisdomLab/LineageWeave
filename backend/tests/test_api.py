@@ -1755,8 +1755,14 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                 "post_title": "Public post",
             }],
             "resolution_status": "hint_only",
+            "resolved_corporate_entity_id": None,
+            "resolved_entity_name": None,
+            "verification_evidence_url": None,
             "hint_trust": "normal",
-            "provenance": "source_post.source_customer_code/source_post.source_customer_name",
+            "provenance": (
+                "source_post.source_customer_code/source_post.source_customer_name/"
+                "source_post_customer_resolution.resolved_corporate_entity_id"
+            ),
         }
     ]
     author_hint = body["source_author_hints"]

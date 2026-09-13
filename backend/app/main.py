@@ -931,6 +931,28 @@ async def update_me_preferences(
     return {"preferred_locale": preference.preferred_locale}
 
 
+def _serialize_customer_hint(row: Any) -> dict[str, Any]:
+    """Build the stable Customer Master hint response from one authorized read-model row."""
+    related_posts = row["related_posts"]
+    if isinstance(related_posts, str):
+        related_posts = json.loads(related_posts)
+    return {
+        "customer_code": row["customer_code"],
+        "customer_name": row["customer_name"],
+        "post_count": row["post_count"],
+        "related_posts": related_posts or [],
+        "resolution_status": row["verification_status_code"] or "hint_only",
+        "resolved_corporate_entity_id": row["resolved_corporate_entity_id"],
+        "resolved_entity_name": row["resolved_entity_name"],
+        "verification_evidence_url": row["verification_evidence_url"],
+        "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
+        "provenance": (
+            "source_post.source_customer_code/source_post.source_customer_name/"
+            "source_post_customer_resolution.resolved_corporate_entity_id"
+        ),
+    }
+
+
 @app.get("/api/customer-master")
 async def read_customer_master(
     account: CurrentAccount = Depends(get_current_account),
@@ -1279,26 +1301,7 @@ async def read_customer_master(
         ],
         "keymen": list(keymen_by_id.values()),
         "source_customer_hints": [
-            {
-                "customer_code": row["customer_code"],
-                "customer_name": row["customer_name"],
-                "post_count": row["post_count"],
-                "related_posts": (
-                    json.loads(row["related_posts"])
-                    if isinstance(row["related_posts"], str)
-                    else row["related_posts"] or []
-                ),
-                "resolution_status": row["verification_status_code"] or "hint_only",
-                "resolved_corporate_entity_id": row["resolved_corporate_entity_id"],
-                "resolved_entity_name": row["resolved_entity_name"],
-                "verification_evidence_url": row["verification_evidence_url"],
-                "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
-                "provenance": (
-                    "source_post.source_customer_code/source_post.source_customer_name/"
-                    "source_post_customer_resolution.resolved_corporate_entity_id"
-                ),
-            }
-            for row in source_customer_rows
+            _serialize_customer_hint(row) for row in source_customer_rows
         ],
         "source_author_hints": [
             {
