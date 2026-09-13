@@ -1,0 +1,52 @@
+name: Bounded Customer Master hint review repairs
+
+on:
+  push:
+    branches:
+      - fix/customer-hint-resolution-ownership
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: fix/customer-hint-resolution-ownership
+          persist-credentials: false
+      - name: Apply bounded review repairs
+        run: |
+          python scripts/bounded_customer_hint_review_repairs.py
+          python -m compileall -q \
+            backend/app/customer_hint_ingestion.py \
+            backend/app/main.py \
+            backend/app/post_eligibility.py \
+            backend/tests/test_api.py \
+            tests/test_customer_hint_ingestion.py \
+            tests/test_customer_hint_resolution_ownership.py \
+            tests/test_customer_hint_resolution_postgresql.py
+          git diff --check
+      - name: Publish ordinary repair commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm scripts/bounded_customer_hint_review_repairs.py
+          rm .github/workflows/bounded-customer-hint-review-repairs.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            backend/app/customer_hint_ingestion.py \
+            backend/app/main.py \
+            backend/app/post_eligibility.py \
+            backend/tests/test_api.py \
+            tests/test_customer_hint_ingestion.py \
+            tests/test_customer_hint_resolution_postgresql.py \
+            scripts/bounded_customer_hint_review_repairs.py \
+            .github/workflows/bounded-customer-hint-review-repairs.yml
+          git diff --cached --check
+          git commit -m 'fix(customer-master): normalize hint identity and resolution metadata'
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fix/customer-hint-resolution-ownership
