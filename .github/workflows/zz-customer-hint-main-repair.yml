@@ -1,0 +1,53 @@
+name: Bounded Customer Master API wiring repair
+
+on:
+  push:
+    branches:
+      - fix/customer-hint-resolution-ownership
+    paths:
+      - .github/workflows/zz-customer-hint-main-repair.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lineageweave-customer-hint-main-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: fix/customer-hint-resolution-ownership
+          fetch-depth: 0
+      - name: Adopt intervening ordinary delta
+        shell: bash
+        run: git pull --ff-only origin fix/customer-hint-resolution-ownership
+      - name: Wire canonical hierarchy owner into Customer Master
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("backend/app/main.py")
+          text = path.read_text(encoding="utf-8")
+          old = """            _relation_verification_client(),\n            request.hint_code,\n"""
+          new = """            _relation_verification_client(),\n            _corporate_hierarchy_inference_client(),\n            request.hint_code,\n"""
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f"expected exactly one Customer Master resolver call, found {count}")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+      - name: Remove purpose-complete workflow and publish normally
+        shell: bash
+        run: |
+          rm .github/workflows/zz-customer-hint-main-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/app/main.py .github/workflows/zz-customer-hint-main-repair.yml
+          git diff --cached --check
+          git commit -m "fix(customer-master): use canonical corporate catalog owner"
+          git push origin HEAD:fix/customer-hint-resolution-ownership
