@@ -25,14 +25,14 @@ import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date, datetime, timezone
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 
 from lineageweave.claim_verification import (
     NullClaimVerificationClient,
@@ -912,7 +912,7 @@ class LocalePreferenceRequest(BaseModel):
 class CustomerHintResolveRequest(BaseModel):
     """Body of a POST /api/customer-master/resolve-hint request."""
 
-    hint_code: str
+    hint_code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 @app.patch("/api/me/preferences")
@@ -952,15 +952,24 @@ async def read_customer_master(
         source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with scoped as (
-                select post_id, post_title, created_at,
-                       nullif(btrim(source_customer_code), '') as customer_code,
-                       nullif(btrim(source_customer_name), '') as customer_name,
-                       case when nullif(btrim(source_customer_code), '') is null
-                            then nullif(btrim(source_customer_name), '')
-                            else null end as customer_name_group
+                select source_post.post_id, source_post.post_title, source_post.created_at,
+                       nullif(btrim(source_post.source_customer_code), '') as customer_code,
+                       nullif(btrim(source_post.source_customer_name), '') as customer_name,
+                       case when nullif(btrim(source_post.source_customer_code), '') is null
+                            then nullif(btrim(source_post.source_customer_name), '')
+                            else null end as customer_name_group,
+                       resolution.resolved_corporate_entity_id::text
+                           as resolved_corporate_entity_id,
+                       resolution.resolved_entity_name,
+                       resolution.verification_status_code,
+                       resolution.verification_evidence_url,
+                       resolution.resolved_at
                   from source_post
-                 where (nullif(btrim(source_customer_code), '') is not null
-                        or nullif(btrim(source_customer_name), '') is not null)
+                  left join source_post_customer_resolution resolution
+                    on resolution.post_id = source_post.post_id
+                   and resolution.source_customer_code = source_post.source_customer_code
+                 where (nullif(btrim(source_post.source_customer_code), '') is not null
+                        or nullif(btrim(source_post.source_customer_name), '') is not null)
                    and (visibility_code = 'public' or (
                         corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
@@ -971,12 +980,25 @@ async def read_customer_master(
                        row_number() over (
                            partition by customer_code, customer_name_group
                            order by created_at desc, post_id desc
-                       ) as related_rank
+                       ) as related_rank,
+                       row_number() over (
+                           partition by customer_code, customer_name_group
+                           order by resolved_at desc nulls last, post_id desc
+                       ) as resolution_rank
                   from scoped
             ), groups as (
                 select customer_code, customer_name_group,
                        max(customer_name) as customer_name,
-                       count(*) as post_count
+                       count(*) as post_count,
+                       count(distinct resolved_corporate_entity_id) as resolution_entity_count,
+                       max(resolved_corporate_entity_id) filter (where resolution_rank = 1)
+                           as resolved_corporate_entity_id,
+                       max(resolved_entity_name) filter (where resolution_rank = 1)
+                           as resolved_entity_name,
+                       max(verification_status_code) filter (where resolution_rank = 1)
+                           as verification_status_code,
+                       max(verification_evidence_url) filter (where resolution_rank = 1)
+                           as verification_evidence_url
                   from ranked
                  group by customer_code, customer_name_group
             ), top_groups as materialized (
@@ -1002,6 +1024,16 @@ async def read_customer_master(
                  group by ranked.customer_code, ranked.customer_name_group
             )
             select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
+                   top_groups.resolution_entity_count,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.resolved_corporate_entity_id end
+                       as resolved_corporate_entity_id,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.resolved_entity_name end as resolved_entity_name,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.verification_status_code end as verification_status_code,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.verification_evidence_url end as verification_evidence_url,
                    coalesce(related.related_posts, '[]'::json) as related_posts
               from top_groups
               left join related
@@ -1256,9 +1288,15 @@ async def read_customer_master(
                     if isinstance(row["related_posts"], str)
                     else row["related_posts"] or []
                 ),
-                "resolution_status": "hint_only",
+                "resolution_status": row["verification_status_code"] or "hint_only",
+                "resolved_corporate_entity_id": row["resolved_corporate_entity_id"],
+                "resolved_entity_name": row["resolved_entity_name"],
+                "verification_evidence_url": row["verification_evidence_url"],
                 "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
-                "provenance": "source_post.source_customer_code/source_post.source_customer_name",
+                "provenance": (
+                    "source_post.source_customer_code/source_post.source_customer_name/"
+                    "source_post_customer_resolution.resolved_corporate_entity_id"
+                ),
             }
             for row in source_customer_rows
         ],
@@ -1304,46 +1342,40 @@ async def resolve_customer_master_hint(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Resolve one observed customer-hint code to a real corporate_entity.
+    """Corroborate one visible customer hint without changing source ownership.
 
-    Gated by post_admin, not post_read: this is a write action with a
-    real LLM-call cost, same discipline as extract-keymen/verify-relations.
-    Only an externally-corroborated proposed name ever creates or binds an
-    entity (`backend.app.customer_hint_ingestion`) -- an unresolved or
-    uncorroborated hint is returned as such, never guessed into the
-    catalog.
+    ``post_admin`` admits the write action, while the authenticated
+    corporate/process scope bounds every source post used as model evidence.
+    Customer identity is persisted separately from tenant authorization
+    ownership (ADR 0042 / Proposed ADR 0374).
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        try:
-            resolution = await resolve_customer_hint(
-                conn,
-                _customer_hint_resolution_client(),
-                _relation_verification_client(),
-                request.hint_code,
-            )
-        except (HttpClientError, OSError) as exc:
-            # resolve_and_verify_organization_name's resolution/verification
-            # calls raise on a failed request rather than silently returning
-            # "unresolved" -- a failed call is not the same claim as "the
-            # model looked and found nothing" (same discipline as
-            # verify-relations' identical try/except).
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
-            ) from exc
+    try:
+        resolution = await resolve_customer_hint(
+            pool,
+            _customer_hint_resolution_client(),
+            _relation_verification_client(),
+            _corporate_hierarchy_inference_client(),
+            request.hint_code,
+            list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
+        )
+    except (HttpClientError, OSError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+        ) from exc
     if resolution is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             "this hint could not be resolved to a corroborated organization name",
         )
     return resolution
-
 
 @app.get("/api/lineage")
 async def read_lineage_graph(

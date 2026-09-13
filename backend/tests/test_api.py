@@ -197,6 +197,11 @@ _LEFTOVER_MAP_COORDINATES_MIGRATION = (
     / "migrations"
     / "0245_report_leftover_map_coordinates.sql"
 )
+_CUSTOMER_HINT_RESOLUTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0250_source_post_customer_resolution.sql"
+)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -425,6 +430,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
+            cur.execute(_CUSTOMER_HINT_RESOLUTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1783,58 +1789,88 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
 
 
-def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
+def test_resolve_customer_hint_persists_only_authorized_resolution_without_rebinding_ownership(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
-    """A Customer Master hint (an opaque source_customer_code with no name)
-    must resolve to a real corporate_entity only once external search
-    corroborates the proposed name -- deterministic fake resolution/
-    verification clients (not a real LLM or Searxng call) so this is
-    CI-stable; the point under test is the resolve-then-persist wiring.
+    """Real bearer + PostgreSQL proof for cross-tenant Customer Master resolution.
+
+    Two private tenants deliberately share one raw source-customer hint. The
+    admitted post-admin may resolve only evidence visible through the bearer
+    account's corporate/process scope. Corroboration creates catalog identity
+    and a separate association for that visible source; it must not rewrite
+    either source post's authorization ownership or attach the foreign source.
     """
-    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+    from lineageweave.relation_verification import (
+        STATUS_CORROBORATED,
+        RelationVerificationResult,
+    )
 
     _grant_post_admin(seeded_db["dsn"])
+    blank_response = client.post(
+        "/api/customer-master/resolve-hint",
+        json={"hint_code": "   "},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert blank_response.status_code == 422, blank_response.text
+
     admin_conn = psycopg2.connect(seeded_db["dsn"])
-    admin_conn.autocommit = True
     try:
         with admin_conn.cursor() as cur:
-            # corporate_entity_id is NOT NULL: a bulk-imported real record
-            # defaults to whatever entity its author account is affiliated
-            # with, never to a null "unresolved" sentinel. own_private_post_id
-            # already sits at that exact default (its author's own
-            # account_affiliation row) -- the case this endpoint reclaims.
             cur.execute(
-                "update source_post set source_customer_code = %s where post_id = %s",
-                ("HINT-CODE-001", seeded_db["own_private_post_id"]),
+                "update source_post set source_customer_code = %s "
+                "where post_id in (%s, %s)",
+                (
+                    "  HINT-CODE-001  ",
+                    seeded_db["own_private_post_id"],
+                    seeded_db["other_private_post_id"],
+                ),
             )
+            cur.execute(
+                "select post_id::text, corporate_entity_id::text, "
+                "coalesce(process_unit_id::text, '') "
+                "from source_post where post_id in (%s, %s)",
+                (seeded_db["own_private_post_id"], seeded_db["other_private_post_id"]),
+            )
+            ownership_before = {
+                post_id: (corporate_entity_id, process_unit_id)
+                for post_id, corporate_entity_id, process_unit_id in cur.fetchall()
+            }
+        admin_conn.commit()
 
         class _FakeResolutionClient:
             available = True
 
             def resolve(self, hint_code: str, context_text: str) -> str | None:
                 assert hint_code == "HINT-CODE-001"
+                assert "Own-corp private post" in context_text
+                assert "Other-corp private post" not in context_text
                 return "Northridge Grid"
 
         class _FakeVerificationClient:
             available = True
 
-            def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            def verify(
+                self, organization_name: str, relationship_label: str
+            ) -> RelationVerificationResult:
                 assert organization_name == "Northridge Grid"
+                assert relationship_label == "HINT-CODE-001"
                 return RelationVerificationResult(
-                    status_code=STATUS_CORROBORATED, evidence_url="https://example.org/northridge"
+                    status_code=STATUS_CORROBORATED,
+                    evidence_url="https://example.test/northridge-grid",
                 )
 
         monkeypatch.setattr(
-            "backend.app.main._customer_hint_resolution_client", lambda: _FakeResolutionClient()
+            "backend.app.main._customer_hint_resolution_client",
+            lambda: _FakeResolutionClient(),
         )
         monkeypatch.setattr(
-            "backend.app.main._relation_verification_client", lambda: _FakeVerificationClient()
+            "backend.app.main._relation_verification_client",
+            lambda: _FakeVerificationClient(),
         )
 
         response = client.post(
             "/api/customer-master/resolve-hint",
-            json={"hint_code": "HINT-CODE-001"},
+            json={"hint_code": "  HINT-CODE-001  "},
             headers={"Authorization": f"Bearer {demo_analyst_token}"},
         )
         assert response.status_code == 200, response.text
@@ -1844,19 +1880,91 @@ def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
 
         with admin_conn.cursor() as cur:
             cur.execute(
-                "select entity_name, corporate_entity_code from corporate_entity where corporate_entity_id = %s",
+                "select entity_name, corporate_entity_code from corporate_entity "
+                "where corporate_entity_id = %s",
                 (body["corporate_entity_id"],),
             )
-            entity_row = cur.fetchone()
-            assert entity_row == ("Northridge Grid", "HINT-HINT-CODE-001")
+            entity_name, entity_code = cur.fetchone()
+            assert entity_name == "Northridge Grid"
+            assert entity_code.startswith("RESOLVED-")
+
             cur.execute(
-                "select corporate_entity_id from source_post where post_id = %s",
+                "select post_id::text, corporate_entity_id::text, "
+                "coalesce(process_unit_id::text, '') "
+                "from source_post where post_id in (%s, %s)",
+                (seeded_db["own_private_post_id"], seeded_db["other_private_post_id"]),
+            )
+            ownership_after = {
+                post_id: (corporate_entity_id, process_unit_id)
+                for post_id, corporate_entity_id, process_unit_id in cur.fetchall()
+            }
+            assert ownership_after == ownership_before
+
+            cur.execute(
+                "select post_id::text, resolved_corporate_entity_id::text, source_customer_code "
+                "from source_post_customer_resolution order by post_id"
+            )
+            associations = cur.fetchall()
+            assert associations == [
+                (
+                    seeded_db["own_private_post_id"],
+                    body["corporate_entity_id"],
+                    "  HINT-CODE-001  ",
+                )
+            ]
+
+            cur.execute(
+                """
+                insert into source_post (
+                    author_account_id, corporate_entity_id, process_unit_id,
+                    post_title, post_body, voc_type_code, visibility_code,
+                    source_customer_code, source_customer_name
+                )
+                select author_account_id, corporate_entity_id, process_unit_id,
+                       'Older resolved hint', post_body, voc_type_code, visibility_code,
+                       source_customer_code, source_customer_name
+                  from source_post
+                 where post_id = %s
+                returning post_id::text
+                """,
                 (seeded_db["own_private_post_id"],),
             )
-            assert str(cur.fetchone()[0]) == body["corporate_entity_id"]
+            older_post_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into source_post_customer_resolution (
+                    post_id, source_customer_code, resolved_corporate_entity_id,
+                    resolved_entity_name, verification_status_code,
+                    verification_evidence_url, resolved_at
+                )
+                values (%s, %s, %s, 'Stale Name', %s,
+                        'https://example.test/stale', now() - interval '1 day')
+                """,
+                (
+                    older_post_id,
+                    "  HINT-CODE-001  ",
+                    body["corporate_entity_id"],
+                    STATUS_CORROBORATED,
+                ),
+            )
+        admin_conn.commit()
+
+        customer_master_response = client.get(
+            "/api/customer-master",
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert customer_master_response.status_code == 200, customer_master_response.text
+        hint = next(
+            item
+            for item in customer_master_response.json()["source_customer_hints"]
+            if item["customer_code"] == "HINT-CODE-001"
+        )
+        assert hint["resolved_corporate_entity_id"] == body["corporate_entity_id"]
+        assert hint["resolved_entity_name"] == "Northridge Grid"
+        assert hint["resolution_status"] == STATUS_CORROBORATED
+        assert hint["verification_evidence_url"] == "https://example.test/northridge-grid"
     finally:
         admin_conn.close()
-
 
 def test_resolve_customer_hint_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
     response = client.post(
