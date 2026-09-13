@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import psycopg2
 
-from backend.tests.test_api import (
-    _grant_post_admin,
-    client,
-    demo_analyst_token,
-    seeded_db,
-)
+from backend.tests import test_api as api_test
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
@@ -21,6 +16,10 @@ from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationResult,
 )
+
+client = api_test.client
+demo_analyst_token = api_test.demo_analyst_token
+seeded_db = api_test.seeded_db
 
 
 def test_post_read_summary_materialization_cannot_mutate_shared_catalogs(
@@ -163,7 +162,7 @@ def test_post_read_summary_materialization_cannot_mutate_shared_catalogs(
     finally:
         admin_conn.close()
 
-    _grant_post_admin(seeded_db["dsn"])
+    api_test._grant_post_admin(seeded_db["dsn"])
     admin = client.get(f"/api/posts/{post_ids[1]}/summary", headers=headers)
     assert admin.status_code == 200, admin.text
     assert hierarchy_factory_calls > 0
