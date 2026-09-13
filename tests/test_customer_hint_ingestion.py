@@ -89,7 +89,7 @@ class _Connection:
         """Return rows for scoped capture, catalog matching, revalidation, or persistence."""
         normalized = " ".join(query.lower().split())
         self.executed.append((normalized, args))
-        if "select post_id, post_title" in normalized:
+        if "select source_post.post_id, source_post.post_title" in normalized:
             return self._sample_rows
         if "select corporate_entity_id, entity_name from corporate_entity" in normalized:
             entity_id = (
@@ -98,7 +98,7 @@ class _Connection:
                 else "new-entity-id"
             )
             return [{"corporate_entity_id": entity_id, "entity_name": "Northridge Grid"}]
-        if "select post_id from source_post" in normalized and "for share" in normalized:
+        if "select source_post.post_id from source_post" in normalized and "for share" in normalized:
             return [{"post_id": row["post_id"]} for row in self._sample_rows]
         if "insert into source_post_customer_resolution" in normalized:
             return [{"post_id": row["post_id"]} for row in self._sample_rows]
@@ -288,7 +288,7 @@ def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) 
             """Return capture/catalog evidence first and no rows once share lock is requested."""
             normalized = " ".join(query.lower().split())
             self.executed.append((normalized, args))
-            if "select post_id, post_title" in normalized:
+            if "select source_post.post_id, source_post.post_title" in normalized:
                 return self._sample_rows
             if "select corporate_entity_id, entity_name from corporate_entity" in normalized:
                 return [{"corporate_entity_id": "new-entity-id", "entity_name": "Northridge Grid"}]
