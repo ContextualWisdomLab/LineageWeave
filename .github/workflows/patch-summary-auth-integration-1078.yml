@@ -1,0 +1,60 @@
+name: Patch summary authorization integration regression 1078
+
+on:
+  push:
+    branches:
+      - fix/summary-catalog-authorization-1078
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'test(security)') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/summary-catalog-authorization-1078
+          fetch-depth: 0
+
+      - name: Add authenticated reader/admin catalog invariance regression
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('backend/tests/test_api.py')
+          text = path.read_text()
+
+          target = '''    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility\n\n    class _FakeSummaryClient:\n'''
+          replacement = '''    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility\n\n    _grant_post_admin(seeded_db["dsn"])\n\n    class _FakeSummaryClient:\n'''
+          if text.count(target) != 1:
+              raise SystemExit(f'expected one same-team insertion point, found {text.count(target)}')
+          text = text.replace(target, replacement, 1)
+
+          marker = '''\n\ndef test_organization_mention_only_posts_appear_in_entity_related(\n'''
+          if text.count(marker) != 1:
+              raise SystemExit(f'expected one integration insertion marker, found {text.count(marker)}')
+
+          regression = r'''\n\ndef test_post_read_summary_materialization_cannot_mutate_shared_catalogs(\n    client, demo_analyst_token, seeded_db, monkeypatch\n) -> None:\n    \"\"\"Real OIDC/API/PostgreSQL proof of the summary catalog-write boundary.\"\"\"\n    from lineageweave.corporate_hierarchy_inference import HierarchyProposal\n    from lineageweave.post_summary import (\n        ACTOR_TYPE_ORGANIZATION,\n        ACTOR_TYPE_TEAM,\n        PostSummary,\n        RoleResponsibility,\n    )\n    from lineageweave.relation_verification import (\n        STATUS_CORROBORATED,\n        RelationVerificationResult,\n    )\n\n    reader_org = \"Reader Summary Never Create Corp\"\n    reader_team = \"Reader Summary Never Create Team\"\n    admin_org = \"Admin Summary Create Corp\"\n    admin_team = \"Admin Summary Create Team\"\n\n    class _FakeSummaryClient:\n        available = True\n\n        def summarize(self, post_title: str, post_body: str) -> PostSummary:\n            if post_title.startswith(\"Reader summary auth\"):\n                organization_name, team_name = reader_org, reader_team\n            else:\n                organization_name, team_name = admin_org, admin_team\n            return PostSummary(\n                korean_summary=\"권한 경계를 검증하는 합성 요약이다.\",\n                roles_and_responsibilities=(\n                    RoleResponsibility(\n                        actor_name=organization_name,\n                        responsibility=\"조직 역할\",\n                        actor_type_code=ACTOR_TYPE_ORGANIZATION,\n                    ),\n                    RoleResponsibility(\n                        actor_name=team_name,\n                        responsibility=\"팀 역할\",\n                        actor_type_code=ACTOR_TYPE_TEAM,\n                        affiliated_organization_name=organization_name,\n                    ),\n                ),\n            )\n\n    hierarchy_factory_calls = 0\n    verification_factory_calls = 0\n\n    class _FakeHierarchyInferenceClient:\n        available = True\n\n        def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:\n            return HierarchyProposal(level_code=\"company\", parent_name=None)\n\n    class _FakeVerificationClient:\n        available = True\n\n        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:\n            return RelationVerificationResult(\n                status_code=STATUS_CORROBORATED,\n                evidence_url=f\"https://example.org/{organization_name.replace(' ', '-')}\",\n            )\n\n    def hierarchy_factory():\n        nonlocal hierarchy_factory_calls\n        hierarchy_factory_calls += 1\n        return _FakeHierarchyInferenceClient()\n\n    def verification_factory():\n        nonlocal verification_factory_calls\n        verification_factory_calls += 1\n        return _FakeVerificationClient()\n\n    monkeypatch.setattr(\"backend.app.main._post_summary_client\", lambda: _FakeSummaryClient())\n    monkeypatch.setattr(\"backend.app.main._corporate_hierarchy_inference_client\", hierarchy_factory)\n    monkeypatch.setattr(\"backend.app.main._relation_verification_client\", verification_factory)\n\n    admin_conn = psycopg2.connect(seeded_db[\"dsn\"])\n    admin_conn.autocommit = True\n    try:\n        with admin_conn.cursor() as cur:\n            post_ids = []\n            for title in (\"Reader summary auth\", \"Admin summary auth\"):\n                cur.execute(\n                    \"insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) \"\n                    \"select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' \"\n                    \"from source_post where post_id = %s returning post_id\",\n                    (title, \"authorization evidence body\", seeded_db[\"own_private_post_id\"]),\n                )\n                post_ids.append(str(cur.fetchone()[0]))\n            cur.execute(\n                \"select corporate_entity_id::text, parent_entity_id::text, corporate_entity_code, entity_name, entity_level_code \"\n                \"from corporate_entity order by corporate_entity_id\"\n            )\n            corporate_before = cur.fetchall()\n            cur.execute(\n                \"select team_id::text, team_name, affiliated_organization_name \"\n                \"from cataloged_team order by team_id\"\n            )\n            teams_before = cur.fetchall()\n    finally:\n        admin_conn.close()\n\n    headers = {\"Authorization\": f\"Bearer {demo_analyst_token}\"}\n    reader = client.get(f\"/api/posts/{post_ids[0]}/summary\", headers=headers)\n    assert reader.status_code == 200, reader.text\n    assert hierarchy_factory_calls == 0\n    assert verification_factory_calls == 0\n\n    admin_conn = psycopg2.connect(seeded_db[\"dsn\"])\n    admin_conn.autocommit = True\n    try:\n        with admin_conn.cursor() as cur:\n            cur.execute(\n                \"select corporate_entity_id::text, parent_entity_id::text, corporate_entity_code, entity_name, entity_level_code \"\n                \"from corporate_entity order by corporate_entity_id\"\n            )\n            assert cur.fetchall() == corporate_before\n            cur.execute(\n                \"select team_id::text, team_name, affiliated_organization_name \"\n                \"from cataloged_team order by team_id\"\n            )\n            assert cur.fetchall() == teams_before\n            cur.execute(\n                \"select cataloged_corporate_entity_id, cataloged_team_id from post_summary_role \"\n                \"where post_id = %s order by role_ordinal\",\n                (post_ids[0],),\n            )\n            reader_bindings = cur.fetchall()\n    finally:\n        admin_conn.close()\n    assert reader_bindings == [(None, None), (None, None)]\n\n    _grant_post_admin(seeded_db[\"dsn\"])\n    admin = client.get(f\"/api/posts/{post_ids[1]}/summary\", headers=headers)\n    assert admin.status_code == 200, admin.text\n    assert hierarchy_factory_calls > 0\n    assert verification_factory_calls > 0\n\n    admin_conn = psycopg2.connect(seeded_db[\"dsn\"])\n    try:\n        with admin_conn.cursor() as cur:\n            cur.execute(\n                \"select count(*) from corporate_entity where entity_name = %s\",\n                (admin_org,),\n            )\n            assert cur.fetchone()[0] == 1\n            cur.execute(\n                \"select count(*) from cataloged_team where team_name = %s and affiliated_organization_name = %s\",\n                (admin_team, admin_org),\n            )\n            assert cur.fetchone()[0] == 1\n    finally:\n        admin_conn.close()\n'''
+          text = text.replace(marker, regression + marker, 1)
+          path.write_text(text)
+          PY
+
+      - name: Verify test source
+        shell: bash
+        run: |
+          python -m compileall -q backend/tests/test_api.py
+          git diff --check
+          grep -n "test_post_read_summary_materialization_cannot_mutate_shared_catalogs" backend/tests/test_api.py
+
+      - name: Commit regression
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/tests/test_api.py
+          git commit -m 'test(security): cover summary catalog authorization (#1078)'
+          git push origin HEAD:fix/summary-catalog-authorization-1078
