@@ -237,6 +237,42 @@ def test_corroborated_resolution_reuses_existing_catalog_entity(monkeypatch) -> 
     assert all("insert into corporate_entity" not in query for query, _ in connection.executed)
 
 
+def test_ambiguous_catalog_identity_fails_closed(monkeypatch) -> None:
+    """A tied catalog match must not pick an arbitrary customer identity or persist it."""
+    monkeypatch.setattr(
+        ingestion,
+        "resolve_and_verify_organization_name",
+        lambda *_args: _resolution(STATUS_CORROBORATED),
+    )
+
+    class _AmbiguousConnection(_Connection):
+        """Expose two equally exact catalog labels to exercise the canonical tie contract."""
+
+        async def fetch(self, query: str, *args: object):
+            """Return duplicate exact labels only for the corporate catalog snapshot."""
+            normalized = " ".join(query.lower().split())
+            if "select corporate_entity_id, entity_name from corporate_entity" in normalized:
+                self.executed.append((normalized, args))
+                return [
+                    {"corporate_entity_id": "entity-a", "entity_name": "Northridge Grid"},
+                    {"corporate_entity_id": "entity-b", "entity_name": "Northridge Grid"},
+                ]
+            return await super().fetch(query, *args)
+
+    connection = _AmbiguousConnection(
+        sample_rows=[
+            {"post_id": "post-1", "post_title": "Visit", "post_body": "<p>Visit notes</p>"}
+        ]
+    )
+    result = asyncio.run(_resolve(_Pool(connection)))
+
+    assert result is None
+    assert all(
+        "insert into source_post_customer_resolution" not in query
+        for query, _ in connection.executed
+    )
+
+
 def test_scope_change_between_capture_and_persistence_fails_closed(monkeypatch) -> None:
     """Losing source visibility after corroboration must prevent association persistence."""
     monkeypatch.setattr(
