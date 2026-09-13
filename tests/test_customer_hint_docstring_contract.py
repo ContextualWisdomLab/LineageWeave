@@ -8,7 +8,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 _EXPECTED_FUNCTIONS = {
     "backend/app/customer_hint_ingestion.py": {
-        "_resolved_customer_code",
+        "_load_corporate_entity_candidates",
         "resolve_customer_hint",
     },
     "backend/app/post_eligibility.py": {
