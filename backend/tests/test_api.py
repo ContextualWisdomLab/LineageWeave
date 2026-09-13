@@ -3183,6 +3183,8 @@ def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
     """
     from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
 
+    _grant_post_admin(seeded_db["dsn"])
+
     class _FakeSummaryClient:
         available = True
 
