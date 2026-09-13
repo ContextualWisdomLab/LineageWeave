@@ -1,0 +1,67 @@
+name: Bounded product gap baseline refresh
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: codex/gap-loop-20260912
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify single-writer head
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin refs/heads/codex/gap-loop-20260912 | cut -f1)"
+          test "$remote_head" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Refresh current authority overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          path = Path('docs/product-technical-gap-baseline.md')
+          text = path.read_text()
+          title = '# Product & Technical Gap Baseline\n'
+          if not text.startswith(title):
+              raise SystemExit('unexpected baseline title')
+          stamp = datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M KST')
+          overlay = f'''\n\n> Live-authority overlay: {stamp}. Protected `main` remains\n> `83eba56149eb802cd63642c507c324c9976ec78e` pending final double sweep.\n> Customer Master ownership issue #1052 / Draft PR #1055 is now at exact\n> `831fc52a1969f2999109da2c061067a9dc0ae954`. Bounded repair run\n> `34741807255 / 103682639248` reproduced the ordinary-hosted response-contract\n> RED, applied the minimal serializer/E2E expectation repair, obtained focused\n> GREEN, and published a self-cleaning ordinary commit. The current head adds\n> `tests/test_customer_master_hint_response_contract.py`, updates the real-service\n> `backend/tests/test_api.py` expectation, and contains no temporary repair workflow.\n> All #1055 inline review threads are resolved.\n>\n> Current-head central workflow identities are Draft lifecycle `action_required`,\n> not GREEN receipts. Immediate parent `b9346dc681997a0274194d2ed913a22bb7488cca`\n> has SAST/Security/dynamic-CodeQL/Code-Quality/OpenCode/Strix success; Required\n> CodeQL remains the canonical `.github#1929` ordering/reconciliation failure, and\n> predecessor Noema evidence cannot authorize `831fc52...`. `.github#2045` remains\n> open for unchanged-head Draft-to-Ready materialization, so no empty commit or\n> lifecycle-flip loop is used to manufacture current-head evidence.\n>\n> Issue #1057 still owns the hosted PostgreSQL + local Keycloak development fixture\n> + Valkey bearer/JWKS/RBAC/ABAC lane. Its original #1055 response-shape canary is\n> repaired, but the service-wide-skip topology defect remains. #1042/#1054/#1047/\n> #1049/#1046 remain Draft under their own live authority. Protected-main release\n> identity remains blocked by #1056 (`pyproject.toml` 2.28.0 versus runtime\n> `lineageweave.__version__` 2.20.0); OpenTelemetry and PostgreSQL warning owners\n> remain #1036/#973 and #1038/#1040. No release is admitted by this overlay. Older\n> overlays below are dated evidence only.\n'''
+          path.write_text(title + overlay + text[len(title):])
+          PY
+
+      - name: Publish ordinary self-cleaning docs commit
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm .github/workflows/refresh-gap-baseline-20260913.yml
+          git add docs/product-technical-gap-baseline.md .github/workflows/refresh-gap-baseline-20260913.yml
+          if git diff --cached --quiet; then
+            echo 'No baseline delta to publish' >&2
+            exit 1
+          fi
+          remote_head="$(git ls-remote origin refs/heads/codex/gap-loop-20260912 | cut -f1)"
+          test "$remote_head" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs(gaps): refresh current product authority'
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:codex/gap-loop-20260912
