@@ -1,0 +1,38 @@
+name: Bounded 10:14 gap baseline refresh
+
+on:
+  push:
+    branches:
+      - codex/gap-loop-20260912
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact baseline branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: codex/gap-loop-20260912
+          persist-credentials: false
+      - name: Apply bounded overlay
+        run: |
+          python scripts/bounded_gap_baseline_refresh_1014.py
+          git diff --check
+      - name: Publish ordinary documentation commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm scripts/bounded_gap_baseline_refresh_1014.py
+          rm .github/workflows/bounded-gap-baseline-refresh-1014.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/product-technical-gap-baseline.md \
+            scripts/bounded_gap_baseline_refresh_1014.py \
+            .github/workflows/bounded-gap-baseline-refresh-1014.yml
+          git diff --cached --check
+          git commit -m 'docs(gaps): refresh exact-head customer-master evidence'
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:codex/gap-loop-20260912
