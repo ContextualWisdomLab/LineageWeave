@@ -19,6 +19,14 @@ def test_resolution_contract_keeps_source_ownership_separate() -> None:
     assert "asyncio.to_thread" in source
 
 
+def test_customer_resolution_uses_canonical_corporate_catalog_owner() -> None:
+    """Customer Master must not invent a third corporate-entity binding algorithm."""
+    source = Path(ingestion.__file__).read_text(encoding="utf-8").lower()
+    assert "get_or_create_corporate_entity" in source
+    assert "where lower(entity_name)" not in source
+    assert "insert into corporate_entity" not in source
+
+
 def test_authorization_owner_exposes_scoped_capture_and_revalidation() -> None:
     """The source-post authorization owner, not Customer Master, owns scoped SQL."""
     source = Path(eligibility.__file__).read_text(encoding="utf-8")
