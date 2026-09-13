@@ -1,0 +1,187 @@
+"""Authenticated integration proof for summary shared-catalog authorization."""
+
+from __future__ import annotations
+
+import psycopg2
+
+from backend.tests.test_api import (
+    _grant_post_admin,
+    client,
+    demo_analyst_token,
+    seeded_db,
+)
+from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_TEAM,
+    PostSummary,
+    RoleResponsibility,
+)
+from lineageweave.relation_verification import (
+    STATUS_CORROBORATED,
+    RelationVerificationResult,
+)
+
+
+def test_post_read_summary_materialization_cannot_mutate_shared_catalogs(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """post_read may materialize a summary but must not write shared master data."""
+    reader_org = "Reader Summary Never Create Corp"
+    reader_team = "Reader Summary Never Create Team"
+    admin_org = "Admin Summary Create Corp"
+    admin_team = "Admin Summary Create Team"
+
+    class _FakeSummaryClient:
+        available = True
+
+        def summarize(self, post_title: str, post_body: str) -> PostSummary:
+            if post_title.startswith("Reader summary auth"):
+                organization_name, team_name = reader_org, reader_team
+            else:
+                organization_name, team_name = admin_org, admin_team
+            return PostSummary(
+                korean_summary="권한 경계를 검증하는 합성 요약입니다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name=organization_name,
+                        responsibility="조직 역할",
+                        actor_type_code=ACTOR_TYPE_ORGANIZATION,
+                    ),
+                    RoleResponsibility(
+                        actor_name=team_name,
+                        responsibility="팀 역할",
+                        actor_type_code=ACTOR_TYPE_TEAM,
+                        affiliated_organization_name=organization_name,
+                    ),
+                ),
+            )
+
+    hierarchy_factory_calls = 0
+    verification_factory_calls = 0
+
+    class _FakeHierarchyInferenceClient:
+        available = True
+
+        def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+            return HierarchyProposal(level_code="company", parent_name=None)
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(
+            self, organization_name: str, relationship_label: str
+        ) -> RelationVerificationResult:
+            return RelationVerificationResult(
+                status_code=STATUS_CORROBORATED,
+                evidence_url=f"https://example.org/{organization_name.replace(' ', '-')}",
+            )
+
+    def hierarchy_factory():
+        nonlocal hierarchy_factory_calls
+        hierarchy_factory_calls += 1
+        return _FakeHierarchyInferenceClient()
+
+    def verification_factory():
+        nonlocal verification_factory_calls
+        verification_factory_calls += 1
+        return _FakeVerificationClient()
+
+    monkeypatch.setattr("backend.app.main._post_summary_client", lambda: _FakeSummaryClient())
+    monkeypatch.setattr(
+        "backend.app.main._corporate_hierarchy_inference_client", hierarchy_factory
+    )
+    monkeypatch.setattr(
+        "backend.app.main._relation_verification_client", verification_factory
+    )
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            post_ids = []
+            for title in ("Reader summary auth", "Admin summary auth"):
+                cur.execute(
+                    "insert into source_post "
+                    "(author_account_id, corporate_entity_id, post_title, post_body, "
+                    "voc_type_code, visibility_code) "
+                    "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                    "from source_post where post_id = %s returning post_id",
+                    (
+                        title,
+                        "authorization evidence body",
+                        seeded_db["own_private_post_id"],
+                    ),
+                )
+                post_ids.append(str(cur.fetchone()[0]))
+            for organization_name in (reader_org, admin_org):
+                cur.execute(
+                    "select count(*) from corporate_entity where entity_name = %s",
+                    (organization_name,),
+                )
+                assert cur.fetchone()[0] == 0
+            for team_name, organization_name in (
+                (reader_team, reader_org),
+                (admin_team, admin_org),
+            ):
+                cur.execute(
+                    "select count(*) from cataloged_team "
+                    "where team_name = %s and affiliated_organization_name = %s",
+                    (team_name, organization_name),
+                )
+                assert cur.fetchone()[0] == 0
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    reader = client.get(f"/api/posts/{post_ids[0]}/summary", headers=headers)
+    assert reader.status_code == 200, reader.text
+    assert hierarchy_factory_calls == 0
+    assert verification_factory_calls == 0
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select count(*) from corporate_entity where entity_name = %s",
+                (reader_org,),
+            )
+            assert cur.fetchone()[0] == 0
+            cur.execute(
+                "select count(*) from cataloged_team "
+                "where team_name = %s and affiliated_organization_name = %s",
+                (reader_team, reader_org),
+            )
+            assert cur.fetchone()[0] == 0
+            cur.execute(
+                "select cataloged_corporate_entity_id, cataloged_team_id "
+                "from post_summary_role where post_id = %s order by role_ordinal",
+                (post_ids[0],),
+            )
+            assert cur.fetchall() == [(None, None), (None, None)]
+    finally:
+        admin_conn.close()
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin = client.get(f"/api/posts/{post_ids[1]}/summary", headers=headers)
+    assert admin.status_code == 200, admin.text
+    assert hierarchy_factory_calls > 0
+    assert verification_factory_calls > 0
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select count(*) from corporate_entity where entity_name = %s",
+                (admin_org,),
+            )
+            assert cur.fetchone()[0] == 1
+            cur.execute(
+                "select count(*) from cataloged_team "
+                "where team_name = %s and affiliated_organization_name = %s",
+                (admin_team, admin_org),
+            )
+            assert cur.fetchone()[0] == 1
+    finally:
+        admin_conn.close()
