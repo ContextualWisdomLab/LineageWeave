@@ -1275,8 +1275,8 @@ describe("LeftoverMapPlot", () => {
     );
     expect(screen.queryByLabelText(/leftover map comparison graphic reconstruction/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/leftover-map reconstruction/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -1391,8 +1391,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -1517,8 +1517,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -1653,8 +1653,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -1799,8 +1799,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -1955,8 +1955,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -2120,8 +2120,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
@@ -2291,8 +2291,8 @@ describe("LeftoverMapPlot", () => {
     expect(
       screen.getByLabelText("leftover map comparison graphic reconstruction R̂ +0.25"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 0.12")).toBeInTheDocument();
-    expect(screen.getByLabelText("leftover-map distance d 1.84")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 0.12")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map comparison graphic: leftover-map distance d 1.84")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map comparison graphic coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
