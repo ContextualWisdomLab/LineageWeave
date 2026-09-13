@@ -1,20 +1,24 @@
-"""Resolves one observed customer-hint code (`source_post.source_customer_code`)
-to a real-world `corporate_entity`, using the text of posts that share the
-code as evidence -- and, per the same corroboration discipline
-`organization_name_resolution_ingestion.py` already applies to in-text
-abbreviations (ADR 0008), never binding a new customer name that external
-search did not corroborate. An uncorroborated or unresolved guess leaves
-the hint exactly as unresolved as it started; it never invents a Customer
-Master entity from a single ungrounded LLM answer.
+"""Corroborate raw customer hints without changing source-post ownership.
+
+`source_post.source_customer_code` remains raw evidence. A corroborated
+Customer Master identity is persisted separately in
+`source_post_customer_resolution`; `source_post.corporate_entity_id` and
+`process_unit_id` remain authorization ownership (ADR 0042 / ADR 0374).
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
+from collections.abc import Sequence
 from typing import Any
 
 import asyncpg
 
+from backend.app.post_eligibility import (
+    fetch_visible_customer_hint_evidence,
+    lock_visible_customer_hint_sources,
+)
 from lineageweave.customer_hint_resolution import CustomerHintResolutionClient
 from lineageweave.image_content import NullImageContentClient
 from lineageweave.organization_name_resolution import resolve_and_verify_organization_name
@@ -25,143 +29,136 @@ from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVeri
 _EXCERPT_LENGTH = 1500
 
 
+def _resolved_customer_code(entity_name: str) -> str:
+    """Return a stable catalog code derived from corroborated identity, not tenant hint."""
+    digest = hashlib.sha256(entity_name.strip().casefold().encode("utf-8")).hexdigest()[:24]
+    return f"RESOLVED-{digest}"
+
+
 async def resolve_customer_hint(
-    conn: asyncpg.Connection,
+    pool: asyncpg.Pool,
     resolution_client: CustomerHintResolutionClient,
     verification_client: RelationVerificationClient,
     hint_code: str,
+    corporate_entity_ids: Sequence[str],
+    process_unit_ids: Sequence[str],
 ) -> dict[str, Any] | None:
-    """Resolve one `source_customer_code` hint to a real `corporate_entity`.
+    """Resolve one visible raw hint to separately persisted customer identity.
 
-    Returns ``None`` when the resolver is unavailable, no eligible posts
-    carry this hint, or the proposed name was not externally corroborated.
-    Otherwise creates (or reuses, by case-insensitive exact name) the
-    entity and reclaims every post sharing this hint that still sits at
-    its account's default placeholder entity, returning the entity
-    id/name plus how many posts were reclaimed.
+    Evidence capture is bounded to the authenticated caller's explicit
+    corporate/process scope. The database connection is released before
+    external resolution/verification. Persistence then reacquires a short
+    transaction, revalidates and share-locks the exact captured source set,
+    and fails closed if authorization-relevant state changed meanwhile.
     """
     if not resolution_client.available:
         return None
-    # Five rows and 20,000 raw body characters per row bound both transfer and
-    # parsing before deterministic normalization. The SQL remains literal;
-    # only the observed hint code is a bound value.
-    rows = await conn.fetch(
-        """
-        select post_title, left(post_body, 20000) as post_body
-          from source_post
-         where source_customer_code = $1
-           and nullif(btrim(source_post.source_draft_code), '') is null
-           and nullif(btrim(source_post.source_deleted_flag), '') is null
-           and not (
-               (
-                   nullif(btrim(source_post.source_author_code), '') is null
-                   and nullif(btrim(source_post.source_author_name), '') is null
-                   and nullif(btrim(source_post.source_company_code), '') is null
-                   and nullif(btrim(source_post.source_company_name), '') is null
-                   and nullif(btrim(source_post.source_process_unit_code), '') is null
-                   and nullif(btrim(source_post.source_process_unit_name), '') is null
-                   and nullif(btrim(source_post.source_sales_pool_code), '') is null
-                   and nullif(btrim(source_post.source_sales_pool_name), '') is null
-                   and nullif(btrim(source_post.source_customer_code), '') is null
-                   and nullif(btrim(source_post.source_customer_name), '') is null
-                   and nullif(btrim(source_post.source_project_code), '') is null
-                   and nullif(btrim(source_post.source_project_name), '') is null
-               )
-               and exists (
-                   select 1
-                     from source_post real_post
-                    where (
-                        nullif(btrim(real_post.source_author_code), '') is not null
-                        or nullif(btrim(real_post.source_author_name), '') is not null
-                        or nullif(btrim(real_post.source_company_code), '') is not null
-                        or nullif(btrim(real_post.source_company_name), '') is not null
-                        or nullif(btrim(real_post.source_process_unit_code), '') is not null
-                        or nullif(btrim(real_post.source_process_unit_name), '') is not null
-                        or nullif(btrim(real_post.source_sales_pool_code), '') is not null
-                        or nullif(btrim(real_post.source_sales_pool_name), '') is not null
-                        or nullif(btrim(real_post.source_customer_code), '') is not null
-                        or nullif(btrim(real_post.source_customer_name), '') is not null
-                        or nullif(btrim(real_post.source_project_code), '') is not null
-                        or nullif(btrim(real_post.source_project_name), '') is not null
-                    )
-               )
-           )
-         order by created_at desc
-         limit 5
-        """,
-        hint_code,
-    )
-    if not rows:
+
+    async with pool.acquire() as database_connection:
+        evidence_rows = await fetch_visible_customer_hint_evidence(
+            database_connection,
+            corporate_entity_ids,
+            process_unit_ids,
+            hint_code,
+        )
+    if not evidence_rows:
         return None
 
+    captured_post_ids = tuple(str(row["post_id"]) for row in evidence_rows)
     vision_client = NullImageContentClient()
     excerpts = "\n---\n".join(
         f"{row['post_title']}\n"
         f"{normalize_post_body(row['post_body'], vision_client=vision_client).text[:_EXCERPT_LENGTH]}"
-        for row in rows
+        for row in evidence_rows
     )
-    resolution = await asyncio.to_thread(
+    verified_customer_resolution = await asyncio.to_thread(
         resolve_and_verify_organization_name,
         hint_code,
         excerpts,
         resolution_client,
         verification_client,
     )
-    if resolution is None or resolution.verification_status_code != STATUS_CORROBORATED:
+    if (
+        verified_customer_resolution is None
+        or verified_customer_resolution.verification_status_code != STATUS_CORROBORATED
+    ):
         return None
 
-    entity_name = resolution.resolved_organization_name
-    existing = await conn.fetchrow(
-        "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
-        entity_name,
-    )
-    if existing is not None:
-        entity_id = existing["corporate_entity_id"]
-    else:
-        # ON CONFLICT, not a plain INSERT: re-resolving the same hint_code
-        # is not guaranteed to get byte-identical LLM phrasing back, so the
-        # name-based lookup above can miss an entity this same hint already
-        # created -- corporate_entity_code (deterministic from hint_code)
-        # is the stable identity key a retry must key off instead.
-        entity_code = f"HINT-{hint_code}"
-        # Safe SQL: the statement is a literal migration-shaped query; both observed values are bound.
-        created = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            """
-            insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
-            values ($1, $2, 'company')
-            on conflict (corporate_entity_code)
-            do update set entity_name = excluded.entity_name
-            returning corporate_entity_id
-            """,
-            entity_code,
-            entity_name,
-        )
-        entity_id = created["corporate_entity_id"]
+    entity_name = verified_customer_resolution.resolved_organization_name.strip()
+    if not entity_name:
+        return None
 
-    # `corporate_entity_id` is NOT NULL, so a bulk-imported real record
-    # never sits at NULL waiting to be resolved -- it defaults to whatever
-    # entity its shared placeholder `author_account_id` happens to be
-    # affiliated with (the same shared-placeholder shape as the
-    # `author_affiliations` hint leak fixed in semantic_hints.py). Only
-    # reclaim a post still sitting at that default, never one some other
-    # resolution already bound to a specific entity.
-    linked = await conn.fetch(
-        """
-        update source_post
-           set corporate_entity_id = $1
-         where source_customer_code = $2
-           and corporate_entity_id in (
-               select corporate_entity_id from account_affiliation
-                where user_account_id = source_post.author_account_id
-           )
-        returning post_id
-        """,
-        entity_id,
-        hint_code,
-    )
+    async with pool.acquire() as database_connection:
+        async with database_connection.transaction():
+            revalidated_rows = await lock_visible_customer_hint_sources(
+                database_connection,
+                corporate_entity_ids,
+                process_unit_ids,
+                hint_code,
+                captured_post_ids,
+            )
+            revalidated_post_ids = {str(row["post_id"]) for row in revalidated_rows}
+            if revalidated_post_ids != set(captured_post_ids):
+                return None
+
+            existing_entity = await database_connection.fetchrow(
+                "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
+                entity_name,
+            )
+            if existing_entity is not None:
+                resolved_corporate_entity_id = existing_entity["corporate_entity_id"]
+            else:
+                created_entity = await database_connection.fetchrow(
+                    """
+                    insert into corporate_entity (
+                        corporate_entity_code,
+                        entity_name,
+                        entity_level_code
+                    )
+                    values ($1, $2, 'company')
+                    on conflict (corporate_entity_code)
+                    do update set entity_name = excluded.entity_name
+                    returning corporate_entity_id
+                    """,
+                    _resolved_customer_code(entity_name),
+                    entity_name,
+                )
+                resolved_corporate_entity_id = created_entity["corporate_entity_id"]
+
+            linked_rows = await database_connection.fetch(
+                """
+                insert into source_post_customer_resolution (
+                    post_id,
+                    source_customer_code,
+                    resolved_corporate_entity_id,
+                    resolved_entity_name,
+                    verification_status_code,
+                    verification_evidence_url,
+                    resolved_at
+                )
+                select source_post_id::uuid, $2, $3::uuid, $4, $5, $6, now()
+                  from unnest($1::text[]) as captured(source_post_id)
+                on conflict (post_id)
+                do update set
+                    source_customer_code = excluded.source_customer_code,
+                    resolved_corporate_entity_id = excluded.resolved_corporate_entity_id,
+                    resolved_entity_name = excluded.resolved_entity_name,
+                    verification_status_code = excluded.verification_status_code,
+                    verification_evidence_url = excluded.verification_evidence_url,
+                    resolved_at = excluded.resolved_at
+                returning post_id
+                """,
+                list(captured_post_ids),
+                hint_code,
+                resolved_corporate_entity_id,
+                entity_name,
+                verified_customer_resolution.verification_status_code,
+                verified_customer_resolution.verification_evidence_url,
+            )
+
     return {
-        "corporate_entity_id": str(entity_id),
+        "corporate_entity_id": str(resolved_corporate_entity_id),
         "entity_name": entity_name,
-        "linked_post_count": len(linked),
-        "verification_evidence_url": resolution.verification_evidence_url,
+        "linked_post_count": len(linked_rows),
+        "verification_evidence_url": verified_customer_resolution.verification_evidence_url,
     }
