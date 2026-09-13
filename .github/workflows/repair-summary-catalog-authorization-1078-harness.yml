@@ -1,0 +1,54 @@
+name: Repair summary catalog authorization 1078 harness
+
+on:
+  push:
+    branches:
+      - fix/summary-catalog-authorization-1078
+
+permissions:
+  contents: write
+
+jobs:
+  repair-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/summary-catalog-authorization-1078
+          fetch-depth: 0
+
+      - name: Scope verification to the summary endpoint
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/repair-summary-catalog-authorization-1078.yml')
+          text = path.read_text()
+          old = """          assert '_persist_post_summary_for_account(' in main
+          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main
+          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in main
+          assert 'verification_client=_relation_verification_client(),' not in main
+"""
+          new = """          assert '_persist_post_summary_for_account(' in main
+          assert 'allow_catalog_enrichment=allow_catalog_enrichment' in main
+          summary_endpoint = main.split('@app.get(\"/api/posts/{post_id}/summary\")', 1)[1].split('\\n@app.', 1)[0]
+          assert 'hierarchy_inference_client=_corporate_hierarchy_inference_client(),' not in summary_endpoint
+          assert 'verification_client=_relation_verification_client(),' not in summary_endpoint
+"""
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one stale verification block, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Remove purpose-complete harness and commit
+        shell: bash
+        run: |
+          rm .github/workflows/repair-summary-catalog-authorization-1078-harness.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'ci: scope #1078 repair verification to summary endpoint'
+          git push origin HEAD:fix/summary-catalog-authorization-1078
