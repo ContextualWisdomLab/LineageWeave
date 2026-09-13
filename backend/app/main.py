@@ -967,8 +967,8 @@ async def read_customer_master(
                   left join source_post_customer_resolution resolution
                     on resolution.post_id = source_post.post_id
                    and resolution.source_customer_code = btrim(source_post.source_customer_code)
-                 where (nullif(btrim(source_customer_code), '') is not null
-                        or nullif(btrim(source_customer_name), '') is not null)
+                 where (nullif(btrim(source_post.source_customer_code), '') is not null
+                        or nullif(btrim(source_post.source_customer_name), '') is not null)
                    and (visibility_code = 'public' or (
                         corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
