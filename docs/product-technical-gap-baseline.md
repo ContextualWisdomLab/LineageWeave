@@ -1,6 +1,54 @@
 # Product & Technical Gap Baseline
 
 
+> Live-authority overlay: 2026-09-13 20:27 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e`, protected with a valid verified
+> commit signature after two fresh sweeps. No protected-main merge or base movement
+> occurred during this maintenance turn.
+>
+> Customer Master ownership issue #1052 / PR #1055 remains exact
+> `50c4935eef1029467595f7004818643598b737c9`. Repository Tests `34746058653`
+> (including full PostgreSQL), Security `34746058657`, and SAST `34746058639`
+> are terminal GREEN. Required CodeQL `34746058693`, OpenCode `34746057593`,
+> and Noema `34746057619` remain terminal failures at canonical `.github` /
+> contextual-orchestrator owner boundaries. Strix `34746057545` / job
+> `103694153476` remains genuinely `in_progress` at `Run Strix (quick)` on the
+> unchanged head; elapsed time alone is not grounds to cancel it. #1055 therefore
+> remains Ready only to preserve exact-head evidence and is not merge-ready.
+>
+> Fresh catalog-owner review identified buyer-path resilience gap #1077. The
+> canonical `get_or_create_corporate_entity` correctly defers its explicit
+> transaction and `pg_advisory_xact_lock` until after provider work, but existing
+> Keyman/post-summary/Customer Master callers can retain a borrowed asyncpg
+> connection across hierarchy inference/search corroboration. The process pool is
+> bounded at `max_size=10`, so concurrent catalog misses can starve unrelated DB
+> requests without any explicit DB lock. #1077 owns the causal contract: short
+> candidate/alias snapshot lease, release before provider I/O, then a fresh
+> under-lock catalog recheck/write with cancellation/error cleanup. It remains in
+> the corporate-entity catalog bounded context and must not duplicate CO routing.
+>
+> The leftover-map comparison lineage suffix has also converged onto repaired #859.
+> #859 exact `2550e8d88339e30297fa0aa19ffae77f9b78b73b` fixes the eight stale
+> comparison-only distance cases (16 assertions) without changing production or
+> report-mode semantics. The live serialized ancestry is #860 `ef29a5a9...` ->
+> #861 `49973434...` -> #862 `382947ba...` -> #863 `4e8720e9...` -> #865
+> `dec97059...` -> #866 `198d6827...` -> #867 `3e338bc3...` -> #868
+> `8af935c0...` -> #869 `74bd9468...` -> #870 `d063bd97...` -> #871
+> `645a5b09...` -> #872 `57206ce8...` -> #873 `b25b3874...` -> #874
+> `ac531c41...` -> #875 `c2278234...`, with forks #876 `259e2d1a...` and
+> #877 `677643a4...`; reconstructed successors #1033 `6db5cb71...` -> #1034
+> `5015f193...` preserve valid #878/#879 intent. PR bodies for this suffix were
+> corrected to the live base/head authority and no longer claim #859's repaired
+> consumer-test RED is still active. All remain Draft because current validation /
+> local intentional REDs are unresolved; no ancestor receipt transfers.
+>
+> #1057 remains the separate hosted PostgreSQL + Keycloak + Valkey authenticated
+> bearer/JWKS/RBAC/ABAC topology owner. Draft #961 remains the runtime-version
+> source repair and #1056 retains immutable release/SBOM/provenance/
+> reproducibility/rollback acceptance. No release is admitted by this overlay.
+> Older overlays below are dated evidence only.
+
+
 > Live-authority overlay: 2026-09-13 16:54 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` pending final double sweep.
 > Customer Master ownership issue #1052 / PR #1055 is on exact
