@@ -1,0 +1,51 @@
+name: Repair summary authorization patcher 1078
+
+on:
+  push:
+    branches:
+      - fix/summary-catalog-authorization-1078
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, 'ci: repair #1078 patcher') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/summary-catalog-authorization-1078
+          fetch-depth: 0
+
+      - name: Repair failed patcher and make it purpose-complete
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/patch-summary-auth-integration-1078.yml')
+          text = path.read_text()
+          old = "          regression = r'''\\n\\ndef test_post_read_summary_materialization_cannot_mutate_shared_catalogs("
+          new = "          regression = '''\\n\\ndef test_post_read_summary_materialization_cannot_mutate_shared_catalogs("
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one raw-regression marker, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          old_commit = "          git add backend/tests/test_api.py\n          git commit -m 'test(security): cover summary catalog authorization (#1078)'"
+          new_commit = "          rm .github/workflows/patch-summary-auth-integration-1078.yml\n          git add backend/tests/test_api.py .github/workflows/patch-summary-auth-integration-1078.yml\n          git commit -m 'test(security): cover summary catalog authorization (#1078)'"
+          if text.count(old_commit) != 1:
+              raise SystemExit(f'expected one commit block, found {text.count(old_commit)}')
+          path.write_text(text.replace(old_commit, new_commit, 1))
+          PY
+          git diff --check
+
+      - name: Commit repaired patcher
+        shell: bash
+        run: |
+          rm .github/workflows/repair-summary-auth-patcher-1078.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/patch-summary-auth-integration-1078.yml .github/workflows/repair-summary-auth-patcher-1078.yml
+          git commit -m 'ci: repair #1078 patcher after raw-string RCA'
+          git push origin HEAD:fix/summary-catalog-authorization-1078
