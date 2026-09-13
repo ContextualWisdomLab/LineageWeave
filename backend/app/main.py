@@ -1304,46 +1304,39 @@ async def resolve_customer_master_hint(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Resolve one observed customer-hint code to a real corporate_entity.
+    """Corroborate one visible customer hint without changing source ownership.
 
-    Gated by post_admin, not post_read: this is a write action with a
-    real LLM-call cost, same discipline as extract-keymen/verify-relations.
-    Only an externally-corroborated proposed name ever creates or binds an
-    entity (`backend.app.customer_hint_ingestion`) -- an unresolved or
-    uncorroborated hint is returned as such, never guessed into the
-    catalog.
+    ``post_admin`` admits the write action, while the authenticated
+    corporate/process scope bounds every source post used as model evidence.
+    Customer identity is persisted separately from tenant authorization
+    ownership (ADR 0042 / Proposed ADR 0374).
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        try:
-            resolution = await resolve_customer_hint(
-                conn,
-                _customer_hint_resolution_client(),
-                _relation_verification_client(),
-                request.hint_code,
-            )
-        except (HttpClientError, OSError) as exc:
-            # resolve_and_verify_organization_name's resolution/verification
-            # calls raise on a failed request rather than silently returning
-            # "unresolved" -- a failed call is not the same claim as "the
-            # model looked and found nothing" (same discipline as
-            # verify-relations' identical try/except).
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
-            ) from exc
+    try:
+        resolution = await resolve_customer_hint(
+            pool,
+            _customer_hint_resolution_client(),
+            _relation_verification_client(),
+            request.hint_code,
+            list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
+        )
+    except (HttpClientError, OSError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+        ) from exc
     if resolution is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             "this hint could not be resolved to a corroborated organization name",
         )
     return resolution
-
 
 @app.get("/api/lineage")
 async def read_lineage_graph(
