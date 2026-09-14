@@ -42,26 +42,29 @@ CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontolo
 LEGACY_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
 
 
-def canonicalize(iri: str) -> str | None:
-    """Return the canonical spelling of ``iri``, or None if not legacy."""
-    if iri.startswith(LEGACY_NAMESPACE):
-        return CANONICAL_NAMESPACE + iri[len(LEGACY_NAMESPACE):]
+def canonicalize_ontology_iri(ontology_iri: str) -> str | None:
+    """Return the canonical spelling of an IRI, or None if it is not legacy."""
+    if ontology_iri.startswith(LEGACY_NAMESPACE):
+        return CANONICAL_NAMESPACE + ontology_iri[len(LEGACY_NAMESPACE) :]
     return None
 
 
-async def migrate(dsn: str, apply: bool) -> int:
+async def migrate_legacy_ontology_namespace(
+    target_dsn: str,
+    apply_changes: bool,
+) -> int:
     """Scan, report, and optionally rewrite legacy namespace IRIs.
 
     Args:
-        dsn: PostgreSQL DSN for the target database.
-        apply: False for dry-run reporting; True to execute the rewrite.
+        target_dsn: PostgreSQL DSN for the target database.
+        apply_changes: False for dry-run reporting; True to execute the rewrite.
 
     Returns:
         Process exit code: 0 when clean or migrated, 1 on unexpected IRIs.
     """
-    conn = await asyncpg.connect(dsn)
+    database_connection = await asyncpg.connect(target_dsn)
     try:
-        rows = await conn.fetch(
+        source_mention_rows = await database_connection.fetch(
             """
             select post_id, project_name, ontology_iri
             from post_project_mention
@@ -69,39 +72,62 @@ async def migrate(dsn: str, apply: bool) -> int:
             order by post_id, project_name
             """
         )
-        unexpected: list[tuple[str, str, str]] = []
-        planned: list[tuple[str, str, str]] = []
-        for row in rows:
-            iri = row["ontology_iri"]
-            canonical = canonicalize(iri)
-            if canonical is None:
-                if not iri.startswith(CANONICAL_NAMESPACE):
-                    unexpected.append((row["post_id"], row["project_name"], iri))
+        unexpected_namespace_records: list[tuple[str, str, str]] = []
+        planned_iri_rewrites: list[tuple[str, str, str]] = []
+        for source_mention_row in source_mention_rows:
+            ontology_iri = source_mention_row["ontology_iri"]
+            canonical_ontology_iri = canonicalize_ontology_iri(ontology_iri)
+            if canonical_ontology_iri is None:
+                if not ontology_iri.startswith(CANONICAL_NAMESPACE):
+                    unexpected_namespace_records.append(
+                        (
+                            source_mention_row["post_id"],
+                            source_mention_row["project_name"],
+                            ontology_iri,
+                        )
+                    )
                 continue
-            planned.append((row["post_id"], row["project_name"], f"{iri} -> {canonical}"))
+            planned_iri_rewrites.append(
+                (
+                    source_mention_row["post_id"],
+                    source_mention_row["project_name"],
+                    f"{ontology_iri} -> {canonical_ontology_iri}",
+                )
+            )
 
-        print(f"scanned {len(rows)} mention row(s) with a non-null ontology_iri")
-        for post_id, project_name, change in planned:
-            print(f"  {post_id} / {project_name}: {change}")
-        for post_id, project_name, iri in unexpected:
+        print(
+            f"scanned {len(source_mention_rows)} mention row(s) "
+            "with a non-null ontology_iri"
+        )
+        for post_id, project_name, iri_rewrite_description in planned_iri_rewrites:
+            print(f"  {post_id} / {project_name}: {iri_rewrite_description}")
+        for post_id, project_name, ontology_iri in unexpected_namespace_records:
             print(
-                f"  UNEXPECTED {post_id} / {project_name}: {iri} "
+                f"  UNEXPECTED {post_id} / {project_name}: {ontology_iri} "
                 f"(neither namespace; left untouched)"
             )
-        if unexpected:
-            print(f"{len(unexpected)} row(s) carry an unrecognized namespace; nothing written")
+        if unexpected_namespace_records:
+            print(
+                f"{len(unexpected_namespace_records)} row(s) carry an unrecognized "
+                "namespace; nothing written"
+            )
             return 1
-        if not planned:
+        if not planned_iri_rewrites:
             print("no legacy namespace rows remain")
             return 0
-        if not apply:
-            print(f"dry run: {len(planned)} row(s) would be rewritten; pass --apply to write")
+        if not apply_changes:
+            print(
+                f"dry run: {len(planned_iri_rewrites)} row(s) would be rewritten; "
+                "pass --apply to write"
+            )
             return 0
 
-        async with conn.transaction():
-            for post_id, project_name, change in planned:
-                _old, _, new = change.rpartition(" -> ")
-                updated = await conn.execute(
+        async with database_connection.transaction():
+            for post_id, project_name, iri_rewrite_description in planned_iri_rewrites:
+                _legacy_ontology_iri, _, canonical_ontology_iri = (
+                    iri_rewrite_description.rpartition(" -> ")
+                )
+                database_update_result = await database_connection.execute(
                     """
                     update post_project_mention
                     set ontology_iri = $3
@@ -109,28 +135,45 @@ async def migrate(dsn: str, apply: bool) -> int:
                     """,
                     post_id,
                     project_name,
-                    new,
-                    new.replace(CANONICAL_NAMESPACE, LEGACY_NAMESPACE),
+                    canonical_ontology_iri,
+                    canonical_ontology_iri.replace(
+                        CANONICAL_NAMESPACE,
+                        LEGACY_NAMESPACE,
+                    ),
                 )
-                if updated != "UPDATE 1":
-                    raise RuntimeError(f"row changed during migration: {post_id}/{project_name}")
-        print(f"applied: {len(planned)} row(s) rewritten to the canonical namespace")
+                if database_update_result != "UPDATE 1":
+                    raise RuntimeError(
+                        f"row changed during migration: {post_id}/{project_name}"
+                    )
+        print(
+            f"applied: {len(planned_iri_rewrites)} row(s) rewritten "
+            "to the canonical namespace"
+        )
         return 0
     finally:
-        await conn.close()
+        await database_connection.close()
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(raw_arguments: list[str] | None = None) -> int:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dsn", required=True, help="PostgreSQL DSN for the target database")
-    parser.add_argument(
+    command_parser = argparse.ArgumentParser(description=__doc__)
+    command_parser.add_argument(
+        "--dsn",
+        required=True,
+        help="PostgreSQL DSN for the target database",
+    )
+    command_parser.add_argument(
         "--apply",
         action="store_true",
         help="execute the rewrite; without this flag the tool only reports",
     )
-    args = parser.parse_args(argv)
-    return __import__("asyncio").run(migrate(args.dsn, args.apply))
+    command_arguments = command_parser.parse_args(raw_arguments)
+    return __import__("asyncio").run(
+        migrate_legacy_ontology_namespace(
+            command_arguments.dsn,
+            command_arguments.apply,
+        )
+    )
 
 
 if __name__ == "__main__":

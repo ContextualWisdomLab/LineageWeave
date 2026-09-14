@@ -130,19 +130,19 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
             ]
         }
 
-    import lineageweave.post_evaluation as module
+    import lineageweave.post_evaluation as post_evaluation_module
 
-    monkeypatch.setattr(module, "post_json", fake_post_json)
-    client = ContextualOrchestratorPostEvaluationClient(
+    monkeypatch.setattr(post_evaluation_module, "post_json", fake_post_json)
+    post_evaluation_client = ContextualOrchestratorPostEvaluationClient(
         "https://orchestrator.test", "token"
     )
 
-    result = client.evaluate("Title", "Body")
+    judge_result = post_evaluation_client.evaluate("Title", "Body")
 
     assert observed["payload"]["mode"] == "auto"
     assert observed["payload"]["reasoning_effort"] == "auto"
-    assert result.category_method == "binary_threshold"
-    assert irt_responses_from_result(result) == tuple(
+    assert judge_result.category_method == "binary_threshold"
+    assert irt_responses_from_result(judge_result) == tuple(
         CriterionResponse(criterion_code=criterion_id, response_category=4)
-        for criterion_id in sorted(result.criterion_scores)
+        for criterion_id in sorted(judge_result.criterion_scores)
     )

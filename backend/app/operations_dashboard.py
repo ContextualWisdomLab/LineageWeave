@@ -55,7 +55,7 @@ def _visible_period_sql(alias: str = "post") -> str:
 
 
 async def fetch_operations_dashboard(
-    conn: _Connection,
+    database_connection: _Connection,
     corporate_entity_ids: tuple[str, ...] | list[str],
     process_unit_ids: tuple[str, ...] | list[str] = (),
     period_start: date | None = None,
@@ -64,14 +64,19 @@ async def fetch_operations_dashboard(
     """Return quantified cases and their persisted source evidence."""
     if period_start and period_end and period_start > period_end:
         raise ValueError("period_start must not be after period_end")
-    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end)
-    visible = _visible_period_sql()
-    metrics = await conn.fetchrow(
+    query_parameters = (
+        list(corporate_entity_ids),
+        list(process_unit_ids),
+        period_start,
+        period_end,
+    )
+    visible_period_predicate = _visible_period_sql()
+    dashboard_metrics = await database_connection.fetchrow(
         f"""
         with visible_post as (
             select post.post_id
               from source_post post
-             where {visible}
+             where {visible_period_predicate}
         ), classified as (
             select classification.post_id, classification.case_kind_code
               from operations_case_classification classification
@@ -97,9 +102,9 @@ async def fetch_operations_dashboard(
                          and job.status_code = 'post_content_ingestion_failed'
                   )) as failed_analysis_count
         """,
-        *args,
+        *query_parameters,
     )
-    case_rows = await conn.fetch(
+    operations_case_rows = await database_connection.fetch(
         f"""
         select classification.post_id, classification.case_kind_code,
                classification.summary_text, classification.evidence_text,
@@ -116,59 +121,63 @@ async def fetch_operations_dashboard(
                order by mention.confidence desc, mention.project_name, mention.project_key
                limit 1
           ) project on true
-         where {visible}
+         where {visible_period_predicate}
          order by coalesce(post.event_occurred_at, post.created_at) desc,
                   classification.post_id, classification.case_kind_code
         """,
-        *args,
+        *query_parameters,
     )
-    fact_rows = await conn.fetch(
+    operations_case_fact_rows = await database_connection.fetch(
         f"""
         select fact.post_id, fact.case_kind_code, fact.fact_type_code,
                fact.value_text, fact.evidence_text, fact.evidence_post_id,
                fact.fact_ordinal
           from operations_case_fact fact
           join source_post post on post.post_id = fact.post_id
-         where {visible}
+         where {visible_period_predicate}
          order by fact.post_id, fact.case_kind_code, fact.fact_ordinal
         """,
-        *args,
+        *query_parameters,
     )
-    facts: dict[tuple[str, str], list[dict[str, str]]] = {}
-    for row in fact_rows:
-        key = (str(row["post_id"]), row["case_kind_code"])
-        facts.setdefault(key, []).append(
+    operations_case_facts: dict[tuple[str, str], list[dict[str, str]]] = {}
+    for fact_row in operations_case_fact_rows:
+        case_identity = (str(fact_row["post_id"]), fact_row["case_kind_code"])
+        operations_case_facts.setdefault(case_identity, []).append(
             {
-                "fact_type_code": row["fact_type_code"],
-                "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
-                "value_text": row["value_text"],
-                "evidence_text": row["evidence_text"],
-                "evidence_post_id": str(row["evidence_post_id"]),
+                "fact_type_code": fact_row["fact_type_code"],
+                "fact_type_label": FACT_TYPE_LABELS[fact_row["fact_type_code"]],
+                "value_text": fact_row["value_text"],
+                "evidence_text": fact_row["evidence_text"],
+                "evidence_post_id": str(fact_row["evidence_post_id"]),
             }
         )
-    total = int(metrics["total_post_count"])
-    external = int(metrics["external_post_count"])
+    total_post_count = int(dashboard_metrics["total_post_count"])
+    external_post_count = int(dashboard_metrics["external_post_count"])
     return {
         "period_label": _period_label(period_start, period_end),
-        "total_post_count": total,
-        "total_event_count": int(metrics["total_event_count"]),
-        "external_post_count": external,
-        "external_percent": external * 100 / total if total else 0.0,
-        "pending_analysis_count": int(metrics["pending_analysis_count"]),
-        "failed_analysis_count": int(metrics["failed_analysis_count"]),
+        "total_post_count": total_post_count,
+        "total_event_count": int(dashboard_metrics["total_event_count"]),
+        "external_post_count": external_post_count,
+        "external_percent": (
+            external_post_count * 100 / total_post_count if total_post_count else 0.0
+        ),
+        "pending_analysis_count": int(dashboard_metrics["pending_analysis_count"]),
+        "failed_analysis_count": int(dashboard_metrics["failed_analysis_count"]),
         "cases": [
             {
-                "post_id": str(row["post_id"]),
-                "case_kind_code": row["case_kind_code"],
-                "case_kind_label": CASE_KIND_LABELS[row["case_kind_code"]],
-                "project_name": row["project_name"],
-                "summary_text": row["summary_text"],
-                "evidence_text": row["evidence_text"],
-                "evidence_post_id": str(row["evidence_post_id"]),
-                "occurred_at": row["occurred_at"].isoformat(),
-                "facts": facts.get((str(row["post_id"]), row["case_kind_code"]), []),
+                "post_id": str(case_row["post_id"]),
+                "case_kind_code": case_row["case_kind_code"],
+                "case_kind_label": CASE_KIND_LABELS[case_row["case_kind_code"]],
+                "project_name": case_row["project_name"],
+                "summary_text": case_row["summary_text"],
+                "evidence_text": case_row["evidence_text"],
+                "evidence_post_id": str(case_row["evidence_post_id"]),
+                "occurred_at": case_row["occurred_at"].isoformat(),
+                "facts": operations_case_facts.get(
+                    (str(case_row["post_id"]), case_row["case_kind_code"]), []
+                ),
             }
-            for row in case_rows
+            for case_row in operations_case_rows
         ],
     }
 

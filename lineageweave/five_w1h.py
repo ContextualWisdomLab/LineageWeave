@@ -21,34 +21,43 @@ _SLOT_LOOKUP_CODES = {
 }
 
 
-def _value(text: Any, source: str, codes: tuple[str, ...] = ()) -> dict[str, Any] | None:
-    if not isinstance(text, str) or not text.strip():
+def _build_evidence_slot_value(
+    evidence_text_value: Any,
+    evidence_source_code: str,
+    ontology_codes: tuple[str, ...] = (),
+) -> dict[str, Any] | None:
+    if not isinstance(evidence_text_value, str) or not evidence_text_value.strip():
         return None
-    annotations: dict[str, Any] = {}
-    for code in codes:
-        annotations.update(ontology_annotations(code))
+    ontology_annotation_map: dict[str, Any] = {}
+    for ontology_code in ontology_codes:
+        ontology_annotation_map.update(ontology_annotations(ontology_code))
     return {
-        "text": text.strip(),
-        "source": source,
-        "ontology_codes": list(codes),
-        "ontology_annotations": annotations,
+        "text": evidence_text_value.strip(),
+        "source": evidence_source_code,
+        "ontology_codes": list(ontology_codes),
+        "ontology_annotations": ontology_annotation_map,
     }
 
 
-def _unique(values: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    seen: set[tuple[str, str]] = set()
-    result: list[dict[str, Any]] = []
-    for value in values:
-        key = (value["text"], value["source"])
-        if key not in seen:
-            seen.add(key)
-            result.append(value)
-    return result
+def _deduplicate_slot_values(
+    slot_values: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    seen_value_keys: set[tuple[str, str]] = set()
+    unique_slot_values: list[dict[str, Any]] = []
+    for evidence_slot_value in slot_values:
+        evidence_value_key = (
+            evidence_slot_value["text"],
+            evidence_slot_value["source"],
+        )
+        if evidence_value_key not in seen_value_keys:
+            seen_value_keys.add(evidence_value_key)
+            unique_slot_values.append(evidence_slot_value)
+    return unique_slot_values
 
 
 def assemble_five_w1h_slots(
     *,
-    roles: list[dict[str, Any]],
+    post_summary_roles: list[dict[str, Any]],
     key_events: list[str],
     counterparties: list[str] | None = None,
     lineage_node_labels: list[str] | None = None,
@@ -61,62 +70,87 @@ def assemble_five_w1h_slots(
     evidence of when the narrated event took place. When/where/why/how are
     populated only by an explicitly extracted claim with source evidence.
     """
-    slots: dict[str, list[dict[str, Any]]] = {slot: [] for slot in FIVE_W1H_SLOTS}
+    five_w1h_slots: dict[str, list[dict[str, Any]]] = {
+        slot_code: [] for slot_code in FIVE_W1H_SLOTS
+    }
 
-    for role in roles:
-        actor_type = role.get("actor_type_code")
-        if actor_type not in _SLOT_LOOKUP_CODES["who"]:
+    for post_summary_role in post_summary_roles:
+        actor_type_code = post_summary_role.get("actor_type_code")
+        if actor_type_code not in _SLOT_LOOKUP_CODES["who"]:
             continue
-        item = _value(role.get("actor_name"), "post_summary_role", (actor_type,))
-        if item:
-            slots["who"].append(item)
-        affiliation = _value(
-            role.get("affiliated_organization_name"),
+        evidence_slot_value = _build_evidence_slot_value(
+            post_summary_role.get("actor_name"),
+            "post_summary_role",
+            (actor_type_code,),
+        )
+        if evidence_slot_value:
+            five_w1h_slots["who"].append(evidence_slot_value)
+        affiliation_slot_value = _build_evidence_slot_value(
+            post_summary_role.get("affiliated_organization_name"),
             "post_summary_role.affiliated_organization_name",
             ("prov_organization",),
         )
-        if affiliation:
-            slots["where"].append(affiliation)
+        if affiliation_slot_value:
+            five_w1h_slots["where"].append(affiliation_slot_value)
 
-    for event in key_events:
-        item = _value(event, "post_summary_event", _SLOT_LOOKUP_CODES["what"])
-        if item:
-            slots["what"].append(item)
+    for key_event_text in key_events:
+        evidence_slot_value = _build_evidence_slot_value(
+            key_event_text,
+            "post_summary_event",
+            _SLOT_LOOKUP_CODES["what"],
+        )
+        if evidence_slot_value:
+            five_w1h_slots["what"].append(evidence_slot_value)
 
-    for claim in evidence_claims or []:
-        slot = claim.get("slot_code")
-        if slot not in {"when", "where", "why", "how"}:
+    for evidence_claim in evidence_claims or []:
+        slot_code = evidence_claim.get("slot_code")
+        if slot_code not in {"when", "where", "why", "how"}:
             continue
-        item = _value(
-            claim.get("value_text"),
+        evidence_slot_value = _build_evidence_slot_value(
+            evidence_claim.get("value_text"),
             "post_summary_five_w1h",
         )
-        if item:
-            item["evidence_text"] = claim.get("evidence_text", "")
-            slots[slot].append(item)
-    if not slots["what"]:
-        for title in lineage_node_labels or []:
-            item = _value(title, "post_lineage_edge", _SLOT_LOOKUP_CODES["what"])
-            if item:
-                slots["what"].append(item)
+        if evidence_slot_value:
+            evidence_slot_value["evidence_text"] = evidence_claim.get(
+                "evidence_text", ""
+            )
+            five_w1h_slots[slot_code].append(evidence_slot_value)
+    if not five_w1h_slots["what"]:
+        for lineage_node_label in lineage_node_labels or []:
+            evidence_slot_value = _build_evidence_slot_value(
+                lineage_node_label,
+                "post_lineage_edge",
+                _SLOT_LOOKUP_CODES["what"],
+            )
+            if evidence_slot_value:
+                five_w1h_slots["what"].append(evidence_slot_value)
 
-    for name in counterparties or []:
-        item = _value(name, "post_counterparty_entity", ("prov_organization",))
-        if item:
-            slots["where"].append(item)
+    for counterparty_name in counterparties or []:
+        evidence_slot_value = _build_evidence_slot_value(
+            counterparty_name,
+            "post_counterparty_entity",
+            ("prov_organization",),
+        )
+        if evidence_slot_value:
+            five_w1h_slots["where"].append(evidence_slot_value)
 
-    return {slot: _unique(values) for slot, values in slots.items()}
+    return {
+        slot_code: _deduplicate_slot_values(slot_values)
+        for slot_code, slot_values in five_w1h_slots.items()
+    }
 
 
-def slots_payload(slots: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+def slots_payload(
+    five_w1h_slots: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
     """Return a stable API shape; the UI translates slot labels and actions."""
     return [
         {
-            "slot_code": slot,
-            "values": slots.get(slot, []),
+            "slot_code": slot_code,
+            "values": five_w1h_slots.get(slot_code, []),
             "empty_next_action_code": "inspect_source_body_or_related_posts",
         }
-        for slot in FIVE_W1H_SLOTS
+        for slot_code in FIVE_W1H_SLOTS
     ]
 
 

@@ -42,7 +42,10 @@ def test_builder_supports_direct_script_import_context(monkeypatch) -> None:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.public_fragment("Safety/한국어 term") == "Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"
+    assert (
+        module.public_fragment("Safety/한국어 term")
+        == "Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"
+    )
 
 
 def _tree_hashes(root: Path) -> dict[str, str]:
@@ -53,7 +56,9 @@ def _tree_hashes(root: Path) -> dict[str, str]:
     }
 
 
-def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path) -> None:
+def test_build_publishes_dereferenceable_html_and_machine_formats(
+    tmp_path: Path,
+) -> None:
     builder = _load_builder()
     output = tmp_path / "site"
 
@@ -75,7 +80,10 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     ).read_bytes()
 
     html = (ontology_dir / "index.html").read_text(encoding="utf-8")
-    assert '<link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/ontology">' in html
+    assert (
+        '<link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/ontology">'
+        in html
+    )
     assert "canonical metadata fetches no subresource" in html
     assert 'id="Post"' in html
     assert 'href="#Post"' in html
@@ -91,12 +99,8 @@ def test_render_term_escapes_untrusted_ontology_text() -> None:
     graph = Graph()
     term = builder.URIRef("https://example.test/ontology#Unsafe")
     graph.add((term, builder.RDF.type, builder.OWL.Class))
-    graph.add(
-        (term, builder.RDFS.label, builder.Literal("<script>alert(1)</script>"))
-    )
-    graph.add(
-        (term, builder.RDFS.comment, builder.Literal("A <source> & evidence."))
-    )
+    graph.add((term, builder.RDFS.label, builder.Literal("<script>alert(1)</script>")))
+    graph.add((term, builder.RDFS.comment, builder.Literal("A <source> & evidence.")))
 
     rendered = builder._render_term(graph, term, {term})
 
@@ -105,7 +109,9 @@ def test_render_term_escapes_untrusted_ontology_text() -> None:
     assert "A &lt;source&gt; &amp; evidence." in rendered
 
 
-def test_render_term_omits_missing_lookup_code_and_does_not_link_external_iris() -> None:
+def test_render_term_omits_missing_lookup_code_and_does_not_link_external_iris() -> (
+    None
+):
     builder = _load_builder()
     graph = Graph()
     term = builder.URIRef("https://example.test/ontology#Term")
@@ -178,7 +184,9 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     output = tmp_path / "site"
     builder.build_site(ROOT, output)
 
-    source = Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle")
+    source = Graph().parse(
+        ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle"
+    )
     jsonld = Graph()
     to_rdf(json.loads((output / "ontology" / "ontology.jsonld").read_text()), jsonld)
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
@@ -210,11 +218,16 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     output = tmp_path / "site"
     builder.build_site(ROOT, output)
 
-    manifest = json.loads((output / "ontology" / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (output / "ontology" / "manifest.json").read_text(encoding="utf-8")
+    )
     source = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
     assert manifest["source_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     assert "built_at" not in manifest
-    assert manifest["documentation_url"] == "https://contextualwisdomlab.github.io/LineageWeave/ontology"
+    assert (
+        manifest["documentation_url"]
+        == "https://contextualwisdomlab.github.io/LineageWeave/ontology"
+    )
     assert manifest["generated_artifacts"] == [
         "index.html",
         "lineageweave-kg-shapes.ttl",
@@ -230,7 +243,12 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
 
 def test_helpers_cover_slash_fragments_json_lists_and_missing_ontology() -> None:
     builder = _load_builder()
-    assert builder._fragment(builder.URIRef("https://example.test/vocabulary/Term")) == "Term"
+    assert (
+        builder._ontology_fragment(
+            builder.URIRef("https://example.test/vocabulary/Term")
+        )
+        == "Term"
+    )
     assert builder._canonicalize_json({"@list": ["b", "a"]}) == {"@list": ["b", "a"]}
     graph = Graph()
     graph.add(
@@ -266,7 +284,9 @@ def test_render_term_sections_keeps_one_anchor_for_multi_typed_terms() -> None:
     assert term_count == 1
 
 
-def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tmp_path: Path) -> None:
+def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(
+    tmp_path: Path,
+) -> None:
     builder = _load_builder()
     repository = tmp_path / "repository"
     output = tmp_path / "site"
@@ -283,7 +303,9 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
     ontology_dir = repository / "docs" / "ontology"
     ontology_dir.mkdir(parents=True)
     (ontology_dir / "lineageweave-kg.ttl").write_text(
-        (ROOT / "docs" / "ontology" / "lineageweave-kg.ttl").read_text(encoding="utf-8"),
+        (ROOT / "docs" / "ontology" / "lineageweave-kg.ttl").read_text(
+            encoding="utf-8"
+        ),
         encoding="utf-8",
     )
     try:
@@ -332,7 +354,9 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
 def test_cli_main_and_module_entrypoint(tmp_path: Path, monkeypatch) -> None:
     builder = _load_builder()
     output = tmp_path / "direct"
-    assert builder.main(["--repository-root", str(ROOT), "--output-dir", str(output)]) == 0
+    assert (
+        builder.main(["--repository-root", str(ROOT), "--output-dir", str(output)]) == 0
+    )
     assert (output / "ontology" / "index.html").is_file()
 
     import runpy

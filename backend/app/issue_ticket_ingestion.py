@@ -48,50 +48,67 @@ class IssueTicket:
     updated_at: str
 
 
-def _serialize_ticket(row: asyncpg.Record) -> dict[str, Any]:
+def _serialize_ticket(issue_ticket_row: asyncpg.Record) -> dict[str, Any]:
     """Turn one ``issue_ticket`` row into the public JSON shape."""
     return {
-        "issue_ticket_id": str(row["issue_ticket_id"]),
-        "post_id": str(row["post_id"]),
-        "ticket_status_code": row["ticket_status_code"],
-        "ticket_title": row["ticket_title"],
+        "issue_ticket_id": str(issue_ticket_row["issue_ticket_id"]),
+        "post_id": str(issue_ticket_row["post_id"]),
+        "ticket_status_code": issue_ticket_row["ticket_status_code"],
+        "ticket_title": issue_ticket_row["ticket_title"],
         "assigned_account_id": (
-            str(row["assigned_account_id"]) if row["assigned_account_id"] is not None else None
+            str(issue_ticket_row["assigned_account_id"])
+            if issue_ticket_row["assigned_account_id"] is not None
+            else None
         ),
-        "due_date": row["due_date"].isoformat() if row["due_date"] is not None else None,
-        "commitment_summary": row["commitment_summary"],
-        "created_at": row["created_at"].isoformat(),
-        "updated_at": row["updated_at"].isoformat(),
+        "due_date": (
+            issue_ticket_row["due_date"].isoformat()
+            if issue_ticket_row["due_date"] is not None
+            else None
+        ),
+        "commitment_summary": issue_ticket_row["commitment_summary"],
+        "created_at": issue_ticket_row["created_at"].isoformat(),
+        "updated_at": issue_ticket_row["updated_at"].isoformat(),
     }
 
 
-async def _attach_status_labels(
-    conn: asyncpg.Connection, tickets: list[dict[str, Any]]
+async def _attach_ticket_status_labels(
+    database_connection: asyncpg.Connection,
+    issue_tickets: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Hydrate ``ticket_status_label`` from ``common_lookup_value``.
 
     A missing lookup falls back to the raw code -- never a guessed name.
     """
-    labels = await labels_for_codes(conn, [row["ticket_status_code"] for row in tickets])
-    for ticket in tickets:
-        code = ticket["ticket_status_code"]
-        ticket["ticket_status_label"] = labels.get(code, code)
-    return tickets
+    ticket_status_labels = await labels_for_codes(
+        database_connection,
+        [issue_ticket["ticket_status_code"] for issue_ticket in issue_tickets],
+    )
+    for issue_ticket in issue_tickets:
+        ticket_status_code = issue_ticket["ticket_status_code"]
+        issue_ticket["ticket_status_label"] = ticket_status_labels.get(
+            ticket_status_code, ticket_status_code
+        )
+    return issue_tickets
 
 
-async def list_tickets_for_post(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+async def list_tickets_for_post(
+    database_connection: asyncpg.Connection, post_id: str
+) -> list[dict[str, Any]]:
     """Every ticket on `post_id`, newest first."""
-    rows = await conn.fetch(
+    issue_ticket_rows = await database_connection.fetch(
         "select issue_ticket_id, post_id, ticket_status_code, ticket_title, "
         "assigned_account_id, due_date, commitment_summary, created_at, updated_at "
         "from issue_ticket where post_id = $1 order by created_at desc",
         post_id,
     )
-    return await _attach_status_labels(conn, [_serialize_ticket(row) for row in rows])
+    return await _attach_ticket_status_labels(
+        database_connection,
+        [_serialize_ticket(issue_ticket_row) for issue_ticket_row in issue_ticket_rows],
+    )
 
 
 async def create_ticket(
-    conn: asyncpg.Connection,
+    database_connection: asyncpg.Connection,
     post_id: str,
     ticket_title: str,
     ticket_status_code: str,
@@ -107,7 +124,7 @@ async def create_ticket(
     this ticket also registers as a calendar/to-do entry (see
     `POST /api/posts/{post_id}/derive-commitment`).
     """
-    row = await conn.fetchrow(
+    issue_ticket_row = await database_connection.fetchrow(
         "insert into issue_ticket "
         "(post_id, ticket_status_code, ticket_title, assigned_account_id, due_date, commitment_summary) "
         "values ($1, $2, $3, $4, $5, $6) "
@@ -120,11 +137,15 @@ async def create_ticket(
         _parse_due_date(due_date),
         commitment_summary,
     )
-    labeled = await _attach_status_labels(conn, [_serialize_ticket(row)])
-    return labeled[0]
+    labeled_issue_tickets = await _attach_ticket_status_labels(
+        database_connection, [_serialize_ticket(issue_ticket_row)]
+    )
+    return labeled_issue_tickets[0]
 
 
-async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str, Any]]:
+async def fetch_upcoming_commitments(
+    database_connection: asyncpg.Connection,
+) -> list[dict[str, Any]]:
     """Every not-closed ticket with a `due_date`, across all posts,
     soonest first -- the calendar/to-do surface (`GET /api/calendar`).
     Closed tickets are finished work, not upcoming. Joins in the post's
@@ -132,7 +153,7 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
     filter every other cross-post endpoint uses; this function does not
     itself filter by account, since it has no account to check against.
     """
-    rows = await conn.fetch(
+    issue_ticket_rows = await database_connection.fetch(
         "select issue_ticket.issue_ticket_id, issue_ticket.post_id, "
         "issue_ticket.ticket_status_code, issue_ticket.ticket_title, "
         "issue_ticket.assigned_account_id, issue_ticket.due_date, "
@@ -146,25 +167,27 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
         "and issue_ticket.ticket_status_code <> 'closed' "
         "order by issue_ticket.due_date asc"
     )
-    tickets = await _attach_status_labels(
-        conn,
+    issue_tickets = await _attach_ticket_status_labels(
+        database_connection,
         [
             {
-                **_serialize_ticket(row),
-                "post_title": row["post_title"],
-                "visibility_code": row["visibility_code"],
-                "corporate_entity_id": str(row["corporate_entity_id"]),
-                "process_unit_id": str(row["process_unit_id"]),
-                "has_real_source_context": bool(row["has_real_source_context"]),
+                **_serialize_ticket(issue_ticket_row),
+                "post_title": issue_ticket_row["post_title"],
+                "visibility_code": issue_ticket_row["visibility_code"],
+                "corporate_entity_id": str(issue_ticket_row["corporate_entity_id"]),
+                "process_unit_id": str(issue_ticket_row["process_unit_id"]),
+                "has_real_source_context": bool(
+                    issue_ticket_row["has_real_source_context"]
+                ),
             }
-            for row in rows
+            for issue_ticket_row in issue_ticket_rows
         ],
     )
-    return tickets
+    return issue_tickets
 
 
 async def upsert_commitment_ticket(
-    conn: asyncpg.Connection,
+    database_connection: asyncpg.Connection,
     post_id: str,
     ticket_title: str,
     due_date: str | None,
@@ -177,16 +200,16 @@ async def upsert_commitment_ticket(
     A closed ticket is left alone so the buyer can keep the historical
     record and still derive a fresh open one.
     """
-    existing = await conn.fetchrow(
+    existing_ticket_row = await database_connection.fetchrow(
         "select issue_ticket_id from issue_ticket "
         "where post_id = $1 and commitment_summary is not null "
         "and ticket_status_code <> 'closed' "
         "order by created_at desc limit 1",
         post_id,
     )
-    if existing is None:
+    if existing_ticket_row is None:
         return await create_ticket(
-            conn,
+            database_connection,
             post_id,
             ticket_title,
             "open",
@@ -194,7 +217,7 @@ async def upsert_commitment_ticket(
             due_date=due_date,
             commitment_summary=commitment_summary,
         )
-    row = await conn.fetchrow(
+    updated_ticket_row = await database_connection.fetchrow(
         """
         update issue_ticket
         set ticket_title = $2,
@@ -205,28 +228,32 @@ async def upsert_commitment_ticket(
         returning issue_ticket_id, post_id, ticket_status_code, ticket_title,
                   assigned_account_id, due_date, commitment_summary, created_at, updated_at
         """,
-        existing["issue_ticket_id"],
+        existing_ticket_row["issue_ticket_id"],
         ticket_title,
         _parse_due_date(due_date),
         commitment_summary,
     )
-    labeled = await _attach_status_labels(conn, [_serialize_ticket(row)])
-    return labeled[0]
+    labeled_issue_tickets = await _attach_ticket_status_labels(
+        database_connection, [_serialize_ticket(updated_ticket_row)]
+    )
+    return labeled_issue_tickets[0]
 
 
-async def fetch_ticket_post_id(conn: asyncpg.Connection, issue_ticket_id: str) -> str | None:
+async def fetch_ticket_post_id(
+    database_connection: asyncpg.Connection, issue_ticket_id: str
+) -> str | None:
     """The owning post_id for `issue_ticket_id`, or `None` if it doesn't
     exist -- callers use this to run the same ABAC check every other
     post-scoped write already uses, before mutating a ticket.
     """
-    row = await conn.fetchrow(
+    issue_ticket_row = await database_connection.fetchrow(
         "select post_id from issue_ticket where issue_ticket_id = $1", issue_ticket_id
     )
-    return str(row["post_id"]) if row is not None else None
+    return str(issue_ticket_row["post_id"]) if issue_ticket_row is not None else None
 
 
 async def update_ticket(
-    conn: asyncpg.Connection,
+    database_connection: asyncpg.Connection,
     issue_ticket_id: str,
     ticket_status_code: str | None,
     assigned_account_id: str | None,
@@ -238,7 +265,7 @@ async def update_ticket(
     partial-update endpoint needs both "don't touch this" and "set this
     to nothing" as different, expressible outcomes.
     """
-    row = await conn.fetchrow(
+    updated_ticket_row = await database_connection.fetchrow(
         """
         update issue_ticket
         set ticket_status_code = coalesce($2, ticket_status_code),
@@ -253,7 +280,9 @@ async def update_ticket(
         clear_assignment,
         assigned_account_id,
     )
-    if row is None:
+    if updated_ticket_row is None:
         return None
-    labeled = await _attach_status_labels(conn, [_serialize_ticket(row)])
-    return labeled[0]
+    labeled_issue_tickets = await _attach_ticket_status_labels(
+        database_connection, [_serialize_ticket(updated_ticket_row)]
+    )
+    return labeled_issue_tickets[0]

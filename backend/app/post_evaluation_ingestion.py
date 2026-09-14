@@ -24,17 +24,17 @@ class PersistedEvaluation:
 
 
 async def ingest_post_evaluation(
-    conn: asyncpg.Connection,
-    client: PostEvaluationClient,
+    database_connection: asyncpg.Connection,
+    post_evaluation_client: PostEvaluationClient,
     post_id: str,
     post_title: str,
     post_body: str,
 ) -> list[PersistedEvaluation]:
     """Judge the post and upsert one row per criterion via ``to_irt_row``."""
-    result = client.evaluate(post_title, post_body)
-    responses = irt_responses_from_result(result)
-    for response in responses:
-        await conn.execute(
+    judge_result = post_evaluation_client.evaluate(post_title, post_body)
+    criterion_responses = irt_responses_from_result(judge_result)
+    for criterion_response in criterion_responses:
+        await database_connection.execute(
             """
             insert into post_evaluation_response
                 (post_id, criterion_code, rubric_version, response_category)
@@ -44,32 +44,37 @@ async def ingest_post_evaluation(
                           judged_at = now()
             """,
             post_id,
-            response.criterion_code,
+            criterion_response.criterion_code,
             RUBRIC_VERSION,
-            response.response_category,
+            criterion_response.response_category,
         )
-    return await fetch_post_evaluation(conn, post_id)
+    return await fetch_post_evaluation(database_connection, post_id)
 
 
-async def fetch_post_evaluation(conn: asyncpg.Connection, post_id: str) -> list[PersistedEvaluation]:
+async def fetch_post_evaluation(
+    database_connection: asyncpg.Connection, post_id: str
+) -> list[PersistedEvaluation]:
     """Load this post's persisted per-criterion evaluation responses, ordered by criterion code."""
-    rows = await conn.fetch(
+    persisted_evaluation_rows = await database_connection.fetch(
         """
-        select e.criterion_code, v.lookup_label as criterion_label,
-               e.response_category, e.rubric_version
-        from post_evaluation_response e
-        left join common_lookup_value v on v.lookup_code = e.criterion_code
-        where e.post_id = $1
-        order by e.criterion_code
+        select evaluation_response.criterion_code,
+               criterion_lookup.lookup_label as criterion_label,
+               evaluation_response.response_category,
+               evaluation_response.rubric_version
+        from post_evaluation_response evaluation_response
+        left join common_lookup_value criterion_lookup
+          on criterion_lookup.lookup_code = evaluation_response.criterion_code
+        where evaluation_response.post_id = $1
+        order by evaluation_response.criterion_code
         """,
         post_id,
     )
     return [
         PersistedEvaluation(
-            criterion_code=row["criterion_code"],
-            criterion_label=row["criterion_label"],
-            response_category=row["response_category"],
-            rubric_version=row["rubric_version"],
+            criterion_code=evaluation_row["criterion_code"],
+            criterion_label=evaluation_row["criterion_label"],
+            response_category=evaluation_row["response_category"],
+            rubric_version=evaluation_row["rubric_version"],
         )
-        for row in rows
+        for evaluation_row in persisted_evaluation_rows
     ]

@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 import asyncpg
 
-_FIELDS = {
+_SOURCE_COLUMN_NAMES = {
     "Node Code",
     "Node Kind",
     "Node Name",
@@ -28,19 +28,19 @@ _FIELDS = {
     "Occupation Code",
     "Occupation Relation",
 }
-_KINDS = {"job_family", "job_series"}
-_SOURCE_CODE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
-_SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
+_JOB_ARCHITECTURE_KIND_CODES = {"job_family", "job_series"}
+_SOURCE_SYSTEM_CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_SHA256_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
 @dataclass(frozen=True)
 class JobArchitectureNode:
     """One exact node from an authorized source snapshot."""
 
-    code: str
-    kind: str
-    name: str
-    description: str | None
+    job_architecture_code: str
+    job_architecture_kind_code: str
+    job_architecture_name: str
+    job_architecture_description: str | None
     valid_from: date | None
     valid_to: date | None
 
@@ -58,39 +58,39 @@ class JobArchitectureEdge:
 class OccupationBinding:
     """One explicit source binding to an external occupation code."""
 
-    node_code: str
-    scheme_iri: str
-    scheme_version: str
+    job_architecture_code: str
+    occupation_scheme_iri: str
+    occupation_scheme_version: str
     occupation_code: str
     source_relation_code: str
 
 
-def _optional_date(value: str, field: str) -> date | None:
+def _optional_date(source_date_text: str, field_label: str) -> date | None:
     """Parse an optional ISO date without inventing a missing instant."""
-    text = value.strip()
-    if not text:
+    normalized_date_text = source_date_text.strip()
+    if not normalized_date_text:
         return None
     try:
-        return date.fromisoformat(text)
+        return date.fromisoformat(normalized_date_text)
     except ValueError as exc:
-        raise ValueError(f"invalid {field}: {value!r}") from exc
+        raise ValueError(f"invalid {field_label}: {source_date_text!r}") from exc
 
 
-def _https_url(value: str, field: str) -> str:
+def _https_url(source_url: str, field_label: str) -> str:
     """Validate an HTTPS URL with no embedded credentials."""
-    parsed = urlsplit(value)
+    parsed_url = urlsplit(source_url)
     if (
-        parsed.scheme != "https"
-        or not parsed.hostname
-        or parsed.username is not None
-        or parsed.password is not None
+        parsed_url.scheme != "https"
+        or not parsed_url.hostname
+        or parsed_url.username is not None
+        or parsed_url.password is not None
     ):
-        raise ValueError(f"{field} must be an HTTPS URL without userinfo")
-    return value
+        raise ValueError(f"{field_label} must be an HTTPS URL without userinfo")
+    return source_url
 
 
 def read_job_architecture(
-    path: Path,
+    source_file_path: Path,
 ) -> tuple[
     list[JobArchitectureNode],
     list[JobArchitectureEdge],
@@ -98,158 +98,233 @@ def read_job_architecture(
     int,
 ]:
     """Return exact nodes, hierarchy edges, and explicit occupation bindings."""
-    nodes: dict[str, JobArchitectureNode] = {}
-    edges: dict[tuple[str, str], JobArchitectureEdge] = {}
-    bindings: dict[tuple[str, str, str, str], OccupationBinding] = {}
-    row_count = 0
-    with path.open(encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        missing = sorted(_FIELDS - set(reader.fieldnames or ()))
-        if missing:
-            raise ValueError(f"missing CSV columns: {', '.join(missing)}")
-        for line_number, row in enumerate(reader, start=2):
-            row_count += 1
-            if None in row or any(value is None for value in row.values()):
+    job_architecture_nodes_by_code: dict[str, JobArchitectureNode] = {}
+    hierarchy_edges_by_codes: dict[tuple[str, str], JobArchitectureEdge] = {}
+    occupation_bindings_by_identity: dict[
+        tuple[str, str, str, str], OccupationBinding
+    ] = {}
+    source_row_count = 0
+    with source_file_path.open(encoding="utf-8-sig", newline="") as source_file:
+        source_row_reader = csv.DictReader(source_file)
+        missing_columns = sorted(
+            _SOURCE_COLUMN_NAMES - set(source_row_reader.fieldnames or ())
+        )
+        if missing_columns:
+            raise ValueError(f"missing CSV columns: {', '.join(missing_columns)}")
+        for line_number, source_row in enumerate(source_row_reader, start=2):
+            source_row_count += 1
+            if None in source_row or any(
+                column_value is None for column_value in source_row.values()
+            ):
                 raise ValueError(f"malformed CSV row: {line_number}")
-            code = row["Node Code"].strip()
-            kind = row["Node Kind"].strip()
-            name = row["Node Name"].strip()
-            if not code or not name or kind not in _KINDS:
+            job_architecture_code = source_row["Node Code"].strip()
+            job_architecture_kind_code = source_row["Node Kind"].strip()
+            job_architecture_name = source_row["Node Name"].strip()
+            if (
+                not job_architecture_code
+                or not job_architecture_name
+                or job_architecture_kind_code not in _JOB_ARCHITECTURE_KIND_CODES
+            ):
                 raise ValueError(f"invalid node identity at row {line_number}")
-            valid_from = _optional_date(row["Valid From"], "valid from")
-            valid_to = _optional_date(row["Valid To"], "valid to")
+            valid_from = _optional_date(source_row["Valid From"], "valid from")
+            valid_to = _optional_date(source_row["Valid To"], "valid to")
             if valid_from and valid_to and valid_from > valid_to:
                 raise ValueError(f"inverted validity interval at row {line_number}")
-            node = JobArchitectureNode(
-                code,
-                kind,
-                name,
-                row.get("Description", "").strip() or None,
+            job_architecture_node = JobArchitectureNode(
+                job_architecture_code,
+                job_architecture_kind_code,
+                job_architecture_name,
+                source_row.get("Description", "").strip() or None,
                 valid_from,
                 valid_to,
             )
-            if code in nodes and nodes[code] != node:
-                raise ValueError(f"conflicting node identity: {code}")
-            nodes[code] = node
-            parent = row["Parent Code"].strip()
-            hierarchy_relation = row["Hierarchy Relation"].strip()
-            if parent:
-                if not hierarchy_relation:
-                    raise ValueError(f"missing hierarchy relation at row {line_number}")
-                edge = JobArchitectureEdge(parent, code, hierarchy_relation)
-                edge_key = (parent, code)
-                if edge_key in edges and edges[edge_key] != edge:
-                    raise ValueError(f"conflicting hierarchy relation at row {line_number}")
-                edges[edge_key] = edge
-            scheme = row["Occupation Scheme IRI"].strip()
-            version = row["Occupation Scheme Version"].strip()
-            occupation = row["Occupation Code"].strip()
-            occupation_relation = row["Occupation Relation"].strip()
-            supplied = (
-                bool(scheme),
-                bool(version),
-                bool(occupation),
-                bool(occupation_relation),
+            if (
+                job_architecture_code in job_architecture_nodes_by_code
+                and job_architecture_nodes_by_code[job_architecture_code]
+                != job_architecture_node
+            ):
+                raise ValueError(f"conflicting node identity: {job_architecture_code}")
+            job_architecture_nodes_by_code[job_architecture_code] = (
+                job_architecture_node
             )
-            if any(supplied) and not all(supplied):
-                raise ValueError(f"partial occupation binding at row {line_number}")
-            if all(supplied):
-                parsed = urlsplit(scheme)
-                if (
-                    parsed.scheme not in {"http", "https"}
-                    or not parsed.hostname
-                    or parsed.username is not None
-                    or parsed.password is not None
-                ):
-                    raise ValueError(f"invalid occupation scheme IRI at row {line_number}")
-                if not occupation_relation:
-                    raise ValueError(f"missing binding relation at row {line_number}")
-                binding = OccupationBinding(
-                    code,
-                    scheme,
-                    version,
-                    occupation,
-                    occupation_relation,
+            broader_job_architecture_code = source_row["Parent Code"].strip()
+            hierarchy_relation_code = source_row["Hierarchy Relation"].strip()
+            if broader_job_architecture_code:
+                if not hierarchy_relation_code:
+                    raise ValueError(f"missing hierarchy relation at row {line_number}")
+                hierarchy_edge = JobArchitectureEdge(
+                    broader_job_architecture_code,
+                    job_architecture_code,
+                    hierarchy_relation_code,
                 )
-                binding_key = (code, scheme, version, occupation)
-                if binding_key in bindings and bindings[binding_key] != binding:
-                    raise ValueError(f"conflicting occupation relation at row {line_number}")
-                bindings[binding_key] = binding
-    if not nodes:
+                hierarchy_edge_identity = (
+                    broader_job_architecture_code,
+                    job_architecture_code,
+                )
+                if (
+                    hierarchy_edge_identity in hierarchy_edges_by_codes
+                    and hierarchy_edges_by_codes[hierarchy_edge_identity]
+                    != hierarchy_edge
+                ):
+                    raise ValueError(
+                        f"conflicting hierarchy relation at row {line_number}"
+                    )
+                hierarchy_edges_by_codes[hierarchy_edge_identity] = hierarchy_edge
+            occupation_scheme_iri = source_row["Occupation Scheme IRI"].strip()
+            occupation_scheme_version = source_row["Occupation Scheme Version"].strip()
+            occupation_code = source_row["Occupation Code"].strip()
+            occupation_relation_code = source_row["Occupation Relation"].strip()
+            occupation_binding_presence = (
+                bool(occupation_scheme_iri),
+                bool(occupation_scheme_version),
+                bool(occupation_code),
+                bool(occupation_relation_code),
+            )
+            if any(occupation_binding_presence) and not all(
+                occupation_binding_presence
+            ):
+                raise ValueError(f"partial occupation binding at row {line_number}")
+            if all(occupation_binding_presence):
+                parsed_scheme_iri = urlsplit(occupation_scheme_iri)
+                if (
+                    parsed_scheme_iri.scheme not in {"http", "https"}
+                    or not parsed_scheme_iri.hostname
+                    or parsed_scheme_iri.username is not None
+                    or parsed_scheme_iri.password is not None
+                ):
+                    raise ValueError(
+                        f"invalid occupation scheme IRI at row {line_number}"
+                    )
+                if not occupation_relation_code:
+                    raise ValueError(f"missing binding relation at row {line_number}")
+                occupation_binding = OccupationBinding(
+                    job_architecture_code,
+                    occupation_scheme_iri,
+                    occupation_scheme_version,
+                    occupation_code,
+                    occupation_relation_code,
+                )
+                occupation_binding_identity = (
+                    job_architecture_code,
+                    occupation_scheme_iri,
+                    occupation_scheme_version,
+                    occupation_code,
+                )
+                if (
+                    occupation_binding_identity in occupation_bindings_by_identity
+                    and occupation_bindings_by_identity[occupation_binding_identity]
+                    != occupation_binding
+                ):
+                    raise ValueError(
+                        f"conflicting occupation relation at row {line_number}"
+                    )
+                occupation_bindings_by_identity[occupation_binding_identity] = (
+                    occupation_binding
+                )
+    if not job_architecture_nodes_by_code:
         raise ValueError("job architecture file has no rows")
-    for edge in edges.values():
-        if edge.broader_code not in nodes:
-            raise ValueError(f"unknown parent node: {edge.broader_code}")
-        if edge.broader_code == edge.narrower_code:
-            raise ValueError(f"self hierarchy edge: {edge.broader_code}")
-    children: dict[str, set[str]] = {code: set() for code in nodes}
-    incoming = dict.fromkeys(nodes, 0)
-    for edge in edges.values():
-        children[edge.broader_code].add(edge.narrower_code)
-        incoming[edge.narrower_code] += 1
-    ready = [code for code, count in incoming.items() if count == 0]
-    visited = 0
-    while ready:
-        code = ready.pop()
-        visited += 1
-        for child in children[code]:
-            incoming[child] -= 1
-            if incoming[child] == 0:
-                ready.append(child)
-    if visited != len(nodes):
+    for hierarchy_edge in hierarchy_edges_by_codes.values():
+        if hierarchy_edge.broader_code not in job_architecture_nodes_by_code:
+            raise ValueError(f"unknown parent node: {hierarchy_edge.broader_code}")
+        if hierarchy_edge.broader_code == hierarchy_edge.narrower_code:
+            raise ValueError(f"self hierarchy edge: {hierarchy_edge.broader_code}")
+    child_codes_by_parent: dict[str, set[str]] = {
+        job_architecture_code: set()
+        for job_architecture_code in job_architecture_nodes_by_code
+    }
+    incoming_edge_count_by_code = dict.fromkeys(job_architecture_nodes_by_code, 0)
+    for hierarchy_edge in hierarchy_edges_by_codes.values():
+        child_codes_by_parent[hierarchy_edge.broader_code].add(
+            hierarchy_edge.narrower_code
+        )
+        incoming_edge_count_by_code[hierarchy_edge.narrower_code] += 1
+    ready_node_codes = [
+        job_architecture_code
+        for job_architecture_code, incoming_edge_count in incoming_edge_count_by_code.items()
+        if incoming_edge_count == 0
+    ]
+    visited_node_count = 0
+    while ready_node_codes:
+        job_architecture_code = ready_node_codes.pop()
+        visited_node_count += 1
+        for child_node_code in child_codes_by_parent[job_architecture_code]:
+            incoming_edge_count_by_code[child_node_code] -= 1
+            if incoming_edge_count_by_code[child_node_code] == 0:
+                ready_node_codes.append(child_node_code)
+    if visited_node_count != len(job_architecture_nodes_by_code):
         raise ValueError("cyclic job architecture hierarchy")
     return (
-        list(nodes.values()),
-        sorted(edges.values(), key=repr),
-        sorted(bindings.values(), key=repr),
-        row_count,
+        list(job_architecture_nodes_by_code.values()),
+        sorted(hierarchy_edges_by_codes.values(), key=repr),
+        sorted(occupation_bindings_by_identity.values(), key=repr),
+        source_row_count,
     )
 
 
-def _parser() -> argparse.ArgumentParser:
+def _job_architecture_import_parser() -> argparse.ArgumentParser:
     """Build the explicit source-snapshot import contract."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target-dsn", required=True)
-    parser.add_argument("--corporate-entity-code", required=True)
-    parser.add_argument("--source-system-code", required=True)
-    parser.add_argument("--source-snapshot-code", required=True)
-    parser.add_argument("--source-name", required=True)
-    parser.add_argument("--source-url", required=True)
-    parser.add_argument("--source-sha256", required=True)
-    parser.add_argument("--source-row-count", type=int, required=True)
-    parser.add_argument("--source-file", type=Path, required=True)
-    return parser
+    import_parser = argparse.ArgumentParser(description=__doc__)
+    import_parser.add_argument("--target-dsn", required=True)
+    import_parser.add_argument("--corporate-entity-code", required=True)
+    import_parser.add_argument("--source-system-code", required=True)
+    import_parser.add_argument("--source-snapshot-code", required=True)
+    import_parser.add_argument("--source-name", required=True)
+    import_parser.add_argument("--source-url", required=True)
+    import_parser.add_argument("--source-sha256", required=True)
+    import_parser.add_argument("--source-row-count", type=int, required=True)
+    import_parser.add_argument("--source-file", type=Path, required=True)
+    return import_parser
 
 
-async def import_job_architecture(args: argparse.Namespace) -> dict[str, object]:
+async def import_job_architecture(
+    command_arguments: argparse.Namespace,
+) -> dict[str, object]:
     """Validate one pinned snapshot before transactionally persisting it."""
-    if not _SOURCE_CODE.fullmatch(args.source_system_code):
+    if not _SOURCE_SYSTEM_CODE_PATTERN.fullmatch(command_arguments.source_system_code):
         raise ValueError("source system code must be lower snake case")
-    for field in ("corporate_entity_code", "source_snapshot_code", "source_name"):
-        if not str(getattr(args, field)).strip():
-            raise ValueError(f"{field} must not be blank")
-    _https_url(args.source_url, "source URL")
-    if not _SHA256.fullmatch(args.source_sha256):
+    for required_field_name in (
+        "corporate_entity_code",
+        "source_snapshot_code",
+        "source_name",
+    ):
+        if not str(getattr(command_arguments, required_field_name)).strip():
+            raise ValueError(f"{required_field_name} must not be blank")
+    _https_url(command_arguments.source_url, "source URL")
+    if not _SHA256_PATTERN.fullmatch(command_arguments.source_sha256):
         raise ValueError("source SHA-256 must be one digest")
-    if args.source_row_count <= 0 or not args.source_file.is_file():
+    if (
+        command_arguments.source_row_count <= 0
+        or not command_arguments.source_file.is_file()
+    ):
         raise ValueError("source row count and file must be valid")
-    digest = hashlib.sha256(args.source_file.read_bytes()).hexdigest()
-    if digest != args.source_sha256.lower():
+    source_artifact_sha256 = hashlib.sha256(
+        command_arguments.source_file.read_bytes()
+    ).hexdigest()
+    if source_artifact_sha256 != command_arguments.source_sha256.lower():
         raise ValueError("source artifact SHA-256 mismatch")
-    nodes, edges, bindings, row_count = read_job_architecture(args.source_file)
-    if row_count != args.source_row_count:
+    (
+        job_architecture_nodes,
+        hierarchy_edges,
+        occupation_bindings,
+        source_row_count,
+    ) = read_job_architecture(command_arguments.source_file)
+    if source_row_count != command_arguments.source_row_count:
         raise ValueError("source artifact row-count mismatch")
-    conn = await asyncpg.connect(args.target_dsn)
+    database_connection = await asyncpg.connect(command_arguments.target_dsn)
     try:
-        async with conn.transaction():
-            entity_id = await conn.fetchval(
+        async with database_connection.transaction():
+            corporate_entity_id = await database_connection.fetchval(
                 "select corporate_entity_id from corporate_entity where corporate_entity_code = $1",
-                args.corporate_entity_code,
+                command_arguments.corporate_entity_code,
             )
-            if entity_id is None:
+            if corporate_entity_id is None:
                 raise ValueError("corporate entity must already exist")
-            key = (entity_id, args.source_system_code, args.source_snapshot_code)
-            await conn.execute(
+            source_snapshot_identity = (
+                corporate_entity_id,
+                command_arguments.source_system_code,
+                command_arguments.source_snapshot_code,
+            )
+            await database_connection.execute(
                 """insert into job_architecture_source
                        (corporate_entity_id, source_system_code, source_snapshot_code,
                         source_name, source_artifact_url, source_artifact_sha256,
@@ -265,13 +340,13 @@ async def import_job_architecture(args: argparse.Namespace) -> dict[str, object]
                                           excluded.source_artifact_url,
                                           excluded.source_artifact_sha256,
                                           excluded.source_row_count)""",
-                *key,
-                args.source_name,
-                args.source_url,
-                digest,
-                row_count,
+                *source_snapshot_identity,
+                command_arguments.source_name,
+                command_arguments.source_url,
+                source_artifact_sha256,
+                source_row_count,
             )
-            await conn.executemany(
+            await database_connection.executemany(
                 """insert into job_architecture_node
                        (corporate_entity_id, source_system_code, source_snapshot_code,
                         job_architecture_code, job_architecture_kind_code,
@@ -290,9 +365,20 @@ async def import_job_architecture(args: argparse.Namespace) -> dict[str, object]
                                           excluded.job_architecture_name,
                                           excluded.job_architecture_description,
                                           excluded.valid_from, excluded.valid_to)""",
-                [(*key, n.code, n.kind, n.name, n.description, n.valid_from, n.valid_to) for n in nodes],
+                [
+                    (
+                        *source_snapshot_identity,
+                        job_architecture_node.job_architecture_code,
+                        job_architecture_node.job_architecture_kind_code,
+                        job_architecture_node.job_architecture_name,
+                        job_architecture_node.job_architecture_description,
+                        job_architecture_node.valid_from,
+                        job_architecture_node.valid_to,
+                    )
+                    for job_architecture_node in job_architecture_nodes
+                ],
             )
-            await conn.executemany(
+            await database_connection.executemany(
                 """insert into job_architecture_hierarchy_edge
                        (corporate_entity_id, source_system_code, source_snapshot_code,
                         broader_job_architecture_code, narrower_job_architecture_code,
@@ -304,9 +390,17 @@ async def import_job_architecture(args: argparse.Namespace) -> dict[str, object]
                    do update set source_relation_code = excluded.source_relation_code
                    where job_architecture_hierarchy_edge.source_relation_code
                          is distinct from excluded.source_relation_code""",
-                [(*key, e.broader_code, e.narrower_code, e.source_relation_code) for e in edges],
+                [
+                    (
+                        *source_snapshot_identity,
+                        hierarchy_edge.broader_code,
+                        hierarchy_edge.narrower_code,
+                        hierarchy_edge.source_relation_code,
+                    )
+                    for hierarchy_edge in hierarchy_edges
+                ],
             )
-            await conn.executemany(
+            await database_connection.executemany(
                 """insert into job_architecture_occupation_binding
                        (corporate_entity_id, source_system_code, source_snapshot_code,
                         job_architecture_code, occupation_scheme_iri,
@@ -319,22 +413,37 @@ async def import_job_architecture(args: argparse.Namespace) -> dict[str, object]
                    do update set source_relation_code = excluded.source_relation_code
                    where job_architecture_occupation_binding.source_relation_code
                          is distinct from excluded.source_relation_code""",
-                [(*key, b.node_code, b.scheme_iri, b.scheme_version, b.occupation_code, b.source_relation_code) for b in bindings],
+                [
+                    (
+                        *source_snapshot_identity,
+                        occupation_binding.job_architecture_code,
+                        occupation_binding.occupation_scheme_iri,
+                        occupation_binding.occupation_scheme_version,
+                        occupation_binding.occupation_code,
+                        occupation_binding.source_relation_code,
+                    )
+                    for occupation_binding in occupation_bindings
+                ],
             )
     finally:
-        await conn.close()
+        await database_connection.close()
     return {
-        "source_snapshot_code": args.source_snapshot_code,
-        "imported_nodes": len(nodes),
-        "imported_hierarchy_edges": len(edges),
-        "imported_occupation_bindings": len(bindings),
-        "source_sha256": digest,
+        "source_snapshot_code": command_arguments.source_snapshot_code,
+        "imported_nodes": len(job_architecture_nodes),
+        "imported_hierarchy_edges": len(hierarchy_edges),
+        "imported_occupation_bindings": len(occupation_bindings),
+        "source_sha256": source_artifact_sha256,
     }
 
 
 def main() -> None:
     """Run the importer and print aggregate, non-identifying evidence."""
-    print(json.dumps(asyncio.run(import_job_architecture(_parser().parse_args())), sort_keys=True))
+    command_arguments = _job_architecture_import_parser().parse_args()
+    print(
+        json.dumps(
+            asyncio.run(import_job_architecture(command_arguments)), sort_keys=True
+        )
+    )
 
 
 if __name__ == "__main__":

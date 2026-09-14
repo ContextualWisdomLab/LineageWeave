@@ -8,33 +8,33 @@ never a fabricated cutoff body or a TEPP theta.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import asyncpg
 
 
-def _as_utc(value: datetime) -> datetime:
+def _as_utc(timestamp_value: datetime) -> datetime:
     """Treat a naive clock as UTC so interval tests stay timezone-aware."""
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+    if timestamp_value.tzinfo is None:
+        return timestamp_value.replace(tzinfo=UTC)
+    return timestamp_value.astimezone(UTC)
 
 
-def parse_as_of_clock(value: str) -> datetime:
+def parse_as_of_clock(clock_text: str) -> datetime:
     """Parse an ISO-8601 as-of clock.
 
     Next action: pass the analysis-run cutoff, then compare ``known_at``
     with the live body. Empty or unparseable values raise ``ValueError``.
     """
-    text = value.strip()
-    if not text:
+    normalized_clock_text = clock_text.strip()
+    if not normalized_clock_text:
         raise ValueError("as_of is empty")
-    if text.endswith("Z"):
-        text = text[:-1] + "+00:00"
-    parsed = datetime.fromisoformat(text)
-    return _as_utc(parsed)
+    if normalized_clock_text.endswith("Z"):
+        normalized_clock_text = normalized_clock_text[:-1] + "+00:00"
+    parsed_clock = datetime.fromisoformat(normalized_clock_text)
+    return _as_utc(parsed_clock)
 
 
 def revision_covers_clock(
@@ -47,22 +47,26 @@ def revision_covers_clock(
     The interval is half-open: ``written_at <= as_of < superseded_at``.
     A null ``superseded_at`` means the revision is still current.
     """
-    start = _as_utc(written_at)
-    clock = _as_utc(as_of)
-    if start > clock:
+    revision_start = _as_utc(written_at)
+    query_clock = _as_utc(as_of)
+    if revision_start > query_clock:
         return False
     if superseded_at is None:
         return True
-    return _as_utc(superseded_at) > clock
+    return _as_utc(superseded_at) > query_clock
 
 
-def _iso(value: Any) -> str:
+def _iso_timestamp(timestamp_value: Any) -> str:
     """Serialize a timestamptz the same way post detail already does."""
-    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+    return (
+        timestamp_value.isoformat()
+        if hasattr(timestamp_value, "isoformat")
+        else str(timestamp_value)
+    )
 
 
 async def fetch_known_at_revision(
-    conn: "asyncpg.Connection",
+    database_connection: asyncpg.Connection,
     post_id: str,
     as_of: datetime,
 ) -> dict[str, str] | None:
@@ -71,7 +75,7 @@ async def fetch_known_at_revision(
     Does not invent a sentence. Does not return a live body under a
     cutoff label when no revision covers the clock.
     """
-    row = await conn.fetchrow(
+    source_post_revision_row = await database_connection.fetchrow(
         "select source_post_revision_id, post_title, post_body, written_at "
         "from source_post_revision "
         "where post_id = $1 "
@@ -82,19 +86,21 @@ async def fetch_known_at_revision(
         post_id,
         as_of,
     )
-    if row is None:
+    if source_post_revision_row is None:
         return None
     return {
-        "source_post_revision_id": str(row["source_post_revision_id"]),
-        "post_title": row["post_title"],
-        "post_body": row["post_body"],
-        "written_at": _iso(row["written_at"]),
-        "as_of": _iso(as_of),
+        "source_post_revision_id": str(
+            source_post_revision_row["source_post_revision_id"]
+        ),
+        "post_title": source_post_revision_row["post_title"],
+        "post_body": source_post_revision_row["post_body"],
+        "written_at": _iso_timestamp(source_post_revision_row["written_at"]),
+        "as_of": _iso_timestamp(as_of),
     }
 
 
 async def fetch_known_at_revisions(
-    conn: "asyncpg.Connection",
+    database_connection: asyncpg.Connection,
     post_ids: list[str],
     as_of: datetime,
 ) -> dict[str, dict[str, str]]:
@@ -106,7 +112,7 @@ async def fetch_known_at_revisions(
 
     if not post_ids:
         return {}
-    rows = await conn.fetch(
+    source_post_revision_rows = await database_connection.fetch(
         "select distinct on (post_id) post_id, source_post_revision_id, "
         "post_title, post_body, written_at "
         "from source_post_revision "
@@ -118,12 +124,14 @@ async def fetch_known_at_revisions(
         as_of,
     )
     return {
-        str(row["post_id"]): {
-            "source_post_revision_id": str(row["source_post_revision_id"]),
-            "post_title": row["post_title"],
-            "post_body": row["post_body"],
-            "written_at": _iso(row["written_at"]),
-            "as_of": _iso(as_of),
+        str(source_post_revision_row["post_id"]): {
+            "source_post_revision_id": str(
+                source_post_revision_row["source_post_revision_id"]
+            ),
+            "post_title": source_post_revision_row["post_title"],
+            "post_body": source_post_revision_row["post_body"],
+            "written_at": _iso_timestamp(source_post_revision_row["written_at"]),
+            "as_of": _iso_timestamp(as_of),
         }
-        for row in rows
+        for source_post_revision_row in source_post_revision_rows
     }

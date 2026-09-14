@@ -15,7 +15,7 @@ from .post_summary_ingestion import fetch_persisted_summary
 
 
 async def load_five_w1h_slots(
-    conn: asyncpg.Connection,
+    database_connection: asyncpg.Connection,
     post_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> dict[str, Any]:
@@ -26,8 +26,15 @@ async def load_five_w1h_slots(
     # gating them on the same freshness check as the Korean summary text
     # silently emptied "who"/"what" for every post summarized before the
     # last contract bump, even though nothing about that data was stale.
-    summary = await fetch_persisted_summary(conn, post_id, allow_stale=True) or {}
-    evidence_claims = await conn.fetch(
+    persisted_summary = (
+        await fetch_persisted_summary(
+            database_connection,
+            post_id,
+            allow_stale=True,
+        )
+        or {}
+    )
+    persisted_evidence_claims = await database_connection.fetch(
         """
         select slot_code, value_text, evidence_text
           from post_summary_five_w1h
@@ -36,23 +43,36 @@ async def load_five_w1h_slots(
         """,
         post_id,
     )
-    linked = await find_linked_post_ids(conn, post_id)
-    candidate_ids = sorted(linked.direct | linked.indirect)
-    linked_titles: list[str] = []
-    if candidate_ids:
-        rows = await conn.fetch(
+    linked_post_ids = await find_linked_post_ids(database_connection, post_id)
+    candidate_post_ids = sorted(linked_post_ids.direct | linked_post_ids.indirect)
+    visible_linked_post_titles: list[str] = []
+    if candidate_post_ids:
+        linked_post_rows = await database_connection.fetch(
             "select post_id, post_title, visibility_code, corporate_entity_id, process_unit_id "
             "from source_post where post_id = any($1::uuid[])",
-            candidate_ids,
+            candidate_post_ids,
         )
-        linked_titles = [row["post_title"] for row in rows if can_see_post(row)]
+        visible_linked_post_titles = [
+            linked_post_row["post_title"]
+            for linked_post_row in linked_post_rows
+            if can_see_post(linked_post_row)
+        ]
 
-    counterparties = await fetch_post_counterparties(conn, post_id)
-    slots = assemble_five_w1h_slots(
-        roles=summary.get("roles_and_responsibilities", []),
-        key_events=summary.get("key_events", []),
-        counterparties=[row["counterparty_entity_name"] for row in counterparties],
-        lineage_node_labels=linked_titles,
-        evidence_claims=[dict(row) for row in evidence_claims],
+    post_counterparty_rows = await fetch_post_counterparties(
+        database_connection,
+        post_id,
     )
-    return {"post_id": post_id, "slots": slots_payload(slots)}
+    five_w1h_slots = assemble_five_w1h_slots(
+        post_summary_roles=persisted_summary.get("roles_and_responsibilities", []),
+        key_events=persisted_summary.get("key_events", []),
+        counterparties=[
+            post_counterparty_row["counterparty_entity_name"]
+            for post_counterparty_row in post_counterparty_rows
+        ],
+        lineage_node_labels=visible_linked_post_titles,
+        evidence_claims=[
+            dict(persisted_evidence_claim)
+            for persisted_evidence_claim in persisted_evidence_claims
+        ],
+    )
+    return {"post_id": post_id, "slots": slots_payload(five_w1h_slots)}

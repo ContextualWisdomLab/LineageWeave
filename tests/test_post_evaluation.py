@@ -28,15 +28,15 @@ def test_constructed_seed_categories_are_not_a_judge_and_rank_quote_above_unrela
 
 
 def test_null_client_is_unavailable_not_a_fake_score() -> None:
-    client = NullPostEvaluationClient()
-    assert client.available is False
+    post_evaluation_client = NullPostEvaluationClient()
+    assert post_evaluation_client.available is False
     with pytest.raises(RuntimeError):
-        client.evaluate("title", "body")
+        post_evaluation_client.evaluate("title", "body")
 
 
 def test_irt_row_has_one_category_per_rubric_criterion() -> None:
     scores = {code: 0.8 for code in CRITERION_CODES}
-    result = LLMJudgeResult(
+    judge_result = LLMJudgeResult(
         score=0.8,
         accepted=True,
         rationale="synthetic fixture judge output",
@@ -48,14 +48,19 @@ def test_irt_row_has_one_category_per_rubric_criterion() -> None:
         criterion_categories={code: 4 for code in CRITERION_CODES},
         category_count=IRT_CATEGORY_COUNT,
     )
-    responses = irt_responses_from_result(result)
-    assert {row.criterion_code for row in responses} == set(CRITERION_CODES)
-    assert all(0 <= row.response_category < IRT_CATEGORY_COUNT for row in responses)
+    criterion_responses = irt_responses_from_result(judge_result)
+    assert {
+        criterion_response.criterion_code for criterion_response in criterion_responses
+    } == set(CRITERION_CODES)
+    assert all(
+        0 <= criterion_response.response_category < IRT_CATEGORY_COUNT
+        for criterion_response in criterion_responses
+    )
     assert RUBRIC_VERSION == "2026-08-13"
 
 
 def test_irt_row_requires_multiple_criteria() -> None:
-    result = LLMJudgeResult(
+    judge_result = LLMJudgeResult(
         score=1.0,
         accepted=True,
         rationale="one item is not an IRT row",
@@ -66,4 +71,4 @@ def test_irt_row_requires_multiple_criteria() -> None:
         usage={},
     )
     with pytest.raises(Exception):
-        irt_responses_from_result(result)
+        irt_responses_from_result(judge_result)

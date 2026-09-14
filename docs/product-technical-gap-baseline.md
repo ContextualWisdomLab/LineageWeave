@@ -1,5 +1,365 @@
 # Product & Technical Gap Baseline
 
+> Issue-ticket persistence naming overlay: 2026-09-09 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@71ef0fafc843ec8ff1f179d4f0cd534b14ab9559`;
+> exact RED head `842395c5dcc4b4ded57ea2a71daa69cfcf7973b1` found
+> repository-owned `conn`, `row`, `rows`,
+> `ticket`, `tickets`, `labels`, `labeled`, `existing`, and `code` identifiers
+> across serialization, lookup hydration, list/create/update, commitment
+> UPSERT, and owning-post lookup. Action: align that bounded persistence
+> surface with database-connection, issue-ticket-row/collection,
+> ticket-status-label/code, existing-ticket-row, updated-ticket-row, and
+> labeled-issue-ticket language while preserving public function names,
+> positional callers, JSON fields, PostgreSQL schema, SQL, due-date parsing,
+> ordering, and update behavior. Status: RED reproduced; two focused
+> naming/external-contract tests, compile, diff, and scoped Ruff/format
+> validation are GREEN locally. The broader API selection cannot collect in
+> this runner because the `redis` module is unavailable; GitHub exact-head
+> checks and independent review remain pending.
+>
+> Operations dashboard naming overlay: 2026-09-09 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@5ef8f3ab6fb3bb4e73eed9a02e203ffd684886b1`;
+> exact RED head `b8a1a4e168ca8b52f24393e2364da4ce4b5eb7fc` found
+> repository-owned `args`, `conn`, `external`, `facts`, `key`, `metrics`,
+> `row`, `total`, and `visible` identifiers across the ABAC-filtered
+> operations dashboard projection. GREEN head
+> `71ef0fafc843ec8ff1f179d4f0cd534b14ab9559` aligns that surface with
+> database-connection, query-parameter, visible-period-predicate,
+> dashboard-metric, operations-case-row/fact, case-identity, and post-count
+> language while preserving response fields, SQL/schema, authorization,
+> event-clock filtering, ordering, and zero-denominator behavior. Status: RED
+> reproduced; implementation and five focused naming/behavior tests, compile,
+> diff, and scoped Ruff/format validation are GREEN locally; GitHub exact-head
+> checks and independent review remain pending.
+>
+> Buyer-visible RankWeave ingestion naming overlay: 2026-09-08 KST. The
+> stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@79f369c2f9d3b2300af9d22979d52863bca0ddd7`;
+> exact RED head `a0e193ff02df2ec5b9435240f53d67739845c8ab` found
+> repository-owned `account`, `pool`, `conn`, `posts`, `row`, and `_row`
+> identifiers across the authorized ranking loader and `/api/rankings`
+> projection. Action: align that bounded surface with current-account,
+> database-pool, database-connection, source-post-row, visible-post-row, and
+> visible-ranking-post language while preserving the public route, source-post
+> SQL columns, ABAC predicate, RankWeave adapter contract, and response payload.
+> Status: RED reproduced; focused naming and authorization regression tests are
+> GREEN locally; GitHub exact-head checks and independent review remain
+> pending.
+>
+> Source-post valid-time revision naming overlay: 2026-09-08 KST. The stacked
+> base is
+> `refactor/post-keyman-backfill-semantic-identifiers@d07ac85bd9804a6eb5ff8383a3ebe5385307a87f`;
+> exact RED head `85ecda944d67b08f8c6f40ece3c52d167600c3ea` found
+> repository-owned `_iso`, `value`, `text`, `parsed`, `start`, `clock`, `conn`,
+> `row`, and `rows` identifiers across ISO clock parsing, half-open revision
+> coverage, authorized PostgreSQL reads, result serialization, and focused
+> fixtures. Action: align that bounded surface with timestamp-value,
+> normalized-clock-text, parsed-clock, revision-start, query-clock,
+> database-connection, and source-post-revision-row language while preserving
+> public helper names, positional behavior, source-post-revision SQL/schema,
+> half-open interval semantics, result ordering, and returned API keys. Status:
+> RED reproduced; implementation and six focused behavior/naming tests are
+> GREEN locally; GitHub exact-head checks and independent review remain
+> pending.
+>
+> Global Ask time-axis naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@889b926d3ac5bfcfee99b96a9fa7488bb282509a`;
+> exact RED head `8cdbf1cb6a3bb22defd2c4f4994eefb4b78608b8`
+> found repository-owned `row`, `rows`, `value`, `instant`, `day`, `start`,
+> `end`, `conn`, `channel`, `target`, `index`, and `sources` identifiers across
+> the relative-time helper, authorized Global Ask source retrieval, and focused
+> fixtures. Action: align that bounded surface with source-post,
+> timestamp-value, filter-instant, calendar-day, date-range,
+> database-connection, candidate-channel, lineage-edge, and source-document
+> language while preserving public helper names, source-post SQL columns,
+> evidence-fact text, ordering, visibility filtering, and API payload keys.
+> Status: RED reproduced; implementation and 37 focused behavior/naming tests,
+> compile, diff, and scoped Ruff/format validation GREEN locally; GitHub
+> exact-head checks and independent review remain pending.
+>
+> Customer-hint naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@4629c5259a6e78f2778f597a16e09de6534949a6`;
+> exact RED head `058764ecd9edbce031873b00e62dd0abd9408eeb` found
+> repository-owned `body`, `content`, `prompt`,
+> `conn`, `rows`, `row`, `resolution`, `existing`, `created`, `linked`,
+> `client`, `result`, `status`, `query`, `args`, `call`, and `seen`
+> identifiers across customer-code resolution, external corroboration,
+> corporate-entity persistence, post relinking, and focused fixtures. Action:
+> align that bounded surface with customer-context, orchestrator-response,
+> verified-customer-resolution, corporate-entity-row, linked-post-row,
+> database-connection, and transport-observation language while preserving the
+> context-qualified `resolve()` protocol, orchestrator request keys, SQL/schema,
+> result ordering, and published API response keys. Status: RED reproduced;
+> implementation and ten focused behavior/naming tests, compile, diff, and
+> scoped Ruff/format validation GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
+> Affiliate-tree builder naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@5b0d6c51f2ffee89d0e335d3e76a2825d1636d69`;
+> exact RED head `32c7bd44d026feaa898c164b78541cc0c4030ba1` found
+> repository-owned `_build`, `affiliations`, `entities`, `row`, `leaf`,
+> `needed`, `current`, `unique`, `person`, `child`, `name`, and `leaves`
+> identifiers across affiliate-person deduplication, ancestor selection,
+> resolved hierarchy construction, unresolved-root projection, and focused
+> fixtures. Action: align private builder and fixture names with
+> affiliate-person, affiliation-leaf, corporate-entity-row, needed-entity-ID,
+> affiliate-node, resolved-root, and unresolved-affiliation language while
+> preserving public dataclass fields, JSON keys, hierarchy membership,
+> deduplication, ordering, and unresolved-organization behavior. Status: RED
+> reproduced; implementation and 17 focused affiliate-tree/VOC behavior and
+> naming tests, compile, diff, and scoped Ruff/format validation GREEN locally;
+> GitHub exact-head checks and independent review remain pending.
+>
+> Extractive VOC evidence naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@33981c8e562b927ba455995052de5a47187cd095`;
+> exact RED head `f515541502d4c8ee7001181aa92da0efc06e9fe1` found
+> repository-owned `text`, `names`, `name`, `excerpts`, `seen`, `sentence`,
+> `lowered`, `conn`, `aliases`, `row`, `entities`, `leaves`, `person`,
+> `affiliation`, `forest`, `nodes`, `codes`, `labels`, `level`, `side`, and
+> `counterparties` identifiers across sentence extraction, affiliate-tree
+> hydration, authorized database ingestion, and focused fixtures. Action:
+> align the complete bounded surface with source-text, evidence-excerpt,
+> organization-name, corporate-entity, affiliation-leaf, affiliate-node,
+> lookup-label, database-connection, and counterparty-row language while
+> preserving public JSON keys, SQL/schema, lookup codes, matching, ordering,
+> and missing-evidence behavior. Status: RED reproduced; implementation and
+> 16 focused affiliate-tree/VOC behavior and naming tests, compile, diff, and
+> scoped Ruff/format validation GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
+> Evidence-only 5W1H naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@af761b167595a4fbd15fbfc3cfcec4c3efe48de3`;
+> exact RED head `52dea4374655e0b222e464ab53b24400c97c7444` found
+> repository-owned `_value`, `_unique`, `text`, `source`, `codes`, `values`,
+> `seen`, `result`, `role`, `event`, `claim`, `slot`, `item`, `name`, and
+> `key` identifiers across evidence-slot construction, deduplication, 5W1H
+> assembly, the authorized database caller, and focused fixtures. Action:
+> align the complete bounded surface with evidence-slot, post-summary-role,
+> key-event, counterparty, ontology-annotation, slot-code, and value-key
+> language while preserving published JSON keys, ontology/source codes,
+> stable ordering, and evidence-only behavior. Status: RED reproduced;
+> implementation and four focused behavior/naming tests, compile, diff, and
+> scoped Ruff/format GREEN locally; GitHub exact-head checks and independent
+> review remain pending.
+>
+> Ask delivery naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@61ab94ad0f1d4621d8fb733a789d09abf4360750`;
+> exact RED head `114437e59a472b8a9d83701511f3be1d41726274` found
+> repository-owned `item`, `documents`, `post`, `encoded_id`, and a direct
+> caller's `delivery` identifier across the transport-neutral Ask projection,
+> empty-result path, and focused fixtures. Action: align that bounded surface
+> with cited-post, post-evidence, source-document, encoded-post-ID, and
+> Ask-delivery language while preserving released report/alert JSON keys, URL
+> quoting, citation order, evidence facts, and subscription eligibility.
+> Status: RED reproduced; implementation and focused behavior/naming, compile,
+> and scoped Ruff/format validation GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
+> Post-evaluation naming overlay: 2026-09-08 KST. The stacked base is
+> `refactor/post-keyman-backfill-semantic-identifiers@156831f14e1302d1361bcdb7cd4674ef49924204`;
+> exact RED head `f2e982905dc4e85e4123df0655a87b39b3f91b48` found
+> repository-owned `body`, `categories`, `client`, `conn`, `result`,
+> `response`, `responses`, `row`, and `rows` identifiers across the judge
+> adapter, IRT projection, persistence, API handlers, SQL aliases, and focused
+> fixtures. Action: align that complete bounded surface with
+> orchestrator-response, judge-result, criterion-response,
+> database-connection, and persisted-evaluation-row language while preserving
+> existing route paths, JSON keys, PostgreSQL tables, fast-mlsirm projection
+> entry point, and external adapter signatures. Status: RED reproduced; three
+> focused naming/contract tests and Python compile GREEN locally. Runtime
+> behavior tests require the separately released fast-mlsirm package, which is
+> unavailable in this runner; GitHub exact-head checks and independent review
+> remain pending.
+>
+> Authorized job-architecture import naming overlay: 2026-09-08 KST. The
+> stacked base is exact head
+> `4a81f8706ad819967a8a88787464174d59599002`; exact RED head
+> `4770efa31acdb7996b945135541e34d59dcd953c` found repository-owned
+> `code`, `kind`, `name`, `path`, `row`, `node`, `edge`, `binding`,
+> `parser`, `args`, `conn`, `entity_id`, `key`, `digest`, and traversal
+> accumulator identifiers across authorized CSV parsing, hierarchy validation,
+> occupation binding, transactional persistence, and behavioral fixtures.
+> Action: align the complete private caller and owned field surface with
+> source-snapshot, job-architecture node, hierarchy-edge, occupation-binding,
+> corporate-entity, database, digest, and command language while preserving
+> external CSV columns, CLI flags, SQL/schema, source evidence, aggregate JSON
+> fields, transaction behavior, and connection close. Status: RED reproduced;
+> six focused behavior/naming tests, compile, and scoped Ruff/format GREEN
+> locally; GitHub exact-head checks and independent review pending.
+>
+> Ontology-site publisher naming overlay: 2026-09-08 KST. The stacked base is
+> `fix/contextual-orchestrator-owner-boundary@e5711282c48cc20d0a88fb56a9e382d500989c72`;
+> exact RED head `1e077883e807f2e42f0b61743d99815469460af6` found
+> repository-owned `_fragment`, `_parse_args`, `root`, `source`, `profile`,
+> `graph`, `renderer`, `subject`, `predicate`, `value`, `path`, `output`,
+> `parser`, and `args` identifiers across renderer loading, public-graph and
+> namespace/SHACL validation, safe output replacement, and the CLI. Action:
+> align the complete private caller surface with ontology-publication,
+> renderer-module, ontology-resource, namespace-mapping, SHACL-resource,
+> source-path, output-path, and command language while preserving public
+> validation function names, CLI flags, RDF checks, fail-closed replacement,
+> cleanup, and generated-site behavior. Status: RED reproduced; implementation,
+> 16 focused behavior/naming tests, compile, and scoped lint/format GREEN
+> locally; GitHub exact-head checks and independent review pending.
+>
+> Legacy ontology-namespace migration naming overlay: 2026-09-08 KST.
+> Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
+> exact RED head `5c7e288605cf091c1300905af2df77509458529d`
+> found repository-owned `canonicalize`, `migrate`, `iri`, `dsn`, `apply`,
+> `conn`, `rows`, `row`, `planned`, `unexpected`, `parser`, and `args`
+> identifiers across the operator, PostgreSQL transaction, and behavioral
+> fixture. Action: align the complete caller surface with ontology-IRI,
+> legacy-namespace migration, database, source-mention, rewrite-plan, and
+> command language while preserving CLI flags, SQL, dry-run/fail-closed
+> output, idempotence, transactional updates, and connection close. Status:
+> RED reproduced; implementation and focused behavior, naming, compile, lint,
+> and format validation GREEN locally; GitHub exact-head checks and independent
+> review pending.
+>
+> Explicit post-content requeue naming overlay: 2026-09-08 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`; exact RED head
+> `c92ee08effb128e1a5de0277f9c0da43ffa639ed` found repository-owned
+> `_parser`, `parser`, `connection`, `client`, `request`, `args`, and `settings`
+> identifiers across the operator's CLI, PostgreSQL transaction, Valkey
+> publication, and runtime configuration. Action: align the complete private
+> caller surface with post-content-requeue, database, source-post,
+> job-request, Valkey-stream, and runtime-settings language while preserving
+> CLI flags, SQL, JSON output keys, transaction, publication, and resource
+> close behavior. Status: RED reproduced; implementation and focused naming,
+> boundary, compile, and lint validation GREEN locally; GitHub exact-head
+> checks and independent review pending.
+>
+> Ontology-site builder naming overlay: 2026-09-08 KST. The stacked base is
+> `fix/contextual-orchestrator-owner-boundary@e5711282c48cc20d0a88fb56a9e382d500989c72`.
+> Initial RED `fbde01a4696362d659db2f4b33f588882bdb8385` found repository-owned
+> `value`, `key`, `item`, `rows`, `payload`, `parser`, and `args`; exact
+> continuation RED `f68224ca9b54c1e3c44ce3c47e8228d13c6920d2` found `_sha256`,
+> `_fragment`, `_parse_args`, `graph`, `subject`, `predicate`, `label`,
+> `comment`, `root`, `source`, `output`, `terms`, `sections`, and `counted`
+> across RDF rendering, JSON-LD canonicalization, manifest output, filesystem
+> publication, and the CLI. Action: align the complete builder surface with
+> ontology-resource, RDF-graph, source-path, publication-output, serialization,
+> manifest, digest, and command language while preserving published URLs, CLI
+> flags, RDF formats, manifest keys, generated bytes, and deterministic ordering.
+> Status: both RED contracts reproduced; implementation, 32 focused
+> publication/naming tests, compile, diff, and scoped Ruff/format GREEN locally;
+> GitHub exact-head checks and independent review pending.
+>
+> Queued estimator test naming overlay: 2026-09-08 KST. Exact RED head
+> `e73e0a1afd66432022c81ef86e34fd15f20ee162` found the generic owned
+> `script` alias in the ADR 0200 queued-estimator behavior tests. Action: name
+> the module boundary `llm_estimation_script` throughout its complete caller
+> surface while preserving provider fixtures, caller `custom_id` mapping,
+> confidence parsing, and completion semantics. Status: RED reproduced; AST
+> contracts, compile, and Ruff/format GREEN locally; GitHub exact-head checks
+> and independent review pending.
+>
+> Deterministic estimator test naming overlay: 2026-09-08 KST. Exact RED head
+> `3620f8b9f4775a3511c4bb8f56e6c9882af702dd` found repository-owned
+> `_record`, `_Connection`, `script`, `chosen`, `first`, `inserted`, and
+> `executed` identifiers in the behavioral fixture. Action: align the fixture
+> with source-post, thread-group, sampling-index, snapshot-digest, database,
+> query, and persisted-row language while preserving production estimator calls,
+> SQL/provenance assertions, and external `execute(query, *args)`. Status: RED
+> reproduced; AST contracts, compile, and Ruff/format GREEN locally with the
+> pre-existing naive-datetime lint excluded from this naming-only slice; GitHub
+> exact-head checks and independent review pending.
+>
+> Thread-group-key test naming overlay: 2026-09-08 KST. Exact RED head
+> `a06801aab7713f2638f20a2afaf0a6e35592bb09` found repository-owned
+> `_Connection`, `conn`, `rows`, `result`, `update`, and `script` identifiers in
+> the behavioral fixture despite semantic production naming. Action: align the
+> complete test-double and local-variable surface with database, placeholder-post,
+> analysis-run, update-query, and backfill-summary language while preserving the
+> external `asyncpg` `query`/`*args` adapter signature and all behavior. Status:
+> RED naming contract reproduced; implementation, focused contract, compile, and
+> Ruff GREEN locally; GitHub exact-head checks and independent review pending.
+>
+> Post-summary backfill naming overlay: 2026-09-08 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded operator used
+> generic package-owned parser, gateway, database, record, result, client, and
+> limit identifiers (`_parser`, `_gateway_config`, `_load_posts`,
+> `_semantic_hints`, `conn`, `row`, `result`, `limit`). Action:
+> translate its complete private caller surface to post-summary and
+> contextual-orchestrator language while preserving CLI flags, JSON result
+> keys, SQL selection, transaction, persistence, failure aggregation, and
+> connection close. Status: RED naming/docstring/contract regression followed
+> by implementation GREEN locally; GitHub exact-head checks and independent
+> review remain pending.
+>
+> Synchronous post-content backfill naming overlay: 2026-09-07 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The operator used
+> generic package-owned command, database, record, normalized-content, image,
+> result, and limit identifiers (`_parser`, `args`, `conn`, `row`, `item`,
+> `result`, `limit`) plus generic SQL aliases. Action: translate the complete
+> private caller surface to post-content backfill language while preserving CLI
+> flags, JSON result keys, source-selection semantics, persistence and
+> transaction boundaries, and connection close. Status: RED naming/contract
+> regression followed by production GREEN locally; GitHub exact-head checks and
+> independent review remain pending.
+>
+> Post-content queue backfill naming overlay: 2026-09-07 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The private
+> operator used generic package-owned command, database, queue, record, request,
+> and result identifiers (`_parser`, `args`, `connection`, `client`, `rows`,
+> `row`, `complete`, `request`, `result`, `settings`, `limit`) plus generic SQL
+> aliases. Action: translate the complete repository-local surface to
+> post-content queue language while preserving CLI flags, JSON result keys,
+> source-selection SQL semantics, transaction boundaries, Valkey publication,
+> and resource close behavior. Status: RED naming/contract regression followed
+> by production GREEN locally; GitHub exact-head checks and independent review
+> remain pending.
+>
+> Occupational catalog synchronizer naming overlay: 2026-09-07 KST. Protected
+> `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. The ADR 0250
+> operator used generic package-owned command, database, payload,
+> configuration, and result identifiers (`_parser`, `synchronize_catalog`,
+> `args`, `conn`, `payload`, `settings`, `count`). Action: translate that
+> complete private caller surface to occupational-catalog language while
+> preserving the fixed O*NET release URL, CLI flag, output keys, digest gate,
+> transactional UPSERT, and connection close. Status: RED naming/contract
+> regression followed by production GREEN locally; GitHub exact-head checks
+> and independent review remain pending.
+>
+> Deterministic channel-weight estimator naming overlay: 2026-09-07 KST.
+> Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
+> The ADR 0200 operator used generic package-owned sampling, database,
+> estimate, and command identifiers (`rows`, `record`, `window`, `conn`,
+> `estimate`, `_run`, `args`). Action: translate those private identifiers to
+> source-post, candidate-window, channel-weight, and command language while
+> preserving pair geometry, weight fitting, CLI flags, JSON fields, SQL, and
+> persisted provenance. The immutable fast-mlsirm `v0.9.1` consumer cutover is
+> owned separately by #967; this naming slice adds no source fallback or
+> dependency change. Status: implementation, behavioral tests, and AST
+> regression GREEN locally; GitHub exact-head verification pending.
+>
+> Queued LLM channel-weight estimator overlay: the ADR 0200 batch adapter on
+> the same protected head used generic owned submit/collect, database, run,
+> result, score, and command identifiers (`_submit`, `_collect`, `conn`, `run`,
+> `results`, `score`, `args`). Action: translate the private operator surface to
+> batch-estimation, estimation-run, pair-judgment, and orchestrator language
+> while preserving provider request/response fields, CLI flags, JSON output,
+> SQL, transaction boundaries, and fail-closed incomplete judgment behavior.
+> Status: implementation, behavioral tests, and AST regression GREEN locally;
+> GitHub exact-head verification pending.
+>
+> Exact-head naming overlay: 2026-09-07 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`. The bounded post-Keyman
+> operator still used generic package-owned command, database, record, and
+> result identifiers (`_run`, `args`, `conn`, `row`, `rows`, `settings`).
+> Action: rename the complete private caller surface to the Keyman-backfill
+> ubiquitous language, preserve CLI flags, JSON result fields, SQL, and
+> persistence contracts, and keep the change Proposed until fresh exact-head
+> checks and independent review complete. Status: implementation and AST
+> regression GREEN locally; GitHub verification pending.
+>
+> Thread-group-key naming overlay: the separate bounded backfill command on the
+> same exact protected head also used `_run`, `args`, `conn`, `pool`, `row`, and
+> `rows`. Action: carry the same semantic naming rule through that complete
+> private caller surface while preserving `--dry-run`, aggregate JSON fields,
+> SQL, transaction rollback, and persistence behavior. Status: implementation,
+> behavior tests, and AST regression GREEN locally; GitHub verification pending.
+>
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -22,7 +382,7 @@
 > from plotted coordinates. Do not invent leftover scores. Stack onto
 > leftover branch `feat/leftover-map-coordinates-v2240`; leave the PR
 > open for independent review.
-
+>
 > Exact-head loop overlay: 2026-08-29 13:15 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -43,7 +403,7 @@
 > only `0` and do not invent drawing-scale `−1` / `+1` ticks. Do not
 > invent leftover scores. Do not mix into #782; stack onto leftover
 > branch `feat/leftover-map-coordinates-v2240`.
-
+>
 > Exact-head loop overlay: 2026-08-28 19:15 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -62,7 +422,7 @@
 > share omits that axis badge and keeps existing leftover-map axis
 > text. Do not invent leftover scores. Do not mix into dashboard stacks
 > #640/#778/#781.
-
+>
 > Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -76,7 +436,7 @@
 > UI-only; no new columns. `R̂` and `d` already are inner product and
 > length. Do not invent leftover scores. Do not mix into dashboard
 > stacks #640/#778/#781.
-
+>
 > Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -87,7 +447,7 @@
 > `ξ_{1:2}` / `ζ_{1:2}` (ADR 0267 / migration 0245 / v2.24.0) so
 > `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
 > leftover-map inner product, cosine, or length as separate columns.
-
+>
 > Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
 > Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
@@ -103,7 +463,7 @@
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
 > `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
 > coordinates in this slice.
-
+>
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
@@ -123,7 +483,7 @@
 > evidence, not confirmation of this exact head. The checked repository names
 > are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
 > and lowercase canonical `ContextualWisdomLab/disksage`.
-
+>
 > Voice-of-X delivery snapshot: 2026-08-27 KST. Protected `main` was
 > `ff7431bd1851c03e737808d22c6a2d43968582f9`; PR #713 was
 > `850494c3861703862a76cfe564381a41243c6c2d`; stacked PR #717 was

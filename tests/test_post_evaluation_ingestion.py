@@ -9,30 +9,30 @@ from backend.app.post_evaluation_ingestion import ingest_post_evaluation
 from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT, RUBRIC_VERSION
 
 
-class _Connection:
-    def __init__(self, rows: list[dict[str, object]]) -> None:
-        self.rows = rows
-        self.executed: list[tuple[str, tuple[object, ...]]] = []
+class _EvaluationDatabaseConnection:
+    def __init__(self, persisted_evaluation_rows: list[dict[str, object]]) -> None:
+        self.persisted_evaluation_rows = persisted_evaluation_rows
+        self.executed_queries: list[tuple[str, tuple[object, ...]]] = []
 
     async def execute(self, query: str, *args: object) -> str:
-        self.executed.append((query, args))
+        self.executed_queries.append((query, args))
         return "OK"
 
     async def fetch(self, _query: str, *_args: object) -> list[dict[str, object]]:
-        return self.rows
+        return self.persisted_evaluation_rows
 
 
-class _Client:
+class _PostEvaluationClient:
     available = True
 
-    def __init__(self, result: LLMJudgeResult) -> None:
-        self.result = result
+    def __init__(self, judge_result: LLMJudgeResult) -> None:
+        self.judge_result = judge_result
 
     def evaluate(self, _title: str, _body: str) -> LLMJudgeResult:
-        return self.result
+        return self.judge_result
 
 
-def _result() -> LLMJudgeResult:
+def _judge_result() -> LLMJudgeResult:
     return LLMJudgeResult(
         score=0.8,
         accepted=True,
@@ -48,7 +48,7 @@ def _result() -> LLMJudgeResult:
 
 
 def test_ingest_evaluation_upserts_each_criterion_and_fetches_rows() -> None:
-    rows = [
+    persisted_evaluation_rows = [
         {
             "criterion_code": code,
             "criterion_label": f"label-{code}",
@@ -57,12 +57,26 @@ def test_ingest_evaluation_upserts_each_criterion_and_fetches_rows() -> None:
         }
         for code in CRITERION_CODES
     ]
-    conn = _Connection(rows)
-    persisted = asyncio.run(ingest_post_evaluation(conn, _Client(_result()), "post-1", "title", "body"))
+    database_connection = _EvaluationDatabaseConnection(persisted_evaluation_rows)
+    persisted_criterion_responses = asyncio.run(
+        ingest_post_evaluation(
+            database_connection,
+            _PostEvaluationClient(_judge_result()),
+            "post-1",
+            "title",
+            "body",
+        )
+    )
 
-    assert [item.criterion_code for item in persisted] == list(CRITERION_CODES)
-    assert len(conn.executed) == len(CRITERION_CODES)
-    assert all("on conflict" in query.lower() for query, _args in conn.executed)
+    assert [
+        criterion_response.criterion_code
+        for criterion_response in persisted_criterion_responses
+    ] == list(CRITERION_CODES)
+    assert len(database_connection.executed_queries) == len(CRITERION_CODES)
+    assert all(
+        "on conflict" in query.lower()
+        for query, _args in database_connection.executed_queries
+    )
 
 
 def test_ingest_evaluation_propagates_judge_failure_without_writes() -> None:
@@ -70,7 +84,15 @@ def test_ingest_evaluation_propagates_judge_failure_without_writes() -> None:
         def evaluate(self, _title: str, _body: str) -> LLMJudgeResult:
             raise RuntimeError("synthetic judge failure")
 
-    conn = _Connection([])
+    database_connection = _EvaluationDatabaseConnection([])
     with pytest.raises(RuntimeError, match="synthetic judge failure"):
-        asyncio.run(ingest_post_evaluation(conn, FailingClient(), "post-1", "title", "body"))
-    assert conn.executed == []
+        asyncio.run(
+            ingest_post_evaluation(
+                database_connection,
+                FailingClient(),
+                "post-1",
+                "title",
+                "body",
+            )
+        )
+    assert database_connection.executed_queries == []

@@ -27,56 +27,62 @@ TIME_AXIS_EVENT = "time axis: event occurred at"
 TIME_AXIS_CREATED = "time axis: record created at"
 
 
-def _row_get(row: Any, field_name: str) -> Any:
-    if isinstance(row, Mapping) or hasattr(row, "get"):
-        return row.get(field_name)
+def _row_get(source_post_row: Any, field_name: str) -> Any:
+    if isinstance(source_post_row, Mapping) or hasattr(source_post_row, "get"):
+        return source_post_row.get(field_name)
     try:
-        return row[field_name]
+        return source_post_row[field_name]
     except (KeyError, TypeError):
         return None
 
 
-def seoul_calendar_date(value: object) -> date | None:
+def seoul_calendar_date(timestamp_value: object) -> date | None:
     """Return the Asia/Seoul calendar day for a timestamp or date."""
-    if value is None:
+    if timestamp_value is None:
         return None
-    if isinstance(value, datetime):
-        instant = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-        return instant.astimezone(_SEOUL).date()
-    if isinstance(value, date):
-        return value
+    if isinstance(timestamp_value, datetime):
+        filter_instant = (
+            timestamp_value
+            if timestamp_value.tzinfo is not None
+            else timestamp_value.replace(tzinfo=timezone.utc)
+        )
+        return filter_instant.astimezone(_SEOUL).date()
+    if isinstance(timestamp_value, date):
+        return timestamp_value
     return None
 
 
-def ask_filter_instant(row: Any) -> object:
+def ask_filter_instant(source_post_row: Any) -> object:
     """Prefer event time; fall back to record ingestion time."""
-    event_occurred_at = _row_get(row, "event_occurred_at")
+    event_occurred_at = _row_get(source_post_row, "event_occurred_at")
     if event_occurred_at is not None:
         return event_occurred_at
-    return _row_get(row, "created_at")
+    return _row_get(source_post_row, "created_at")
 
 
-def time_axis_evidence_fact(row: Any, *, time_filter_active: bool) -> tuple[str, ...]:
+def time_axis_evidence_fact(
+    source_post_row: Any, *, time_filter_active: bool
+) -> tuple[str, ...]:
     """Name the clock that the relative-time window used, or nothing."""
     if not time_filter_active:
         return ()
-    if _row_get(row, "event_occurred_at") is not None:
+    if _row_get(source_post_row, "event_occurred_at") is not None:
         return (TIME_AXIS_EVENT,)
-    if _row_get(row, "created_at") is not None:
+    if _row_get(source_post_row, "created_at") is not None:
         return (TIME_AXIS_CREATED,)
     return ()
 
 
 def row_matches_time_range(
-    row: Any,
+    source_post_row: Any,
     time_range: tuple[date, date] | None,
 ) -> bool:
     """Keep rows inside the Seoul window, or keep them when clocks are absent."""
     if time_range is None:
         return True
-    instant = ask_filter_instant(row)
-    day = seoul_calendar_date(instant)
-    if day is None:
+    filter_instant = ask_filter_instant(source_post_row)
+    calendar_day = seoul_calendar_date(filter_instant)
+    if calendar_day is None:
         return True
-    start, end = time_range
-    return start <= day <= end
+    range_start, range_end = time_range
+    return range_start <= calendar_day <= range_end
