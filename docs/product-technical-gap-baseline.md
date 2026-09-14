@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 04:46 KST.
+> Current authority snapshot: 2026-09-15 05:43 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -36,7 +36,7 @@ No LineageWeave release is admitted from the current protected head.
   executing on the unchanged exact head: Strix is in `Run Strix (quick)` after
   successful sidecar provisioning/install, while Noema is provisioning its
   contextual-orchestrator review sidecar. Neither is terminal review evidence.
-  CodeRabbit has now completed an independent full base-to-head review of all 13
+  CodeRabbit has completed an independent full base-to-head review of all 13
   changed files from protected main through exact `c2923950e...`, reported no
   actionable comments and `Merge Risk: Minimal`, and both inline threads remain
   resolved. That full-diff result is useful review evidence but is not a submitted
@@ -50,8 +50,8 @@ No LineageWeave release is admitted from the current protected head.
   `.github#2200` remains Draft at exact
   `c4054eef3fc3cd84c87ea830b2e94d4145aa34e8`, stacked directly on #1150; its
   focused allowlist contract is GREEN while its own hosted Security/SAST/CodeQL
-  acceptance remains queued. LineageWeave must not copy queue policy or runner
-  controls locally.
+  acceptance remains nonterminal. LineageWeave must not copy queue policy or
+  runner controls locally.
 - Review-sidecar admission/preflight remains owned by
   `ContextualWisdomLab/.github#1629`, exact
   `db3d648c905d283f03fc16fbc9891ba76edd56b8` on `.github` protected
@@ -62,9 +62,13 @@ No LineageWeave release is admitted from the current protected head.
   `defusedxml` was absent. Canonical prerequisite `.github#2170`, exact
   `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency-install
   predicate and is Ready/mergeable. On that unchanged exact head, Agent Review
-  Runtime Quality CI `34826735972` and SAST `34826735939` are GREEN; Security
-  `34826736000`, Python Security `34826735889`, and CodeQL `34826735991` remain
-  queued. Correct order is #2170 normal protected integration, then ordinary
+  Runtime Quality CI `34826735972`, SAST `34826735939`, Python Security
+  `34826735889`, and Security Scan `34826736000` are GREEN. CodeQL PR
+  `34826735991` remains nonterminal: language detection `103958511197` is GREEN,
+  while Python `104055129249` and Actions `104055129294` remain queued without a
+  runner. The only submitted `APPROVED` review still binds predecessor
+  `ae0f2f57...`, not exact `c346b832...`, so exact-head approval is also still
+  required. Correct order is #2170 normal protected integration, then ordinary
   non-force #1629 reconciliation and fresh acceptance. Provider/model/timeout/
   retry policy must not be reimplemented in LineageWeave.
 
