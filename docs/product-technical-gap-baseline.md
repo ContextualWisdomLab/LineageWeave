@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-14 20:45 KST.
+> Current authority snapshot: 2026-09-14 23:12 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -19,15 +19,20 @@ No LineageWeave release is admitted from the current protected head.
   at `c2923950e73c88a9f9fd932332ddd47682da124b` on protected
   `main@83eba56149eb802cd63642c507c324c9976ec78e`. Reader materialization is
   fail-closed for catalog enrichment; explicit `post_admin` retains the canonical
-  enrichment path. Exact-head Tests `34815479029`, Security `34815434486`, SAST
-  `34815434313`, and CodeQL `34815434324` are still non-terminal. Predecessor
-  receipts do not authorize this head.
-- Canonical organization queue observation now has a LineageWeave enrollment
-  repair in `ContextualWisdomLab/.github#2200`, exact
+  enrichment path. Exact-head Tests `34815479029` are now GREEN: Frontend
+  `103885140448`, Full suite `103885140559`, and authenticated PostgreSQL +
+  Keycloak + Valkey Summary authorization integration `103885140632` all passed
+  on this unchanged head. SAST `34815434313` is also GREEN, and GitHub Advanced
+  Security CodeQL/Semgrep changed-source checks report no new alerts. Remaining
+  fail-closed gates are Security `34815434486` (`trivy-fs` and `scorecard`
+  unassigned), authoritative CodeQL PR `34815434324`, and current-head
+  Strix/Noema/OpenCode review jobs.
+- Canonical organization queue observation has a LineageWeave enrollment repair
+  in `ContextualWisdomLab/.github#2200`, exact
   `c4054eef3fc3cd84c87ea830b2e94d4145aa34e8`, stacked on queue-health owner
   #1150. Its focused allowlist contract is GREEN, but the PR is Draft and hosted
-  acceptance is non-terminal. LineageWeave must not copy queue policy or runner
-  controls locally.
+  Security/SAST/CodeQL acceptance remains queued. LineageWeave must not copy
+  queue policy or runner controls locally.
 - Review-sidecar admission/preflight remains owned by
   `ContextualWisdomLab/.github#1629`, exact
   `db3d648c905d283f03fc16fbc9891ba76edd56b8` on `.github` protected
@@ -39,7 +44,7 @@ No LineageWeave release is admitted from the current protected head.
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
-| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Hosted PostgreSQL + Keycloak + Valkey acceptance is not terminal. | Unchanged-head repository/PostgreSQL, authenticated topology, Security/SAST/CodeQL, Strix/model review and qualifying review evidence, then normal protected merge. |
+| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions are GREEN on the unchanged head; SAST is GREEN; GHAS CodeQL/Semgrep report no new changed-source alerts. | Finish Security and authoritative Required CodeQL, obtain exact-head Strix/OpenCode/Noema and qualifying review evidence, then normal protected merge. |
 | Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079: provider work must not hold long DB leases; post-provider persistence must revalidate authorization/visibility and source revision. | Causal RED→GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
 | Governed UI translation delivery | #929 `f898399c5ff9ab89fe440d2e66985860e141620c` and child #932 | PostgreSQL-authoritative versioned ledger is implemented and repository tests are GREEN, but complete reviewed `ko/en/ja/zh/vi/es/de/fr` Customer Master publication is not demonstrated and central Security/CodeQL gates remain non-GREEN. | Complete eight-locale resource publication, authenticated API/browser normal/loading/empty/error/permission/responsive states, keyboard/focus/screen-reader, CJK/text expansion/font fallback, current security/governance receipts. |
 | MCP buyer-path latency | #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` | Modern/legacy protocol repair is Draft. Recorded modern submit/read and legacy read measurements remain far above the repository `p95 <= 20 ms` acceptance contract; CodeQL is also non-GREEN. | Representative uncontended cold/realistic measurements without sample removal or artificial warm-up, profile owned query/I/O/runtime bottlenecks, Rust-first hot-path repair where causal, then exact-head gates. |
@@ -52,6 +57,12 @@ A queued, skipped, COMMENTED, rate-limited, status-only, predecessor-head or
 source-neutral result is not GREEN evidence for a moved current head. Valid
 findings are repaired in their canonical owner lane and consumed through released
 contracts/ACLs; domain truth is not copied across repositories.
+
+The #1079 same-head transition from pre-checkout queue to successful Frontend,
+full PostgreSQL and authenticated integration execution is positive owner-path
+evidence: runner admission latency must not be converted into leaf source churn,
+manual reruns, selector changes or synthetic passing status. Remaining queued
+jobs are still incomplete evidence and stay fail-closed.
 
 For database paths, external/model work must execute outside long-lived explicit
 transactions and locks. Persistence reacquires the shortest necessary lease,
