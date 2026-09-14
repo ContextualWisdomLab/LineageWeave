@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 06:48 KST.
+> Current authority snapshot: 2026-09-15 06:53 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -63,15 +63,19 @@ No LineageWeave release is admitted from the current protected head.
   `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency-install
   predicate and is Ready/mergeable. On that unchanged exact head, Agent Review
   Runtime Quality CI `34826735972`, SAST `34826735939`, Python Security
-  `34826735889`, and Security Scan `34826736000` are GREEN. CodeQL PR
-  `34826735991` remains nonterminal: language detection `103958511197` is GREEN,
-  while Python `104055129249` and Actions `104055129294` remain queued without a
-  runner. A fresh Noema review submitted at 2026-09-14T21:09:40Z now APPROVES
-  exact `c346b832...`; predecessor approval remains historical only. #2170 is
-  therefore merge-blocked only by those two CodeQL matrix jobs. Correct order is
-  #2170 normal protected integration, then ordinary non-force #1629 reconciliation
-  and fresh acceptance. Provider/model/timeout/retry policy must not be
-  reimplemented in LineageWeave.
+  `34826735889`, Security Scan `34826736000`, Noema `104012246592`, Strix
+  `104017621732`, Required OpenCode bootstrap `103920511286`, and CodeQL language
+  detection `103958511197` are GREEN. A fresh Noema review submitted at
+  2026-09-14T21:09:40Z APPROVES exact `c346b832...`; predecessor approval remains
+  historical only. Full current required-check inventory is still nonterminal:
+  CodeQL Python `104055129249`, CodeQL Actions `104055129294`, Required OpenCode
+  `coverage-evidence` `104142936003`, Required OpenCode `opencode-review`
+  `104142935844`, and latest `scan-pr-queue` `104154156265` remain queued. Earlier
+  `scan-pr-queue` `103920512039` success is superseded as current evidence by the
+  newer queued attempt and is not promoted over it. Correct order is #2170 normal
+  protected integration only after all current required gates are terminal GREEN,
+  then ordinary non-force #1629 reconciliation and fresh acceptance. Provider/
+  model/timeout/retry policy must not be reimplemented in LineageWeave.
 
 ## Buyer-visible gap register
 
@@ -90,9 +94,11 @@ A queued, skipped, COMMENTED, rate-limited, status-only, predecessor-head or
 source-neutral result is not GREEN evidence for a moved current head. An exact-head
 full-diff review with no actionable findings is positive independent review
 coverage, but it is not equivalent to a submitted `APPROVED` review when approval
-is an explicit merge gate. Valid findings are repaired in their canonical owner
-lane and consumed through released contracts/ACLs; domain truth is not copied
-across repositories.
+is an explicit merge gate. A newer queued attempt also supersedes an older success
+for current-attempt evidence; old success is not promoted over a newer nonterminal
+required run. Valid findings are repaired in their canonical owner lane and
+consumed through released contracts/ACLs; domain truth is not copied across
+repositories.
 
 The #1079 same-head progression from pre-checkout queue to successful repository,
 authenticated integration, Security, CodeQL language-detect and OpenCode-admission
