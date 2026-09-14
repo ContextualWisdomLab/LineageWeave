@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 06:53 KST.
+> Current authority snapshot: 2026-09-15 08:43 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -15,75 +15,81 @@
 
 No LineageWeave release is admitted from the current protected head.
 
-- Summary shared-catalog authorization repair #1079 is open, Ready and mergeable
-  at `c2923950e73c88a9f9fd932332ddd47682da124b` on protected
+- Summary shared-catalog authorization repair #1079 remains open and Ready at
+  exact `c2923950e73c88a9f9fd932332ddd47682da124b` on protected
   `main@83eba56149eb802cd63642c507c324c9976ec78e`. Reader materialization is
-  fail-closed for catalog enrichment; explicit `post_admin` retains the canonical
-  enrichment path. Exact-head Tests `34815479029` are GREEN: Frontend
+  fail-closed for shared-catalog enrichment; explicit `post_admin` retains the
+  canonical enrichment path. Exact-head Tests `34815479029` are GREEN: Frontend
   `103885140448`, Full suite `103885140559`, and authenticated PostgreSQL +
-  Keycloak + Valkey Summary authorization integration `103885140632` all passed
-  on this unchanged head. SAST `34815434313` is GREEN. Required Security Scan
-  `34815434486` is terminal GREEN, including `trivy-fs` `103964168812` and
-  `scorecard` `103964168871`; GitHub Advanced Security CodeQL, Trivy, Scorecard,
-  and Semgrep changed-source checks report no new alerts. Required CodeQL language
-  detection `103965453105` is GREEN while compatibility analyses remain queued
-  without a runner (`python` `104064547176`, `javascript-typescript`
-  `104064547154`, `actions` `104064547137`). OpenCode exact-head admission
-  `103974955239` is GREEN; its `opencode-review` `104070870170`,
-  `coverage-evidence` `104070870162`, and `coverage-source-tree` `104070870386`
-  jobs remain queued without a runner. Strix `103970045852` and Noema
-  `103965387845` have both received GitHub-hosted runners and are actively
-  executing on the unchanged exact head: Strix is in `Run Strix (quick)` after
-  successful sidecar provisioning/install, while Noema is provisioning its
-  contextual-orchestrator review sidecar. Neither is terminal review evidence.
-  CodeRabbit has completed an independent full base-to-head review of all 13
-  changed files from protected main through exact `c2923950e...`, reported no
-  actionable comments and `Merge Risk: Minimal`, and both inline threads remain
-  resolved. That full-diff result is useful review evidence but is not a submitted
-  `APPROVED` review, so a qualifying independent approval is still absent.
+  Keycloak + Valkey Summary authorization integration `103885140632` all passed.
+  SAST `34815434313` and Required Security Scan `34815434486` are GREEN; changed-
+  source GHAS CodeQL, Trivy, Scorecard and Semgrep report no new alerts.
+- Required CodeQL language detection `103965453105` is GREEN. Compatibility
+  receivers Python `104064547176`, JavaScript/TypeScript `104064547154`, and
+  Actions `104064547137` are now terminal FAIL-CLOSED after reading an absent
+  current-head producer verdict; they are not product-analysis failures. The
+  coordinator `Dispatch current-head CodeQL scan` `104180256379` is queued with
+  no runner. Canonical bootstrap/cutover ownership remains `.github#2106 ->
+  #2040`; LineageWeave must not manufacture a wake commit or duplicate that
+  control plane.
+- Required OpenCode coverage is partly terminal GREEN: `coverage-source-tree`
+  `104070870386` and `coverage-evidence` `104070870162` succeeded on exact
+  `c2923950e...`. `opencode-review` `104070870170` successfully dispatched a
+  current-head request, then correctly failed because no authenticated
+  `opencode-agent` `APPROVED`/`CHANGES_REQUESTED` verdict had materialized on the
+  exact head. The central dispatch path owns the eventual verdict/rerun.
+- Required Strix `103970045852` is terminal FAILURE but not a LineageWeave
+  security finding. Trusted-source validation, contextual-orchestrator sidecar
+  provisioning and Strix installation succeeded. Artifact `strix-reports`
+  `10371857268` (digest
+  `sha256:b0d69ccbdf5b4fa52c99e118a9d76e6d4251d34d7deb9341131b9ce8270dd13b`)
+  contains a terminal report/SARIF with zero findings, while concurrent sub-agent
+  requests received explicit CO `503 concurrency_limit_exceeded` / `too many
+  concurrent orchestration runs`. The Strix gate correctly refused to promote a
+  partial provider execution to GREEN. CO deliberately rejects saturated inference
+  rather than queueing it; the repair therefore belongs to canonical review-runtime
+  admission/backpressure, not to a leaf provider/model override or gate weakening.
+  Fresh consumer evidence is recorded on `.github#2139/#2140`.
+- Required Noema `103965387845` is terminal CANCELLED and likewise is not a
+  product finding. Exact-head admission, credential selection, GitHub App token,
+  current-head validation and visibility checks succeeded. `Provision contextual-
+  orchestrator review sidecar` started at `2026-09-14T16:50:39Z`, logged the
+  sidecar starting at `16:52:41Z`, never emitted readiness, and GitHub cancelled
+  the operation at `22:51:33Z` after about six hours; no model-verdict step ran.
+  This is startup/provisioning occupancy evidence, not an elapsed-model-time
+  verdict. `.github#1629` retains sidecar admission/preflight ownership and
+  `.github#2139/#2140` retain progress/idle/runner-reclamation semantics.
+- CodeRabbit completed an independent full protected-base-to-exact-head review of
+  all 13 changed files with no actionable comments and `Merge Risk: Minimal`; both
+  inline threads are resolved. This is positive independent review coverage but
+  not a submitted qualifying `APPROVED` review.
 - Canonical organization queue observation remains owned by
-  `ContextualWisdomLab/.github#1150`, exact
-  `42bb922f03bf75aed1bc1931d9fbaf04a5433e20`. On that unchanged owner head,
-  SAST `34831634664` and Agent Review Runtime Quality CI `34831634694` are
-  terminal GREEN; Python Security `34831634654`, Security Scan `34831634718`, and
-  CodeQL PR `34831634674` remain queued/nonterminal. LineageWeave enrollment child
-  `.github#2200` remains Draft at exact
-  `c4054eef3fc3cd84c87ea830b2e94d4145aa34e8`, stacked directly on #1150; its
-  focused allowlist contract is GREEN while its own hosted Security/SAST/CodeQL
-  acceptance remains nonterminal. LineageWeave must not copy queue policy or
-  runner controls locally.
-- Review-sidecar admission/preflight remains owned by
-  `ContextualWisdomLab/.github#1629`, exact
-  `db3d648c905d283f03fc16fbc9891ba76edd56b8` on `.github` protected
+  `ContextualWisdomLab/.github#1150` with LineageWeave enrollment child
+  `.github#2200`; LineageWeave does not copy queue policy or runner controls.
+- Review-sidecar admission/preflight remains owned by `.github#1629`, exact
+  `db3d648c905d283f03fc16fbc9891ba76edd56b8`, on `.github` protected
   `main@91be6442906c7b6b4f600272c953699708394327`. Its provider-default source
-  contract is repaired, but exact-head Runtime Quality `34826203993` is a real
-  hosted RED: review-repair pytest collection ran without the Noema document
-  dependency and eleven Noema-related modules failed import because
-  `defusedxml` was absent. Canonical prerequisite `.github#2170`, exact
-  `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency-install
-  predicate and is Ready/mergeable. On that unchanged exact head, Agent Review
-  Runtime Quality CI `34826735972`, SAST `34826735939`, Python Security
-  `34826735889`, Security Scan `34826736000`, Noema `104012246592`, Strix
-  `104017621732`, Required OpenCode bootstrap `103920511286`, and CodeQL language
-  detection `103958511197` are GREEN. A fresh Noema review submitted at
-  2026-09-14T21:09:40Z APPROVES exact `c346b832...`; predecessor approval remains
-  historical only. Full current required-check inventory is still nonterminal:
-  CodeQL Python `104055129249`, CodeQL Actions `104055129294`, Required OpenCode
-  `coverage-evidence` `104142936003`, Required OpenCode `opencode-review`
-  `104142935844`, and latest `scan-pr-queue` `104154156265` remain queued. Earlier
-  `scan-pr-queue` `103920512039` success is superseded as current evidence by the
-  newer queued attempt and is not promoted over it. Correct order is #2170 normal
-  protected integration only after all current required gates are terminal GREEN,
-  then ordinary non-force #1629 reconciliation and fresh acceptance. Provider/
-  model/timeout/retry policy must not be reimplemented in LineageWeave.
+  contract is repaired but its exact-head Runtime Quality RED is blocked by the
+  missing Noema document dependency during review-repair collection. Canonical
+  prerequisite `.github#2170`, exact
+  `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency predicate and
+  remains Ready/mergeable with Runtime Quality, SAST, Python Security, Security,
+  Noema, Strix, OpenCode bootstrap and CodeQL language detection GREEN plus a
+  current-head Noema APPROVED review. Its current CodeQL receivers are fail-closed
+  pending coordinator `104179015295`; latest `scan-pr-queue` `104154156265`,
+  `coverage-evidence` `104142936003` and `opencode-review` `104142935844` remain
+  nonterminal. Correct sequencing stays #2170 normal protected integration ->
+  ordinary/non-force #1629 reconciliation -> fresh #1629 acceptance. Final
+  provider admission/routing/TTC remains owned by released contextual-orchestrator,
+  not central CI or LineageWeave.
 
 ## Buyer-visible gap register
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
-| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions, SAST, and Required Security Scan are GREEN on the unchanged head; GHAS CodeQL/Trivy/Scorecard/Semgrep report no new changed-source alerts; Required CodeQL language detection and OpenCode current-head admission are GREEN; CodeRabbit full base-to-head review reports no actionable comments and Minimal merge risk; Strix and Noema are in actual exact-head execution. | Finish Required CodeQL compatibility analyses and OpenCode review/coverage jobs, obtain terminal exact-head Strix/Noema and a qualifying submitted approval, then normal protected merge. |
-| Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079: provider work must not hold long DB leases; post-provider persistence must revalidate authorization/visibility and source revision. | Causal RED→GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
-| Governed UI translation delivery | #929 `f898399c5ff9ab89fe440d2e66985860e141620c` and child #932 | PostgreSQL-authoritative versioned ledger is implemented and repository tests are GREEN, but complete reviewed `ko/en/ja/zh/vi/es/de/fr` Customer Master publication is not demonstrated and central Security/CodeQL gates remain non-GREEN. | Complete eight-locale resource publication, authenticated API/browser normal/loading/empty/error/permission/responsive states, keyboard/focus/screen-reader, CJK/text expansion/font fallback, current security/governance receipts. |
+| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions, SAST and Required Security are GREEN. CodeRabbit full-diff review is clean. OpenCode coverage tree/evidence are GREEN. Strix produced zero SARIF findings but failed closed on CO saturation; Noema never reached a verdict because sidecar provisioning occupied the runner until cancellation. | Finish current-head CodeQL producer/compatibility acceptance, obtain authenticated OpenCode verdict, repair/revalidate Strix and Noema through canonical owner lanes, obtain qualifying submitted approval, then normal protected merge. |
+| Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079: provider work must not hold long DB leases; post-provider persistence must revalidate authorization/visibility and source revision. | Causal RED->GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
+| Governed UI translation delivery | #929 `f898399c5ff9ab89fe440d2e66985860e141620c` and child #932 | PostgreSQL-authoritative versioned ledger is implemented and repository tests are GREEN, but complete reviewed `ko/en/ja/zh/vi/es/de/fr` Customer Master publication is not demonstrated and central Security/CodeQL gates remain non-GREEN. | Complete eight-locale resource publication, authenticated API/browser normal/loading/empty/error/permission/responsive states, keyboard/focus/screen-reader, CJK/text expansion/font fallback and current security/governance receipts. |
 | MCP buyer-path latency | #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` | Modern/legacy protocol repair is Draft. Recorded modern submit/read and legacy read measurements remain far above the repository `p95 <= 20 ms` acceptance contract; CodeQL is also non-GREEN. | Representative uncontended cold/realistic measurements without sample removal or artificial warm-up, profile owned query/I/O/runtime bottlenecks, Rust-first hot-path repair where causal, then exact-head gates. |
 | Release identity and immutable publication | #961 `3bdec0504a65e63f44bd49ba15de37182a1672cc` / #1056 | Candidate aligns runtime/package/frontend at 2.28.0 and has repository/Security/SAST GREEN, but Required CodeQL and independent review remain incomplete. Protected main still carries the pre-repair runtime identity. | Built/installed version proof, normal protected merge, immutable tag/package/release, SBOM/provenance, reproducibility and rollback evidence bound to one exact protected SHA. |
 | Material Customer Master / lineage UI | #929/#932 plus the live Customer Master and lineage presentation owner PRs | Translation authority, authorization repairs, responsive/a11y states and browser evidence are distributed across their existing owner lanes; no competing inline translation or authorization implementation is permitted. | Converged owner prerequisites plus current-head normal/loading/empty/error/permission/responsive, pointer/touch/keyboard/focus/screen-reader, deterministic identity/layout and applicable performance evidence. |
@@ -94,19 +100,17 @@ A queued, skipped, COMMENTED, rate-limited, status-only, predecessor-head or
 source-neutral result is not GREEN evidence for a moved current head. An exact-head
 full-diff review with no actionable findings is positive independent review
 coverage, but it is not equivalent to a submitted `APPROVED` review when approval
-is an explicit merge gate. A newer queued attempt also supersedes an older success
-for current-attempt evidence; old success is not promoted over a newer nonterminal
-required run. Valid findings are repaired in their canonical owner lane and
-consumed through released contracts/ACLs; domain truth is not copied across
-repositories.
+is an explicit merge gate. A compatibility receiver that fails because its
+current-head producer has not yet materialized is fail-closed control-plane
+evidence, not a source-analysis failure. A clean SARIF/report from a review scan
+whose provider execution was incomplete is likewise not promoted to GREEN.
 
-The #1079 same-head progression from pre-checkout queue to successful repository,
-authenticated integration, Security, CodeQL language-detect and OpenCode-admission
-execution—and now actual Strix/Noema runner allocation—remains positive owner-path
-evidence: runner admission latency must not be converted into leaf source churn,
-manual reruns, selector changes or synthetic passing status. In-progress and
-queued final review/compatibility jobs are still incomplete evidence and stay
-fail-closed.
+Valid findings are repaired in their canonical owner lane and consumed through
+released contracts/ACLs; domain truth is not copied across repositories. In
+particular, CO's explicit `concurrency_limit_exceeded` overload contract must not
+be weakened from a LineageWeave leaf. Review callers must respect the released
+capacity/admission boundary, while progress/idle/runner-reclamation semantics stay
+separate from total model elapsed time.
 
 For database paths, external/model work must execute outside long-lived explicit
 transactions and locks. Persistence reacquires the shortest necessary lease,
