@@ -20,6 +20,7 @@ from lineageweave.relation_verification import (
 client = api_test.client
 demo_analyst_token = api_test.demo_analyst_token
 seeded_db = api_test.seeded_db
+pytestmark = api_test.pytestmark
 
 
 def test_post_read_summary_materialization_cannot_mutate_shared_catalogs(
