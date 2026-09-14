@@ -155,7 +155,7 @@ def test_post_read_summary_materialization_cannot_mutate_shared_catalogs(
             assert cur.fetchone()[0] == 0
             cur.execute(
                 "select cataloged_corporate_entity_id, cataloged_team_id "
-                "from post_summary_role where post_id = %s order by role_ordinal",
+                "from post_summary_role where post_id = %s",
                 (post_ids[0],),
             )
             assert cur.fetchall() == [(None, None), (None, None)]
