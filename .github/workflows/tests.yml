@@ -112,10 +112,11 @@ jobs:
           docker compose logs --no-color postgres valkey keycloak
           exit 1
 
-      - name: Run authenticated summary authorization regression
+      - name: Run authenticated summary authorization regressions
         run: >-
           uv run --frozen python -m pytest -q
           backend/tests/test_summary_catalog_authorization_api.py
+          backend/tests/test_summary_catalog_fallback_authorization_api.py
 
       - name: Stop synthetic integration stack
         if: always()
