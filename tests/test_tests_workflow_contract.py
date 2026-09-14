@@ -25,7 +25,7 @@ def test_pull_request_concurrency_survives_closed_ref_change() -> None:
     workflow = (_WORKFLOW_DIRECTORY / "tests.yml").read_text(encoding="utf-8")
 
     assert _PULL_REQUEST_TYPES in workflow
-    assert workflow.count("github.event.action != 'closed'") == 2
+    assert workflow.count("github.event.action != 'closed'") == 3
 
 
 def test_pull_request_workflows_cancel_only_superseded_same_pr_runs() -> None:
@@ -43,7 +43,7 @@ def test_draft_pull_requests_do_not_consume_repository_local_runners() -> None:
     """Cancel stale draft runs while deferring expensive jobs until review readiness."""
 
     expected_draft_guards = {
-        "tests.yml": 2,
+        "tests.yml": 3,
         "prov-o-contract.yml": 1,
         "ontology-pages.yml": 1,
     }
@@ -51,6 +51,23 @@ def test_draft_pull_requests_do_not_consume_repository_local_runners() -> None:
         workflow = (_WORKFLOW_DIRECTORY / workflow_name).read_text(encoding="utf-8")
         assert _PULL_REQUEST_TYPES in workflow, workflow_name
         assert workflow.count(_DRAFT_ADMISSION) == expected_guard_count, workflow_name
+
+
+def test_summary_authorization_job_avoids_unrelated_compose_env_file() -> None:
+    """Keep three-service acceptance independent of the orchestrator private env."""
+
+    workflow = (_WORKFLOW_DIRECTORY / "tests.yml").read_text(encoding="utf-8")
+    summary_job = workflow.split("  summary-authorization-integration:\n", 1)[1]
+    summary_job = summary_job.split("\n  frontend:\n", 1)[0]
+
+    assert "COMPOSE_PROJECT_NAME: summary-auth-${{ github.run_id }}" in summary_job
+    assert "docker compose up -d --build postgres valkey keycloak" in summary_job
+    assert 'label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}' in summary_job
+    assert "label=com.docker.compose.service=valkey" in summary_job
+    assert "docker compose exec" not in summary_job
+    assert "docker compose ps" not in summary_job
+    assert "docker compose logs" not in summary_job
+    assert "docker compose down" not in summary_job
 
 
 def test_ontology_publication_runs_are_not_cancelled() -> None:
