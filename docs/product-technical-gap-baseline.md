@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 05:43 KST.
+> Current authority snapshot: 2026-09-15 06:48 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -66,11 +66,12 @@ No LineageWeave release is admitted from the current protected head.
   `34826735889`, and Security Scan `34826736000` are GREEN. CodeQL PR
   `34826735991` remains nonterminal: language detection `103958511197` is GREEN,
   while Python `104055129249` and Actions `104055129294` remain queued without a
-  runner. The only submitted `APPROVED` review still binds predecessor
-  `ae0f2f57...`, not exact `c346b832...`, so exact-head approval is also still
-  required. Correct order is #2170 normal protected integration, then ordinary
-  non-force #1629 reconciliation and fresh acceptance. Provider/model/timeout/
-  retry policy must not be reimplemented in LineageWeave.
+  runner. A fresh Noema review submitted at 2026-09-14T21:09:40Z now APPROVES
+  exact `c346b832...`; predecessor approval remains historical only. #2170 is
+  therefore merge-blocked only by those two CodeQL matrix jobs. Correct order is
+  #2170 normal protected integration, then ordinary non-force #1629 reconciliation
+  and fresh acceptance. Provider/model/timeout/retry policy must not be
+  reimplemented in LineageWeave.
 
 ## Buyer-visible gap register
 
