@@ -6,6 +6,7 @@ import psycopg2
 import pytest
 
 from backend.tests import test_api as api_test
+from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 client = api_test.client
 demo_analyst_token = api_test.demo_analyst_token
@@ -24,7 +25,7 @@ class _FailingSummaryClient:
 
     available = True
 
-    def summarize(self, post_title: str, post_body: str):
+    def summarize(self, _post_title: str, _post_body: str) -> None:
         """Raise a deterministic provider error before catalog persistence begins."""
         raise OSError("synthetic orchestrator failure")
 
@@ -66,7 +67,7 @@ def _seed_stale_summary(dsn: str, source_post_id: str, *, title: str) -> str:
             cur.execute(
                 "insert into post_summary_result "
                 "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
-                (post_id, "오래된 요약 증거", "legacy-fallback-contract"),
+                (post_id, "오래된 요약 증거", POST_SUMMARY_CONTRACT_VERSION - 1),
             )
     finally:
         conn.close()
@@ -126,5 +127,6 @@ def test_stale_summary_fallback_never_mutates_shared_catalogs(
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["summary_status"] == "stale"
+    assert payload["summary_contract_version"] == POST_SUMMARY_CONTRACT_VERSION - 1
     assert payload["korean_summary"] == "오래된 요약 증거"
     assert _shared_catalog_snapshot(seeded_db["dsn"]) == before
