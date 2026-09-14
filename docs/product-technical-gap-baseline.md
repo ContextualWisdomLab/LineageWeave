@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-14 23:12 KST.
+> Current authority snapshot: 2026-09-14 23:55 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -19,26 +19,37 @@ No LineageWeave release is admitted from the current protected head.
   at `c2923950e73c88a9f9fd932332ddd47682da124b` on protected
   `main@83eba56149eb802cd63642c507c324c9976ec78e`. Reader materialization is
   fail-closed for catalog enrichment; explicit `post_admin` retains the canonical
-  enrichment path. Exact-head Tests `34815479029` are now GREEN: Frontend
+  enrichment path. Exact-head Tests `34815479029` are GREEN: Frontend
   `103885140448`, Full suite `103885140559`, and authenticated PostgreSQL +
   Keycloak + Valkey Summary authorization integration `103885140632` all passed
   on this unchanged head. SAST `34815434313` is also GREEN, and GitHub Advanced
   Security CodeQL/Semgrep changed-source checks report no new alerts. Remaining
-  fail-closed gates are Security `34815434486` (`trivy-fs` and `scorecard`
-  unassigned), authoritative CodeQL PR `34815434324`, and current-head
-  Strix/Noema/OpenCode review jobs.
-- Canonical organization queue observation has a LineageWeave enrollment repair
-  in `ContextualWisdomLab/.github#2200`, exact
-  `c4054eef3fc3cd84c87ea830b2e94d4145aa34e8`, stacked on queue-health owner
-  #1150. Its focused allowlist contract is GREEN, but the PR is Draft and hosted
-  Security/SAST/CodeQL acceptance remains queued. LineageWeave must not copy
-  queue policy or runner controls locally.
+  fail-closed gates are Security `34815434486`, authoritative CodeQL PR
+  `34815434324`, and current-head Strix/Noema/OpenCode review jobs.
+- Canonical organization queue observation remains owned by
+  `ContextualWisdomLab/.github#1150`, exact
+  `42bb922f03bf75aed1bc1931d9fbaf04a5433e20`. On that unchanged owner head,
+  SAST `34831634664` and Agent Review Runtime Quality CI `34831634694` are now
+  terminal GREEN; Python Security `34831634654`, Security Scan `34831634718`, and
+  CodeQL PR `34831634674` remain queued/nonterminal. LineageWeave enrollment child
+  `.github#2200` remains Draft at exact
+  `c4054eef3fc3cd84c87ea830b2e94d4145aa34e8`, stacked directly on #1150; its
+  focused allowlist contract is GREEN while its own hosted Security/SAST/CodeQL
+  acceptance remains queued. LineageWeave must not copy queue policy or runner
+  controls locally.
 - Review-sidecar admission/preflight remains owned by
   `ContextualWisdomLab/.github#1629`, exact
   `db3d648c905d283f03fc16fbc9891ba76edd56b8` on `.github` protected
-  `main@91be6442906c7b6b4f600272c953699708394327`. The owner source is repaired
-  but its exact-head acceptance remains pending; provider/model/timeout/retry
-  policy must not be reimplemented in LineageWeave.
+  `main@91be6442906c7b6b4f600272c953699708394327`. Its provider-default source
+  contract is repaired, but exact-head Runtime Quality `34826203993` is a real
+  hosted RED: review-repair pytest collection ran without the Noema document
+  dependency and eleven Noema-related modules failed import because
+  `defusedxml` was absent. Canonical prerequisite `.github#2170`, exact
+  `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency-install
+  predicate and is Ready with fresh exact-head acceptance still in progress or
+  queued. Correct order is #2170 normal protected integration, then ordinary
+  non-force #1629 reconciliation and fresh acceptance. Provider/model/timeout/
+  retry policy must not be reimplemented in LineageWeave.
 
 ## Buyer-visible gap register
 
