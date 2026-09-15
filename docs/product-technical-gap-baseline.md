@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 22:04 KST.
+> Current authority snapshot: 2026-09-15 22:44 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e` at this projection.
 > This file summarizes live PR/Issue/check authority; protected refs, PRs, Issues,
@@ -44,6 +44,33 @@ verification because #2137 uses that value as the target vendored
 contextual-orchestrator revision. All receipts from earlier #2207 heads are
 historical; successor existence or repaired prose is not complete succession, so
 #2140 stays open.
+
+### Commercial-safe synchronous PostgreSQL boundary
+
+#911 is now exact `6030b295aadc3ee76dc4d27f5713273f35888325`, open / Draft /
+mergeable on protected `main@83eba56149eb802cd63642c507c324c9976ec78e`.
+Fresh review found that the pg8000 compatibility adapter had changed libpq
+`connect_timeout` semantics while migrating the synchronous seed/admin/schema
+boundary away from `psycopg2-binary`: URI values were accepted as arbitrary
+floats and every non-positive value was rejected. The PostgreSQL/libpq contract
+uses decimal-integer URI text and treats zero or negative values as an indefinite
+wait. RED `326a97d89b3642fae392857218e4274bd456a8c0` now covers both DSN and
+keyword no-deadline sentinels plus rejection of non-integer URI text; causal
+repair `b7838e40d6a200b8b9474cd03fcd52046c80bd6b` omits pg8000's timeout
+argument for the no-deadline sentinel and restores integer URI parsing. Changelog
+commit `6030b295aadc3ee76dc4d27f5713273f35888325` makes that behavior explicit.
+The TLS/SQLSTATE/runtime ownership boundaries are unchanged; runtime persistence
+remains `asyncpg`.
+
+No prior #911 receipt transfers to this changed source head. Exact-head Tests
+`34977841241`, PROV-O `34977841500`, and Ontology Pages `34977841059` are
+Draft-skipped, not GREEN. Security `34977841173`, SAST Semgrep `34977841093`,
+and CodeQL PR `34977841115` are fresh queued runs. A fresh exact-head CodeRabbit
+review was requested; no qualifying independent exact-head APPROVE exists. The
+central terminal CodeQL publication path remains owned by `.github#1929`, while
+the public-repository Dependency Review HTTP-403/support incident remains owned
+by `.github#810`; LineageWeave must not fabricate statuses or substitute weaker
+local scanners for those required gates.
 
 ### Owner-boundary and governed measurement stack
 
@@ -139,18 +166,20 @@ No child product delta was replaced or force-rebased.
 
 Historical #878/#879 remain open as delta carriers. Their full stale trees are not
 replayed over repaired ancestry; #1033/#1034 are the current reconstruction
-successors. They may close only after every valid product/test/fixture/contract/
-evidence delta is demonstrably inherited and verified.
+successors at `ccf077cf...` and `b9dec94a...`. Their PR authorities now point to
+those current successors. They may close only after every valid
+product/test/fixture/contract/evidence delta is demonstrably inherited and verified.
 
 ## Buyer-visible gap register
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. `.github#2170` producer validation is GREEN but its actual CodeQL scan remains queued; `.github#2207` is now `2d61a668...` after verified ADR/changelog semantic repairs and requires entirely fresh evidence. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
+| Commercial-safe synchronous PostgreSQL tooling must preserve libpq connection semantics | #910 / #911 `6030b295...` | Test-first timeout compatibility repair preserves zero/negative no-deadline sentinels and decimal-integer URI parsing while keeping runtime on asyncpg. Exact-head repository Tests/PROV-O/Ontology are Draft-skipped; Security/SAST/CodeQL are queued; no exact-head APPROVE exists. | Fresh exact-head repository/security/CodeQL/model-review evidence, canonical Dependency Review support/availability settlement, qualifying independent approval, ADR 0366 remaining Proposed until normal integration. |
 | Contextual-orchestrator consumer boundary and governed measurement/evaluation/operator lineage | #899 `d331d1f6...`; children #902 `8b5cc45d...` -> #915 `6540aceb...`, #919 `53dca4bd...`, and #966 `1be24cd9...` | #902/#915 semantic glossary overlap and disjoint #919 operator delta were converged non-force onto the exact current parent. All are now mergeable Drafts. #902/#915/#919 exact-head Tests are Draft-skipped, not GREEN. | #899 normal integration first, then fresh full repository/security/governance evidence and qualifying independent approvals on unchanged descendant heads; no predecessor receipt transfer. |
 | Comparison-graphic axis σ/share identity | #867 `a8129768...` | Production uses graphic-specific helper rather than strip helper; direct Vitest state coverage now exercises empty/share-only/σ-only/combined states. Current Tests run `34967080332` is queued, not GREEN. | Focused contract + frontend/full repository tests, rendered a11y/i18n evidence, applicable Security/SAST/CodeQL/model review and qualifying approval. |
 | Singular/share tick stack | #868 `d39343ab...` -> #875 `758da1e8...` | Descendants contain repaired #867 foundation plus the executable helper-state tests through non-force ancestry; PR authority names current parents/heads. | Settle each local RED and fresh exact-head repository/security/browser-a11y/performance/review evidence in parent order. |
-| Report/comparison marker identity | #876 `34796209...` -> #1033 `ccf077cf...` -> #1034 `b9dec94a...` | ζ/ζ/ξ boundaries are preserved after current-parent convergence; new Tests `34968725267`, `34968819345`, `34968872059` are queued. Historical #878/#879 remain open delta carriers. | Focused contracts, frontend build/tests, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable security/model review and qualifying approvals. |
+| Report/comparison marker identity | #876 `34796209...` -> #1033 `ccf077cf...` -> #1034 `b9dec94a...` | ζ/ζ/ξ boundaries are preserved after current-parent convergence; new Tests `34968725267`, `34968819345`, `34968872059` are queued. Historical #878/#879 remain open delta carriers with current successor authority repaired. | Focused contracts, frontend build/tests, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable security/model review and qualifying approvals. |
 | Comparison origin tick identity | #877 `ba9101f5...` | Exact-zero origin and independent share/σ composition are preserved while the upstream executable badge-state tests are inherited; Tests `34968764771` is pending. | Current-head executable contract, frontend build/tests, rendered keyboard/focus/a11y/i18n, applicable security/model review and qualifying approval. |
 | Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079; external/provider work must not hold long database leases and post-provider persistence must revalidate authorization/visibility/source revision. | Causal RED -> GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
 | Governed UI translation delivery | #929 and child #932 | Governed versioned translation-ledger work remains in its canonical owner lane; leftover-map work consumes localized labels rather than adding a competing store. | Reviewed `ko/en/ja/zh/vi/es/de/fr` resources plus rendered normal/loading/empty/error/permission/responsive, keyboard/focus/screen-reader, CJK expansion and font-fallback evidence. |
