@@ -1,7 +1,10 @@
 /** Project persisted leftover-map singular-value evidence into buyer-visible axis captions. */
 
 import type { LeftoverMapAxis } from "./api";
-import { formatLeftoverMapPlotAxisShare } from "./leftoverMapPlotAxisShare";
+import {
+  formatLeftoverMapPlotAxisShare,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
+} from "./leftoverMapPlotAxisShare";
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 
 export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR =
@@ -87,6 +90,41 @@ export function formatLeftoverMapPlotAxisSingular(
     return null;
   }
   return leftoverSingular.toFixed(2);
+}
+
+/**
+ * Compose comparison-graphic axis evidence without deriving one persisted
+ * measurement from the other. Missing or invalid evidence is omitted
+ * independently; when both are absent, no badge is rendered.
+ */
+export function leftoverMapComparePlotAxisBadge(
+  axis: Pick<LeftoverMapAxis, "axis_index"> & {
+    leftover_share?: LeftoverMapAxis["leftover_share"] | null;
+    leftover_singular_value?: LeftoverMapAxis["leftover_singular_value"] | null;
+  },
+): LeftoverMapCompareAxisBadge | null {
+  const singular = formatLeftoverMapPlotAxisSingular(axis.leftover_singular_value);
+  const share = formatLeftoverMapPlotAxisShare(axis.leftover_share);
+
+  if (singular === null && share === null) {
+    return null;
+  }
+  if (singular === null && share !== null) {
+    return {
+      template: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
+      values: { axis: axis.axis_index, share },
+    };
+  }
+  if (singular !== null && share === null) {
+    return {
+      template: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+      values: { axis: axis.axis_index, value: singular },
+    };
+  }
+  return {
+    template: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+    values: { axis: axis.axis_index, value: singular as string, share: share as string },
+  };
 }
 
 /** Exact origin identity follows the canonical persisted-coordinate formatter only. */
