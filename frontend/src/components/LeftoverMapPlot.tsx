@@ -33,6 +33,8 @@ import {
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+  LEFTOVER_MAP_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE,
 } from "../leftoverMapPlotAxisSingular";
 import {
   firstPlottablePairForPost,
@@ -106,10 +108,20 @@ function leftoverMapPlotAxisText(
       share: percent,
     });
   }
-  if (percent === null) {
-    return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+  if (singular === null) {
+    if (percent === null) {
+      return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+    }
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
   }
-  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  if (percent === null) {
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
+  }
+  return tf(LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE, {
+    axis: axisIndex,
+    value: singular,
+    share: percent,
+  });
 }
 
 /**
@@ -118,9 +130,9 @@ function leftoverMapPlotAxisText(
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
- * Comparison graphic axes additionally name finite, non-negative persisted
- * Gabriel singular values independently of axis share; never derive one
- * measurement from the other. The comparison strip also exposes these two
+ * Report and comparison graphic axes additionally name finite, non-negative
+ * persisted Gabriel singular values independently of axis share; never derive
+ * one measurement from the other. The comparison strip also exposes these two
  * persisted measures as independent badges so a missing share does not erase
  * usable σ evidence and a missing σ does not erase usable share evidence.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
