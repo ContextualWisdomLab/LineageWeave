@@ -3,6 +3,12 @@
 import type { LeftoverMapAxis } from "./api";
 import { formatLeftoverMapPlotAxisShare } from "./leftoverMapPlotAxisShare";
 
+export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR =
+  "leftover-map axis {axis} σ {value}";
+
+export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE =
+  "leftover-map axis {axis} σ {value} ({share}%)";
+
 export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR =
   "leftover map comparison graphic leftover-map axis {axis} σ {value}";
 
