@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 10:50 KST.
+> Current authority snapshot: 2026-09-15 11:49 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -28,10 +28,17 @@ No LineageWeave release is admitted from the current protected head.
   receivers Python `104064547176`, JavaScript/TypeScript `104064547154`, and
   Actions `104064547137` are terminal FAIL-CLOSED after reading an absent
   current-head producer verdict; they are not product-analysis failures. The
-  coordinator `Dispatch current-head CodeQL scan` `104180256379` remains queued
-  with no runner. Canonical bootstrap/cutover ownership remains `.github#2106 ->
-  #2040`; LineageWeave must not manufacture a wake commit or duplicate that
-  control plane.
+  coordinator `Dispatch current-head CodeQL scan` `104180256379` has now run on a
+  hosted runner and completed GREEN after validating live head/base, binding all
+  three receiver job ids, obtaining GitHub OIDC plus the repository-scoped app
+  token, and dispatching the exact actions/javascript-typescript/python matrix.
+  Canonical producer run `.github` `34922377994` now exists for exact
+  LineageWeave #1079 and its `validate-dispatch` job `104233131441` is queued.
+  The current boundary is producer validation/execution, authenticated
+  `codeql-dispatch/<language>` terminal verdict publication, and fresh
+  compatibility settlement. Canonical bootstrap/cutover ownership remains
+  `.github#2106 -> #2040`; LineageWeave must not manufacture a wake commit or
+  duplicate that control plane.
 - Required OpenCode coverage is partly terminal GREEN: `coverage-source-tree`
   `104070870386` and `coverage-evidence` `104070870162` succeeded on exact
   `c2923950e...`. `opencode-review` `104070870170` successfully dispatched a
@@ -82,15 +89,17 @@ No LineageWeave release is admitted from the current protected head.
   `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency predicate and
   remains Ready/mergeable with Runtime Quality, SAST, Python Security, Security,
   Noema, Strix, OpenCode bootstrap, `coverage-source-tree`, `coverage-evidence`,
-  latest `scan-pr-queue`, and CodeQL language detection GREEN plus a current-head
-  Noema APPROVED review. Its CodeQL Actions/Python compatibility receivers are
-  fail-closed and coordinator `104179015295` remains queued with no runner.
-  Required OpenCode `opencode-review` `104142935844` is terminal FAILURE after
-  dispatch succeeded because no authenticated exact-head OpenCode verdict existed;
-  the sibling coverage jobs are GREEN, so this is review publication/settlement
-  evidence rather than a coverage or #2170 source failure. Correct sequencing
-  stays #2170 normal protected integration -> ordinary/non-force #1629
-  reconciliation -> fresh #1629 acceptance. Final provider
+  latest `scan-pr-queue`, CodeQL language detection, and CodeQL coordinator GREEN
+  plus a current-head Noema APPROVED review. Its coordinator `104179015295`
+  completed the exact current-head dispatch and created canonical producer run
+  `34921233636`; that run's `validate-dispatch` job `104229618015` is queued.
+  Actions/Python compatibility receivers remain prior fail-closed evidence until
+  producer verdict settlement. Required OpenCode `opencode-review` `104142935844`
+  is terminal FAILURE after dispatch succeeded because no authenticated exact-head
+  OpenCode verdict existed; the sibling coverage jobs are GREEN, so this is review
+  publication/settlement evidence rather than a coverage or #2170 source failure.
+  Correct sequencing stays #2170 normal protected integration -> ordinary/non-force
+  #1629 reconciliation -> fresh #1629 acceptance. Final provider
   admission/routing/TTC remains owned by released contextual-orchestrator, not
   central CI or LineageWeave.
 - `.github#2207` remains a Draft reconstruction of stale/non-mergeable #2140 on
@@ -104,7 +113,7 @@ No LineageWeave release is admitted from the current protected head.
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
-| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions, SAST and Required Security are GREEN. CodeRabbit full-diff review is clean. OpenCode coverage tree/evidence are GREEN. Strix produced zero SARIF findings but failed closed on CO saturation; Noema never reached a verdict because sidecar provisioning occupied the runner until cancellation. Canonical occupancy decision evidence is on `.github#2139`, with stale `.github#2140` reconstructed as current-main Draft `.github#2207`. | Finish current-head CodeQL producer/compatibility acceptance, obtain authenticated OpenCode verdict, repair/revalidate Strix and Noema through canonical owner lanes, prove the #2140 -> #2207 decision-record succession, obtain qualifying submitted approval, then normal protected merge. |
+| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions, SAST and Required Security are GREEN. CodeRabbit full-diff review is clean. OpenCode coverage tree/evidence are GREEN. Strix produced zero SARIF findings but failed closed on CO saturation; Noema never reached a verdict because sidecar provisioning occupied the runner until cancellation. CodeQL coordinator has completed the exact-head canonical dispatch; producer run `34922377994` is now queued at validation. Canonical occupancy decision evidence is on `.github#2139`, with stale `.github#2140` reconstructed as current-main Draft `.github#2207`. | Finish current-head CodeQL producer/compatibility acceptance, obtain authenticated OpenCode verdict, repair/revalidate Strix and Noema through canonical owner lanes, prove the #2140 -> #2207 decision-record succession, obtain qualifying submitted approval, then normal protected merge. |
 | Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079: provider work must not hold long DB leases; post-provider persistence must revalidate authorization/visibility and source revision. | Causal RED->GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
 | Governed UI translation delivery | #929 `f898399c5ff9ab89fe440d2e66985860e141620c` and child #932 | PostgreSQL-authoritative versioned ledger is implemented and repository tests are GREEN, but complete reviewed `ko/en/ja/zh/vi/es/de/fr` Customer Master publication is not demonstrated and central Security/CodeQL gates remain non-GREEN. | Complete eight-locale resource publication, authenticated API/browser normal/loading/empty/error/permission/responsive states, keyboard/focus/screen-reader, CJK/text expansion/font fallback and current security/governance receipts. |
 | MCP buyer-path latency | #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` | Modern/legacy protocol repair is Draft. Recorded modern submit/read and legacy read measurements remain far above the repository `p95 <= 20 ms` acceptance contract; CodeQL is also non-GREEN. | Representative uncontended cold/realistic measurements without sample removal or artificial warm-up, profile owned query/I/O/runtime bottlenecks, Rust-first hot-path repair where causal, then exact-head gates. |
@@ -121,6 +130,12 @@ is an explicit merge gate. A compatibility receiver that fails because its
 current-head producer has not yet materialized is fail-closed control-plane
 evidence, not a source-analysis failure. A clean SARIF/report from a review scan
 whose provider execution was incomplete is likewise not promoted to GREEN.
+
+A successful dispatch coordinator proves only validated exact-head handoff to the
+canonical producer. It does not transfer producer acceptance: the resulting
+repository-dispatch run must validate its payload, execute the detected-language
+matrix, publish authenticated terminal verdicts, and drive fresh receiver
+settlement on the same exact consumer head before CodeQL is GREEN.
 
 A stale/conflicted owner PR is not silently force-rebased and is not closed merely
 because a replacement exists. Reconstruction is acceptable only from the current
