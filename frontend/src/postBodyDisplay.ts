@@ -14,7 +14,6 @@ export type PostBodySegment =
 const DATA_URI_IMG =
   /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
 
-const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
@@ -26,11 +25,73 @@ const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
 const FOOTNOTE_MARKER = "\u0001lw-footnote\u0002";
 const FOOTNOTE_MARKER_PATTERN = new RegExp(FOOTNOTE_MARKER, "g");
 
+/**
+ * Walk HTML-like tags without deleting substrings through a multi-character
+ * regular expression. The scanner respects quoted `>` characters and, when a
+ * tag is removed, prevents the surrounding text from being joined into a new
+ * tag token (for example `<<a>script>` -> `< script>`).
+ */
+function replaceHtmlLikeTags(text: string, replacer: (tag: string) => string): string {
+  let output = "";
+  let cursor = 0;
+  let index = 0;
+
+  while (index < text.length) {
+    if (text[index] !== "<") {
+      index += 1;
+      continue;
+    }
+
+    let nameIndex = index + 1;
+    if (text[nameIndex] === "/") nameIndex += 1;
+    if (!/[A-Za-z]/.test(text[nameIndex] ?? "")) {
+      index += 1;
+      continue;
+    }
+
+    let quote: '"' | "'" | null = null;
+    let end = nameIndex + 1;
+    for (; end < text.length; end += 1) {
+      const character = text[end];
+      if (quote !== null) {
+        if (character === quote) quote = null;
+        continue;
+      }
+      if (character === '"' || character === "'") {
+        quote = character;
+        continue;
+      }
+      if (character === ">") break;
+    }
+    if (end >= text.length) break;
+
+    output += text.slice(cursor, index);
+    const replacement = replacer(text.slice(index, end + 1));
+    if (
+      replacement.length === 0 &&
+      output.endsWith("<") &&
+      /[A-Za-z/]/.test(text[end + 1] ?? "")
+    ) {
+      output += " ";
+    } else {
+      output += replacement;
+    }
+    cursor = end + 1;
+    index = cursor;
+  }
+
+  return output + text.slice(cursor);
+}
+
+function stripHtmlLikeTags(text: string): string {
+  return replaceHtmlLikeTags(text, () => "");
+}
+
 function markFootnoteTags(markup: string): string {
   let footnoteDepth = 0;
   const openTags: Array<{ name: string; isFootnote: boolean }> = [];
   const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "w:br"]);
-  return markup.replace(HTML_TAG, (tag) => {
+  return replaceHtmlLikeTags(markup, (tag) => {
     const match = tag.match(/^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i);
     if (!match) return tag;
     const closing = Boolean(match[1]);
@@ -243,10 +304,10 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 function replaceHtmlScripts(text: string): string {
   return text
     .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "super"),
+      applyUnicodeScript(stripHtmlLikeTags(decodeHtmlEntities(String(inner))), "super"),
     )
     .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "sub"),
+      applyUnicodeScript(stripHtmlLikeTags(decodeHtmlEntities(String(inner))), "sub"),
     );
 }
 
@@ -337,7 +398,7 @@ function stripHtmlTags(text: string): string {
       return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
-  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
+  const withoutTags = replaceHtmlLikeTags(withBoundaries, (tag) =>
     /^<\/?(?:a\b|w:)/i.test(tag) ? "" : " ",
   );
   return decodeHtmlEntities(withoutTags)
