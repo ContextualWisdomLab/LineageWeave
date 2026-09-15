@@ -196,8 +196,10 @@ function leftoverMapPlotAxisText(
  * comparison-graphic and rank labels rather than adding SPA translation debt.
  * ADR 0319 captions leftover-map distance on that comparison graphic using
  * the same localized composition boundary rather than adding another static
- * comparison-only translation key. ADR 0321 adds persisted comparison-axis
- * singular evidence without deriving it from axis share.
+ * comparison-only translation key. ADR 0320 names comparison coordinate ticks
+ * through the same composition boundary, preserving localized generic tick copy.
+ * ADR 0321 adds persisted comparison-axis singular evidence without deriving it
+ * from axis share.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -325,7 +327,14 @@ export function LeftoverMapPlot({
             <g
               key={`tick:${tick.axis}:${tick.label}`}
               className="leftover-map-plot-tick"
-              aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
+              aria-label={
+                variant === "comparison"
+                  ? `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_TICK, {
+                      axis: tick.axis,
+                      value: tick.label,
+                    })}`
+                  : tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })
+              }
             >
               <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
               <text
