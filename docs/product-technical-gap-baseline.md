@@ -25,36 +25,32 @@ No LineageWeave release is admitted from the current protected head. A moved par
 
 ## Active leftover-map foundation finding
 
-A fresh authority sweep found that the Git ancestry had already been converged by ordinary two-parent commits while several PR bodies still advertised predecessor SHAs. The live precondition chain is now recorded consistently as `#859 2550e8d8... -> #860 2084d534... -> #861 59ae392c... -> #862 f0588b94... -> #863 bac8d3a5... -> #865 0728f56b... -> #866 35f4b07f...`. The #860/#861/#862/#863/#865 PR authorities were repaired without changing their source refs, and no validation receipt was transferred by that metadata repair.
+#866 remains the active report-axis buyer-path RED at exact `35f4b07fd91a01ce14c31059fa4d46ad3a9ca5a2`, based on #865 `0728f56ba66f16783685c84d9d3aa034eea9f143`. The helper `leftoverMapAxisBadge(axis)` already distinguishes combined, singular-only, share-only and empty evidence, preserves finite `σ=0`, and fails closed for unusable values. The live `frontend/src/App.tsx`, however, still composes `leftoverMapAxisBadgeSingular` and `leftoverMapAxisBadgeShare` directly. When neither persisted datum is usable, the report can still emit a badge shell instead of omitting evidence.
 
-Fresh review of #866 found that the four-state report-axis projection exists but the buyer path still bypasses it.
+`tests/test_leftover_axis_report_singular_only_contract.py` remains the executable RED. It requires the report path to call `leftoverMapAxisBadge(axis)`, render only non-null projections, and stop importing the two primitive helpers. The minimal causal production fix remains confined to `App.tsx`; it does not alter SQL, persistence, psychometric estimation or a canonical-owner contract.
 
-Current #866 exact head is `35f4b07fd91a01ce14c31059fa4d46ad3a9ca5a2`, based on #865 `0728f56ba66f16783685c84d9d3aa034eea9f143`. The helper `leftoverMapAxisBadge(axis)` already distinguishes combined, singular-only, share-only and empty evidence, preserves finite `σ=0`, and fails closed for unusable values. The live `frontend/src/App.tsx`, however, still composes `leftoverMapAxisBadgeSingular` and `leftoverMapAxisBadgeShare` directly. When neither persisted datum is usable, the report can still emit a badge shell instead of omitting evidence.
-
-`tests/test_leftover_axis_report_singular_only_contract.py` is the current executable RED. It requires the report path to call `leftoverMapAxisBadge(axis)`, render only non-null projections, and stop importing the two primitive helpers. The minimal causal production fix is confined to `App.tsx`; it does not alter SQL, persistence, psychometric estimation or a canonical-owner contract.
-
-One-shot run `34997230462` is queued on auxiliary exact `c39342a735f484b8895f65eee7b2b43de8634cff`. It verifies the RED before applying the two exact buyer-path substitutions and focused GREEN contract. Queued is not GREEN. If #866 moves, every descendant must converge again from the resulting exact head.
+One-shot run `34997230462` eventually received a GitHub-hosted runner. It verified the exact RED head successfully, then failed in `Apply minimal causal fix` because the automation literal for the import block contained indentation that the real source does not contain. GREEN, commit and push steps were skipped. This is an automation-code RCA, not a product verdict. The workflow was repaired at auxiliary exact `468571288ba8ef45065c188c8d3a28ff2105cf7e` using line-joined exact source blocks and the current checkout action; replacement run `35016883619` is queued. Queued is not GREEN. Once #866 moves, every descendant must converge again from the resulting exact head.
 
 ## Current non-force ancestry
 
-#867 currently sits at `8e76dc8dd5f9cc357622df0e8ebdb9a8a033a8c7`. Its own comparison-axis badge product delta remains intact, and it has already adopted #866's current comparison-tick executable contract. Its PR base snapshot is still the predecessor #866 head, because the compatible `LeftoverMapPlot.tsx` source composition and two-parent ancestry have not yet executed. One-shot convergence run `34997608532` is queued on auxiliary exact `9d491fa744bf38df4fa1df07050f57a6b5fa97ff`; the first attempt failed before job admission because the generated workflow YAML contained an unindented multiline Python literal, and that RCA was repaired rather than blindly rerun.
+The previously stale #866→#867 parent convergence completed successfully in run `34997608532`. #867 is now exact `1d5e0d7aa86ab4d45e9834c5630ae2d9374f46ec`, directly based on current #866 `35f4b07fd91a01ce14c31059fa4d46ad3a9ca5a2`; its comparison-axis σ/share product delta remains intact. This convergence does not pre-adopt the still-pending #866 `App.tsx` repair and transfers no validation receipts.
 
-#1110 is the explicit #866→#867 conflict/evidence carrier. It is now open / Draft, not Ready: GitHub may report the carrier mechanically mergeable, but that is not successor convergence evidence. Keep it open until the ordinary two-parent successor exists on #867 and its valid delta/tests are verified; if #866 advances from the pending `App.tsx` repair, that movement must be converged as well before promotion.
+The live descendant chain is:
 
-The descendant stack was immediately converged non-force onto the current #867 head so no child remains pointed at the older `8ba406...` parent. These exact heads preserve each lane's distinct product/test delta:
-
-`#867 8e76dc8d... -> #868 b71b0451... -> #869 2d8f8c31... -> #870 1bc75aac... -> #871 b7b9ad82... -> #872 f3d1df48... -> #873 59fa0966... -> #874 da862b35... -> #875 05ca9a16...`
+`#867 1d5e0d7a... -> #868 de64a973... -> #869 dc3b9fc4... -> #870 0b6a21a0... -> #871 4448ffd1... -> #872 167f63f5... -> #873 41a755cc... -> #874 e75f5ff4... -> #875 8bfc9511...`
 
 Below #875, current exact topology is:
 
-- #876 `5dd5152d4772fc337995675a73c68facfaa14a95`: report criterion `ζ`, persisted finite item-axis pair only.
-- #1033 `cce3c6d0fe1bca7b121d3218b1909ec6e8878ea1`: comparison criterion `ζ`, same item-coordinate boundary with distinct comparison identity.
-- #1034 `d2e0eb630044f81bb23e201d25ff0580e7d6d7d9`: comparison post `ξ`, persisted finite person-axis pair only.
-- sibling #877 `23c0988d7698b777053e8588a70075f4bcdb8157`: origin tick identity is canonical formatted zero; share and σ remain independent.
+- #876 `6a1c46546fc6b74564af8f7834a17ca6275a5e21`: report criterion `ζ`, persisted finite item-axis pair only.
+- #1033 `a29e2979ff85aaee30ad906e577aafdc8dd8e5c2`: comparison criterion `ζ`, same item-coordinate boundary with distinct comparison identity.
+- #1034 `f2982aba2e6e15969aa980d4d42b44f822f20ecf`: comparison post `ξ`, persisted finite person-axis pair only.
+- sibling #877 `a61db0aa7870f287689b3b1a47f5b8be740ebb72`: canonical formatted-zero origin identity with independent share/σ composition.
 
-All are open Drafts and currently mergeable after their latest ordinary two-parent convergence. This does **not** mean the stack is settled: when #867 acquires #866's source/ancestry delta, and when #866 later acquires the causal `App.tsx` repair, the full descendant chain must converge again. No current descendant receipt can be treated as acceptance for those future heads.
+#877 exposed a real executable-contract drift during convergence. Production already routed comparison tick accessibility copy through `leftoverMapPlotTickText` and `leftoverMapComparePlotTickAxisBadge`, preserving exact-origin/share/σ evidence, while `tests/test_grouping_comparison_graphic_tick_contract.py` still required the obsolete inline comparison-label ternary and prohibited the comparison tick template. The test was repaired at `8503b0f03d54ce0995e20e9c0149f097b5240e57`, then current #875 was adopted through ordinary two-parent commit `a61db0aa7870f287689b3b1a47f5b8be740ebb72`. Temporary convergence PR #1114 is therefore normally merged, not simply closed. Fresh #877 Tests run `35018582871` is nonterminal; no predecessor receipt transfers.
 
-Historical #878/#879 remain open delta/evidence carriers. Their succession authority is current with #876 `5dd5152d...`, #1033 `cce3c6d0...`, and #1034 `d2e0eb63...`; they are not closed merely because those reconstructed successors preserve the intended product contracts. Closure still requires complete verified succession of every valid product, test, fixture, contract and evidence delta.
+All current product lanes remain Draft. They are converged only to the current #866 foundation. When #866 acquires the causal `App.tsx` repair, the full descendant chain must converge again. No current descendant receipt can be treated as acceptance for those future heads.
+
+Historical #878/#879 remain open delta/evidence carriers. Their succession authority is current with #876 `6a1c4654...`, #1033 `a29e2979...`, and #1034 `f2982aba...`; they are not closed merely because reconstructed successors preserve the intended product contracts. Closure still requires complete verified succession of every valid product, test, fixture, contract and evidence delta.
 
 ## Buyer-visible gap register
 
@@ -62,11 +58,11 @@ Historical #878/#879 remain open delta/evidence carriers. Their succession autho
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1079 `c2923950...` | Product repository/security evidence exists; central model/review settlement is incomplete. | Canonical owner-path terminal evidence, qualifying approval, normal protected merge. |
 | Commercial-safe synchronous PostgreSQL tooling | #911 `6030b295...` | Exact-head Tests/PROV-O/Ontology/SAST are GREEN after the timeout compatibility repair. | Security and CodeQL terminal GREEN plus qualifying independent exact-head approval. |
-| Report-axis σ/share missingness | #866 `35f4b07...` | Four-state helper and executable RED exist; live buyer path still bypasses projection. Repair run `34997230462` queued. | Causal `App.tsx` GREEN, fresh frontend/full/rendered/a11y/i18n/security evidence and qualifying approval. |
-| Comparison-graphic axis σ/share identity | #867 `8e76dc8...` | Product/helper contract retained; parent executable tick contract adopted. Source/ancestry convergence run `34997608532` queued; #1110 is Draft conflict/evidence carrier. | Exact parent convergence, then fresh repository/rendered/security/review evidence. |
-| Singular/share tick stack | #868 `b71b045...` -> #875 `05ca9a16...` | Child deltas preserved through ordinary two-parent convergence onto current #867 test head. | Re-converge after #867/#866 move; fresh exact-head repository/browser/security/performance/review evidence in parent order. |
-| Report/comparison marker identity | #876 `5dd5152d...` -> #1033 `cce3c6d0...` -> #1034 `d2e0eb63...` | ζ/ζ/ξ owner boundaries preserved after latest convergence. | Re-converge on foundation movement; focused/full/rendered/security evidence and qualifying approvals. |
-| Comparison origin identity | #877 `23c0988d...` | Exact-zero origin and independent share/σ composition preserved. | Re-converge on foundation movement; executable/rendered/a11y/i18n/security evidence and qualifying approval. |
+| Report-axis σ/share missingness | #866 `35f4b07...` | Four-state helper and executable RED exist. First repair run confirmed RED then failed in source-application automation; repaired run `35016883619` is queued. | Causal `App.tsx` GREEN, fresh frontend/full/rendered/a11y/i18n/security evidence and qualifying approval. |
+| Comparison-graphic axis σ/share identity | #867 `1d5e0d7...` | Product/helper contract retained and current #866 ancestry is converged. | Re-converge after #866 moves, then fresh repository/rendered/security/review evidence. |
+| Singular/share tick stack | #868 `de64a973...` -> #875 `8bfc9511...` | Child deltas preserved through ordinary non-force convergence on current #867. | Re-converge after #866 moves; fresh exact-head repository/browser/security/performance/review evidence in parent order. |
+| Report/comparison marker identity | #876 `6a1c4654...` -> #1033 `a29e2979...` -> #1034 `f2982aba...` | ζ/ζ/ξ owner boundaries preserved on current ancestry. | Re-converge on foundation movement; focused/full/rendered/security evidence and qualifying approvals. |
+| Comparison origin identity | #877 `a61db0aa...` | Stale executable tick contract repaired at `8503b0f0...`; normal convergence PR #1114 merged at `a61db0aa...`; fresh Tests nonterminal. | Current-head executable/rendered/a11y/i18n/security evidence and qualifying approval; re-converge on foundation movement. |
 | Catalog connection leases and summary TOCTOU | #1077 / #1080 | Separate owner lanes; external/model work must not hold long DB leases. | Causal RED→GREEN, short-transaction evidence and protected integration. |
 | Governed UI translation delivery | #929 / #932 | Versioned translation-ledger work remains in its canonical owner lane. | `ko/en/ja/zh/vi/es/de/fr`, normal/loading/empty/error/permission/responsive, keyboard/focus/screen-reader, CJK expansion/font fallback. |
 | MCP buyer-path latency | #1009 | Repository target remains p95 ≤ 20 ms where applicable. | Representative measurements and causal profiling; Rust-first hot-path repair if warranted. |
