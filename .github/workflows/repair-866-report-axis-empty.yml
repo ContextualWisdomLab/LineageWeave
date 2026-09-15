@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout target branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: feat/leftover-map-axis-singular-only-v2820
           fetch-depth: 0
@@ -47,38 +47,44 @@ jobs:
 
           path = Path("frontend/src/App.tsx")
           source = path.read_text(encoding="utf-8")
-          old_import = '''import {
-            leftoverMapAxisBadgeShare,
-            leftoverMapAxisBadgeSingular,
-            LEFTOVER_MAP_AXIS_BADGE_SHARE,
-            LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
-          } from "./leftoverMapAxisBadge";'''
-          new_import = '''import {
-            leftoverMapAxisBadge,
-          } from "./leftoverMapAxisBadge";'''
-          old_render = '''            {report.leftover_map_axes?.map((axis) => {
-              const singular = leftoverMapAxisBadgeSingular(axis);
-              const share = leftoverMapAxisBadgeShare(axis.leftover_share);
-              return (
-                <span key={axis.axis_index} className="post-badge">
-                  {singular === null
-                    ? tf(LEFTOVER_MAP_AXIS_BADGE_SHARE, { axis: axis.axis_index, share })
-                    : tf(LEFTOVER_MAP_AXIS_BADGE_SINGULAR, {
-                        axis: axis.axis_index,
-                        value: singular,
-                        share,
-                      })}
-                </span>
-              );
-            })}'''
-          new_render = '''            {report.leftover_map_axes?.map((axis) => {
-              const badge = leftoverMapAxisBadge(axis);
-              return badge === null ? null : (
-                <span key={axis.axis_index} className="post-badge">
-                  {tf(badge.template, badge.values)}
-                </span>
-              );
-            })}'''
+          old_import = "\n".join([
+              "import {",
+              "  leftoverMapAxisBadgeShare,",
+              "  leftoverMapAxisBadgeSingular,",
+              "  LEFTOVER_MAP_AXIS_BADGE_SHARE,",
+              "  LEFTOVER_MAP_AXIS_BADGE_SINGULAR,",
+              '} from "./leftoverMapAxisBadge";',
+          ])
+          new_import = "\n".join([
+              "import { leftoverMapAxisBadge } from \"./leftoverMapAxisBadge\";",
+          ])
+          old_render = "\n".join([
+              "            {report.leftover_map_axes?.map((axis) => {",
+              "              const singular = leftoverMapAxisBadgeSingular(axis);",
+              "              const share = leftoverMapAxisBadgeShare(axis.leftover_share);",
+              "              return (",
+              '                <span key={axis.axis_index} className="post-badge">',
+              "                  {singular === null",
+              "                    ? tf(LEFTOVER_MAP_AXIS_BADGE_SHARE, { axis: axis.axis_index, share })",
+              "                    : tf(LEFTOVER_MAP_AXIS_BADGE_SINGULAR, {",
+              "                        axis: axis.axis_index,",
+              "                        value: singular,",
+              "                        share,",
+              "                      })}",
+              "                </span>",
+              "              );",
+              "            })}",
+          ])
+          new_render = "\n".join([
+              "            {report.leftover_map_axes?.map((axis) => {",
+              "              const badge = leftoverMapAxisBadge(axis);",
+              "              return badge === null ? null : (",
+              '                <span key={axis.axis_index} className="post-badge">',
+              "                  {tf(badge.template, badge.values)}",
+              "                </span>",
+              "              );",
+              "            })}",
+          ])
           if source.count(old_import) != 1:
               raise SystemExit(f"expected one old import, found {source.count(old_import)}")
           if source.count(old_render) != 1:
