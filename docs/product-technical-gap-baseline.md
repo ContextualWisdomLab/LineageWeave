@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 21:29 KST.
+> Current authority snapshot: 2026-09-15 21:34 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e` at this projection.
 > This file summarizes live PR/Issue/check authority; protected refs, PRs, Issues,
@@ -30,17 +30,20 @@ waiting in the actual scan job `104230163129`; coordinator success alone is not
 analysis acceptance.
 
 Historical `.github#2140` remains open while current-main successor `.github#2207`
-is independently validated. #2207 moved to exact
-`9b34e64e772a8c77ab5c049accfba5cb2ae5de0d` after a valid CodeRabbit finding was
-repaired in ADR-0030: the no-interruption guarantee for active streaming is now
-explicitly scoped to the external job boundary, while a job ceiling or separately
-classified runner-reclamation event may terminate the request without becoming a
-model-failure verdict or route-ranking signal. A second review suggestion to
-replace `012beaac` was rejected after verification because #2137 uses that value as
-the target vendored contextual-orchestrator revision. Fresh #2207 Security/SAST/
-CodeQL/Python Security evidence belongs to the new head; no receipt from
-`36a6755...` transfers. Successor creation or one review repair is still not
-complete succession, so #2140 stays open.
+is independently validated. #2207 is now exact
+`2d61a668a0d7f0f4bb51c7805945db15e81f0bec` after two rounds of verified review
+repair. Active streaming is protected from the idle-socket bound only within the
+external job boundary; a job ceiling or separately classified runner-reclamation
+event may still terminate the request without becoming a model-failure verdict or
+route-ranking signal. First-response-byte silence is now classified only as a
+transport-level no-progress observation: it does not prove provider/model failure
+or distinguish long time-to-first-byte from transport stall, and occupancy expiry
+must not penalise, circuit-break, or rank the route. The changelog carries the same
+boundary. A separate review suggestion to replace `012beaac` was rejected after
+verification because #2137 uses that value as the target vendored
+contextual-orchestrator revision. All receipts from earlier #2207 heads are
+historical; successor existence or repaired prose is not complete succession, so
+#2140 stays open.
 
 ### Leftover-map singular/share and marker-identity stack
 
@@ -104,7 +107,7 @@ evidence delta is demonstrably inherited and verified.
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
-| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. `.github#2170` producer validation is GREEN but its actual CodeQL scan remains queued; `.github#2207` moved after a verified ADR repair and requires entirely fresh evidence. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
+| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. `.github#2170` producer validation is GREEN but its actual CodeQL scan remains queued; `.github#2207` is now `2d61a668...` after verified ADR/changelog semantic repairs and requires entirely fresh evidence. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
 | Comparison-graphic axis σ/share identity | #867 `a8129768...` | Production uses graphic-specific helper rather than strip helper; direct Vitest state coverage now exercises empty/share-only/σ-only/combined states. Current Tests run `34967080332` is queued, not GREEN. | Focused contract + frontend/full repository tests, rendered a11y/i18n evidence, applicable Security/SAST/CodeQL/model review and qualifying approval. |
 | Singular/share tick stack | #868 `d39343ab...` -> #875 `758da1e8...` | Descendants contain repaired #867 foundation plus the executable helper-state tests through non-force ancestry; PR authority names current parents/heads. | Settle each local RED and fresh exact-head repository/security/browser-a11y/performance/review evidence in parent order. |
 | Report/comparison marker identity | #876 `34796209...` -> #1033 `ccf077cf...` -> #1034 `b9dec94a...` | ζ/ζ/ξ boundaries are preserved after current-parent convergence; new Tests `34968725267`, `34968819345`, `34968872059` are queued. Historical #878/#879 remain open delta carriers. | Focused contracts, frontend build/tests, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable security/model review and qualifying approvals. |
