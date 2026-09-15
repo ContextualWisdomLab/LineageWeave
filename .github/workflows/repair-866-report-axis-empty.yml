@@ -1,0 +1,116 @@
+name: Repair 866 report-axis empty state
+
+on:
+  push:
+    branches:
+      - automation/866-empty-axis-repair-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/leftover-map-axis-singular-only-v2820
+          fetch-depth: 0
+      - name: Verify exact RED head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "e98abe27eb01f40c2162bffedca14b0eb03516ec"
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("tests/test_leftover_axis_report_singular_only_contract.py")
+          spec = importlib.util.spec_from_file_location("axis_contract", path)
+          module = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(module)
+          try:
+              module.test_report_axis_rendering_consumes_the_four_state_projection()
+          except AssertionError:
+              print("RED confirmed: App.tsx still bypasses four-state projection")
+          else:
+              raise SystemExit("expected RED contract was already GREEN")
+          PY
+      - name: Apply minimal causal fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          source = path.read_text(encoding="utf-8")
+          old_import = '''import {
+            leftoverMapAxisBadgeShare,
+            leftoverMapAxisBadgeSingular,
+            LEFTOVER_MAP_AXIS_BADGE_SHARE,
+            LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
+          } from "./leftoverMapAxisBadge";'''
+          new_import = '''import {
+            leftoverMapAxisBadge,
+          } from "./leftoverMapAxisBadge";'''
+          old_render = '''            {report.leftover_map_axes?.map((axis) => {
+              const singular = leftoverMapAxisBadgeSingular(axis);
+              const share = leftoverMapAxisBadgeShare(axis.leftover_share);
+              return (
+                <span key={axis.axis_index} className="post-badge">
+                  {singular === null
+                    ? tf(LEFTOVER_MAP_AXIS_BADGE_SHARE, { axis: axis.axis_index, share })
+                    : tf(LEFTOVER_MAP_AXIS_BADGE_SINGULAR, {
+                        axis: axis.axis_index,
+                        value: singular,
+                        share,
+                      })}
+                </span>
+              );
+            })}'''
+          new_render = '''            {report.leftover_map_axes?.map((axis) => {
+              const badge = leftoverMapAxisBadge(axis);
+              return badge === null ? null : (
+                <span key={axis.axis_index} className="post-badge">
+                  {tf(badge.template, badge.values)}
+                </span>
+              );
+            })}'''
+          if source.count(old_import) != 1:
+              raise SystemExit(f"expected one old import, found {source.count(old_import)}")
+          if source.count(old_render) != 1:
+              raise SystemExit(f"expected one old render block, found {source.count(old_render)}")
+          source = source.replace(old_import, new_import).replace(old_render, new_render)
+          path.write_text(source, encoding="utf-8")
+          PY
+      - name: Verify causal GREEN contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("tests/test_leftover_axis_report_singular_only_contract.py")
+          spec = importlib.util.spec_from_file_location("axis_contract", path)
+          module = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(module)
+          module.test_report_axis_badge_preserves_singular_when_share_is_missing()
+          module.test_report_axis_badge_keeps_sigma_and_share_missingness_independent()
+          module.test_report_axis_rendering_consumes_the_four_state_projection()
+          print("GREEN: report-axis four-state projection is consumed by App.tsx")
+          PY
+      - name: Commit and push target repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/App.tsx
+          git diff --cached --check
+          git commit -m "fix(reports): consume report-axis badge projection"
+          git push origin HEAD:feat/leftover-map-axis-singular-only-v2820
