@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 09:53 KST.
+> Current authority snapshot: 2026-09-15 10:50 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -81,14 +81,24 @@ No LineageWeave release is admitted from the current protected head.
   prerequisite `.github#2170`, exact
   `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency predicate and
   remains Ready/mergeable with Runtime Quality, SAST, Python Security, Security,
-  Noema, Strix, OpenCode bootstrap and CodeQL language detection GREEN plus a
-  current-head Noema APPROVED review. Its current CodeQL receivers are fail-closed
-  pending coordinator `104179015295`; latest `scan-pr-queue` `104154156265`,
-  `coverage-evidence` `104142936003` and `opencode-review` `104142935844` remain
-  nonterminal. Correct sequencing stays #2170 normal protected integration ->
-  ordinary/non-force #1629 reconciliation -> fresh #1629 acceptance. Final
-  provider admission/routing/TTC remains owned by released contextual-orchestrator,
-  not central CI or LineageWeave.
+  Noema, Strix, OpenCode bootstrap, `coverage-source-tree`, `coverage-evidence`,
+  latest `scan-pr-queue`, and CodeQL language detection GREEN plus a current-head
+  Noema APPROVED review. Its CodeQL Actions/Python compatibility receivers are
+  fail-closed and coordinator `104179015295` remains queued with no runner.
+  Required OpenCode `opencode-review` `104142935844` is terminal FAILURE after
+  dispatch succeeded because no authenticated exact-head OpenCode verdict existed;
+  the sibling coverage jobs are GREEN, so this is review publication/settlement
+  evidence rather than a coverage or #2170 source failure. Correct sequencing
+  stays #2170 normal protected integration -> ordinary/non-force #1629
+  reconciliation -> fresh #1629 acceptance. Final provider
+  admission/routing/TTC remains owned by released contextual-orchestrator, not
+  central CI or LineageWeave.
+- `.github#2207` remains a Draft reconstruction of stale/non-mergeable #2140 on
+  current protected `.github/main`; exact head is
+  `36a6755a5b699d8f43269805b6fccd5c5d75eae5`. Current-head
+  `required-workflow-bootstrap` `104210566507` and `admit-current-head`
+  `104210566437` remain queued and there is no submitted review, so complete
+  succession is not yet proven and #2140 must remain open.
 
 ## Buyer-visible gap register
 
