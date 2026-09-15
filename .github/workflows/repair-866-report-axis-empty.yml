@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "e98abe27eb01f40c2162bffedca14b0eb03516ec"
+          test "$(git rev-parse HEAD)" = "35f4b07fd91a01ce14c31059fa4d46ad3a9ca5a2"
           python - <<'PY'
           import importlib.util
           from pathlib import Path
@@ -114,3 +114,8 @@ jobs:
           git diff --cached --check
           git commit -m "fix(reports): consume report-axis badge projection"
           git push origin HEAD:feat/leftover-map-axis-singular-only-v2820
+      - name: Remove one-shot automation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin --delete automation/866-empty-axis-repair-20260916
