@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
+PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 
 
 def test_comparison_graphic_axis_badge_preserves_singular_when_share_is_missing() -> None:
@@ -31,3 +32,13 @@ def test_comparison_graphic_axis_badge_keeps_sigma_and_share_independent() -> No
     assert "Number.isFinite" in source
     assert "Math.sqrt" not in source
     assert "Math.max" not in source
+
+
+def test_comparison_graphic_renders_graphic_specific_axis_badges() -> None:
+    """Comparison plot badges must use graphic naming, not comparison-strip naming."""
+    assert PLOT_SOURCE.exists(), "comparison plot component is missing"
+    source = PLOT_SOURCE.read_text(encoding="utf-8")
+
+    assert "leftoverMapComparePlotAxisBadge" in source
+    assert ".map((axis) => leftoverMapComparePlotAxisBadge(axis))" in source
+    assert ".map((axis) => leftoverMapCompareAxisBadge(axis))" not in source
