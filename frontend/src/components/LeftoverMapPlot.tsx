@@ -29,7 +29,7 @@ import {
 } from "../leftoverMapPlotAxisShare";
 import {
   formatLeftoverMapPlotAxisSingular,
-  leftoverMapCompareAxisBadge,
+  leftoverMapComparePlotAxisBadge,
   leftoverMapComparePlotTickAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
@@ -78,10 +78,12 @@ export type LeftoverMapPlotProps = {
   variant?: LeftoverMapPlotVariant;
 };
 
+/** Return the four vertices for a diamond marker centered at the persisted plot point. */
 function diamondPoints(x: number, y: number, radius: number): string {
   return `${x},${y - radius} ${x + radius},${y} ${x},${y + radius} ${x - radius},${y}`;
 }
 
+/** Compose one axis caption from persisted share and singular evidence for the requested surface. */
 function leftoverMapPlotAxisText(
   axisIndex: 1 | 2,
   leftoverMapAxes: LeftoverMapAxis[] | undefined,
@@ -125,6 +127,7 @@ function leftoverMapPlotAxisText(
   });
 }
 
+/** Compose tick accessibility copy while keeping persisted origin/share/σ evidence independent. */
 function leftoverMapPlotTickText(
   axisIndex: number,
   tickLabel: string,
@@ -256,7 +259,7 @@ export function LeftoverMapPlot({
   const comparisonAxisBadges =
     variant === "comparison"
       ? (leftoverMapAxes ?? [])
-          .map((axis) => leftoverMapCompareAxisBadge(axis))
+          .map((axis) => leftoverMapComparePlotAxisBadge(axis))
           .filter((badge): badge is NonNullable<typeof badge> => badge !== null)
       : [];
 
