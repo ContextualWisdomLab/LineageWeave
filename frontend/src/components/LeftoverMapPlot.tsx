@@ -101,24 +101,25 @@ function leftoverMapPlotCriterionText(
   if (variant === "comparison") {
     const badge = leftoverMapComparePlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
     if (badge === null) {
-      return `${t("Criterion ζ")} ${marker.label}`;
+      return `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${t("Criterion ζ")} ${marker.label}`;
     }
-    return tf(badge.key, badge.values);
+    return `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${t("Criterion ζ")} ${badge.values.label} · ζ ${badge.values.item}`;
   }
   const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
   if (badge === null) {
     return `${t("Criterion ζ")} ${marker.label}`;
   }
-  return tf(badge.key, badge.values);
+  return `${t("Criterion ζ")} ${badge.values.label} · ζ ${badge.values.item}`;
 }
 
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
  * Person markers are posts; item markers are leftover criteria. Report and
- * comparison criterion markers use their own accessible names while consuming
- * only the same persisted finite item-axis pair. Click a post marker to open
- * that post. Caption leftover-map axes with persisted
+ * comparison criterion markers keep distinct accessible names while composing
+ * already-localized plot labels with the persisted finite item-axis pair. The
+ * static contract keys do not create a competing SPA translation authority.
+ * Click a post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
