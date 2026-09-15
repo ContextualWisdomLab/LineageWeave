@@ -30,6 +30,30 @@ export const LEFTOVER_MAP_COMPARE_PLOT_SVG = "Leftover map comparison";
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
 
+export const LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED =
+  "Open leftover-map post {title}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION =
+  "Open leftover map comparison graphic leftover-map post {title} at ξ {person}";
+
+export type LeftoverMapPlotPostBadge = {
+  key: string;
+  values: { title: string; person: string };
+};
+
+/** Name only finite persisted comparison-post person coordinates; never infer ξ from item coordinates. */
+export function leftoverMapComparePlotPostBadge(
+  title: string,
+  axis1: number | null | undefined,
+  axis2: number | null | undefined,
+): LeftoverMapPlotPostBadge | null {
+  const person = formatLeftoverMapCoordinatePair(axis1, axis2);
+  if (person === null) {
+    return null;
+  }
+  return { key: LEFTOVER_MAP_COMPARE_PLOT_POST_ACTION, values: { title, person } };
+}
+
 export const LEFTOVER_MAP_PLOT_TICK =
   "leftover-map axis {axis} tick {value}";
 
