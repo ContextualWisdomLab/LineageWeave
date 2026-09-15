@@ -6,6 +6,8 @@ import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
+import pytest
+
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
 from lineageweave import claim_verification as cv
@@ -435,11 +437,11 @@ def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
     assert settle_args[-1] == "account lacks the post_read permission"
 
 
-def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
-    monkeypatch,
+@pytest.mark.parametrize("timeout_source", ["provider", "worker", "shutdown"])
+def test_timeout_detail_identifies_only_an_expired_worker_deadline(
+    monkeypatch, timeout_source,
 ) -> None:
-    """A bare `asyncio.TimeoutError` (no message) still gets a useful,
-    non-empty detail rather than an empty string."""
+    """Provider timeout is not proof that the worker deadline expired."""
     connection = _Connection(_queued_row())
     pool = _Pool(connection)
 
@@ -447,12 +449,26 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
         return {"corp-1"}, set(), False, True
 
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
-        raise asyncio.TimeoutError()
+        if timeout_source == "shutdown":
+            raise asyncio.CancelledError()
+        if timeout_source == "worker":
+            await asyncio.Event().wait()
+        raise asyncio.TimeoutError("synthetic private upstream detail")
 
+    if timeout_source == "worker":
+        monkeypatch.setattr(global_ask_queue, "JOB_DEADLINE_SECONDS", 0)
     monkeypatch.setattr(global_ask_queue, "load_job_visibility", _fake_load_job_visibility)
     monkeypatch.setattr(
         global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
     )
+
+    if timeout_source == "shutdown":
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(global_ask_queue.process_global_ask_job(
+                pool, job_id="job-1", chat_factory=_AvailableClient,
+            ))
+        assert connection.executed == []
+        return
 
     asyncio.run(
         global_ask_queue.process_global_ask_job(
@@ -463,7 +479,13 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"
+    if timeout_source == "worker":
+        assert settle_args[-1] == "job exceeded the 0s deadline"
+    else:
+        assert settle_args[-1] == (
+            "Ask Agent is unavailable: contextual-orchestrator returned "
+            "no complete evidence object"
+        )
 
 
 def test_job_visibility_never_expands_past_queued_scope() -> None:
