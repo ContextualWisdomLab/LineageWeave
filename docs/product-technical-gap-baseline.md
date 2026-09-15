@@ -61,43 +61,43 @@ not complete succession by itself.
 
 ### Leftover-map identity and evidence stack
 
-Parent #875 moved to exact
-`b220dcb8d73f6bdc926c5d8cb1ae3f47df05100c` on current #874
-`2b49e327b02a2b9f8b1449ae4b5a68648849e227`. The moved parent was not treated
-as a race or rewritten. Direct children were read, their local deltas preserved,
-and their ancestry converged through ordinary non-force two-parent commits.
+Parent #875 is exact `9303d67219071d76b59d4b85a49dac11023dcab1` on its current
+base `eb051da92758e7bf84138e034b2049868c0fb487`. Its moved ancestry was read and
+adopted without force-push or destructive rebase. Latest Tests attempts on this
+exact head include queued run `34947735003`; newer Draft-policy attempts were
+skipped and therefore are not GREEN evidence.
 
-#876 is now exact `2c12c30b54ca1cbb74a9ec8829dcb68314ccee6d` on current #875.
-Semantic convergence PR #1081 was normally recognized as merged at that commit;
-it was not simply closed. The branch preserves the report-criterion ζ contract:
-`leftoverMapPlotCriterionBadge` consumes only persisted finite item axes, keeps
-finite zero coordinates, fails closed for unusable pairs and does not infer ζ
-from person ξ, geometry, distance, rank, coverage or neighboring evidence. It
-also inherits #875's independent persisted comparison-axis singular evidence.
-Fresh exact-head Tests run `34943676800` is queued. Predecessor validation does
-not transfer.
+#876 is exact `f461f5023cdd658b4b37813a8bb3df6ee06dde72` on current #875.
+It preserves the report-criterion ζ contract: `leftoverMapPlotCriterionBadge`
+consumes only persisted finite item axes, keeps finite zero coordinates, fails
+closed for unusable pairs and does not infer ζ from person ξ, geometry, distance,
+rank, coverage or neighboring evidence. Current-head Tests run `34947822715`
+remains queued; newer Draft-policy run `34949321710` was skipped. Predecessor
+validation does not transfer.
 
-#1033 is now exact `d69b339f71a5a3bca9fb84aae663e2aae0eda739` on current #876.
-It preserves the report criterion boundary and adds the distinct comparison-
-criterion ζ boundary through `leftoverMapComparePlotCriterionBadge`, again using
-only persisted item axes. Comparison naming composes existing localized labels;
-no competing static translation authority is introduced. Fresh exact-head Tests
-run `34943827063` is queued. Historical #878 remains open as a delta carrier
-until complete verified succession is demonstrated.
+#1033 is now exact `84b927f37471e3969f071520875eb40e5576877c` on current #876.
+A semantic two-parent, non-force merge adopted the moved #876 ancestry while
+preserving only the intended three-file comparison-criterion delta. Convergence
+PR #1084 is normally recognized as merged at this exact commit. The comparison
+ζ helper consumes only persisted finite item axes and keeps report criterion
+behavior separate. Fresh exact-head Tests run `34949322503` is queued; no prior
+receipt transfers.
 
-#1034 is now exact `4078f769dde0b4503325d37d61761967f137482e` on current #1033.
-It preserves both criterion ζ boundaries and its comparison-post ξ repair.
-`leftoverMapComparePlotPostBadge` consumes persisted finite person axes only;
-criterion ζ, singular evidence, geometry, distance, rank and coverage do not
-infer ξ. Fresh exact-head Tests run `34943967157` is queued. No open PR directly
-targeted the #1034 branch in the current sweep. Historical #879 remains open until
-complete verified succession is demonstrated.
+#1034 is now exact `708e435d4c975696f4f78a5e9b81969b5895f31e` on current #1033.
+A second semantic two-parent, non-force merge preserved the comparison-post ξ
+delta while adopting the converged report/comparison criterion and singular-axis
+foundation. `leftoverMapComparePlotPostBadge` consumes persisted finite person axes
+only; criterion ζ, singular/share evidence, geometry, distance, rank and coverage
+do not infer ξ. Fresh exact-head Tests run `34949510341` is queued. Historical
+#879 remains open until complete verified succession is demonstrated.
 
-Sibling #877 is now exact `cbb28027cfe0ea72651cb5bb03d809801ecc8068` on current #875.
-Its one-file executable comparison-origin-tick RED was deliberately preserved
-while ancestry converged. Fresh exact-head Tests run `34944016757` is queued.
-The branch stays Draft until the local RED has a causal source repair and fresh
-acceptance; ancestry movement is not permission to manufacture GREEN evidence.
+Sibling #877 is now exact `73f8bf898a8eafc162850dae0b8dbc4955760fdb` on current #875.
+A semantic two-parent, non-force merge adopted current #875 while preserving the
+three-file comparison-origin-tick repair. Convergence PR #1083 is normally
+recognized as merged at this exact commit. Origin identity is exact canonical
+formatted zero; share and σ are projected independently and never define origin.
+Fresh exact-head Tests run `34949897498` is queued. The branch remains Draft until
+its current-head rendered and repository evidence settles.
 
 The product stack therefore remains Draft and ordered. #876 -> #1033 -> #1034
 must settle current-head evidence before promotion, while #877 follows its own
@@ -108,8 +108,8 @@ sibling lane. No descendant inherits parent or predecessor validation receipts.
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Authorization repair and repository/security tests are GREEN; independent full-diff review is clean. CodeQL producer, OpenCode verdict, Strix/Noema complete review evidence and qualifying approval remain unsettled. | Finish canonical current-head CodeQL settlement, authenticated OpenCode verdict, Strix/Noema owner-path repair/revalidation, qualifying approval and normal protected merge. |
-| Report/comparison leftover-map marker identity | #876 `2c12c30...` -> #1033 `d69b339...` -> #1034 `4078f769...` | Report criterion ζ, comparison criterion ζ and comparison post ξ causal implementations are preserved after current-parent non-force convergence. Fresh exact-head Tests are newly queued; historical #878/#879 carriers remain open. | Settle focused/static contracts, frontend lint/tests/build, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable Security/SAST/CodeQL/model review and qualifying approvals; integrate in parent order. |
-| Comparison origin tick identity | #877 `cbb28027...` | Current #875 ancestry is converged while the executable origin-tick contract remains intentional RED. | Implement the minimum causal source repair, prove exact-head RED -> GREEN, then complete the ordinary security/browser/review gates. |
+| Report/comparison leftover-map marker identity | #876 `f461f502...` -> #1033 `84b927f3...` -> #1034 `708e435d...` | Report criterion ζ, comparison criterion ζ and comparison post ξ causal implementations are preserved after semantic current-parent non-force convergence. Fresh exact-head Tests are queued; historical #878/#879 carriers remain open. | Settle focused/static contracts, frontend lint/tests/build, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable Security/SAST/CodeQL/model review and qualifying approvals; integrate in parent order. |
+| Comparison origin tick identity | #877 `73f8bf89...` | Causal production repair is preserved after semantic convergence onto current #875. Exact formatted zero defines origin; share and σ remain independent. Fresh Tests `34949897498` is queued. | Prove current-head executable contract and frontend build/tests, rendered keyboard/focus/a11y/i18n evidence, applicable security/model review and qualifying approval before promotion. |
 | Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079; external/provider work must not hold long database leases and post-provider persistence must revalidate authorization/visibility/source revision. | Causal RED -> GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
 | Governed UI translation delivery | #929 and child #932 | Governed versioned translation-ledger work remains in its canonical owner lane; the leftover-map stack consumes existing localized labels instead of adding a competing store. | Complete reviewed `ko/en/ja/zh/vi/es/de/fr` resources and rendered normal/loading/empty/error/permission/responsive, keyboard/focus/screen-reader, CJK expansion and font-fallback evidence. |
 | MCP buyer-path latency | #1009 | Existing measurements remain above the repository `p95 <= 20 ms` acceptance contract. | Representative uncontended measurements, causal query/I/O/runtime profiling, Rust-first hot-path repair where warranted and exact-head gates. |
