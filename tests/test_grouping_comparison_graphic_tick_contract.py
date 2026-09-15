@@ -7,20 +7,27 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
+SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
 
 
 def test_comparison_graphic_names_ticks_with_distinct_accessible_copy() -> None:
-    """Comparison ticks compose existing localized comparison and tick copy."""
+    """Comparison tick copy flows through the evidence-aware tick projection."""
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
+    singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
 
-    assert "LEFTOVER_MAP_COMPARE_PLOT_LABEL" in plot_source
-    assert "LEFTOVER_MAP_PLOT_TICK" in plot_source
+    assert "leftoverMapComparePlotTickAxisBadge" in plot_source
     assert re.search(
-        r'variant\s*===\s*"comparison"\s*\?\s*`\$\{t\(LEFTOVER_MAP_COMPARE_PLOT_LABEL\)\}:\s*\$\{tf\(LEFTOVER_MAP_PLOT_TICK,\s*\{\s*axis:\s*tick\.axis,\s*value:\s*tick\.label,?\s*\}\)\}`\s*:\s*tf\(LEFTOVER_MAP_PLOT_TICK,\s*\{\s*axis:\s*tick\.axis,\s*value:\s*tick\.label,?\s*\}\)',
+        r"aria-label=\{leftoverMapPlotTickText\(tick\.axis,\s*tick\.label,\s*leftoverMapAxes,\s*variant\)\}",
         plot_source,
         re.DOTALL,
     )
-    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK" not in plot_source
+    assert (
+        'export const LEFTOVER_MAP_COMPARE_PLOT_TICK =\n'
+        '  "leftover map comparison graphic leftover-map axis {axis} tick {value}";'
+        in singular_source
+    )
+    assert "LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK" in singular_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE" in singular_source
 
 
 def test_tick_positions_come_from_persisted_coordinates_not_distance() -> None:
