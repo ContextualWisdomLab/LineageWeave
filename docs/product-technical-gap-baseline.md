@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 21:34 KST.
+> Current authority snapshot: 2026-09-15 21:54 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e` at this projection.
 > This file summarizes live PR/Issue/check authority; protected refs, PRs, Issues,
@@ -44,6 +44,36 @@ verification because #2137 uses that value as the target vendored
 contextual-orchestrator revision. All receipts from earlier #2207 heads are
 historical; successor existence or repaired prose is not complete succession, so
 #2140 stays open.
+
+### Owner-boundary and governed measurement stack
+
+#899 is the canonical LineageWeave consumer-boundary foundation at exact
+`d331d1f6b05d39385a652be6dbb8f279871a2e2e` on protected
+`main@83eba56149eb802cd63642c507c324c9976ec78e`. Its latest parent delta is a
+single `docs/ubiquitous-language.md` Markdown/trailing-whitespace cleanup; the
+contextual-orchestrator ownership semantics remain unchanged. #966 has already
+converged onto that exact parent at `1be24cd923b89a64f41d05bea8534b552e1ee7bc`.
+
+#902 was still based on predecessor #899 `e5711282...` and GitHub reported it
+non-mergeable after the parent moved. The parent delta and #902 both touched the
+ubiquitous-language file, so the repair did not choose one side wholesale. Two-parent
+non-force convergence `8b5cc45dbb2d6ef7bb3b49a10c33cdfb93b483cc`
+retains #899's current Markdown structure and #902's substantive 2PLM
+intended-use/recovery-contract wording. Fresh compare now has merge-base exactly
+`d331d1f6...`, `behind_by=0`, with the same seven measurement-policy files; #902 is
+open / Draft / mergeable / clean. Exact-head Tests `34971343143` is terminal
+`skipped` under Draft admission, so it is not product GREEN. Status contexts from
+CodeRabbit/Devin are not substituted for a qualifying submitted approval.
+
+#915 depended on the moved #902 and also owned the same ubiquitous-language file.
+Two-parent non-force convergence `6540acebbb3ecef4736ebeefa6c0c4486b002b79`
+retains the newly converged #902 glossary formatting/2PLM wording plus #915's
+dynamic-evaluation vocabulary and adjudication boundary. Fresh compare has
+merge-base exactly `8b5cc45...`, `behind_by=0`, and the same 12 dynamic-evaluation
+files; #915 is open / Draft / mergeable / clean. Exact-head Tests `34971580315` is
+terminal `skipped` under Draft admission, and no qualifying current-head submitted
+approval is claimed. No open PR currently targets #915's head branch, so this
+ancestry movement has no further active descendant to converge in that lane.
 
 ### Leftover-map singular/share and marker-identity stack
 
@@ -108,6 +138,7 @@ evidence delta is demonstrably inherited and verified.
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. `.github#2170` producer validation is GREEN but its actual CodeQL scan remains queued; `.github#2207` is now `2d61a668...` after verified ADR/changelog semantic repairs and requires entirely fresh evidence. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
+| Contextual-orchestrator consumer boundary and governed measurement/evaluation lineage | #899 `d331d1f6...` -> #902 `8b5cc45d...` -> #915 `6540aceb...`; #966 `1be24cd9...` is a separate #899 descendant | #902 and #915 were both repaired non-force after current-parent movement, including semantic overlap in `docs/ubiquitous-language.md`; both are now clean/mergeable Drafts. Their exact-head Tests are Draft-skipped, not GREEN. | #899 normal integration first, then fresh full repository/security/governance evidence and qualifying independent approvals on unchanged #902/#915 descendant heads; no predecessor receipt transfer. |
 | Comparison-graphic axis σ/share identity | #867 `a8129768...` | Production uses graphic-specific helper rather than strip helper; direct Vitest state coverage now exercises empty/share-only/σ-only/combined states. Current Tests run `34967080332` is queued, not GREEN. | Focused contract + frontend/full repository tests, rendered a11y/i18n evidence, applicable Security/SAST/CodeQL/model review and qualifying approval. |
 | Singular/share tick stack | #868 `d39343ab...` -> #875 `758da1e8...` | Descendants contain repaired #867 foundation plus the executable helper-state tests through non-force ancestry; PR authority names current parents/heads. | Settle each local RED and fresh exact-head repository/security/browser-a11y/performance/review evidence in parent order. |
 | Report/comparison marker identity | #876 `34796209...` -> #1033 `ccf077cf...` -> #1034 `b9dec94a...` | ζ/ζ/ξ boundaries are preserved after current-parent convergence; new Tests `34968725267`, `34968819345`, `34968872059` are queued. Historical #878/#879 remain open delta carriers. | Focused contracts, frontend build/tests, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable security/model review and qualifying approvals. |
