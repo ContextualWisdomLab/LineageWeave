@@ -26,6 +26,7 @@ from .observability import current_session_id, inject_trace_context, traced
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+_SSL_CONTEXT.minimum_version = ssl.TLSVersion.TLSv1_2
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
 _SESSION_HEADER_PEERS = frozenset({"contextual-orchestrator", "tepp"})
 
