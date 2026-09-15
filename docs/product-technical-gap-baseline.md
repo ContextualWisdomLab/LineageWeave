@@ -17,7 +17,7 @@ No LineageWeave release is admitted from the current protected head. A moved par
 
 ### Commercial-safe synchronous PostgreSQL boundary
 
-#911 remains exact `6030b295aadc3ee76dc4d27f5713273f35888325`. Its test-first pg8000 compatibility repair preserves libpq-style integer `connect_timeout` semantics and treats non-positive values as no-deadline sentinels. Runtime persistence remains `asyncpg`. Ready state is validation admission, not merge acceptance; current-head repository/security/CodeQL evidence and qualifying independent approval are still required.
+#911 remains exact `6030b295aadc3ee76dc4d27f5713273f35888325`. Its test-first pg8000 compatibility repair preserves libpq-style integer `connect_timeout` semantics and treats non-positive values as no-deadline sentinels. Runtime persistence remains `asyncpg`. Exact-head Tests `34978833151`, PROV-O `34978832987`, Ontology Pages `34978833063`, and SAST `34977841093` are terminal GREEN. Security `34977841173` and CodeQL PR `34977841115` remain queued, and there is still no qualifying independent exact-head `APPROVED` review. Ready state is validation admission, not merge acceptance.
 
 ### Owner-boundary and governed measurement stack
 
@@ -39,6 +39,8 @@ One-shot run `34997230462` is queued on auxiliary exact `c39342a735f484b8895f65e
 
 #867 currently sits at `8e76dc8dd5f9cc357622df0e8ebdb9a8a033a8c7`. Its own comparison-axis badge product delta remains intact, and it has already adopted #866's current comparison-tick executable contract. Its PR base snapshot is still the predecessor #866 head, because the compatible `LeftoverMapPlot.tsx` source composition and two-parent ancestry have not yet executed. One-shot convergence run `34997608532` is queued on auxiliary exact `9d491fa744bf38df4fa1df07050f57a6b5fa97ff`; the first attempt failed before job admission because the generated workflow YAML contained an unindented multiline Python literal, and that RCA was repaired rather than blindly rerun.
 
+#1110 is the explicit #866→#867 conflict/evidence carrier. It is now open / Draft, not Ready: GitHub may report the carrier mechanically mergeable, but that is not successor convergence evidence. Keep it open until the ordinary two-parent successor exists on #867 and its valid delta/tests are verified; if #866 advances from the pending `App.tsx` repair, that movement must be converged as well before promotion.
+
 The descendant stack was immediately converged non-force onto the current #867 head so no child remains pointed at the older `8ba406...` parent. These exact heads preserve each lane's distinct product/test delta:
 
 `#867 8e76dc8d... -> #868 b71b0451... -> #869 2d8f8c31... -> #870 1bc75aac... -> #871 b7b9ad82... -> #872 f3d1df48... -> #873 59fa0966... -> #874 da862b35... -> #875 05ca9a16...`
@@ -59,9 +61,9 @@ Historical #878/#879 remain open delta/evidence carriers. Their succession autho
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1079 `c2923950...` | Product repository/security evidence exists; central model/review settlement is incomplete. | Canonical owner-path terminal evidence, qualifying approval, normal protected merge. |
-| Commercial-safe synchronous PostgreSQL tooling | #911 `6030b295...` | Test-first timeout compatibility repair is code-current. | Exact-head repository/security/CodeQL GREEN and qualifying approval. |
+| Commercial-safe synchronous PostgreSQL tooling | #911 `6030b295...` | Exact-head Tests/PROV-O/Ontology/SAST are GREEN after the timeout compatibility repair. | Security and CodeQL terminal GREEN plus qualifying independent exact-head approval. |
 | Report-axis σ/share missingness | #866 `35f4b07...` | Four-state helper and executable RED exist; live buyer path still bypasses projection. Repair run `34997230462` queued. | Causal `App.tsx` GREEN, fresh frontend/full/rendered/a11y/i18n/security evidence and qualifying approval. |
-| Comparison-graphic axis σ/share identity | #867 `8e76dc8...` | Product/helper contract retained; parent executable tick contract adopted. Source/ancestry convergence run `34997608532` queued. | Exact parent convergence, then fresh repository/rendered/security/review evidence. |
+| Comparison-graphic axis σ/share identity | #867 `8e76dc8...` | Product/helper contract retained; parent executable tick contract adopted. Source/ancestry convergence run `34997608532` queued; #1110 is Draft conflict/evidence carrier. | Exact parent convergence, then fresh repository/rendered/security/review evidence. |
 | Singular/share tick stack | #868 `b71b045...` -> #875 `05ca9a16...` | Child deltas preserved through ordinary two-parent convergence onto current #867 test head. | Re-converge after #867/#866 move; fresh exact-head repository/browser/security/performance/review evidence in parent order. |
 | Report/comparison marker identity | #876 `5dd5152d...` -> #1033 `cce3c6d0...` -> #1034 `d2e0eb63...` | ζ/ζ/ξ owner boundaries preserved after latest convergence. | Re-converge on foundation movement; focused/full/rendered/security evidence and qualifying approvals. |
 | Comparison origin identity | #877 `23c0988d...` | Exact-zero origin and independent share/σ composition preserved. | Re-converge on foundation movement; executable/rendered/a11y/i18n/security evidence and qualifying approval. |
