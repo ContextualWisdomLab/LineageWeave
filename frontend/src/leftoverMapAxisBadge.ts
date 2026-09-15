@@ -7,9 +7,9 @@ import {
   leftoverSingularForAxis,
 } from "./leftoverMapPlotAxisSingular";
 
-export const LEFTOVER_MAP_AXIS_BADGE_SHARE = "leftover axis {axis} {share}%";
+export const LEFTOVER_MAP_AXIS_BADGE_SHARE = "leftover axis {axis}{share}";
 
-export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR = "leftover axis {axis} σ {value} {share}%";
+export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR = "leftover axis {axis} σ {value}{share}";
 
 export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY = "leftover axis {axis} σ {value}";
 
@@ -18,10 +18,16 @@ export type LeftoverMapAxisBadge = {
   values: Record<string, string | number>;
 };
 
+/**
+ * Format report-axis share as an optional suffix consumed directly by the
+ * report template. Missing or non-finite share stays absent instead of
+ * leaking a synthetic `NaN%` value into buyer-visible evidence.
+ */
 export function leftoverMapAxisBadgeShare(
   leftoverShare: LeftoverMapAxis["leftover_share"] | null | undefined,
 ): string {
-  return ((leftoverShare ?? Number.NaN) * 100).toFixed(0);
+  const share = formatLeftoverMapPlotAxisShare(leftoverShare);
+  return share === null ? "" : ` ${share}%`;
 }
 
 export function leftoverMapAxisBadgeSingular(
@@ -42,18 +48,18 @@ export function leftoverMapAxisBadge(
   },
 ): LeftoverMapAxisBadge | null {
   const singular = leftoverMapAxisBadgeSingular(axis);
-  const share = formatLeftoverMapPlotAxisShare(axis.leftover_share);
+  const share = leftoverMapAxisBadgeShare(axis.leftover_share);
 
-  if (singular === null && share === null) {
+  if (singular === null && share === "") {
     return null;
   }
-  if (singular === null && share !== null) {
+  if (singular === null) {
     return {
       template: LEFTOVER_MAP_AXIS_BADGE_SHARE,
       values: { axis: axis.axis_index, share },
     };
   }
-  if (singular !== null && share === null) {
+  if (share === "") {
     return {
       template: LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY,
       values: { axis: axis.axis_index, value: singular },
@@ -61,6 +67,6 @@ export function leftoverMapAxisBadge(
   }
   return {
     template: LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
-    values: { axis: axis.axis_index, value: singular as string, share: share as string },
+    values: { axis: axis.axis_index, value: singular, share },
   };
 }
