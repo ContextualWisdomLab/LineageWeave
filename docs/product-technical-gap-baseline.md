@@ -1,190 +1,151 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 13:48 KST.
+> Current authority snapshot: 2026-09-15.
 >
-> Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
-> the commit is signature-verified and no protected-main movement was observed in
-> the fresh pre-write sweep. This document is a current projection of live
-> PR/Issue/check authority, not a replacement for those sources. Historical
-> overlays through 2026-09-13 are preserved byte-for-byte in
+> Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
+> This file is a current projection of live PR/Issue/check authority, not a
+> substitute for those sources. Historical overlays through 2026-09-13 are
+> preserved in
 > [`evidence/product-technical-gap-baseline-history-through-20260913.md`](evidence/product-technical-gap-baseline-history-through-20260913.md).
-> When this snapshot and live GitHub state differ, live protected refs, PRs,
-> Issues, ADRs and check receipts win.
+> When this projection differs from live GitHub state, protected refs, PRs,
+> Issues, ADRs and exact-head check receipts win.
 
 ## Protected delivery baseline
 
 No LineageWeave release is admitted from the current protected head.
 
-- Summary shared-catalog authorization repair #1079 remains open and Ready at
-  exact `c2923950e73c88a9f9fd932332ddd47682da124b` on protected
-  `main@83eba56149eb802cd63642c507c324c9976ec78e`. Reader materialization is
-  fail-closed for shared-catalog enrichment; explicit `post_admin` retains the
-  canonical enrichment path. Exact-head Tests `34815479029` are GREEN: Frontend
-  `103885140448`, Full suite `103885140559`, and authenticated PostgreSQL +
-  Keycloak + Valkey Summary authorization integration `103885140632` all passed.
-  SAST `34815434313` and Required Security Scan `34815434486` are GREEN; changed-
-  source GHAS CodeQL, Trivy, Scorecard and Semgrep report no new alerts.
-- Required CodeQL language detection `103965453105` is GREEN. Compatibility
-  receivers Python `104064547176`, JavaScript/TypeScript `104064547154`, and
-  Actions `104064547137` are terminal FAIL-CLOSED after reading an absent
-  current-head producer verdict; they are not product-analysis failures. The
-  coordinator `Dispatch current-head CodeQL scan` `104180256379` completed GREEN
-  after validating live head/base, binding all three receiver job ids, obtaining
-  GitHub OIDC plus the repository-scoped app token, and dispatching the exact
-  actions/javascript-typescript/python matrix. Canonical producer run `.github`
-  `34922377994` exists for exact LineageWeave #1079 and its `validate-dispatch`
-  job `104233131441` remains nonterminal. The current boundary is producer
-  validation/execution, authenticated `codeql-dispatch/<language>` terminal
-  verdict publication, and fresh compatibility settlement. Canonical
-  bootstrap/cutover ownership remains `.github#2106 -> #2040`; LineageWeave must
-  not manufacture a wake commit or duplicate that control plane.
-- Required OpenCode coverage is partly terminal GREEN: `coverage-source-tree`
-  `104070870386` and `coverage-evidence` `104070870162` succeeded on exact
-  `c2923950e...`. `opencode-review` `104070870170` successfully dispatched a
-  current-head request, then correctly failed because no authenticated
-  `opencode-agent` `APPROVED`/`CHANGES_REQUESTED` verdict had materialized on the
-  exact head. The central dispatch path owns the eventual verdict/rerun.
-- Required Strix `103970045852` is terminal FAILURE but not a LineageWeave
-  security finding. Trusted-source validation, contextual-orchestrator sidecar
-  provisioning and Strix installation succeeded. Artifact `strix-reports`
-  `10371857268` (digest
-  `sha256:b0d69ccbdf5b4fa52c99e118a9d76e6d4251d34d7deb9341131b9ce8270dd13b`)
-  contains a terminal report/SARIF with zero findings, while concurrent sub-agent
-  requests received explicit CO `503 concurrency_limit_exceeded` / `too many
-  concurrent orchestration runs`. The Strix gate correctly refused to promote a
-  partial provider execution to GREEN. CO deliberately rejects saturated inference
-  rather than queueing it; the repair therefore belongs to canonical review-runtime
-  admission/backpressure, not to a leaf provider/model override or gate weakening.
-  Fresh consumer evidence remains on `.github#2139`. The decision-record lane
-  `.github#2140` was found stale/non-mergeable against current protected `.github`
-  `main@91be6442906c7b6b4f600272c953699708394327`; current-main reconstruction
-  `.github#2207` now carries the same ADR blob (`1c133061cccb6bca9c3552cb8bdbca43b17d19f1`)
-  plus the original changelog evidence via the repository's existing `CHANGELOG.d/`
-  convention. #2140 remains open/Draft until complete succession is proved.
-- Required Noema `103965387845` is terminal CANCELLED and likewise is not a
-  product finding. Exact-head admission, credential selection, GitHub App token,
-  current-head validation and visibility checks succeeded. `Provision contextual-
-  orchestrator review sidecar` started at `2026-09-14T16:50:39Z`, logged the
-  sidecar starting at `16:52:41Z`, never emitted readiness, and GitHub cancelled
-  the operation at `22:51:33Z` after about six hours; no model-verdict step ran.
-  This is startup/provisioning occupancy evidence, not an elapsed-model-time
-  verdict. `.github#1629` retains sidecar admission/preflight ownership and
-  `.github#2139` retains progress/idle/runner-reclamation evidence. Proposed
-  ADR-0030 authority is being reconstructed on current protected `.github` main
-  in Draft `.github#2207`; no total elapsed model deadline is introduced.
-- CodeRabbit completed an independent full protected-base-to-exact-head review of
-  all 13 changed files with no actionable comments and `Merge Risk: Minimal`; both
-  inline threads are resolved. This is positive independent review coverage but
-  not a submitted qualifying `APPROVED` review.
-- Canonical organization queue observation remains owned by
-  `ContextualWisdomLab/.github#1150` with LineageWeave enrollment child
-  `.github#2200`; LineageWeave does not copy queue policy or runner controls.
-- Review-sidecar admission/preflight remains owned by `.github#1629`, exact
-  `db3d648c905d283f03fc16fbc9891ba76edd56b8`, on `.github` protected
-  `main@91be6442906c7b6b4f600272c953699708394327`. Its provider-default source
-  contract is repaired but its exact-head Runtime Quality RED is blocked by the
-  missing Noema document dependency during review-repair collection. Canonical
-  prerequisite `.github#2170`, exact
-  `c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, owns that dependency predicate and
-  remains Ready/mergeable with Runtime Quality, SAST, Python Security, Security,
-  Noema, Strix, OpenCode bootstrap, `coverage-source-tree`, `coverage-evidence`,
-  latest `scan-pr-queue`, CodeQL language detection, and CodeQL coordinator GREEN
-  plus a current-head Noema APPROVED review. Its coordinator `104179015295`
-  completed the exact current-head dispatch and created canonical producer run
-  `34921233636`; that run's `validate-dispatch` job `104229618015` remains
-  nonterminal. Actions/Python compatibility receivers remain prior fail-closed
-  evidence until producer verdict settlement. Required OpenCode `opencode-review`
-  `104142935844` is terminal FAILURE after dispatch succeeded because no
-  authenticated exact-head OpenCode verdict existed; the sibling coverage jobs are
-  GREEN, so this is review publication/settlement evidence rather than a coverage
-  or #2170 source failure. Correct sequencing stays #2170 normal protected
-  integration -> ordinary/non-force #1629 reconciliation -> fresh #1629
-  acceptance. Final provider admission/routing/TTC remains owned by released
-  contextual-orchestrator, not central CI or LineageWeave.
-- `.github#2207` remains a Draft reconstruction of stale/non-mergeable #2140 on
-  current protected `.github/main`; exact head is
-  `36a6755a5b699d8f43269805b6fccd5c5d75eae5`. Current-head
-  `required-workflow-bootstrap` `104210566507` and `admit-current-head`
-  `104210566437` remain nonterminal. A manual CodeRabbit full review has been
-  triggered against exact protected base/head; complete succession is not yet
-  proven and #2140 must remain open.
-- Draft #876 is now exact `d8b7f420bfb651f535c1b378b3d33ea71a6683a2`.
-  Its realistic report-criterion RED has a minimum production repair:
-  `leftoverMapPlotCriterionBadge` derives accessible criterion ζ only from the
-  marker's persisted item-axis pair via `formatLeftoverMapCoordinatePair`,
-  preserves finite zero coordinates, and fails closed to the generic criterion
-  name when the pair is unusable. Person ξ, geometry, distance, rank, coverage,
-  and neighboring evidence are not used to infer ζ. Exact-head Tests run
-  `34930586337` is newly materialized and nonterminal; an exact-head CodeRabbit
-  full-diff review is requested. No predecessor receipt transfers.
-- Descendant Draft #1033 has been non-force converged onto repaired #876 and is
-  exact `1b3ce95e7b3850f4dd48ff883bc6c2da83319321`. Its own comparison-criterion
-  RED is also causally repaired: `leftoverMapComparePlotCriterionBadge` uses the
-  same persisted item-axis formatting boundary but a distinct comparison action,
-  while report criterion naming remains on the report helper. Exact-head Tests
-  run `34930915311` is nonterminal and an exact-head full-diff review is requested.
-- Descendant Draft #1034 has been non-force converged onto repaired #1033 and is
-  exact `9aecd5559865885639f1c7c08cca77e8fd8a1581`. It preserves both inherited
-  criterion ζ repairs plus its local comparison-post ξ repair. Comparison post
-  actions derive ξ only from persisted finite person axes through
-  `leftoverMapComparePlotPostBadge`; invalid person coordinates fail closed to
-  the coordinate-omitted action and no criterion ζ or measurement output infers
-  ξ. Exact-head Tests run `34931115271` is newly materialized and nonterminal;
-  an exact-head full-diff review is requested. The stack remains Draft in order
-  #876 -> #1033 -> #1034 until current-head evidence settles.
+### Summary shared-catalog authorization
+
+#1079 remains open, Ready and mechanically mergeable at exact
+`c2923950e73c88a9f9fd932332ddd47682da124b` on protected
+`main@83eba56149eb802cd63642c507c324c9976ec78e`. Reader materialization is
+fail-closed for shared Customer Master catalog enrichment and explicit
+`post_admin` retains the canonical create/upsert path. Exact-head repository,
+authenticated PostgreSQL + Keycloak + Valkey integration, SAST and Required
+Security evidence are GREEN. CodeRabbit's protected-base-to-head full-diff
+review reported no actionable findings, but that is not a submitted qualifying
+`APPROVED` review.
+
+Required CodeQL remains fail-closed, not source-failed. Compatibility receivers
+failed after finding no authenticated current-head producer verdict. Coordinator
+`104180256379` completed the exact consumer-head dispatch successfully and created
+canonical `.github` producer run `34922377994`; that producer is still queued at
+the current sweep. Producer validation/execution, authenticated terminal verdict
+publication and fresh compatibility settlement remain required. The CodeQL
+control plane stays owned by the canonical `.github` lane.
+
+OpenCode source-tree and coverage evidence are GREEN, while `opencode-review`
+failed closed because no authenticated exact-head review verdict had materialized.
+Strix produced zero findings but correctly failed closed after contextual-
+orchestrator rejected concurrent sub-agent work with explicit
+`concurrency_limit_exceeded`; incomplete provider execution is not GREEN. Noema
+never reached a model verdict because contextual-orchestrator sidecar provisioning
+occupied the runner until cancellation. These are canonical review-runtime /
+provider-admission problems, not authorization-source findings in LineageWeave.
+
+Foundation prerequisite `.github#2170` remains open/Ready/mergeable at exact
+`c346b8324fa23e23d4007799d26ad3a8ac6ae4c3` on protected
+`.github/main@91be6442906c7b6b4f600272c953699708394327`. Runtime Quality, SAST,
+Python Security, Security, Noema, Strix, OpenCode bootstrap, OpenCode source-tree
+and coverage evidence, latest queue scan, CodeQL language detection and the
+CodeQL coordinator are GREEN, and a current-head Noema `APPROVED` review exists.
+Canonical producer run `34921233636` is still at producer validation; OpenCode
+review publication is also unsettled. Required ordering therefore remains
+`.github#2170` normal protected integration -> ordinary/non-force `.github#1629`
+reconciliation -> fresh #1629 acceptance. LineageWeave must not copy dependency
+predicates, queue policy, provider/model routing, fallback or timeout semantics.
+
+The stale `.github#2140` decision-record lane remains open while current-main Draft
+successor `.github#2207` is independently revalidated. A replacement branch is
+not complete succession by itself.
+
+### Leftover-map identity and evidence stack
+
+Parent #875 moved to exact
+`b220dcb8d73f6bdc926c5d8cb1ae3f47df05100c` on current #874
+`2b49e327b02a2b9f8b1449ae4b5a68648849e227`. The moved parent was not treated
+as a race or rewritten. Direct children were read, their local deltas preserved,
+and their ancestry converged through ordinary non-force two-parent commits.
+
+#876 is now exact `2c12c30b54ca1cbb74a9ec8829dcb68314ccee6d` on current #875.
+Semantic convergence PR #1081 was normally recognized as merged at that commit;
+it was not simply closed. The branch preserves the report-criterion ζ contract:
+`leftoverMapPlotCriterionBadge` consumes only persisted finite item axes, keeps
+finite zero coordinates, fails closed for unusable pairs and does not infer ζ
+from person ξ, geometry, distance, rank, coverage or neighboring evidence. It
+also inherits #875's independent persisted comparison-axis singular evidence.
+Fresh exact-head Tests run `34943676800` is queued. Predecessor validation does
+not transfer.
+
+#1033 is now exact `d69b339f71a5a3bca9fb84aae663e2aae0eda739` on current #876.
+It preserves the report criterion boundary and adds the distinct comparison-
+criterion ζ boundary through `leftoverMapComparePlotCriterionBadge`, again using
+only persisted item axes. Comparison naming composes existing localized labels;
+no competing static translation authority is introduced. Fresh exact-head Tests
+run `34943827063` is queued. Historical #878 remains open as a delta carrier
+until complete verified succession is demonstrated.
+
+#1034 is now exact `4078f769dde0b4503325d37d61761967f137482e` on current #1033.
+It preserves both criterion ζ boundaries and its comparison-post ξ repair.
+`leftoverMapComparePlotPostBadge` consumes persisted finite person axes only;
+criterion ζ, singular evidence, geometry, distance, rank and coverage do not
+infer ξ. Fresh exact-head Tests run `34943967157` is queued. No open PR directly
+targeted the #1034 branch in the current sweep. Historical #879 remains open until
+complete verified succession is demonstrated.
+
+Sibling #877 is now exact `cbb28027cfe0ea72651cb5bb03d809801ecc8068` on current #875.
+Its one-file executable comparison-origin-tick RED was deliberately preserved
+while ancestry converged. Fresh exact-head Tests run `34944016757` is queued.
+The branch stays Draft until the local RED has a causal source repair and fresh
+acceptance; ancestry movement is not permission to manufacture GREEN evidence.
+
+The product stack therefore remains Draft and ordered. #876 -> #1033 -> #1034
+must settle current-head evidence before promotion, while #877 follows its own
+sibling lane. No descendant inherits parent or predecessor validation receipts.
 
 ## Buyer-visible gap register
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
-| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions, SAST and Required Security are GREEN. CodeRabbit full-diff review is clean. OpenCode coverage tree/evidence are GREEN. Strix produced zero SARIF findings but failed closed on CO saturation; Noema never reached a verdict because sidecar provisioning occupied the runner until cancellation. CodeQL coordinator has completed the exact-head canonical dispatch; producer run `34922377994` is now at producer validation. Canonical occupancy decision evidence is on `.github#2139`, with stale `.github#2140` reconstructed as current-main Draft `.github#2207`. | Finish current-head CodeQL producer/compatibility acceptance, obtain authenticated OpenCode verdict, repair/revalidate Strix and Noema through canonical owner lanes, prove the #2140 -> #2207 decision-record succession, obtain qualifying submitted approval, then normal protected merge. |
-| Report/comparison leftover-map marker identity | #876 `d8b7f420...` -> #1033 `1b3ce95...` -> #1034 `9aecd555...` | The report criterion ζ, comparison criterion ζ, and comparison post ξ contracts now each have minimum causal production implementations. ζ is derived only from persisted item axes; comparison ξ is derived only from persisted person axes; report/comparison accessible names remain distinct and invalid pairs fail closed without cross-axis inference. Descendants were converged non-force after each parent moved. Fresh exact-head Tests and independent full reviews are materialized/requested and nonterminal. | Settle exact-head focused/static contracts, frontend lint/tests/build, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable Security/SAST/CodeQL/model review, qualifying approvals, then integrate in parent order without dropping descendant deltas. |
-| Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079: provider work must not hold long DB leases; post-provider persistence must revalidate authorization/visibility and source revision. | Causal RED->GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
-| Governed UI translation delivery | #929 `f898399c5ff9ab89fe440d2e66985860e141620c` and child #932 | PostgreSQL-authoritative versioned ledger is implemented and repository tests are GREEN, but complete reviewed `ko/en/ja/zh/vi/es/de/fr` Customer Master publication is not demonstrated and central Security/CodeQL gates remain non-GREEN. | Complete eight-locale resource publication, authenticated API/browser normal/loading/empty/error/permission/responsive states, keyboard/focus/screen-reader, CJK/text expansion/font fallback and current security/governance receipts. |
-| MCP buyer-path latency | #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` | Modern/legacy protocol repair is Draft. Recorded modern submit/read and legacy read measurements remain far above the repository `p95 <= 20 ms` acceptance contract; CodeQL is also non-GREEN. | Representative uncontended cold/realistic measurements without sample removal or artificial warm-up, profile owned query/I/O/runtime bottlenecks, Rust-first hot-path repair where causal, then exact-head gates. |
-| Release identity and immutable publication | #961 `3bdec0504a65e63f44bd49ba15de37182a1672cc` / #1056 | Candidate aligns runtime/package/frontend at 2.28.0 and has repository/Security/SAST GREEN, but Required CodeQL and independent review remain incomplete. Protected main still carries the pre-repair runtime identity. | Built/installed version proof, normal protected merge, immutable tag/package/release, SBOM/provenance, reproducibility and rollback evidence bound to one exact protected SHA. |
-| Material Customer Master / lineage UI | #929/#932 plus the live Customer Master and lineage presentation owner PRs | Translation authority, authorization repairs, responsive/a11y states and browser evidence are distributed across their existing owner lanes; no competing inline translation or authorization implementation is permitted. | Converged owner prerequisites plus current-head normal/loading/empty/error/permission/responsive, pointer/touch/keyboard/focus/screen-reader, deterministic identity/layout and applicable performance evidence. |
+| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Authorization repair and repository/security tests are GREEN; independent full-diff review is clean. CodeQL producer, OpenCode verdict, Strix/Noema complete review evidence and qualifying approval remain unsettled. | Finish canonical current-head CodeQL settlement, authenticated OpenCode verdict, Strix/Noema owner-path repair/revalidation, qualifying approval and normal protected merge. |
+| Report/comparison leftover-map marker identity | #876 `2c12c30...` -> #1033 `d69b339...` -> #1034 `4078f769...` | Report criterion ζ, comparison criterion ζ and comparison post ξ causal implementations are preserved after current-parent non-force convergence. Fresh exact-head Tests are newly queued; historical #878/#879 carriers remain open. | Settle focused/static contracts, frontend lint/tests/build, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable Security/SAST/CodeQL/model review and qualifying approvals; integrate in parent order. |
+| Comparison origin tick identity | #877 `cbb28027...` | Current #875 ancestry is converged while the executable origin-tick contract remains intentional RED. | Implement the minimum causal source repair, prove exact-head RED -> GREEN, then complete the ordinary security/browser/review gates. |
+| Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079; external/provider work must not hold long database leases and post-provider persistence must revalidate authorization/visibility/source revision. | Causal RED -> GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
+| Governed UI translation delivery | #929 and child #932 | Governed versioned translation-ledger work remains in its canonical owner lane; the leftover-map stack consumes existing localized labels instead of adding a competing store. | Complete reviewed `ko/en/ja/zh/vi/es/de/fr` resources and rendered normal/loading/empty/error/permission/responsive, keyboard/focus/screen-reader, CJK expansion and font-fallback evidence. |
+| MCP buyer-path latency | #1009 | Existing measurements remain above the repository `p95 <= 20 ms` acceptance contract. | Representative uncontended measurements, causal query/I/O/runtime profiling, Rust-first hot-path repair where warranted and exact-head gates. |
+| Release identity and immutable publication | #961 / #1056 | Candidate release identity work remains Draft; protected main is not release-ready. | Built/installed version proof, normal protected merge, immutable tag/package/release, SBOM/provenance, reproducibility and rollback evidence on one protected SHA. |
 
 ## Evidence and ownership rules
 
-A queued, skipped, COMMENTED, rate-limited, status-only, predecessor-head or
-source-neutral result is not GREEN evidence for a moved current head. An exact-head
-full-diff review with no actionable findings is positive independent review
-coverage, but it is not equivalent to a submitted `APPROVED` review when approval
-is an explicit merge gate. A compatibility receiver that fails because its
-current-head producer has not yet materialized is fail-closed control-plane
-evidence, not a source-analysis failure. A clean SARIF/report from a review scan
-whose provider execution was incomplete is likewise not promoted to GREEN.
+Queued, skipped, COMMENTED, rate-limited, status-only, predecessor-head or source-
+neutral results are not GREEN evidence for a moved head. An exact-head full-diff
+review with no actionable finding is positive independent review coverage but is
+not equivalent to a submitted `APPROVED` review when approval is a gate.
 
-A successful dispatch coordinator proves only validated exact-head handoff to the
-canonical producer. It does not transfer producer acceptance: the resulting
-repository-dispatch run must validate its payload, execute the detected-language
-matrix, publish authenticated terminal verdicts, and drive fresh receiver
-settlement on the same exact consumer head before CodeQL is GREEN.
+A successful dispatch coordinator proves only exact-head handoff to the canonical
+producer. It does not transfer producer acceptance. The producer must validate
+its payload, execute the detected-language matrix, publish authenticated terminal
+verdicts and drive fresh consumer settlement on the same exact head.
 
-A moved parent immediately invalidates descendant ancestry assumptions. Descendant
-repair is non-force: read the intervening delta, preserve still-valid
-contract/test/product evidence, then merge/reconstruct/retarget onto the moved
-parent without rewriting shared history. Parent GREEN evidence never transfers to
-that newly moved descendant head.
+A moved parent invalidates descendant ancestry assumptions immediately. Repair is
+non-force: inspect the intervening delta, preserve valid contract/test/product
+evidence, then merge/reconstruct/retarget onto the moved parent without rewriting
+shared history. Parent GREEN evidence does not transfer to the resulting descendant.
 
-A stale/conflicted owner PR is not silently force-rebased and is not closed merely
-because a replacement exists. Reconstruction is acceptable only from the current
-protected owner base with every still-valid decision/test/fixture/contract/evidence
-delta carried forward and independently revalidated. `.github#2207` is therefore a
-candidate successor to #2140, not yet proof that #2140 may close.
+A stale or conflicted PR is not force-rebased or closed merely because a successor
+exists. Closure requires complete verified succession of every valid product,
+test, fixture, contract and evidence delta, or another explicitly allowed close
+condition.
 
-Valid findings are repaired in their canonical owner lane and consumed through
-released contracts/ACLs; domain truth is not copied across repositories. In
-particular, CO's explicit `concurrency_limit_exceeded` overload contract must not
-be weakened from a LineageWeave leaf. Review callers must respect the released
-capacity/admission boundary, while progress/idle/runner-reclamation semantics stay
-separate from total model elapsed time.
+Canonical domain truth stays with its owner. LineageWeave consumes released
+contracts/ACLs and does not copy contextual-orchestrator admission/routing,
+central CI queue policy, psychometrics implementations, ranking, scheduling or
+other owner functionality.
 
-For database paths, external/model work must execute outside long-lived explicit
+For database paths, external/model work occurs outside long-lived explicit
 transactions and locks. Persistence reacquires the shortest necessary lease,
-revalidates authorization/version state, and uses idempotent/UPSERT semantics
-where the domain contract requires them.
+revalidates authorization/version state and uses idempotent/UPSERT semantics when
+the domain contract requires them.
 
 For material UI, repository/unit evidence does not replace rendered buyer-path
 acceptance. Normal/loading/empty/error/permission/responsive behavior,
@@ -193,9 +154,8 @@ applicable p95 evidence remain part of release acceptance.
 
 ## Historical evidence
 
-The former append-only baseline, including every dated overlay through
-2026-09-13 20:27 KST, is preserved unchanged at
+The former append-only baseline, including dated overlays through 2026-09-13, is
+preserved unchanged at
 [`docs/evidence/product-technical-gap-baseline-history-through-20260913.md`](evidence/product-technical-gap-baseline-history-through-20260913.md).
 It is provenance, not current authority. Future refreshes should update this
-current projection and preserve superseded snapshots without presenting old
-runtime/check state as live.
+projection rather than presenting superseded runtime/check state as live.
