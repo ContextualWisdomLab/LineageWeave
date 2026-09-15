@@ -5,8 +5,10 @@ import {
   LEFTOVER_MAP_AXIS_BADGE_SHARE,
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
 } from "./leftoverMapAxisBadge";
+import { LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE } from "./leftoverMapPlotAxisShare";
 import {
   leftoverMapCompareAxisBadge,
+  leftoverMapComparePlotAxisBadge,
   LEFTOVER_MAP_COMPARE_AXIS_SHARE,
   LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_SHARE,
@@ -65,6 +67,57 @@ describe("leftoverMapAxisBadgeSingular", () => {
       LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
     );
     expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe("leftover axis {axis} σ {value}");
+  });
+});
+
+describe("leftoverMapComparePlotAxisBadge", () => {
+  it("returns no graphic badge when neither persisted measure is usable", () => {
+    expect(
+      leftoverMapComparePlotAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: Number.NaN,
+        leftover_share: Number.POSITIVE_INFINITY,
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps graphic share-only evidence independent", () => {
+    expect(
+      leftoverMapComparePlotAxisBadge({
+        axis_index: 2,
+        leftover_singular_value: null,
+        leftover_share: 0.18,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
+      values: { axis: 2, share: "18" },
+    });
+  });
+
+  it("keeps graphic singular-only evidence independent and preserves finite zero", () => {
+    expect(
+      leftoverMapComparePlotAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: 0,
+        leftover_share: null,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+      values: { axis: 1, value: "0.00" },
+    });
+  });
+
+  it("combines persisted graphic singular and share evidence without deriving either", () => {
+    expect(
+      leftoverMapComparePlotAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: 1.24,
+        leftover_share: 0.42,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+      values: { axis: 1, value: "1.24", share: "42" },
+    });
   });
 });
 
