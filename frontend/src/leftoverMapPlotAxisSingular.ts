@@ -3,6 +3,12 @@
 import type { LeftoverMapAxis } from "./api";
 import { formatLeftoverMapPlotAxisShare } from "./leftoverMapPlotAxisShare";
 
+export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR =
+  "leftover-map axis {axis} σ {value}";
+
+export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE =
+  "leftover-map axis {axis} σ {value} ({share}%)";
+
 export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR =
   "leftover map comparison graphic leftover-map axis {axis} σ {value}";
 
@@ -25,11 +31,7 @@ export type LeftoverMapPlotAxisSingular = {
 
 export type LeftoverMapCompareAxisBadge = {
   template: string;
-  values: {
-    axis: LeftoverMapAxis["axis_index"];
-    value?: string;
-    share?: string;
-  };
+  values: Record<string, string | number>;
 };
 
 export function leftoverSingularForAxis(
@@ -74,13 +76,13 @@ export function leftoverMapCompareAxisBadge(
   if (singular === null && share === null) {
     return null;
   }
-  if (singular === null) {
+  if (singular === null && share !== null) {
     return {
       template: LEFTOVER_MAP_COMPARE_AXIS_SHARE,
-      values: { axis: axis.axis_index, share: share ?? undefined },
+      values: { axis: axis.axis_index, share },
     };
   }
-  if (share === null) {
+  if (singular !== null && share === null) {
     return {
       template: LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,
       values: { axis: axis.axis_index, value: singular },
@@ -88,6 +90,6 @@ export function leftoverMapCompareAxisBadge(
   }
   return {
     template: LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_SHARE,
-    values: { axis: axis.axis_index, value: singular, share },
+    values: { axis: axis.axis_index, value: singular as string, share: share as string },
   };
 }
