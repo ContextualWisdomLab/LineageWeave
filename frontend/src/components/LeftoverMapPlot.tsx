@@ -29,6 +29,7 @@ import {
 } from "../leftoverMapPlotAxisShare";
 import {
   formatLeftoverMapPlotAxisSingular,
+  leftoverMapComparePlotTickAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
@@ -111,6 +112,24 @@ function leftoverMapPlotAxisText(
   return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
 }
 
+function leftoverMapPlotTickText(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverMapAxes: LeftoverMapAxis[] | undefined,
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant !== "comparison") {
+    return tf(LEFTOVER_MAP_PLOT_TICK, { axis: axisIndex, value: tickLabel });
+  }
+  const badge = leftoverMapComparePlotTickAxisBadge(
+    axisIndex,
+    tickLabel,
+    leftoverSingularForAxis(leftoverMapAxes, axisIndex),
+    leftoverShareForAxis(leftoverMapAxes, axisIndex),
+  );
+  return tf(badge.key, badge.values);
+}
+
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
@@ -119,7 +138,9 @@ function leftoverMapPlotAxisText(
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Comparison graphic axes additionally name finite, non-negative persisted
  * Gabriel singular values independently of axis share; never derive one
- * measurement from the other.
+ * measurement from the other. Comparison graphic origin ticks use the exact
+ * canonical formatted zero coordinate and independently compose persisted
+ * share and singular evidence; neither measurement defines origin identity.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -325,7 +346,7 @@ export function LeftoverMapPlot({
             <g
               key={`tick:${tick.axis}:${tick.label}`}
               className="leftover-map-plot-tick"
-              aria-label={tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })}
+              aria-label={leftoverMapPlotTickText(tick.axis, tick.label, leftoverMapAxes, variant)}
             >
               <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
               <text
