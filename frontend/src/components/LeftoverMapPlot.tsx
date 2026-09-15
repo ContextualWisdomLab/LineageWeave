@@ -28,6 +28,12 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
+  formatLeftoverMapPlotAxisSingular,
+  leftoverSingularForAxis,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+} from "../leftoverMapPlotAxisSingular";
+import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   leftoverMapPlotCriterionBadge,
@@ -81,11 +87,24 @@ function leftoverMapPlotAxisText(
   const percent = formatLeftoverMapPlotAxisShare(
     leftoverShareForAxis(leftoverMapAxes, axisIndex),
   );
+  const singular = formatLeftoverMapPlotAxisSingular(
+    leftoverSingularForAxis(leftoverMapAxes, axisIndex),
+  );
   if (variant === "comparison") {
-    if (percent === null) {
-      return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
+    if (singular === null) {
+      if (percent === null) {
+        return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
+      }
+      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
     }
-    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+    if (percent === null) {
+      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
+    }
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE, {
+      axis: axisIndex,
+      value: singular,
+      share: percent,
+    });
   }
   if (percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
@@ -111,78 +130,92 @@ function leftoverMapPlotCriterionText(
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
  * Person markers are posts; item markers are leftover criteria. Report criterion
- * markers name their persisted item coordinates by composing the already-localized
- * criterion label with the persisted ζ value; the static contract key is not used
- * as a new SPA translation authority. Comparison criterion naming remains separate
- * until its own contract lands. Click a post marker to open that post. Caption
- * leftover-map axes with persisted Gabriel inertia share when finite, including
- * rank-0 zero-share axes. Axis ticks name persisted leftover-map coordinates so
- * ξ / ζ on the pair row match the plot. Pair segments name persisted leftover-map
- * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map explained
- * leftover share ``e``, leftover-map unexplained leftover share ``s``, leftover-map
- * cross share ``x``, leftover-map unexplained leftover ``U``, leftover residual
- * ``R``, leftover observed ``Y``, leftover expected ``E``, and leftover-map rank so
- * the pair-row badges match the graphic. Name leftover-map complete-case coverage,
- * leftover-map item complete-case coverage, leftover-map incomplete post coverage,
- * and leftover-map incomplete item coverage on the figure when those persisted post
- * and criterion counts are usable. Omit that distance caption when ``d`` is missing
- * or non-finite. Omit that reconstruction caption when ``R̂`` is missing or
- * non-finite. Omit that explained leftover share caption when ``e`` is missing or
- * non-finite. Omit that unexplained leftover share caption when ``s`` is missing or
- * non-finite. Omit that leftover-map cross share caption when ``x`` is missing or
- * non-finite. Omit that unexplained leftover caption when ``U`` is missing or
- * non-finite. Omit that leftover residual caption when ``R`` is missing or
- * non-finite. Omit that leftover observed caption when ``Y`` is missing or
- * non-finite. Omit that leftover expected caption when ``E`` is missing or
- * non-finite. Omit that leftover-map rank caption when rank is missing, negative,
- * or not an integer. Omit that leftover-map coverage caption when coverage is
- * missing or not usable complete-case integers. Omit that leftover-map item
- * coverage caption when item coverage is missing or not usable complete-case
- * integers. Omit that leftover-map incomplete post caption when incomplete post
- * coverage is missing or not a usable integer. Omit that leftover-map incomplete
- * item caption when incomplete item coverage is missing or not a usable integer.
- * Omit that axis badge when share is missing or non-finite and keep the existing
- * leftover-map axis text. Omit the plot when no pair has four finite leftover-map
- * coordinates. ADR 0304 reuses this graphic on the grouping comparison strip from
- * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis share
- * on that comparison graphic from already-named leftover-map axes with distinct
- * leftover map comparison axis labels. ADR 0306 captions leftover-map complete-case
- * coverage on that comparison graphic from already-named leftover-map coverage with
- * distinct leftover map comparison graphic coverage labels and does not caption
- * leftover-map incomplete coverage on that comparison plot. ADR 0307 captions
- * leftover-map item complete-case coverage on that comparison graphic from already-
- * named leftover-map coverage with distinct leftover map comparison graphic item
- * coverage labels and does not caption leftover-map incomplete item coverage on that
- * comparison plot. ADR 0308 captions leftover-map incomplete post coverage on that
- * comparison graphic from already-named leftover-map coverage with distinct leftover
- * map comparison graphic incomplete posts labels. ADR 0309 captions leftover-map
- * incomplete item coverage on that comparison graphic from already-named leftover-
- * map coverage with distinct leftover map comparison graphic incomplete items
- * labels. ADR 0310 captions leftover-map reconstruction on that comparison graphic
- * from already-named leftover-map reconstruction with distinct leftover map
- * comparison graphic reconstruction labels. ADR 0311 captions leftover-map explained
- * leftover share on that comparison graphic from already-named leftover-map
- * explained leftover share with distinct leftover map comparison graphic explained
- * leftover share labels. ADR 0312 captions leftover-map unexplained leftover share on
- * that comparison graphic from already-named leftover-map unexplained leftover share
- * with distinct leftover map comparison graphic unexplained leftover share labels.
- * ADR 0313 captions leftover-map cross share on that comparison graphic from already-
- * named leftover-map cross share with distinct leftover map comparison graphic cross
- * share labels. ADR 0314 captions leftover-map unexplained leftover on that comparison
- * graphic from already-named leftover-map unexplained leftover with distinct leftover
- * map comparison graphic unexplained leftover labels. ADR 0315 captions leftover
- * residual on that comparison graphic from already-named leftover residual with
- * distinct leftover map comparison graphic leftover residual labels. ADR 0316
- * captions leftover observed on that comparison graphic from already-named leftover
- * observed with distinct leftover map comparison graphic leftover observed labels.
- * ADR 0317 captions leftover expected on that comparison graphic from already-named
- * leftover expected with distinct leftover map comparison graphic leftover expected
- * labels. ADR 0318 captions leftover-map rank on that comparison graphic from
- * already-named leftover-map rank while composing existing localized comparison-
- * graphic and rank labels rather than adding SPA translation debt. ADR 0319 captions
- * leftover-map distance on that comparison graphic using the same localized
- * composition boundary rather than adding another static comparison-only translation
- * key. Never invent a leftover score.
+ * markers name persisted item coordinates by composing the already-localized
+ * criterion label with persisted ζ; comparison criterion naming remains generic.
+ * Click a post marker to open that post. Caption leftover-map axes with persisted
+ * Gabriel inertia share when finite, including rank-0 zero-share axes.
+ * Comparison graphic axes additionally name finite, non-negative persisted
+ * Gabriel singular values independently of axis share; never derive one
+ * measurement from the other.
+ * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
+ * pair row match the plot. Pair segments name persisted leftover-map
+ * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
+ * explained leftover share ``e``, leftover-map unexplained leftover
+ * share ``s``, leftover-map cross share ``x``, leftover-map
+ * unexplained leftover ``U``, leftover residual ``R``, leftover
+ * observed ``Y``, leftover expected ``E``, and leftover-map rank so the
+ * pair-row badges match the graphic. Name leftover-map complete-case
+ * coverage, leftover-map item complete-case coverage, leftover-map
+ * incomplete post coverage, and leftover-map incomplete item coverage
+ * on the figure when those persisted post and criterion counts are usable.
+ * Omit that distance caption when ``d`` is missing or non-finite. Omit
+ * that reconstruction caption when ``R̂`` is missing or non-finite. Omit
+ * that explained leftover share caption when ``e`` is missing or
+ * non-finite. Omit that unexplained leftover share caption when ``s`` is
+ * missing or non-finite. Omit that leftover-map cross share caption when
+ * ``x`` is missing or non-finite. Omit that unexplained leftover caption
+ * when ``U`` is missing or non-finite. Omit that leftover residual
+ * caption when ``R`` is missing or non-finite. Omit that leftover observed
+ * caption when ``Y`` is missing or non-finite. Omit that leftover expected
+ * caption when ``E`` is missing or non-finite. Omit that leftover-map rank
+ * caption when rank is missing, negative, or not an integer. Omit that leftover-map
+ * coverage caption when coverage is missing or not usable complete-case integers.
+ * Omit that leftover-map item coverage caption when item coverage is missing or
+ * not usable complete-case integers. Omit that leftover-map incomplete post
+ * caption when incomplete post coverage is missing or not a usable integer.
+ * Omit that leftover-map incomplete item caption when incomplete item
+ * coverage is missing or not a usable integer.
+ * Omit each axis evidence badge independently when its persisted evidence is
+ * unusable and keep the remaining buyer-visible axis evidence intact.
+ * Omit the plot when no pair has four finite leftover-map coordinates.
+ * ADR 0304 reuses this graphic on the grouping comparison strip from
+ * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis
+ * share on that comparison graphic from already-named leftover-map axes
+ * with distinct leftover map comparison axis labels. ADR 0306 captions leftover-map
+ * complete-case coverage on that comparison graphic from already-named
+ * leftover-map coverage with distinct leftover map comparison graphic coverage
+ * labels and does not caption leftover-map incomplete coverage on that
+ * comparison plot. ADR 0307 captions leftover-map item complete-case
+ * coverage on that comparison graphic from already-named leftover-map
+ * coverage with distinct leftover map comparison graphic item coverage
+ * labels and does not caption leftover-map incomplete item coverage on that
+ * comparison plot. ADR 0308 captions leftover-map incomplete post coverage
+ * on that comparison graphic from already-named leftover-map coverage with
+ * distinct leftover map comparison graphic incomplete posts labels. ADR 0309
+ * captions leftover-map incomplete item coverage on that comparison graphic
+ * from already-named leftover-map coverage with distinct leftover map
+ * comparison graphic incomplete items labels. ADR 0310 captions leftover-map
+ * reconstruction on that comparison graphic from already-named leftover-map
+ * reconstruction with distinct leftover map comparison graphic reconstruction
+ * labels. ADR 0311 captions leftover-map explained leftover share on that
+ * comparison graphic from already-named leftover-map explained leftover share
+ * with distinct leftover map comparison graphic explained leftover share
+ * labels. ADR 0312 captions leftover-map unexplained leftover share on that
+ * comparison graphic from already-named leftover-map unexplained leftover share
+ * with distinct leftover map comparison graphic unexplained leftover share
+ * labels. ADR 0313 captions leftover-map cross share on that
+ * comparison graphic from already-named leftover-map cross share
+ * with distinct leftover map comparison graphic cross share
+ * labels. ADR 0314 captions leftover-map unexplained leftover on that
+ * comparison graphic from already-named leftover-map unexplained leftover
+ * with distinct leftover map comparison graphic unexplained leftover
+ * labels. ADR 0315 captions leftover residual on that
+ * comparison graphic from already-named leftover residual
+ * with distinct leftover map comparison graphic leftover residual
+ * labels. ADR 0316 captions leftover observed on that
+ * comparison graphic from already-named leftover observed
+ * with distinct leftover map comparison graphic leftover observed
+ * labels. ADR 0317 captions leftover expected on that
+ * comparison graphic from already-named leftover expected
+ * with distinct leftover map comparison graphic leftover expected
+ * labels. ADR 0318 captions leftover-map rank on that comparison graphic
+ * from already-named leftover-map rank while composing existing localized
+ * comparison-graphic and rank labels rather than adding SPA translation debt.
+ * ADR 0319 captions leftover-map distance on that comparison graphic using
+ * the same localized composition boundary rather than adding another static
+ * comparison-only translation key. ADR 0321 adds persisted comparison-axis
+ * singular evidence without deriving it from axis share.
+ * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
   pairs,
