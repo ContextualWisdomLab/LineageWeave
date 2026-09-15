@@ -38,13 +38,13 @@ def test_report_axis_badge_keeps_sigma_and_share_missingness_independent() -> No
     assert "Math.sqrt" not in source
 
 
-def test_report_axis_rendering_consumes_the_repaired_formatting_primitives() -> None:
-    """The report path must consume helpers whose missing share no longer becomes `NaN%`."""
+def test_report_axis_rendering_consumes_the_four_state_projection() -> None:
+    """The report path must omit a badge when neither persisted axis datum is usable."""
     app_source = APP_SOURCE.read_text(encoding="utf-8")
 
-    assert "leftoverMapAxisBadgeShare," in app_source
-    assert "leftoverMapAxisBadgeSingular," in app_source
-    assert "const singular = leftoverMapAxisBadgeSingular(axis);" in app_source
-    assert "const share = leftoverMapAxisBadgeShare(axis.leftover_share);" in app_source
-    assert "LEFTOVER_MAP_AXIS_BADGE_SHARE" in app_source
-    assert "LEFTOVER_MAP_AXIS_BADGE_SINGULAR" in app_source
+    assert "leftoverMapAxisBadge," in app_source
+    assert "const badge = leftoverMapAxisBadge(axis);" in app_source
+    assert "badge === null ? null" in app_source
+    assert "tf(badge.template, badge.values)" in app_source
+    assert "leftoverMapAxisBadgeShare," not in app_source
+    assert "leftoverMapAxisBadgeSingular," not in app_source
