@@ -1,0 +1,114 @@
+name: Repair 877 comparison tick i18n
+
+on:
+  push:
+    branches:
+      - automation/877-tick-i18n-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/leftover-map-compare-plot-tick-origin-badge-v2920
+          fetch-depth: 0
+      - name: Verify exact RED head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ef776547c3422904f3d1e5119037fad6fb63d3f0"
+          python -m pytest -q tests/test_grouping_comparison_graphic_tick_i18n_contract.py && {
+            echo "expected i18n contract to be RED before repair" >&2
+            exit 1
+          } || true
+      - name: Apply catalog repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/i18n.ts")
+          source = path.read_text(encoding="utf-8")
+          first_key = '"leftover map comparison graphic leftover-map axis {axis} tick {value}"'
+          if first_key in source:
+              raise SystemExit("comparison tick translations already exist; refusing duplicate insertion")
+
+          insertions = {
+              '    "leftover-map axis {axis} tick {value}": "잔여 지도 축 {axis} 눈금 {value}",': [
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value}": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 눈금 {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 눈금 {value} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 눈금 {value} σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 눈금 {value} σ {singular} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 원점 눈금 {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 원점 눈금 {value} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 원점 눈금 {value} σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%": "잔여 지도 비교 그래픽 잔여 지도 축 {axis} 원점 눈금 {value} σ {singular} {share}%",',
+              ],
+              '    "leftover-map axis {axis} tick {value}": "残差图轴 {axis} 刻度 {value}",': [
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value}": "残差图比较图形 残差图轴 {axis} 刻度 {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%": "残差图比较图形 残差图轴 {axis} 刻度 {value} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}": "残差图比较图形 残差图轴 {axis} 刻度 {value} σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%": "残差图比较图形 残差图轴 {axis} 刻度 {value} σ {singular} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}": "残差图比较图形 残差图轴 {axis} 原点刻度 {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%": "残差图比较图形 残差图轴 {axis} 原点刻度 {value} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}": "残差图比较图形 残差图轴 {axis} 原点刻度 {value} σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%": "残差图比较图形 残差图轴 {axis} 原点刻度 {value} σ {singular} {share}%",',
+              ],
+              '    "leftover-map axis {axis} tick {value}": "残差マップ軸 {axis} 目盛 {value}",': [
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value}": "残差マップ比較グラフィック 残差マップ軸 {axis} 目盛 {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%": "残差マップ比較グラフィック 残差マップ軸 {axis} 目盛 {value} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}": "残差マップ比較グラフィック 残差マップ軸 {axis} 目盛 {value} σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%": "残差マップ比較グラフィック 残差マップ軸 {axis} 目盛 {value} σ {singular} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}": "残差マップ比較グラフィック 残差マップ軸 {axis} 原点目盛 {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%": "残差マップ比較グラフィック 残差マップ軸 {axis} 原点目盛 {value} {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}": "残差マップ比較グラフィック 残差マップ軸 {axis} 原点目盛 {value} σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%": "残差マップ比較グラフィック 残差マップ軸 {axis} 原点目盛 {value} σ {singular} {share}%",',
+              ],
+              '    "leftover-map axis {axis} tick {value}": "vạch trục bản đồ phần dư {axis} {value}",': [
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value}": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch {value}, {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch {value}, σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch {value}, σ {singular}, {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value}": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch gốc {value}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch gốc {value}, {share}%",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch gốc {value}, σ {singular}",',
+                  '    "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%": "đồ họa so sánh bản đồ phần dư, trục {axis}, vạch gốc {value}, σ {singular}, {share}%",',
+              ],
+          }
+
+          for marker, additions in insertions.items():
+              if source.count(marker) != 1:
+                  raise SystemExit(f"expected one locale marker, found {source.count(marker)}: {marker}")
+              source = source.replace(marker, marker + "\n" + "\n".join(additions), 1)
+
+          path.write_text(source, encoding="utf-8")
+          PY
+      - name: Verify focused GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_grouping_comparison_graphic_tick_i18n_contract.py \
+            tests/test_grouping_comparison_graphic_tick_contract.py \
+            tests/test_grouping_comparison_graphic_origin_tick_contract.py
+      - name: Commit and push target repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ef776547c3422904f3d1e5119037fad6fb63d3f0"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/i18n.ts
+          git diff --cached --check
+          git commit -m "fix(i18n): translate comparison tick accessibility copy"
+          git push origin HEAD:feat/leftover-map-compare-plot-tick-origin-badge-v2920
+      - name: Remove one-shot automation branch
+        if: ${{ success() }}
+        shell: bash
+        run: git push origin --delete automation/877-tick-i18n-20260916
