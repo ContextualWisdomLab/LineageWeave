@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 21:03 KST.
+> Current authority snapshot: 2026-09-15 21:29 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e` at this projection.
 > This file summarizes live PR/Issue/check authority; protected refs, PRs, Issues,
@@ -23,58 +23,77 @@ product stack; LineageWeave must not copy provider routing, queue, timeout, retr
 or credential policy to work around those owner paths.
 
 Foundation `.github#2170` and its `.github#1629` reconciliation remain ordered
-prerequisites for the central review/runtime path. Historical `.github#2140`
-remains open while current-main successor `.github#2207` is independently
-validated; successor creation alone is not complete succession.
+prerequisites for the central review/runtime path. On #2170 exact
+`c346b8324fa23e23d4007799d26ad3a8ac6ae4c3`, canonical CodeQL producer run
+`34921233636` has passed `validate-dispatch` (`104229618015` SUCCESS) and is now
+waiting in the actual scan job `104230163129`; coordinator success alone is not
+analysis acceptance.
+
+Historical `.github#2140` remains open while current-main successor `.github#2207`
+is independently validated. #2207 moved to exact
+`9b34e64e772a8c77ab5c049accfba5cb2ae5de0d` after a valid CodeRabbit finding was
+repaired in ADR-0030: the no-interruption guarantee for active streaming is now
+explicitly scoped to the external job boundary, while a job ceiling or separately
+classified runner-reclamation event may terminate the request without becoming a
+model-failure verdict or route-ranking signal. A second review suggestion to
+replace `012beaac` was rejected after verification because #2137 uses that value as
+the target vendored contextual-orchestrator revision. Fresh #2207 Security/SAST/
+CodeQL/Python Security evidence belongs to the new head; no receipt from
+`36a6755...` transfers. Successor creation or one review repair is still not
+complete succession, so #2140 stays open.
 
 ### Leftover-map singular/share and marker-identity stack
 
-A current-head review on #867 found that the newly introduced
-`leftoverMapComparePlotAxisBadge` helper was not actually wired to the comparison
-graphic. The component still mapped axis evidence through
-`leftoverMapCompareAxisBadge`, which is comparison-strip copy. A realistic source
-contract was first added at `e4670959cca60a94bc0ebf54a503f3b4d38d535d` to
-require graphic-specific wiring, making the predecessor implementation RED.
-Production head `9e9e38dab1120585d41cb4f2ee81778689b0256a` then switched
-`LeftoverMapPlot` to `leftoverMapComparePlotAxisBadge` and documented the touched
-production helpers. The graphic and strip surfaces therefore keep distinct copy
-while both consume only persisted finite singular/share evidence.
+#867's production repair remains the foundation: `LeftoverMapPlot` uses
+`leftoverMapComparePlotAxisBadge` for comparison-graphic captions, while the
+comparison strip retains `leftoverMapCompareAxisBadge`. Both helpers consume only
+persisted finite singular/share evidence and keep the two measurements independent.
 
-Fresh #867 Tests are not GREEN yet: run `34965610236` is queued, a newer attempt
-was cancelled, and another attempt was skipped. Neither cancellation nor skip is
-acceptance evidence.
+The #867 branch then advanced non-destructively from `9e9e38da...` to exact
+`a81297680bf1b0536227db41fd9596ee42519c0e`. The intervening delta was inspected
+rather than treated as a race: it changes only
+`frontend/src/leftoverMapAxisBadge.test.ts` (+53/-0) and adds direct Vitest coverage
+for the graphic helper's empty, share-only, singular-only (including finite
+`σ=0`), and combined states. It does not change production semantics. Current
+#867 Tests include queued run `34967080332`; cancelled/skipped sibling attempts are
+not acceptance evidence.
 
-Because #867 moved, the active descendant stack was reconverged immediately by
-normal merge PRs, without force-push or destructive rebase. The current linear
-ancestry is:
+Because that parent movement invalidated descendant ancestry assumptions, the
+active linear stack was adopted/converged without force-push or destructive
+rebase. The current exact ancestry is:
 
-`#867 9e9e38da... -> #868 933d4627... -> #869 26b9ce48... ->
-#870 4d7e6404... -> #871 ddcba830... -> #872 ea26581b... ->
-#873 bc03c627... -> #874 c5abdfc2... -> #875 4e90d973...`.
+`#867 a8129768... -> #868 d39343ab... -> #869 732ad3b6... ->
+#870 fb1eb3cd... -> #871 78ce9469... -> #872 fc9bf9db... ->
+#873 c8a5063c... -> #874 f2377692... -> #875 758da1e8...`.
 
-Convergence PRs #1085 through #1092 were normally merged in parent order. No
-predecessor validation receipt transfers to any moved exact head. #868-#875 stay
-Draft because each retains its own local tick/share/singular contract and still
-requires fresh exact-head repository, security, rendered accessibility and
-independent-review evidence before promotion.
+The moved #868-#875 heads keep their own tick/share/singular product deltas while
+inheriting the exact #867 executable test blob. Their PR authorities now name the
+current parent/head pairs. No predecessor validation receipt transfers, and all
+remain Draft pending fresh exact-head repository/security/rendered-accessibility/
+performance/review evidence.
 
-The current report/comparison marker stack below #875 is:
+The current report/comparison marker stack below #875 was also repaired in the
+same turn rather than left conflicted:
 
-- #876 exact `a9cefd596d0a4eb94281eccbadd1b24ce3ff6a1f`: report criterion `ζ`
+- #876 exact `347962092b5887580fce6d2d708d9ae7c950c2a2`: report criterion `ζ`
   consumes only persisted finite item-axis coordinates and fails closed for
-  unusable pairs. It adopted #875 through normal convergence PR #1093.
-- #1033 exact `549db716caf71f3581bfa8cd96768212665feb6b`: comparison criterion `ζ`
-  preserves the #876 boundary after normal convergence PR #1094.
-- #1034 exact `0171755fc42dd30842a0245eb13430981426bd10`: comparison post `ξ`
-  consumes only persisted finite person-axis coordinates after normal convergence
-  PR #1095. Fresh Tests run `34966164590` is queued.
-- sibling #877 exact `a0a2b6f7fa3a5b905e31a7fae21a26dcc1aead5d`: comparison origin-tick
-  identity remains exact canonical formatted zero. Because #877 and #867 both
-  touch `LeftoverMapPlot`, the parent change required semantic conflict repair:
-  the graphic-specific axis-badge wiring and executable wiring contract were
-  applied without removing the origin-tick delta, then a two-parent non-force
-  merge commit completed convergence PR #1096. Fresh Tests run `34966416325` is
-  queued.
+  unusable pairs. The prior criterion product/test delta is preserved while the
+  exact upstream Vitest blob is inherited. Fresh Tests run `34968725267` is queued.
+- #1033 exact `ccf077cf503b4ce3169e44186a07b74ee30ec7f0`: comparison criterion `ζ`
+  preserves the #876 boundary after semantic non-force convergence. Fresh Tests
+  run `34968819345` is queued.
+- #1034 exact `b9dec94a21e47b9ceeb30a3074b6978d17b00958`: comparison post `ξ`
+  consumes only persisted finite person-axis coordinates. Fresh Tests run
+  `34968872059` is queued.
+- sibling #877 exact `ba9101f59743de37f999c3ccf5e0ad0a1a26980d`: comparison origin-tick
+  identity remains exact canonical formatted zero while share/σ remain independent.
+  Fresh Tests run `34968764771` is pending.
+
+For #876/#877/#1033/#1034 the only upstream semantic movement was the executable
+`leftoverMapAxisBadge.test.ts` coverage. Their local product/test files did not
+overlap that delta, so convergence used explicit two-parent commits and copied the
+exact upstream blob into the child tree before a non-force branch fast-forward.
+No child product delta was replaced or force-rebased.
 
 Historical #878/#879 remain open as delta carriers. Their full stale trees are not
 replayed over repaired ancestry; #1033/#1034 are the current reconstruction
@@ -85,11 +104,11 @@ evidence delta is demonstrably inherited and verified.
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
-| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
-| Comparison-graphic axis σ/share identity | #867 `9e9e38da...` | Review finding reproduced by source contract, production now uses graphic-specific helper rather than strip helper; current Tests are queued/skipped/cancelled, not GREEN. | Focused contract + frontend/full repository tests, rendered a11y/i18n evidence, applicable Security/SAST/CodeQL/model review and qualifying approval. |
-| Singular/share tick stack | #868 `933d4627...` -> #875 `4e90d973...` | Descendants contain repaired #867 foundation through normal non-force merge ancestry and PR authority now names current parents/heads. | Settle each local RED and fresh exact-head repository/security/browser-a11y/performance/review evidence in parent order. |
-| Report/comparison marker identity | #876 `a9cefd59...` -> #1033 `549db716...` -> #1034 `0171755f...` | ζ/ζ/ξ boundaries are preserved on repaired ancestry; #1034 Tests `34966164590` are queued. Historical #878/#879 remain open delta carriers. | Focused contracts, frontend build/tests, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable security/model review and qualifying approvals. |
-| Comparison origin tick identity | #877 `a0a2b6f7...` | Semantic conflict repair preserves exact-zero origin, independent share/σ composition, graphic-specific axis badge copy and its executable wiring contract; Tests `34966416325` are queued. | Current-head executable contract, frontend build/tests, rendered keyboard/focus/a11y/i18n, applicable security/model review and qualifying approval. |
+| Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. `.github#2170` producer validation is GREEN but its actual CodeQL scan remains queued; `.github#2207` moved after a verified ADR repair and requires entirely fresh evidence. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
+| Comparison-graphic axis σ/share identity | #867 `a8129768...` | Production uses graphic-specific helper rather than strip helper; direct Vitest state coverage now exercises empty/share-only/σ-only/combined states. Current Tests run `34967080332` is queued, not GREEN. | Focused contract + frontend/full repository tests, rendered a11y/i18n evidence, applicable Security/SAST/CodeQL/model review and qualifying approval. |
+| Singular/share tick stack | #868 `d39343ab...` -> #875 `758da1e8...` | Descendants contain repaired #867 foundation plus the executable helper-state tests through non-force ancestry; PR authority names current parents/heads. | Settle each local RED and fresh exact-head repository/security/browser-a11y/performance/review evidence in parent order. |
+| Report/comparison marker identity | #876 `34796209...` -> #1033 `ccf077cf...` -> #1034 `b9dec94a...` | ζ/ζ/ξ boundaries are preserved after current-parent convergence; new Tests `34968725267`, `34968819345`, `34968872059` are queued. Historical #878/#879 remain open delta carriers. | Focused contracts, frontend build/tests, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable security/model review and qualifying approvals. |
+| Comparison origin tick identity | #877 `ba9101f5...` | Exact-zero origin and independent share/σ composition are preserved while the upstream executable badge-state tests are inherited; Tests `34968764771` is pending. | Current-head executable contract, frontend build/tests, rendered keyboard/focus/a11y/i18n, applicable security/model review and qualifying approval. |
 | Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079; external/provider work must not hold long database leases and post-provider persistence must revalidate authorization/visibility/source revision. | Causal RED -> GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
 | Governed UI translation delivery | #929 and child #932 | Governed versioned translation-ledger work remains in its canonical owner lane; leftover-map work consumes localized labels rather than adding a competing store. | Reviewed `ko/en/ja/zh/vi/es/de/fr` resources plus rendered normal/loading/empty/error/permission/responsive, keyboard/focus/screen-reader, CJK expansion and font-fallback evidence. |
 | MCP buyer-path latency | #1009 | Existing measurements remain above the repository `p95 <= 20 ms` acceptance contract. | Representative uncontended measurements, causal query/I/O/runtime profiling, Rust-first hot-path repair where warranted and exact-head gates. |
