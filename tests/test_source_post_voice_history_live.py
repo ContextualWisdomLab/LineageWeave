@@ -15,9 +15,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
-import psycopg2
-import psycopg2.errors
 import pytest
+
+from lineageweave import postgres_sync as sync_postgres
+from lineageweave.postgres_sync import sql
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -56,10 +57,10 @@ select voice.voice_type_code
 
 def _postgres_available() -> bool:
     try:
-        conn = psycopg2.connect(_ADMIN_DSN, connect_timeout=2)
+        conn = sync_postgres.connect(_ADMIN_DSN, connect_timeout=2)
         conn.close()
         return True
-    except psycopg2.OperationalError:
+    except sync_postgres.OperationalError:
         return False
 
 
@@ -92,17 +93,19 @@ def _apply_migrations(database_dsn: str) -> None:
 def voice_history_dsn():
     """Throwaway database with the full product schema, dropped afterward."""
     database_name = f"lineageweave_voice_hist_{uuid.uuid4().hex[:12]}"
-    admin_conn = psycopg2.connect(_ADMIN_DSN)
+    admin_conn = sync_postgres.connect(_ADMIN_DSN)
     admin_conn.autocommit = True
     with admin_conn.cursor() as cursor:
-        cursor.execute(f'create database "{database_name}"')
+        cursor.execute(
+            sql.SQL("create database {}").format(sql.Identifier(database_name))
+        )
     admin_conn.close()
     database_dsn = _database_dsn(database_name)
     try:
         _apply_migrations(database_dsn)
         yield database_dsn
     finally:
-        admin_conn = psycopg2.connect(_ADMIN_DSN)
+        admin_conn = sync_postgres.connect(_ADMIN_DSN)
         admin_conn.autocommit = True
         with admin_conn.cursor() as cursor:
             cursor.execute(
@@ -110,12 +113,14 @@ def voice_history_dsn():
                 "where datname = %s and pid <> pg_backend_pid()",
                 (database_name,),
             )
-            cursor.execute(f'drop database "{database_name}"')
+            cursor.execute(
+                sql.SQL("drop database {}").format(sql.Identifier(database_name))
+            )
         admin_conn.close()
 
 
 def _connect(database_dsn: str):
-    connection = psycopg2.connect(database_dsn)
+    connection = sync_postgres.connect(database_dsn)
     connection.autocommit = True
     return connection
 
@@ -403,7 +408,10 @@ def test_gist_exclusion_rejects_overlapping_primary_intervals(
             )
             opened_at = cursor.fetchone()[0]
             with pytest.raises(
-                (psycopg2.errors.ExclusionViolation, psycopg2.errors.RaiseException)
+                (
+                    sync_postgres.errors.ExclusionViolation,
+                    sync_postgres.errors.RaiseException,
+                )
             ):
                 cursor.execute(
                     """
@@ -433,7 +441,7 @@ def test_concurrent_primary_updates_serialize_non_overlapping_history(
     errors: list[Exception] = []
 
     def _update(next_code: str) -> None:
-        connection = psycopg2.connect(voice_history_dsn)
+        connection = sync_postgres.connect(voice_history_dsn)
         try:
             barrier.wait(timeout=10)
             with connection.cursor() as cursor:
