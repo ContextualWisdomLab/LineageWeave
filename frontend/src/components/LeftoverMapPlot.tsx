@@ -31,6 +31,7 @@ import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   leftoverMapComparePlotPostBadge,
+  leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -94,6 +95,20 @@ function leftoverMapPlotAxisText(
   return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
 }
 
+function leftoverMapPlotCriterionText(
+  marker: { label: string; axis1: number; axis2: number },
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant === "comparison") {
+    return `${t("Criterion ζ")} ${marker.label}`;
+  }
+  const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
+  if (badge === null) {
+    return `${t("Criterion ζ")} ${marker.label}`;
+  }
+  return tf(badge.key, badge.values);
+}
+
 function leftoverMapPlotPostText(
   marker: { label: string; axis1: number; axis2: number },
   variant: LeftoverMapPlotVariant,
@@ -115,8 +130,10 @@ function leftoverMapPlotPostText(
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
- * Person markers are posts; item markers are leftover criteria. Click a
- * post marker to open that post. Caption leftover-map axes with persisted
+ * Person markers are posts; item markers are leftover criteria. Report criterion
+ * markers name persisted item ζ through the report criterion badge while the
+ * comparison criterion contract remains owned by the parent lane. Click a post
+ * marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
@@ -511,7 +528,7 @@ export function LeftoverMapPlot({
             </g>
           ))}
           {layout.items.map((marker) => (
-            <g key={`item:${marker.id}`} aria-label={`${t("Criterion ζ")} ${marker.label}`}>
+            <g key={`item:${marker.id}`} aria-label={leftoverMapPlotCriterionText(marker, variant)}>
               <polygon className="leftover-map-plot-item" points={diamondPoints(marker.x, marker.y, 7)} />
               <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y + 14}>
                 {marker.label}
