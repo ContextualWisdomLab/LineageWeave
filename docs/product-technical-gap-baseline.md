@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-15 11:49 KST.
+> Current authority snapshot: 2026-09-15 12:55 KST.
 >
 > Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`;
 > the commit is signature-verified and no protected-main movement was observed in
@@ -106,14 +106,28 @@ No LineageWeave release is admitted from the current protected head.
   current protected `.github/main`; exact head is
   `36a6755a5b699d8f43269805b6fccd5c5d75eae5`. Current-head
   `required-workflow-bootstrap` `104210566507` and `admit-current-head`
-  `104210566437` remain queued and there is no submitted review, so complete
-  succession is not yet proven and #2140 must remain open.
+  `104210566437` remain queued. A manual CodeRabbit full review has now been
+  triggered against exact protected base/head and is processing the two docs-only
+  changed files; there is still no submitted review, so complete succession is not
+  yet proven and #2140 must remain open.
+- Draft #1034 has advanced from its intentional comparison-post coordinate RED to
+  exact `49d02bfc232a2979a57cdadcc7dc379042348c29`. The branch retains the realistic
+  contract in `tests/test_grouping_comparison_graphic_post_person_coordinate_contract.py`
+  and now carries the minimum production repair: `leftoverMapComparePlotPostBadge`
+  accepts only persisted finite person `ξ` coordinates, comparison post actions
+  have a distinct accessible name, invalid coordinates omit the coordinate, and
+  report post naming remains separate. No criterion `ζ`, geometry, distance, rank,
+  or measurement output is used to infer person coordinates. Fresh repository Tests
+  run `34926728363` has materialized on this exact head and both Frontend and Full
+  suite jobs are still pre-runner queued. A manual exact-head CodeRabbit full review
+  is also requested; no predecessor validation receipt transfers.
 
 ## Buyer-visible gap register
 
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950e73c88a9f9fd932332ddd47682da124b` | Reader path is lookup/reuse-only; explicit admin retains mutation authority. Full PostgreSQL and authenticated PostgreSQL + Keycloak + Valkey materialization/fallback regressions, SAST and Required Security are GREEN. CodeRabbit full-diff review is clean. OpenCode coverage tree/evidence are GREEN. Strix produced zero SARIF findings but failed closed on CO saturation; Noema never reached a verdict because sidecar provisioning occupied the runner until cancellation. CodeQL coordinator has completed the exact-head canonical dispatch; producer run `34922377994` is now queued at validation. Canonical occupancy decision evidence is on `.github#2139`, with stale `.github#2140` reconstructed as current-main Draft `.github#2207`. | Finish current-head CodeQL producer/compatibility acceptance, obtain authenticated OpenCode verdict, repair/revalidate Strix and Noema through canonical owner lanes, prove the #2140 -> #2207 decision-record succession, obtain qualifying submitted approval, then normal protected merge. |
+| Comparison leftover-map post-marker identity | #1034 `49d02bfc232a2979a57cdadcc7dc379042348c29` | The reconstructed realistic RED now has a minimal production implementation: comparison marker action text is derived only from persisted finite person axes through `leftoverMapComparePlotPostBadge`; report-marker action identity remains separate, and invalid person coordinates fail closed without borrowing criterion axes. Exact-head repository Tests and independent full review are newly materialized/requested and nonterminal. | Exact-head focused/static contract, frontend lint/tests/build, full repository/PostgreSQL validation, rendered keyboard/focus/a11y evidence, applicable Security/SAST/CodeQL/model review, qualifying approval, then ordinary parent-stack convergence/integration. |
 | Catalog connection leases and summary TOCTOU | #1077 and #1080 | Kept separate from #1079: provider work must not hold long DB leases; post-provider persistence must revalidate authorization/visibility and source revision. | Causal RED->GREEN in each owner lane, short-transaction evidence, current-head tests and protected integration. |
 | Governed UI translation delivery | #929 `f898399c5ff9ab89fe440d2e66985860e141620c` and child #932 | PostgreSQL-authoritative versioned ledger is implemented and repository tests are GREEN, but complete reviewed `ko/en/ja/zh/vi/es/de/fr` Customer Master publication is not demonstrated and central Security/CodeQL gates remain non-GREEN. | Complete eight-locale resource publication, authenticated API/browser normal/loading/empty/error/permission/responsive states, keyboard/focus/screen-reader, CJK/text expansion/font fallback and current security/governance receipts. |
 | MCP buyer-path latency | #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` | Modern/legacy protocol repair is Draft. Recorded modern submit/read and legacy read measurements remain far above the repository `p95 <= 20 ms` acceptance contract; CodeQL is also non-GREEN. | Representative uncontended cold/realistic measurements without sample removal or artificial warm-up, profile owned query/I/O/runtime bottlenecks, Rust-first hot-path repair where causal, then exact-head gates. |
