@@ -6,6 +6,10 @@ import {
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
 } from "./leftoverMapAxisBadge";
 import {
+  leftoverMapCompareAxisBadge,
+  LEFTOVER_MAP_COMPARE_AXIS_SHARE,
+  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,
+  LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_SHARE,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
   LEFTOVER_MAP_PLOT_AXIS_SINGULAR,
@@ -61,5 +65,50 @@ describe("leftoverMapAxisBadgeSingular", () => {
       LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
     );
     expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe("leftover axis {axis} σ {value}");
+  });
+});
+
+describe("leftoverMapCompareAxisBadge", () => {
+  it("keeps persisted singular and share evidence independent", () => {
+    expect(
+      leftoverMapCompareAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: 1.24,
+        leftover_share: 0.42,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_COMPARE_AXIS_SINGULAR_SHARE,
+      values: { axis: 1, value: "1.24", share: "42" },
+    });
+    expect(
+      leftoverMapCompareAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: 0,
+        leftover_share: null,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_COMPARE_AXIS_SINGULAR,
+      values: { axis: 1, value: "0.00" },
+    });
+    expect(
+      leftoverMapCompareAxisBadge({
+        axis_index: 2,
+        leftover_singular_value: null,
+        leftover_share: 0.18,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_COMPARE_AXIS_SHARE,
+      values: { axis: 2, share: "18" },
+    });
+  });
+
+  it("omits the comparison-strip badge when neither persisted measure is usable", () => {
+    expect(
+      leftoverMapCompareAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: Number.NaN,
+        leftover_share: Number.POSITIVE_INFINITY,
+      }),
+    ).toBeNull();
   });
 });
