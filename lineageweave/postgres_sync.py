@@ -148,11 +148,17 @@ def connection_kwargs_from_dsn(
     """Translate one PostgreSQL URI into explicit pg8000 connection arguments.
 
     ``connect_timeout`` passed by the caller takes precedence over the URI's
-    ``connect_timeout`` query value, matching the old call sites. Query
-    options are allow-listed because silently discarding a libpq option could
-    weaken transport security or alter session semantics. Duplicate options
-    are rejected because collapsing conflicting values would make the selected
-    connection policy depend on parser ordering rather than explicit intent.
+    ``connect_timeout`` query value, matching the old call sites. Libpq treats
+    zero and negative timeouts as an unlimited wait; the adapter preserves that
+    sentinel by omitting pg8000's ``timeout`` argument rather than converting it
+    into an immediate or invalid deadline. URI timeout text remains a decimal
+    integer, as required by libpq.
+
+    Query options are allow-listed because silently discarding a libpq option
+    could weaken transport security or alter session semantics. Duplicate
+    options are rejected because collapsing conflicting values would make the
+    selected connection policy depend on parser ordering rather than explicit
+    intent.
 
     Libpq-style URIs may omit the username and then use the operating-system
     account. Several repository PostgreSQL test fixtures rely on that default,
@@ -209,21 +215,26 @@ def connection_kwargs_from_dsn(
     if unknown:
         raise ValueError(f"unsupported PostgreSQL DSN option: {unknown[0]}")
 
-    timeout_value = connect_timeout
-    if timeout_value is None and "connect_timeout" in query:
+    timeout_error = (
+        "PostgreSQL connect_timeout must be a decimal integer; use a finite positive "
+        "deadline or a non-positive no-deadline sentinel"
+    )
+    timeout: float | int | None = None
+    if connect_timeout is None and "connect_timeout" in query:
         try:
-            timeout_value = float(query["connect_timeout"])
+            timeout = int(query["connect_timeout"], 10)
         except ValueError as exc:
-            raise ValueError("PostgreSQL connect_timeout must be numeric") from exc
-    if timeout_value is not None:
-        if isinstance(timeout_value, bool):
+            raise ValueError(timeout_error) from exc
+    elif connect_timeout is not None:
+        if isinstance(connect_timeout, bool):
             raise TypeError("PostgreSQL connect_timeout must be a real number")
         try:
-            timeout = float(timeout_value)
+            timeout = float(connect_timeout)
         except OverflowError as exc:
-            raise ValueError("PostgreSQL connect_timeout must be finite positive") from exc
-        if not math.isfinite(timeout) or timeout <= 0:
-            raise ValueError("PostgreSQL connect_timeout must be finite positive")
+            raise ValueError(timeout_error) from exc
+        if not math.isfinite(timeout):
+            raise ValueError(timeout_error)
+    if timeout is not None and timeout > 0:
         kwargs["timeout"] = timeout
 
     if "application_name" in query:
