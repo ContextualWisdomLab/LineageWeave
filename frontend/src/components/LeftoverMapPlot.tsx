@@ -28,6 +28,12 @@ import {
   LEFTOVER_MAP_PLOT_AXIS_SHARE,
 } from "../leftoverMapPlotAxisShare";
 import {
+  formatLeftoverMapPlotAxisSingular,
+  leftoverSingularForAxis,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+} from "../leftoverMapPlotAxisSingular";
+import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
@@ -80,11 +86,24 @@ function leftoverMapPlotAxisText(
   const percent = formatLeftoverMapPlotAxisShare(
     leftoverShareForAxis(leftoverMapAxes, axisIndex),
   );
+  const singular = formatLeftoverMapPlotAxisSingular(
+    leftoverSingularForAxis(leftoverMapAxes, axisIndex),
+  );
   if (variant === "comparison") {
-    if (percent === null) {
-      return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
+    if (singular === null) {
+      if (percent === null) {
+        return t(axisIndex === 1 ? LEFTOVER_MAP_COMPARE_PLOT_AXIS_1 : LEFTOVER_MAP_COMPARE_PLOT_AXIS_2);
+      }
+      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
     }
-    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+    if (percent === null) {
+      return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
+    }
+    return tf(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE, {
+      axis: axisIndex,
+      value: singular,
+      share: percent,
+    });
   }
   if (percent === null) {
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
@@ -98,6 +117,9 @@ function leftoverMapPlotAxisText(
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
+ * Comparison graphic axes additionally name finite, non-negative persisted
+ * Gabriel singular values independently of axis share; never derive one
+ * measurement from the other.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -126,8 +148,8 @@ function leftoverMapPlotAxisText(
  * caption when incomplete post coverage is missing or not a usable integer.
  * Omit that leftover-map incomplete item caption when incomplete item
  * coverage is missing or not a usable integer.
- * Omit that axis badge when share is
- * missing or non-finite and keep the existing leftover-map axis text.
+ * Omit each axis evidence badge independently when its persisted evidence is
+ * unusable and keep the remaining buyer-visible axis evidence intact.
  * Omit the plot when no pair has four finite leftover-map coordinates.
  * ADR 0304 reuses this graphic on the grouping comparison strip from
  * already-named leftover-map coordinates. ADR 0305 captions leftover-map axis
@@ -174,7 +196,8 @@ function leftoverMapPlotAxisText(
  * comparison-graphic and rank labels rather than adding SPA translation debt.
  * ADR 0319 captions leftover-map distance on that comparison graphic using
  * the same localized composition boundary rather than adding another static
- * comparison-only translation key.
+ * comparison-only translation key. ADR 0321 adds persisted comparison-axis
+ * singular evidence without deriving it from axis share.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
