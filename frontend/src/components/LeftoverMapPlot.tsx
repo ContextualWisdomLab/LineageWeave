@@ -30,6 +30,7 @@ import {
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
+  leftoverMapComparePlotPostBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
   LEFTOVER_MAP_COMPARE_PLOT_SVG,
@@ -43,6 +44,7 @@ import {
   LEFTOVER_MAP_COMPARE_PLOT_SEGMENT_EXPECTED,
   LEFTOVER_MAP_PLOT_CAPTION,
   LEFTOVER_MAP_PLOT_POST_ACTION,
+  LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED,
   LEFTOVER_MAP_PLOT_SEGMENT_CROSS_SHARE,
   LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE,
   LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE,
@@ -90,6 +92,24 @@ function leftoverMapPlotAxisText(
     return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
   }
   return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+}
+
+function leftoverMapPlotPostText(
+  marker: { label: string; axis1: number; axis2: number },
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant === "comparison") {
+    const badge = leftoverMapComparePlotPostBadge(marker.label, marker.axis1, marker.axis2);
+    if (badge === null) {
+      return tf(LEFTOVER_MAP_PLOT_POST_ACTION_OMITTED, { title: marker.label });
+    }
+    return tf(badge.key, badge.values);
+  }
+  const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
+  return tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
+    title: marker.label,
+    person,
+  });
 }
 
 /**
@@ -175,6 +195,8 @@ function leftoverMapPlotAxisText(
  * ADR 0319 captions leftover-map distance on that comparison graphic using
  * the same localized composition boundary rather than adding another static
  * comparison-only translation key.
+ * Comparison post-marker action names use only persisted finite person ξ coordinates and remain
+ * distinct from report action names; criterion ζ coordinates are never used to infer ξ.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -496,34 +518,28 @@ export function LeftoverMapPlot({
               </text>
             </g>
           ))}
-          {layout.persons.map((marker) => {
-            const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
-            return (
-              <g
-                key={`person:${marker.id}`}
-                className="leftover-map-plot-marker"
-                role="button"
-                tabIndex={0}
-                aria-label={tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
-                  title: marker.label,
-                  person,
-                })}
-                onClick={() => openPost(marker.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    openPost(marker.id);
-                  }
-                }}
-              >
-                <circle className="leftover-map-plot-person-hit" cx={marker.x} cy={marker.y} r={22} />
-                <circle className="leftover-map-plot-person" cx={marker.x} cy={marker.y} r={6} />
-                <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y - 10}>
-                  {marker.label}
-                </text>
-              </g>
-            );
-          })}
+          {layout.persons.map((marker) => (
+            <g
+              key={`person:${marker.id}`}
+              className="leftover-map-plot-marker"
+              role="button"
+              tabIndex={0}
+              aria-label={leftoverMapPlotPostText(marker, variant)}
+              onClick={() => openPost(marker.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openPost(marker.id);
+                }
+              }}
+            >
+              <circle className="leftover-map-plot-person-hit" cx={marker.x} cy={marker.y} r={22} />
+              <circle className="leftover-map-plot-person" cx={marker.x} cy={marker.y} r={6} />
+              <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y - 10}>
+                {marker.label}
+              </text>
+            </g>
+          ))}
         </svg>
       </div>
     </figure>
