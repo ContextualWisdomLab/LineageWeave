@@ -30,6 +30,7 @@ import {
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
+  leftoverMapComparePlotCriterionBadge,
   leftoverMapComparePlotPostBadge,
   leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
@@ -100,7 +101,11 @@ function leftoverMapPlotCriterionText(
   variant: LeftoverMapPlotVariant,
 ): string {
   if (variant === "comparison") {
-    return `${t("Criterion ζ")} ${marker.label}`;
+    const badge = leftoverMapComparePlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
+    if (badge === null) {
+      return `${t("Criterion ζ")} ${marker.label}`;
+    }
+    return tf(badge.key, badge.values);
   }
   const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
   if (badge === null) {
@@ -130,11 +135,10 @@ function leftoverMapPlotPostText(
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
- * Person markers are posts; item markers are leftover criteria. Report criterion
- * markers name persisted item ζ through the report criterion badge while the
- * comparison criterion contract remains owned by the parent lane. Click a post
- * marker to open that post. Caption leftover-map axes with persisted
- * Gabriel inertia share when finite, including rank-0 zero-share axes.
+ * Person markers are posts; item markers are leftover criteria. Report and
+ * comparison criterion markers preserve their parent-owned persisted-item
+ * coordinate names. Click a post marker to open that post. Caption leftover-map
+ * axes with persisted Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
