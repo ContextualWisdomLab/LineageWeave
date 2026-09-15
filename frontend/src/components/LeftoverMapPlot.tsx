@@ -39,6 +39,7 @@ import {
 import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
+  leftoverMapComparePlotCriterionBadge,
   leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
@@ -132,7 +133,11 @@ function leftoverMapPlotCriterionText(
   variant: LeftoverMapPlotVariant,
 ): string {
   if (variant === "comparison") {
-    return `${t("Criterion ζ")} ${marker.label}`;
+    const badge = leftoverMapComparePlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
+    if (badge === null) {
+      return `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${t("Criterion ζ")} ${marker.label}`;
+    }
+    return `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${t("Criterion ζ")} ${badge.values.label} · ζ ${badge.values.item}`;
   }
   const badge = leftoverMapPlotCriterionBadge(marker.label, marker.axis1, marker.axis2);
   if (badge === null) {
@@ -144,9 +149,9 @@ function leftoverMapPlotCriterionText(
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
- * Person markers are posts; item markers are leftover criteria. Report criterion
- * markers name persisted item coordinates by composing the already-localized
- * criterion label with persisted ζ; comparison criterion naming remains generic.
+ * Person markers are posts; item markers are leftover criteria. Report and
+ * comparison criterion markers keep distinct accessible names while composing
+ * the already-localized criterion label with persisted ζ.
  * Click a post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Report and comparison graphic axes additionally name finite, non-negative
