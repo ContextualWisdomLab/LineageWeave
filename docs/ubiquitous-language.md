@@ -56,7 +56,7 @@ A Rasch-family measurement model with its own measurement-theoretic requirements
 
 **2PLM (`irt_2plm`)**
 
-A logistic IRT family allowing item discrimination to vary. It is the default logistic IRT candidate for psychology/SEM-lineage measurement when varying discrimination is substantively allowed.
+A logistic IRT family allowing item discrimination to vary. It is selected only through explicit intended-use evidence and the owning psychometric runtime's recovery contract; LineageWeave does not infer it from a domain label.
 
 **3PLM (`irt_3plm`)**
 
