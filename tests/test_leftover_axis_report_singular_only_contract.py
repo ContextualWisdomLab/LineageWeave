@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BADGE_SOURCE = ROOT / "frontend" / "src" / "leftoverMapAxisBadge.ts"
+APP_SOURCE = ROOT / "frontend" / "src" / "App.tsx"
 
 
 def test_report_axis_badge_preserves_singular_when_share_is_missing() -> None:
@@ -31,3 +32,13 @@ def test_report_axis_badge_keeps_sigma_and_share_missingness_independent() -> No
     assert "LEFTOVER_MAP_AXIS_BADGE_SHARE" in source
     assert "LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY" in source
     assert "Math.sqrt" not in source
+
+
+def test_report_axis_rendering_consumes_the_independent_badge_projection() -> None:
+    """The report UI must render the four-state projection instead of rebuilding σ/share coupling."""
+    app_source = APP_SOURCE.read_text(encoding="utf-8")
+
+    assert "leftoverMapAxisBadge," in app_source
+    assert "const badge = leftoverMapAxisBadge(axis);" in app_source
+    assert "badge === null ? null" in app_source
+    assert "tf(badge.template, badge.values)" in app_source
