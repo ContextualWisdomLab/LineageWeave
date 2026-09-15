@@ -62,15 +62,20 @@ commit `6030b295aadc3ee76dc4d27f5713273f35888325` makes that behavior explicit.
 The TLS/SQLSTATE/runtime ownership boundaries are unchanged; runtime persistence
 remains `asyncpg`.
 
-No prior #911 receipt transfers to this changed source head. Exact-head Tests
-`34977841241`, PROV-O `34977841500`, and Ontology Pages `34977841059` are
-Draft-skipped, not GREEN. Security `34977841173`, SAST Semgrep `34977841093`,
-and CodeQL PR `34977841115` are fresh queued runs. A fresh exact-head CodeRabbit
-review was requested; no qualifying independent exact-head APPROVE exists. The
-central terminal CodeQL publication path remains owned by `.github#1929`, while
-the public-repository Dependency Review HTTP-403/support incident remains owned
-by `.github#810`; LineageWeave must not fabricate statuses or substitute weaker
-local scanners for those required gates.
+No prior #911 receipt transfers to this changed source head. Its initial Draft
+event skipped Tests `34977841241`, PROV-O `34977841500`, and Ontology Pages
+`34977841059`, so the unchanged head was deliberately admitted Ready only long
+enough to register real exact-head validation and was immediately returned to
+Draft. Tests `34978508294`, PROV-O `34978508011`, and Ontology Pages
+`34978508135` are now queued. Security `34977841173`, SAST Semgrep
+`34977841093`, and CodeQL PR `34977841115` remain queued. The fresh CodeRabbit
+request covers the `6030b295...` change range but is rate-limited before a new
+actionable review; CodeRabbit/Devin status contexts are not submitted approvals.
+No qualifying independent exact-head APPROVE exists. The central terminal CodeQL
+publication path remains owned by `.github#1929`, while the public-repository
+Dependency Review HTTP-403/support incident remains owned by `.github#810`;
+LineageWeave must not fabricate statuses or substitute weaker local scanners for
+those required gates.
 
 ### Owner-boundary and governed measurement stack
 
@@ -175,7 +180,7 @@ product/test/fixture/contract/evidence delta is demonstrably inherited and verif
 | Gap | Canonical owner / exact candidate | Current evidence | Acceptance still required |
 | --- | --- | --- | --- |
 | Summary reads must not mutate Customer Master shared catalogs | #1078 / #1079 `c2923950...` | Authorization repair remains isolated from central review-runtime owner logic. `.github#2170` producer validation is GREEN but its actual CodeQL scan remains queued; `.github#2207` is now `2d61a668...` after verified ADR/changelog semantic repairs and requires entirely fresh evidence. | Canonical CodeQL producer/receiver settlement, authenticated OpenCode verdict, Strix/Noema owner-path revalidation, qualifying approval and normal protected merge. |
-| Commercial-safe synchronous PostgreSQL tooling must preserve libpq connection semantics | #910 / #911 `6030b295...` | Test-first timeout compatibility repair preserves zero/negative no-deadline sentinels and decimal-integer URI parsing while keeping runtime on asyncpg. Exact-head repository Tests/PROV-O/Ontology are Draft-skipped; Security/SAST/CodeQL are queued; no exact-head APPROVE exists. | Fresh exact-head repository/security/CodeQL/model-review evidence, canonical Dependency Review support/availability settlement, qualifying independent approval, ADR 0366 remaining Proposed until normal integration. |
+| Commercial-safe synchronous PostgreSQL tooling must preserve libpq connection semantics | #910 / #911 `6030b295...` | Test-first timeout compatibility repair preserves zero/negative no-deadline sentinels and decimal-integer URI parsing while keeping runtime on asyncpg. The unchanged source head has been re-admitted for real current-head Tests/PROV-O/Ontology, all now queued; Security/SAST/CodeQL also remain queued. Fresh CodeRabbit review is rate-limited and no exact-head APPROVE exists. | Exact-head repository/security/CodeQL/model-review GREEN, canonical Dependency Review support/availability settlement, qualifying independent approval, ADR 0366 remaining Proposed until normal integration. |
 | Contextual-orchestrator consumer boundary and governed measurement/evaluation/operator lineage | #899 `d331d1f6...`; children #902 `8b5cc45d...` -> #915 `6540aceb...`, #919 `53dca4bd...`, and #966 `1be24cd9...` | #902/#915 semantic glossary overlap and disjoint #919 operator delta were converged non-force onto the exact current parent. All are now mergeable Drafts. #902/#915/#919 exact-head Tests are Draft-skipped, not GREEN. | #899 normal integration first, then fresh full repository/security/governance evidence and qualifying independent approvals on unchanged descendant heads; no predecessor receipt transfer. |
 | Comparison-graphic axis σ/share identity | #867 `a8129768...` | Production uses graphic-specific helper rather than strip helper; direct Vitest state coverage now exercises empty/share-only/σ-only/combined states. Current Tests run `34967080332` is queued, not GREEN. | Focused contract + frontend/full repository tests, rendered a11y/i18n evidence, applicable Security/SAST/CodeQL/model review and qualifying approval. |
 | Singular/share tick stack | #868 `d39343ab...` -> #875 `758da1e8...` | Descendants contain repaired #867 foundation plus the executable helper-state tests through non-force ancestry; PR authority names current parents/heads. | Settle each local RED and fresh exact-head repository/security/browser-a11y/performance/review evidence in parent order. |
