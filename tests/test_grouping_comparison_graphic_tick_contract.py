@@ -10,23 +10,17 @@ LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
 
 
 def test_comparison_graphic_names_ticks_with_distinct_accessible_copy() -> None:
-    """Comparison tick names must not reuse the report-graphic tick key."""
+    """Comparison ticks compose existing localized comparison and tick copy."""
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
-    layout_source = LAYOUT_SOURCE.read_text(encoding="utf-8")
 
-    assert (
-        'export const LEFTOVER_MAP_COMPARE_PLOT_TICK =\n'
-        '  "leftover map comparison graphic leftover-map axis {axis} tick {value}";'
-        in layout_source
-    )
-    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK" in plot_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_LABEL" in plot_source
+    assert "LEFTOVER_MAP_PLOT_TICK" in plot_source
     assert re.search(
-        r'variant\s*===\s*"comparison"\s*\?\s*LEFTOVER_MAP_COMPARE_PLOT_TICK\s*:\s*LEFTOVER_MAP_PLOT_TICK',
+        r'variant\s*===\s*"comparison"\s*\?\s*`\$\{t\(LEFTOVER_MAP_COMPARE_PLOT_LABEL\)\}:\s*\$\{tf\(LEFTOVER_MAP_PLOT_TICK,\s*\{\s*axis:\s*tick\.axis,\s*value:\s*tick\.label,?\s*\}\)\}`\s*:\s*tf\(LEFTOVER_MAP_PLOT_TICK,\s*\{\s*axis:\s*tick\.axis,\s*value:\s*tick\.label,?\s*\}\)',
         plot_source,
         re.DOTALL,
     )
-    assert "axis: tick.axis" in plot_source
-    assert "value: tick.label" in plot_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK" not in plot_source
 
 
 def test_tick_positions_come_from_persisted_coordinates_not_distance() -> None:
