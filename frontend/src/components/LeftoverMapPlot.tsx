@@ -29,9 +29,12 @@ import {
 } from "../leftoverMapPlotAxisShare";
 import {
   formatLeftoverMapPlotAxisSingular,
+  leftoverMapCompareAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
+  LEFTOVER_MAP_PLOT_AXIS_SINGULAR,
+  LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE,
 } from "../leftoverMapPlotAxisSingular";
 import {
   firstPlottablePairForPost,
@@ -105,10 +108,20 @@ function leftoverMapPlotAxisText(
       share: percent,
     });
   }
-  if (percent === null) {
-    return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+  if (singular === null) {
+    if (percent === null) {
+      return t(axisIndex === 1 ? "leftover-map axis 1" : "leftover-map axis 2");
+    }
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
   }
-  return tf(LEFTOVER_MAP_PLOT_AXIS_SHARE, { axis: axisIndex, share: percent });
+  if (percent === null) {
+    return tf(LEFTOVER_MAP_PLOT_AXIS_SINGULAR, { axis: axisIndex, value: singular });
+  }
+  return tf(LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE, {
+    axis: axisIndex,
+    value: singular,
+    share: percent,
+  });
 }
 
 /**
@@ -117,9 +130,11 @@ function leftoverMapPlotAxisText(
  * Person markers are posts; item markers are leftover criteria. Click a
  * post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
- * Comparison graphic axes additionally name finite, non-negative persisted
- * Gabriel singular values independently of axis share; never derive one
- * measurement from the other.
+ * Report and comparison graphic axes additionally name finite, non-negative
+ * persisted Gabriel singular values independently of axis share; never derive
+ * one measurement from the other. The comparison strip also exposes these two
+ * persisted measures as independent badges so a missing share does not erase
+ * usable σ evidence and a missing σ does not erase usable share evidence.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -216,6 +231,12 @@ export function LeftoverMapPlot({
   const itemCoverageCounts = leftoverMapItemCoverageCounts(leftoverMapCoverage);
   const incompletePostCount = leftoverMapIncompletePostCount(leftoverMapCoverage);
   const incompleteItemCount = leftoverMapIncompleteItemCount(leftoverMapCoverage);
+  const comparisonAxisBadges =
+    variant === "comparison"
+      ? (leftoverMapAxes ?? [])
+          .map((axis) => leftoverMapCompareAxisBadge(axis))
+          .filter((badge): badge is NonNullable<typeof badge> => badge !== null)
+      : [];
 
   const openPost = (postId: string) => {
     const pair = firstPlottablePairForPost(pairs, postId);
@@ -232,6 +253,15 @@ export function LeftoverMapPlot({
       <figcaption className="leftover-map-plot-caption">
         {t(variant === "comparison" ? LEFTOVER_MAP_COMPARE_PLOT_CAPTION : LEFTOVER_MAP_PLOT_CAPTION)}
       </figcaption>
+      {comparisonAxisBadges.length > 0 ? (
+        <div className="leftover-map-compare-axis-badges" aria-label={t("Comparison leftover-map axis evidence")}>
+          {comparisonAxisBadges.map((badge) => (
+            <span key={badge.values.axis} className="post-badge">
+              {tf(badge.template, badge.values)}
+            </span>
+          ))}
+        </div>
+      ) : null}
       {coverageCounts !== null ? (
         <p
           className="leftover-map-plot-coverage"
