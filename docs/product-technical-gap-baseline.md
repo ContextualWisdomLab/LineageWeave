@@ -25,6 +25,8 @@ No LineageWeave release is admitted from the current protected head. A moved par
 
 ## Active leftover-map foundation finding
 
+A fresh authority sweep found that the Git ancestry had already been converged by ordinary two-parent commits while several PR bodies still advertised predecessor SHAs. The live precondition chain is now recorded consistently as `#859 2550e8d8... -> #860 2084d534... -> #861 59ae392c... -> #862 f0588b94... -> #863 bac8d3a5... -> #865 0728f56b... -> #866 35f4b07f...`. The #860/#861/#862/#863/#865 PR authorities were repaired without changing their source refs, and no validation receipt was transferred by that metadata repair.
+
 Fresh review of #866 found that the four-state report-axis projection exists but the buyer path still bypasses it.
 
 Current #866 exact head is `35f4b07fd91a01ce14c31059fa4d46ad3a9ca5a2`, based on #865 `0728f56ba66f16783685c84d9d3aa034eea9f143`. The helper `leftoverMapAxisBadge(axis)` already distinguishes combined, singular-only, share-only and empty evidence, preserves finite `σ=0`, and fails closed for unusable values. The live `frontend/src/App.tsx`, however, still composes `leftoverMapAxisBadgeSingular` and `leftoverMapAxisBadgeShare` directly. When neither persisted datum is usable, the report can still emit a badge shell instead of omitting evidence.
@@ -50,7 +52,7 @@ Below #875, current exact topology is:
 
 All are open Drafts and currently mergeable after their latest ordinary two-parent convergence. This does **not** mean the stack is settled: when #867 acquires #866's source/ancestry delta, and when #866 later acquires the causal `App.tsx` repair, the full descendant chain must converge again. No current descendant receipt can be treated as acceptance for those future heads.
 
-Historical #878/#879 remain open delta/evidence carriers. They are not closed merely because #876/#1033/#1034 reconstruct their intended product contracts; closure still requires complete verified succession of every valid product, test, fixture, contract and evidence delta.
+Historical #878/#879 remain open delta/evidence carriers. Their succession authority is current with #876 `5dd5152d...`, #1033 `cce3c6d0...`, and #1034 `d2e0eb63...`; they are not closed merely because those reconstructed successors preserve the intended product contracts. Closure still requires complete verified succession of every valid product, test, fixture, contract and evidence delta.
 
 ## Buyer-visible gap register
 
