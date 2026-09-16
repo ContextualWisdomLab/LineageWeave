@@ -16,6 +16,12 @@ export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY = "leftover axis {axis} σ {v
 export const LEFTOVER_MAP_AXIS_TICK_SINGULAR =
   "leftover axis {axis} tick {value} σ {singular}";
 
+export const LEFTOVER_MAP_AXIS_TICK_SHARE =
+  "leftover axis {axis} tick {value} {share}%";
+
+export const LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE =
+  "leftover axis {axis} tick {value} σ {singular} {share}%";
+
 export type LeftoverMapAxisBadge = {
   template: string;
   values: Record<string, string | number>;
@@ -74,18 +80,32 @@ export function leftoverMapAxisBadge(
   };
 }
 
-/** Project finite persisted σ onto one report-axis tick without inventing share evidence. */
+/** Compose persisted report-axis tick σ/share without deriving either field. */
 export function leftoverMapAxisTickBadge(
   axisIndex: number,
   tickLabel: string,
   leftoverSingular: number | null | undefined,
+  leftoverShare?: LeftoverMapAxis["leftover_share"] | null,
 ): LeftoverMapAxisBadge | null {
   const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
-  if (singular === null) {
+  const share = formatLeftoverMapPlotAxisShare(leftoverShare);
+  if (singular === null && share === null) {
     return null;
   }
+  if (singular === null) {
+    return {
+      template: LEFTOVER_MAP_AXIS_TICK_SHARE,
+      values: { axis: axisIndex, value: tickLabel, share: share as string },
+    };
+  }
+  if (share === null) {
+    return {
+      template: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+      values: { axis: axisIndex, value: tickLabel, singular },
+    };
+  }
   return {
-    template: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
-    values: { axis: axisIndex, value: tickLabel, singular },
+    template: LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE,
+    values: { axis: axisIndex, value: tickLabel, singular, share },
   };
 }
