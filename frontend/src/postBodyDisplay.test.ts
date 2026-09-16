@@ -209,6 +209,19 @@ describe("splitPostBody", () => {
     }
   });
 
+  it("preserves a data-URI image when another quoted attribute contains a greater-than sign", () => {
+    const html = `<img alt="a > b" src="data:image/png;base64,${TINY_PNG_B64}">`;
+
+    expect(splitPostBody(html)).toEqual([
+      {
+        kind: "image",
+        src: `data:image/png;base64,${TINY_PNG_B64}`,
+        mimeType: "image/png",
+        position: 0,
+      },
+    ]);
+  });
+
   it("keeps two images in document order when a paragraph sits between them", () => {
     const html =
       `<img src="data:image/png;base64,${TINY_PNG_B64}"><p>between</p>` +
@@ -231,7 +244,8 @@ describe("splitPostBody", () => {
   });
 
   it("does not turn a remote http img into a loaded image", () => {
-    const html = '<p>See</p><img src="https://example.test/invoice.png"><p>end</p>';
+    const html =
+      '<p>See</p><img alt="a > b" src="https://example.test/invoice.png"><p>end</p>';
     const segments = splitPostBody(html);
     expect(segments.every((segment) => segment.kind === "text")).toBe(true);
     expect(segments.map((segment) => (segment.kind === "text" ? segment.text : "")).join(" ")).toContain(
