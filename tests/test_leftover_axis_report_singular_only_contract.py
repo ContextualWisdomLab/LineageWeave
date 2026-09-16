@@ -42,9 +42,9 @@ def test_report_axis_rendering_consumes_the_four_state_projection() -> None:
     """The report path must omit a badge when neither persisted axis datum is usable."""
     app_source = APP_SOURCE.read_text(encoding="utf-8")
 
-    assert "leftoverMapAxisBadge," in app_source
+    assert "leftoverMapAxisBadge" in app_source
     assert "const badge = leftoverMapAxisBadge(axis);" in app_source
     assert "badge === null ? null" in app_source
     assert "tf(badge.template, badge.values)" in app_source
-    assert "leftoverMapAxisBadgeShare," not in app_source
-    assert "leftoverMapAxisBadgeSingular," not in app_source
+    assert "leftoverMapAxisBadgeShare" not in app_source
+    assert "leftoverMapAxisBadgeSingular" not in app_source
