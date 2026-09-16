@@ -33,6 +33,9 @@ export const LEFTOVER_MAP_PLOT_TICK_SINGULAR =
 export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR =
   "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}";
 
+export const LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR =
+  "leftover map comparison leftover axis {axis} tick {value} σ {singular}";
+
 export type LeftoverMapPlotAxisSingular = {
   axis_index: LeftoverMapAxis["axis_index"];
   leftover_singular_value?: LeftoverMapAxis["leftover_singular_value"] | null;
@@ -166,6 +169,22 @@ export function leftoverMapComparePlotTickAxisBadge(
   }
   return {
     template: LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
+    values: { axis: axisIndex, value: tickLabel, singular },
+  };
+}
+
+/** Project finite persisted σ onto one comparison-strip tick without inventing share evidence. */
+export function leftoverMapCompareAxisTickBadge(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverSingular: number | null | undefined,
+): LeftoverMapCompareAxisBadge | null {
+  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
+  if (singular === null) {
+    return null;
+  }
+  return {
+    template: LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR,
     values: { axis: axisIndex, value: tickLabel, singular },
   };
 }
