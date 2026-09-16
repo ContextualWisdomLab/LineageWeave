@@ -25,6 +25,48 @@ const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
 const FOOTNOTE_MARKER = "\u0001lw-footnote\u0002";
 const FOOTNOTE_MARKER_PATTERN = new RegExp(FOOTNOTE_MARKER, "g");
 
+type HtmlLikeTag = {
+  end: number;
+  raw: string;
+  name: string;
+  closing: boolean;
+  selfClosing: boolean;
+};
+
+function readHtmlLikeTag(text: string, start: number): HtmlLikeTag | null {
+  if (text[start] !== "<") return null;
+  let nameIndex = start + 1;
+  if (text[nameIndex] === "/") nameIndex += 1;
+  if (!/[A-Za-z]/.test(text[nameIndex] ?? "")) return null;
+
+  let quote: '"' | "'" | null = null;
+  let end = nameIndex + 1;
+  for (; end < text.length; end += 1) {
+    const character = text[end];
+    if (quote !== null) {
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === ">") break;
+  }
+  if (end >= text.length) return null;
+
+  const raw = text.slice(start, end + 1);
+  const match = raw.match(/^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i);
+  if (!match) return null;
+  return {
+    end,
+    raw,
+    name: match[2].toLowerCase(),
+    closing: Boolean(match[1]),
+    selfClosing: /\/\s*>$/.test(raw),
+  };
+}
+
 /**
  * Walk HTML-like tags without deleting substrings through a multi-character
  * regular expression. The scanner respects quoted `>` characters and, when a
@@ -41,42 +83,24 @@ function replaceHtmlLikeTags(text: string, replacer: (tag: string) => string): s
       index += 1;
       continue;
     }
-
-    let nameIndex = index + 1;
-    if (text[nameIndex] === "/") nameIndex += 1;
-    if (!/[A-Za-z]/.test(text[nameIndex] ?? "")) {
+    const tag = readHtmlLikeTag(text, index);
+    if (!tag) {
       index += 1;
       continue;
     }
 
-    let quote: '"' | "'" | null = null;
-    let end = nameIndex + 1;
-    for (; end < text.length; end += 1) {
-      const character = text[end];
-      if (quote !== null) {
-        if (character === quote) quote = null;
-        continue;
-      }
-      if (character === '"' || character === "'") {
-        quote = character;
-        continue;
-      }
-      if (character === ">") break;
-    }
-    if (end >= text.length) break;
-
     output += text.slice(cursor, index);
-    const replacement = replacer(text.slice(index, end + 1));
+    const replacement = replacer(tag.raw);
     if (
       replacement.length === 0 &&
       output.endsWith("<") &&
-      /[A-Za-z/]/.test(text[end + 1] ?? "")
+      /[A-Za-z/]/.test(text[tag.end + 1] ?? "")
     ) {
       output += " ";
     } else {
       output += replacement;
     }
-    cursor = end + 1;
+    cursor = tag.end + 1;
     index = cursor;
   }
 
@@ -302,13 +326,67 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 }
 
 function replaceHtmlScripts(text: string): string {
-  return text
-    .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
-      applyUnicodeScript(stripHtmlLikeTags(decodeHtmlEntities(String(inner))), "super"),
-    )
-    .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
-      applyUnicodeScript(stripHtmlLikeTags(decodeHtmlEntities(String(inner))), "sub"),
+  let output = "";
+  let cursor = 0;
+  let index = 0;
+
+  while (index < text.length) {
+    const openingStart = text.indexOf("<", index);
+    if (openingStart < 0) break;
+    const opening = readHtmlLikeTag(text, openingStart);
+    if (
+      !opening ||
+      opening.closing ||
+      opening.selfClosing ||
+      (opening.name !== "sup" && opening.name !== "sub")
+    ) {
+      index = opening ? opening.end + 1 : openingStart + 1;
+      continue;
+    }
+
+    let depth = 1;
+    let searchIndex = opening.end + 1;
+    let closingStart = -1;
+    let closingEnd = -1;
+    while (searchIndex < text.length) {
+      const candidateStart = text.indexOf("<", searchIndex);
+      if (candidateStart < 0) break;
+      const candidate = readHtmlLikeTag(text, candidateStart);
+      if (!candidate) {
+        searchIndex = candidateStart + 1;
+        continue;
+      }
+      if (candidate.name === opening.name) {
+        if (candidate.closing) {
+          depth -= 1;
+          if (depth === 0) {
+            closingStart = candidateStart;
+            closingEnd = candidate.end;
+            break;
+          }
+        } else if (!candidate.selfClosing) {
+          depth += 1;
+        }
+      }
+      searchIndex = candidate.end + 1;
+    }
+
+    if (closingStart < 0) {
+      index = opening.end + 1;
+      continue;
+    }
+
+    output += text.slice(cursor, openingStart);
+    const inner = text.slice(opening.end + 1, closingStart);
+    output += applyUnicodeScript(
+      stripHtmlLikeTags(decodeHtmlEntities(inner)),
+      opening.name as "super" | "sub" extends never ? never : opening.name === "sup" ? "super" : "sub",
     );
+    cursor = closingEnd + 1;
+    index = cursor;
+  }
+
+  return output + text.slice(cursor);
 }
 
 function decodeScriptEntities(text: string): string {
