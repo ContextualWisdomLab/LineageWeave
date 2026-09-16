@@ -237,6 +237,15 @@ vector degrades that pair back to difflib; it never fabricates a score.
 
 ## Tests
 
+The real-browser OIDC smoke helper waits for the Keycloak authorization URL at
+navigation commit, because waiting for the full Keycloak document load can
+exhaust Playwright's default timeout before the login form is usable. Keep the
+browser proof separate from the authorization-code exchange: the smoke test
+must still reach an authenticated destination after the callback. Chromium can
+report `ERR_ABORTED` or a detached frame during that cross-origin handoff; only
+that narrowly identified navigation race may be tolerated, followed by an
+explicit visible-login-form assertion.
+
 ```bash
 # backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
 # (see backend/Dockerfile). Without it, pip falls over at build time.
@@ -391,6 +400,34 @@ Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
 
+The frontend coverage gate is evidence-bearing: on PR #983 exact head
+`85c74137b6d64783322c52f39c2c28c8ac250d79`, all 727 Vitest tests passed, but
+the strict global gate failed at lines 95.43%, statements 93.56%, functions
+92.93%, and branches 83.57%. The largest gap was `frontend/src/App.tsx`.
+Keep the source in the coverage denominator and add behavior tests for the
+unexercised paths; do not lower the threshold or exclude product code to make
+the check green. A passing test count without a passing coverage report is not
+frontend CI completion.
+
+The local full coverage run on `98f64d723` exposed four timing-sensitive
+failures under instrumented load (three 5-second timeouts and one
+occupation-data wait); each failed test passed when rerun alone. A follow-up
+run with Vitest file parallelism disabled still exposed five `App.test.tsx`
+timeouts, so do not treat serializing files as the fix. Preserve both facts:
+isolated reruns are diagnostic evidence, not a green full-suite result, and the
+suite needs a reproducible instrumentation-timeout fix before treating the
+coverage run as stable. Raising only the coverage timeout to 15 seconds removed
+the timeout failures in one follow-up run, but the occupation catalog still
+failed to load under the full instrumented suite; do not treat that setting as
+the root-cause repair.
+Hosted run `34306991982` at exact head
+`0ba5daf4ac048337779ccffdcc4d741a1b490d07` completed the PostgreSQL full suite
+successfully and ran all 728 frontend tests successfully; the frontend job
+still failed only at the strict coverage gate with lines 95.49%, statements
+93.61%, functions 93.03%, and branches 83.60%. Treat this as a coverage
+implementation gap, not a test correctness failure or a reason to lower the
+gate.
+
 ## W3C PROV-O boundary
 
 - Add standard provenance through `lineageweave.prov_o` and the
@@ -422,3 +459,38 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Frontend coverage evidence
+
+The central review sandbox requires a lock-pinned Vitest coverage provider and
+a repository-owned coverage command; a passing plain test run is insufficient.
+Run `corepack pnpm run test:coverage` from `frontend/` to collect source coverage
+and enforce the 100% threshold over the complete configured source inventory.
+Keep Storybook and browser-entry runtime evidence distinct, but do not remove
+those executable files from coverage merely because the unit suite has not yet
+executed them. The unit suite must import and render the CSF inventory and mount
+the browser bootstrap so those files are executed; Storybook play assertions
+remain the interaction evidence. Generated reports stay outside git.
+Instrumentation availability and a smaller denominator do not establish coverage
+acceptance.
+
+The frontend CI retains `frontend-coverage` even when the coverage threshold
+fails. Use its LCOV paths and JSON summary to select regression work; console
+tables abbreviate filenames. A passing test suite and a failing coverage gate
+are distinct results, and neither licenses lowering the threshold.
+
+When a button combines a date and label in adjacent inline elements, preserve
+an explicit text separator; visual CSS spacing does not guarantee a separated
+accessible name. Test the complete accessible name and the destination callback
+together, as in the Dashboard project-journey regression.
+
+For asynchronous authorization changes, test both A-to-B and A-to-B-to-A
+transitions with deferred success and failure. Returning to the same token
+must not reactivate the first request; assert the current authorized result
+and the actual request sequence, not token equality alone. Dashboard's
+effect-local cleanup flag already provides this request-lifecycle boundary.
+
+When an E2E login helper tolerates a narrowly identified navigation error,
+reassert the expected authorization URL before locating or filling credential
+fields. A matching form label is not evidence that the navigation reached its
+expected destination; retain the post-login destination check as well.

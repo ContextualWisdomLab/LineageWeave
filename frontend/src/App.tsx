@@ -96,6 +96,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
+import { StatusNotice } from "./components/StatusNotice";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { OccupationRatingProfile } from "./components/OccupationRatingProfile";
@@ -4615,6 +4616,10 @@ interface CustomerEntityTreeNode {
   children: CustomerEntityTreeNode[];
 }
 
+type CustomerRelatedEntityState =
+  | { status: "success"; related: RelatedNode[] }
+  | { status: "error"; error: unknown };
+
 // Live bug (2026-08-19): Customer Master's own entity list rendered every
 // corporate_entity as an independent top-level row, even though the API
 // already carries parent_entity_id and the codebase already knows how to
@@ -4649,23 +4654,27 @@ function CustomerEntityTreeRow({
   node,
   depth,
   expandedEntityId,
-  relatedByEntity,
+  relatedStateByEntity,
   relatedLoading,
   onToggle,
+  onRetry,
   onOpenPost,
 }: {
   node: CustomerEntityTreeNode;
   depth: number;
   expandedEntityId: string | null;
-  relatedByEntity: Record<string, RelatedNode[]>;
+  relatedStateByEntity: Record<string, CustomerRelatedEntityState>;
   relatedLoading: string | null;
   onToggle: (entityId: string) => void;
+  onRetry: (entityId: string) => void;
   onOpenPost: (postId: string) => void;
 }) {
   const { entity, children } = node;
-  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
-    (related) => related.node_type_code === NODE_POST,
-  );
+  const relatedState = relatedStateByEntity[entity.corporate_entity_id];
+  const relatedPosts = relatedState?.status === "success"
+    ? relatedState.related.filter((related) => related.node_type_code === NODE_POST)
+    : [];
+  const isLoading = relatedLoading === entity.corporate_entity_id;
   return (
     <li style={{ marginInlineStart: depth * 20 }}>
       <button
@@ -4679,8 +4688,15 @@ function CustomerEntityTreeRow({
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p role="status">{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+          {isLoading ? <p role="status">{t("Loading related posts...")}</p> : null}
+          {!isLoading && relatedState?.status === "error" ? (
+            <StatusNotice
+              kind="retry"
+              message={t("This request failed. Retry the same action.")}
+              onRetry={() => onRetry(entity.corporate_entity_id)}
+            />
+          ) : null}
+          {!isLoading && relatedState?.status === "success" && relatedPosts.length === 0 ? (
             <p className="popup-placeholder">{t("No linked posts yet.")}</p>
           ) : null}
           {relatedPosts.length > 0 ? (
@@ -4708,9 +4724,10 @@ function CustomerEntityTreeRow({
               node={child}
               depth={depth + 1}
               expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
+              relatedStateByEntity={relatedStateByEntity}
               relatedLoading={relatedLoading}
               onToggle={onToggle}
+              onRetry={onRetry}
               onOpenPost={onOpenPost}
             />
           ))}
@@ -4760,7 +4777,7 @@ function CustomerMasterPanel({
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
-  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+  const [relatedStateByEntity, setRelatedStateByEntity] = useState<Record<string, CustomerRelatedEntityState>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   // Opening a customer's related post stays IN this panel (the Board
   // hand-off was the reported bug: clicking a customer's post jumped the
@@ -4836,22 +4853,32 @@ function CustomerMasterPanel({
     }
   }
 
+  async function loadRelatedEntity(entityId: string) {
+    setRelatedLoading(entityId);
+    try {
+      const response = await fetchRelatedEntity(accessToken, entityId);
+      setRelatedStateByEntity((previous) => ({
+        ...previous,
+        [entityId]: { status: "success", related: response.related },
+      }));
+    } catch (error) {
+      setRelatedStateByEntity((previous) => ({
+        ...previous,
+        [entityId]: { status: "error", error },
+      }));
+    } finally {
+      setRelatedLoading((current) => (current === entityId ? null : current));
+    }
+  }
+
   async function toggleEntity(entityId: string) {
     if (expandedEntityId === entityId) {
       setExpandedEntityId(null);
       return;
     }
     setExpandedEntityId(entityId);
-    if (relatedByEntity[entityId]) return;
-    setRelatedLoading(entityId);
-    try {
-      const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
-    } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
-    } finally {
-      setRelatedLoading(null);
-    }
+    if (relatedStateByEntity[entityId]?.status === "success") return;
+    await loadRelatedEntity(entityId);
   }
 
   return (
@@ -4872,9 +4899,10 @@ function CustomerMasterPanel({
               node={node}
               depth={0}
               expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
+              relatedStateByEntity={relatedStateByEntity}
               relatedLoading={relatedLoading}
               onToggle={toggleEntity}
+              onRetry={loadRelatedEntity}
               onOpenPost={openPost}
             />
           ))}

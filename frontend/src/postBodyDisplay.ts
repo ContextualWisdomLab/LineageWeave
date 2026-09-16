@@ -11,14 +11,35 @@ export type PostBodySegment =
   | { kind: "text"; text: string; indentLevel?: number; role?: "footnote" }
   | { kind: "image"; src: string; mimeType: string; position: number };
 
-const DATA_URI_IMG =
-  /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
-
-const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
-const BREAK_TAG = /<br\b[^>]*>/gi;
-const BLOCK_TAG =
-  /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
-const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
+const DATA_URI_IMAGE_SRC =
+  /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i;
+const BLOCK_BOUNDARY_TAGS = new Set([
+  "article",
+  "blockquote",
+  "div",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "li",
+  "ol",
+  "p",
+  "section",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "tr",
+  "ul",
+  "w:p",
+  "w:tbl",
+  "w:tr",
+  "w:tc",
+]);
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
@@ -26,11 +47,130 @@ const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
 const FOOTNOTE_MARKER = "\u0001lw-footnote\u0002";
 const FOOTNOTE_MARKER_PATTERN = new RegExp(FOOTNOTE_MARKER, "g");
 
+type HtmlLikeTag = {
+  end: number;
+  raw: string;
+  name: string;
+  closing: boolean;
+  selfClosing: boolean;
+};
+
+function readHtmlLikeTag(text: string, start: number): HtmlLikeTag | null {
+  if (text[start] !== "<") return null;
+  let nameIndex = start + 1;
+  if (text[nameIndex] === "/") nameIndex += 1;
+  if (!/[A-Za-z]/.test(text[nameIndex] ?? "")) return null;
+
+  let quote: '"' | "'" | null = null;
+  let end = nameIndex + 1;
+  for (; end < text.length; end += 1) {
+    const character = text[end];
+    if (quote !== null) {
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === ">") break;
+  }
+  if (end >= text.length) return null;
+
+  const raw = text.slice(start, end + 1);
+  const match = raw.match(/^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i);
+  if (!match) return null;
+  return {
+    end,
+    raw,
+    name: match[2].toLowerCase(),
+    closing: Boolean(match[1]),
+    selfClosing: /\/\s*>$/.test(raw),
+  };
+}
+
+function readQuotedAttribute(tag: HtmlLikeTag, attributeName: string): string | null {
+  const opening = tag.raw.match(/^<\s*\/?\s*[a-z][a-z0-9:-]*/i);
+  if (!opening) return null;
+
+  let index = opening[0].length;
+  while (index < tag.raw.length) {
+    while (/\s/.test(tag.raw[index] ?? "")) index += 1;
+    if (tag.raw[index] === "/" || tag.raw[index] === ">") break;
+
+    const nameStart = index;
+    while (index < tag.raw.length && !/[\s=/>]/.test(tag.raw[index])) index += 1;
+    const name = tag.raw.slice(nameStart, index).toLowerCase();
+    while (/\s/.test(tag.raw[index] ?? "")) index += 1;
+    if (tag.raw[index] !== "=") continue;
+
+    index += 1;
+    while (/\s/.test(tag.raw[index] ?? "")) index += 1;
+    const quote = tag.raw[index];
+    if (quote !== '"' && quote !== "'") {
+      while (index < tag.raw.length && !/[\s>]/.test(tag.raw[index])) index += 1;
+      continue;
+    }
+
+    const valueStart = index + 1;
+    index = valueStart;
+    while (index < tag.raw.length && tag.raw[index] !== quote) index += 1;
+    const value = tag.raw.slice(valueStart, index);
+    index += 1;
+    if (name === attributeName) return value;
+  }
+  return null;
+}
+
+/**
+ * Walk HTML-like tags without deleting substrings through a multi-character
+ * regular expression. The scanner respects quoted `>` characters and, when a
+ * tag is removed, prevents the surrounding text from being joined into a new
+ * tag token (for example `<<a>script>` -> `< script>`).
+ */
+function replaceHtmlLikeTags(text: string, replacer: (tag: string) => string): string {
+  let output = "";
+  let cursor = 0;
+  let index = 0;
+
+  while (index < text.length) {
+    if (text[index] !== "<") {
+      index += 1;
+      continue;
+    }
+    const tag = readHtmlLikeTag(text, index);
+    if (!tag) {
+      index += 1;
+      continue;
+    }
+
+    output += text.slice(cursor, index);
+    const replacement = replacer(tag.raw);
+    if (
+      replacement.length === 0 &&
+      output.endsWith("<") &&
+      /[A-Za-z/]/.test(text[tag.end + 1] ?? "")
+    ) {
+      output += " ";
+    } else {
+      output += replacement;
+    }
+    cursor = tag.end + 1;
+    index = cursor;
+  }
+
+  return output + text.slice(cursor);
+}
+
+function stripHtmlLikeTags(text: string): string {
+  return replaceHtmlLikeTags(text, () => "");
+}
+
 function markFootnoteTags(markup: string): string {
   let footnoteDepth = 0;
   const openTags: Array<{ name: string; isFootnote: boolean }> = [];
   const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "w:br"]);
-  return markup.replace(HTML_TAG, (tag) => {
+  return replaceHtmlLikeTags(markup, (tag) => {
     const match = tag.match(/^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i);
     if (!match) return tag;
     const closing = Boolean(match[1]);
@@ -44,8 +184,7 @@ function markFootnoteTags(markup: string): string {
     );
     const isContainer =
       hasFootnoteLabel && (name === "div" || name === "ol" || name === "ul");
-    const isWordParagraph =
-      name === "p" && hasFootnoteLabel;
+    const isWordParagraph = name === "p" && hasFootnoteLabel;
     const isOoxmlContainer = name === "w:footnote" || name === "w:endnote";
 
     if (closing) {
@@ -145,6 +284,32 @@ function indentMarker(width: number): string {
   return width > 0 ? `${INDENT_MARKER}${width}${INDENT_MARKER_END}` : "";
 }
 
+/**
+ * Convert structural boundary tags with the same quote-aware scanner used by
+ * the sanitizer. This keeps `>` inside quoted attributes from terminating a
+ * tag early while preserving list depth and declared indentation semantics.
+ */
+function replaceBoundaryTags(text: string): string {
+  let listDepth = 0;
+  return replaceHtmlLikeTags(text, (rawTag) => {
+    const tag = readHtmlLikeTag(rawTag, 0);
+    if (!tag) return rawTag;
+    if (!tag.closing && tag.name === "br") return "\n\n";
+    if (!tag.closing && tag.name === "w:ind") {
+      return indentMarker(declaredIndentWidth(rawTag));
+    }
+    if (!BLOCK_BOUNDARY_TAGS.has(tag.name)) return rawTag;
+    if (tag.name === "ul" || tag.name === "ol") {
+      if (tag.closing) listDepth = Math.max(0, listDepth - 1);
+      else listDepth += 1;
+      return "\n\n";
+    }
+    if (tag.closing) return "\n\n";
+    const nestedListIndent = listDepth > 0 ? Math.max(0, listDepth - 1) * 4 : 0;
+    return `\n\n${indentMarker(declaredIndentWidth(rawTag) + nestedListIndent)}`;
+  });
+}
+
 const SUPER_ASCII_TO_UNI: Record<string, string> = {
   "0": "⁰",
   "1": "¹",
@@ -210,8 +375,11 @@ function buildUnicodeToAsciiTable(table: Record<string, string>): Record<string,
 }
 const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
 const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
+// ADR 0165 admits ASCII exponent digits, but any following Unicode decimal
+// digit extends the token. Reject that mixed token instead of superscripting
+// only its ASCII prefix.
 const CARET_EXPONENT =
-  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
+  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?[0-9]{1,3}|[nNiI])\}|([+-]?[0-9]{1,3}(?!\p{Nd}|\.\p{Nd})|[nNiI]))/gu;
 const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
 const ENCODED_LT = String.raw`&(?:amp;)*(?:lt|#0*60|#x0*3c);`;
 const ENCODED_GT = String.raw`&(?:amp;)*(?:gt|#0*62|#x0*3e);`;
@@ -238,13 +406,65 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 }
 
 function replaceHtmlScripts(text: string): string {
-  return text
-    .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "super"),
-    )
-    .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "sub"),
-    );
+  let output = "";
+  let cursor = 0;
+  let index = 0;
+
+  while (index < text.length) {
+    const openingStart = text.indexOf("<", index);
+    if (openingStart < 0) break;
+    const opening = readHtmlLikeTag(text, openingStart);
+    if (
+      !opening ||
+      opening.closing ||
+      opening.selfClosing ||
+      (opening.name !== "sup" && opening.name !== "sub")
+    ) {
+      index = opening ? opening.end + 1 : openingStart + 1;
+      continue;
+    }
+
+    let depth = 1;
+    let searchIndex = opening.end + 1;
+    let closingStart = -1;
+    let closingEnd = -1;
+    while (searchIndex < text.length) {
+      const candidateStart = text.indexOf("<", searchIndex);
+      if (candidateStart < 0) break;
+      const candidate = readHtmlLikeTag(text, candidateStart);
+      if (!candidate) {
+        searchIndex = candidateStart + 1;
+        continue;
+      }
+      if (candidate.name === opening.name) {
+        if (candidate.closing) {
+          depth -= 1;
+          if (depth === 0) {
+            closingStart = candidateStart;
+            closingEnd = candidate.end;
+            break;
+          }
+        } else if (!candidate.selfClosing) {
+          depth += 1;
+        }
+      }
+      searchIndex = candidate.end + 1;
+    }
+
+    if (closingStart < 0) {
+      index = opening.end + 1;
+      continue;
+    }
+
+    output += text.slice(cursor, openingStart);
+    const inner = text.slice(opening.end + 1, closingStart);
+    const scriptKind: "super" | "sub" = opening.name === "sup" ? "super" : "sub";
+    output += applyUnicodeScript(stripHtmlLikeTags(decodeHtmlEntities(inner)), scriptKind);
+    cursor = closingEnd + 1;
+    index = cursor;
+  }
+
+  return output + text.slice(cursor);
 }
 
 function decodeScriptEntities(text: string): string {
@@ -303,7 +523,7 @@ export function splitScriptRuns(text: string): ScriptRun[] {
     }
     if (ch === "^" && index > 0 && /[A-Za-z0-9µμ°ΩÅåÅ)]/.test(text[index - 1])) {
       const rest = text.slice(index);
-      const match = rest.match(/^\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/);
+      const match = rest.match(/^\^(?:\{([+-]?[0-9]{1,3}|[nNiI])\}|([+-]?[0-9]{1,3}(?!\p{Nd}|\.\p{Nd})|[nNiI]))/u);
       if (match) {
         push(match[1] || match[2] || "", "super");
         index += match[0].length;
@@ -318,23 +538,8 @@ export function splitScriptRuns(text: string): ScriptRun[] {
 
 function stripHtmlTags(text: string): string {
   const withScripts = normalizeScriptText(markFootnoteTags(text));
-  let listDepth = 0;
-  const withBoundaries = withScripts
-    .replace(BREAK_TAG, "\n")
-    .replace(BLOCK_TAG, (tag) => {
-      const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
-      const closing = /^<\//.test(tag);
-      if (name === "ul" || name === "ol") {
-        if (closing) listDepth = Math.max(0, listDepth - 1);
-        else listDepth += 1;
-        return "\n\n";
-      }
-      if (closing) return "\n\n";
-      const nestedListIndent = !closing && listDepth > 0 ? Math.max(0, listDepth - 1) * 4 : 0;
-      return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
-    })
-    .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
-  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
+  const withBoundaries = replaceBoundaryTags(withScripts);
+  const withoutTags = replaceHtmlLikeTags(withBoundaries, (tag) =>
     /^<\/?(?:a\b|w:)/i.test(tag) ? "" : " ",
   );
   return decodeHtmlEntities(withoutTags)
@@ -363,7 +568,7 @@ function splitSemanticParagraphs(text: string): string[] {
   const flushPipeTableRows = () => {
     const hasSeparator = pipeTableRows.some((row) => {
       const cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
-      return cells.length >= 2 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
+      return cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
     });
     if (pipeTableRows.length >= 2 && hasSeparator) {
       flush();
@@ -378,7 +583,7 @@ function splitSemanticParagraphs(text: string): string[] {
     const trimmed = line.trim();
     if (trimmed.includes("|")) {
       const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
-      if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
+      if (cells.some((cell) => cell.trim())) {
         pipeTableRows.push(line);
         continue;
       }
@@ -478,28 +683,43 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
 export function splitPostBody(body: string): PostBodySegment[] {
   const segments: PostBodySegment[] = [];
   const indentUnit = inferIndentationUnit(stripHtmlTags(body));
-  const pattern = new RegExp(DATA_URI_IMG.source, "gi");
   let lastIndex = 0;
-  let match = pattern.exec(body);
-  while (match !== null) {
-    pushText(segments, body.slice(lastIndex, match.index), indentUnit);
-    const mimeType = match[1];
-    const rawB64 = match[2].replace(/\s+/g, "");
-    if (isDecodableBase64(rawB64)) {
-      segments.push({
-        kind: "image",
-        src: `data:${mimeType};base64,${rawB64}`,
-        mimeType,
-        position: match.index,
-      });
-    } else {
-      segments.push({
-        kind: "text",
-        text: t("Embedded image could not be decoded. Re-export the source post and open it again."),
-      });
+  let index = 0;
+  while (index < body.length) {
+    const tagStart = body.indexOf("<", index);
+    if (tagStart < 0) break;
+    const tag = readHtmlLikeTag(body, tagStart);
+    if (!tag) {
+      index = tagStart + 1;
+      continue;
     }
-    lastIndex = match.index + match[0].length;
-    match = pattern.exec(body);
+
+    if (!tag.closing && tag.name === "img") {
+      const src = readQuotedAttribute(tag, "src");
+      const match = src?.match(DATA_URI_IMAGE_SRC);
+      if (match) {
+        pushText(segments, body.slice(lastIndex, tagStart), indentUnit);
+        const mimeType = match[1];
+        const rawB64 = match[2].replace(/\s+/g, "");
+        if (isDecodableBase64(rawB64)) {
+          segments.push({
+            kind: "image",
+            src: `data:${mimeType};base64,${rawB64}`,
+            mimeType,
+            position: tagStart,
+          });
+        } else {
+          segments.push({
+            kind: "text",
+            text: t(
+              "Embedded image could not be decoded. Re-export the source post and open it again.",
+            ),
+          });
+        }
+        lastIndex = tag.end + 1;
+      }
+    }
+    index = tag.end + 1;
   }
   pushText(segments, body.slice(lastIndex), indentUnit);
   if (segments.length === 0) {

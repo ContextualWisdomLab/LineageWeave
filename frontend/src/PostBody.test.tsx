@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { PostBody } from "./PostBody";
 
 describe("PostBody", () => {
+  it.each([false, true])("preserves long exponents beside supported quantities (persisted: %s)", (persisted) => {
+    const text = "Volume m^3; x^1234; x^-1234; x^{1234}.";
+    const { container } = render(<PostBody body={text} structureUnits={persisted ? [{
+      unit_index: 0, unit_kind_code: "plain_text", unit_text: text,
+      indent_level: 0, indent_source_code: "explicit", indent_confidence: 1,
+      indent_evidence: "Synthetic quantity source",
+    }] : undefined} />);
+    expect(container).toHaveTextContent("Volume m3; x^1234; x^-1234; x^{1234}.");
+    expect([...container.querySelectorAll("sup")].map((node) => node.textContent)).toEqual(["3"]);
+  });
+
   it("keeps raw indentation when persisted structure is unresolved", () => {
     render(
       <PostBody

@@ -184,12 +184,11 @@ export function LineageDag({
             {labeledEdges.length > 0 ? (
               <ul className="lineage-interval-list" aria-label={t("Interval relations")}>
                 {labeledEdges.map((edge) => {
-                  const from = byId[edge.source];
-                  const to = byId[edge.target];
+                  const from = byId[edge.source]!;
+                  const to = byId[edge.target]!;
                   const openId = otherPostId(edge, currentPostId);
-                  const openNode = byId[openId];
-                  const relation = intervalLabel(edge);
-                  if (!from || !to || !openNode || !relation) return null;
+                  const openNode = byId[openId]!;
+                  const relation = intervalLabel(edge)!;
                   return (
                     <li key={`${edge.source}-${edge.target}`}>
                       <button
@@ -245,8 +244,8 @@ export function LineageDag({
             {group.edges.map((edge) => {
               const key = edgeKey(edge);
               const evidence = edge.channel_evidence ?? [];
-              const fromLabel = labelById[edge.source] ?? edge.source;
-              const toLabel = labelById[edge.target] ?? edge.target;
+              const fromLabel = labelById[edge.source]!;
+              const toLabel = labelById[edge.target]!;
               return (
             <details
               key={key}

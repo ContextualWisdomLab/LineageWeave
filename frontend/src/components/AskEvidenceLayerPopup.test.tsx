@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -118,6 +119,40 @@ describe("AskEvidenceLayerPopup", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onOpenPost).toHaveBeenCalledWith("post-demo-public");
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(onOpenPost.mock.invocationCallOrder[0]);
+  });
+
+  it("does not restore focus to the stale citation trigger while opening the full post", async () => {
+    const opener = document.createElement("button");
+    opener.textContent = "View evidence";
+    document.body.append(opener);
+    opener.focus();
+    const onOpenPost = vi.fn();
+
+    function Wrapper() {
+      const [open, setOpen] = useState(true);
+      return open ? (
+        <AskEvidenceLayerPopup
+          {...baseProps}
+          facts={[]}
+          images={[]}
+          onClose={() => setOpen(false)}
+          onOpenPost={onOpenPost}
+        />
+      ) : (
+        <div data-testid="full-post-destination">Full post destination</div>
+      );
+    }
+
+    render(<Wrapper />);
+    expect(screen.getByRole("dialog")).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open post: Checkout error follow-up" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("full-post-destination")).toBeInTheDocument();
+    expect(onOpenPost).toHaveBeenCalledWith("post-demo-public");
+    expect(opener).not.toHaveFocus();
+    opener.remove();
   });
 
   it("moves initial focus onto the dialog panel", () => {

@@ -24,4 +24,19 @@ describe("isFocusableVisible", () => {
     expect(isFocusableVisible(summary)).toBe(true);
     expect(isFocusableVisible(button)).toBe(false);
   });
+
+  it("excludes controls inside hidden, aria-hidden, or inert subtrees", () => {
+    for (const [attribute, value] of [
+      ["hidden", ""],
+      ["aria-hidden", "true"],
+      ["inert", ""],
+    ] as const) {
+      const container = document.createElement("div");
+      const button = document.createElement("button");
+      container.setAttribute(attribute, value);
+      container.append(button);
+
+      expect(isFocusableVisible(button)).toBe(false);
+    }
+  });
 });
