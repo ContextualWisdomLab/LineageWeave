@@ -129,8 +129,7 @@ function markFootnoteTags(markup: string): string {
     );
     const isContainer =
       hasFootnoteLabel && (name === "div" || name === "ol" || name === "ul");
-    const isWordParagraph =
-      name === "p" && hasFootnoteLabel;
+    const isWordParagraph = name === "p" && hasFootnoteLabel;
     const isOoxmlContainer = name === "w:footnote" || name === "w:endnote";
 
     if (closing) {
@@ -378,10 +377,8 @@ function replaceHtmlScripts(text: string): string {
 
     output += text.slice(cursor, openingStart);
     const inner = text.slice(opening.end + 1, closingStart);
-    output += applyUnicodeScript(
-      stripHtmlLikeTags(decodeHtmlEntities(inner)),
-      opening.name as "super" | "sub" extends never ? never : opening.name === "sup" ? "super" : "sub",
-    );
+    const scriptKind: "super" | "sub" = opening.name === "sup" ? "super" : "sub";
+    output += applyUnicodeScript(stripHtmlLikeTags(decodeHtmlEntities(inner)), scriptKind);
     cursor = closingEnd + 1;
     index = cursor;
   }
