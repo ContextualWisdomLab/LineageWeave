@@ -1,6 +1,6 @@
 # ADR 0300: Contextual-orchestrator owns the provider runtime boundary
 
-- Status: Accepted
+- Status: Proposed
 - Date: 2026-09-01
 - Supersedes: the LineageWeave-owned provider deployment and credential portions of ADR 0030, ADR 0045, ADR 0072, ADR 0076, and ADR 0083
 - Preserves: ADR 0070's upstream-contract-only principle
