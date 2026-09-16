@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import os
 import sys
 from collections import Counter
@@ -46,6 +47,55 @@ def _orchestrator_config() -> tuple[str, str]:
             "contextual-orchestrator"
         )
     return base_url, api_key
+
+
+def _post_timeout_is_valid(post_timeout: object) -> bool:
+    """Return whether an operator timeout is a finite, strictly positive number."""
+    if type(post_timeout) not in (int, float) or post_timeout <= 0:
+        return False
+    try:
+        return math.isfinite(post_timeout)
+    except OverflowError:
+        return False
+
+
+def _post_limit_is_valid(post_limit: object) -> bool:
+    """Return whether a batch limit is an exact integer in the bounded 1..100 range."""
+    return type(post_limit) is int and 1 <= post_limit <= 100
+
+
+def _post_all_is_valid(post_all: object) -> bool:
+    """Return whether the batch-mode selector is an exact boolean."""
+    return type(post_all) is bool
+
+
+def _post_id_is_valid(post_id: object) -> bool:
+    """Return whether an optional post identity is one canonical UUID string."""
+    if post_id is None:
+        return True
+    if type(post_id) is not str or not post_id or post_id != post_id.strip():
+        return False
+    from uuid import UUID
+
+    try:
+        return str(UUID(post_id)) == post_id
+    except ValueError:
+        return False
+
+
+def _post_selection_is_valid(post_all: object, post_id: object, post_limit: object) -> bool:
+    """Return whether selector and limit fields form one unambiguous bounded request."""
+    if (
+        not _post_all_is_valid(post_all)
+        or not _post_id_is_valid(post_id)
+        or not _post_limit_is_valid(post_limit)
+    ):
+        return False
+    if post_all and post_id is not None:
+        return False
+    if not post_all and post_limit != 1:
+        return False
+    return True
 
 
 async def _select_posts(
@@ -159,31 +209,58 @@ async def _select_posts(
     )
 
 
-async def _run(args: argparse.Namespace) -> dict[str, object]:
-    if args.post_id and args.all:
-        raise ValueError("--post-id and --all cannot be combined")
+async def _run_post_keymen_backfill(
+    backfill_arguments: argparse.Namespace,
+) -> dict[str, object]:
+    """Execute one bounded post-Keyman backfill operation."""
+    if not _post_timeout_is_valid(backfill_arguments.post_timeout):
+        raise ValueError("--post-timeout must be finite and positive")
+    if not _post_limit_is_valid(backfill_arguments.limit):
+        raise ValueError("--limit must be an integer between 1 and 100")
+    if not _post_all_is_valid(backfill_arguments.all):
+        raise ValueError("--all must be a boolean selector")
+    if not _post_id_is_valid(backfill_arguments.post_id):
+        raise ValueError("--post-id must be a canonical UUID")
+    if not _post_selection_is_valid(
+        backfill_arguments.all,
+        backfill_arguments.post_id,
+        backfill_arguments.limit,
+    ):
+        raise ValueError("non-default --limit requires --all; --post-id and --all cannot be combined")
     base_url, api_key = _orchestrator_config()
     settings = load_settings()
     keyman_client = ContextualOrchestratorKeymanExtractionClient(
-        base_url=base_url, api_key=api_key, timeout=180.0
+        base_url=base_url,
+        api_key=api_key,
+        timeout=backfill_arguments.post_timeout,
     )
-    vision_client = orchestrator_vision_client(base_url, api_key)
+    vision_client = orchestrator_vision_client(
+        base_url,
+        api_key,
+        timeout=backfill_arguments.post_timeout,
+    )
     resolution_client = _organization_name_resolution_client()
     verification_client = _relation_verification_client()
     hierarchy_client = _corporate_hierarchy_inference_client()
-    limit = 1 if args.post_id or not args.all else args.limit
+    limit = (
+        1
+        if backfill_arguments.post_id or not backfill_arguments.all
+        else backfill_arguments.limit
+    )
 
     pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
     try:
         async with pool.acquire() as conn:
-            rows = await _select_posts(conn, limit=limit, post_id=args.post_id)
+            rows = await _select_posts(
+                conn, limit=limit, post_id=backfill_arguments.post_id
+            )
             failures: Counter[str] = Counter()
             processed = 0
             mention_count = 0
             for row in rows:
                 post_id = str(row["post_id"])
                 try:
-                    async with asyncio.timeout(args.post_timeout):
+                    async with asyncio.timeout(backfill_arguments.post_timeout):
                         with use_llm_metadata(build_post_llm_metadata(post_id, dict(row))):
                             normalized = normalize_post_body(row["post_body"] or "", vision_client)
                             context_hints = await _load_post_semantic_hints(conn, post_id)
@@ -218,21 +295,42 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     selector = parser.add_mutually_exclusive_group()
-    selector.add_argument("--post-id", help="Re-extract one eligible post")
+    selector.add_argument("--post-id", help="Re-extract one eligible post UUID")
     selector.add_argument("--all", action="store_true", help="Process the explicit --limit batch")
-    parser.add_argument("--limit", type=int, default=1, help="Maximum posts for --all (default: 1)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1,
+        help="Maximum posts for --all, 1..100 (default: 1)",
+    )
     parser.add_argument(
         "--post-timeout",
         type=float,
         default=240.0,
         help="Maximum seconds per post including provider calls (default: 240)",
     )
-    args = parser.parse_args()
-    if args.limit < 1:
-        parser.error("--limit must be positive")
-    if args.post_timeout <= 0:
-        parser.error("--post-timeout must be positive")
-    print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
+    backfill_arguments = parser.parse_args()
+    if not _post_limit_is_valid(backfill_arguments.limit):
+        parser.error("--limit must be an integer between 1 and 100")
+    if not _post_all_is_valid(backfill_arguments.all):
+        parser.error("--all must be a boolean selector")
+    if not _post_timeout_is_valid(backfill_arguments.post_timeout):
+        parser.error("--post-timeout must be finite and positive")
+    if not _post_id_is_valid(backfill_arguments.post_id):
+        parser.error("--post-id must be a canonical UUID")
+    if not _post_selection_is_valid(
+        backfill_arguments.all,
+        backfill_arguments.post_id,
+        backfill_arguments.limit,
+    ):
+        parser.error("non-default --limit requires --all; --post-id and --all cannot be combined")
+    print(
+        json.dumps(
+            asyncio.run(_run_post_keymen_backfill(backfill_arguments)),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
