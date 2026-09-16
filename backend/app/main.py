@@ -2914,19 +2914,21 @@ async def read_post_evaluation(
 ) -> dict[str, Any]:
     """Persisted IRT responses for this post (ADR 0003 slice 2)."""
     await _load_visible_post(post_id, account, pool)
-    async with pool.acquire() as conn:
-        rows = await fetch_post_evaluation(conn, post_id)
+    async with pool.acquire() as database_connection:
+        persisted_evaluation_rows = await fetch_post_evaluation(
+            database_connection, post_id
+        )
     return {
         "post_id": post_id,
         "rubric_version": RUBRIC_VERSION,
         "responses": [
             {
-                "criterion_code": row.criterion_code,
-                "criterion_label": row.criterion_label,
-                "response_category": row.response_category,
-                "rubric_version": row.rubric_version,
+                "criterion_code": evaluation_row.criterion_code,
+                "criterion_label": evaluation_row.criterion_label,
+                "response_category": evaluation_row.response_category,
+                "rubric_version": evaluation_row.rubric_version,
             }
-            for row in rows
+            for evaluation_row in persisted_evaluation_rows
         ],
     }
 
@@ -2947,26 +2949,32 @@ async def evaluate_post(
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     with use_llm_metadata(post_metadata):
-        client = _post_evaluation_client()
-        if not client.available:
+        post_evaluation_client = _post_evaluation_client()
+        if not post_evaluation_client.available:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Post evaluation is unavailable. Ask an administrator to configure the "
                 "analysis service, then retry.",
             )
-        async with pool.acquire() as conn:
-            body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+        async with pool.acquire() as database_connection:
+            source_post_body_row = await database_connection.fetchrow(
+                "select post_body from source_post where post_id = $1", post_id
+            )
         try:
             normalized_body = (
                 await asyncio.to_thread(
                     normalize_post_body,
-                    "" if body_row is None else body_row["post_body"],
+                    "" if source_post_body_row is None else source_post_body_row["post_body"],
                     _vision_client(),
                 )
             ).text
-            async with pool.acquire() as conn:
-                rows = await ingest_post_evaluation(
-                    conn, client, post_id, post["post_title"], normalized_body
+            async with pool.acquire() as database_connection:
+                persisted_evaluation_rows = await ingest_post_evaluation(
+                    database_connection,
+                    post_evaluation_client,
+                    post_id,
+                    post["post_title"],
+                    normalized_body,
                 )
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
@@ -2983,19 +2991,19 @@ async def evaluate_post(
         post_id,
         "post_evaluated",
         account.user_account_id,
-        f"Post evaluated: {len(rows)} rubric criterion response(s)",
+        f"Post evaluated: {len(persisted_evaluation_rows)} rubric criterion response(s)",
     )
     return {
         "post_id": str(post["post_id"]),
         "rubric_version": RUBRIC_VERSION,
         "responses": [
             {
-                "criterion_code": row.criterion_code,
-                "criterion_label": row.criterion_label,
-                "response_category": row.response_category,
-                "rubric_version": row.rubric_version,
+                "criterion_code": evaluation_row.criterion_code,
+                "criterion_label": evaluation_row.criterion_label,
+                "response_category": evaluation_row.response_category,
+                "rubric_version": evaluation_row.rubric_version,
             }
-            for row in rows
+            for evaluation_row in persisted_evaluation_rows
         ],
     }
 
@@ -3324,11 +3332,11 @@ async def read_post_five_w1h(
 ) -> dict[str, Any]:
     """Return an evidence-only 5W1H projection for an authorized post."""
     await _load_visible_post(post_id, account, pool)
-    async with pool.acquire() as conn:
+    async with pool.acquire() as database_connection:
         return await load_five_w1h_slots(
-            conn,
+            database_connection,
             post_id,
-            lambda row: _can_see_post(account, row),
+            lambda visible_post_row: _can_see_post(account, visible_post_row),
         )
 
 
@@ -3999,8 +4007,8 @@ async def read_calendar(
 
 @app.get("/api/rankings")
 async def read_rankings(
-    account: CurrentAccount = Depends(get_current_account),
-    pool: asyncpg.Pool = Depends(get_pool),
+    current_account: CurrentAccount = Depends(get_current_account),
+    database_pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0167).
 
@@ -4009,11 +4017,14 @@ async def read_rankings(
     lists. Fail-closed when RankWeave is disabled or the library is
     missing.
     """
-    _require_post_read(account)
-    async with pool.acquire() as conn:
-        posts = await load_visible_ranking_posts(
-            conn, lambda row: _can_see_post(account, row)
+    _require_post_read(current_account)
+    async with database_pool.acquire() as database_connection:
+        visible_ranking_posts = await load_visible_ranking_posts(
+            database_connection,
+            lambda visible_post_row: _can_see_post(
+                current_account, visible_post_row
+            ),
         )
     return _rankweave_client().as_api_payload(
-        posts, can_see_post=lambda _row: True
+        visible_ranking_posts, can_see_post=lambda _visible_post_row: True
     )

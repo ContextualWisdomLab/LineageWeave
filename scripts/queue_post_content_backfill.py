@@ -24,45 +24,54 @@ from backend.app.post_content_queue import (  # noqa: E402
 from backend.app.config import load_settings  # noqa: E402
 
 
-def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+def _queue_backfill_parser() -> argparse.ArgumentParser:
+    """Build the post-content queue backfill command parser."""
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument(
         "--target-dsn",
         default=os.environ.get(
             "DATABASE_URL",
             "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave",
         ),
     )
-    parser.add_argument(
+    argument_parser.add_argument(
         "--valkey-url",
         default=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
     )
-    parser.add_argument("--limit", type=int, default=100)
-    parser.add_argument("--all", action="store_true", help="scan the complete real corpus")
-    return parser
+    argument_parser.add_argument("--limit", type=int, default=100)
+    argument_parser.add_argument(
+        "--all", action="store_true", help="scan the complete real corpus"
+    )
+    return argument_parser
 
 
 async def queue_post_content_backfill(
     target_dsn: str,
     valkey_url: str,
     *,
-    limit: int | None,
+    post_limit: int | None,
 ) -> dict[str, int]:
-    if limit is not None and limit < 1:
+    """Queue incomplete post-content work and return aggregate counts."""
+    if post_limit is not None and post_limit < 1:
         raise ValueError("limit must be positive")
-    settings = load_settings()
+    runtime_settings = load_settings()
     require_orchestrator_evidence = bool(
-        settings.orchestrator_base_url and settings.orchestrator_api_key
+        runtime_settings.orchestrator_base_url and runtime_settings.orchestrator_api_key
     )
 
-    connection = await asyncpg.connect(target_dsn)
-    client = redis.from_url(valkey_url, decode_responses=True)
-    result = {"scanned_posts": 0, "already_complete": 0, "queued_posts": 0, "published_events": 0}
+    database_connection = await asyncpg.connect(target_dsn)
+    valkey_client = redis.from_url(valkey_url, decode_responses=True)
+    backfill_summary = {
+        "scanned_posts": 0,
+        "already_complete": 0,
+        "queued_posts": 0,
+        "published_events": 0,
+    }
     try:
-        rows = await connection.fetch(
+        source_post_records = await database_connection.fetch(
             """
             select post_id, post_body
-              from source_post post
+              from source_post source_record
              where nullif(btrim(source_draft_code), '') is null
                and nullif(btrim(source_deleted_flag), '') is null
                and (
@@ -82,95 +91,98 @@ async def queue_post_content_backfill(
                and (
                    not exists (
                        select 1
-                         from post_content_unit unit
-                        where unit.post_id = post.post_id
+                         from post_content_unit content_unit
+                        where content_unit.post_id = source_record.post_id
                    )
                    or ($1::boolean and exists (
                        select 1
-                         from post_content_unit unit
-                         left join post_content_embedding embedding
-                           on embedding.post_content_unit_id = unit.post_content_unit_id
-                        where unit.post_id = post.post_id
-                          and embedding.post_content_embedding_id is null
+                         from post_content_unit content_unit
+                         left join post_content_embedding content_embedding
+                           on content_embedding.post_content_unit_id = content_unit.post_content_unit_id
+                        where content_unit.post_id = source_record.post_id
+                          and content_embedding.post_content_embedding_id is null
                    ))
                    or ($1::boolean and exists (
                        select 1
-                         from post_content_unit unit
-                         join post_content_image image
-                           on image.post_content_unit_id = unit.post_content_unit_id
-                         join post_content_image_region region
-                           on region.post_content_image_id = image.post_content_image_id
-                         left join post_content_image_region_embedding embedding
-                           on embedding.post_content_image_region_id = region.post_content_image_region_id
-                        where unit.post_id = post.post_id
-                          and region.description_status_code = 'described'
-                           and embedding.post_content_image_region_embedding_id is null
+                         from post_content_unit content_unit
+                         join post_content_image content_image
+                           on content_image.post_content_unit_id = content_unit.post_content_unit_id
+                         join post_content_image_region image_region
+                           on image_region.post_content_image_id = content_image.post_content_image_id
+                         left join post_content_image_region_embedding region_embedding
+                           on region_embedding.post_content_image_region_id = image_region.post_content_image_region_id
+                        where content_unit.post_id = source_record.post_id
+                          and image_region.description_status_code = 'described'
+                           and region_embedding.post_content_image_region_embedding_id is null
                    ))
                    or ($2::boolean and exists (
                        select 1
-                         from post_content_unit unit
-                         left join post_content_unit_structure structure
-                           on structure.post_content_unit_id = unit.post_content_unit_id
-                        where unit.post_id = post.post_id
-                          and unit.unit_kind_code <> 'image'
+                         from post_content_unit content_unit
+                         left join post_content_unit_structure unit_structure
+                           on unit_structure.post_content_unit_id = content_unit.post_content_unit_id
+                        where content_unit.post_id = source_record.post_id
+                          and content_unit.unit_kind_code <> 'image'
                           and (
-                              structure.post_content_unit_structure_id is null
-                              or structure.decision_source_code = 'unresolved'
+                              unit_structure.post_content_unit_structure_id is null
+                              or unit_structure.decision_source_code = 'unresolved'
                           )
                    ))
                )
-             order by post.created_at, post.post_id
+             order by source_record.created_at, source_record.post_id
              limit $3::bigint
             """,
             require_orchestrator_evidence,
             require_orchestrator_evidence,
-            limit if limit is not None else 9223372036854775807,
+            post_limit if post_limit is not None else 9223372036854775807,
         )
-        for row in rows:
-            result["scanned_posts"] += 1
-            post_id = str(row["post_id"])
-            async with connection.transaction():
-                complete = await post_content_is_complete(
-                    connection,
+        for source_post_record in source_post_records:
+            backfill_summary["scanned_posts"] += 1
+            post_id = str(source_post_record["post_id"])
+            async with database_connection.transaction():
+                post_content_complete = await post_content_is_complete(
+                    database_connection,
                     post_id,
                     require_embedding=require_orchestrator_evidence,
                     require_structure=require_orchestrator_evidence,
                 )
-                request = await ensure_post_content_job(
-                    connection,
+                post_content_job_request = await ensure_post_content_job(
+                    database_connection,
                     post_id,
-                    str(row["post_body"] or ""),
-                    content_complete=complete,
+                    str(source_post_record["post_body"] or ""),
+                    content_complete=post_content_complete,
                 )
-            if complete and not request.should_publish:
-                result["already_complete"] += 1
+            if post_content_complete and not post_content_job_request.should_publish:
+                backfill_summary["already_complete"] += 1
                 continue
-            if request.should_publish:
+            if post_content_job_request.should_publish:
                 entry_id = await publish_post_content_event(
-                    client,
+                    valkey_client,
                     post_id=post_id,
-                    source_body_digest=request.source_body_sha256,
+                    source_body_digest=post_content_job_request.source_body_sha256,
                 )
                 if entry_id is None:
-                    raise RuntimeError(f"Valkey did not publish post-content job {post_id}")
-                result["published_events"] += 1
-                result["queued_posts"] += 1
-        return result
+                    raise RuntimeError(
+                        f"Valkey did not publish post-content job {post_id}"
+                    )
+                backfill_summary["published_events"] += 1
+                backfill_summary["queued_posts"] += 1
+        return backfill_summary
     finally:
-        await connection.close()
-        await client.aclose()
+        await database_connection.close()
+        await valkey_client.aclose()
 
 
 def main() -> None:
-    args = _parser().parse_args()
-    result = asyncio.run(
+    """Run the post-content queue backfill command."""
+    command_arguments = _queue_backfill_parser().parse_args()
+    backfill_summary = asyncio.run(
         queue_post_content_backfill(
-            args.target_dsn,
-            args.valkey_url,
-            limit=None if args.all else args.limit,
+            command_arguments.target_dsn,
+            command_arguments.valkey_url,
+            post_limit=None if command_arguments.all else command_arguments.limit,
         )
     )
-    print(result)
+    print(backfill_summary)
 
 
 if __name__ == "__main__":
