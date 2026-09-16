@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LeftoverPair } from "../api";
 import { setLocale } from "../i18n";
 import { LeftoverMapPlot } from "./LeftoverMapPlot";
+import { LeftoverPairList } from "./LeftoverPairList";
 
 const PAIR: LeftoverPair = {
   pair_kind: "closest",
@@ -15,6 +16,11 @@ const PAIR: LeftoverPair = {
   leftover_map_person_axis_2: 0.1,
   leftover_map_item_axis_1: 0.5,
   leftover_map_item_axis_2: -0.02,
+};
+
+const PAIR_WITHOUT_PERSON_COORDINATES: LeftoverPair = {
+  ...PAIR,
+  leftover_map_person_axis_1: null,
 };
 
 describe("LeftoverMapPlot comparison post accessibility", () => {
@@ -41,12 +47,7 @@ describe("LeftoverMapPlot comparison post accessibility", () => {
   it("does not invent a post marker when persisted person coordinates are unavailable", () => {
     const { container } = render(
       <LeftoverMapPlot
-        pairs={[
-          {
-            ...PAIR,
-            leftover_map_person_axis_1: null,
-          },
-        ]}
+        pairs={[PAIR_WITHOUT_PERSON_COORDINATES]}
         criterionLabel={() => "sales-lead"}
         onSelectPost={vi.fn()}
         variant="comparison"
@@ -54,5 +55,22 @@ describe("LeftoverMapPlot comparison post accessibility", () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the pair-button open action when missing coordinates make the plot non-plottable", () => {
+    render(
+      <LeftoverPairList
+        pairs={[PAIR_WITHOUT_PERSON_COORDINATES]}
+        criterionLabel={() => "sales-lead"}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Leftover-map graphic display")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open leftover closest pair: Public post · sales-lead",
+      }),
+    ).toBeInTheDocument();
   });
 });
