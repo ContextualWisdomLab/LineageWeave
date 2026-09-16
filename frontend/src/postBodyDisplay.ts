@@ -11,8 +11,8 @@ export type PostBodySegment =
   | { kind: "text"; text: string; indentLevel?: number; role?: "footnote" }
   | { kind: "image"; src: string; mimeType: string; position: number };
 
-const DATA_URI_IMG =
-  /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
+const DATA_URI_IMAGE_SRC =
+  /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i;
 
 const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
@@ -65,6 +65,39 @@ function readHtmlLikeTag(text: string, start: number): HtmlLikeTag | null {
     closing: Boolean(match[1]),
     selfClosing: /\/\s*>$/.test(raw),
   };
+}
+
+function readQuotedAttribute(tag: HtmlLikeTag, attributeName: string): string | null {
+  const opening = tag.raw.match(/^<\s*\/?\s*[a-z][a-z0-9:-]*/i);
+  if (!opening) return null;
+
+  let index = opening[0].length;
+  while (index < tag.raw.length) {
+    while (/\s/.test(tag.raw[index] ?? "")) index += 1;
+    if (tag.raw[index] === "/" || tag.raw[index] === ">") break;
+
+    const nameStart = index;
+    while (index < tag.raw.length && !/[\s=/>]/.test(tag.raw[index])) index += 1;
+    const name = tag.raw.slice(nameStart, index).toLowerCase();
+    while (/\s/.test(tag.raw[index] ?? "")) index += 1;
+    if (tag.raw[index] !== "=") continue;
+
+    index += 1;
+    while (/\s/.test(tag.raw[index] ?? "")) index += 1;
+    const quote = tag.raw[index];
+    if (quote !== '"' && quote !== "'") {
+      while (index < tag.raw.length && !/[\s>]/.test(tag.raw[index])) index += 1;
+      continue;
+    }
+
+    const valueStart = index + 1;
+    index = valueStart;
+    while (index < tag.raw.length && tag.raw[index] !== quote) index += 1;
+    const value = tag.raw.slice(valueStart, index);
+    index += 1;
+    if (name === attributeName) return value;
+  }
+  return null;
 }
 
 /**
@@ -617,28 +650,43 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
 export function splitPostBody(body: string): PostBodySegment[] {
   const segments: PostBodySegment[] = [];
   const indentUnit = inferIndentationUnit(stripHtmlTags(body));
-  const pattern = new RegExp(DATA_URI_IMG.source, "gi");
   let lastIndex = 0;
-  let match = pattern.exec(body);
-  while (match !== null) {
-    pushText(segments, body.slice(lastIndex, match.index), indentUnit);
-    const mimeType = match[1];
-    const rawB64 = match[2].replace(/\s+/g, "");
-    if (isDecodableBase64(rawB64)) {
-      segments.push({
-        kind: "image",
-        src: `data:${mimeType};base64,${rawB64}`,
-        mimeType,
-        position: match.index,
-      });
-    } else {
-      segments.push({
-        kind: "text",
-        text: t("Embedded image could not be decoded. Re-export the source post and open it again."),
-      });
+  let index = 0;
+  while (index < body.length) {
+    const tagStart = body.indexOf("<", index);
+    if (tagStart < 0) break;
+    const tag = readHtmlLikeTag(body, tagStart);
+    if (!tag) {
+      index = tagStart + 1;
+      continue;
     }
-    lastIndex = match.index + match[0].length;
-    match = pattern.exec(body);
+
+    if (!tag.closing && tag.name === "img") {
+      const src = readQuotedAttribute(tag, "src");
+      const match = src?.match(DATA_URI_IMAGE_SRC);
+      if (match) {
+        pushText(segments, body.slice(lastIndex, tagStart), indentUnit);
+        const mimeType = match[1];
+        const rawB64 = match[2].replace(/\s+/g, "");
+        if (isDecodableBase64(rawB64)) {
+          segments.push({
+            kind: "image",
+            src: `data:${mimeType};base64,${rawB64}`,
+            mimeType,
+            position: tagStart,
+          });
+        } else {
+          segments.push({
+            kind: "text",
+            text: t(
+              "Embedded image could not be decoded. Re-export the source post and open it again.",
+            ),
+          });
+        }
+        lastIndex = tag.end + 1;
+      }
+    }
+    index = tag.end + 1;
   }
   pushText(segments, body.slice(lastIndex), indentUnit);
   if (segments.length === 0) {
