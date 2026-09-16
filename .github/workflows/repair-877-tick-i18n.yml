@@ -17,15 +17,55 @@ jobs:
         with:
           ref: feat/leftover-map-compare-plot-tick-origin-badge-v2920
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed test environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+
       - name: Verify exact RED head
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "ddaa592ab2b3bbd6a50d267fee3e794f0925448e"
-          python -m pytest -q tests/test_grouping_comparison_graphic_tick_i18n_contract.py && {
+          set +e
+          uv run --frozen python -m pytest -q \
+            tests/test_grouping_comparison_graphic_tick_i18n_contract.py \
+            2>&1 | tee /tmp/877-red.log
+          red_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$red_status" -eq 0 ]; then
             echo "expected i18n contract to be RED before repair" >&2
             exit 1
-          } || true
+          fi
+          if [ "$red_status" -ne 1 ]; then
+            echo "pytest infrastructure failure while establishing RED (exit=$red_status)" >&2
+            exit "$red_status"
+          fi
+          grep -F "expected ko/zh/ja/vi translations for" /tmp/877-red.log >/dev/null || {
+            echo "pytest failed, but not for the expected missing-translation contract" >&2
+            exit 1
+          }
+
       - name: Apply catalog repair
         shell: bash
         run: |
@@ -89,14 +129,16 @@ jobs:
 
           path.write_text(source, encoding="utf-8")
           PY
+
       - name: Verify focused GREEN
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q \
+          uv run --frozen python -m pytest -q \
             tests/test_grouping_comparison_graphic_tick_i18n_contract.py \
             tests/test_grouping_comparison_graphic_tick_contract.py \
             tests/test_grouping_comparison_graphic_origin_tick_contract.py
+
       - name: Commit and push target repair
         shell: bash
         run: |
@@ -108,7 +150,3 @@ jobs:
           git diff --cached --check
           git commit -m "fix(i18n): translate comparison tick accessibility copy"
           git push origin HEAD:feat/leftover-map-compare-plot-tick-origin-badge-v2920
-      - name: Remove one-shot automation branch
-        if: ${{ success() }}
-        shell: bash
-        run: git push origin --delete automation/877-tick-i18n-20260916
