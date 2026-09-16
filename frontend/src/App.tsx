@@ -137,12 +137,7 @@ import {
   LEFTOVER_MAP_PLOT_INCOMPLETE_POST,
   LEFTOVER_MAP_PLOT_ITEM_COVERAGE,
 } from "./leftoverMapCoverage";
-import {
-  leftoverMapAxisBadgeShare,
-  leftoverMapAxisBadgeSingular,
-  LEFTOVER_MAP_AXIS_BADGE_SHARE,
-  LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
-} from "./leftoverMapAxisBadge";
+import { leftoverMapAxisBadge } from "./leftoverMapAxisBadge";
 import {
   formatLeftoverMapReconstruction,
   LEFTOVER_MAP_COMPARE_RECONSTRUCTION_LABEL,
@@ -3930,17 +3925,10 @@ function ReportsPanel({
               </p>
             ) : null}
             {report.leftover_map_axes?.map((axis) => {
-              const singular = leftoverMapAxisBadgeSingular(axis);
-              const share = leftoverMapAxisBadgeShare(axis.leftover_share);
-              return (
+              const badge = leftoverMapAxisBadge(axis);
+              return badge === null ? null : (
                 <span key={axis.axis_index} className="post-badge">
-                  {singular === null
-                    ? tf(LEFTOVER_MAP_AXIS_BADGE_SHARE, { axis: axis.axis_index, share })
-                    : tf(LEFTOVER_MAP_AXIS_BADGE_SINGULAR, {
-                        axis: axis.axis_index,
-                        value: singular,
-                        share,
-                      })}
+                  {tf(badge.template, badge.values)}
                 </span>
               );
             })}
