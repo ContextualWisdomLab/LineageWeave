@@ -1,5 +1,62 @@
 # Product & Technical Gap Baseline
 
+> Dated observation: 2026-09-09 UTC. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (#931, 2026-09-05,
+> defer repository-local jobs while PRs are Draft). Live queue at
+> refresh: 141 open PRs (16 ready, 125 draft) and 22 open issues.
+> Leftover-map family: 65 open (64 draft, 1 ready: #802 v2.30.0
+> explained share on pair segments). Live agents/PR/issue/protected-ref/check state remains current authority; this section is dated evidence only and every `Exact-head loop overlay` below is historical evidence (issue #963).
+>
+> Exact-head checks on protected `main@83eba56`: Full test suite
+> SUCCESS plus CodeQL / PROV-O / Ontology / Tests SUCCESS (4/4
+> `gh run list --commit` completed-success). Open-PR exact heads share
+> one pattern: Full test suite SUCCESS vs central required-workflow
+> failures — CodeQL compatibility (actions/js-ts/python) FAILURE,
+> noema-review FAILURE (except #960 SUCCESS), opencode-review FAILURE
+> (except #960 SUCCESS), dependency-review FAILURE/SKIPPED, strix mixed
+> (SUCCESS #970/#929/#914/#961; FAILURE
+> #969/#964/#959/#802/#973/#911; CANCELLED #974/#972/#960; IN_PROGRESS
+> #983), reviewDecision REVIEW_REQUIRED and mergeStateStatus BLOCKED
+> (except #979 CLEAN stacked on #974 with Full + Frontend SUCCESS).
+> Central CodeQL/noema/opencode/strix/dependency failures are owner-side
+> ContextualWisdomLab/.github control-plane state, not local-code
+> verdicts: dependency-review evidence fetch fails closed with HTTP 403,
+> CodeQL compat shards miss their dispatch-verdict handshake, Noema review
+> fails on unconfigured reviewer credentials (org secret), and Strix fails
+> closed after its quick run exits without mappable findings (exit 2) -- all
+> repair findings open as of this observation. No self-approve, no
+> force-push, no stale-evidence transfer.
+>
+> Focus PRs: #983 dashboard a11y + frontend coverage (BLOCKED at `60d2f7800`:
+> Full test suite terminal SUCCESS, Frontend FAILURE with 12 files below
+> the 100% threshold and zero failing tests (the GFM regression now
+> passes); remaining gates pending at observation, central fail-closed
+> causes as above); #979 Ask
+> ownership-fenced liveness (CLEAN, stacked on #974); #974 chat
+> null-timeout + worker expiry; #970 fast-mlsirm v0.9.1 owner release
+> (for #967); #969 auth sign-in recovery; #964 k6 load diagnostics (no
+> response content); #960 customer-error hygiene; #929 versioned UI
+> translation ledger; #802 leftover-map explained share on pair segments
+> (v2.30.0, ADR 0233 family); supporting #973/#972/#961/#959/#914/#911.
+> Focus issues: #976 LeftoverPairList button names, #975 Ask
+> ownership-fenced liveness, #967 fast-mlsirm v0.9.1, #965 MCP
+> 2026-07-28 stateless, #963 current-vs-historical separation (this
+> refresh), #962 rankweave 0.18.0. Aggregate counts + PR numbers only;
+> no post identifiers, organization names, or production record keys
+> (ADR 0001).
+>
+> PRD/TRD: Operations Dashboard traceability section and ADRs remain
+> normative per `docs/adr/README.md` (this file stays a traceability
+> projection; no new decision introduced). 조치: (1) keep #979→#974 Ask
+> stack in CLEAN→merge order with independent APPROVE; (2) land #970 and
+> #962 dependency pins through protected gates only; (3) keep #983
+> frontend/a11y green plus #976 acceptance before any release claim;
+> (4) advance #802 plus 64 draft leftover-map badges in version order
+> with persisted-`d`/`ξ`/`ζ` honesty (ADR 0267–0271/0233); (5) repair
+> central CodeQL/noema/opencode/strix gates in
+> ContextualWisdomLab/.github, not via local bypass; (6) treat drafts
+> #901/#984 as ordinary deltas to adopt, not authority.
+
 ## Translation consumer full-App diagnosis — 2026-09-08
 
 On #932 merge head `8c662a055`, all 106 App tests ran with one worker and
@@ -278,16 +335,14 @@ Do not increase VM CPU allocation or stop unrelated workloads without checking
 host capacity and workload ownership. Colima uses Virtualization.Framework and
 virtiofs; this observation does not establish a forwarding implementation bug.
 
-
-
-> Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-29 13:20 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-29 13:20 KST)
 > APPROVE. #782 leftover-map coordinates + graphic + axis share + ticks
 > (v2.24.0–v2.27.0 / ADR 0267–0270) is on
 > `2a203bf8b75b987ba899a0006a312d81259b9124` after #799 squash-merged
 > into the unprotected leftover branch. Auto-merge squash remains armed
-> on #782/#780/#774/#772/#771/#770. Independent APPROVE is still
+> on #782/#780/#774/#772/#771/#770. Independent APPROVE was at that time (historical, 2026-08-29 13:20 KST)
 > required for protected main. Drafts remain dirty against `main`. #96
 > stays closed as a weaker duplicate of #91. GitHub writes through
 > `gh`/MCP succeed. Copilot review is not independent APPROVE. Do not
@@ -303,9 +358,9 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > leftover branch `feat/leftover-map-coordinates-v2240`; leave the PR
 > open for independent review.
 
-> Exact-head loop overlay: 2026-08-29 13:15 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-29 13:15 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-29 13:15 KST)
 > APPROVE. #782 leftover-map coordinates + graphic display + axis share
 > (v2.24.0 / v2.25.0 / v2.26.0 / ADR 0267 / ADR 0268 / ADR 0269) is on
 > `4a0afbf4804d9862bba58869db20ccdfb0a0b37e`; Strix fail-closed and no
@@ -313,7 +368,7 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > #782/#780/#774/#772/#771/#770. Drafts remain dirty against `main`.
 > #96 stays closed as a weaker duplicate of #91. GitHub writes through
 > `gh`/MCP succeed (comment/create-branch/auto-merge). `git push` HTTPS
-> still fails (empty `X-OAuth-Scopes`). Copilot review is not
+> failed at that time (historical, 2026-08-29 13:15 KST) (empty `X-OAuth-Scopes`). Copilot review is not
 > independent APPROVE. Do not self-approve.
 >
 > Next buyer increment on this cycle: leftover-map coordinate ticks
@@ -324,9 +379,9 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > invent leftover scores. Do not mix into #782; stack onto leftover
 > branch `feat/leftover-map-coordinates-v2240`.
 
-> Exact-head loop overlay: 2026-08-28 19:15 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-28 19:15 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-28 19:15 KST)
 > APPROVE. #782 leftover-map coordinates + graphic display (v2.24.0 /
 > v2.25.0 / ADR 0267 / ADR 0268) is on
 > `2f7e9c8df695f12d03964d5caa68fa3355bdd923`; Strix fail-closed and no
@@ -338,14 +393,14 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > Next buyer increment on this cycle: leftover-map axis share on the
 > graphic display (ADR 0269 / v2.26.0). Caption plot axes with persisted
 > ADR 0148 `leftover_map_axes` inertia `σ_k² / Σ_j σ_j²`. UI-only; no
-> new columns. Rank-0 zero-share axes still named. Missing/non-finite
+> new columns. Rank-0 zero-share axes were named at that time (historical, 2026-08-28 19:15 KST). Missing/non-finite
 > share omits that axis badge and keeps existing leftover-map axis
 > text. Do not invent leftover scores. Do not mix into dashboard stacks
 > #640/#778/#781.
 
-> Exact-head loop overlay: 2026-08-28 16:05 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-28 16:05 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-28 16:05 KST)
 > APPROVE. #782 leftover-map coordinates (v2.24.0 / ADR 0267) is on
 > `e2d13019004a5d8c019fecf7a39ceeef4093b8dd`; Strix fail-closed and no
 > independent APPROVE. Drafts remain dirty against `main`. #96 stays
@@ -357,9 +412,9 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > length. Do not invent leftover scores. Do not mix into dashboard
 > stacks #640/#778/#781.
 
-> Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
+> Exact-head loop overlay (historical, 2026-08-28 13:00 KST). Protected `main` was
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
-> explained leftover share, #775). Open ready PRs still lack independent
+> explained leftover share, #775). Open ready PRs lacked independent at that time (historical, 2026-08-28 13:00 KST)
 > APPROVE. Drafts remain dirty against `main`. #96 stays closed as a
 > weaker duplicate of #91. GitHub writes through `gh` succeed.
 >
@@ -368,7 +423,7 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > `R̂ = ξ · ζ` and `d = ‖ξ − ζ‖` are buyer-auditable. Do not name
 > leftover-map inner product, cosine, or length as separate columns.
 
-> Exact-head loop overlay: 2026-08-28 10:00 KST. Protected `main` was
+> Exact-head loop overlay (historical, 2026-08-28 10:00 KST). Protected `main` was
 > `edf22ee39aee2a8481f9bda8fff59801821e79c2` (#773 similar-VOC coverage).
 > Open ready PRs: #772 (ask_time_axis coverage), #771 (fixtures/vision
 > coverage), #770 (project-history empty-state). Auto-merge squash is
@@ -377,27 +432,26 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > `main`. #96 stays closed as a weaker duplicate of #91. Writes through
 > the Grok GitHub App now succeed (comment/close/auto-merge/update-branch)
 > despite empty `X-OAuth-Scopes`; git push is the remaining probe this
-> cycle. This overlay supersedes every older queue count below.
+> cycle. This overlay historically superseded every older queue count below as of 2026-08-28 10:00 KST (historical, 2026-08-28 10:00 KST).
 >
 > Next buyer increment on this cycle: leftover-map explained leftover
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
 > `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
 > coordinates in this slice.
 
-> Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
+> Exact-head loop overlay (historical, 2026-08-28 KST). Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
-> mergeable, normal squash auto-merge was enabled, exact-head Checks were still
-> running, and no qualifying independent approval existed. PRs #702
+> mergeable, normal squash auto-merge was enabled, exact-head Checks were running at that time (historical, 2026-08-28 KST), and no qualifying independent approval existed. PRs #702
 > (`93e7b81d096d`), #679 (`135dfe7c4266`), #672 (`a3e87a89185f`), #667
 > (`0c0f4af572a9`), and #640 (`bd73e0a43ae1`) remained draft and dirty against
 > `main`. Central ruleset 18156473 and repository no-force-push ruleset
-> 21065108 remain active. This overlay supersedes every older queue count below.
+> 21065108 remain active. This overlay historically superseded every older queue count below as of 2026-08-28 KST (historical, 2026-08-28 KST).
 > Checks from older heads, stacked bases, or merged PRs are not transferred.
 >
-> Current-runtime boundary: the official Compose project was healthy at the
+> Current-runtime boundary (historical, 2026-08-28 KST): the official Compose project was healthy at the
 > HTTP health route, but its PostgreSQL schema did not yet contain
-> `source_post_voice`; therefore no current Voice-history aggregate,
+> `source_post_voice`; therefore no Voice-history aggregate as observed at that time (historical, 2026-08-28 KST),
 > authenticated project-history API result, or rendered authenticated UI result
 > is claimed. Older aggregate observations below remain dated supporting
 > evidence, not confirmation of this exact head. The checked repository names
@@ -418,7 +472,7 @@ virtiofs; this observation does not establish a forwarding implementation bug.
 > #753 (FJA I/O-Psychology semantic layer, ADR 0251), #751 (SOC/O*NET/RIASEC
 > taxonomy, ADR 0245), #749 (authorized job-family and job-series snapshot
 > import, ADR 0263), #657 (TEPP lifecycle evidence), #704, #720, and #754 are
-> now merged. The still-open queue is carried in section 1. No row below is
+> now merged. The open queue as of that time was carried in section 1 (historical, 2026-08-27 KST). No row below is
 > release evidence until re-verified on a specific head.
 
 ## Voice-of-X product and technical gap
