@@ -13,11 +13,33 @@ export type PostBodySegment =
 
 const DATA_URI_IMAGE_SRC =
   /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i;
-
-const BREAK_TAG = /<br\b[^>]*>/gi;
-const BLOCK_TAG =
-  /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
-const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
+const BLOCK_BOUNDARY_TAGS = new Set([
+  "article",
+  "blockquote",
+  "div",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "li",
+  "ol",
+  "p",
+  "section",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "tr",
+  "ul",
+  "w:p",
+  "w:tbl",
+  "w:tr",
+  "w:tc",
+]);
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
@@ -262,6 +284,32 @@ function indentMarker(width: number): string {
   return width > 0 ? `${INDENT_MARKER}${width}${INDENT_MARKER_END}` : "";
 }
 
+/**
+ * Convert structural boundary tags with the same quote-aware scanner used by
+ * the sanitizer. This keeps `>` inside quoted attributes from terminating a
+ * tag early while preserving list depth and declared indentation semantics.
+ */
+function replaceBoundaryTags(text: string): string {
+  let listDepth = 0;
+  return replaceHtmlLikeTags(text, (rawTag) => {
+    const tag = readHtmlLikeTag(rawTag, 0);
+    if (!tag) return rawTag;
+    if (!tag.closing && tag.name === "br") return "\n";
+    if (!tag.closing && tag.name === "w:ind") {
+      return indentMarker(declaredIndentWidth(rawTag));
+    }
+    if (!BLOCK_BOUNDARY_TAGS.has(tag.name)) return rawTag;
+    if (tag.name === "ul" || tag.name === "ol") {
+      if (tag.closing) listDepth = Math.max(0, listDepth - 1);
+      else listDepth += 1;
+      return "\n\n";
+    }
+    if (tag.closing) return "\n\n";
+    const nestedListIndent = listDepth > 0 ? Math.max(0, listDepth - 1) * 4 : 0;
+    return `\n\n${indentMarker(declaredIndentWidth(rawTag) + nestedListIndent)}`;
+  });
+}
+
 const SUPER_ASCII_TO_UNI: Record<string, string> = {
   "0": "⁰",
   "1": "¹",
@@ -490,22 +538,7 @@ export function splitScriptRuns(text: string): ScriptRun[] {
 
 function stripHtmlTags(text: string): string {
   const withScripts = normalizeScriptText(markFootnoteTags(text));
-  let listDepth = 0;
-  const withBoundaries = withScripts
-    .replace(BREAK_TAG, "\n")
-    .replace(BLOCK_TAG, (tag) => {
-      const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
-      const closing = /^<\//.test(tag);
-      if (name === "ul" || name === "ol") {
-        if (closing) listDepth = Math.max(0, listDepth - 1);
-        else listDepth += 1;
-        return "\n\n";
-      }
-      if (closing) return "\n\n";
-      const nestedListIndent = !closing && listDepth > 0 ? Math.max(0, listDepth - 1) * 4 : 0;
-      return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
-    })
-    .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
+  const withBoundaries = replaceBoundaryTags(withScripts);
   const withoutTags = replaceHtmlLikeTags(withBoundaries, (tag) =>
     /^<\/?(?:a\b|w:)/i.test(tag) ? "" : " ",
   );
