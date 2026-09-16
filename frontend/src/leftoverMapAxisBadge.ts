@@ -13,6 +13,9 @@ export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR = "leftover axis {axis} σ {value}
 
 export const LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY = "leftover axis {axis} σ {value}";
 
+export const LEFTOVER_MAP_AXIS_TICK_SINGULAR =
+  "leftover axis {axis} tick {value} σ {singular}";
+
 export type LeftoverMapAxisBadge = {
   template: string;
   values: Record<string, string | number>;
@@ -68,5 +71,21 @@ export function leftoverMapAxisBadge(
   return {
     template: LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
     values: { axis: axis.axis_index, value: singular, share },
+  };
+}
+
+/** Project finite persisted σ onto one report-axis tick without inventing share evidence. */
+export function leftoverMapAxisTickBadge(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverSingular: number | null | undefined,
+): LeftoverMapAxisBadge | null {
+  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
+  if (singular === null) {
+    return null;
+  }
+  return {
+    template: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+    values: { axis: axisIndex, value: tickLabel, singular },
   };
 }
