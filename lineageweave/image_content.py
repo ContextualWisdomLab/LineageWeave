@@ -73,8 +73,8 @@ class _EmbeddedImageParser(HTMLParser):
         super().__init__(convert_charrefs=False)
         self.images: list[EmbeddedImage] = []
         self._line_offsets = [0]
-        for line in html.splitlines(keepends=True):
-            self._line_offsets.append(self._line_offsets[-1] + len(line))
+        for newline in re.finditer("\n", html):
+            self._line_offsets.append(newline.end())
 
     def _source_position(self) -> int:
         """Return the current parser position as a character offset in the source."""
