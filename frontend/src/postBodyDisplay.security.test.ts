@@ -17,4 +17,9 @@ describe("post body markup boundary", () => {
   it("parses quoted greater-than characters inside nested scientific markup", () => {
     expect(normalizeScriptText('<sup><span title="a > b">2</span></sup>')).toBe("²");
   });
+
+  it("parses quoted greater-than characters on the scientific script tag itself", () => {
+    expect(normalizeScriptText('<sup title="a > b">2</sup>')).toBe("²");
+    expect(normalizeScriptText('<sub data-rule="x > 0">2</sub>')).toBe("₂");
+  });
 });
