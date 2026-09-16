@@ -30,6 +30,7 @@ import json
 import math
 import re
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from io import BytesIO
 from typing import Protocol
 from urllib.parse import urlparse
@@ -38,8 +39,8 @@ from PIL import Image
 
 from .http_client import chat_completion_content, post_json
 
-_DATA_URI_IMG = re.compile(
-    r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
+_DATA_URI_IMAGE_SRC = re.compile(
+    r"^data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$",
     re.IGNORECASE,
 )
 
@@ -63,6 +64,54 @@ class EmbeddedImage:
     position: int
     mime_type: str
     data: bytes
+
+
+class _EmbeddedImageParser(HTMLParser):
+    """Extract data-URI ``img`` elements without truncating quoted attributes."""
+
+    def __init__(self, html: str) -> None:
+        super().__init__(convert_charrefs=False)
+        self.images: list[EmbeddedImage] = []
+        self._line_offsets = [0]
+        for line in html.splitlines(keepends=True):
+            self._line_offsets.append(self._line_offsets[-1] + len(line))
+
+    def _source_position(self) -> int:
+        """Return the current parser position as a character offset in the source."""
+        line_number, column = self.getpos()
+        line_index = max(0, min(line_number - 1, len(self._line_offsets) - 1))
+        return self._line_offsets[line_index] + column
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Collect valid embedded images while leaving remote sources unavailable."""
+        if tag.casefold() != "img":
+            return
+        src = next(
+            (
+                value
+                for name, value in attrs
+                if name.casefold() == "src" and value is not None
+            ),
+            None,
+        )
+        if src is None:
+            return
+        match = _DATA_URI_IMAGE_SRC.fullmatch(src)
+        if match is None:
+            return
+        mime_type = match.group(1)
+        raw_b64 = re.sub(r"\s+", "", match.group(2))
+        try:
+            data = base64.b64decode(raw_b64, validate=True)
+        except (binascii.Error, ValueError):
+            return
+        self.images.append(
+            EmbeddedImage(
+                position=self._source_position(),
+                mime_type=mime_type,
+                data=data,
+            )
+        )
 
 
 @dataclass(frozen=True)
@@ -93,20 +142,15 @@ def crop_image_region(image_bytes: bytes, mime_type: str, region: ImageRegion) -
 def extract_base64_images(html: str) -> list[EmbeddedImage]:
     """Find every ``<img src="data:...;base64,...">`` in document order.
 
-    Malformed base64 in a matched tag is skipped rather than raising --
-    one corrupt embedded image must not fail extraction of the rest of the
-    document.
+    Attribute parsing is delegated to :class:`html.parser.HTMLParser` so a
+    valid ``>`` inside a quoted attribute cannot truncate the tag before its
+    ``src`` attribute. Malformed base64 is skipped rather than raising -- one
+    corrupt embedded image must not fail extraction of the rest of the document.
     """
-    images: list[EmbeddedImage] = []
-    for match in _DATA_URI_IMG.finditer(html):
-        mime_type = match.group(1)
-        raw_b64 = re.sub(r"\s+", "", match.group(2))
-        try:
-            data = base64.b64decode(raw_b64, validate=True)
-        except (binascii.Error, ValueError):
-            continue
-        images.append(EmbeddedImage(position=match.start(), mime_type=mime_type, data=data))
-    return images
+    parser = _EmbeddedImageParser(html)
+    parser.feed(html)
+    parser.close()
+    return parser.images
 
 
 @dataclass(frozen=True)
