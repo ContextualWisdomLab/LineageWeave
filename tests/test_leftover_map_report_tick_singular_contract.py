@@ -17,11 +17,19 @@ def test_report_graphic_tick_keeps_persisted_singular_value_without_share() -> N
 
 
 def test_report_graphic_tick_does_not_infer_sigma_or_share() -> None:
-    """Invalid σ falls back to the ordinary tick and ticks never synthesize share."""
+    """Report ticks compose independently persisted σ/share without deriving either."""
     assert SINGULAR_SOURCE.exists(), "singular-value axis helper is missing"
     source = SINGULAR_SOURCE.read_text(encoding="utf-8")
+    helper = source.split("export function leftoverMapPlotTickAxisBadge", 1)[-1].split(
+        "export function leftoverMapComparePlotTickAxisBadge", 1
+    )[0]
 
-    assert "formatLeftoverMapPlotAxisSingular" in source
-    assert "Number.isFinite" in source
-    assert "Math.sqrt" not in source
-    assert "leftover_share" not in source.split("leftoverMapPlotTickAxisBadge", 1)[-1][:1400]
+    assert "formatLeftoverMapPlotAxisSingular" in helper
+    assert "formatLeftoverMapPlotAxisShare" in helper
+    assert "leftoverSingular" in helper
+    assert "leftoverShare" in helper
+    assert "LEFTOVER_MAP_PLOT_TICK_SHARE" in helper
+    assert "LEFTOVER_MAP_PLOT_TICK_SINGULAR_SHARE" in helper
+    assert "Math.sqrt" not in helper
+    assert "Math.max" not in helper
+    assert "Math.min" not in helper
