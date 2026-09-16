@@ -932,3 +932,54 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### Exact-head successor workflow evidence — 2026-09-09
+
+Successor PR #985 at `18abec99c` carries the valid delta from #983 and adds
+authenticated-boundary and malformed-verification-URL coverage. The hosted
+Tests workflow produced `SKIPPED` and `CANCELLED` runs while the PR base was a
+non-main stacked branch; this is workflow evidence, not a product test result.
+The same head was checked against protected `main` for ancestry before the
+successor was retargeted. Independent review and exact-head hosted Checks are
+still required; the frontend 100% denominator remains unchanged.
+
+### Exact-head KPI observation — 2026-09-09
+
+Protected `main` was `83eba56149eb802cd63642c507c324c9976ec78e` at the
+2026-09-09 observation. The repository had 140 open pull requests and 22 open
+issues. These are queue counts, not delivery or population evidence.
+
+Foundation PR #929 was `d997a282f3393b9c2ecbef6998cdc080b7576bed` with
+normal squash auto-merge enabled. It remained blocked on required current-head
+workflows and qualifying independent approval; no bypass or self-approval was
+used. Parent frontend-coverage PR #983 was observed at
+`808fcfd24fcebddbf5e208e3092cc7d6802f2e52`, Ready and review-required.
+
+Draft successor PR #985 predecessor `1b0ed330724c433c96feab7f72e617074c38d47b`
+preserves #983 and repairs two successor-only review findings: verification
+failures no longer render server detail and instead reuse the existing
+customer recovery action, while the repository-wide Vitest single-worker
+policy was removed because the local collection stall did not establish that
+permanent policy. Changed-file oxlint passed. A focused `App.test.tsx` run
+remained at zero collected tests until it was stopped after more than one
+minute, so it is recorded as a local unavailable result, never a pass. Fresh
+hosted Checks on the resulting head are required.
+
+The current Ready-PR collision audit is not clean enough for independent
+merge ordering. PRs #929/#970/#973 overlap `pyproject.toml`; #929/#974 overlap
+the main API module; #960/#983/#985 overlap ADR 0123; and #969/#972/#985
+overlap the application shell. PR #985 also carries #983's workflow, package,
+lockfile, and ADR 0165 changes while targeting `main`, so ancestry must be
+rechecked after #983 is protected-merged rather than treating those inherited
+files as an independent release. No conflicting ADR or migration number was
+observed in this Ready subset, but path non-overlap is not semantic proof.
+
+Earlier exact head `d0abddbea` passed frontend lint, build, and Storybook build.
+Its preserved coverage artifact measured 95.59% lines, 93.73% statements,
+93.12% functions, and 83.77% branches; `App.tsx` measured 89.16% lines and
+74.11% branches. The coverage gate therefore remains failed and its denominator
+was not reduced. Twenty unauthenticated requests to the Colima-hosted login page
+measured p50 35.73 ms, p95 146.53 ms, and maximum 350.39 ms. This is a
+public-route observation only; it does not prove the authenticated page SLO or
+a 20 ms product-wide p95. The PostgreSQL Full test suite remained in progress
+at that capture, so no terminal integration result is inferred.
