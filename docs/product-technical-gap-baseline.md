@@ -54,16 +54,18 @@ The hosted #875 RED was decomposed against the live source. #868's executable co
 
 #869 then exposed a separate valid RED in `tests/test_grouping_comparison_graphic_tick_singular_contract.py`: the comparison-graphic tick helper and exact singular template were absent even after #868's report-tick fix. Exact #869 `e395e3f8e988d77c10b1c48cd6f7cdd4d6454d1b` is the minimal causal repair. It adds `leftoverMapComparePlotTickAxisBadge`, reuses the finite/non-negative singular formatter, preserves finite `σ=0`, returns null for unusable σ, and does not read or synthesize `leftover_share`. Fresh Tests `35089634027` is queued, so the repair is not accepted GREEN yet.
 
-All descendants were reconverged ordinary/non-force after #869 moved; no predecessor receipt transfers:
+Concurrent owner repair then advanced the next three owning parents without rewriting history: #870 exact `327518f86c647745c159dead5ef5bf18d044b463` adds the comparison-strip singular projection, #871 exact `171355483c5852aac705886230fbc830f6418c29` adds the report-axis singular projection, and #872 exact `299bae80c1a961d16bf0213fb797c0fe9f805a17` composes comparison-graphic share independently from σ. Their descendants were adopted ordinary/non-force; predecessor validation receipts do not transfer.
 
-`#867 09ee432b... -> #868 3cbed781... -> #869 e395e3f8... -> #870 27d44f26... -> #871 c64050b8... -> #872 f61b7a1c... -> #873 4cc0296b... -> #874 8494fb34... -> #875 fb4cc939...`
+Current ancestry is:
+
+`#867 09ee432b... -> #868 3cbed781... -> #869 e395e3f8... -> #870 327518f8... -> #871 17135548... -> #872 299bae80... -> #873 d03f913e... -> #874 d9ab663e... -> #875 29255a88...`
 
 Below #875:
 
-- #876 `14258875...`: report criterion `ζ`, persisted finite item-axis pair only.
-- #1033 `a191d412...`: comparison criterion `ζ`, same item-coordinate boundary with distinct comparison identity.
-- #1034 `f47c1cf6...`: comparison post `ξ`, persisted finite person-axis pair only.
-- sibling #877 `8b157b4debe5818db23f894e42c862fb536990be`: canonical formatted-zero origin identity with independent share/σ composition plus the comparison-tick i18n RED. Its overlapping `leftoverMapPlotAxisSingular.ts` delta was retained unchanged during two-parent convergence because it is a semantic superset of #869's narrower singular-tick helper.
+- #876 `517c38a2...`: report criterion `ζ`, persisted finite item-axis pair only.
+- #1033 `5d527a13...`: comparison criterion `ζ`, same item-coordinate boundary with distinct comparison identity.
+- #1034 `b8b5075d...`: comparison post `ξ`, persisted finite person-axis pair only.
+- sibling #877 `f96eb0344b4ba7f0adabf58dd47929fad9042551`: canonical formatted-zero origin identity with independent share/σ composition plus the comparison-tick i18n RED. Its richer projection remains the semantic superset and keeps origin/share/σ independent.
 
 ### Fresh hosted RED evidence
 
@@ -71,15 +73,15 @@ Below #875:
 
 One #877 failure remains the intended buyer-visible i18n contract: eight regular/origin comparison-tick accessibility templates are absent from each ko/zh/ja/vi catalog, for 32 missing entries while preserving `{axis}`, `{value}`, `{share}`, and `{singular}`.
 
-The remaining foundation work is narrower but still real. #869's singular comparison-tick helper is now repaired, but #870 still lacks `leftoverMapCompareAxisTickBadge`; #871/#875 lack `leftoverMapAxisTickBadge`; #872/#874 therefore cannot yet satisfy their share composition contracts; #873's report helper is still singular-only and lacks share-only/combined states. The earlier whole-file/tail negative assertions must also be rewritten to test non-inference semantically rather than forbid later valid `leftover_share` composition. Repair these at their owning parents, then obtain focused/full GREEN and immediately reconverge descendants.
+The remaining foundation work is narrower but still real. #870's comparison-strip singular helper, #871's report-axis singular helper, and #872's comparison-graphic share composition are now repaired on their live heads. #873 remains report-graphic share-only/combined RED, #874 remains comparison-strip share-composition RED, and #875 remains report-axis share-composition RED. The earlier whole-file/tail negative assertions must continue to test non-inference semantically rather than forbid later valid `leftover_share` composition. Repair the remaining owning parents, then obtain focused/full GREEN and immediately reconverge descendants.
 
-### #877 single-writer harness RCA and current stale guard
+### #877 single-writer harness RCA and current writer
 
 The original writer exposed a repository-owned harness defect: system `python -m pytest` was used without the committed test environment, `/usr/bin/python: No module named pytest` was swallowed by `|| true`, and the ephemeral 32-entry patch never reached the product branch. The lane was repaired to use Python 3.12, uv 0.11.28, Rust 1.97.1, `uv sync --frozen --extra dev --extra backend`, fail-closed RED classification, and `uv run --frozen`; the purpose-complete self-deleting workflow step was removed.
 
-The same writer lane auxiliary head `9ca76df74a56621b17a857d6ea618adaafc51133` triggered run `35088618241`, job `104769318345`, which remains queued. Its committed exact-head guards still target predecessor `e4289763...`. Necessary #875/#877 ancestry convergence moved the product head to `8b157b4d...`, so that queued run is now a stale writer that must fail closed before any edit. No competing writer, no-op wake commit, unchanged rerun, force rewrite, or predecessor receipt transfer was created. The next owner action is to retarget the same single-writer lane only after this stale run is terminal or otherwise safely superseded without concurrent source mutation.
+The predecessor writer head `9ca76df74a56621b17a857d6ea618adaafc51133`, run `35088618241`, targets stale product head `e4289763...` and remains obsolete fail-closed evidence only. The same single-writer branch was safely retargeted in place—without a competing source writer—to auxiliary head `70cd8fa91e27c259f4ebe16552b6265b50ac2255`. Current run `35092322889`, job `104781307122`, is queued with `runner_id=null` and `steps=[]`; both exact-head guards target current #877 `f96eb0344b4ba7f0adabf58dd47929fad9042551`. No product edit has occurred yet, so the 32-entry RED remains open and no queued receipt is counted GREEN.
 
-Historical #878/#879 remain open delta/evidence carriers. Closure still requires complete verified successor inheritance of every valid product, test, fixture, contract, and evidence delta.
+Historical #878/#879 remain open delta/evidence carriers. Their current successor authority is #876 `517c38a2...` -> #1033 `5d527a13...` -> #1034 `b8b5075d...`; closure still requires complete verified successor inheritance of every valid product, test, fixture, contract, and evidence delta.
 
 ## Warning and operability ownership
 
@@ -108,11 +110,11 @@ Expected PostgreSQL constraint-violation `ERROR` records produced by negative co
 | Semantic/operator naming | #966 `f93715af...` / #919 `d78390c5...` | Both direct #899 descendants exact and `behind_by=0`; Tests Draft-skipped. | Fresh hosted evidence and independent review after #899 integration/reconvergence. |
 | Report-axis σ/share missingness | #866 `6935ac4d...` | Minimum App repair present; exact Tests action_required without jobs. | Fresh frontend/full/rendered/a11y/i18n/security evidence and approval. |
 | Comparison-graphic axis σ/share identity | #867 `09ee432b...` | Product/helper delta retained on repaired #866 ancestry. | Fresh repository/rendered/security/review evidence. |
-| Singular/share tick foundation | #868 `3cbed781...` -> #869 `e395e3f8...` -> #875 `fb4cc939...` | Causal report-tick and comparison-graphic singular-tick helpers landed at their owning parents and all descendants were reconverged ordinary/non-force. #869 fresh Tests queued; #870/#871/#872/#873/#874/#875 retain separately owned REDs. | Repair remaining owning-parent REDs in order, exact-head focused/full GREEN, then fresh browser/security/performance/review evidence. |
-| Report/comparison marker identity | #876 `14258875...` -> #1033 `a191d412...` -> #1034 `f47c1cf6...` | ζ/ζ/ξ boundaries preserved on newly converged ancestry, but parent foundation is not fully GREEN. | Parent-first repair/convergence, then focused/full/rendered/security evidence and approval. |
-| Comparison origin/a11y identity | #877 `8b157b4d...` | Product origin/share/σ delta preserved as a semantic superset on converged ancestry; intended 32-entry i18n RED remains. Prior sole writer run `35088618241` is queued with a stale predecessor exact-head guard and cannot be counted as a current writer receipt. | Safely retarget the same single-writer lane after stale-run settlement, prove focused RED→32-entry repair→focused GREEN→ordinary push, then fresh full/rendered/a11y/security evidence plus approval. |
+| Singular/share tick foundation | #868 `3cbed781...` -> #869 `e395e3f8...` -> #870 `327518f8...` -> #871 `17135548...` -> #872 `299bae80...` -> #875 `29255a88...` | Report/comparison singular projections and comparison-graphic share composition have causal repairs; #873/#874/#875 retain separately owned share-composition REDs. | Repair remaining owning-parent REDs in order, exact-head focused/full GREEN, then fresh browser/security/performance/review evidence. |
+| Report/comparison marker identity | #876 `517c38a2...` -> #1033 `5d527a13...` -> #1034 `b8b5075d...` | ζ/ζ/ξ boundaries preserved on current ordinary/non-force ancestry, but parent foundation is not fully GREEN. | Parent-first repair/convergence, then focused/full/rendered/security evidence and approval. |
+| Comparison origin/a11y identity | #877 `f96eb034...` | Product origin/share/σ delta preserved on current ancestry; intended 32-entry i18n RED remains. Same single-writer branch is retargeted at `70cd8fa9...`; run `35092322889` / job `104781307122` is queued before source execution. | Prove focused RED -> 32-entry repair -> focused GREEN -> ordinary push on this exact head, then fresh full/rendered/a11y/security evidence plus approval. |
 | Warning-clean acceptance harness | #1036/#973; #1035; #1038/#1040; #1037/#1039 | Existing single owner lanes cover telemetry deprecation, transaction ownership, locale, and initdb local-auth warning. Duplicate #1116 closed after evidence transfer. | Normal integration of owner repairs and fresh protected-path warning-free acceptance; no filtering/suppression. |
-| Catalog connection leases / summary TOCTOU | #1077 / #1080 | Separate owner lanes; external/model work must not hold long DB leases. | Causal RED→GREEN, short-transaction evidence, protected integration. |
+| Catalog connection leases / summary TOCTOU | #1077 / #1080 | Separate owner lanes; external/model work must not hold long DB leases. | Causal RED->GREEN, short-transaction evidence, protected integration. |
 | Governed UI translation delivery | #929 / #932 | Versioned translation-ledger work remains in its canonical owner lane. | ko/en/ja/zh/vi/es/de/fr plus state/responsive/keyboard/focus/screen-reader/CJK evidence. |
 | MCP buyer-path latency | #1009 | Target remains p95 <= 20 ms where applicable. | Representative cold/authenticated measurements and causal profiling; Rust-first hot-path repair if warranted. |
 | Release identity / immutable publication | #961 / #1056 | Protected main is not release-ready. | One protected SHA with version/CHANGELOG/tag/package/immutable release, SBOM/provenance, reproducibility, rollback evidence. |
