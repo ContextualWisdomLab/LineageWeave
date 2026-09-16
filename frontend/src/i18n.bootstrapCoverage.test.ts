@@ -43,4 +43,13 @@ describe("i18n browser bootstrap", () => {
     expect(i18n.getLocale()).toBe("en");
     expect(document.documentElement.lang).toBe("en");
   });
+
+  it("does not require document while initializing a non-DOM consumer", async () => {
+    window.localStorage.removeItem(STORAGE_KEY);
+    vi.stubGlobal("document", undefined);
+
+    const i18n = await reloadI18n();
+
+    expect(i18n.getLocale()).toBe("en");
+  });
 });
