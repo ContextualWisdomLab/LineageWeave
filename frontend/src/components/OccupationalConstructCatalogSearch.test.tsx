@@ -103,6 +103,26 @@ describe("OccupationalConstructCatalogSearch", () => {
     expect(screen.getByText("뒷받침하는 기록 열기")).toBeVisible();
   });
 
+  it("derives ready and empty states from a provided page when status is omitted", () => {
+    const { unmount } = render(
+      <OccupationalConstructCatalogSearch
+        page={{ query: "Oral", family_code: null, next_cursor: null, hits: [HIT] }}
+      />,
+    );
+    expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    unmount();
+    render(
+      <OccupationalConstructCatalogSearch
+        page={{ query: "Oral", family_code: null, next_cursor: null, hits: [] }}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No visible work evidence matches. Open a record with work evidence next.",
+    );
+  });
+
   it("continues from next_cursor and retains earlier matches", async () => {
     const user = userEvent.setup();
     vi.mocked(fetchOccupationalConstructSearch)
@@ -130,6 +150,19 @@ describe("OccupationalConstructCatalogSearch", () => {
     });
     expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
     expect(screen.getByText(/Written Comprehension/)).toBeVisible();
+  });
+
+  it("does not continue a provided page without an authenticated session", async () => {
+    const user = userEvent.setup();
+    render(
+      <OccupationalConstructCatalogSearch
+        page={{ query: "Oral", family_code: null, next_cursor: HIT.construct_iri, hits: [HIT] }}
+        status="ready"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Show more matching records" }));
+    expect(fetchOccupationalConstructSearch).not.toHaveBeenCalled();
+    expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
   });
 
   it("fails closed without a session and on an invalid catalog request", async () => {
