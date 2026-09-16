@@ -39,6 +39,18 @@ def test_extract_base64_images_preserves_character_offset_across_lines() -> None
     assert images[0].data == base64.b64decode(_TINY_PNG_B64)
 
 
+def test_extract_base64_images_preserves_offset_after_non_lf_separator() -> None:
+    html = (
+        "\rtext\n"
+        f'<img alt="a > b" src="data:image/png;base64,{_TINY_PNG_B64}">'
+    )
+
+    images = extract_base64_images(html)
+
+    assert len(images) == 1
+    assert images[0].position == html.index("<img")
+
+
 def test_extract_base64_images_accepts_case_insensitive_self_closing_img() -> None:
     html = f'<IMG ALT="a > b" SRC="data:image/png;base64,{_TINY_PNG_B64}" />'
 
