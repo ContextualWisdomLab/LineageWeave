@@ -59,7 +59,7 @@ The hosted #875 RED was decomposed into owning-parent contracts and repaired cau
 - #872 `299bae80c1a961d16bf0213fb797c0fe9f805a17` makes comparison-graphic tick σ/share a four-state projection without deriving either field.
 - #873 `052824158509a917d950855268b5e6c2dc236ffd` makes report-graphic tick σ/share a four-state projection. Fresh Tests `35093007592` are queued.
 - #874 source repair `f8298afa68d31567818a510388ee82ca6cee9de4` makes comparison-strip tick σ/share four-state; exact branch head `adce3dd85ed645170e457d51924031e7edb9d879` is the ordinary two-parent convergence onto repaired #873. Fresh Tests `35093206837` are queued.
-- #875 source repair `b771f634f0878a2bf4743ddedd88bc62f93517bf` makes report-axis tick σ/share four-state; exact branch head `c35287666fec08e533e138e503c407706873e01` is the ordinary two-parent convergence onto repaired #874. Fresh Tests `35093354671` are queued.
+- #875 source repair `b771f634f0878a2bf4743ddedd88bc62f93517bf` makes report-axis tick σ/share four-state; exact branch head `c3528b7666fec08e533e138e503c407706873e01` is the ordinary two-parent convergence onto repaired #874. Fresh Tests `35093354671` are queued.
 
 No current queued test is counted GREEN and no predecessor receipt transfers. Current ancestry is:
 
