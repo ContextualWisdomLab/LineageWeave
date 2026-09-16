@@ -14,10 +14,14 @@ def test_report_graphic_axis_has_distinct_singular_and_singular_share_copy() -> 
     source = SINGULAR_SOURCE.read_text(encoding="utf-8")
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
 
-    assert 'LEFTOVER_MAP_PLOT_AXIS_SINGULAR = "leftover-map axis {axis} σ {value}"' in source
     assert (
-        'LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE =\n'
-        '  "leftover-map axis {axis} σ {value} ({share}%)"'
+        'export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR =\n'
+        '  "leftover-map axis {axis} σ {value}";'
+        in source
+    )
+    assert (
+        'export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE =\n'
+        '  "leftover-map axis {axis} σ {value} ({share}%)";'
         in source
     )
     assert "LEFTOVER_MAP_PLOT_AXIS_SINGULAR" in plot_source

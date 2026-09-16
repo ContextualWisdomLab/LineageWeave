@@ -31,15 +31,21 @@ def test_comparison_graphic_has_distinct_persisted_singular_value_copy() -> None
 
 
 def test_singular_value_is_read_from_axis_evidence_and_fails_closed() -> None:
-    """Persisted σ=0 stays explicit; missing, non-finite, or negative σ omits independently."""
+    """Persisted σ and share are formatted independently; neither is derived from the other."""
     assert SINGULAR_SOURCE.exists(), "persisted singular-value projection helper is missing"
     singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
+    badge_source = singular_source.split(
+        "export function leftoverMapComparePlotAxisBadge", 1
+    )[-1].split("export function leftoverMapCompareAxisBadge", 1)[0]
 
-    assert "leftover_singular_value" in singular_source
+    assert "axis.leftover_singular_value" in badge_source
+    assert "axis.leftover_share" in badge_source
+    assert "formatLeftoverMapPlotAxisSingular" in badge_source
+    assert "formatLeftoverMapPlotAxisShare" in badge_source
     assert "Number.isFinite" in singular_source
     assert "< 0" in singular_source
     assert "return null" in singular_source
     assert ".toFixed(2)" in singular_source
-    assert "leftover_share" not in singular_source
-    assert "Math.max" not in singular_source
-    assert "Math.min" not in singular_source
+    assert "Math.sqrt" not in badge_source
+    assert "Math.max" not in badge_source
+    assert "Math.min" not in badge_source
