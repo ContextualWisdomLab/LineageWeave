@@ -130,7 +130,8 @@ def test_post_json_refuses_missing_hostname() -> None:
         post_json("https:///v1/embeddings", {}, headers={}, timeout=1.0)
 
 
-def test_post_json_posts_json_to_http_endpoint() -> None:
+@pytest.mark.parametrize("request_timeout", [None, 2.0])
+def test_post_json_posts_json_to_http_endpoint(request_timeout) -> None:
     _JsonHandler.received = {}
     server, base = _serve(_JsonHandler)
     try:
@@ -138,7 +139,7 @@ def test_post_json_posts_json_to_http_endpoint() -> None:
             f"{base}/v1/embeddings",
             {"model": "demo", "input": "hello"},
             headers={"authorization": "Bearer test-token"},
-            timeout=2.0,
+            timeout=request_timeout,
         )
     finally:
         server.shutdown()

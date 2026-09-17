@@ -30,7 +30,6 @@ CANONICAL_CHAT_QUESTION = "What happened between these events?"
 CANONICAL_INVOLVED_QUESTION = "Who is involved?"
 CANONICAL_COMMITMENT_QUESTION = "What is the next commitment?"
 
-_TRAILING_PUNCT = re.compile(r"[?.!\s]+$")
 _CANONICAL_QUESTION_NORM = "what happened between these events"
 _INVOLVED_QUESTION_NORM = "who is involved"
 _COMMITMENT_QUESTION_NORM = "what is the next commitment"
@@ -45,7 +44,7 @@ def normalize_chat_question(question: str) -> str:
     the second seeded chip that names Keymen. ``What's the next
     commitment?`` aliases the third chip that names the Calendar ticket.
     """
-    folded = _TRAILING_PUNCT.sub("", " ".join(question.strip().lower().split()))
+    folded = " ".join(question.strip().lower().split()).rstrip("?.!")
     if folded == "what happened":
         return _CANONICAL_QUESTION_NORM
     if folded in {"who's involved", "who is involved here"}:
@@ -179,7 +178,6 @@ def _buyer_evidence_kind(fact: str) -> str:
     if fact.startswith("Keyman mention:"):
         return "semantic_keyman"
     return "source_field"
-
 
 
 def _buyer_evidence_text(fact: str) -> str:
@@ -377,7 +375,7 @@ class ContextualOrchestratorPostChatClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float | None = None
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
