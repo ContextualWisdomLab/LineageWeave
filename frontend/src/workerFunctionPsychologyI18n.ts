@@ -56,11 +56,14 @@ const WORKER_FUNCTION_PSYCHOLOGY_COPY = {
     "Select a worker function to review its I/O psychology demand profile.":
       "Chọn một chức năng công việc để xem hồ sơ nhu cầu Tâm lý I/O.",
   },
-} as const satisfies Record<Locale, Record<string, string>>;
+} as const;
 
 export type WorkerFunctionPsychologyCopyKey = keyof (typeof WORKER_FUNCTION_PSYCHOLOGY_COPY)["en"];
 
 /** Return worker-function I/O psychology copy for the active product locale. */
 export function workerFunctionPsychologyText(key: WorkerFunctionPsychologyCopyKey): string {
-  return WORKER_FUNCTION_PSYCHOLOGY_COPY[getLocale()][key];
+  const copy = WORKER_FUNCTION_PSYCHOLOGY_COPY as Partial<
+    Record<Locale, Record<keyof (typeof WORKER_FUNCTION_PSYCHOLOGY_COPY)["en"], string>>
+  >;
+  return copy[getLocale()]?.[key] ?? WORKER_FUNCTION_PSYCHOLOGY_COPY.en[key];
 }
