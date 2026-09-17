@@ -23,10 +23,18 @@ import certifi
 from .llm_context import current_llm_metadata
 from .observability import current_session_id, inject_trace_context, traced
 
+
+def _build_ssl_context() -> ssl.SSLContext:
+    """Build the owned client context with its protocol floor before it escapes."""
+
+    context = ssl.create_default_context(cafile=certifi.where())
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    return context
+
+
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
-_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
-_SSL_CONTEXT.minimum_version = ssl.TLSVersion.TLSv1_2
+_SSL_CONTEXT = _build_ssl_context()
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
 _SESSION_HEADER_PEERS = frozenset({"contextual-orchestrator", "tepp"})
 
@@ -219,7 +227,6 @@ def _request(
 
 def _decode_json(raw: bytes, hostname: str) -> object:
     """Decode UTF-8 JSON without exposing response content in errors."""
-
     try:
         return json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
