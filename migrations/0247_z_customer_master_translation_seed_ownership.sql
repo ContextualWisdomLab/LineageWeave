@@ -95,6 +95,7 @@ $customer_master_seed_ownership_init$;
 create or replace function guard_customer_master_seed_resource_ownership()
 returns trigger
 language plpgsql
+set search_path = pg_catalog, public, pg_temp
 as $$
 declare
     owner_state text;
@@ -163,6 +164,7 @@ $$;
 create or replace function bind_customer_master_seed_resource_ownership()
 returns trigger
 language plpgsql
+set search_path = pg_catalog, public, pg_temp
 as $$
 begin
     if new.product_key <> 'lineageweave'
@@ -195,6 +197,7 @@ $$;
 create or replace function guard_customer_master_seed_child_ownership()
 returns trigger
 language plpgsql
+set search_path = pg_catalog, public, pg_temp
 as $$
 declare
     target_resource_id bigint;
