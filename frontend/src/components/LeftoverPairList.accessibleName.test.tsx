@@ -105,4 +105,34 @@ describe("LeftoverPairList accessible action name", () => {
     expect(action).not.toHaveTextContent("R —");
     expect(action).not.toHaveTextContent("d NaN");
   });
+
+  it("falls back to the existing localized open action when no numeric evidence is finite", () => {
+    render(
+      <LeftoverPairList
+        pairs={[
+          {
+            ...PAIR,
+            leftover_residual: Number.NaN,
+            leftover_distance: Number.NaN,
+            observed_response: null,
+            expected_response: null,
+            leftover_map_rank: null,
+          },
+        ]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const action = screen.getByRole("button", {
+      name: /^Closest leftover: Public post · sales-lead /,
+    });
+    expect(action).toHaveTextContent(
+      "Open this post so the leftover criterion is current in Post quality.",
+    );
+    expect(action).not.toHaveAccessibleName(/R —/);
+    expect(action).not.toHaveAccessibleName(/d NaN/);
+    expect(action).not.toHaveTextContent("R —");
+    expect(action).not.toHaveTextContent("d NaN");
+  });
 });
