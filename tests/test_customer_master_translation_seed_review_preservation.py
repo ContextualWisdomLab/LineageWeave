@@ -27,6 +27,7 @@ _REVIEW_PRESERVATION_MIGRATION = (
     ROOT / "migrations" / "0247_zz_customer_master_translation_seed_replay_guard.sql"
 )
 _CUSTOMER_MASTER_SEED = ROOT / "migrations" / "0248_customer_master_translation_draft.sql"
+_MIGRATE_SCRIPT = ROOT / "docker" / "postgres-init" / "migrate.sh"
 _MIGRATION_FILE = "0248_customer_master_translation_draft.sql"
 _REVIEWED_COPY = "검토 완료된 고객 마스터"
 
@@ -56,7 +57,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_review_preservation_guard_precedes_customer_master_seed() -> None:
-    """Sorted startup replay must install the preservation guard before 0248."""
+    """Sorted startup replay must install preservation before the one-time seed."""
     names = sorted(
         path.name
         for path in (ROOT / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql")
@@ -64,6 +65,18 @@ def test_review_preservation_guard_precedes_customer_master_seed() -> None:
     assert names.index(_SEED_OWNERSHIP_MIGRATION.name) < names.index(
         _REVIEW_PRESERVATION_MIGRATION.name
     ) < names.index(_CUSTOMER_MASTER_SEED.name)
+
+    migrate_script = _MIGRATE_SCRIPT.read_text(encoding="utf-8")
+    skip_guard = migrate_script.index(
+        'if [ "$migration_name" = "0248_customer_master_translation_draft.sql" ]'
+    )
+    owned_guard = migrate_script.index(
+        'if [ "$customer_master_seed_state" = "owned" ]', skip_guard
+    )
+    skip_step = migrate_script.index("continue", owned_guard)
+    apply_step = migrate_script.index("printf 'Applying %s", skip_step)
+    assert skip_guard < owned_guard < skip_step < apply_step
+    assert "public.ui_translation_seed_ownership" in migrate_script[skip_guard:apply_step]
 
 
 async def _with_seed_database(
@@ -128,8 +141,8 @@ async def _review_korean_customer_master_copy(connection: asyncpg.Connection) ->
     return resource_id
 
 
-async def _replay_seed(connection: asyncpg.Connection) -> None:
-    """Replay ownership and seed exactly as startup migration replay does."""
+async def _direct_seed_replay(connection: asyncpg.Connection) -> None:
+    """Replay 0248 directly to exercise the migration-level draft guard."""
     await connection.execute(_SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8"))
     await connection.execute(_REVIEW_PRESERVATION_MIGRATION.read_text(encoding="utf-8"))
     await connection.execute(
@@ -140,12 +153,36 @@ async def _replay_seed(connection: asyncpg.Connection) -> None:
     await connection.execute("select set_config('lineageweave.migration_file', '', false)")
 
 
-def test_seed_replay_preserves_reviewed_draft_copy() -> None:
-    """Startup replay must not overwrite language-review edits on an owned draft."""
+async def _startup_seed_step(connection: asyncpg.Connection) -> None:
+    """Model migrate.sh admission for the purpose-complete Customer Master seed."""
+    await connection.execute(_SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8"))
+    await connection.execute(_REVIEW_PRESERVATION_MIGRATION.read_text(encoding="utf-8"))
+    ownership_state = await connection.fetchval(
+        """
+        select ownership_state
+          from public.ui_translation_seed_ownership
+         where migration_key = '0248_customer_master_translation_draft'
+           and product_key = 'lineageweave'
+           and screen_key = 'customer-master'
+           and resource_version = 1
+        """
+    )
+    if ownership_state == "owned":
+        return
+    await connection.execute(
+        "select set_config('lineageweave.migration_file', $1, false)",
+        _MIGRATION_FILE,
+    )
+    await connection.execute(_CUSTOMER_MASTER_SEED.read_text(encoding="utf-8"))
+    await connection.execute("select set_config('lineageweave.migration_file', '', false)")
+
+
+def test_direct_seed_replay_preserves_reviewed_draft_copy() -> None:
+    """Direct draft replay must not overwrite language-review edits."""
 
     async def scenario(connection: asyncpg.Connection) -> None:
         resource_id = await _review_korean_customer_master_copy(connection)
-        await _replay_seed(connection)
+        await _direct_seed_replay(connection)
         assert (
             await connection.fetchval(
                 """
@@ -163,8 +200,8 @@ def test_seed_replay_preserves_reviewed_draft_copy() -> None:
     asyncio.run(_with_seed_database(scenario))
 
 
-def test_seed_replay_accepts_reviewed_published_copy() -> None:
-    """A reviewed immutable publication must survive later startup replay unchanged."""
+def test_startup_replay_skips_reviewed_published_copy() -> None:
+    """Purpose-complete seed admission must preserve immutable reviewed publication."""
 
     async def scenario(connection: asyncpg.Connection) -> None:
         resource_id = await _review_korean_customer_master_copy(connection)
@@ -176,7 +213,7 @@ def test_seed_replay_accepts_reviewed_published_copy() -> None:
             """,
             resource_id,
         )
-        await _replay_seed(connection)
+        await _startup_seed_step(connection)
         row = await connection.fetchrow(
             """
             select r.publication_state, t.translated_text
