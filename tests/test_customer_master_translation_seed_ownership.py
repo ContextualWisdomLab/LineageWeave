@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -29,7 +30,9 @@ _CUSTOMER_MASTER_SEED = ROOT / "migrations" / "0248_customer_master_translation_
 _CUSTOMER_MASTER_ROLLBACK = (
     ROOT / "migrations" / "rollback" / "0248_customer_master_translation_draft.sql"
 )
+_MIGRATE_SCRIPT = ROOT / "docker" / "postgres-init" / "migrate.sh"
 _LOCALES = ("ko", "en", "ja", "zh", "vi", "es", "de", "fr")
+_MIGRATION_FILE = "0248_customer_master_translation_draft.sql"
 
 
 async def _postgres_available_async() -> bool:
@@ -68,7 +71,7 @@ async def _snapshot(
 
 
 async def _with_database(
-    scenario: "Callable[[asyncpg.Connection], Awaitable[None]]",
+    scenario: Callable[[asyncpg.Connection], Awaitable[None]],
 ) -> None:
     database_name = f"lineageweave_customer_copy_owner_{uuid.uuid4().hex[:12]}"
     admin_connection = await asyncpg.connect(_ADMIN_DSN)
@@ -102,6 +105,9 @@ def test_seed_ownership_guard_precedes_customer_master_seed() -> None:
     assert names.index(_SEED_OWNERSHIP_MIGRATION.name) < names.index(
         _CUSTOMER_MASTER_SEED.name
     )
+    migrate_script = _MIGRATE_SCRIPT.read_text(encoding="utf-8")
+    assert "lineageweave.migration_file=$migration_name" in migrate_script
+    assert 'PGOPTIONS="$migration_pgoptions"' in migrate_script
 
 
 @pytest.mark.skipif(
@@ -158,6 +164,10 @@ def test_seed_and_rollback_refuse_preexisting_unowned_customer_master_draft() ->
             )
             == "blocked"
         )
+        await connection.execute(
+            "select set_config('lineageweave.migration_file', $1, false)",
+            _MIGRATION_FILE,
+        )
 
         with pytest.raises(
             asyncpg.PostgresError,
@@ -203,6 +213,10 @@ def test_owned_customer_master_seed_replays_and_rolls_back_with_ownership() -> N
                 """
             )
             == "pending"
+        )
+        await connection.execute(
+            "select set_config('lineageweave.migration_file', $1, false)",
+            _MIGRATION_FILE,
         )
 
         await connection.execute(_CUSTOMER_MASTER_SEED.read_text(encoding="utf-8"))
