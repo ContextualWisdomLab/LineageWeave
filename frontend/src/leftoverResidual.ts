@@ -12,3 +12,10 @@ export function formatLeftoverResidual(value: number): string {
   }
   return magnitude;
 }
+
+export function formatLeftoverMapResidual(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+  return `R ${formatLeftoverResidual(value)}`;
+}

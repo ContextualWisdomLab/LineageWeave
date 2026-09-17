@@ -890,6 +890,18 @@ describe("App, authenticated", () => {
                 mean_theta: 0.81,
                 post_count: 4,
                 link_method: "fipc",
+                leftover_map_coverage: {
+                  map_post_count: 5,
+                  scored_post_count: 3,
+                  map_item_count: 2,
+                  scored_item_count: 2,
+                  incomplete_post_count: 0,
+                  incomplete_item_count: 0,
+                },
+                leftover_map_axes: [
+                  { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
+                  { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
+                ],
               },
               {
                 grouping_kind: "corporate_entity",
@@ -914,7 +926,22 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    leftover_map_reconstruction: 0.248,
+                    leftover_map_explained_share: 0.76,
+                    leftover_map_unexplained_share: 0.02,
                   },
+                ],
+                leftover_map_coverage: {
+                  map_post_count: 2,
+                  scored_post_count: 3,
+                  map_item_count: 2,
+                  scored_item_count: 2,
+                  incomplete_post_count: 1,
+                  incomplete_item_count: 0,
+                },
+                leftover_map_axes: [
+                  { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
+                  { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
                 ],
               },
             ],
@@ -4127,8 +4154,8 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/leftover axis 1 82%/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/leftover axis 2 18%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 1 σ 1\.84 82%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 2 σ 0\.86 18%/).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Leftover-map axis share")).toHaveTextContent(
       "Open a leftover pair to read the post–criterion cell",
     );
@@ -4144,8 +4171,8 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(await screen.findByLabelText("Leftover pairs")).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover-map graphic display")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: /open leftover-map post public post at ξ \(\+0\.50, \+0\.10\)/i,
@@ -4153,6 +4180,27 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
       "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover map item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover map incomplete posts")).toHaveTextContent(
+      "Leftover map dropped 1 incomplete posts",
+    );
+    expect(screen.getByLabelText("Leftover map incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
+      "Leftover map dropped 1 incomplete posts",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
     );
     const coverageCaption = screen.getByLabelText("Leftover map coverage");
     const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
@@ -4175,11 +4223,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("R̂ +0.25");
     expect(closestPair).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
     expect(closestPair).toHaveTextContent("d 0.12");
-    expect(closestPair).toHaveAccessibleName(/Open leftover closest pair: Public post · sales-lead/);
-    expect(closestPair).toHaveAccessibleName(/R \+0\.40/);
-    expect(closestPair).toHaveAccessibleName(/Y 2\.40 · E 2\.00/);
-    expect(closestPair).toHaveAccessibleName(/rank 1/);
-    expect(closestPair).toHaveAccessibleName(/d 0\.12/);
+    expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Leftover map places this post at ξ (+0.90, +0.80) and the criterion at ζ (−0.70, −0.40) after IRT main effects. Open this post to read negative.",
@@ -4224,19 +4268,142 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
     expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map coverage"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByLabelText(
+        "Leftover map comparison coverage",
+      ),
+    ).toHaveTextContent("Leftover map used 2 of 3 scored posts (complete-case)");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison coverage",
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map item coverage"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison item coverage",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison item coverage",
+      )[0],
+    ).toHaveTextContent("Leftover map used 2 of 2 scored criteria (complete-case)");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete posts"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete posts",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete posts",
+      )[0],
+    ).toHaveTextContent("Leftover map dropped 0 incomplete posts");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete posts",
+      )[1],
+    ).toHaveTextContent("Leftover map dropped 1 incomplete posts");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic incomplete posts",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover map incomplete items"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete items",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByLabelText(
+        "Leftover map comparison incomplete items",
+      )[0],
+    ).toHaveTextContent("Leftover map dropped 0 incomplete criteria");
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText(
+        "Leftover-map graphic incomplete items",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByLabelText("Leftover-map axis share"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 0%"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 1 82%"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText("leftover map comparison axis 2 18%"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 1 82%"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText(/leftover-map axis 1/),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getAllByText(
+        /leftover map comparison axis \d σ /,
+      ),
+    ).toHaveLength(4);
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 1 σ 0.00",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 1 σ 1.84",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).getByText(
+        "leftover map comparison axis 2 σ 0.86",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover axis 1 σ 1.84 82%"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Grouping comparison")).queryByText("leftover-map axis 1 σ 1.84"),
+    ).not.toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
       screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
-    );
+    expect(
+      screen.getByText("A-100 is the opened grouping. Read its mean θ and member posts below, then open a post."),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: /open leftover closest pair from comparison: public post/i,
       }),
     ).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    const reconstructionPair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25/i,
+    });
+    expect(reconstructionPair).toHaveTextContent("R̂ +0.25");
+    const explainedSharePair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison reconstruction R̂ \+0\.25.*leftover map comparison explained leftover share R̂²\/R² 0\.76/i,
+    });
+    expect(explainedSharePair).toHaveTextContent("R̂²/R² 0.76");
+    const unexplainedSharePair = screen.getByRole("button", {
+      name: /open leftover closest pair from comparison: public post.*leftover map comparison unexplained leftover share U²\/R² 0\.02/i,
+    });
+    expect(unexplainedSharePair).toHaveTextContent("U²/R² 0.02");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

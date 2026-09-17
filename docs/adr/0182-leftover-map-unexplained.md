@@ -4,7 +4,9 @@
 **Date:** 2026-08-24
 
 **Amended by:** [ADR 0201](0201-leftover-map-reconstruction.md)
-(two-axis reconstruction R̂)
+(two-axis reconstruction R̂);
+[ADR 0276](0276-leftover-map-segment-unexplained-leftover.md)
+(leftover-map unexplained leftover on graphic-display pair segments)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md).
@@ -73,7 +75,9 @@ score. Do not invent a theta.
 `GET /api/reports/{grouping}/{period}` returns
 `leftover_map_unexplained`. After `make seed`, closest and farthest
 leftover pairs sit above the member list with named `U` next to `d`;
-click opens that post. Hidden posts stay hidden.
+click opens that post. Hidden posts stay hidden. ADR 0276
+captions leftover-map graphic-display pair segments with the same
+persisted leftover-map unexplained leftover; it adds no columns.
 
 ## Related
 

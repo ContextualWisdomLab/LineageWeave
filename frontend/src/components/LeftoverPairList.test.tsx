@@ -46,13 +46,9 @@ describe("LeftoverPairList", () => {
 
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
     const closest = screen.getByRole("button", {
-      name: /Open leftover closest pair: Public post · sales-lead/,
+      name: "Open leftover closest pair: Public post · sales-lead",
     });
     expect(closest).toHaveTextContent("Closest leftover: Public post · sales-lead");
-    expect(closest).toHaveAccessibleName(/R \+0\.40/);
-    expect(closest).toHaveAccessibleName(/Y 2\.40 · E 2\.00/);
-    expect(closest).toHaveAccessibleName(/rank 1/);
-    expect(closest).toHaveAccessibleName(/d 0\.12/);
     expect(closest).toHaveTextContent(
       "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
     );
@@ -62,9 +58,8 @@ describe("LeftoverPairList", () => {
     expect(closest).toHaveTextContent("d 0.12");
 
     const farthest = screen.getByRole("button", {
-      name: /Open leftover farthest pair: Specification revision requested · negative/,
+      name: "Open leftover farthest pair: Specification revision requested · negative",
     });
-    expect(farthest).toHaveAccessibleName(/R −1\.10/);
     expect(farthest).toHaveTextContent("R −1.10");
     expect(farthest).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthest).toHaveTextContent("rank 1");
@@ -81,31 +76,6 @@ describe("LeftoverPairList", () => {
         criterion_code: "sales_lead_quality",
       }),
     );
-  });
-
-  it("omits non-finite leftover residual and distance from the pair action", () => {
-    render(
-      <LeftoverPairList
-        pairs={[
-          {
-            ...PAIRS[0],
-            leftover_residual: Number.NaN,
-            leftover_distance: Number.NaN,
-          },
-        ]}
-        criterionLabel={criterionLabel}
-        onSelectPost={vi.fn()}
-      />,
-    );
-
-    const closest = screen.getByRole("button", {
-      name: /Open leftover closest pair: Public post · sales-lead/,
-    });
-    expect(closest).toHaveAccessibleName(/rank 1/);
-    expect(closest).not.toHaveAccessibleName(/R /);
-    expect(closest).not.toHaveAccessibleName(/\bd /);
-    expect(closest).not.toHaveTextContent("R —");
-    expect(closest).not.toHaveTextContent("d NaN");
   });
 
   it("keeps residual guidance for an older payload without rank or Y/E", () => {
@@ -178,11 +148,8 @@ describe("LeftoverPairList", () => {
     );
 
     const closest = screen.getByRole("button", {
-      name: /Open leftover closest pair: Public post · sales-lead/,
+      name: "Open leftover closest pair: Public post · sales-lead",
     });
-    expect(closest).toHaveAccessibleName(/R \+0\.40/);
-    expect(closest).toHaveAccessibleName(/R̂²\/R² 0\.76/);
-    expect(closest).toHaveAccessibleName(/ξ \(\+0\.50, \+0\.10\) ζ \(\+0\.50, −0\.02\)/);
     expect(closest).toHaveTextContent(
       "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
     );
@@ -219,6 +186,14 @@ describe("LeftoverPairList", () => {
           { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
           { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
         ]}
+        leftoverMapCoverage={{
+          map_post_count: 2,
+          scored_post_count: 3,
+          map_item_count: 2,
+          scored_item_count: 2,
+          incomplete_post_count: 1,
+          incomplete_item_count: 0,
+        }}
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />,
@@ -229,8 +204,20 @@ describe("LeftoverPairList", () => {
         name: "Open leftover-map post Public post at ξ (+0.50, +0.10)",
       }),
     );
-    expect(screen.getByText("leftover-map axis 1 (82%)")).toBeInTheDocument();
-    expect(screen.getByText("leftover-map axis 2 (18%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 1 σ 1.84 (82%)")).toBeInTheDocument();
+    expect(screen.getByText("leftover-map axis 2 σ 0.86 (18%)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map graphic coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic item coverage")).toHaveTextContent(
+      "Leftover map used 2 of 2 scored criteria (complete-case)",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete posts")).toHaveTextContent(
+      "Leftover map dropped 1 incomplete posts",
+    );
+    expect(screen.getByLabelText("Leftover-map graphic incomplete items")).toHaveTextContent(
+      "Leftover map dropped 0 incomplete criteria",
+    );
     expect(onSelectPost).toHaveBeenCalledWith(
       expect.objectContaining({
         post_id: "post-demo-public",

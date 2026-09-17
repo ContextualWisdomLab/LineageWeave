@@ -3,6 +3,9 @@
 export const LEFTOVER_MAP_EXPLAINED_SHARE_ACTION =
   "Leftover map leaves explained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.";
 
+export const LEFTOVER_MAP_COMPARE_EXPLAINED_SHARE_LABEL =
+  "Leftover map comparison explained leftover share";
+
 export function formatLeftoverMapExplainedShare(
   value: number | null | undefined,
 ): string | null {

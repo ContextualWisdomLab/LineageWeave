@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273 / 0274 / 0275 / 0276 / 0277 / 0278 / 0279 / 0280 / 0281 / 0282 / 0283 / 0284 / 0285 / 0286 / 0287 / 0288 / 0289 / 0290 / 0291 / 0292 / 0293) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -294,7 +294,12 @@ buttons; omit the plot when coordinates are missing; click a post
 marker to open that post. ADR 0269 captions those leftover-map axes
 with persisted leftover-map axis share `σ_k² / Σ_j σ_j²` when finite,
 including rank-0 zero-share axes; a missing or non-finite share omits
-that axis badge and keeps the existing leftover-map axis text. ADR 0270
+that axis badge and keeps the existing leftover-map axis text. ADR 0289
+captions those leftover-map axes with persisted leftover-map singular
+values `σ_k` when finite and non-negative, including rank-0 zero
+singular values; a missing, non-finite, or negative singular value omits
+that `σ` badge independently of leftover-map axis share and does not
+invent `σ_k` from leftover-map axis share. ADR 0270
 ticks leftover-map axes at the origin and at each unique finite
 persisted `ξ` / `ζ` coordinate so the pair-row badge matches the
 plot; rank-0 unused axes name only `0` and do not invent drawing-scale
@@ -309,17 +314,118 @@ coordinates. ADR 0273 captions leftover-map pair segments with persisted
 leftover-map explained leftover share `e` so the pair-row `R̂²/R²`
 badge matches the graphic; a missing or non-finite `e` omits that
 explained leftover share caption and does not invent `e` from `R̂` and
-`R` or from plotted coordinates. When `R`, `R̂`, `U`, `x`,
-`s`, and `e` are finite, `e + s + x = 1`. When coordinates,
+`R` or from plotted coordinates. ADR 0274 captions leftover-map pair
+segments with persisted leftover-map unexplained leftover share `s` so
+the pair-row `U²/R²` badge matches the graphic; a missing or non-finite
+`s` omits that unexplained leftover share caption and does not invent
+`s` from `U` and `R` or from plotted coordinates. ADR 0275 captions leftover-map pair
+segments with persisted leftover-map cross share `x` so
+the pair-row `2R̂U/R²` badge matches the graphic; a missing or non-finite
+`x` omits that leftover-map cross share caption and does not invent
+`x` from `R̂`, `U`, and `R` or from plotted coordinates. ADR 0276 captions leftover-map pair
+segments with persisted leftover-map unexplained leftover `U` so
+the pair-row `U` badge matches the graphic; a missing or non-finite
+`U` omits that unexplained leftover caption and does not invent
+`U` from `R` and `R̂` or from plotted coordinates. ADR 0277 captions leftover-map pair
+segments with persisted leftover residual `R` so the pair-row residual
+badge matches the graphic; a missing or non-finite `R` omits that leftover
+residual caption and does not invent `R` from `Y` and `E`, from `U` and
+`R̂`, or from plotted coordinates. ADR 0278 captions leftover-map pair
+segments with persisted leftover observed `Y` so the pair-row `Y` badge
+matches the graphic; a missing or non-finite `Y` omits that leftover
+observed caption and does not invent `Y` from `R` and `E` or from plotted
+coordinates. ADR 0279 captions leftover-map pair
+segments with persisted leftover expected `E` so the pair-row `E` badge
+matches the graphic; a missing or non-finite `E` omits that leftover
+expected caption and does not invent `E` from `Y` and `R` or from plotted
+coordinates. ADR 0280 captions leftover-map pair
+segments with persisted leftover-map rank so the pair-row `rank` badge
+matches the graphic; a missing, negative, or non-integer rank omits that
+leftover-map rank caption and does not invent rank from plotted
+coordinates, leftover-map distance, or the count of unused axes. ADR 0281
+captions the leftover-map graphic display with persisted leftover-map
+complete-case coverage so the pair-list `used N of M scored posts` note
+matches the plot; a missing, non-integer, negative-used, non-positive-scored,
+or used-greater-than-scored coverage omits that leftover-map coverage caption
+and does not invent coverage from plotted marker count. ADR 0282 captions the
+leftover-map graphic display with persisted leftover-map item complete-case
+coverage so two criterion diamonds are not read as the scored-criterion census;
+a missing, non-integer, negative-used, non-positive-scored, or
+used-greater-than-scored item coverage omits that leftover-map item coverage
+caption and does not invent item coverage from plotted criterion marker count.
+ADR 0283 captions the leftover-map graphic display with persisted leftover-map
+incomplete post coverage so a `used N of M` caption is not read as every
+scored post entering the map; a missing, non-integer, or negative dropped
+count, or a dropped count that contradicts usable complete-case integers,
+omits that leftover-map incomplete post caption and does not invent dropped
+posts from scored minus used or from plotted marker count.
+ADR 0284 captions the leftover-map graphic display with persisted leftover-map
+incomplete item coverage so a `used N of M scored criteria` caption is not
+read as every scored criterion entering the map; a missing, non-integer, or
+negative dropped count, or a dropped count that contradicts usable item
+complete-case integers, omits that leftover-map incomplete item caption and
+does not invent dropped criteria from scored minus used or from plotted
+criterion marker count.
+ADR 0285 captions the leftover pair list with persisted leftover-map item
+complete-case coverage so a `used N of M scored posts` note is not read as
+the scored-criterion census; a missing, non-integer, negative-used,
+non-positive-scored, or used-greater-than-scored item coverage omits that
+leftover-map item coverage note and does not invent item coverage from
+plotted criterion marker count.
+ADR 0286 captions the leftover pair list with persisted leftover-map
+incomplete post coverage so a `used N of M scored posts` note is not read as
+every scored post entering the map; a missing, non-integer, or negative
+dropped count, or a dropped count that contradicts usable complete-case
+integers, omits that leftover-map incomplete post note and does not invent
+dropped posts from scored minus used or from plotted marker count.
+ADR 0287 captions the leftover pair list with persisted leftover-map
+incomplete item coverage so a `used N of M scored criteria` note is not read as
+every scored criterion entering the map; a missing, non-integer, or negative
+dropped count, or a dropped count that contradicts usable item complete-case
+integers, omits that leftover-map incomplete item note and does not invent
+dropped criteria from scored minus used or from plotted criterion marker count.
+ADR 0288 fail-closes leftover-map post complete-case coverage on the pair list
+through leftoverMapCoverageCounts so a used-greater-than-scored, negative, or
+non-integer payload cannot caption a contradictory `used N of M scored posts`
+note; a missing, non-integer, negative-used, non-positive-scored, or
+used-greater-than-scored coverage omits that leftover-map coverage note and
+does not invent post coverage from plotted marker count.
+ADR 0289 captions leftover-map graphic axes with persisted leftover-map
+singular values `σ_k` so leftover-map axis share is not read as leftover-map
+structure without the Gabriel scale that produced it; a missing, non-finite,
+or negative singular value omits that `σ` badge independently of leftover-map
+axis share and does not invent `σ_k` from leftover-map axis share.
+ADR 0292 captions leftover-axis report badges with persisted leftover-map singular values `σ_k` when finite and non-negative, including rank-0 zero singular values; missing, non-finite, or negative singular values omit only the `σ` caption and never derive `σ_k` from leftover-map axis share.
+ADR 0290 captions the grouping comparison strip with persisted leftover-map post complete-case coverage only when the caller can see the full persisted grouping population. Partial-visibility groupings omit that aggregate; never reconstruct the psychometric denominator from visible members, leftover pairs, or plotted markers.
+ADR 0291 captions the grouping comparison strip with persisted leftover-map item complete-case coverage through leftoverMapItemCoverageCounts only when the caller can see the full persisted grouping population. Partial-visibility rows inherit ADR 0290's fail-closed coverage boundary and never recompute psychometric coverage from visible members, leftover pairs, or plotted criterion markers.
+ADR 0293 captions the grouping comparison strip with persisted leftover-map incomplete-post count only under the same full-visible-grouping authorization boundary. Partial-visibility groupings omit the aggregate and never derive dropped posts from the visible subset or scored-minus-used. Persisted valid dropped `0` remains visible.
+When `R`, `R̂`, `U`, `x`,
+`s`, and `e` are finite, `e + s + x = 1`. When `Y`, `E`, and `R` are
+finite, `Y − E = R`. When `R`, `R̂`, and `U` are
+finite, `U + R̂ = R`. When coordinates,
 reconstruction, and distance are finite, `R̂ = ξ · ζ` and
 `d = ‖ξ − ζ‖`. The pairs sit above the member
 list so a click opens that post with the leftover criterion current
 in Post quality (ADR 0158). Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
-and are not a leftover score. Complete-case coverage (ADR 0168) persists to
-`report_leftover_map_coverage` and captions the pair list with how
-many scored posts entered the map.
+and are not a leftover score. Leftover-map singular values on the graphic
+display (ADR 0289) name persisted `σ_k` on those leftover-map axes when
+finite. Complete-case coverage (ADR 0168) persists to
+`report_leftover_map_coverage` and captions the pair list and the leftover-map
+graphic with how many scored posts entered the map. Pair-list post complete-case
+coverage (ADR 0288) fail-closes that pair-list note through leftoverMapCoverageCounts.
+Item complete-case coverage
+(ADR 0282) captions the leftover-map graphic with how many scored criteria
+entered the map. Item complete-case coverage on the pair list (ADR 0285)
+captions the pair list with how many scored criteria entered the map. Incomplete post coverage (ADR 0283) captions the leftover-map
+graphic with how many scored posts stayed out of the factorization. Incomplete
+post coverage on the pair list (ADR 0286) captions the pair list with how many
+scored posts stayed out of the factorization. Incomplete
+item coverage (ADR 0284) captions the leftover-map graphic with how many
+scored criteria stayed out of the factorization. Incomplete
+item coverage on the pair list (ADR 0287) captions the pair list with how many
+scored criteria stayed out of the factorization.
 
 Authorized occupational construct catalog search (ADR 0257) matches official
 O*NET preferred labels or descriptions only when a source-eligible, ABAC-visible
@@ -430,3 +536,13 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+ADR 0294 keeps grouping-comparison incomplete-item coverage in the LineageWeave read-model boundary: consume only authorization-filtered persisted coverage for a full grouping, omit partial visibility, and never recompute psychometrics in the client.
+
+ADR 0295 keeps grouping-comparison reconstruction in the LineageWeave read-model/UI boundary: format only persisted `R̂`, expose the value in the pair button accessible name, and never derive psychometric reconstruction from UI-visible proxies.
+
+ADR 0296 adds persisted grouping-comparison explained-leftover share `e` in the LineageWeave read-model/UI boundary: expose it in the pair button accessible name, keep the duplicate visible badge presentation-only, and never derive or clamp psychometric values.
+
+ADR 0367 exposes persisted grouping-comparison leftover-map axis share only for a fully caller-visible persisted grouping. Partial visibility returns no axis aggregate; never recompute it from visible members. Missing/non-finite share omits only the badge; persisted zero and finite negative values remain explicit.
+
+ADR 0369 adds persisted grouping-comparison `U²/R²` only as a presentation/read-model consumer on exact #828. Never derive or clamp it, never recompute it from a visible subset, and include every finite buyer-visible comparison metric in the actionable pair button accessible name.
