@@ -19,6 +19,9 @@ _INITIAL_SCHEMA = ROOT / "migrations" / "0001_initial_schema.sql"
 _MEMBER_LOCALE_MIGRATION = ROOT / "migrations" / "0044_member_locale_preference.sql"
 _LEDGER_MIGRATION = ROOT / "migrations" / "0246_ui_translation_ledger.sql"
 _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_guard.sql"
+_SEED_OWNERSHIP_MIGRATION = (
+    ROOT / "migrations" / "0247_z_customer_master_translation_seed_ownership.sql"
+)
 _CUSTOMER_MASTER_SEED = ROOT / "migrations" / "0248_customer_master_translation_draft.sql"
 _CUSTOMER_MASTER_ROLLBACK = (
     ROOT / "migrations" / "rollback" / "0248_customer_master_translation_draft.sql"
@@ -58,6 +61,14 @@ async def _snapshot(
     return state, tuple(
         (row["translation_key"], row["locale"], row["translated_text"])
         for row in rows
+    )
+
+
+def test_seed_ownership_guard_precedes_customer_master_seed() -> None:
+    """Sorted replay must establish ownership before migration 0248 executes."""
+    names = sorted(path.name for path in (ROOT / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql"))
+    assert names.index(_SEED_OWNERSHIP_MIGRATION.name) < names.index(
+        _CUSTOMER_MASTER_SEED.name
     )
 
 
@@ -117,6 +128,20 @@ def test_seed_and_rollback_refuse_preexisting_unowned_customer_master_draft() ->
                     ],
                 )
                 before = await _snapshot(connection, resource_id)
+
+                await connection.execute(
+                    _SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8")
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select ownership_state
+                          from ui_translation_seed_ownership
+                         where migration_key = '0248_customer_master_translation_draft'
+                        """
+                    )
+                    == "blocked"
+                )
 
                 with pytest.raises(
                     asyncpg.PostgresError,
