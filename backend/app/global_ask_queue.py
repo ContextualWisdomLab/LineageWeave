@@ -54,7 +54,6 @@ from lineageweave.post_chat import (
 from lineageweave.semantic_query import NullSemanticQueryClient, SemanticQueryClient
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
-from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
 from .operability import log_internal_fault, log_provider_unavailable
 from .post_chat_ingestion import (
@@ -76,17 +75,13 @@ FAILED = "failed"
 # trimmed stream) and are republished by the worker's recovery sweep.
 _REPUBLISH_AFTER_SECONDS = 60
 _RECOVERY_INTERVAL_SECONDS = 30.0
-# Hard ceiling on one job's answer computation. Without it a hung
-# orchestrator round-trip kept a job `running` indefinitely (observed:
-# 17+ minutes) and, before concurrent processing, stalled every job
-# behind it. Shared through config so the client-timeout validation and
-# this reaper can never disagree.
-JOB_DEADLINE_SECONDS = GLOBAL_ASK_JOB_DEADLINE_SECONDS
-# A `running` row older than this is an orphan: a live worker's deadline
-# settles every job within JOB_DEADLINE_SECONDS, so one sweep interval of
-# slack past that is enough — recovering sooner shortens how long a
-# crashed worker's job stays invisible to a polling reader.
-_ORPHAN_RUNNING_AFTER_SECONDS = JOB_DEADLINE_SECONDS + 60
+# Live workers renew the claim generation on this interval so age-based
+# orphan recovery cannot reclaim a job that is still owned.
+_CLAIM_HEARTBEAT_SECONDS = _RECOVERY_INTERVAL_SECONDS
+# A `running` row whose claim generation has not been renewed for this
+# many seconds is an orphan. Live workers heartbeat more often, so age
+# alone does not reclaim a current owner.
+_ORPHAN_RUNNING_AFTER_SECONDS = 3 * _CLAIM_HEARTBEAT_SECONDS
 # Wake-up stream cap, mirroring the post-content stream: the durable rows
 # are the source of truth, so trimming old wake-ups loses nothing.
 _STREAM_MAX_LENGTH = 1000
@@ -100,6 +95,83 @@ _logger = logging.getLogger(__name__)
 
 class _SafeJobError(Exception):
     """Failure whose bounded message is safe to persist for the requester."""
+
+
+def _claim_generation_retained(command_status: object) -> bool:
+    """Return True when PostgreSQL reports the compare-and-set updated one row."""
+    return str(command_status) == "UPDATE 1"
+
+
+class _LostAskClaim(Exception):
+    """Raised when orphan recovery reclaims the running claim generation."""
+
+
+async def _renew_ask_claim(
+    pool: asyncpg.Pool, job_id: str, claimed_at: object
+) -> object | None:
+    """Advance ``updated_at`` only for the current running claim generation."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            update global_ask_job set updated_at = now()
+            where global_ask_job_id = $1
+              and job_status_code = $2
+              and updated_at = $3
+            returning updated_at
+            """,
+            job_id,
+            RUNNING,
+            claimed_at,
+        )
+    if row is None:
+        return None
+    return row["updated_at"]
+
+
+async def _run_with_ask_claim_heartbeat(
+    pool: asyncpg.Pool,
+    job_id: str,
+    lease: list[object],
+    operation: Any,
+) -> Any:
+    """Renew the claim generation while ``operation`` runs; abort on reclaim.
+
+    If the heartbeat task ends while compute is still running, treat the
+    owner as lost instead of continuing without renewals.
+    """
+    lost = asyncio.Event()
+    stop = asyncio.Event()
+
+    async def _beat() -> None:
+        while not stop.is_set() and not lost.is_set():
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=_CLAIM_HEARTBEAT_SECONDS)
+                return
+            except TimeoutError:
+                renewed = await _renew_ask_claim(pool, job_id, lease[0])
+                if renewed is None:
+                    lost.set()
+                    return
+                lease[0] = renewed
+
+    beater = asyncio.create_task(_beat())
+    worker = asyncio.create_task(operation)
+    try:
+        await asyncio.wait({worker, beater}, return_when=asyncio.FIRST_COMPLETED)
+        if not worker.done():
+            raise _LostAskClaim()
+        # A renewal may already be committed while its response is in flight.
+        # Drain it before settlement so the lease contains the committed generation.
+        stop.set()
+        (renewal_result,) = await asyncio.gather(beater, return_exceptions=True)
+        if lost.is_set() or isinstance(renewal_result, BaseException):
+            raise _LostAskClaim()
+        return await worker
+    finally:
+        stop.set()
+        worker.cancel()
+        beater.cancel()
+        await asyncio.gather(worker, beater, return_exceptions=True)
 
 
 async def enqueue_global_ask_job(
@@ -520,8 +592,10 @@ async def process_global_ask_job(
 
     Claiming flips ``queued`` → ``running`` atomically so a duplicate
     stream wake-up (recovery republish racing the original entry) is a
-    no-op. Every failure path settles the row as ``failed`` with a
-    bounded detail string rather than leaving it stuck ``running``.
+    no-op. Settlement is compare-and-set on that claim's ``updated_at``
+    so an orphan reclaim cannot be overwritten by the previous owner.
+    Every failure path settles the row as ``failed`` with a bounded
+    detail string rather than leaving it stuck ``running``.
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -529,7 +603,7 @@ async def process_global_ask_job(
             update global_ask_job set job_status_code = $2, updated_at = now()
             where global_ask_job_id = $1 and job_status_code = $3
             returning requesting_account_id, question_text, verify_external_requested,
-                      knowledge_cutoff
+                      knowledge_cutoff, updated_at
             """,
             job_id,
             RUNNING,
@@ -537,7 +611,7 @@ async def process_global_ask_job(
         )
     if row is None:
         return
-    answer_timeout: asyncio.Timeout | None = None
+    lease = [row["updated_at"]]
     try:
         async with pool.acquire() as conn:
             (
@@ -555,8 +629,11 @@ async def process_global_ask_job(
             raise _SafeJobError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
-        async with asyncio.timeout(JOB_DEADLINE_SECONDS) as answer_timeout:
-            payload = await compute_global_ask_answer(
+        payload = await _run_with_ask_claim_heartbeat(
+            pool,
+            job_id,
+            lease,
+            compute_global_ask_answer(
                 pool,
                 question_text=str(row["question_text"]),
                 corporate_entity_ids=entity_ids,
@@ -568,7 +645,10 @@ async def process_global_ask_job(
                 verify_external=bool(row["verify_external_requested"]),
                 claim_verification_client=claim_verification_factory(),
                 knowledge_cutoff=row["knowledge_cutoff"],
-            )
+            ),
+        )
+    except _LostAskClaim:
+        return
     except asyncio.CancelledError:
         # Shutdown: leave the row `running`; the recovery sweep re-queues
         # it after the orphan window on the next process start.
@@ -586,12 +666,6 @@ async def process_global_ask_job(
             # Raised locally with a pre-authored, safe message (permission
             # state / missing config) — never a provider-boundary leak.
             detail = str(exc)
-        elif (
-            isinstance(exc, asyncio.TimeoutError)
-            and answer_timeout is not None
-            and answer_timeout.expired()
-        ):
-            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
         else:
             # Provider responses/exceptions can carry credentials, gateway
             # diagnostics, or model output (ADR 0123): never persist the
@@ -602,28 +676,40 @@ async def process_global_ask_job(
                 "no complete evidence object"
             )
         async with pool.acquire() as conn:
-            await conn.execute(
+            command_status = await conn.execute(
                 """
                 update global_ask_job set job_status_code = $2,
                     failure_detail = $3, updated_at = now()
                 where global_ask_job_id = $1
+                  and job_status_code = $4
+                  and updated_at = $5
                 """,
                 job_id,
                 FAILED,
                 detail[:1000],
+                RUNNING,
+                lease[0],
             )
+        if not _claim_generation_retained(command_status):
+            return
         return
     async with pool.acquire() as conn:
-        await conn.execute(
+        command_status = await conn.execute(
             """
             update global_ask_job set job_status_code = $2,
                 answer_payload = $3::jsonb, updated_at = now()
             where global_ask_job_id = $1
+              and job_status_code = $4
+              and updated_at = $5
             """,
             job_id,
             SUCCEEDED,
             _to_json(payload),
+            RUNNING,
+            lease[0],
         )
+    if not _claim_generation_retained(command_status):
+        return
 
 
 def _to_json(payload: dict[str, Any]) -> str:
@@ -640,10 +726,9 @@ async def republish_queued_global_ask_jobs(
 
     A ``queued`` row older than the republish window lost its stream
     entry (crash or trim between insert and XADD). A ``running`` row
-    older than the orphan window belongs to a worker that died mid-job —
-    the per-job deadline guarantees a live worker settles sooner — so it
-    is flipped back to ``queued`` and re-woken for at-least-once
-    delivery.
+    whose claim generation stays stale beyond the orphan window belongs
+    to a worker that stopped heartbeating, so it is flipped back to
+    ``queued`` and re-woken for at-least-once delivery.
     """
     async with pool.acquire() as conn:
         # Fully parameterized ($1..$3 with module constants); the rule
