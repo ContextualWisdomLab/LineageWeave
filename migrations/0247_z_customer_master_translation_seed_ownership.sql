@@ -9,14 +9,72 @@ create table if not exists ui_translation_seed_ownership (
     resource_version bigint not null check (resource_version > 0),
     resource_id bigint unique
         references ui_translation_resource(resource_id) on delete cascade,
-    ownership_state text not null
-        check (ownership_state in ('pending', 'owned', 'blocked')),
+    ownership_state text not null,
+    constraint ui_translation_seed_ownership_state_ck
+        check (ownership_state in ('pending', 'owned', 'blocked', 'retired')),
     unique (product_key, screen_key, resource_version),
-    check (
-        (ownership_state = 'owned' and resource_id is not null)
-        or (ownership_state in ('pending', 'blocked') and resource_id is null)
-    )
+    constraint ui_translation_seed_ownership_shape_ck
+        check (
+            (ownership_state = 'owned' and resource_id is not null)
+            or (
+                ownership_state in ('pending', 'blocked', 'retired')
+                and resource_id is null
+            )
+        )
 );
+
+-- Existing installations predate the retired one-time-seed receipt. Upgrade only
+-- the two ownership-state checks once; subsequent migration replay stays metadata-only.
+do $customer_master_seed_ownership_retirement_contract$
+declare
+    stale_constraint text;
+begin
+    for stale_constraint in
+        select conname
+          from pg_constraint
+         where conrelid = 'public.ui_translation_seed_ownership'::regclass
+           and contype = 'c'
+           and pg_get_constraintdef(oid) like '%ownership_state%'
+           and conname not in (
+               'ui_translation_seed_ownership_state_ck',
+               'ui_translation_seed_ownership_shape_ck'
+           )
+    loop
+        execute format(
+            'alter table public.ui_translation_seed_ownership drop constraint %I',
+            stale_constraint
+        );
+    end loop;
+
+    if not exists (
+        select 1
+          from pg_constraint
+         where conrelid = 'public.ui_translation_seed_ownership'::regclass
+           and conname = 'ui_translation_seed_ownership_state_ck'
+    ) then
+        alter table public.ui_translation_seed_ownership
+            add constraint ui_translation_seed_ownership_state_ck
+            check (ownership_state in ('pending', 'owned', 'blocked', 'retired'));
+    end if;
+
+    if not exists (
+        select 1
+          from pg_constraint
+         where conrelid = 'public.ui_translation_seed_ownership'::regclass
+           and conname = 'ui_translation_seed_ownership_shape_ck'
+    ) then
+        alter table public.ui_translation_seed_ownership
+            add constraint ui_translation_seed_ownership_shape_ck
+            check (
+                (ownership_state = 'owned' and resource_id is not null)
+                or (
+                    ownership_state in ('pending', 'blocked', 'retired')
+                    and resource_id is null
+                )
+            );
+    end if;
+end;
+$customer_master_seed_ownership_retirement_contract$;
 
 do $customer_master_seed_ownership_init$
 declare
@@ -72,6 +130,18 @@ begin
        or owner_resource_version <> 1 then
         raise exception
             'Customer Master seed ownership identity drifted from migration 0248';
+    end if;
+
+    -- An ordinary product delete after successful materialization retires the
+    -- one-time seed. Preserve that receipt without touching any later
+    -- operator-owned resource that might reuse the product identity.
+    if owner_state = 'retired' then
+        if owner_resource_id is not null then
+            raise exception
+                'Retired Customer Master seed ownership unexpectedly retains resource %',
+                owner_resource_id;
+        end if;
+        return;
     end if;
 
     -- Lock the product resource only after the ownership row. Trigger paths
@@ -147,7 +217,8 @@ begin
         end if;
 
         -- pending reserves this exact identity until 0248 creates it. Once a
-        -- resource is blocked/owned, ordinary conflict semantics remain intact.
+        -- resource is blocked/owned/retired, ordinary product identity lifecycle
+        -- remains outside migration provenance.
         if owner_state = 'pending' then
             raise exception
                 'Customer Master seed refuses to create resource outside migration 0248 ownership context';
@@ -161,16 +232,30 @@ begin
         return old;
     end if;
 
+    -- A normal delete after the migration has materialized its candidate means
+    -- the reviewer/operator intentionally retired that review object. Detach the
+    -- FK before root deletion so ON DELETE CASCADE cannot erase the one-time
+    -- completion receipt and silently re-authorize historical seed bytes.
+    if migration_file is distinct from 'rollback/0248_customer_master_translation_draft.sql' then
+        update ui_translation_seed_ownership
+           set ownership_state = 'retired',
+               resource_id = null
+         where migration_key = '0248_customer_master_translation_draft'
+           and ownership_state = 'owned'
+           and resource_id = old.resource_id;
+        return old;
+    end if;
+
     -- Ownership constrains the 0248 rollback, not ordinary product/operator
-    -- lifecycle operations on a pre-existing resource.
-    if migration_file = 'rollback/0248_customer_master_translation_draft.sql'
-       and not exists (
-           select 1
-             from ui_translation_seed_ownership
-            where migration_key = '0248_customer_master_translation_draft'
-              and ownership_state = 'owned'
-              and resource_id = old.resource_id
-       ) then
+    -- lifecycle operations on a pre-existing resource. A deliberate 0248
+    -- rollback removes only the resource that this migration still owns.
+    if not exists (
+        select 1
+          from ui_translation_seed_ownership
+         where migration_key = '0248_customer_master_translation_draft'
+           and ownership_state = 'owned'
+           and resource_id = old.resource_id
+    ) then
         raise exception
             'Customer Master translation rollback refuses to remove unowned Customer Master resource %',
             old.resource_id;
