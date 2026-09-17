@@ -252,6 +252,9 @@ def test_customer_master_seed_rollback_removes_only_unpublished_draft() -> None:
             await connection.execute(
                 _CUSTOMER_MASTER_ROLLBACK.read_text(encoding="utf-8")
             )
+        # The rollback migration opens its own transaction. A deliberate refusal
+        # aborts that transaction, so clear it before asserting durable state.
+        await connection.execute("rollback")
         assert (
             await connection.fetchval(
                 "select publication_state from ui_translation_resource "
