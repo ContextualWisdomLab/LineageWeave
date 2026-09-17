@@ -119,9 +119,13 @@ export const NarrowDenseEvidence: Story = {
     await expect(closest.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
     await expect(farthest.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
 
-    await userEvent.click(farthest);
+    await userEvent.pointer({ target: farthest, keys: "[MouseLeft]" });
     await expect(args.onSelectPost).toHaveBeenCalledTimes(1);
-    await expect(args.onSelectPost).toHaveBeenCalledWith(args.pairs[1]);
+    await expect(args.onSelectPost).toHaveBeenLastCalledWith(args.pairs[1]);
+
+    await userEvent.pointer({ target: closest, keys: "[TouchA]" });
+    await expect(args.onSelectPost).toHaveBeenCalledTimes(2);
+    await expect(args.onSelectPost).toHaveBeenLastCalledWith(args.pairs[0]);
   },
 };
 
