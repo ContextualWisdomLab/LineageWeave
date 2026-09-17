@@ -98,6 +98,7 @@ language plpgsql
 as $$
 declare
     owner_state text;
+    migration_file text;
 begin
     if tg_op = 'INSERT' then
         if new.product_key <> 'lineageweave'
@@ -111,10 +112,12 @@ begin
           from ui_translation_seed_ownership
          where migration_key = '0248_customer_master_translation_draft'
          for update;
+        migration_file := current_setting('lineageweave.migration_file', true);
 
-        if owner_state is distinct from 'pending' then
+        if owner_state is distinct from 'pending'
+           or migration_file is distinct from '0248_customer_master_translation_draft.sql' then
             raise exception
-                'Customer Master seed refuses to create resource without pending migration ownership';
+                'Customer Master seed refuses to create resource outside migration 0248 ownership context';
         end if;
         return new;
     end if;
@@ -149,6 +152,12 @@ begin
        or new.screen_key <> 'customer-master'
        or new.resource_version <> 1 then
         return new;
+    end if;
+
+    if current_setting('lineageweave.migration_file', true)
+       is distinct from '0248_customer_master_translation_draft.sql' then
+        raise exception
+            'Customer Master seed refuses to bind ownership outside migration 0248 context';
     end if;
 
     update ui_translation_seed_ownership

@@ -28,7 +28,12 @@ for migration in /opt/lineageweave/migrations/*.sql; do
         *) continue ;;
     esac
     printf 'Applying %s\n' "$migration_name"
-    psql -X -v ON_ERROR_STOP=1 \
+    migration_pgoptions="-c lineageweave.migration_file=$migration_name"
+    if [ -n "${PGOPTIONS:-}" ]; then
+        migration_pgoptions="$PGOPTIONS $migration_pgoptions"
+    fi
+    PGOPTIONS="$migration_pgoptions" \
+        psql -X -v ON_ERROR_STOP=1 \
         -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
         -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
         -f "$migration"
