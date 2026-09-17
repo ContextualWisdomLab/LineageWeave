@@ -34,7 +34,7 @@ create table ui_translation_seed_ownership (
         references ui_translation_resource(resource_id) on delete cascade,
     ownership_state text not null,
     constraint ui_translation_seed_ownership_state_ck
-        check (ownership_state in ('pending', 'owned', 'blocked')),
+        check (ownership_state in ('pending', 'owned', 'blocked', 'retired')),
     unique (product_key, screen_key, resource_version),
     constraint ui_translation_seed_ownership_shape_ck
         check (
@@ -42,6 +42,10 @@ create table ui_translation_seed_ownership (
             or (
                 ownership_state in ('pending', 'blocked')
                 and resource_id is null
+            )
+            or (
+                ownership_state = 'retired'
+                and resource_id is not null
             )
         ),
     constraint operator_ownership_state_nonempty_ck
@@ -96,10 +100,10 @@ async def _scenario() -> None:
             )
             assert isinstance(resource_id, int)
 
-            # Model an installation created by the predecessor migration. The
-            # named constraints already exist, but their definitions predate the
-            # retired one-time-seed receipt. A separately managed integrity
-            # check must survive the migration's targeted contract upgrade.
+            # Model a partially upgraded predecessor installation. Both
+            # canonical checks already mention ``retired``, but the shape check
+            # still encodes the wrong resource-id invariant. A separately
+            # managed operator constraint must survive the targeted repair.
             await connection.execute(_OLD_NAMED_OWNERSHIP_TABLE)
             await connection.execute(
                 """
@@ -155,8 +159,9 @@ async def _scenario() -> None:
             )
 
             # The upgraded constraints must make the new retirement path usable
-            # on an installation that already had the old, identically named
-            # checks. Replaying the migration again must remain idempotent.
+            # even when a predecessor already mentioned ``retired`` with the
+            # wrong semantics. Replaying the migration again must stay
+            # idempotent and preserve independently managed constraints.
             await connection.execute(
                 "delete from ui_translation_resource where resource_id = $1",
                 resource_id,
