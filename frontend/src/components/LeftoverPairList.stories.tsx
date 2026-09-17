@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { LeftoverPairList } from "./LeftoverPairList";
 
 const meta = {
@@ -69,7 +70,35 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const ClosestAndFarthest: Story = {};
+export const ClosestAndFarthest: Story = {
+  args: {
+    onSelectPost: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const closest = canvas.getByRole("button", {
+      name: /^Closest leftover: Public post · sales-lead /,
+    });
+    const farthest = canvas.getByRole("button", {
+      name: /^Farthest leftover: Specification revision requested · negative /,
+    });
+
+    await expect(closest).toHaveAccessibleName(/R \+0\.40/);
+    await expect(closest).toHaveAccessibleName(/Y 2\.40 · E 2\.00/);
+    await expect(closest).toHaveAccessibleName(/d 0\.12/);
+    await expect(farthest).toHaveAccessibleName(/R −1\.10/);
+    await expect(farthest).toHaveAccessibleName(/d 2\.00/);
+
+    await userEvent.tab();
+    await expect(closest).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect(args.onSelectPost).toHaveBeenCalledTimes(1);
+    await expect(args.onSelectPost).toHaveBeenCalledWith(args.pairs[0]);
+
+    await userEvent.tab();
+    await expect(farthest).toHaveFocus();
+  },
+};
 
 export const Empty: Story = {
   args: {
