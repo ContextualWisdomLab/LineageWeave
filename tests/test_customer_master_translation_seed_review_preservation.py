@@ -23,6 +23,9 @@ _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_
 _SEED_OWNERSHIP_MIGRATION = (
     ROOT / "migrations" / "0247_z_customer_master_translation_seed_ownership.sql"
 )
+_REVIEW_PRESERVATION_MIGRATION = (
+    ROOT / "migrations" / "0247_zz_customer_master_translation_seed_replay_guard.sql"
+)
 _CUSTOMER_MASTER_SEED = ROOT / "migrations" / "0248_customer_master_translation_draft.sql"
 _MIGRATION_FILE = "0248_customer_master_translation_draft.sql"
 _REVIEWED_COPY = "검토 완료된 고객 마스터"
@@ -52,6 +55,17 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def test_review_preservation_guard_precedes_customer_master_seed() -> None:
+    """Sorted startup replay must install the preservation guard before 0248."""
+    names = sorted(
+        path.name
+        for path in (ROOT / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql")
+    )
+    assert names.index(_SEED_OWNERSHIP_MIGRATION.name) < names.index(
+        _REVIEW_PRESERVATION_MIGRATION.name
+    ) < names.index(_CUSTOMER_MASTER_SEED.name)
+
+
 async def _with_seed_database(
     scenario: Callable[[asyncpg.Connection], Awaitable[None]],
 ) -> None:
@@ -70,6 +84,7 @@ async def _with_seed_database(
                 _LEDGER_MIGRATION,
                 _TRUNCATE_GUARD_MIGRATION,
                 _SEED_OWNERSHIP_MIGRATION,
+                _REVIEW_PRESERVATION_MIGRATION,
             ):
                 await connection.execute(migration.read_text(encoding="utf-8"))
             await connection.execute(
@@ -116,6 +131,7 @@ async def _review_korean_customer_master_copy(connection: asyncpg.Connection) ->
 async def _replay_seed(connection: asyncpg.Connection) -> None:
     """Replay ownership and seed exactly as startup migration replay does."""
     await connection.execute(_SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8"))
+    await connection.execute(_REVIEW_PRESERVATION_MIGRATION.read_text(encoding="utf-8"))
     await connection.execute(
         "select set_config('lineageweave.migration_file', $1, false)",
         _MIGRATION_FILE,
