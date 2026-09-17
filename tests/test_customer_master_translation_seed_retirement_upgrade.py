@@ -43,7 +43,9 @@ create table ui_translation_seed_ownership (
                 ownership_state in ('pending', 'blocked')
                 and resource_id is null
             )
-        )
+        ),
+    constraint operator_ownership_state_nonempty_ck
+        check (char_length(ownership_state) > 0)
 );
 """
 
@@ -96,7 +98,8 @@ async def _scenario() -> None:
 
             # Model an installation created by the predecessor migration. The
             # named constraints already exist, but their definitions predate the
-            # retired one-time-seed receipt.
+            # retired one-time-seed receipt. A separately managed integrity
+            # check must survive the migration's targeted contract upgrade.
             await connection.execute(_OLD_NAMED_OWNERSHIP_TABLE)
             await connection.execute(
                 """
@@ -140,6 +143,16 @@ async def _scenario() -> None:
             }
             assert "retired" in definitions["ui_translation_seed_ownership_state_ck"]
             assert "retired" in definitions["ui_translation_seed_ownership_shape_ck"]
+            assert await connection.fetchval(
+                """
+                select exists (
+                    select 1
+                      from pg_constraint
+                     where conrelid = 'public.ui_translation_seed_ownership'::regclass
+                       and conname = 'operator_ownership_state_nonempty_ck'
+                )
+                """
+            )
 
             # The upgraded constraints must make the new retirement path usable
             # on an installation that already had the old, identically named
@@ -171,6 +184,16 @@ async def _scenario() -> None:
                     """
                 )
                 == "retired"
+            )
+            assert await connection.fetchval(
+                """
+                select exists (
+                    select 1
+                      from pg_constraint
+                     where conrelid = 'public.ui_translation_seed_ownership'::regclass
+                       and conname = 'operator_ownership_state_nonempty_ck'
+                )
+                """
             )
         finally:
             await connection.close()
