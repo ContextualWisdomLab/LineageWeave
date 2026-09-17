@@ -6,6 +6,7 @@ begin;
 create or replace function guard_ui_translation_truncate()
 returns trigger
 language plpgsql
+set search_path = pg_catalog, public, pg_temp
 as $$
 begin
     -- TRUNCATE owns ACCESS EXCLUSIVE on its target before this statement trigger
