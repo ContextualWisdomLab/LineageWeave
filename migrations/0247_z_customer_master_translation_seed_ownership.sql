@@ -100,6 +100,8 @@ declare
     owner_state text;
     migration_file text;
 begin
+    migration_file := current_setting('lineageweave.migration_file', true);
+
     if tg_op = 'INSERT' then
         if new.product_key <> 'lineageweave'
            or new.screen_key <> 'customer-master'
@@ -112,10 +114,22 @@ begin
           from ui_translation_seed_ownership
          where migration_key = '0248_customer_master_translation_draft'
          for update;
-        migration_file := current_setting('lineageweave.migration_file', true);
 
-        if owner_state is distinct from 'pending'
-           or migration_file is distinct from '0248_customer_master_translation_draft.sql' then
+        if migration_file = '0248_customer_master_translation_draft.sql' then
+            if owner_state = 'blocked' then
+                raise exception
+                    'Customer Master seed refuses to adopt existing unowned Customer Master resource';
+            end if;
+            if owner_state not in ('pending', 'owned') then
+                raise exception
+                    'Customer Master seed has no valid ownership reservation';
+            end if;
+            return new;
+        end if;
+
+        -- pending reserves this exact identity until 0248 creates it. Once a
+        -- resource is blocked/owned, ordinary conflict semantics remain intact.
+        if owner_state = 'pending' then
             raise exception
                 'Customer Master seed refuses to create resource outside migration 0248 ownership context';
         end if;
@@ -128,13 +142,16 @@ begin
         return old;
     end if;
 
-    if not exists (
-        select 1
-          from ui_translation_seed_ownership
-         where migration_key = '0248_customer_master_translation_draft'
-           and ownership_state = 'owned'
-           and resource_id = old.resource_id
-    ) then
+    -- Ownership constrains the 0248 rollback, not ordinary product/operator
+    -- lifecycle operations on a pre-existing resource.
+    if migration_file = 'rollback/0248_customer_master_translation_draft.sql'
+       and not exists (
+           select 1
+             from ui_translation_seed_ownership
+            where migration_key = '0248_customer_master_translation_draft'
+              and ownership_state = 'owned'
+              and resource_id = old.resource_id
+       ) then
         raise exception
             'Customer Master translation rollback refuses to remove unowned Customer Master resource %',
             old.resource_id;
@@ -156,8 +173,7 @@ begin
 
     if current_setting('lineageweave.migration_file', true)
        is distinct from '0248_customer_master_translation_draft.sql' then
-        raise exception
-            'Customer Master seed refuses to bind ownership outside migration 0248 context';
+        return new;
     end if;
 
     update ui_translation_seed_ownership
@@ -184,6 +200,16 @@ declare
     target_resource_id bigint;
     target_is_customer_master boolean;
 begin
+    -- The ownership invariant is a migration-0248 boundary. It must not seize
+    -- ordinary draft editing/deletion authority from an operator-owned resource.
+    if current_setting('lineageweave.migration_file', true)
+       is distinct from '0248_customer_master_translation_draft.sql' then
+        if tg_op = 'DELETE' then
+            return old;
+        end if;
+        return new;
+    end if;
+
     if tg_op = 'DELETE' then
         target_resource_id := old.resource_id;
     else

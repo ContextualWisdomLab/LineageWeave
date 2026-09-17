@@ -1,6 +1,12 @@
 -- Roll back only the unpublished Customer Master v1 review draft.
 begin;
 
+select set_config(
+    'lineageweave.migration_file',
+    'rollback/0248_customer_master_translation_draft.sql',
+    true
+);
+
 do $customer_master_seed_rollback$
 declare
     target_resource_id bigint;
