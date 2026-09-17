@@ -34,6 +34,7 @@ import {
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
 } from "../leftoverMapUnexplainedShare";
 import { formatLeftoverMapDistance } from "../leftoverMapPlotLayout";
+import "./LeftoverPairList.css";
 import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 export type LeftoverPairListProps = {
@@ -255,7 +256,7 @@ export function LeftoverPairList({
           >
             <button
               type="button"
-              className="post-list-item"
+              className="post-list-item leftover-pair-action"
               aria-label={leftoverPairAccessibleName([
                 visibleLabel,
                 nextAction,
