@@ -106,8 +106,10 @@ def test_seed_ownership_guard_precedes_customer_master_seed() -> None:
         _CUSTOMER_MASTER_SEED.name
     )
     migrate_script = _MIGRATE_SCRIPT.read_text(encoding="utf-8")
+    rollback_script = _CUSTOMER_MASTER_ROLLBACK.read_text(encoding="utf-8")
     assert "lineageweave.migration_file=$migration_name" in migrate_script
     assert 'PGOPTIONS="$migration_pgoptions"' in migrate_script
+    assert "rollback/0248_customer_master_translation_draft.sql" in rollback_script
 
 
 @pytest.mark.skipif(
@@ -118,7 +120,7 @@ def test_seed_ownership_guard_precedes_customer_master_seed() -> None:
     ),
 )
 def test_seed_and_rollback_refuse_preexisting_unowned_customer_master_draft() -> None:
-    """A v1 draft not created by 0248 must remain byte-for-byte operator-owned."""
+    """0248 must not seize lifecycle authority over an operator-owned v1 draft."""
 
     async def scenario(connection: asyncpg.Connection) -> None:
         resource_id = await connection.fetchval(
@@ -149,7 +151,6 @@ def test_seed_and_rollback_refuse_preexisting_unowned_customer_master_draft() ->
                 for locale in _LOCALES
             ],
         )
-        before = await _snapshot(connection, resource_id)
 
         await connection.execute(
             _SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8")
@@ -164,11 +165,25 @@ def test_seed_and_rollback_refuse_preexisting_unowned_customer_master_draft() ->
             )
             == "blocked"
         )
+
+        # The guard protects the migration boundary only. It must not take
+        # ordinary editing authority away from an operator-owned draft.
+        await connection.execute(
+            """
+            update ui_translation_text
+               set translated_text = 'operator-owned-en-revised'
+             where resource_id = $1
+               and translation_key = 'Customer master'
+               and locale = 'en'
+            """,
+            resource_id,
+        )
+        before = await _snapshot(connection, resource_id)
+
         await connection.execute(
             "select set_config('lineageweave.migration_file', $1, false)",
             _MIGRATION_FILE,
         )
-
         with pytest.raises(
             asyncpg.PostgresError,
             match="refuses to adopt existing unowned Customer Master resource",
@@ -186,6 +201,45 @@ def test_seed_and_rollback_refuse_preexisting_unowned_customer_master_draft() ->
             )
         await connection.execute("rollback")
         assert await _snapshot(connection, resource_id) == before
+
+        # Outside 0248 rollback provenance the same operator-owned draft keeps
+        # its normal lifecycle semantics; the ownership guard is not a product lock.
+        await connection.execute(
+            "select set_config('lineageweave.migration_file', '', false)"
+        )
+        await connection.execute(
+            "delete from ui_translation_resource where resource_id = $1",
+            resource_id,
+        )
+        assert (
+            await connection.fetchval(
+                "select count(*) from ui_translation_resource where resource_id = $1",
+                resource_id,
+            )
+            == 0
+        )
+
+        # Replay turns the now-empty blocked reservation into pending. The guard
+        # rollback can then release that empty reservation without touching data.
+        await connection.execute(
+            _SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8")
+        )
+        assert (
+            await connection.fetchval(
+                """
+                select ownership_state
+                  from ui_translation_seed_ownership
+                 where migration_key = '0248_customer_master_translation_draft'
+                """
+            )
+            == "pending"
+        )
+        await connection.execute(
+            _SEED_OWNERSHIP_ROLLBACK.read_text(encoding="utf-8")
+        )
+        assert await connection.fetchval(
+            "select to_regclass('ui_translation_seed_ownership')"
+        ) is None
 
     asyncio.run(_with_database(scenario))
 
@@ -239,6 +293,8 @@ def test_owned_customer_master_seed_replays_and_rolls_back_with_ownership() -> N
         assert ownership["ownership_state"] == "owned"
         assert ownership["resource_id"] == resource_id
 
+        # An owned seed must remain replay-idempotent. BEFORE INSERT triggers fire
+        # before ON CONFLICT, so the ownership guard explicitly admits owned replay.
         await connection.execute(
             _SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8")
         )
