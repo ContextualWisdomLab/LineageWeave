@@ -27,13 +27,33 @@ declare
     owner_screen_key text;
     owner_resource_version bigint;
 begin
-    select resource_id
-      into target_resource_id
-      from ui_translation_resource
-     where product_key = 'lineageweave'
-       and screen_key = 'customer-master'
-       and resource_version = 1
-     for update;
+    -- A replay can overlap a transaction that has already reserved this
+    -- migration key but has not committed yet. The unique index is the
+    -- serialization point: wait for that owner, then inspect the committed
+    -- reservation instead of failing startup with a duplicate-key error.
+    insert into ui_translation_seed_ownership(
+        migration_key,
+        product_key,
+        screen_key,
+        resource_version,
+        ownership_state
+    )
+    select
+        '0248_customer_master_translation_draft',
+        'lineageweave',
+        'customer-master',
+        1,
+        case
+            when exists (
+                select 1
+                  from ui_translation_resource
+                 where product_key = 'lineageweave'
+                   and screen_key = 'customer-master'
+                   and resource_version = 1
+            ) then 'blocked'
+            else 'pending'
+        end
+    on conflict (migration_key) do nothing;
 
     select ownership_state, resource_id, product_key, screen_key, resource_version
       into owner_state, owner_resource_id, owner_product_key, owner_screen_key,
@@ -43,21 +63,8 @@ begin
      for update;
 
     if owner_state is null then
-        insert into ui_translation_seed_ownership(
-            migration_key,
-            product_key,
-            screen_key,
-            resource_version,
-            ownership_state
-        )
-        values (
-            '0248_customer_master_translation_draft',
-            'lineageweave',
-            'customer-master',
-            1,
-            case when target_resource_id is null then 'pending' else 'blocked' end
-        );
-        return;
+        raise exception
+            'Customer Master seed ownership reservation is missing after initialization';
     end if;
 
     if owner_product_key <> 'lineageweave'
@@ -66,6 +73,17 @@ begin
         raise exception
             'Customer Master seed ownership identity drifted from migration 0248';
     end if;
+
+    -- Lock the product resource only after the ownership row. Trigger paths
+    -- also consult ownership before binding a new resource, so this keeps a
+    -- single lock order for replay and seed creation.
+    select resource_id
+      into target_resource_id
+      from ui_translation_resource
+     where product_key = 'lineageweave'
+       and screen_key = 'customer-master'
+       and resource_version = 1
+     for update;
 
     if owner_state = 'owned' then
         if target_resource_id is distinct from owner_resource_id then
