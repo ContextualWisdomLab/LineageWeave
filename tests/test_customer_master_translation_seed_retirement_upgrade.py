@@ -23,6 +23,8 @@ _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_
 _SEED_OWNERSHIP_MIGRATION = (
     ROOT / "migrations" / "0247_z_customer_master_translation_seed_ownership.sql"
 )
+_STATE_CONTRACT_MARKER = "lineageweave:customer-master-seed-ownership-state/v1"
+_SHAPE_CONTRACT_MARKER = "lineageweave:customer-master-seed-ownership-shape/v1"
 
 _OLD_NAMED_OWNERSHIP_TABLE = """
 create table ui_translation_seed_ownership (
@@ -34,7 +36,7 @@ create table ui_translation_seed_ownership (
         references ui_translation_resource(resource_id) on delete cascade,
     ownership_state text not null,
     constraint ui_translation_seed_ownership_state_ck
-        check (ownership_state in ('pending', 'owned', 'blocked')),
+        check (ownership_state in ('pending', 'owned', 'blocked', 'retired')),
     unique (product_key, screen_key, resource_version),
     constraint ui_translation_seed_ownership_shape_ck
         check (
@@ -42,6 +44,10 @@ create table ui_translation_seed_ownership (
             or (
                 ownership_state in ('pending', 'blocked')
                 and resource_id is null
+            )
+            or (
+                ownership_state = 'retired'
+                and resource_id is not null
             )
         ),
     constraint operator_ownership_state_nonempty_ck
@@ -63,6 +69,29 @@ async def _postgres_available_async() -> bool:
 def _postgres_available() -> bool:
     """Probe PostgreSQL once during collection without adding a sync driver."""
     return asyncio.run(_postgres_available_async())
+
+
+async def _canonical_constraint_metadata(
+    connection: asyncpg.Connection,
+) -> dict[str, tuple[int, str, str | None]]:
+    """Return canonical ownership constraint OID, definition, and version marker."""
+    return {
+        row["conname"]: (row["oid"], row["definition"], row["marker"])
+        for row in await connection.fetch(
+            """
+            select oid,
+                   conname,
+                   pg_get_constraintdef(oid) as definition,
+                   obj_description(oid, 'pg_constraint') as marker
+              from pg_constraint
+             where conrelid = 'public.ui_translation_seed_ownership'::regclass
+               and conname in (
+                   'ui_translation_seed_ownership_state_ck',
+                   'ui_translation_seed_ownership_shape_ck'
+               )
+            """
+        )
+    }
 
 
 async def _scenario() -> None:
@@ -96,10 +125,10 @@ async def _scenario() -> None:
             )
             assert isinstance(resource_id, int)
 
-            # Model an installation created by the predecessor migration. The
-            # named constraints already exist, but their definitions predate the
-            # retired one-time-seed receipt. A separately managed integrity
-            # check must survive the migration's targeted contract upgrade.
+            # Model a partially upgraded predecessor installation. Both
+            # canonical checks already mention ``retired``, but the shape check
+            # still encodes the wrong resource-id invariant. A separately
+            # managed operator constraint must survive the targeted repair.
             await connection.execute(_OLD_NAMED_OWNERSHIP_TABLE)
             await connection.execute(
                 """
@@ -127,22 +156,20 @@ async def _scenario() -> None:
                 _SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8")
             )
 
-            definitions = {
-                row["conname"]: row["definition"]
-                for row in await connection.fetch(
-                    """
-                    select conname, pg_get_constraintdef(oid) as definition
-                      from pg_constraint
-                     where conrelid = 'public.ui_translation_seed_ownership'::regclass
-                       and conname in (
-                           'ui_translation_seed_ownership_state_ck',
-                           'ui_translation_seed_ownership_shape_ck'
-                       )
-                    """
-                )
+            metadata = await _canonical_constraint_metadata(connection)
+            assert "retired" in metadata["ui_translation_seed_ownership_state_ck"][1]
+            assert "retired" in metadata["ui_translation_seed_ownership_shape_ck"][1]
+            assert (
+                metadata["ui_translation_seed_ownership_state_ck"][2]
+                == _STATE_CONTRACT_MARKER
+            )
+            assert (
+                metadata["ui_translation_seed_ownership_shape_ck"][2]
+                == _SHAPE_CONTRACT_MARKER
+            )
+            first_constraint_oids = {
+                name: values[0] for name, values in metadata.items()
             }
-            assert "retired" in definitions["ui_translation_seed_ownership_state_ck"]
-            assert "retired" in definitions["ui_translation_seed_ownership_shape_ck"]
             assert await connection.fetchval(
                 """
                 select exists (
@@ -155,8 +182,9 @@ async def _scenario() -> None:
             )
 
             # The upgraded constraints must make the new retirement path usable
-            # on an installation that already had the old, identically named
-            # checks. Replaying the migration again must remain idempotent.
+            # even when a predecessor already mentioned ``retired`` with the
+            # wrong semantics. Replaying the migration again must stay
+            # metadata-only and preserve independently managed constraints.
             await connection.execute(
                 "delete from ui_translation_resource where resource_id = $1",
                 resource_id,
@@ -184,6 +212,18 @@ async def _scenario() -> None:
                     """
                 )
                 == "retired"
+            )
+            replay_metadata = await _canonical_constraint_metadata(connection)
+            assert {
+                name: values[0] for name, values in replay_metadata.items()
+            } == first_constraint_oids
+            assert (
+                replay_metadata["ui_translation_seed_ownership_state_ck"][2]
+                == _STATE_CONTRACT_MARKER
+            )
+            assert (
+                replay_metadata["ui_translation_seed_ownership_shape_ck"][2]
+                == _SHAPE_CONTRACT_MARKER
             )
             assert await connection.fetchval(
                 """
