@@ -14,13 +14,9 @@ begin
             'Customer Master seed ownership rollback refuses while v1 resource exists';
     end if;
 
-    if exists (
-        select 1
-          from ui_translation_seed_ownership
-         where migration_key = '0248_customer_master_translation_draft'
-    ) then
+    if exists (select 1 from ui_translation_seed_ownership) then
         raise exception
-            'Customer Master seed ownership rollback refuses while migration ownership remains';
+            'Customer Master seed ownership rollback refuses while ownership records remain';
     end if;
 end;
 $customer_master_seed_ownership_rollback$;
