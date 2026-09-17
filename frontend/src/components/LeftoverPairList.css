@@ -1,0 +1,20 @@
+.leftover-pair-action {
+  min-width: 0;
+  min-height: var(--size-touch-target);
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-control-gap);
+}
+
+.leftover-pair-action > .ticket-title {
+  min-width: 0;
+  flex: 1 1 18rem;
+  overflow-wrap: anywhere;
+}
+
+.leftover-pair-action > .post-badge {
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  overflow-wrap: anywhere;
+}
