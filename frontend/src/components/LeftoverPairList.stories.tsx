@@ -100,6 +100,31 @@ export const ClosestAndFarthest: Story = {
   },
 };
 
+export const NarrowDenseEvidence: Story = {
+  args: {
+    onSelectPost: fn(),
+  },
+  parameters: { viewport: { defaultViewport: "mobile1" } },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const closest = canvas.getByRole("button", {
+      name: /^Closest leftover: Public post · sales-lead /,
+    });
+    const farthest = canvas.getByRole("button", {
+      name: /^Farthest leftover: Specification revision requested · negative /,
+    });
+
+    await expect(closest.scrollWidth).toBeLessThanOrEqual(closest.clientWidth);
+    await expect(farthest.scrollWidth).toBeLessThanOrEqual(farthest.clientWidth);
+    await expect(closest.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    await expect(farthest.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+
+    await userEvent.click(farthest);
+    await expect(args.onSelectPost).toHaveBeenCalledTimes(1);
+    await expect(args.onSelectPost).toHaveBeenCalledWith(args.pairs[1]);
+  },
+};
+
 export const Empty: Story = {
   args: {
     pairs: [],
