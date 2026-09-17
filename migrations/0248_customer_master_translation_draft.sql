@@ -83,8 +83,35 @@ begin
             product_key, screen_key, resource_version
         )
         values ('lineageweave', 'customer-master', 1)
+        on conflict (product_key, screen_key, resource_version) do nothing
         returning resource_id, publication_state
              into target_resource_id, target_state;
+
+        if target_resource_id is null then
+            -- A concurrent 0248 replay may have won the root insert while this
+            -- transaction waited on the ownership reservation. Adopt only the
+            -- resource that the same migration bound as owned; an external
+            -- collision remains fail-closed.
+            select resource_id, publication_state
+              into target_resource_id, target_state
+              from ui_translation_resource
+             where product_key = 'lineageweave'
+               and screen_key = 'customer-master'
+               and resource_version = 1
+             for update;
+
+            if target_resource_id is null
+               or not exists (
+                   select 1
+                     from ui_translation_seed_ownership
+                    where migration_key = '0248_customer_master_translation_draft'
+                      and ownership_state = 'owned'
+                      and resource_id = target_resource_id
+               ) then
+                raise exception
+                    'Customer Master seed root insert collided with an unowned resource';
+            end if;
+        end if;
     end if;
 
     if exists (
