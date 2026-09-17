@@ -23,12 +23,35 @@ create table if not exists ui_translation_seed_ownership (
         )
 );
 
--- Existing installations predate the retired one-time-seed receipt. Upgrade only
--- the two ownership-state checks once; subsequent migration replay stays metadata-only.
+-- Existing installations predate the retired one-time-seed receipt. Replace
+-- predecessor checks even when they already use the canonical constraint names;
+-- once retired is admitted, subsequent replay remains metadata-only.
 do $customer_master_seed_ownership_retirement_contract$
 declare
     stale_constraint text;
 begin
+    if exists (
+        select 1
+          from pg_constraint
+         where conrelid = 'public.ui_translation_seed_ownership'::regclass
+           and conname = 'ui_translation_seed_ownership_state_ck'
+           and position('retired' in pg_get_constraintdef(oid)) = 0
+    ) then
+        alter table public.ui_translation_seed_ownership
+            drop constraint ui_translation_seed_ownership_state_ck;
+    end if;
+
+    if exists (
+        select 1
+          from pg_constraint
+         where conrelid = 'public.ui_translation_seed_ownership'::regclass
+           and conname = 'ui_translation_seed_ownership_shape_ck'
+           and position('retired' in pg_get_constraintdef(oid)) = 0
+    ) then
+        alter table public.ui_translation_seed_ownership
+            drop constraint ui_translation_seed_ownership_shape_ck;
+    end if;
+
     for stale_constraint in
         select conname
           from pg_constraint
