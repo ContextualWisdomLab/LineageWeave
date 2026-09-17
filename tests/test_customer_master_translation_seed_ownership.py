@@ -341,3 +341,92 @@ def test_owned_customer_master_seed_replays_and_rolls_back_with_ownership() -> N
         ) is None
 
     asyncio.run(_with_database(scenario))
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
+def test_rollback_guard_ignores_pg_temp_ownership_shadow() -> None:
+    """A temporary relation must not spoof migration ownership for root deletion."""
+
+    async def scenario(connection: asyncpg.Connection) -> None:
+        resource_id = await connection.fetchval(
+            """
+            insert into ui_translation_resource(
+                product_key, screen_key, resource_version
+            )
+            values ('lineageweave', 'customer-master', 1)
+            returning resource_id
+            """
+        )
+        await connection.execute(
+            _SEED_OWNERSHIP_MIGRATION.read_text(encoding="utf-8")
+        )
+        assert (
+            await connection.fetchval(
+                """
+                select ownership_state
+                  from public.ui_translation_seed_ownership
+                 where migration_key = '0248_customer_master_translation_draft'
+                """
+            )
+            == "blocked"
+        )
+
+        # PostgreSQL searches pg_temp first for unqualified relation names unless
+        # the function search_path explicitly orders the temporary schema later.
+        await connection.execute(
+            """
+            create temporary table ui_translation_seed_ownership (
+                migration_key text primary key,
+                ownership_state text not null,
+                resource_id bigint
+            )
+            """
+        )
+        await connection.execute(
+            """
+            insert into pg_temp.ui_translation_seed_ownership(
+                migration_key, ownership_state, resource_id
+            )
+            values ('0248_customer_master_translation_draft', 'owned', $1)
+            """,
+            resource_id,
+        )
+        await connection.execute(
+            "select set_config('lineageweave.migration_file', $1, false)",
+            "rollback/0248_customer_master_translation_draft.sql",
+        )
+
+        with pytest.raises(
+            asyncpg.PostgresError,
+            match="refuses to remove unowned Customer Master resource",
+        ):
+            await connection.execute(
+                "delete from public.ui_translation_resource where resource_id = $1",
+                resource_id,
+            )
+
+        assert (
+            await connection.fetchval(
+                "select count(*) from public.ui_translation_resource where resource_id = $1",
+                resource_id,
+            )
+            == 1
+        )
+        assert (
+            await connection.fetchval(
+                """
+                select ownership_state
+                  from public.ui_translation_seed_ownership
+                 where migration_key = '0248_customer_master_translation_draft'
+                """
+            )
+            == "blocked"
+        )
+
+    asyncio.run(_with_database(scenario))
