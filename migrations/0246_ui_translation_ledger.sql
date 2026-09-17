@@ -117,6 +117,7 @@ create index if not exists ui_translation_resource_latest_published_idx
 create or replace function guard_ui_translation_resource_mutation()
 returns trigger
 language plpgsql
+set search_path = pg_catalog, public, pg_temp
 as $$
 begin
     if tg_op = 'INSERT' then
@@ -174,6 +175,7 @@ $$;
 create or replace function guard_ui_translation_child_mutation()
 returns trigger
 language plpgsql
+set search_path = pg_catalog, public, pg_temp
 as $$
 declare
     target_resource_id bigint;
