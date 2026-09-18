@@ -26,6 +26,21 @@ def _client(client_id: str) -> dict[str, object]:
     return matching[0]
 
 
+def _custom_audiences(client: dict[str, object]) -> set[str]:
+    mappers = client.get("protocolMappers")
+    assert isinstance(mappers, list)
+    audiences: set[str] = set()
+    for mapper in mappers:
+        if not isinstance(mapper, dict) or mapper.get("protocolMapper") != "oidc-audience-mapper":
+            continue
+        config = mapper.get("config")
+        if isinstance(config, dict):
+            audience = config.get("included.custom.audience")
+            if isinstance(audience, str) and audience:
+                audiences.add(audience)
+    return audiences
+
+
 def test_repository_owned_auth_actors_do_not_use_password_grants() -> None:
     """Disable ROPC only after every owned executable auth actor stops consuming it."""
     offenders: list[str] = []
@@ -56,3 +71,17 @@ def test_public_frontend_requires_s256_pkce() -> None:
 
     assert isinstance(attributes, dict)
     assert attributes.get("pkce.code.challenge.method") == "S256"
+
+
+def test_automation_client_is_machine_only_and_resource_scoped() -> None:
+    """Non-browser harnesses use a separate confidential service account."""
+    automation = _client("lineageweave-test-automation")
+
+    assert automation["publicClient"] is False
+    assert automation["standardFlowEnabled"] is False
+    assert automation["directAccessGrantsEnabled"] is False
+    assert automation["serviceAccountsEnabled"] is True
+    assert _custom_audiences(automation) == {
+        "lineageweave-api",
+        "http://localhost:18001/mcp",
+    }
