@@ -1,0 +1,98 @@
+name: One-shot #977 App selector repair
+
+on:
+  push:
+    branches:
+      - feat/leftover-pair-list-accessible-evidence-20260907
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-977-app-selector-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/leftover-pair-list-accessible-evidence-20260907
+          fetch-depth: 0
+
+      - name: Apply the narrow accessible-name selector repair
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text(encoding="utf-8")
+
+          closest = "name: /open leftover closest pair: public post/i"
+          farthest = "name: /open leftover farthest pair: specification revision requested/i"
+          exact_name = 'expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");'
+
+          assert text.count(closest) == 2, f"expected 2 closest stale selectors, found {text.count(closest)}"
+          assert text.count(farthest) == 2, f"expected 2 farthest stale selectors, found {text.count(farthest)}"
+          assert text.count(exact_name) == 1, f"expected 1 stale accessible-name assertion, found {text.count(exact_name)}"
+
+          text = text.replace(
+              closest,
+              "name: /^closest leftover: public post · sales-lead /i",
+          )
+          text = text.replace(
+              farthest,
+              "name: /^farthest leftover: specification revision requested · negative /i",
+          )
+          text = text.replace(
+              exact_name,
+              "expect(closestPair).toHaveAccessibleName(/^Closest leftover: Public post · sales-lead /);",
+          )
+
+          assert "open leftover closest pair: public post" not in text.lower()
+          assert "open leftover farthest pair: specification revision requested" not in text.lower()
+          path.write_text(text, encoding="utf-8")
+
+      - name: Verify only the intended test file changed before validation
+        run: |
+          git diff --check
+          test "$(git diff --name-only | tr '\n' ' ')" = "frontend/src/App.test.tsx "
+          git diff -- frontend/src/App.test.tsx
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run focused App and LeftoverPairList regressions
+        working-directory: frontend
+        run: >-
+          pnpm exec vitest run
+          src/App.test.tsx
+          src/components/LeftoverPairList.test.tsx
+          src/components/LeftoverPairList.accessibleName.test.tsx
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: pnpm run lint
+
+      - name: Commit causal repair and remove one-shot workflow
+        run: |
+          rm .github/workflows/automation-977-app-selector-repair.yml
+          git add frontend/src/App.test.tsx .github/workflows/automation-977-app-selector-repair.yml
+          git diff --cached --check
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = ".github/workflows/automation-977-app-selector-repair.yml frontend/src/App.test.tsx "
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(a11y): align report selectors with visible labels"
+          git push origin HEAD:feat/leftover-pair-list-accessible-evidence-20260907
