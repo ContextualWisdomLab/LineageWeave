@@ -1,19 +1,32 @@
 """Keep developer-facing Python commands inside the project environment."""
 
 from pathlib import Path
+import tomllib
+
+
+_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_makefile_runtime_targets_use_locked_uv_environment() -> None:
     """Make targets must resolve the pinned dependency graph before execution."""
 
-    makefile = (Path(__file__).resolve().parents[1] / "Makefile").read_text(
-        encoding="utf-8"
-    )
+    makefile = (_ROOT / "Makefile").read_text(encoding="utf-8")
 
-    assert "uv run --locked python scripts/smoke_test_oidc.py" in makefile
+    assert "uv run --locked --extra dev python scripts/smoke_test_oidc.py" in makefile
     assert (
         "uv run --locked --extra dev --extra backend "
         "python scripts/seed_demo_data.py"
     ) in makefile
     assert "\n\tpython3 scripts/smoke_test_oidc.py" not in makefile
     assert "\n\tpython3 scripts/seed_demo_data.py" not in makefile
+
+
+def test_oidc_smoke_declares_the_extra_that_supplies_pyjwt() -> None:
+    """The smoke target must activate the locked extra that provides its jwt import."""
+
+    script = (_ROOT / "scripts" / "smoke_test_oidc.py").read_text(encoding="utf-8")
+    project = tomllib.loads((_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    dev_dependencies = project["project"]["optional-dependencies"]["dev"]
+
+    assert "\nimport jwt\n" in script
+    assert any(dependency.lower().startswith("pyjwt[") for dependency in dev_dependencies)
