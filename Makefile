@@ -22,7 +22,7 @@ ps:
 # Keycloak's live JWKS, and asserts the corp_code/pu_code claims. See
 # scripts/smoke_test_oidc.py.
 smoke:
-	uv run --locked python scripts/smoke_test_oidc.py
+	uv run --locked --extra dev python scripts/smoke_test_oidc.py
 
 # Seeds synthetic corp/account/post rows keyed to the actual Keycloak demo
 # users' real subject ids, plus Valkey ticket_created events so Activity
@@ -40,6 +40,7 @@ load-http:
 	k6 run -e REQUEST_TIMEOUT="$${LINEAGEWEAVE_REQUEST_TIMEOUT}" --vus "$${LINEAGEWEAVE_VUS}" --duration "$${LINEAGEWEAVE_DURATION}" scripts/k6_http_e2e.js
 
 # Authenticated MCP measurement with operator-supplied observation bounds.
+# The operator must supply a representative concurrency and observation window.
 load-mcp:
 	@test -n "$${LINEAGEWEAVE_VUS:-}" || { echo "LINEAGEWEAVE_VUS is required" >&2; exit 1; }
 	@test -n "$${LINEAGEWEAVE_DURATION:-}" || { echo "LINEAGEWEAVE_DURATION is required" >&2; exit 1; }
