@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 
+import jwt
 import pytest
 
 from lineageweave.oidc_jwks import JwksKeySelectionError, select_rs256_signing_key
@@ -47,6 +48,13 @@ def test_selects_only_the_exact_rs256_verification_key() -> None:
     assert json.loads(loaded[0])["kid"] == "wanted"
 
 
+def test_rejects_malformed_token_header_without_leaking_parser_detail() -> None:
+    with pytest.raises(JwksKeySelectionError) as error:
+        select_rs256_signing_key({"keys": []}, "not-a-jwt")
+
+    assert str(error.value) == "invalid access-token header"
+
+
 @pytest.mark.parametrize(
     ("header", "message"),
     [
@@ -82,11 +90,12 @@ def test_hides_matching_jwk_parse_failures() -> None:
     token = _token({"alg": "RS256", "kid": "wanted"})
     key = {"kid": "wanted", "kty": "RSA", "alg": "RS256", "n": "bad", "e": "AQAB"}
 
-    def fail_loader(_value: str) -> object:
-        raise ValueError("provider detail")
+    for failure in (ValueError("provider detail"), jwt.InvalidKeyError("provider detail")):
+        def fail_loader(_value: str, *, _failure: Exception = failure) -> object:
+            raise _failure
 
-    with pytest.raises(JwksKeySelectionError) as error:
-        select_rs256_signing_key({"keys": [key]}, token, jwk_loader=fail_loader)
+        with pytest.raises(JwksKeySelectionError) as error:
+            select_rs256_signing_key({"keys": [key]}, token, jwk_loader=fail_loader)
 
-    assert str(error.value) == "matching JWKS key is invalid"
-    assert "provider detail" not in str(error.value)
+        assert str(error.value) == "matching JWKS key is invalid"
+        assert "provider detail" not in str(error.value)
