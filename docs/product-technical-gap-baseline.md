@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current authority snapshot: 2026-09-18.
+> Current authority snapshot: 2026-09-19.
 >
 > Live protected refs, open PR/Issue state, ADRs and exact-head receipts are authoritative. The preceding full snapshot is preserved in [`docs/evidence/product-technical-gap-baseline-history-through-20260918.md`](evidence/product-technical-gap-baseline-history-through-20260918.md).
 
@@ -20,7 +20,7 @@ Protected `ContextualWisdomLab/LineageWeave/main` is `83eba56149eb802cd63642c507
 
 ### Customer Master authorization and translations
 
-#1079 exact `c2923950e73c88a9f9fd932332ddd47682da124b` remains the shared-catalog authorization candidate. #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee` owns the PostgreSQL-authoritative versioned UI translation ledger and 37-key × 8-locale Customer Master draft; direct consumer #932 exact `fb2422537216a19280860f710b55f4df963902db` remains Draft. Publication still requires hosted PostgreSQL/full-suite and security/static GREEN, independent language/product review, immutable one-way publication, authenticated API/browser consumption, and CJK/text-expansion/font-fallback evidence. Ontology/concept labels remain separate canonical truth.
+#1079 exact `c2923950e73c88a9f9fd932332ddd47682da124b` remains the shared-catalog authorization candidate. #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee` owns the PostgreSQL-authoritative versioned UI translation ledger and 37-key × 8-locale Customer Master draft; direct consumer #932 exact `fb2422537216a19280860f710b55f4df963902db` remains stacked on that parent. Exact-head hosted execution has now occurred: frontend lint/test/build/Storybook, Ontology Pages, PROV-O and SAST are GREEN, and Scorecard/OSV/Trivy are GREEN; however the Full suite/PostgreSQL job is RED at the actual test step, Dependency Review is fail-closed before the pinned action under canonical `.github#810`, and CodeQL compatibility consumers are RED on the current-head verdict path under canonical `.github#1929`. #929 has therefore been returned to Draft. The PostgreSQL failure has no published artifact or exposed failing pytest node in the available Actions surface, so no source RCA or blind rerun is admitted. Publication still requires causal exact-head PostgreSQL/full-suite GREEN, authoritative Dependency Review and CodeQL evidence, independent language/product review, immutable one-way publication, authenticated API/browser consumption, and CJK/text-expansion/font-fallback evidence. Ontology/concept labels remain separate canonical truth.
 
 ### Leftover-pair action accessibility
 
@@ -70,7 +70,7 @@ The serialized report stack remains parent-first: #873 → #874 → #875, with #
 
 | Gap | Current owner / exact head | Current evidence | Required next acceptance |
 | --- | --- | --- | --- |
-| Customer Master governed translations | #929 `d4f42f57...` → #932 `fb242253...` | 37×8 PostgreSQL draft exists; owner/consumer acceptance remains incomplete. | Hosted PostgreSQL/full-suite + security/static GREEN, independent language/product review, immutable publication, authenticated eight-locale browser acceptance. |
+| Customer Master governed translations | #929 `d4f42f57...` → #932 `fb242253...` | Frontend/Ontology/PROV-O/SAST and Scorecard/OSV/Trivy are GREEN. Full suite/PostgreSQL is RED at the test step; Dependency Review is owner-blocked under `.github#810`; CodeQL verdict consumption is owner-blocked under `.github#1929`; #929 is Draft. | Recover the concrete PostgreSQL failing-test identity and causal fix to exact-head GREEN; obtain authoritative Dependency Review + CodeQL terminal evidence; independent language/product review, immutable publication, authenticated eight-locale browser acceptance. |
 | Leftover-pair accessible action | #830 `bebd77c...` → #977 `cf3bc986...` | Product contract repaired; inherited App selectors isolated; one-shot repair remains non-accepting. | Execute/self-remove current writer, verify narrow delta, then fresh frontend/full-suite + Chromium GREEN, security/CodeQL, locale/font-fallback and approval. |
 | Python CodeQL baseline | #974 `4341080f...` → #979 `2dfd2111...` | Tests/SAST/Security GREEN; CodeQL remains non-accepting. | Current-head producer/consumer CodeQL proof + qualifying approval, then protected integration. |
 | Post-body sanitizer / coverage | #983 `f48afbe...` | Quote-aware repair and coverage tests present; SAST GREEN, other acceptance incomplete. | Fresh full/coverage/rendered/security evidence + producer proof JS findings absent + review resolution. |
