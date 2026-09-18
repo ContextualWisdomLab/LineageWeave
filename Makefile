@@ -17,11 +17,11 @@ logs:
 ps:
 	$(COMPOSE) ps
 
-# Real OIDC round-trip against the running Keycloak container: logs in as
-# the synthetic demo user, verifies the returned JWT's signature against
-# Keycloak's live JWKS, and asserts the corp_code/pu_code claims. See
-# scripts/smoke_test_oidc.py.
+# Machine-to-machine OIDC boundary probe against the running Keycloak realm.
+# Browser login acceptance lives in the Playwright product path; this target
+# verifies the synthetic test-automation client's signed API-audience token.
 smoke:
+	@test -n "$${KEYCLOAK_CLIENT_SECRET:-}" || { echo "KEYCLOAK_CLIENT_SECRET is required" >&2; exit 1; }
 	uv run --locked --extra dev python scripts/smoke_test_oidc.py
 
 # Seeds synthetic corp/account/post rows keyed to the actual Keycloak demo
@@ -37,6 +37,7 @@ load-http:
 	@test -n "$${LINEAGEWEAVE_VUS:-}" || { echo "LINEAGEWEAVE_VUS is required" >&2; exit 1; }
 	@test -n "$${LINEAGEWEAVE_DURATION:-}" || { echo "LINEAGEWEAVE_DURATION is required" >&2; exit 1; }
 	@test -n "$${LINEAGEWEAVE_REQUEST_TIMEOUT:-}" || { echo "LINEAGEWEAVE_REQUEST_TIMEOUT is required" >&2; exit 1; }
+	@test -n "$${KEYCLOAK_CLIENT_SECRET:-}" || { echo "KEYCLOAK_CLIENT_SECRET is required" >&2; exit 1; }
 	k6 run -e REQUEST_TIMEOUT="$${LINEAGEWEAVE_REQUEST_TIMEOUT}" --vus "$${LINEAGEWEAVE_VUS}" --duration "$${LINEAGEWEAVE_DURATION}" scripts/k6_http_e2e.js
 
 # Authenticated MCP measurement with operator-supplied observation bounds.
@@ -44,4 +45,5 @@ load-mcp:
 	@test -n "$${LINEAGEWEAVE_VUS:-}" || { echo "LINEAGEWEAVE_VUS is required" >&2; exit 1; }
 	@test -n "$${LINEAGEWEAVE_DURATION:-}" || { echo "LINEAGEWEAVE_DURATION is required" >&2; exit 1; }
 	@test -n "$${LINEAGEWEAVE_REQUEST_TIMEOUT:-}" || { echo "LINEAGEWEAVE_REQUEST_TIMEOUT is required" >&2; exit 1; }
+	@test -n "$${KEYCLOAK_CLIENT_SECRET:-}" || { echo "KEYCLOAK_CLIENT_SECRET is required" >&2; exit 1; }
 	k6 run -e REQUEST_TIMEOUT="$${LINEAGEWEAVE_REQUEST_TIMEOUT}" --vus "$${LINEAGEWEAVE_VUS}" --duration "$${LINEAGEWEAVE_DURATION}" scripts/k6_mcp_e2e.js
