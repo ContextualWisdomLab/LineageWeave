@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const closestName = /^Closest leftover: Public post · sales-lead /;
 const farthestName = /^Farthest leftover: Specification revision requested · negative /;
 
-async function openStory(page: Parameters<typeof test>[0] extends never ? never : any, storyId: string) {
+async function openStory(page: Page, storyId: string) {
   await page.goto(`/iframe.html?id=${storyId}&viewMode=story`);
   await expect(page.locator("#storybook-root")).toBeVisible();
 }
