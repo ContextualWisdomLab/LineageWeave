@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
+PLOT_COMPONENT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 
 
 def test_report_graphic_tick_keeps_persisted_singular_value_without_share() -> None:
@@ -14,6 +15,15 @@ def test_report_graphic_tick_keeps_persisted_singular_value_without_share() -> N
 
     assert "leftoverMapPlotTickAxisBadge" in source
     assert "leftover-map axis {axis} tick {value} σ {singular}" in source
+
+
+def test_report_graphic_consumes_tick_singular_projection() -> None:
+    """The buyer-visible report graphic must consume the persisted-σ tick projection."""
+    source = PLOT_COMPONENT_SOURCE.read_text(encoding="utf-8")
+
+    assert "leftoverMapPlotTickAxisBadge" in source
+    assert "leftoverSingularForAxis(leftoverMapAxes, tick.axis)" in source
+    assert "tf(reportTickBadge.template, reportTickBadge.values)" in source
 
 
 def test_report_graphic_tick_does_not_infer_sigma_or_share() -> None:
