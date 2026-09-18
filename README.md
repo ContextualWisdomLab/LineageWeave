@@ -119,12 +119,21 @@ with synthetic demo accounts -- runs via Docker Compose:
 
 ```bash
 make up      # docker compose up -d: postgres, valkey, keycloak, backend, frontend
-make smoke   # real login as the synthetic demo user + JWT signature
-             # verification against Keycloak's live JWKS -- proves the
-             # OIDC round-trip actually works, not just that containers
-             # started
+make smoke   # local demo token/JWKS/claim check via Keycloak direct access
+             # grant; this is not browser Authorization Code/OIDC acceptance
 make down
 ```
+
+`make smoke` is deliberately limited to the synthetic local token/JWKS
+compatibility boundary. It uses the Resource Owner Password Credentials
+(direct-access-grant) mechanism; OAuth 2.0 Security BCP
+[RFC 9700 §2.4](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.4) says
+that grant MUST NOT be used, and browser OAuth/OIDC applications must use a
+redirect-based flow under
+[RFC 10017 §7.3](https://www.rfc-editor.org/rfc/rfc10017.html#section-7.3).
+Product authentication acceptance therefore requires a separate rendered
+browser test of the Authorization Code path; this smoke target is not evidence
+for redirect/PKCE, state/nonce, SSO, MFA, or browser-session behavior.
 
 The local stack does not build or start contextual-orchestrator and does not
 load provider credentials. If model-backed channels are required, deploy or
@@ -218,7 +227,8 @@ cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 args are wired from the same `.env` ports as every other service.
 `frontend/src/App.test.tsx` covers the login-redirect and
 fetch-then-render-popup paths (`react-oidc-context`'s `useAuth` mocked). Run
-`make smoke` to verify the real OIDC round-trip against a live Keycloak.
+`make smoke` only for the local token/JWKS compatibility check; browser
+Authorization Code acceptance requires the rendered frontend E2E path.
 
 ## Modular / standalone
 
