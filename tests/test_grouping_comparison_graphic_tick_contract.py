@@ -1,4 +1,4 @@
-"""Executable contract for coordinate ticks on the grouping-comparison graphic."""
+"""Executable wiring contract for coordinate ticks on the grouping-comparison graphic."""
 
 from pathlib import Path
 import re
@@ -10,17 +10,15 @@ LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
 SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
 
 
-def test_comparison_graphic_names_ticks_with_distinct_accessible_copy() -> None:
-    """Comparison tick copy flows through the evidence-aware tick projection."""
+def test_comparison_graphic_names_ticks_through_evidence_aware_badge_contract() -> None:
+    """Comparison ticks consume persisted σ/share evidence and preserve distinct origin copy."""
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
     singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
 
     assert "leftoverMapComparePlotTickAxisBadge" in plot_source
-    assert re.search(
-        r"aria-label=\{leftoverMapPlotTickText\(tick\.axis,\s*tick\.label,\s*leftoverMapAxes,\s*variant\)\}",
-        plot_source,
-        re.DOTALL,
-    )
+    assert "leftoverSingularForAxis(leftoverMapAxes, tick.axis)" in plot_source
+    assert "leftoverShareForAxis(leftoverMapAxes, tick.axis)" in plot_source
+    assert "tf(comparisonTickBadge.template, comparisonTickBadge.values)" in plot_source
     assert (
         'export const LEFTOVER_MAP_COMPARE_PLOT_TICK =\n'
         '  "leftover map comparison graphic leftover-map axis {axis} tick {value}";'

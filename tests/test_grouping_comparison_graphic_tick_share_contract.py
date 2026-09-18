@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
+PLOT_COMPONENT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 
 
 def test_comparison_graphic_tick_keeps_axis_share_independent_of_singular() -> None:
@@ -21,6 +22,15 @@ def test_comparison_graphic_tick_keeps_axis_share_independent_of_singular() -> N
         "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%"
         in source
     )
+
+
+def test_comparison_graphic_consumes_persisted_tick_share() -> None:
+    """The comparison graphic passes persisted share into its tick projection."""
+    source = PLOT_COMPONENT_SOURCE.read_text(encoding="utf-8")
+
+    assert "leftoverMapComparePlotTickAxisBadge" in source
+    assert "leftoverShareForAxis(leftoverMapAxes, tick.axis)" in source
+    assert "tf(comparisonTickBadge.template, comparisonTickBadge.values)" in source
 
 
 def test_comparison_graphic_tick_never_infers_share_from_singular() -> None:

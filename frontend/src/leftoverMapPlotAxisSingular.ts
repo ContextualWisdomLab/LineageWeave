@@ -80,11 +80,6 @@ export type LeftoverMapCompareAxisBadge = {
   values: Record<string, string | number>;
 };
 
-export type LeftoverMapComparePlotTickAxisBadge = {
-  key: string;
-  values: { axis: number; value: string; share?: string; singular?: string };
-};
-
 export function leftoverSingularForAxis(
   axes: ReadonlyArray<LeftoverMapPlotAxisSingular> | null | undefined,
   axisIndex: number,
@@ -160,33 +155,33 @@ export function leftoverMapComparePlotTickAxisBadge(
   tickLabel: string,
   leftoverSingular: number | null | undefined,
   leftoverShare?: number | null,
-): LeftoverMapComparePlotTickAxisBadge {
+): LeftoverMapCompareAxisBadge {
   const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
   const percent = formatLeftoverMapPlotAxisShare(leftoverShare);
   const origin = leftoverMapPlotTickIsOrigin(tickLabel);
 
   if (singular === null && percent === null) {
     return {
-      key: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK : LEFTOVER_MAP_COMPARE_PLOT_TICK,
+      template: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK : LEFTOVER_MAP_COMPARE_PLOT_TICK,
       values: { axis: axisIndex, value: tickLabel },
     };
   }
   if (singular === null) {
     return {
-      key: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE : LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE,
+      template: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE : LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE,
       values: { axis: axisIndex, value: tickLabel, share: percent as string },
     };
   }
   if (percent === null) {
     return {
-      key: origin
+      template: origin
         ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR
         : LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
       values: { axis: axisIndex, value: tickLabel, singular },
     };
   }
   return {
-    key: origin
+    template: origin
       ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE
       : LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE,
     values: { axis: axisIndex, value: tickLabel, singular, share: percent },

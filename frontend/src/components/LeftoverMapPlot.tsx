@@ -31,6 +31,7 @@ import {
   formatLeftoverMapPlotAxisSingular,
   leftoverMapComparePlotAxisBadge,
   leftoverMapComparePlotTickAxisBadge,
+  leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
@@ -127,25 +128,6 @@ function leftoverMapPlotAxisText(
   });
 }
 
-/** Compose tick accessibility copy while keeping persisted origin/share/σ evidence independent. */
-function leftoverMapPlotTickText(
-  axisIndex: number,
-  tickLabel: string,
-  leftoverMapAxes: LeftoverMapAxis[] | undefined,
-  variant: LeftoverMapPlotVariant,
-): string {
-  if (variant !== "comparison") {
-    return tf(LEFTOVER_MAP_PLOT_TICK, { axis: axisIndex, value: tickLabel });
-  }
-  const badge = leftoverMapComparePlotTickAxisBadge(
-    axisIndex,
-    tickLabel,
-    leftoverSingularForAxis(leftoverMapAxes, axisIndex),
-    leftoverShareForAxis(leftoverMapAxes, axisIndex),
-  );
-  return tf(badge.key, badge.values);
-}
-
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
@@ -157,9 +139,6 @@ function leftoverMapPlotTickText(
  * one measurement from the other. The comparison strip also exposes these two
  * persisted measures as independent badges so a missing share does not erase
  * usable σ evidence and a missing σ does not erase usable share evidence.
- * Comparison graphic origin ticks use the exact canonical formatted zero
- * coordinate and independently compose persisted share and singular evidence;
- * neither measurement defines origin identity.
  * Axis ticks name persisted leftover-map coordinates so ξ / ζ on the
  * pair row match the plot. Pair segments name persisted leftover-map
  * distance ``d``, leftover-map reconstruction ``R̂``, leftover-map
@@ -236,8 +215,10 @@ function leftoverMapPlotTickText(
  * comparison-graphic and rank labels rather than adding SPA translation debt.
  * ADR 0319 captions leftover-map distance on that comparison graphic using
  * the same localized composition boundary rather than adding another static
- * comparison-only translation key. ADR 0321 adds persisted comparison-axis
- * singular evidence without deriving it from axis share.
+ * comparison-only translation key. ADR 0320 names comparison coordinate ticks
+ * through the same composition boundary, preserving localized generic tick copy.
+ * ADR 0321 adds persisted comparison-axis singular evidence without deriving it
+ * from axis share.
  * Never invent a leftover score.
  */
 export function LeftoverMapPlot({
@@ -376,23 +357,46 @@ export function LeftoverMapPlot({
           <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
             {leftoverMapPlotAxisText(2, leftoverMapAxes, variant)}
           </text>
-          {layout.ticks.map((tick) => (
-            <g
-              key={`tick:${tick.axis}:${tick.label}`}
-              className="leftover-map-plot-tick"
-              aria-label={leftoverMapPlotTickText(tick.axis, tick.label, leftoverMapAxes, variant)}
-            >
-              <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
-              <text
-                className="leftover-map-plot-tick-label"
-                x={tick.axis === 1 ? tick.x : tick.tickX2 - 2}
-                y={tick.axis === 1 ? tick.tickY2 + 12 : tick.y + 4}
-                textAnchor={tick.axis === 1 ? "middle" : "end"}
+          {layout.ticks.map((tick) => {
+            const singular = leftoverSingularForAxis(leftoverMapAxes, tick.axis);
+            const share = leftoverShareForAxis(leftoverMapAxes, tick.axis);
+            const reportTickBadge =
+              variant === "report"
+                ? leftoverMapPlotTickAxisBadge(tick.axis, tick.label, singular, share)
+                : null;
+            const comparisonTickBadge =
+              variant === "comparison"
+                ? leftoverMapComparePlotTickAxisBadge(tick.axis, tick.label, singular, share)
+                : null;
+            const tickAriaLabel =
+              variant === "comparison"
+                ? comparisonTickBadge !== null
+                  ? tf(comparisonTickBadge.template, comparisonTickBadge.values)
+                  : `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_TICK, {
+                      axis: tick.axis,
+                      value: tick.label,
+                    })}`
+                : reportTickBadge !== null
+                  ? tf(reportTickBadge.template, reportTickBadge.values)
+                  : tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label });
+            return (
+              <g
+                key={`tick:${tick.axis}:${tick.label}`}
+                className="leftover-map-plot-tick"
+                aria-label={tickAriaLabel}
               >
-                {tick.label}
-              </text>
-            </g>
-          ))}
+                <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
+                <text
+                  className="leftover-map-plot-tick-label"
+                  x={tick.axis === 1 ? tick.x : tick.tickX2 - 2}
+                  y={tick.axis === 1 ? tick.tickY2 + 12 : tick.y + 4}
+                  textAnchor={tick.axis === 1 ? "middle" : "end"}
+                >
+                  {tick.label}
+                </text>
+              </g>
+            );
+          })}
           {layout.segments.map((segment) => (
             <g key={`${segment.pairKind}:${segment.postId}:${segment.criterionCode}`}>
               <line
