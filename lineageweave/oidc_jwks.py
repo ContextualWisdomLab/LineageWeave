@@ -65,7 +65,7 @@ def select_rs256_signing_key(
             continue
         try:
             return load_jwk(json.dumps(key))
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, jwt.PyJWTError) as exc:
             raise JwksKeySelectionError("matching JWKS key is invalid") from exc
 
     raise JwksKeySelectionError(f"no JWKS key matched kid={kid!r}")
