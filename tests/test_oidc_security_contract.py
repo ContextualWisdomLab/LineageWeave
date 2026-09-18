@@ -19,10 +19,19 @@ def _client(client_id: str) -> dict[str, object]:
 
 
 def test_public_frontend_uses_redirect_flow_without_direct_access_grants() -> None:
-    """The browser client must not expose the OAuth password grant."""
+    """The browser client must require the redirect flow without password grants."""
     frontend = _client("lineageweave-frontend")
 
     assert frontend["publicClient"] is True
     assert frontend["standardFlowEnabled"] is True
     assert frontend["directAccessGrantsEnabled"] is False
     assert frontend["serviceAccountsEnabled"] is False
+
+
+def test_public_frontend_requires_s256_pkce() -> None:
+    """A public browser client must make PKCE S256 mandatory, not optional."""
+    frontend = _client("lineageweave-frontend")
+    attributes = frontend.get("attributes")
+
+    assert isinstance(attributes, dict)
+    assert attributes.get("pkce.code.challenge.method") == "S256"
