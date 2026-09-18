@@ -30,3 +30,13 @@ def test_oidc_smoke_declares_the_extra_that_supplies_pyjwt() -> None:
 
     assert "\nimport jwt\n" in script
     assert any(dependency.lower().startswith("pyjwt[") for dependency in dev_dependencies)
+
+
+def test_oidc_smoke_usage_points_to_dependency_declaring_entrypoint() -> None:
+    """Script help must not advertise a direct interpreter path that omits PyJWT."""
+
+    script = (_ROOT / "scripts" / "smoke_test_oidc.py").read_text(encoding="utf-8")
+
+    assert "Canonical usage: make smoke" in script
+    assert "Usage: python3 scripts/smoke_test_oidc.py" not in script
+    assert "Allow `python3 scripts/smoke_test_oidc.py`" not in script
