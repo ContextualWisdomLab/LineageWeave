@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 /** Browser acceptance for the already-built Storybook artifact. */
 export default defineConfig({
   testDir: "./storybook-e2e",
+  testMatch: "**/*.pw.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
