@@ -12,6 +12,7 @@ _REALM_EXPORT = _REPOSITORY_ROOT / "docker" / "keycloak" / "realm-export.json"
 _KEYCLOAK_DOCKERFILE = _REPOSITORY_ROOT / "docker" / "keycloak" / "Dockerfile"
 _SMOKE_SCRIPT = _REPOSITORY_ROOT / "scripts" / "smoke_test_oidc.py"
 _BACKEND_AUTH = _REPOSITORY_ROOT / "backend" / "app" / "auth.py"
+_AUTOMATION_SUBJECT_ID = "33333333-3333-4333-8333-333333333333"
 _ROPC_ASSIGNMENT = re.compile(
     r'''(?x)(?:["']grant_type["']|grant_type)\s*:\s*["']password["']'''
 )
@@ -22,10 +23,21 @@ _ROPC_ACTOR_ROOTS = (
 _ROPC_ACTOR_SUFFIXES = {".js", ".py", ".sh", ".ts"}
 
 
+def _realm() -> dict[str, object]:
+    return json.loads(_REALM_EXPORT.read_text(encoding="utf-8"))
+
+
 def _client(client_id: str) -> dict[str, object]:
-    realm = json.loads(_REALM_EXPORT.read_text(encoding="utf-8"))
+    realm = _realm()
     matching = [client for client in realm["clients"] if client.get("clientId") == client_id]
     assert len(matching) == 1, f"expected exactly one {client_id!r} client, got {len(matching)}"
+    return matching[0]
+
+
+def _user(username: str) -> dict[str, object]:
+    realm = _realm()
+    matching = [user for user in realm["users"] if user.get("username") == username]
+    assert len(matching) == 1, f"expected exactly one {username!r} user, got {len(matching)}"
     return matching[0]
 
 
@@ -111,3 +123,12 @@ def test_automation_client_is_machine_only_and_resource_scoped() -> None:
         "lineageweave-api",
         "http://localhost:18001/mcp",
     }
+
+
+def test_automation_service_account_subject_is_deterministic() -> None:
+    """Local authorization can provision the machine principal without Admin REST discovery."""
+    automation_user = _user("service-account-lineageweave-test-automation")
+
+    assert automation_user["id"] == _AUTOMATION_SUBJECT_ID
+    assert automation_user["serviceAccountClientId"] == "lineageweave-test-automation"
+    assert automation_user.get("credentials", []) == []
