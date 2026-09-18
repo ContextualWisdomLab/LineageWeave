@@ -40,3 +40,15 @@ def test_oidc_smoke_usage_points_to_dependency_declaring_entrypoint() -> None:
     assert "Canonical usage: make smoke" in script
     assert "Usage: python3 scripts/smoke_test_oidc.py" not in script
     assert "Allow `python3 scripts/smoke_test_oidc.py`" not in script
+
+
+def test_oidc_smoke_does_not_overclaim_browser_authentication_evidence() -> None:
+    """A direct-access token probe must not masquerade as browser OIDC acceptance."""
+
+    script = (_ROOT / "scripts" / "smoke_test_oidc.py").read_text(encoding="utf-8")
+
+    assert "Resource Owner Password Credentials" in script
+    assert "RFC 9700" in script
+    assert "not browser OIDC authorization-flow acceptance" in script
+    assert "Proves the Docker Compose Keycloak stack does a real OIDC round-trip." not in script
+    assert "PASS: real login round-trip verified." not in script

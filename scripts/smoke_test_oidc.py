@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Proves the Docker Compose Keycloak stack does a real OIDC round-trip.
+"""Checks the local demo Keycloak token/JWKS/claim boundary.
 
-Not a check that Keycloak returns HTTP 200 -- an actual login (Resource
-Owner Password Credentials grant, direct-access-grants, against a synthetic
-demo user seeded by docker/keycloak/realm-export.json), followed by fetching
-the realm's live JWKS and cryptographically verifying the returned access
-token's RS256 signature, issuer, and expiry, then asserting the corp_code /
-pu_code custom claims (the attributes the eventual FastAPI backend will read
-for ABAC/RBAC scoping) came through.
+This operator smoke uses Keycloak's synthetic demo user with the Resource Owner
+Password Credentials (direct-access-grant) mechanism, then fetches the realm's
+live JWKS and cryptographically verifies the returned access token's RS256
+signature, issuer, expiry, and corp_code / pu_code claims.
+
+This is intentionally a local-development compatibility probe, not browser OIDC
+authorization-flow acceptance. RFC 9700 section 2.4 says the Resource Owner
+Password Credentials grant MUST NOT be used, and RFC 10017 section 7.3 requires
+browser OAuth/OIDC applications to use a redirect-based flow. Accordingly this
+script is not evidence for the product's Authorization Code/PKCE redirect,
+state/nonce handling, SSO, MFA, or browser session behavior; those require a
+separate rendered browser acceptance path.
 
 Canonical usage: make smoke
 Direct locked invocation:
@@ -73,7 +78,7 @@ def run(base_url: str) -> int:
     print(f"Waiting for {issuer} to accept connections...")
     _wait_for_realm(issuer)
 
-    print(f"Requesting a real token for '{DEMO_USERNAME}' via direct access grant...")
+    print(f"Requesting a local demo token for '{DEMO_USERNAME}' via Keycloak direct access grant...")
     token_response = post_form(
         token_endpoint,
         {
@@ -111,7 +116,7 @@ def run(base_url: str) -> int:
         f"pu_code claim missing or wrong -- protocol mapper misconfigured: {claims}"
     )
 
-    print("PASS: real login round-trip verified.")
+    print("PASS: local Keycloak token/JWKS/claim smoke verified.")
     print(f"  issuer:    {claims['iss']}")
     print(f"  subject:   {claims['sub']}")
     print(f"  username:  {claims['preferred_username']}")
