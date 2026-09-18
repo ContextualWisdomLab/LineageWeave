@@ -30,6 +30,7 @@ import {
 import {
   formatLeftoverMapPlotAxisSingular,
   leftoverMapComparePlotAxisBadge,
+  leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
@@ -355,30 +356,42 @@ export function LeftoverMapPlot({
           <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
             {leftoverMapPlotAxisText(2, leftoverMapAxes, variant)}
           </text>
-          {layout.ticks.map((tick) => (
-            <g
-              key={`tick:${tick.axis}:${tick.label}`}
-              className="leftover-map-plot-tick"
-              aria-label={
-                variant === "comparison"
-                  ? `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_TICK, {
-                      axis: tick.axis,
-                      value: tick.label,
-                    })}`
-                  : tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label })
-              }
-            >
-              <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
-              <text
-                className="leftover-map-plot-tick-label"
-                x={tick.axis === 1 ? tick.x : tick.tickX2 - 2}
-                y={tick.axis === 1 ? tick.tickY2 + 12 : tick.y + 4}
-                textAnchor={tick.axis === 1 ? "middle" : "end"}
+          {layout.ticks.map((tick) => {
+            const reportTickBadge =
+              variant === "report"
+                ? leftoverMapPlotTickAxisBadge(
+                    tick.axis,
+                    tick.label,
+                    leftoverSingularForAxis(leftoverMapAxes, tick.axis),
+                  )
+                : null;
+            const tickAriaLabel =
+              variant === "comparison"
+                ? `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_TICK, {
+                    axis: tick.axis,
+                    value: tick.label,
+                  })}`
+                : reportTickBadge !== null
+                  ? tf(reportTickBadge.template, reportTickBadge.values)
+                  : tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label });
+            return (
+              <g
+                key={`tick:${tick.axis}:${tick.label}`}
+                className="leftover-map-plot-tick"
+                aria-label={tickAriaLabel}
               >
-                {tick.label}
-              </text>
-            </g>
-          ))}
+                <line x1={tick.x} y1={tick.y} x2={tick.tickX2} y2={tick.tickY2} />
+                <text
+                  className="leftover-map-plot-tick-label"
+                  x={tick.axis === 1 ? tick.x : tick.tickX2 - 2}
+                  y={tick.axis === 1 ? tick.tickY2 + 12 : tick.y + 4}
+                  textAnchor={tick.axis === 1 ? "middle" : "end"}
+                >
+                  {tick.label}
+                </text>
+              </g>
+            );
+          })}
           {layout.segments.map((segment) => (
             <g key={`${segment.pairKind}:${segment.postId}:${segment.criterionCode}`}>
               <line
