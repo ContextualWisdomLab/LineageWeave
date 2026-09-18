@@ -119,21 +119,29 @@ with synthetic demo accounts -- runs via Docker Compose:
 
 ```bash
 make up      # docker compose up -d: postgres, valkey, keycloak, backend, frontend
-make smoke   # local demo token/JWKS/claim check via Keycloak direct access
-             # grant; this is not browser Authorization Code/OIDC acceptance
+KEYCLOAK_CLIENT_SECRET=lineageweave_test_automation_dev_only make smoke
+             # machine client-credentials token/JWKS/API-audience check;
+             # not browser Authorization Code/OIDC acceptance
 make down
 ```
 
-`make smoke` is deliberately limited to the synthetic local token/JWKS
-compatibility boundary. It uses the Resource Owner Password Credentials
-(direct-access-grant) mechanism; OAuth 2.0 Security BCP
-[RFC 9700 §2.4](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.4) says
-that grant MUST NOT be used, and browser OAuth/OIDC applications must use a
-redirect-based flow under
-[RFC 10017 §7.3](https://www.rfc-editor.org/rfc/rfc10017.html#section-7.3).
-Product authentication acceptance therefore requires a separate rendered
-browser test of the Authorization Code path; this smoke target is not evidence
-for redirect/PKCE, state/nonce, SSO, MFA, or browser-session behavior.
+`make smoke` is deliberately a machine-to-machine compatibility probe. It
+uses the synthetic confidential `lineageweave-test-automation` client and the
+OAuth Client Credentials grant, requires the client secret explicitly at the
+operator boundary, verifies the token against the live realm JWKS, and checks
+the backend API audience. It does not impersonate `demo.analyst` and is not
+evidence for redirect/PKCE, state/nonce, SSO, MFA, or browser-session behavior.
+Those product-login properties require the rendered Authorization Code path.
+
+The public `lineageweave-frontend` client is configured for S256 PKCE. The
+ongoing #1119/#1120 migration has **not** yet reached its final security state:
+`backend/tests/test_api.py` and `scripts/seed_demo_data.py` still contain local
+password-grant test/bootstrap paths, so public direct grants remain enabled
+until those callers are migrated atomically. Do not treat the machine smoke as
+proof that Resource Owner Password Credentials have been fully removed. OAuth
+2.0 Security BCP [RFC 9700 §2.4](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.4)
+forbids that grant, and browser applications must use a redirect-based flow
+under [RFC 10017 §7.3](https://www.rfc-editor.org/rfc/rfc10017.html#section-7.3).
 
 The local stack does not build or start contextual-orchestrator and does not
 load provider credentials. If model-backed channels are required, deploy or
@@ -148,10 +156,18 @@ realm seed ship inside the images themselves -- portable to any Docker host
 or CI runner, no assumption about a shared local filesystem layout.
 
 Demo accounts (`docker/keycloak/realm-export.json`) are synthetic:
-`demo.analyst` / `demo.admin`, password `lineageweave-demo-only`, each
-carrying `corp_code` / `pu_code` as token claims -- these are throwaway
-local-dev credentials in a locally-run realm, never the org's real Keyverse
-tenant (see ADR 0001 for why).
+`demo.analyst` / `demo.admin`. The default browser-fixture password and the
+default machine-client secret are declared in `.env.example` as disposable
+local-only values and are passed into realm import through environment
+placeholders; neither is a production or Keyverse credential. Override both
+for a shared development environment.
+
+Keycloak's startup realm import does not overwrite an already-existing realm.
+A changed realm seed therefore takes effect automatically in a fresh stack,
+but not in a previously persisted Keycloak database. If the local environment
+is disposable, `docker compose down -v` followed by `make up` recreates all
+Compose volumes and re-imports the realm; that command also deletes the local
+PostgreSQL and Valkey data, so do not use it as a general upgrade step.
 
 Host ports (15432, 16379, 18080, 18001, 18420) deliberately avoid each service's
 own default -- a dev machine commonly already runs its own
@@ -169,9 +185,10 @@ no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:
 
 ```bash
 make up
-make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post
-            # rows keyed to the *real* Keycloak demo users' subject ids,
-            # plus Valkey ticket_created events so Activity is not empty
+KEYCLOAK_ADMIN_PASSWORD=admin_dev_only make seed
+            # scripts/seed_demo_data.py: inserts synthetic corp/account/post
+            # rows plus Valkey ticket_created events; the admin/bootstrap path
+            # is still part of the open #1119 migration
 curl http://localhost:18420/healthz
 ```
 
@@ -199,7 +216,9 @@ is only mentioned on a post the account cannot see is 403, same deny
 path. `backend/tests/test_api.py` proves both the allow and the deny
 path against a live Keycloak + throwaway Postgres database, including
 that a private post scoped to a *different* corporate entity is excluded
-from the list and 403s on direct fetch.
+from the list and 403s on direct fetch. Its local token fixture is still a
+known password-grant migration item under #1119/#1120 and is not a production
+authentication recommendation.
 
 `frontend/` (React + Vite + TypeScript, `docker compose`'s frontend service)
 is a real client, not mocked or static: `react-oidc-context` drives an
@@ -210,7 +229,7 @@ FastAPI backend over real `fetch()` with the token Keycloak issued.
 
 ```bash
 make up
-make seed
+KEYCLOAK_ADMIN_PASSWORD=admin_dev_only make seed
 cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 # Repeated chip/close controls: pnpm run storybook
 # (Node 24 via frontend/mise.toml; pnpm only)
@@ -219,7 +238,7 @@ cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 # select purge_analysis_run_registry('approved-retention-purge').
 # The published token is not a grant (ADR 0020).
 # -> http://localhost:5173, click "Log in", redirects through the real
-#    Keycloak login page for demo.analyst / lineageweave-demo-only
+#    Keycloak login page for demo.analyst / the configured synthetic password
 ```
 
 `docker compose up` also builds and serves the frontend itself (nginx,
@@ -227,8 +246,8 @@ cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 args are wired from the same `.env` ports as every other service.
 `frontend/src/App.test.tsx` covers the login-redirect and
 fetch-then-render-popup paths (`react-oidc-context`'s `useAuth` mocked). Run
-`make smoke` only for the local token/JWKS compatibility check; browser
-Authorization Code acceptance requires the rendered frontend E2E path.
+`make smoke` only for the local machine token/JWKS/resource-audience check;
+browser Authorization Code acceptance requires the rendered frontend E2E path.
 
 ## Modular / standalone
 
