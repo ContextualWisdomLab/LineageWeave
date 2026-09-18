@@ -13,7 +13,6 @@ schemes, so provider configuration cannot become a file-scheme read.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 
 import asyncpg
@@ -25,6 +24,7 @@ from jwt.algorithms import RSAAlgorithm
 from backend.app.config import Settings, load_settings
 from backend.app.db import get_pool
 from lineageweave.http_client import HttpClientError, get_json
+from lineageweave.oidc_jwks import JwksKeySelectionError, select_rs256_signing_key
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 _jwks_cache: dict[tuple[str, str, str], dict] = {}
@@ -67,35 +67,15 @@ def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
 
 
 def _signing_key_from_jwks(jwks: dict, token: str):
-    """Require a non-empty JWT ``kid`` and an exact acceptable RSA key match."""
+    """Translate shared fail-closed JWT/JWK selection into the HTTP auth boundary."""
     try:
-        header = jwt.get_unverified_header(token)
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access-token header") from exc
-    if header.get("alg") != "RS256":
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must use RS256")
-    kid = header.get("kid")
-    if not isinstance(kid, str) or not kid.strip():
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must include a non-empty kid")
-    for key in jwks.get("keys", []):
-        if not isinstance(key, dict) or key.get("kid") != kid:
-            continue
-        if key.get("kty") != "RSA":
-            continue
-        if key.get("alg") not in (None, "RS256"):
-            continue
-        if key.get("use") not in (None, "sig"):
-            continue
-        key_ops = key.get("key_ops")
-        if key_ops is not None and (
-            not isinstance(key_ops, list) or "verify" not in key_ops
-        ):
-            continue
-        try:
-            return RSAAlgorithm.from_jwk(json.dumps(key))
-        except (KeyError, TypeError, ValueError) as exc:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "matching JWKS key is invalid") from exc
-    raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
+        return select_rs256_signing_key(
+            jwks,
+            token,
+            jwk_loader=RSAAlgorithm.from_jwk,
+        )
+    except JwksKeySelectionError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(exc)) from exc
 
 
 def _signing_key(settings: Settings, token: str):
