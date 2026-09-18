@@ -37,18 +37,28 @@ def test_oidc_smoke_usage_points_to_dependency_declaring_entrypoint() -> None:
 
     script = (_ROOT / "scripts" / "smoke_test_oidc.py").read_text(encoding="utf-8")
 
-    assert "Canonical usage: make smoke" in script
+    assert "Canonical usage: KEYCLOAK_CLIENT_SECRET=... make smoke" in script
     assert "Usage: python3 scripts/smoke_test_oidc.py" not in script
     assert "Allow `python3 scripts/smoke_test_oidc.py`" not in script
 
 
-def test_oidc_smoke_does_not_overclaim_browser_authentication_evidence() -> None:
-    """A direct-access token probe must not masquerade as browser OIDC acceptance."""
+def test_machine_auth_targets_fail_closed_without_client_secret() -> None:
+    """Smoke and load targets must not fall back to an embedded machine secret."""
+
+    makefile = (_ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert makefile.count('KEYCLOAK_CLIENT_SECRET is required') == 3
+    assert "KEYCLOAK_CLIENT_SECRET:-" in makefile
+
+
+def test_oidc_smoke_is_machine_evidence_not_browser_authentication_evidence() -> None:
+    """A client-credentials probe must stay distinct from browser OIDC acceptance."""
 
     script = (_ROOT / "scripts" / "smoke_test_oidc.py").read_text(encoding="utf-8")
 
-    assert "Resource Owner Password Credentials" in script
-    assert "RFC 9700" in script
+    assert '"grant_type": "client_credentials"' in script
+    assert '"grant_type": "password"' not in script
     assert "not browser OIDC authorization-flow acceptance" in script
-    assert "Proves the Docker Compose Keycloak stack does a real OIDC round-trip." not in script
+    assert "Authorization Code +" in script
+    assert "machine-token/JWKS/audience" in script
     assert "PASS: real login round-trip verified." not in script
