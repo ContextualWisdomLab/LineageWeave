@@ -9,7 +9,10 @@ token's RS256 signature, issuer, and expiry, then asserting the corp_code /
 pu_code custom claims (the attributes the eventual FastAPI backend will read
 for ABAC/RBAC scoping) came through.
 
-Usage: python3 scripts/smoke_test_oidc.py [--base-url http://localhost:18080]
+Canonical usage: make smoke
+Direct locked invocation:
+  uv run --locked --extra dev python scripts/smoke_test_oidc.py \
+    [--base-url http://localhost:18080]
 """
 
 from __future__ import annotations
@@ -20,7 +23,7 @@ import sys
 import time
 from pathlib import Path
 
-# Allow `python3 scripts/smoke_test_oidc.py` from a checkout without install.
+# Keep repository imports available when the locked uv command runs from a checkout.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import jwt
