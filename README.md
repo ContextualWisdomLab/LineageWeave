@@ -207,9 +207,8 @@ cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 `frontend/Dockerfile`) at `http://localhost:15173` -- the `VITE_*` build
 args are wired from the same `.env` ports as every other service.
 `frontend/src/App.test.tsx` covers the login-redirect and
-fetch-then-render-popup paths (`react-oidc-context`'s `useAuth` mocked --
-the *real* OIDC round-trip is what `scripts/smoke_test_oidc.py` and
-`backend/tests/test_api.py` already prove against a live Keycloak).
+fetch-then-render-popup paths (`react-oidc-context`'s `useAuth` mocked). Run
+`make smoke` to verify the real OIDC round-trip against a live Keycloak.
 
 ## Modular / standalone
 
