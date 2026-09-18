@@ -10,7 +10,7 @@ No release is admitted from the current protected head. Parent/head/base movemen
 
 LineageWeave owns lineage/evidence/customer-master/composition/read-model behavior. It consumes released canonical-owner contracts and ACLs rather than copying contextual-orchestrator routing/admission, `.github` queue/review policy, fast-mlsirm/TEPP psychometrics, RankWeave ranking, CalendarWeave/Naruon scheduling or other owner implementations. External/model work stays outside long-lived DB transactions and explicit application locks; persistence reacquires the shortest necessary lease, revalidates state and uses idempotent/UPSERT semantics where required.
 
-Material UI acceptance requires current-head rendered buyer evidence in addition to repository checks: normal/loading/empty/error/permission/responsive states, pointer/touch/keyboard/focus, accessible naming and status, locale expansion/font fallback, and applicable performance evidence. Story/test source is evidence intent, not hosted execution evidence.
+Material UI acceptance requires current-head rendered buyer evidence in addition to repository checks: normal/loading/empty/error/permission/responsive states, pointer/touch/keyboard/focus, accessible naming and status, locale expansion/font fallback, and applicable performance evidence. Story/test source is evidence intent, not hosted execution evidence. A static Storybook build likewise proves bundling only; interaction claims require an executing browser lane.
 
 ## Canonical owner state
 
@@ -32,11 +32,13 @@ Direct consumer #932 exact `fb2422537216a19280860f710b55f4df963902db` remains Dr
 
 ### Leftover-pair action accessibility
 
-#977 exact `5a8deac88b4b8f8a25466b57b234f9e63b4d39c9` is based on serialized parent #830 exact `bebd77c03e5beae469f42361c20bccc80787ebb5`. Product repair `8d78f22567c200e926e811a3a419a6dab60905e2` makes the accessible name begin with the exact rendered localized label, mirrors only formatter-admitted finite persisted evidence (`R`, `Y/E`, rank, `U`, shares, `R̂`, `ξ/ζ`, `d`), and omits non-finite residual/distance rather than exposing `R —` or `d NaN`.
+#977 exact `d08cb70f498c3afa4e4a1d7b9318a131caa36b1d` is based on serialized parent #830 exact `bebd77c03e5beae469f42361c20bccc80787ebb5`. Product repair `8d78f22567c200e926e811a3a419a6dab60905e2` makes the accessible name begin with the exact rendered localized label, mirrors only formatter-admitted finite persisted evidence (`R`, `Y/E`, rank, `U`, shares, `R̂`, `ξ/ζ`, `d`), and omits non-finite residual/distance rather than exposing `R —` or `d NaN`.
 
-`ae071b203a73b89a211fa2bbf8a89d1d457fe624` adds Storybook visible-label/name parity plus Tab/Enter focus/selection. Dense/mobile RED `a73b7e8abeb4f5d55a8ce853ebd108e7eef53584` and scoped layout repair `b586ea945809bb60b68e32e17701684f29e9346c` + `b041ab7dfe5cea09071cdf5d36de2acafb7ae27b` require bounded wrapping and the existing 44px touch-target token without changing the shared post-list contract. Inherited test selectors were aligned at `55d69ebbf2c8b31a9544fef470cff099ecb83578`.
+`ae071b203a73b89a211fa2bbf8a89d1d457fe624` adds Storybook visible-label/name parity plus Tab/Enter focus/selection. Dense/mobile RED `a73b7e8abeb4f5d55a8ce853ebd108e7eef53584` and scoped layout repair `b586ea945809bb60b68e32e17701684f29e9346c` + `b041ab7dfe5cea09071cdf5d36de2acafb7ae27b` require bounded wrapping and the existing 44px touch-target token without changing the shared post-list contract. Inherited test selectors were aligned at `55d69ebbf2c8b31a9544fef470cff099ecb83578`; `5a8deac88b4b8f8a25466b57b234f9e63b4d39c9` adds explicit `[MouseLeft]` and `[TouchA]` Storybook source assertions.
 
-Current head `5a8deac88b4b8f8a25466b57b234f9e63b4d39c9` closes the remaining acceptance-source gap in `NarrowDenseEvidence`: Storybook now explicitly exercises `[MouseLeft]` and `[TouchA]` pointer activation and requires exact pair identity for both. This is test-only; production source/CSS/copy/persisted evidence and canonical owner boundaries are unchanged. Fresh Tests `35288624582` has Full suite `105426396094` and Frontend `105426396348` queued pre-runner with no steps, so the pointer/touch contract is not hosted GREEN. Canonical queue-health canary is `.github#712` comment `5722794842`; #976 follow-up is `5722797972`. No open PR directly targets the #977 branch, so this head movement creates no descendant-restack obligation.
+Fresh review then found the hosted frontend workflow only built Storybook; it never executed the interaction source. RED `1463c94ea2de51d12ec88a66be38242fbc4eb63f` requires the frontend lane to execute a Storybook browser test after the static build. The current repair reuses the existing pinned Playwright stack: `playwright.storybook.config.ts` serves `storybook-static`, Chromium executes computed accessible-name/focus/mobile/mouse/touch assertions in `storybook-e2e/leftover-pair-list.pw.ts`, `frontend/package.json` exposes `test:storybook:browser`, and `.github/workflows/tests.yml` runs it after `build-storybook`. The browser-only suffix and Playwright `testMatch` intentionally keep the spec out of the existing Vitest discovery path.
+
+Fresh Tests `35293139866` for `d08cb70f...` has Full suite `105440086877` and Frontend `105440087005` queued pre-runner with no steps. The new browser lane therefore exists as an executable contract but is not hosted GREEN. No open PR targets #977, so this head movement creates no descendant-restack obligation.
 
 ### Python / JavaScript CodeQL owner lanes
 
@@ -60,18 +62,25 @@ Current head `5a8deac88b4b8f8a25466b57b234f9e63b4d39c9` closes the remaining acc
 
 The serialized report stack remains parent-first. #873 `262700d3936d7e783817f4c6fd008afe119d0b23` → #874 `3a191487420fd9d06b4fb35fef5d407e078f152a` → #875 `1ac7ddd0637a126c59d0102dcd75a051b059e9f4`, with #876 `4be3c382ce18ce6be272efbcdedfdaa66dc334ff` → #1033 `38967642e1efbd299dfcd68514c289716edfb597` → #1034 `825f47a268c5c31fecaef3537c24b78511823f4d`, plus sibling #877 `edcf5baa051046be448a0b356d01c3543b69408a`, preserve persisted σ/share/ζ/ξ evidence without deriving one quantity from another. Moved-head queued/skipped receipts are not GREEN. Historical #878/#879 remain delta carriers until verified successors prove complete succession.
 
+### Immutable release path
+
+#961 exact `3bdec0504a65e63f44bd49ba15de37182a1672cc` remains the single LineageWeave source lane for runtime/package/frontend version identity; #925 exact `8cbaad528c9aaa8d4e356db1577b932fa85ac686` remains the Proposed supply-chain caller-contract lane. The repository currently exposes neither a GitHub Release nor a Git tag, so no protected head can be treated as an immutable public release from repository evidence alone. This does not prove that no artifact was ever published elsewhere.
+
+Release acceptance still requires a built/installed package identity, one exact protected SHA shared by version/CHANGELOG/package filenames/tag/release/SBOM/provenance predicates, reproducibility evidence, rollback evidence, and the thinnest exact-SHA consumer of the released canonical `.github` SBOM/attestation workflow. Do not create a competing release writer or retag/mutate an already-published version if external publication history later proves one exists.
+
 ## Buyer-gap register
 
 | Gap | Current owner / exact head | Current evidence | Required next acceptance |
 | --- | --- | --- | --- |
 | Customer Master governed translations | #929 `d4f42f57...` → #932 `fb242253...` | 37×8 draft and migration lifecycle repairs exist; owner Tests remain pre-runner. | Hosted PostgreSQL/full-suite + security/static GREEN, independent language/product review, immutable publication, authenticated eight-locale browser acceptance. |
-| Leftover-pair accessible action | #830 `bebd77c...` → #977 `5a8deac8...` | Label-in-Name, finite-evidence, dense-mobile, keyboard/focus and explicit mouse/touch Storybook contracts exist; fresh Tests `35288624582` remains pre-runner. | Executed frontend/full-suite/Storybook/browser GREEN, Security/CodeQL settlement, locale/responsive evidence, qualifying independent approval. |
+| Leftover-pair accessible action | #830 `bebd77c...` → #977 `d08cb70f...` | Label-in-Name/finite-evidence/dense-mobile contracts plus a real Chromium acceptance lane now exist; fresh Tests `35293139866` remains pre-runner. | Executed frontend/full-suite with Storybook browser GREEN, Security/CodeQL settlement, locale/font-fallback evidence, qualifying independent approval. |
 | Python CodeQL baseline | #974 `4341080f...` → #979 `2dfd2111...` | Source repair + behavioral TLS regression contract present; fresh required workflows non-accepting. | Exact-head Tests/SAST/Security GREEN and producer/consumer CodeQL proof that Python findings are absent, then approval/integration. |
 | Post-body sanitizer / frontend coverage | #983 `f48afbe...` | Quote-aware scanner and coverage tests present; SAST GREEN, Tests pre-execution cancelled, Security/CodeQL non-accepting. | Fresh executed full/coverage/rendered/security evidence + producer proof four JS findings absent + review resolution/approval. |
 | Embedded image parser | #1115 `6545b5ff...` | Product Tests/SAST/Security GREEN; current CodeQL RED belongs to #974/#983 baseline. | Verified owner repairs integrate, unchanged-head CodeQL settles, independent approval. |
 | CO ownership boundary | #899 `a2da5875...` | Boundary repair and Proposed ADR preserved through descendants; Draft Tests skipped. | Prerequisite-first exact-head required evidence, approval, protected integration, then lifecycle promotion. |
 | Commercial DB tooling | #911 `6030b295...` | Local functional/static evidence mostly GREEN; central Dependency Review and baseline CodeQL block promotion. | Canonical owner settlement then fresh license-delta validation and qualifying approval. |
 | Report/comparison evidence stack | #873/#874/#875/#876/#877/#1033/#1034 | Valid deltas are preserved through non-force ancestry; moved-head hosted acceptance incomplete. | Parent-first executed repository/rendered/a11y/i18n/security/performance evidence and independent review. |
+| Immutable commercial release | #961 `3bdec050...` + #925 `8cbaad52...` | Version-identity/source contract exists, but GitHub release/tag inventory is empty and immutable artifact evidence is absent. | Normal protected integration, built-package identity, exact-SHA SBOM/provenance/reproducibility/rollback, immutable tag/package/release and approval. |
 
 ## Documentation and release boundary
 
