@@ -1,8 +1,9 @@
 .PHONY: up down logs smoke seed ps load-http load-mcp
 
-# Keep provider credentials outside the repository. Compose interpolation must
-# read the same home env file as the orchestrator container's env_file.
-COMPOSE := docker compose --env-file "$$HOME/.env"
+# Compose reads the repository-local .env convention when present. Provider
+# credentials belong to the separately deployed contextual-orchestrator and
+# are not an input to the LineageWeave stack.
+COMPOSE := docker compose
 
 up:
 	$(COMPOSE) up -d
