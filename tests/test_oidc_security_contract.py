@@ -11,6 +11,7 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 _REALM_EXPORT = _REPOSITORY_ROOT / "docker" / "keycloak" / "realm-export.json"
 _KEYCLOAK_DOCKERFILE = _REPOSITORY_ROOT / "docker" / "keycloak" / "Dockerfile"
 _SMOKE_SCRIPT = _REPOSITORY_ROOT / "scripts" / "smoke_test_oidc.py"
+_BACKEND_AUTH = _REPOSITORY_ROOT / "backend" / "app" / "auth.py"
 _ROPC_ASSIGNMENT = re.compile(
     r'''(?x)(?:["']grant_type["']|grant_type)\s*:\s*["']password["']'''
 )
@@ -54,11 +55,14 @@ def test_keycloak_image_uses_startup_import_realm_filename() -> None:
     assert "/opt/keycloak/data/import/realm-export.json" not in dockerfile
 
 
-def test_machine_smoke_reuses_the_product_jwks_key_selector() -> None:
+def test_machine_smoke_and_backend_share_one_jwks_key_selector() -> None:
     """Operator evidence must not drift to a weaker JWT/JWK acceptance path."""
     smoke = _SMOKE_SCRIPT.read_text(encoding="utf-8")
+    backend_auth = _BACKEND_AUTH.read_text(encoding="utf-8")
+    import_line = "from lineageweave.oidc_jwks import select_rs256_signing_key"
 
-    assert "from backend.app.auth import _signing_key_from_jwks" in smoke
+    assert import_line in smoke
+    assert import_line in backend_auth
     assert "def _signing_key_from_jwks" not in smoke
     assert "RSAAlgorithm" not in smoke
 
