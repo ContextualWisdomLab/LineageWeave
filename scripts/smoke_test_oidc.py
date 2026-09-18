@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-"""Checks the local demo Keycloak token/JWKS/claim boundary.
+"""Checks the local demo Keycloak machine-token/JWKS/audience boundary.
 
-This operator smoke uses Keycloak's synthetic demo user with the Resource Owner
-Password Credentials (direct-access-grant) mechanism, then fetches the realm's
-live JWKS and cryptographically verifies the returned access token's RS256
-signature, issuer, expiry, and corp_code / pu_code claims.
+This operator smoke obtains a short-lived access token for the synthetic local
+``lineageweave-test-automation`` confidential client with the OAuth 2.0 Client
+Credentials grant. It then fetches the realm's live JWKS and verifies the
+returned token's RS256 signature, issuer, expiry, API audience, authorized
+party, and subject.
 
-This is intentionally a local-development compatibility probe, not browser OIDC
-authorization-flow acceptance. RFC 9700 section 2.4 says the Resource Owner
-Password Credentials grant MUST NOT be used, and RFC 10017 section 7.3 requires
-browser OAuth/OIDC applications to use a redirect-based flow. Accordingly this
-script is not evidence for the product's Authorization Code/PKCE redirect,
-state/nonce handling, SSO, MFA, or browser session behavior; those require a
-separate rendered browser acceptance path.
+This is intentionally machine-to-machine compatibility evidence, not browser
+OIDC authorization-flow acceptance. The product browser path is exercised by
+Playwright through the Keycloak-hosted login form and Authorization Code +
+PKCE. Keeping the two actors separate prevents an automation shortcut from
+being mistaken for product authentication evidence.
 
-Canonical usage: make smoke
+Canonical usage: KEYCLOAK_CLIENT_SECRET=... make smoke
 Direct locked invocation:
-  uv run --locked --extra dev python scripts/smoke_test_oidc.py \
+  KEYCLOAK_CLIENT_SECRET=... uv run --locked --extra dev python scripts/smoke_test_oidc.py \
     [--base-url http://localhost:18080]
 """
 
@@ -24,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -38,9 +38,8 @@ from lineageweave.http_client import HttpClientError, get_json, post_form
 from backend.app.config import load_settings
 
 REALM = "lineageweave-demo"
-CLIENT_ID = "lineageweave-frontend"
-DEMO_USERNAME = "demo.analyst"
-DEMO_PASSWORD = "lineageweave-demo-only"  # nosec B105 -- throwaway local-dev-only Keycloak seed credential, see docker/keycloak/realm-export.json
+CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "lineageweave-test-automation")
+API_AUDIENCE = "lineageweave-api"
 POLL_ATTEMPTS = 30
 POLL_INTERVAL_SECONDS = 2.0
 
@@ -70,7 +69,7 @@ def _signing_key_from_jwks(jwks: dict, token: str):
     raise SystemExit(f"no JWKS key matched kid={kid!r}")
 
 
-def run(base_url: str) -> int:
+def run(base_url: str, client_secret: str) -> int:
     issuer = f"{base_url}/realms/{REALM}"
     token_endpoint = f"{issuer}/protocol/openid-connect/token"
     jwks_uri = f"{issuer}/protocol/openid-connect/certs"
@@ -78,14 +77,13 @@ def run(base_url: str) -> int:
     print(f"Waiting for {issuer} to accept connections...")
     _wait_for_realm(issuer)
 
-    print(f"Requesting a local demo token for '{DEMO_USERNAME}' via Keycloak direct access grant...")
+    print(f"Requesting a machine token for '{CLIENT_ID}' via client credentials...")
     token_response = post_form(
         token_endpoint,
         {
-            "grant_type": "password",
+            "grant_type": "client_credentials",
             "client_id": CLIENT_ID,
-            "username": DEMO_USERNAME,
-            "password": DEMO_PASSWORD,
+            "client_secret": client_secret,
         },
         timeout=10,
     )
@@ -99,30 +97,23 @@ def run(base_url: str) -> int:
         key=signing_key,
         algorithms=["RS256"],
         issuer=issuer,
-        # The eventual FastAPI backend registers itself as an audience once it
-        # exists (Phase 1, task "FastAPI backend"); this smoke test only
-        # proves the identity-provider round-trip, not backend-side audience
-        # scoping, so audience verification is intentionally left to that
-        # later, backend-specific check.
+        audience=API_AUDIENCE,
         leeway=load_settings().oidc_clock_skew_seconds,
-        options={"verify_aud": False},
     )
 
-    assert claims["preferred_username"] == DEMO_USERNAME, claims
-    assert claims.get("corp_code") == "DEMO-CORP-01", (
-        f"corp_code claim missing or wrong -- protocol mapper misconfigured: {claims}"
-    )
-    assert claims.get("pu_code") == "DEMO-PU-A", (
-        f"pu_code claim missing or wrong -- protocol mapper misconfigured: {claims}"
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject.strip():
+        raise SystemExit(f"machine token omitted a non-empty subject: {claims}")
+    assert claims.get("azp") == CLIENT_ID, (
+        f"machine token authorized party does not match {CLIENT_ID!r}: {claims}"
     )
 
-    print("PASS: local Keycloak token/JWKS/claim smoke verified.")
-    print(f"  issuer:    {claims['iss']}")
-    print(f"  subject:   {claims['sub']}")
-    print(f"  username:  {claims['preferred_username']}")
-    print(f"  corp_code: {claims['corp_code']}")
-    print(f"  pu_code:   {claims['pu_code']}")
-    print(f"  expires:   {claims['exp']}")
+    print("PASS: local Keycloak machine-token/JWKS/audience smoke verified.")
+    print(f"  issuer:   {claims['iss']}")
+    print(f"  subject:  {subject}")
+    print(f"  client:   {claims['azp']}")
+    print(f"  audience: {claims['aud']}")
+    print(f"  expires:  {claims['exp']}")
     return 0
 
 
@@ -130,7 +121,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="http://localhost:18080")
     args = parser.parse_args()
-    return run(args.base_url)
+    client_secret = os.environ.get("KEYCLOAK_CLIENT_SECRET")
+    if not client_secret:
+        parser.error("set KEYCLOAK_CLIENT_SECRET for the local test-automation client")
+    return run(args.base_url, client_secret)
 
 
 if __name__ == "__main__":
