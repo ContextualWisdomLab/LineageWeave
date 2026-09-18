@@ -9,6 +9,7 @@ from pathlib import Path
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 _REALM_EXPORT = _REPOSITORY_ROOT / "docker" / "keycloak" / "realm-export.json"
+_KEYCLOAK_DOCKERFILE = _REPOSITORY_ROOT / "docker" / "keycloak" / "Dockerfile"
 _ROPC_ASSIGNMENT = re.compile(
     r'''(?x)(?:["']grant_type["']|grant_type)\s*:\s*["']password["']'''
 )
@@ -39,6 +40,17 @@ def _custom_audiences(client: dict[str, object]) -> set[str]:
             if isinstance(audience, str) and audience:
                 audiences.add(audience)
     return audiences
+
+
+def test_keycloak_image_uses_startup_import_realm_filename() -> None:
+    """Keycloak startup import requires the realm-name file convention."""
+    dockerfile = _KEYCLOAK_DOCKERFILE.read_text(encoding="utf-8")
+
+    assert (
+        "COPY realm-export.json /opt/keycloak/data/import/lineageweave-demo-realm.json"
+        in dockerfile
+    )
+    assert "/opt/keycloak/data/import/realm-export.json" not in dockerfile
 
 
 def test_repository_owned_auth_actors_do_not_use_password_grants() -> None:
