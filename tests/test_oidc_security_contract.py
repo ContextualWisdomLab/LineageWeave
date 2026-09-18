@@ -10,6 +10,7 @@ from pathlib import Path
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 _REALM_EXPORT = _REPOSITORY_ROOT / "docker" / "keycloak" / "realm-export.json"
 _KEYCLOAK_DOCKERFILE = _REPOSITORY_ROOT / "docker" / "keycloak" / "Dockerfile"
+_SMOKE_SCRIPT = _REPOSITORY_ROOT / "scripts" / "smoke_test_oidc.py"
 _ROPC_ASSIGNMENT = re.compile(
     r'''(?x)(?:["']grant_type["']|grant_type)\s*:\s*["']password["']'''
 )
@@ -51,6 +52,15 @@ def test_keycloak_image_uses_startup_import_realm_filename() -> None:
         in dockerfile
     )
     assert "/opt/keycloak/data/import/realm-export.json" not in dockerfile
+
+
+def test_machine_smoke_reuses_the_product_jwks_key_selector() -> None:
+    """Operator evidence must not drift to a weaker JWT/JWK acceptance path."""
+    smoke = _SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "from backend.app.auth import _signing_key_from_jwks" in smoke
+    assert "def _signing_key_from_jwks" not in smoke
+    assert "RSAAlgorithm" not in smoke
 
 
 def test_repository_owned_auth_actors_do_not_use_password_grants() -> None:
