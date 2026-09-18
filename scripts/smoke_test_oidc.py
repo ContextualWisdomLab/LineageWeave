@@ -22,7 +22,6 @@ Direct locked invocation:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import time
@@ -32,10 +31,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import jwt
-from jwt.algorithms import RSAAlgorithm
 
-from lineageweave.http_client import HttpClientError, get_json, post_form
 from backend.app.config import load_settings
+from lineageweave.http_client import HttpClientError, get_json, post_form
+from lineageweave.oidc_jwks import JwksKeySelectionError, select_rs256_signing_key
 
 REALM = "lineageweave-demo"
 CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "lineageweave-test-automation")
@@ -57,16 +56,6 @@ def _wait_for_realm(issuer: str) -> None:
     raise SystemExit(
         f"Keycloak realm '{REALM}' never became reachable at {discovery_url}: {last_error}"
     )
-
-
-def _signing_key_from_jwks(jwks: dict, token: str):
-    """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
-    header = jwt.get_unverified_header(token)
-    kid = header.get("kid")
-    for key in jwks.get("keys", []):
-        if kid is None or key.get("kid") == kid:
-            return RSAAlgorithm.from_jwk(json.dumps(key))
-    raise SystemExit(f"no JWKS key matched kid={kid!r}")
 
 
 def run(base_url: str, client_secret: str) -> int:
@@ -91,7 +80,10 @@ def run(base_url: str, client_secret: str) -> int:
 
     print(f"Fetching live JWKS from {jwks_uri} and verifying the token's RS256 signature...")
     jwks = get_json(jwks_uri, timeout=10, service_peer_name="oidc")
-    signing_key = _signing_key_from_jwks(jwks, access_token)
+    try:
+        signing_key = select_rs256_signing_key(jwks, access_token)
+    except JwksKeySelectionError as exc:
+        raise SystemExit(f"machine token JWKS key rejected: {exc}") from exc
     claims = jwt.decode(
         access_token,
         key=signing_key,
