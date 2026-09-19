@@ -34,8 +34,6 @@ def _rsa_modulus_bit_length(modulus: object) -> int | None:
         )
     except (UnicodeEncodeError, binascii.Error, ValueError):
         return None
-    if not raw:
-        return None
     return int.from_bytes(raw, "big").bit_length()
 
 
