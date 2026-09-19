@@ -7,6 +7,8 @@ and claim validation remain at their owning call sites.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 from collections.abc import Callable
 from typing import Any
@@ -19,18 +21,37 @@ class JwksKeySelectionError(ValueError):
     """Raised when a token header or matching JWKS verification key is unacceptable."""
 
 
+def _rsa_modulus_bit_length(modulus: object) -> int | None:
+    """Return an RSA JWK modulus bit length, or ``None`` for invalid Base64urlUInt."""
+    if not isinstance(modulus, str) or not modulus:
+        return None
+    try:
+        encoded = modulus.encode("ascii")
+        raw = base64.b64decode(
+            encoded + b"=" * (-len(encoded) % 4),
+            altchars=b"-_",
+            validate=True,
+        )
+    except (UnicodeEncodeError, binascii.Error, ValueError):
+        return None
+    if not raw:
+        return None
+    return int.from_bytes(raw, "big").bit_length()
+
+
 def select_rs256_signing_key(
     jwks: dict[str, Any],
     token: str,
     *,
     jwk_loader: Callable[[str], object] | None = None,
 ) -> object:
-    """Return the unique RSA verification key selected by a non-empty JWT ``kid``.
+    """Return the unique RFC 7518-conformant RSA key selected by JWT ``kid``.
 
     Selection is deliberately narrower than merely finding a key whose signature
     happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
     one matching JWK must be an RSA signing/verification key whose advertised
-    algorithm, use, and key operations do not contradict RS256 verification.
+    algorithm, use, and key operations do not contradict RS256 verification. RFC
+    7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
     LineageWeave implements no JWS critical-header extensions, so any ``crit``
     declaration fails closed as required by RFC 7515 section 4.1.11.
     """
@@ -70,6 +91,9 @@ def select_rs256_signing_key(
         if key_ops is not None and (
             not isinstance(key_ops, list) or "verify" not in key_ops
         ):
+            continue
+        modulus_bits = _rsa_modulus_bit_length(key.get("n"))
+        if modulus_bits is None or modulus_bits < 2048:
             continue
         candidates.append(key)
 
