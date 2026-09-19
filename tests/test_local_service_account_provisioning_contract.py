@@ -104,6 +104,50 @@ def test_service_subject_loader_rejects_duplicate_client_identity(tmp_path: Path
         load_local_service_accounts(realm_path)
 
 
+def test_service_subject_loader_rejects_shared_subject_between_service_clients(
+    tmp_path: Path,
+) -> None:
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="duplicate realm service account subject"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_human_subject_collision(tmp_path: Path) -> None:
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "username": "demo.human",
+            },
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="collides with a non-service realm subject"):
+        load_local_service_accounts(realm_path)
+
+
 def test_service_subject_loader_rejects_non_array_users(tmp_path: Path) -> None:
     realm_path = _write_realm(tmp_path / "realm-export.json", {"not": "an array"})
 
