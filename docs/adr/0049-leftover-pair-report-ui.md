@@ -87,10 +87,22 @@ A hidden post never appears as a leftover pair.
 ## Consequences
 
 The authorized report payload carries `leftover_pairs` next to
-`members` and `selected_items`. Screen-reader names are
-`Open leftover closest pair: {title}` and
-`Open leftover farthest pair: {title}` so the control announces the
-next action, not only the distance.
+`members` and `selected_items`.
+
+The button's accessible name begins with the **exact localized label that is
+visibly rendered on that button**: `Closest leftover: {title} · {criterion}` or
+`Farthest leftover: {title} · {criterion}`. Localized next-action text follows
+that visible-label prefix, then only formatter-admitted persisted evidence that
+is actually available and finite. Missing or non-finite values are omitted from
+the accessible name; they are never announced as `R —`, `d NaN`, or another
+placeholder. This keeps the programmatic name aligned with the visible label
+required by WCAG 2.2 SC 2.5.3 while still exposing the same buyer evidence to
+screen-reader users. The accessible name does not derive, clamp, repair, or
+synthesize psychometric values.
+
+The historical `Open leftover closest/farthest pair: …` prefix is not the
+screen-reader contract. It may describe the action conceptually, but it must
+not replace the rendered label at the start of the accessible name.
 
 ## Related
 
@@ -100,3 +112,6 @@ coverage of the leftover map is [ADR 0168](0168-leftover-map-complete-case-cover
 
 [ADR 0003](0003-fast-mlsirm-report-integration.md). The grouping
 comparison strip reuses this leftover store ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)).
+
+Accessibility naming follows W3C, *Web Content Accessibility Guidelines (WCAG)
+2.2*, Success Criterion 2.5.3, Label in Name.
