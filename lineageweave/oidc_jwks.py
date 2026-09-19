@@ -79,7 +79,7 @@ def _key_ops_allow_rs256_verification(key_ops: object) -> bool:
 
 
 def select_rs256_signing_key(
-    jwks: dict[str, Any],
+    jwks: object,
     token: str,
     *,
     jwk_loader: Callable[[str], object] | None = None,
@@ -90,8 +90,10 @@ def select_rs256_signing_key(
     happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
     one matching JWK must be an RSA signing/verification key whose advertised
     algorithm, use, key operations, modulus, and public exponent do not contradict
-    RS256 verification. Optional ``alg``, ``use``, and ``key_ops`` members are
-    optional only by absence: if present, their RFC 7517 JSON types must be valid.
+    RS256 verification. The JWKS itself must be a JSON object; malformed provider
+    JSON fails through this shared authentication boundary rather than escaping as
+    an implementation exception. Optional ``alg``, ``use``, and ``key_ops`` members
+    are optional only by absence: if present, their RFC 7517 JSON types must be valid.
     Both ``n`` and ``e`` must be canonical unpadded Base64urlUInt values using the
     minimum unsigned big-endian octet sequence and RFC 4648 canonical zero pad bits.
     RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
@@ -120,6 +122,9 @@ def select_rs256_signing_key(
     kid = header.get("kid")
     if not isinstance(kid, str) or not kid.strip():
         raise JwksKeySelectionError("access token must include a non-empty kid")
+
+    if not isinstance(jwks, dict):
+        raise JwksKeySelectionError("JWKS must be a JSON object")
 
     keys = jwks.get("keys")
     if not isinstance(keys, list):
