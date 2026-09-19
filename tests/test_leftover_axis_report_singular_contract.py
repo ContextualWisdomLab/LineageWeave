@@ -13,13 +13,12 @@ def test_report_axis_badge_keeps_singular_value_and_share_semantically_distinct(
     assert BADGE_SOURCE.exists(), "report-axis singular-value badge helper is missing"
     badge_source = BADGE_SOURCE.read_text(encoding="utf-8")
 
-    assert 'LEFTOVER_MAP_AXIS_BADGE_SHARE = "leftover axis {axis} {share}%"' in badge_source
-    assert (
-        'LEFTOVER_MAP_AXIS_BADGE_SINGULAR = "leftover axis {axis} σ {value} {share}%"'
-        in badge_source
-    )
+    assert 'LEFTOVER_MAP_AXIS_BADGE_SHARE = "leftover axis {axis}{share}"' in badge_source
+    assert 'LEFTOVER_MAP_AXIS_BADGE_SINGULAR = "leftover axis {axis} σ {value}{share}"' in badge_source
+    assert 'LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY = "leftover axis {axis} σ {value}"' in badge_source
     assert "leftoverSingularForAxis" in badge_source
     assert "formatLeftoverMapPlotAxisSingular" in badge_source
+    assert "formatLeftoverMapPlotAxisShare" in badge_source
     assert "leftover map comparison graphic" not in badge_source
 
 
