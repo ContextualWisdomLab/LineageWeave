@@ -61,9 +61,10 @@ def select_rs256_signing_key(
     RS256 verification. Both ``n`` and ``e`` must be canonical unpadded
     Base64urlUInt values using the minimum unsigned big-endian octet sequence.
     RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
-    RFC 8017 section 3.1 requires the public exponent to be an integer between
-    three and ``n - 1``; even exponents are invalid because a valid RSA modulus is
-    odd and the exponent must be coprime to the modulus factors' Carmichael value.
+    RFC 8017 section 3.1 defines the modulus as a product of distinct odd primes,
+    so an RSA modulus is odd, and requires the public exponent to be between three
+    and ``n - 1``. Even exponents are invalid because the exponent must also be
+    coprime to the modulus factors' Carmichael value.
     LineageWeave implements no JWS critical-header extensions, so any ``crit``
     declaration fails closed as required by RFC 7515 section 4.1.11.
     """
@@ -105,7 +106,11 @@ def select_rs256_signing_key(
         ):
             continue
         modulus = _base64url_uint_value(key.get("n"))
-        if modulus is None or modulus.bit_length() < 2048:
+        if (
+            modulus is None
+            or modulus.bit_length() < 2048
+            or modulus % 2 == 0
+        ):
             continue
         exponent = _base64url_uint_value(key.get("e"))
         if (
