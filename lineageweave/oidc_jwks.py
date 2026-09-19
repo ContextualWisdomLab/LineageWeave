@@ -25,12 +25,12 @@ class JwksKeySelectionError(ValueError):
 _BASE64URL_UINT = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
-def _rsa_modulus_bit_length(modulus: object) -> int | None:
-    """Return an RSA JWK modulus bit length, or ``None`` for invalid Base64urlUInt."""
-    if not isinstance(modulus, str) or _BASE64URL_UINT.fullmatch(modulus) is None:
+def _base64url_uint_value(value: object) -> int | None:
+    """Decode one canonical unpadded Base64urlUInt, or return ``None`` if invalid."""
+    if not isinstance(value, str) or _BASE64URL_UINT.fullmatch(value) is None:
         return None
     try:
-        encoded = modulus.encode("ascii")
+        encoded = value.encode("ascii")
         raw = base64.b64decode(
             encoded + b"=" * (-len(encoded) % 4),
             altchars=b"-_",
@@ -38,7 +38,13 @@ def _rsa_modulus_bit_length(modulus: object) -> int | None:
         )
     except (binascii.Error, ValueError):
         return None
-    return int.from_bytes(raw, "big").bit_length()
+    return int.from_bytes(raw, "big")
+
+
+def _rsa_modulus_bit_length(modulus: object) -> int | None:
+    """Return an RSA JWK modulus bit length, or ``None`` for invalid Base64urlUInt."""
+    value = _base64url_uint_value(modulus)
+    return None if value is None else value.bit_length()
 
 
 def select_rs256_signing_key(
@@ -52,10 +58,14 @@ def select_rs256_signing_key(
     Selection is deliberately narrower than merely finding a key whose signature
     happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
     one matching JWK must be an RSA signing/verification key whose advertised
-    algorithm, use, and key operations do not contradict RS256 verification. RFC
-    7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
-    LineageWeave implements no JWS critical-header extensions, so any ``crit``
-    declaration fails closed as required by RFC 7515 section 4.1.11.
+    algorithm, use, key operations, modulus, and public exponent do not contradict
+    RS256 verification. Both ``n`` and ``e`` must be canonical unpadded
+    Base64urlUInt values. RFC 7518 section 3.3 requires RSA keys used with RS256 to
+    be at least 2048 bits. The public exponent must also satisfy the basic RSA
+    public-key constraints enforced by the downstream cryptography implementation:
+    odd and at least three. LineageWeave implements no JWS critical-header
+    extensions, so any ``crit`` declaration fails closed as required by RFC 7515
+    section 4.1.11.
     """
     try:
         header = jwt.get_unverified_header(token)
@@ -96,6 +106,9 @@ def select_rs256_signing_key(
             continue
         modulus_bits = _rsa_modulus_bit_length(key.get("n"))
         if modulus_bits is None or modulus_bits < 2048:
+            continue
+        exponent = _base64url_uint_value(key.get("e"))
+        if exponent is None or exponent < 3 or exponent % 2 == 0:
             continue
         candidates.append(key)
 
