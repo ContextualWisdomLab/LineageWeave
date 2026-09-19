@@ -2,17 +2,19 @@
 """Provision DB-owned authorization for local confidential test clients.
 
 The local Keycloak realm owns the deterministic service-account subjects. This
-script only maps those already-declared subjects into LineageWeave's normalized
-``user_account`` / affiliation / role model after ``seed_demo_data.py`` has
-created the synthetic Demo Corp, process units, and access roles. It does not
-call Keycloak and cannot mint tokens.
+script reads those subjects from the checked-in realm fixture and maps them into
+LineageWeave's normalized ``user_account`` / affiliation / role model after
+``seed_demo_data.py`` has created the synthetic Demo Corp, process units, and
+access roles. It does not call Keycloak and cannot mint tokens.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import psycopg2
 
@@ -20,12 +22,15 @@ import psycopg2
 DEFAULT_POSTGRES_DSN = (
     "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
 )
+DEFAULT_REALM_EXPORT_PATH = (
+    Path(__file__).resolve().parents[1] / "docker" / "keycloak" / "realm-export.json"
+)
 DEMO_CORPORATE_ENTITY_CODE = "DEMO-CORP-01"
 
 
 @dataclass(frozen=True)
 class LocalServiceAccount:
-    """Normalized authorization target for one deterministic realm subject."""
+    """Normalized authorization target for one realm-owned service subject."""
 
     client_id: str
     subject_id: str
@@ -35,24 +40,83 @@ class LocalServiceAccount:
     role_code: str
 
 
-LOCAL_SERVICE_ACCOUNTS = (
-    LocalServiceAccount(
+@dataclass(frozen=True)
+class LocalServiceAccountBinding:
+    """LineageWeave authorization metadata keyed by an identity-owner client id."""
+
+    client_id: str
+    display_name: str
+    email_address: str
+    process_unit_code: str
+    role_code: str
+
+
+_LOCAL_SERVICE_ACCOUNT_BINDINGS = (
+    LocalServiceAccountBinding(
         client_id="lineageweave-test-automation",
-        subject_id="33333333-3333-4333-8333-333333333333",
         display_name="LineageWeave Test Automation",
         email_address="lineageweave-test-automation@example.test",
         process_unit_code="DEMO-PU-A",
         role_code="viewer",
     ),
-    LocalServiceAccount(
+    LocalServiceAccountBinding(
         client_id="lineageweave-test-admin",
-        subject_id="44444444-4444-4444-8444-444444444444",
         display_name="LineageWeave Test Admin",
         email_address="lineageweave-test-admin@example.test",
         process_unit_code="DEMO-PU-HQ",
         role_code="admin",
     ),
 )
+
+
+def load_local_service_accounts(
+    realm_export_path: Path = DEFAULT_REALM_EXPORT_PATH,
+) -> tuple[LocalServiceAccount, ...]:
+    """Join local authorization bindings to subjects owned by the realm fixture."""
+    realm = json.loads(realm_export_path.read_text())
+    users = realm.get("users")
+    if not isinstance(users, list):
+        raise RuntimeError("realm fixture must contain a users array")
+
+    subjects: dict[str, str] = {}
+    for user in users:
+        if not isinstance(user, dict):
+            continue
+        client_id = user.get("serviceAccountClientId")
+        if client_id is None:
+            continue
+        subject_id = user.get("id")
+        if not isinstance(client_id, str) or not client_id:
+            raise RuntimeError("realm service account must declare a non-empty client id")
+        if not isinstance(subject_id, str) or not subject_id:
+            raise RuntimeError(
+                f"realm service account {client_id!r} must declare a non-empty subject id"
+            )
+        if client_id in subjects:
+            raise RuntimeError(f"duplicate realm service account client id: {client_id}")
+        subjects[client_id] = subject_id
+
+    accounts: list[LocalServiceAccount] = []
+    for binding in _LOCAL_SERVICE_ACCOUNT_BINDINGS:
+        subject_id = subjects.get(binding.client_id)
+        if subject_id is None:
+            raise RuntimeError(
+                f"realm fixture is missing service account {binding.client_id!r}"
+            )
+        accounts.append(
+            LocalServiceAccount(
+                client_id=binding.client_id,
+                subject_id=subject_id,
+                display_name=binding.display_name,
+                email_address=binding.email_address,
+                process_unit_code=binding.process_unit_code,
+                role_code=binding.role_code,
+            )
+        )
+    return tuple(accounts)
+
+
+LOCAL_SERVICE_ACCOUNTS = load_local_service_accounts()
 
 
 def _one(cur, query: str, params: tuple[object, ...], label: str):
@@ -110,9 +174,8 @@ def provision(postgres_dsn: str) -> None:
                     )
                     user_account_id = cur.fetchone()[0]
 
-                    # These are deterministic local fixture actors. Replacing only
-                    # their own mappings prevents a prior seed from accumulating a
-                    # broader scope or role than the current contract allows.
+                    # Replace only this fixture actor's bindings so an earlier
+                    # seed cannot retain broader authorization than the realm-backed contract.
                     cur.execute(
                         "delete from account_affiliation where user_account_id = %s",
                         (user_account_id,),
