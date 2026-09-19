@@ -82,10 +82,11 @@ services:
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_dev_only}
-      # Realm import resolves these placeholders. Both defaults are synthetic,
+      # Realm import resolves these placeholders. All defaults are synthetic,
       # local-only values; operator-facing auth probes still require the
-      # machine secret explicitly instead of silently assuming it.
+      # general automation secret explicitly instead of silently assuming it.
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-lineageweave_test_automation_dev_only}
+      KEYCLOAK_TEST_ADMIN_CLIENT_SECRET: ${KEYCLOAK_TEST_ADMIN_CLIENT_SECRET:-lineageweave_test_admin_dev_only}
       LINEAGEWEAVE_DEMO_USER_PASSWORD: ${LINEAGEWEAVE_DEMO_USER_PASSWORD:-lineageweave-demo-only}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak

@@ -31,11 +31,18 @@ def select_rs256_signing_key(
     happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
     one matching JWK must be an RSA signing/verification key whose advertised
     algorithm, use, and key operations do not contradict RS256 verification.
+    LineageWeave implements no JWS critical-header extensions, so any ``crit``
+    declaration fails closed as required by RFC 7515 section 4.1.11.
     """
     try:
         header = jwt.get_unverified_header(token)
     except jwt.PyJWTError as exc:
         raise JwksKeySelectionError("invalid access-token header") from exc
+
+    if "crit" in header:
+        raise JwksKeySelectionError(
+            "critical JOSE header extensions are not supported"
+        )
 
     if header.get("alg") != "RS256":
         raise JwksKeySelectionError("access token must use RS256")

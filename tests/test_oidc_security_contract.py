@@ -13,6 +13,7 @@ _KEYCLOAK_DOCKERFILE = _REPOSITORY_ROOT / "docker" / "keycloak" / "Dockerfile"
 _SMOKE_SCRIPT = _REPOSITORY_ROOT / "scripts" / "smoke_test_oidc.py"
 _BACKEND_AUTH = _REPOSITORY_ROOT / "backend" / "app" / "auth.py"
 _AUTOMATION_SUBJECT_ID = "33333333-3333-4333-8333-333333333333"
+_ADMIN_TEST_SUBJECT_ID = "44444444-4444-4444-8444-444444444444"
 _ROPC_ASSIGNMENT = re.compile(
     r'''(?x)(?:["']grant_type["']|grant_type)\s*:\s*["']password["']'''
 )
@@ -119,6 +120,7 @@ def test_automation_client_is_machine_only_and_resource_scoped() -> None:
     assert automation["standardFlowEnabled"] is False
     assert automation["directAccessGrantsEnabled"] is False
     assert automation["serviceAccountsEnabled"] is True
+    assert automation["secret"] == "${KEYCLOAK_CLIENT_SECRET}"
     assert _custom_audiences(automation) == {
         "lineageweave-api",
         "http://localhost:18001/mcp",
@@ -132,3 +134,25 @@ def test_automation_service_account_subject_is_deterministic() -> None:
     assert automation_user["id"] == _AUTOMATION_SUBJECT_ID
     assert automation_user["serviceAccountClientId"] == "lineageweave-test-automation"
     assert automation_user.get("credentials", []) == []
+
+
+def test_admin_integration_client_is_api_only_and_machine_only() -> None:
+    """Cross-account API denial uses a distinct confidential admin test actor."""
+    admin = _client("lineageweave-test-admin")
+
+    assert admin["publicClient"] is False
+    assert admin["standardFlowEnabled"] is False
+    assert admin["directAccessGrantsEnabled"] is False
+    assert admin["serviceAccountsEnabled"] is True
+    assert admin["secret"] == "${KEYCLOAK_TEST_ADMIN_CLIENT_SECRET}"
+    assert _custom_audiences(admin) == {"lineageweave-api"}
+
+
+def test_admin_integration_service_account_subject_is_deterministic() -> None:
+    """The negative authorization proof must keep an exact subject distinct from automation."""
+    admin_user = _user("service-account-lineageweave-test-admin")
+
+    assert admin_user["id"] == _ADMIN_TEST_SUBJECT_ID
+    assert admin_user["id"] != _AUTOMATION_SUBJECT_ID
+    assert admin_user["serviceAccountClientId"] == "lineageweave-test-admin"
+    assert admin_user.get("credentials", []) == []
