@@ -56,6 +56,15 @@ class RsaJwkExponentContractTests(unittest.TestCase):
                 jwk_loader=lambda value: value,
             )
 
+    def test_exponent_below_three_is_not_an_acceptable_rsa_public_key(self) -> None:
+        """RSA public exponent one is excluded before duplicate-key counting."""
+        with self.assertRaisesRegex(JwksKeySelectionError, "no JWKS key matched"):
+            select_rs256_signing_key(
+                {"keys": [_rsa_key("AQ")]},
+                _token(),
+                jwk_loader=lambda value: value,
+            )
+
     def test_even_exponent_is_not_an_acceptable_rsa_public_key(self) -> None:
         """An even RSA public exponent is excluded before duplicate-key counting."""
         with self.assertRaisesRegex(JwksKeySelectionError, "no JWKS key matched"):
