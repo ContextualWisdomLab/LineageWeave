@@ -156,6 +156,52 @@ def test_non_string_x5c_tail_is_rejected_before_loading(
         select_rs256_signing_key({"keys": [key]}, _token(), jwk_loader=lambda _encoded: object())
 
 
+@pytest.mark.parametrize("tail", ["not base64!", "AB==", "AA==", "ré"])
+def test_malformed_x5c_tail_is_rejected_before_loading(
+    rsa_keys: tuple[rsa.RSAPrivateKey, rsa.RSAPrivateKey],
+    tail: str,
+) -> None:
+    """Every advertised x5c chain member must be canonical Base64 DER, not only the leaf."""
+    signing_key, _ = rsa_keys
+    key = {
+        **_public_jwk(signing_key),
+        "x5c": [_certificate_for_private_key(signing_key), tail],
+    }
+    loaded: list[str] = []
+
+    with pytest.raises(JwksKeySelectionError, match="no JWKS key matched"):
+        select_rs256_signing_key(
+            {"keys": [key]},
+            _token(),
+            jwk_loader=lambda encoded: loaded.append(encoded) or object(),
+        )
+
+    assert loaded == []
+
+
+def test_malformed_x5c_tail_cannot_poison_public_key_uniqueness(
+    rsa_keys: tuple[rsa.RSAPrivateKey, rsa.RSAPrivateKey],
+) -> None:
+    """An invalid trailing certificate cannot manufacture same-kid ambiguity."""
+    signing_key, _ = rsa_keys
+    public = _public_jwk(signing_key)
+    malformed_chain = {
+        **public,
+        "x5c": [_certificate_for_private_key(signing_key), "not base64!"],
+    }
+    loaded: list[str] = []
+
+    selected = select_rs256_signing_key(
+        {"keys": [public, malformed_chain]},
+        _token(),
+        jwk_loader=lambda encoded: loaded.append(encoded) or "selected-key",
+    )
+
+    assert selected == "selected-key"
+    assert len(loaded) == 1
+    assert "x5c" not in json.loads(loaded[0])
+
+
 def test_non_rsa_x5c_leaf_is_rejected_before_loading(
     rsa_keys: tuple[rsa.RSAPrivateKey, rsa.RSAPrivateKey],
 ) -> None:
