@@ -3,7 +3,10 @@
 import json
 from pathlib import Path
 
-from scripts.provision_local_service_accounts import LOCAL_SERVICE_ACCOUNTS
+from scripts.provision_local_service_accounts import (
+    LOCAL_SERVICE_ACCOUNTS,
+    load_local_service_accounts,
+)
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +26,39 @@ def test_local_service_accounts_are_distinct_and_least_privilege() -> None:
     assert admin.process_unit_code == "DEMO-PU-HQ"
     assert admin.role_code == "admin"
     assert automation.subject_id != admin.subject_id
+
+
+def test_service_subjects_are_loaded_from_the_realm_fixture(tmp_path: Path) -> None:
+    """A changed realm subject must flow into DB provisioning without a copied constant."""
+    realm_path = tmp_path / "realm-export.json"
+    realm_path.write_text(
+        json.dumps(
+            {
+                "users": [
+                    {
+                        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                        "serviceAccountClientId": "lineageweave-test-automation",
+                    },
+                    {
+                        "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                        "serviceAccountClientId": "lineageweave-test-admin",
+                    },
+                ]
+            }
+        )
+    )
+
+    accounts = {
+        account.client_id: account
+        for account in load_local_service_accounts(realm_path)
+    }
+
+    assert accounts["lineageweave-test-automation"].subject_id == (
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    )
+    assert accounts["lineageweave-test-admin"].subject_id == (
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    )
 
 
 def test_normalized_subjects_match_confidential_realm_service_accounts() -> None:
