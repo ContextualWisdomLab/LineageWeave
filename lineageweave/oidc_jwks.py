@@ -46,6 +46,22 @@ def _base64url_uint_value(value: object) -> int | None:
     return int.from_bytes(raw, "big")
 
 
+def _key_ops_allow_rs256_verification(key_ops: object) -> bool:
+    """Return whether optional RFC 7517 key operations fit this verify-only use."""
+    if key_ops is None:
+        return True
+    if not isinstance(key_ops, list):
+        return False
+    if any(not isinstance(operation, str) for operation in key_ops):
+        return False
+    # RFC 7517 section 4.3 forbids duplicate operation values and warns against
+    # unrelated operations on one key. sign+verify is the related signature pair.
+    if len(key_ops) != len(set(key_ops)):
+        return False
+    operations = set(key_ops)
+    return "verify" in operations and operations <= {"sign", "verify"}
+
+
 def select_rs256_signing_key(
     jwks: dict[str, Any],
     token: str,
@@ -64,7 +80,10 @@ def select_rs256_signing_key(
     RFC 8017 section 3.1 defines the modulus as a product of distinct odd primes,
     so an RSA modulus is odd, and requires the public exponent to be between three
     and ``n - 1``. Even exponents are invalid because the exponent must also be
-    coprime to the modulus factors' Carmichael value.
+    coprime to the modulus factors' Carmichael value. RFC 7517 section 4.3 forbids
+    duplicate ``key_ops`` entries and warns against unrelated operation pairs, so
+    an advertised operation set may contain only the related sign/verify pair and
+    must include ``verify``.
     LineageWeave implements no JWS critical-header extensions, so any ``crit``
     declaration fails closed as required by RFC 7515 section 4.1.11.
     """
@@ -100,10 +119,7 @@ def select_rs256_signing_key(
             continue
         if key.get("use") not in (None, "sig"):
             continue
-        key_ops = key.get("key_ops")
-        if key_ops is not None and (
-            not isinstance(key_ops, list) or "verify" not in key_ops
-        ):
+        if not _key_ops_allow_rs256_verification(key.get("key_ops")):
             continue
         modulus = _base64url_uint_value(key.get("n"))
         if (
