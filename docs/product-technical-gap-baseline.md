@@ -35,7 +35,7 @@ Current ordinary/non-force report chain:
 
 #875 children are #876 `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` and #877 `34b5682bfbc093a253f6b500c66116354e78c5b4`; #876 continues through #1033 `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` → #1034 `bb664b7aae733933c11b2fe056de2a7b16a02c15`.
 
-The previous #868 head exposed three stale report contracts rooted at #863/#865/#866. Their causal repairs are already converged into the current chain while preserving stronger descendant semantics. Current #868 Tests `35448971227` remains pending until a fresh read proves otherwise; no historical receipt transfers to moved heads.
+The previous #868 head exposed three stale report contracts rooted at #863/#865/#866. Their causal repairs are already converged into the current chain while preserving stronger descendant semantics. Fresh read of current #868 Tests `35448971227` is terminal FAILURE, not queued: Full test suite/PostgreSQL job `105912690728` completed SUCCESS, while Frontend lint/test/build job `105912690894` failed at the `Test` step after lint succeeded; Build and Storybook were skipped. The exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share, so that stale App acceptance remains a valid source finding even though the available Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
 
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through protected integration or verified succession rather than duplicate telemetry source.
 
@@ -43,21 +43,22 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 4a99a371c3d98302220df4e7e796dd91930c57a0 → #1117 ed9a07d9b6c5592b1b1bff60ccabb550a11a6b14`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 249d3fa2f33f19bb17251788d0739d192d2f5c32 → #1117 bf269258241dae805d8e62c51bf9d9ab67249d83`.
 
 The accumulated JWKS consumer repairs remain part of #1120: verification candidates reject private RSA members; `x5c` members must be canonical Base64 / parseable X.509, the leaf RSA key must match JWK `n/e`, KeyUsage cannot contradict signature verification, and `x5t` / `x5t#S256` must be canonical and match embedded leaf DER when available. These are LineageWeave verifier boundaries, not Keyverse/provider identity ownership.
 
-The local service-account prerequisite now fails closed across identity, client topology, and runtime usability:
+The local service-account prerequisite now fails closed across identity, client topology, authentication usability, and consumer-resource audience compatibility:
 
 - realm service-account `sub` values are derived from `docker/keycloak/realm-export.json` instead of copied into Python;
 - required service subjects are unique and disjoint from non-service resource-owner subjects;
 - each bound client must exist exactly once and be enabled OIDC, confidential, service-account enabled, direct-grant disabled, and browser-standard-flow disabled;
-- executable RED `b69c9f3a44e63920d959ed7e636b478f2f780000` proved two remaining fail-open fixture states: a disabled service-account user and a missing/blank local client secret;
-- causal fix `4a99a371c3d98302220df4e7e796dd91930c57a0` now rejects both before LineageWeave provisions DB authorization.
+- a bound service-account user must be enabled and the current checked-in secret-based confidential client must carry a non-empty local secret;
+- executable RED `d18c8add5f997c2863ffc072fa311da1e51cdfb2` proves that DB authorization could otherwise survive deletion of a required resource-audience mapper or an audience mapper that no longer emits into access tokens;
+- causal fix `249d3fa2f33f19bb17251788d0739d192d2f5c32` requires direct OIDC audience mappers with canonical nonblank audiences and `access.token.claim == "true"`; automation requires `lineageweave-api` plus `http://localhost:18001/mcp`, while admin requires `lineageweave-api`.
 
-The last condition is intentionally local-fixture specific. It proves that the checked-in secret-based confidential clients are usable migration targets; it does not claim runtime secret resolution or provider ownership. Runtime machine-token evidence still belongs to the relevant integration/smoke lane.
+These conditions are intentionally local-fixture/consumer specific. They prove that the checked-in confidential actors are structurally capable of authenticating to the LineageWeave resources they are intended to exercise; they do not claim runtime secret resolution, provider availability, or Keyverse identity ownership.
 
-#1120 exact-head Tests `35468660681` is terminal skipped under Draft admission. No repository GREEN is claimed. #1117 was immediately ordinary/non-force reconstructed from exact #1120 plus its existing README blob. Exact compare has merge-base `4a99a371...`, `behind_by=0`, and README-only effective delta; #1117 Tests `35468692036` is likewise Draft-skipped.
+#1120 exact-head Tests `35471653216` is terminal skipped under Draft admission. No repository GREEN is claimed. #1117 was immediately ordinary/non-force reconstructed from exact #1120 plus its existing README blob. Exact compare has merge-base `249d3fa2...`, `behind_by=0`, and README-only effective delta. No repository-local workflow run had surfaced for exact #1117 `bf269258...` at the latest read.
 
 Remaining auth RED:
 
@@ -65,12 +66,12 @@ Remaining auth RED:
 - `scripts/seed_demo_data.py` still uses master `admin-cli` password authentication for human-subject lookup and public-client analyst ROPC for content warm-up.
 - Human browser demo users remain product-form actors and must continue through redirect-based Authorization Code + PKCE. Machine integration/bootstrap consumers should migrate to the validated confidential automation/admin actors without collapsing viewer/admin or cross-account evidence.
 - Public frontend direct grants stay enabled until those consumers are migrated atomically.
-- Dependency metadata is stale: `pyproject.toml` still admits `pyjwt[crypto]>=2.8.0`, the exact lock resolves 2.13.0, and upstream 2.14.0 was released 2026-09-11 with additional security hardening. The dependency floor/lock and regression evidence must be updated together.
+- Dependency metadata remains stale and must move with the lock and security regression evidence rather than through a metadata-only edit.
 - Exact-head hosted GREEN, rendered browser/session acceptance, and independent review remain outstanding.
 
 ## Central CI / CodeQL
 
-Canonical `.github/main` remains `e6334e229581a918e2f22de18733b76fa65d7e71`. Required owner checks stay centralized; LineageWeave must not fork provider-group or CodeQL owner logic locally. Any evidence naming an older `.github` head as current must be refreshed before reliance.
+Canonical `.github/main` is `e6334e229581a918e2f22de18733b76fa65d7e71` on the latest fresh read. Required owner checks stay centralized; LineageWeave must not fork provider-group or CodeQL owner logic locally. Any evidence naming another `.github` head as current must be refreshed before reliance.
 
 ## Performance / immutable delivery
 
@@ -85,10 +86,10 @@ Canonical `.github/main` remains `e6334e229581a918e2f22de18733b76fa65d7e71`. Req
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical owner checks, language review, browser/auth/performance acceptance |
 | App comparison acceptance | #861 | RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
 | App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
-| Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | source repaired / hosted pending | inspect fresh exact-head receipts; RCA/fix new terminal RED; no stale-receipt transfer |
+| Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | backend GREEN / frontend RED at #868 | recover or reproduce the exact frontend failing acceptance; repair at the causal owner, then converge descendants without stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `4a99a371...` → #1117 `ed9a07d9...` | migration RED / machine fixture prerequisite repaired | migrate backend/seed password grants to validated confidential service actors; then disable public direct grants, update PyJWT floor+lock, and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `249d3fa2...` → #1117 `bf269258...` | migration RED / machine fixture prerequisite repaired | migrate backend/seed password grants to validated confidential service actors; then disable public direct grants, align dependency floor+lock, and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
