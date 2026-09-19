@@ -7,29 +7,25 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
+SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
 
 
-def test_comparison_graphic_names_ticks_with_distinct_accessible_copy() -> None:
-    """Comparison ticks keep localized comparison copy while report ticks may add persisted σ evidence."""
+def test_comparison_graphic_names_ticks_through_evidence_aware_badge_contract() -> None:
+    """Comparison ticks consume persisted σ/share evidence and preserve distinct origin copy."""
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
+    singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
 
-    # v2.84 adds a report-only evidence badge. Comparison ticks must keep the
-    # existing localized comparison + generic tick composition rather than
-    # inheriting report evidence or introducing a comparison-only translation.
-    assert "leftoverMapPlotTickAxisBadge" in plot_source
+    assert "leftoverMapComparePlotTickAxisBadge" in plot_source
     assert "leftoverSingularForAxis(leftoverMapAxes, tick.axis)" in plot_source
-    assert re.search(
-        r'reportTickBadge\s*=\s*variant\s*===\s*"report"\s*\?\s*leftoverMapPlotTickAxisBadge\(',
-        plot_source,
-        re.DOTALL,
+    assert "leftoverShareForAxis(leftoverMapAxes, tick.axis)" in plot_source
+    assert "tf(comparisonTickBadge.template, comparisonTickBadge.values)" in plot_source
+    assert (
+        'export const LEFTOVER_MAP_COMPARE_PLOT_TICK =\n'
+        '  "leftover map comparison graphic leftover-map axis {axis} tick {value}";'
+        in singular_source
     )
-    assert re.search(
-        r'variant\s*===\s*"comparison"\s*\?\s*`\$\{t\(LEFTOVER_MAP_COMPARE_PLOT_LABEL\)\}:\s*\$\{tf\(LEFTOVER_MAP_PLOT_TICK,\s*\{\s*axis:\s*tick\.axis,\s*value:\s*tick\.label,?\s*\}\)\}`',
-        plot_source,
-        re.DOTALL,
-    )
-    assert "tf(reportTickBadge.template, reportTickBadge.values)" in plot_source
-    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK" not in plot_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK" in singular_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE" in singular_source
 
 
 def test_tick_positions_come_from_persisted_coordinates_not_distance() -> None:

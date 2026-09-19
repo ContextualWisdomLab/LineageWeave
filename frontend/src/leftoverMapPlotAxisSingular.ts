@@ -5,6 +5,7 @@ import {
   formatLeftoverMapPlotAxisShare,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE,
 } from "./leftoverMapPlotAxisShare";
+import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 
 export const LEFTOVER_MAP_PLOT_AXIS_SINGULAR =
   "leftover-map axis {axis} σ {value}";
@@ -36,14 +37,29 @@ export const LEFTOVER_MAP_PLOT_TICK_SHARE =
 export const LEFTOVER_MAP_PLOT_TICK_SINGULAR_SHARE =
   "leftover-map axis {axis} tick {value} σ {singular} {share}%";
 
-export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR =
-  "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}";
+export const LEFTOVER_MAP_COMPARE_PLOT_TICK =
+  "leftover map comparison graphic leftover-map axis {axis} tick {value}";
 
 export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE =
   "leftover map comparison graphic leftover-map axis {axis} tick {value} {share}%";
 
+export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR =
+  "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular}";
+
 export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE =
   "leftover map comparison graphic leftover-map axis {axis} tick {value} σ {singular} {share}%";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value} {share}%";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular}";
+
+export const LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE =
+  "leftover map comparison graphic leftover-map axis {axis} origin tick {value} σ {singular} {share}%";
 
 export const LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR =
   "leftover map comparison leftover axis {axis} tick {value} σ {singular}";
@@ -124,6 +140,54 @@ export function leftoverMapComparePlotAxisBadge(
   };
 }
 
+/** Exact origin identity follows the canonical persisted-coordinate formatter only. */
+export function leftoverMapPlotTickIsOrigin(tickLabel: string): boolean {
+  const originLabel = formatSignedLeftoverValue(0);
+  return originLabel !== null && tickLabel === originLabel;
+}
+
+/**
+ * Project one comparison-graphic tick without deriving origin, share, or σ from
+ * each other. Each persisted evidence field can therefore fail closed on its own.
+ */
+export function leftoverMapComparePlotTickAxisBadge(
+  axisIndex: number,
+  tickLabel: string,
+  leftoverSingular: number | null | undefined,
+  leftoverShare?: number | null,
+): LeftoverMapCompareAxisBadge {
+  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
+  const percent = formatLeftoverMapPlotAxisShare(leftoverShare);
+  const origin = leftoverMapPlotTickIsOrigin(tickLabel);
+
+  if (singular === null && percent === null) {
+    return {
+      template: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK : LEFTOVER_MAP_COMPARE_PLOT_TICK,
+      values: { axis: axisIndex, value: tickLabel },
+    };
+  }
+  if (singular === null) {
+    return {
+      template: origin ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SHARE : LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE,
+      values: { axis: axisIndex, value: tickLabel, share: percent as string },
+    };
+  }
+  if (percent === null) {
+    return {
+      template: origin
+        ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR
+        : LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
+      values: { axis: axisIndex, value: tickLabel, singular },
+    };
+  }
+  return {
+    template: origin
+      ? LEFTOVER_MAP_COMPARE_PLOT_ORIGIN_TICK_SINGULAR_SHARE
+      : LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE,
+    values: { axis: axisIndex, value: tickLabel, singular, share: percent },
+  };
+}
+
 /**
  * Compose comparison-strip axis evidence without deriving one persisted
  * measurement from the other. Missing or invalid evidence is omitted
@@ -185,36 +249,6 @@ export function leftoverMapPlotTickAxisBadge(
   }
   return {
     template: LEFTOVER_MAP_PLOT_TICK_SINGULAR_SHARE,
-    values: { axis: axisIndex, value: tickLabel, singular, share },
-  };
-}
-
-/** Compose persisted comparison-graphic tick σ/share without deriving either field. */
-export function leftoverMapComparePlotTickAxisBadge(
-  axisIndex: number,
-  tickLabel: string,
-  leftoverSingular: number | null | undefined,
-  leftoverShare?: LeftoverMapAxis["leftover_share"] | null,
-): LeftoverMapCompareAxisBadge | null {
-  const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
-  const share = formatLeftoverMapPlotAxisShare(leftoverShare);
-  if (singular === null && share === null) {
-    return null;
-  }
-  if (singular === null) {
-    return {
-      template: LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE,
-      values: { axis: axisIndex, value: tickLabel, share: share as string },
-    };
-  }
-  if (share === null) {
-    return {
-      template: LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR,
-      values: { axis: axisIndex, value: tickLabel, singular },
-    };
-  }
-  return {
-    template: LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE,
     values: { axis: axisIndex, value: tickLabel, singular, share },
   };
 }
