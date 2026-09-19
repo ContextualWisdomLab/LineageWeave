@@ -235,14 +235,26 @@ async def resolve_current_account(
                 account_row["user_account_id"],
             )
             entity_rows = affiliation_rows
-            # A NULL process-unit affiliation is the explicit corporate-wide
-            # scope. Otherwise preserve every normalized PU binding; dropping
-            # them would turn a PU-scoped local token into corporate-wide ABAC.
-            process_rows = (
-                []
-                if any(row["process_unit_id"] is None for row in affiliation_rows)
-                else affiliation_rows
-            )
+            entity_ids = {
+                str(row["corporate_entity_id"]) for row in affiliation_rows
+            }
+            wildcard_entity_ids = {
+                str(row["corporate_entity_id"])
+                for row in affiliation_rows
+                if row["process_unit_id"] is None
+            }
+            # CurrentAccount carries one flat PU set. It can faithfully express
+            # either exact PU scope or corporate-wide scope for every authorized
+            # entity, but not a wildcard for one corporation plus PU scope in
+            # another. Reject that mixed shape rather than widen authorization.
+            if wildcard_entity_ids and wildcard_entity_ids != entity_ids:
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    "local account affiliations mix corporate-wide and process-unit "
+                    "scopes across corporate entities; current authorization shape "
+                    "cannot represent that scope safely",
+                )
+            process_rows = [] if wildcard_entity_ids else affiliation_rows
             permission_rows = await conn.fetch(
                 """
                 select distinct rp.permission_code
