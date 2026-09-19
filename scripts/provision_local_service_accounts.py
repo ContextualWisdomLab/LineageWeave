@@ -69,6 +69,22 @@ _LOCAL_SERVICE_ACCOUNT_BINDINGS = (
 )
 
 
+def _validate_machine_client(client_id: str, client: dict[str, object]) -> None:
+    """Require the realm client shape that can safely back a DB machine actor."""
+    if client.get("enabled") is not True:
+        raise RuntimeError(f"realm client {client_id!r} must be enabled")
+    if client.get("protocol") != "openid-connect":
+        raise RuntimeError(f"realm client {client_id!r} must use openid-connect")
+    if client.get("publicClient") is not False:
+        raise RuntimeError(f"realm client {client_id!r} must be confidential")
+    if client.get("serviceAccountsEnabled") is not True:
+        raise RuntimeError(f"realm client {client_id!r} must enable service accounts")
+    if client.get("directAccessGrantsEnabled") is not False:
+        raise RuntimeError(f"realm client {client_id!r} must disable direct access grants")
+    if client.get("standardFlowEnabled") is not False:
+        raise RuntimeError(f"realm client {client_id!r} must disable browser standard flow")
+
+
 def load_local_service_accounts(
     realm_export_path: Path = DEFAULT_REALM_EXPORT_PATH,
 ) -> tuple[LocalServiceAccount, ...]:
@@ -114,6 +130,23 @@ def load_local_service_accounts(
             f"realm service account subject {shared_subject!r} collides with a non-service realm subject"
         )
 
+    clients = realm.get("clients")
+    if not isinstance(clients, list):
+        raise RuntimeError("realm fixture must contain a clients array")
+    required_client_ids = {
+        binding.client_id for binding in _LOCAL_SERVICE_ACCOUNT_BINDINGS
+    }
+    client_configs: dict[str, dict[str, object]] = {}
+    for client in clients:
+        if not isinstance(client, dict):
+            continue
+        client_id = client.get("clientId")
+        if client_id not in required_client_ids:
+            continue
+        if client_id in client_configs:
+            raise RuntimeError(f"duplicate realm client configuration: {client_id}")
+        client_configs[client_id] = client
+
     accounts: list[LocalServiceAccount] = []
     for binding in _LOCAL_SERVICE_ACCOUNT_BINDINGS:
         subject_id = subjects.get(binding.client_id)
@@ -121,6 +154,12 @@ def load_local_service_accounts(
             raise RuntimeError(
                 f"realm fixture is missing service account {binding.client_id!r}"
             )
+        client = client_configs.get(binding.client_id)
+        if client is None:
+            raise RuntimeError(
+                f"realm fixture is missing {binding.client_id!r} client configuration"
+            )
+        _validate_machine_client(binding.client_id, client)
         accounts.append(
             LocalServiceAccount(
                 client_id=binding.client_id,
