@@ -94,11 +94,12 @@ def test_repository_owned_auth_actors_do_not_use_password_grants() -> None:
 
 
 def test_public_frontend_uses_redirect_flow_without_direct_access_grants() -> None:
-    """The browser client must require the redirect flow without password grants."""
+    """The browser client must require the redirect flow without password or implicit grants."""
     frontend = _client("lineageweave-frontend")
 
     assert frontend["publicClient"] is True
     assert frontend["standardFlowEnabled"] is True
+    assert frontend["implicitFlowEnabled"] is False
     assert frontend["directAccessGrantsEnabled"] is False
     assert frontend["serviceAccountsEnabled"] is False
 
@@ -118,6 +119,7 @@ def test_automation_client_is_machine_only_and_resource_scoped() -> None:
 
     assert automation["publicClient"] is False
     assert automation["standardFlowEnabled"] is False
+    assert automation["implicitFlowEnabled"] is False
     assert automation["directAccessGrantsEnabled"] is False
     assert automation["serviceAccountsEnabled"] is True
     assert automation["secret"] == "${KEYCLOAK_CLIENT_SECRET}"
@@ -142,6 +144,7 @@ def test_admin_integration_client_is_api_only_and_machine_only() -> None:
 
     assert admin["publicClient"] is False
     assert admin["standardFlowEnabled"] is False
+    assert admin["implicitFlowEnabled"] is False
     assert admin["directAccessGrantsEnabled"] is False
     assert admin["serviceAccountsEnabled"] is True
     assert admin["secret"] == "${KEYCLOAK_TEST_ADMIN_CLIENT_SECRET}"
