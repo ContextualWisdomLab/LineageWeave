@@ -359,18 +359,14 @@ export function LeftoverMapPlot({
           </text>
           {layout.ticks.map((tick) => {
             const singular = leftoverSingularForAxis(leftoverMapAxes, tick.axis);
+            const share = leftoverShareForAxis(leftoverMapAxes, tick.axis);
             const reportTickBadge =
               variant === "report"
-                ? leftoverMapPlotTickAxisBadge(tick.axis, tick.label, singular)
+                ? leftoverMapPlotTickAxisBadge(tick.axis, tick.label, singular, share)
                 : null;
             const comparisonTickBadge =
               variant === "comparison"
-                ? leftoverMapComparePlotTickAxisBadge(
-                    tick.axis,
-                    tick.label,
-                    singular,
-                    leftoverShareForAxis(leftoverMapAxes, tick.axis),
-                  )
+                ? leftoverMapComparePlotTickAxisBadge(tick.axis, tick.label, singular, share)
                 : null;
             const tickAriaLabel =
               variant === "comparison"
