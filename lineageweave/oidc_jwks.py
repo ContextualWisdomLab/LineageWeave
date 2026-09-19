@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -21,9 +22,12 @@ class JwksKeySelectionError(ValueError):
     """Raised when a token header or matching JWKS verification key is unacceptable."""
 
 
+_BASE64URL_UINT = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
 def _rsa_modulus_bit_length(modulus: object) -> int | None:
     """Return an RSA JWK modulus bit length, or ``None`` for invalid Base64urlUInt."""
-    if not isinstance(modulus, str) or not modulus:
+    if not isinstance(modulus, str) or _BASE64URL_UINT.fullmatch(modulus) is None:
         return None
     try:
         encoded = modulus.encode("ascii")
@@ -32,7 +36,7 @@ def _rsa_modulus_bit_length(modulus: object) -> int | None:
             altchars=b"-_",
             validate=True,
         )
-    except (UnicodeEncodeError, binascii.Error, ValueError):
+    except (binascii.Error, ValueError):
         return None
     return int.from_bytes(raw, "big").bit_length()
 
