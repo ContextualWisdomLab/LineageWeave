@@ -36,21 +36,23 @@ Malformed hierarchy presentation remains #996 exact `a640df40839ed7e2a15b9ab95a7
 
 ## Authentication / authorization stack
 
-Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `b70b82b03edd17b7384bdb1a2c82bc599cfc9dde` → README child #1117 `740a13fa1bf1d4c2d9f7b244f29aa5f3999a33b4`.
+Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `87e9aceb1d98b2ad81a24d948bd716ca20a9bbd1` → README child #1117 `6fa50943a887c7eb178d7bf0a604ad22a358502b`.
 
-#1120 now closes the previously missing normalized local machine/admin authorization prerequisite at source level. Test-first contract `d6d01091ae7a07542821f4af7c517ee320e2e01e` preceded implementation `929095f18c62b0ef82dacf2cff1096a9407a01c1`; `1eb70c0c6a9f8e14f92852c76d7c2dd224c095a9` wires provisioning after the Demo Corp domain seed; `f6d788d5c4e7b255667a5137825ebf2e75a8da12` cross-checks the bindings against the realm fixture; ADR 0028 is code-current at `b70b82b0...`.
+#1120 closes the previously missing normalized local machine/admin authorization prerequisite at source level. Test-first contract `d6d01091ae7a07542821f4af7c517ee320e2e01e` preceded implementation `929095f18c62b0ef82dacf2cff1096a9407a01c1`; `1eb70c0c6a9f8e14f92852c76d7c2dd224c095a9` wires provisioning after the Demo Corp domain seed; `f6d788d5c4e7b255667a5137825ebf2e75a8da12` cross-checks the bindings against the realm fixture; ADR 0028 remains the normalized-service-actor decision record.
 
-The PostgreSQL-only provisioner maps the realm fixture's automation subject `33333333-3333-4333-8333-333333333333` to `DEMO-PU-A` + `viewer` and the distinct admin-test subject `44444444-4444-4444-8444-444444444444` to `DEMO-PU-HQ` + `admin`. It replaces only those deterministic fixture actors' affiliation/role mappings in one short transaction and does not authenticate to Keycloak or mint tokens. This is source repair, not hosted acceptance: exact-head Tests `35423625310` is terminal `skipped` by Draft admission.
+The PostgreSQL-only provisioner maps the realm fixture's automation subject `33333333-3333-4333-8333-333333333333` to `DEMO-PU-A` + `viewer` and the distinct admin-test subject `44444444-4444-4444-8444-444444444444` to `DEMO-PU-HQ` + `admin`. It replaces only those deterministic fixture actors' affiliation/role mappings in one short transaction and does not authenticate to Keycloak or mint tokens.
 
-Remaining auth RED is narrower and explicit:
+Fresh review found an authorization prerequisite that made direct reuse of those service actors unsafe: local/Keycloak `resolve_current_account` loaded corporate affiliations but hard-coded an empty `process_unit_ids` set. The shared source-post visibility contract interprets an empty process-unit set as corporate-wide, so a PU-scoped local subject could be widened to private posts in a different PU of the same corporate entity. Source RED `87d52c4c51875b4ca57fe68e1870a3d891362f6e` precedes causal fix `405b7ed82a7ecc9586ace9cd0214999d1cd9ea13`; exact head `87e9aceb1d98b2ad81a24d948bd716ca20a9bbd1` adds wildcard/visibility edge coverage. Local resolution now reads corporate and process-unit bindings together from normalized `account_affiliation`; an explicit NULL process-unit affiliation retains the existing corporate-wide meaning, while non-NULL PU bindings remain scoped.
+
+This is source repair, not hosted acceptance: #1120 exact-head Tests `35424858087` is terminal `skipped` by Draft admission. README child #1117 was immediately ordinary/non-force converged to `6fa50943a887c7eb178d7bf0a604ad22a358502b`; fresh parent→child compare has merge-base exactly `87e9aceb...`, `behind_by=0`, with `README.md` as the sole effective child delta.
+
+Remaining auth RED is explicit:
 
 - `backend/tests/test_api.py` still uses the public browser client password grant for distinct analyst/admin authorization evidence.
 - `scripts/seed_demo_data.py` still uses `admin-cli` password grant only to rediscover deterministic human fixture subjects and uses `demo.analyst` password grant for post-content warm-up.
 - Therefore the public `lineageweave-frontend` fixture still has `directAccessGrantsEnabled=true`; disabling it before consumer migration would break current evidence paths rather than complete the OAuth repair.
 - Project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0; the safe declared floor/lock must be reconciled before release.
 - Required order: migrate remaining password-grant consumers while keeping distinct human authorization semantics → disable public direct grants → align dependency metadata/lock → prove one exact-head hosted repository/security/static-analysis GREEN set → prove rendered Authorization Code + PKCE state/nonce/return-URL/session behavior.
-
-README child #1117 is ordinary/non-force converged on the exact #1120 parent. Fresh parent→child comparison at the repair point has merge-base exactly #1120, `behind_by=0`, with `README.md` as the sole effective child delta. Child receipts do not transfer to #1120.
 
 ## Report / comparison stack
 
@@ -78,7 +80,7 @@ Before publication, one protected exact candidate must prove built/installed pac
 | Customer Master hierarchy | #996 `a640df40...` | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
 | Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | obtain final-head repository + Chromium + security evidence |
 | Python CodeQL baseline | #974 `4341080f...` → #979 `2dfd211...` | owner-control RED | canonical `.github#1929` verdict publication/consumer settlement |
-| Local OIDC topology | #1120 `b70b82b0...` | normalized machine/admin source repair complete; migration still RED | remove remaining human/admin password-grant consumers, disable public direct grants, full/browser proof |
+| Local OIDC topology | #1120 `87e9aceb...` → #1117 `6fa50943...` | machine/admin + PU-scope source prerequisites repaired; migration still RED | remove remaining human/admin password-grant consumers, disable public direct grants, full/browser proof |
 | Report axis/comparison | #875 `d1f96f97...` → #876/#877 → #1033/#1034 | source-repaired stack / hosted acceptance incomplete | terminal exact-head hosted validation without receipt transfer |
 | Frontend delivery performance | #995 `dbe5ac54...` | RED | commit exact-head representative cold buyer-path evidence and repair if over budget |
 | MCP buyer latency | #1009 `4fff982a...` | RED | representative uncontended profile and causal hot-path repair to p95 ≤20 ms |
