@@ -80,6 +80,58 @@ def test_rejects_ambiguous_duplicate_verification_keys_before_loading() -> None:
     assert loaded == []
 
 
+def test_rejects_public_exponent_not_below_modulus_before_loading() -> None:
+    """RFC 8017 requires the RSA public exponent to be between 3 and n - 1."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    modulus = _rsa_modulus()
+    loaded: list[str] = []
+    key = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": modulus,
+        "e": modulus,
+    }
+
+    with pytest.raises(JwksKeySelectionError, match="no JWKS key matched"):
+        select_rs256_signing_key(
+            {"keys": [key]},
+            token,
+            jwk_loader=lambda value: loaded.append(value) or object(),
+        )
+
+    assert loaded == []
+
+
+def test_invalid_exponent_cannot_poison_same_kid_candidate_uniqueness() -> None:
+    """A mathematically invalid duplicate must not create false key ambiguity."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    modulus = _rsa_modulus()
+    valid = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": modulus,
+        "e": "AQAB",
+    }
+    invalid = {**valid, "e": modulus}
+    loaded: list[str] = []
+
+    selected = select_rs256_signing_key(
+        {"keys": [valid, invalid]},
+        token,
+        jwk_loader=lambda value: loaded.append(value) or "selected-key",
+    )
+
+    assert selected == "selected-key"
+    assert len(loaded) == 1
+    assert json.loads(loaded[0])["e"] == "AQAB"
+
+
 def test_rejects_malformed_token_header_without_leaking_parser_detail() -> None:
     with pytest.raises(JwksKeySelectionError) as error:
         select_rs256_signing_key({"keys": []}, "not-a-jwt")
