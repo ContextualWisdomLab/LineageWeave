@@ -43,23 +43,24 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 1bd020431ecdbaed9ec972d815dfce172825eae6 → #1117 a3f002e07e60d3a46a73587bd86ee3022dd8fc8a`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 e1fa2935508961cc7d1bc169965da7c8f8269777 → #1117 a3dd1afccb2829960ee4b63f977fde2bf2d7149f`.
 
 The accumulated JWKS consumer repairs remain part of #1120: verification candidates reject private RSA members; `x5c` members must be canonical Base64 / parseable X.509, the leaf RSA key must match JWK `n/e`, KeyUsage cannot contradict signature verification, and `x5t` / `x5t#S256` must be canonical and match embedded leaf DER when available. These are LineageWeave verifier boundaries, not Keyverse/provider identity ownership.
 
-The latest prerequisite repair removes duplicated local identity truth from LineageWeave. `scripts/provision_local_service_accounts.py` previously copied service-account `sub` UUIDs even though `docker/keycloak/realm-export.json` owns those fixture identities. RED `dafc19262f5f2d8e13796fc29b1e4dc108611411` requires a changed realm subject to flow into provisioning. Causal fix `a9cfae59f75485a89948059451c6156181759f8f` now derives `serviceAccountClientId -> user.id` from the realm fixture while retaining only LineageWeave-owned DB authorization metadata; edge close `c386b77a7c2ec2bc976acc6d4a875ab25625e6cb` rejects missing/duplicate/malformed service identity data.
+The local service-account prerequisite now has three fail-closed layers. First, realm service-account `sub` values are derived from `docker/keycloak/realm-export.json` instead of copied into Python (`dafc1926...` → `a9cfae59...` → `c386b77a...`). Second, `4270db78...` → `1bd02043...` keeps service-client subjects unique and disjoint from non-service resource-owner subjects. Third, RED `ff54b7fbb7c805c21fc7727529a73efb778e3ae0` plus edge RED `77ca6d1f5eb8ce9b77beb5370779cf8c5400f957` showed that a matching service-account user could still be provisioned without proving the OAuth client remained machine-only. Causal fix `e1fa2935508961cc7d1bc169965da7c8f8269777` now requires each bound client to exist exactly once and be enabled OIDC, confidential, service-account enabled, direct-grant disabled, and browser-standard-flow disabled before LineageWeave writes DB authorization bindings.
 
-A second RED `4270db781a3efe52c2bacb26a27d8ac706202f20` covers principal confusion: two confidential clients must not share one subject, and a machine subject must not collide with a non-service resource-owner subject. Causal fix `1bd020431ecdbaed9ec972d815dfce172825eae6` enforces both invariants before DB provisioning. This follows the OAuth security requirement to keep client-credentials and resource-owner principals distinguishable; it does not create a new identity mechanism.
+This remains a consumer-side invariant over the checked-in local realm fixture. It does not create provider identity truth or replace Keyverse/Keycloak ownership.
 
-#1120 exact-head Tests `35464226011` is terminal skipped under Draft admission. No repository GREEN is claimed. #1117 was immediately ordinary/non-force reconstructed from exact #1120 plus its existing README blob. Exact compare has merge-base `1bd02043...`, `behind_by=0`, and README-only effective delta; the PR snapshot's cached base SHA is not used as convergence evidence.
+#1120 exact-head Tests `35465650877` is terminal skipped under Draft admission. No repository GREEN is claimed. #1117 was immediately ordinary/non-force reconstructed from exact #1120 plus its existing README blob. Exact compare has merge-base `e1fa2935...`, `behind_by=0`, and README-only effective delta; the PR snapshot's cached base SHA is not used as convergence evidence.
 
 Remaining auth RED:
 
 - `backend/tests/test_api.py` still mints analyst/admin tokens through public `lineageweave-frontend` Resource Owner Password Credentials.
 - `scripts/seed_demo_data.py` still uses master `admin-cli` password authentication for human-subject lookup and public-client analyst ROPC for content warm-up.
-- Human browser demo users remain product-form actors and must continue through redirect-based Authorization Code + PKCE. Machine integration/bootstrap consumers should migrate to the existing confidential automation/admin actors without collapsing viewer/admin or cross-account evidence.
+- Human browser demo users remain product-form actors and must continue through redirect-based Authorization Code + PKCE. Machine integration/bootstrap consumers should migrate to the now-validated confidential automation/admin actors without collapsing viewer/admin or cross-account evidence.
 - Public frontend direct grants stay enabled until those machine consumers are migrated atomically.
-- `pyjwt[crypto]` declared-floor / lock alignment, exact-head hosted GREEN, rendered browser/session acceptance, and independent review remain outstanding.
+- Dependency metadata is stale: `pyproject.toml` still admits `pyjwt[crypto]>=2.8.0`, the exact lock resolves 2.13.0, and upstream 2.14.0 was released 2026-09-11 with additional security hardening. The dependency floor/lock and regression evidence must be updated together.
+- Exact-head hosted GREEN, rendered browser/session acceptance, and independent review remain outstanding.
 
 ## Central CI / CodeQL
 
@@ -81,7 +82,7 @@ Canonical `.github/main` remains `e6334e229581a918e2f22de18733b76fa65d7e71`. Req
 | Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | source repaired / hosted pending | inspect fresh exact-head receipts; RCA/fix new terminal RED; no stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `1bd02043...` → #1117 `a3f002e0...` | migration RED / principal-boundary prerequisite repaired | migrate backend/seed password grants to existing confidential service actors; then disable public direct grants, align PyJWT floor, and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `e1fa2935...` → #1117 `a3dd1afc...` | migration RED / machine-client prerequisite repaired | migrate backend/seed password grants to existing validated confidential service actors; then disable public direct grants, update PyJWT floor+lock, and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
