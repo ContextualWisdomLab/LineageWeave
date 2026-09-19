@@ -21,6 +21,7 @@ _VALID_SERVICE_CLIENTS = [
         "standardFlowEnabled": False,
         "directAccessGrantsEnabled": False,
         "serviceAccountsEnabled": True,
+        "secret": "automation-secret",
     },
     {
         "clientId": "lineageweave-test-admin",
@@ -30,6 +31,7 @@ _VALID_SERVICE_CLIENTS = [
         "standardFlowEnabled": False,
         "directAccessGrantsEnabled": False,
         "serviceAccountsEnabled": True,
+        "secret": "admin-secret",
     },
 ]
 
@@ -46,15 +48,17 @@ def _write_realm(path: Path, users: object, clients: object | None = None) -> Pa
     return path
 
 
-def _service_users() -> list[dict[str, str]]:
+def _service_users() -> list[dict[str, object]]:
     return [
         {
             "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             "serviceAccountClientId": "lineageweave-test-automation",
+            "enabled": True,
         },
         {
             "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
             "serviceAccountClientId": "lineageweave-test-admin",
+            "enabled": True,
         },
     ]
 
@@ -101,6 +105,7 @@ def test_service_subject_loader_fails_closed_when_a_required_actor_is_missing(
             {
                 "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
                 "serviceAccountClientId": "lineageweave-test-automation",
+                "enabled": True,
             }
         ],
     )
@@ -116,14 +121,17 @@ def test_service_subject_loader_rejects_duplicate_client_identity(tmp_path: Path
             {
                 "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
                 "serviceAccountClientId": "lineageweave-test-automation",
+                "enabled": True,
             },
             {
                 "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
                 "serviceAccountClientId": "lineageweave-test-automation",
+                "enabled": True,
             },
             {
                 "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
                 "serviceAccountClientId": "lineageweave-test-admin",
+                "enabled": True,
             },
         ],
     )
@@ -141,10 +149,12 @@ def test_service_subject_loader_rejects_shared_subject_between_service_clients(
             {
                 "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
                 "serviceAccountClientId": "lineageweave-test-automation",
+                "enabled": True,
             },
             {
                 "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
                 "serviceAccountClientId": "lineageweave-test-admin",
+                "enabled": True,
             },
         ],
     )
@@ -154,7 +164,7 @@ def test_service_subject_loader_rejects_shared_subject_between_service_clients(
 
 
 def test_service_subject_loader_rejects_human_subject_collision(tmp_path: Path) -> None:
-    users: list[dict[str, str]] = [
+    users: list[dict[str, object]] = [
         {
             "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             "username": "demo.human",
@@ -175,18 +185,21 @@ def test_service_subject_loader_rejects_non_array_users(tmp_path: Path) -> None:
 
 
 def test_service_subject_loader_rejects_missing_subject_id(tmp_path: Path) -> None:
-    realm_path = _write_realm(
-        tmp_path / "realm-export.json",
-        [
-            {"serviceAccountClientId": "lineageweave-test-automation"},
-            {
-                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-                "serviceAccountClientId": "lineageweave-test-admin",
-            },
-        ],
-    )
+    users = _service_users()
+    users[0].pop("id")
+    realm_path = _write_realm(tmp_path / "realm-export.json", users)
 
     with pytest.raises(RuntimeError, match="non-empty subject id"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_disabled_service_account_user(tmp_path: Path) -> None:
+    """A configured OAuth client must not provision a disabled service principal."""
+    users = _service_users()
+    users[0]["enabled"] = False
+    realm_path = _write_realm(tmp_path / "realm-export.json", users)
+
+    with pytest.raises(RuntimeError, match="service account.*must be enabled"):
         load_local_service_accounts(realm_path)
 
 
@@ -238,6 +251,8 @@ def test_service_subject_loader_rejects_duplicate_client_configuration(tmp_path:
         ("serviceAccountsEnabled", False, "must enable service accounts"),
         ("directAccessGrantsEnabled", True, "must disable direct access grants"),
         ("standardFlowEnabled", True, "must disable browser standard flow"),
+        ("secret", "", "must declare a client secret"),
+        ("secret", None, "must declare a client secret"),
     ],
 )
 def test_service_subject_loader_rejects_non_machine_client_configuration(
@@ -287,6 +302,7 @@ def test_normalized_subjects_match_confidential_realm_service_accounts() -> None
         assert client["publicClient"] is False
         assert client["directAccessGrantsEnabled"] is False
         assert client["serviceAccountsEnabled"] is True
+        assert isinstance(client.get("secret"), str) and client["secret"]
 
 
 def test_local_service_account_provisioner_does_not_authenticate_to_keycloak() -> None:
