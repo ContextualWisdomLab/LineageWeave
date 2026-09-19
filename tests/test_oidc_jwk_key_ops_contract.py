@@ -25,7 +25,7 @@ def _rsa_modulus() -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
 
 
-def _key(key_ops: list[str]) -> dict[str, object]:
+def _key(key_ops: list[object]) -> dict[str, object]:
     return {
         "kid": "wanted",
         "kty": "RSA",
@@ -42,12 +42,13 @@ def _key(key_ops: list[str]) -> dict[str, object]:
     [
         ["verify", "verify"],
         ["verify", "encrypt"],
+        ["verify", 1],
     ],
 )
 def test_rejects_nonconformant_key_operations_before_loading(
-    key_ops: list[str],
+    key_ops: list[object],
 ) -> None:
-    """Duplicate or unrelated operations cannot enter the RS256 candidate set."""
+    """Duplicate, unrelated, or non-string operations cannot enter the candidate set."""
     loaded: list[str] = []
 
     with pytest.raises(JwksKeySelectionError, match="no JWKS key matched"):
