@@ -81,6 +81,38 @@ def test_rejects_malformed_token_header_without_leaking_parser_detail() -> None:
     assert str(error.value) == "invalid access-token header"
 
 
+def test_rejects_critical_extensions_even_if_declared_jwt_floor_accepts_them(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RFC 7515 critical extensions fail closed independent of PyJWT patch level."""
+    header = {
+        "alg": "RS256",
+        "kid": "wanted",
+        "crit": ["urn:lineageweave:test-policy"],
+        "urn:lineageweave:test-policy": True,
+    }
+    monkeypatch.setattr(jwt, "get_unverified_header", lambda _token: header)
+    key = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": "y",
+        "e": "AQAB",
+    }
+
+    with pytest.raises(
+        JwksKeySelectionError,
+        match="critical JOSE header extensions are not supported",
+    ):
+        select_rs256_signing_key(
+            {"keys": [key]},
+            "parser-version-independent-token",
+            jwk_loader=lambda _value: object(),
+        )
+
+
 @pytest.mark.parametrize(
     ("header", "message"),
     [
