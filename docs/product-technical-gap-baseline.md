@@ -48,9 +48,13 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 ## Authentication / authorization stack
 
-Current auth authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c1b1841f1dfd7f014f78c82eac474b22806fdc58` → #1117 `0b5b5b5ca68c17f066a3c27d02c8d2b3464b50f2`.
+Current auth authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `66b0c7b648e7cfac0c9e2e7dee362791f0b600c7` → #1117 `99abce5329f36fb164958cb63623de31e5dd96b0`.
 
-Fresh #1120 review found that predecessor `931d7275...` admitted RFC 7518 §6.3.2 RSA private-key members (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`) into the verification candidate set. This violates the consumer's public-verification boundary and lets a leaked-private same-`kid` duplicate manufacture ambiguity against a valid public key. Test-first `b1f55e20edcbfe1d832aee6b4763d929bf20cf44` covers all private members plus the poisoning case. Causal fix `c1b1841f1dfd7f014f78c82eac474b22806fdc58` rejects private RSA material before candidate counting. Exact-head Tests `35451262624` is Draft-policy skipped, so this is source repair only. #1117 was ordinary/non-force converged; exact parent→child compare has merge-base `c1b1841f...`, `behind_by=0`, and README-only effective delta. Child Tests `35451305277` is also Draft-policy skipped.
+The earlier public-only JWKS repair remains in force: RED `b1f55e20edcbfe1d832aee6b4763d929bf20cf44` showed that RFC 7518 §6.3.2 RSA private-key members (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`) could enter verification candidate counting and poison same-`kid` uniqueness; causal fix `c1b1841f1dfd7f014f78c82eac474b22806fdc58` rejects those members before counting.
+
+Fresh review then found that present RFC 7517 `x5c` metadata was accepted without proving consistency with the RSA JWK itself. RFC 7517 §4.7 requires a non-empty certificate-value array encoded with ordinary Base64 DER, and the public key in the first certificate must match the public key represented by the JWK's other members. RED `aa7b768e0f80b861ea2a87c47e52d528fc1f0630` plus coverage extension `7c97e6d7d42d019129e2c49befbce4869dc146c8` covers matching/mismatched leaves, malformed and noncanonical Base64/DER, empty/non-array/non-string chains, non-string trailing entries, EC certificates on an RSA JWK, and contradictory same-`kid` poisoning. Causal fix `8296bf1ae92b05d85303598115b4c25bde18d74f` validates the leaf before candidate counting; `66b0c7b648e7cfac0c9e2e7dee362791f0b600c7` closes remaining Unicode/type edge coverage. Exact-head Tests `35453392726` is Draft-policy skipped, so this is source repair only.
+
+#1117 was ordinary/non-force reconstructed from the exact #1120 tree plus its existing README blob and advanced to `99abce5329f36fb164958cb63623de31e5dd96b0`. Fresh parent→child compare has merge-base `66b0c7b6...`, `behind_by=0`, and README-only effective delta. Child Tests `35453455079` is also Draft-policy skipped.
 
 Remaining auth RED: public-client password-grant consumers in backend/seed paths, public direct grants not yet safely disabled, metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0, and full browser Authorization Code + PKCE/session evidence is absent.
 
@@ -74,7 +78,7 @@ Canonical `.github/main` moved to `e6334e229581a918e2f22de18733b76fa65d7e71` aft
 | Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | source repaired / hosted pending | wait for fresh exact-head receipts; RCA/fix any new terminal RED; no stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `c1b1841f...` → #1117 `0b5b5b5c...` | migration RED / JWKS source repair | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof; retain public-only JWKS invariant |
+| Authentication | #899 → #1118 → #1120 `66b0c7b6...` → #1117 `99abce53...` | migration RED / JWKS source repair | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof; retain public-only and x5c-consistency JWKS invariants |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
