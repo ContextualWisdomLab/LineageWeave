@@ -12,10 +12,37 @@ from scripts.provision_local_service_accounts import (
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
+_VALID_SERVICE_CLIENTS = [
+    {
+        "clientId": "lineageweave-test-automation",
+        "enabled": True,
+        "publicClient": False,
+        "protocol": "openid-connect",
+        "standardFlowEnabled": False,
+        "directAccessGrantsEnabled": False,
+        "serviceAccountsEnabled": True,
+    },
+    {
+        "clientId": "lineageweave-test-admin",
+        "enabled": True,
+        "publicClient": False,
+        "protocol": "openid-connect",
+        "standardFlowEnabled": False,
+        "directAccessGrantsEnabled": False,
+        "serviceAccountsEnabled": True,
+    },
+]
 
 
-def _write_realm(path: Path, users: object) -> Path:
-    path.write_text(json.dumps({"users": users}))
+def _write_realm(path: Path, users: object, clients: object | None = None) -> Path:
+    path.write_text(
+        json.dumps(
+            {
+                "users": users,
+                "clients": _VALID_SERVICE_CLIENTS if clients is None else clients,
+            }
+        )
+    )
     return path
 
 
@@ -168,6 +195,64 @@ def test_service_subject_loader_rejects_missing_subject_id(tmp_path: Path) -> No
     )
 
     with pytest.raises(RuntimeError, match="non-empty subject id"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_missing_client_configuration(tmp_path: Path) -> None:
+    """A realm user alone must not turn an absent OAuth client into a machine actor."""
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
+        clients=[_VALID_SERVICE_CLIENTS[0]],
+    )
+
+    with pytest.raises(RuntimeError, match="lineageweave-test-admin.*client configuration"):
+        load_local_service_accounts(realm_path)
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value", "message"),
+    [
+        ("publicClient", True, "must be confidential"),
+        ("serviceAccountsEnabled", False, "must enable service accounts"),
+        ("directAccessGrantsEnabled", True, "must disable direct access grants"),
+        ("standardFlowEnabled", True, "must disable browser standard flow"),
+    ],
+)
+def test_service_subject_loader_rejects_non_machine_client_configuration(
+    tmp_path: Path,
+    field: str,
+    invalid_value: object,
+    message: str,
+) -> None:
+    """DB machine principals require the realm client to remain machine-only."""
+    clients = [dict(client) for client in _VALID_SERVICE_CLIENTS]
+    clients[0][field] = invalid_value
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
+        clients=clients,
+    )
+
+    with pytest.raises(RuntimeError, match=message):
         load_local_service_accounts(realm_path)
 
 
