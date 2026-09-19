@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import json
 import re
 from collections.abc import Callable
@@ -81,7 +82,7 @@ def _key_ops_allow_rs256_verification(key_ops: object) -> bool:
     return "verify" in operations and operations <= {"sign", "verify"}
 
 
-def _canonical_x5c_certificate(member: object) -> x509.Certificate | None:
+def _canonical_x5c_certificate(member: object) -> tuple[x509.Certificate, bytes] | None:
     """Decode one canonical ordinary-Base64 DER certificate from an x5c chain."""
     if not isinstance(member, str) or not member:
         return None
@@ -92,9 +93,48 @@ def _canonical_x5c_certificate(member: object) -> x509.Certificate | None:
         # every member so nonzero pad bits and alternate spellings fail closed.
         if base64.b64encode(der).decode("ascii") != member:
             return None
-        return x509.load_der_x509_certificate(der)
+        return x509.load_der_x509_certificate(der), der
     except (binascii.Error, UnicodeEncodeError, ValueError):
         return None
+
+
+def _canonical_base64url_digest(member: object, digest_size: int) -> bytes | None:
+    """Decode one fixed-width canonical unpadded Base64url digest."""
+    if not isinstance(member, str) or not member or "=" in member:
+        return None
+    try:
+        encoded = member.encode("ascii")
+        raw = base64.b64decode(
+            encoded + b"=" * (-len(encoded) % 4),
+            altchars=b"-_",
+            validate=True,
+        )
+    except (binascii.Error, UnicodeEncodeError, ValueError):
+        return None
+    if len(raw) != digest_size:
+        return None
+    canonical = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+    if canonical != member:
+        return None
+    return raw
+
+
+def _certificate_thumbprints_match(
+    key: dict[str, Any], leaf_der: bytes | None
+) -> bool:
+    """Validate RFC 7517 certificate thumbprints and compare them when x5c is present."""
+    for member, algorithm, digest_size in (
+        ("x5t", "sha1", 20),
+        ("x5t#S256", "sha256", 32),
+    ):
+        if member not in key:
+            continue
+        advertised = _canonical_base64url_digest(key[member], digest_size)
+        if advertised is None:
+            return False
+        if leaf_der is not None and advertised != hashlib.new(algorithm, leaf_der).digest():
+            return False
+    return True
 
 
 def _certificate_allows_signature_verification(certificate: x509.Certificate) -> bool:
@@ -110,25 +150,34 @@ def _certificate_allows_signature_verification(certificate: x509.Certificate) ->
     return key_usage.digital_signature or key_usage.content_commitment
 
 
-def _x5c_leaf_matches_rsa_public_key(
+def _x509_metadata_matches_rsa_public_key(
     key: dict[str, Any], modulus: int, exponent: int
 ) -> bool:
-    """Validate an RFC 7517 x5c chain and match its leaf to the JWK RSA key."""
+    """Validate RFC 7517 certificate metadata and match embedded x5c to JWK RSA."""
     if "x5c" not in key:
-        return True
+        # x5t and x5t#S256 are independent optional JWK members. Without an
+        # embedded certificate there is no local DER value to compare, but their
+        # advertised digest encodings still have exact RFC-defined widths.
+        return _certificate_thumbprints_match(key, None)
 
     chain = key["x5c"]
     if not isinstance(chain, list) or not chain:
         return False
 
     certificates: list[x509.Certificate] = []
+    certificate_ders: list[bytes] = []
     for member in chain:
-        certificate = _canonical_x5c_certificate(member)
-        if certificate is None:
+        parsed = _canonical_x5c_certificate(member)
+        if parsed is None:
             return False
+        certificate, der = parsed
         certificates.append(certificate)
+        certificate_ders.append(der)
 
     leaf = certificates[0]
+    leaf_der = certificate_ders[0]
+    if not _certificate_thumbprints_match(key, leaf_der):
+        return False
     public_key = leaf.public_key()
     if not isinstance(public_key, rsa.RSAPublicKey):
         return False
@@ -162,22 +211,24 @@ def select_rs256_signing_key(
     array whose every member is canonical ordinary-Base64 DER for a valid X.509
     certificate; its first certificate must contain an RSA public key, exactly match
     the JWK ``n`` / ``e`` public key, and, when X.509 KeyUsage is present, permit
-    verification of ordinary digital signatures. RFC 7517 requires certificate
-    metadata to remain semantically consistent with the JWK; RFC 5280 section
-    4.2.1.3 makes an encryption-only leaf incompatible with this RS256 verifier.
-    RFC 7518 section 6.3.2 private RSA members are rejected before candidate
-    counting: this verifier consumes public signing material and must never admit
-    leaked private exponents, prime factors, CRT parameters, or multi-prime private
-    information. RFC 7518 section 3.3 requires RSA keys used with RS256 to be at
-    least 2048 bits. RFC 8017 section 3.1 defines the modulus as a product of
-    distinct odd primes, so an RSA modulus is odd, and requires the public exponent
-    to be between three and ``n - 1``. Even exponents are invalid because the
-    exponent must also be coprime to the modulus factors' Carmichael value. RFC 7517
-    section 4.3 forbids duplicate ``key_ops`` entries and warns against unrelated
-    operation pairs, so an advertised operation set may contain only the related
-    sign/verify pair and must include ``verify``. LineageWeave implements no JWS
-    critical-header extensions, so any ``crit`` declaration fails closed as
-    required by RFC 7515 section 4.1.11.
+    verification of ordinary digital signatures. Optional RFC 7517 ``x5t`` and
+    ``x5t#S256`` members must be canonical unpadded Base64url SHA-1/SHA-256 digests
+    of the RFC-defined width; when ``x5c`` is present they must exactly match the
+    first certificate's DER bytes. RFC 7517 requires certificate metadata to remain
+    semantically consistent with the JWK; RFC 5280 section 4.2.1.3 makes an
+    encryption-only leaf incompatible with this RS256 verifier. RFC 7518 section
+    6.3.2 private RSA members are rejected before candidate counting: this verifier
+    consumes public signing material and must never admit leaked private exponents,
+    prime factors, CRT parameters, or multi-prime private information. RFC 7518
+    section 3.3 requires RSA keys used with RS256 to be at least 2048 bits. RFC 8017
+    section 3.1 defines the modulus as a product of distinct odd primes, so an RSA
+    modulus is odd, and requires the public exponent to be between three and ``n -
+    1``. Even exponents are invalid because the exponent must also be coprime to the
+    modulus factors' Carmichael value. RFC 7517 section 4.3 forbids duplicate
+    ``key_ops`` entries and warns against unrelated operation pairs, so an advertised
+    operation set may contain only the related sign/verify pair and must include
+    ``verify``. LineageWeave implements no JWS critical-header extensions, so any
+    ``crit`` declaration fails closed as required by RFC 7515 section 4.1.11.
     """
     try:
         header = jwt.get_unverified_header(token)
@@ -235,7 +286,7 @@ def select_rs256_signing_key(
             or exponent >= modulus
         ):
             continue
-        if not _x5c_leaf_matches_rsa_public_key(key, modulus, exponent):
+        if not _x509_metadata_matches_rsa_public_key(key, modulus, exponent):
             continue
         candidates.append(key)
 
