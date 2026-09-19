@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException
+
 from backend.app.auth import resolve_current_account
 from backend.app.post_eligibility import source_post_visible
 
@@ -105,3 +108,30 @@ def test_local_oidc_null_process_affiliation_remains_corporate_wide() -> None:
         account.corporate_entity_ids,
         account.process_unit_ids,
     )
+
+
+def test_local_oidc_rejects_unrepresentable_mixed_corporate_wildcard_scope() -> None:
+    """A wildcard in one corporation must not widen a scoped second corporation."""
+    with pytest.raises(HTTPException) as caught:
+        _resolve(
+            [
+                {"corporate_entity_id": "corp-wide", "process_unit_id": None},
+                {"corporate_entity_id": "corp-scoped", "process_unit_id": "pu-1"},
+            ]
+        )
+
+    assert caught.value.status_code == 403
+    assert "mixed corporate-wide and process-unit scopes" in str(caught.value.detail)
+
+
+def test_local_oidc_all_corporations_may_be_explicitly_corporate_wide() -> None:
+    """Flat empty-PU scope is valid when every authorized corporation is wildcarded."""
+    account = _resolve(
+        [
+            {"corporate_entity_id": "corp-1", "process_unit_id": None},
+            {"corporate_entity_id": "corp-2", "process_unit_id": None},
+        ]
+    )
+
+    assert account.corporate_entity_ids == frozenset({"corp-1", "corp-2"})
+    assert account.process_unit_ids == frozenset()
