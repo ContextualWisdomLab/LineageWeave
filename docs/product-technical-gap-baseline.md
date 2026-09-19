@@ -36,7 +36,7 @@ Malformed hierarchy presentation remains #996 exact `a640df40839ed7e2a15b9ab95a7
 
 ## Authentication / authorization stack
 
-Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `801687f78deb444605c63a6b9ed6c2cb9ddf46b5` → README child #1117 `71f73c2585c229dabbd8f2621b5a2443a6e84827`.
+Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `ad351c1522121cb8e126bc17d838ebabd4b19608` → README child #1117 `fedf57fa78b78a46280bb497c8597572982520b2`.
 
 #1120 closes the previously missing normalized local machine/admin authorization prerequisite at source level. Test-first contract `d6d01091ae7a07542821f4af7c517ee320e2e01e` preceded implementation `929095f18c62b0ef82dacf2cff1096a9407a01c1`; `1eb70c0c6a9f8e14f92852c76d7c2dd224c095a9` wires provisioning after the Demo Corp domain seed; `f6d788d5c4e7b255667a5137825ebf2e75a8da12` cross-checks the bindings against the realm fixture; ADR 0028 remains the normalized-service-actor decision record.
 
@@ -46,7 +46,11 @@ Fresh review found two authorization prerequisites that made direct reuse of tho
 
 The first repair exposed a second representation hazard. `CurrentAccount` carries one flat corporate-entity set and one flat process-unit set, while an empty process-unit set is corporate-wide for every authorized corporation. An account with `{corp-wide, NULL}` plus `{corp-scoped, pu-1}` therefore cannot be represented faithfully: collapsing on the wildcard would widen `corp-scoped` to every PU. Source RED `bca160c72ec322a6d4047a60cde0bf6c2920496e` requires fail-closed behavior for this mixed shape and preserves the valid case where every authorized corporation is explicitly wildcarded. Causal fix `801687f78deb444605c63a6b9ed6c2cb9ddf46b5` computes authorized and wildcard corporate IDs separately, preserves exact PU bindings when no wildcard exists, permits empty-PU corporate-wide semantics only when every authorized corporation is explicitly wildcarded, and returns HTTP 403 when only a subset is wildcarded.
 
-These are source repairs, not hosted acceptance: #1120 exact-head Tests `35425181597` is terminal `skipped` by Draft admission. README child #1117 was immediately ordinary/non-force converged to `71f73c2585c229dabbd8f2621b5a2443a6e84827`; fresh parent→child compare has merge-base exactly `801687f7...`, `behind_by=0`, with `README.md` as the sole effective child delta.
+Shared JWT/JWK review then found a mathematically invalid candidate class still crossing the fail-closed admission boundary. The selector already required canonical Base64urlUInt, a ≥2048-bit modulus, and an odd exponent ≥3, but did not reject `e >= n`. RFC 8017 §3.1 requires a valid RSA public exponent to be between 3 and `n - 1`. Test-first commit `eb35bacb8c0478af01db46b8052fa2f937616ff0` demonstrates both direct admission of `e == n` and false same-`kid` ambiguity against one valid key. Focused execution against the predecessor selector under the lock-resolved PyJWT 2.13.0 produced `2 failed`; causal fix `ad351c1522121cb8e126bc17d838ebabd4b19608` reuses the decoded modulus and excludes `e >= n` before candidate counting/loading, after which the same focused cases produced `2 passed`.
+
+Two intervening commits after `801687f7...` added and removed a non-running one-shot ROPC migration workflow (`ec6028ef...` → `fdf210e3...`). Their net product-tree delta is zero and no migration result is inferred from them. Parent movement was propagated to #1117. An initial history-only convergence `041f5c7d...` preserved the old child tree and therefore exposed parent auth/test deltas as apparent child reversions; `fedf57fa...` immediately reconstructed the child from exact parent `ad351c15...` plus the existing README blob. Fresh parent→child compare now has merge-base exact `ad351c15...`, `behind_by=0`, and only `README.md` as effective child delta.
+
+These are source/focused repairs, not hosted acceptance: #1120 exact-head Tests `35426248666` is terminal `skipped` by Draft admission.
 
 Remaining auth RED is explicit:
 
@@ -54,7 +58,7 @@ Remaining auth RED is explicit:
 - `scripts/seed_demo_data.py` still uses `admin-cli` password grant only to rediscover deterministic human fixture subjects and uses `demo.analyst` password grant for post-content warm-up.
 - Therefore the public `lineageweave-frontend` fixture still has `directAccessGrantsEnabled=true`; disabling it before consumer migration would break current evidence paths rather than complete the OAuth repair.
 - Project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0; the safe declared floor/lock must be reconciled before release.
-- Required order: migrate remaining password-grant consumers while keeping distinct human authorization semantics → disable public direct grants → align dependency metadata/lock → prove one exact-head hosted repository/security/static-analysis GREEN set → prove rendered Authorization Code + PKCE state/nonce/return-URL/session behavior.
+- Required order: migrate remaining password-grant consumers while keeping distinct authorization semantics → disable public direct grants → align dependency metadata/lock → prove one exact-head hosted repository/security/static-analysis GREEN set → prove rendered Authorization Code + PKCE state/nonce/return-URL/session behavior.
 
 ## Report / comparison stack
 
@@ -82,7 +86,7 @@ Before publication, one protected exact candidate must prove built/installed pac
 | Customer Master hierarchy | #996 `a640df40...` | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
 | Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | obtain final-head repository + Chromium + security evidence |
 | Python CodeQL baseline | #974 `4341080f...` → #979 `2dfd211...` | owner-control RED | canonical `.github#1929` verdict publication/consumer settlement |
-| Local OIDC topology | #1120 `801687f7...` → #1117 `71f73c25...` | machine/admin + local scope source prerequisites repaired; migration still RED | remove remaining human/admin password-grant consumers, disable public direct grants, full/browser proof |
+| Local OIDC topology | #1120 `ad351c15...` → #1117 `fedf57fa...` | machine/admin + local scope + RSA admission source prerequisites repaired; migration still RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
 | Report axis/comparison | #875 `d1f96f97...` → #876/#877 → #1033/#1034 | source-repaired stack / hosted acceptance incomplete | terminal exact-head hosted validation without receipt transfer |
 | Frontend delivery performance | #995 `dbe5ac54...` | RED | commit exact-head representative cold buyer-path evidence and repair if over budget |
 | MCP buyer latency | #1009 `4fff982a...` | RED | representative uncontended profile and causal hot-path repair to p95 ≤20 ms |
