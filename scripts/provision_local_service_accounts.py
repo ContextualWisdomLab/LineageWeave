@@ -119,6 +119,8 @@ def _validate_machine_client(
         raise RuntimeError(f"realm client {client_id!r} must disable direct access grants")
     if client.get("standardFlowEnabled") is not False:
         raise RuntimeError(f"realm client {client_id!r} must disable browser standard flow")
+    if client.get("implicitFlowEnabled") is not False:
+        raise RuntimeError(f"realm client {client_id!r} must disable implicit flow")
     secret = client.get("secret")
     if not isinstance(secret, str) or not secret.strip():
         raise RuntimeError(f"realm client {client_id!r} must declare a client secret")
