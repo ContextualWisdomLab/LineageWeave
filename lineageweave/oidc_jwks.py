@@ -26,7 +26,7 @@ _BASE64URL_UINT = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 def _base64url_uint_value(value: object) -> int | None:
-    """Decode one canonical unpadded Base64urlUInt, or return ``None`` if invalid."""
+    """Decode one canonical minimal unpadded Base64urlUInt, or return ``None``."""
     if not isinstance(value, str) or _BASE64URL_UINT.fullmatch(value) is None:
         return None
     try:
@@ -37,6 +37,11 @@ def _base64url_uint_value(value: object) -> int | None:
             validate=True,
         )
     except (binascii.Error, ValueError):
+        return None
+    # RFC 7518 Base64urlUInt uses the minimum unsigned big-endian octet
+    # sequence. A leading zero therefore makes every multi-octet value
+    # noncanonical; zero itself is the one-octet sequence b"\x00" ("AA").
+    if len(raw) > 1 and raw[0] == 0:
         return None
     return int.from_bytes(raw, "big")
 
@@ -60,12 +65,12 @@ def select_rs256_signing_key(
     one matching JWK must be an RSA signing/verification key whose advertised
     algorithm, use, key operations, modulus, and public exponent do not contradict
     RS256 verification. Both ``n`` and ``e`` must be canonical unpadded
-    Base64urlUInt values. RFC 7518 section 3.3 requires RSA keys used with RS256 to
-    be at least 2048 bits. The public exponent must also satisfy the basic RSA
-    public-key constraints enforced by the downstream cryptography implementation:
-    odd and at least three. LineageWeave implements no JWS critical-header
-    extensions, so any ``crit`` declaration fails closed as required by RFC 7515
-    section 4.1.11.
+    Base64urlUInt values using the minimum unsigned big-endian octet sequence.
+    RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
+    The public exponent must also satisfy the basic RSA public-key constraints
+    enforced by the downstream cryptography implementation: odd and at least three.
+    LineageWeave implements no JWS critical-header extensions, so any ``crit``
+    declaration fails closed as required by RFC 7515 section 4.1.11.
     """
     try:
         header = jwt.get_unverified_header(token)
