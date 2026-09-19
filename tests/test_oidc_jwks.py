@@ -156,6 +156,37 @@ def test_rejects_rsa_modulus_below_rfc7518_minimum_before_loading() -> None:
     assert loaded == []
 
 
+@pytest.mark.parametrize(
+    "modulus",
+    [
+        base64.b64encode(b"\xff" * 256).rstrip(b"=").decode(),
+        base64.urlsafe_b64encode(b"\xff" * 256).decode(),
+    ],
+)
+def test_rejects_noncanonical_base64urluint_modulus_before_loading(modulus: str) -> None:
+    """JWK Base64urlUInt accepts neither standard Base64 alphabet nor padding."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    loaded: list[str] = []
+    key = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": modulus,
+        "e": "AQAB",
+    }
+
+    with pytest.raises(JwksKeySelectionError, match="no JWKS key matched"):
+        select_rs256_signing_key(
+            {"keys": [key]},
+            token,
+            jwk_loader=lambda value: loaded.append(value) or object(),
+        )
+
+    assert loaded == []
+
+
 def test_rejects_non_verification_jwks_and_invalid_key_sets() -> None:
     token = _token({"alg": "RS256", "kid": "wanted"})
     rejected = [
@@ -189,6 +220,33 @@ def test_rejects_non_verification_jwks_and_invalid_key_sets() -> None:
             "use": "sig",
             "key_ops": ["verify"],
             "n": "*",
+            "e": "AQAB",
+        },
+        {
+            "kid": "wanted",
+            "kty": "RSA",
+            "alg": "RS256",
+            "use": "sig",
+            "key_ops": ["verify"],
+            "n": "AA==",
+            "e": "AQAB",
+        },
+        {
+            "kid": "wanted",
+            "kty": "RSA",
+            "alg": "RS256",
+            "use": "sig",
+            "key_ops": ["verify"],
+            "n": "AA+_",
+            "e": "AQAB",
+        },
+        {
+            "kid": "wanted",
+            "kty": "RSA",
+            "alg": "RS256",
+            "use": "sig",
+            "key_ops": ["verify"],
+            "n": "A",
             "e": "AQAB",
         },
     ]
