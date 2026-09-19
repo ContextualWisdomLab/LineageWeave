@@ -48,19 +48,21 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 ## Authentication / authorization stack
 
-Current auth authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `66b0c7b648e7cfac0c9e2e7dee362791f0b600c7` → #1117 `99abce5329f36fb164958cb63623de31e5dd96b0`.
+Current auth authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `04e042f021fc4749bd2835116ae5cb247f2c90c7` → #1117 `2b23a1ee07ee19386e1fd16dafbf521dc0f6ac6f`.
 
 The earlier public-only JWKS repair remains in force: RED `b1f55e20edcbfe1d832aee6b4763d929bf20cf44` showed that RFC 7518 §6.3.2 RSA private-key members (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`) could enter verification candidate counting and poison same-`kid` uniqueness; causal fix `c1b1841f1dfd7f014f78c82eac474b22806fdc58` rejects those members before counting.
 
-Fresh review then found that present RFC 7517 `x5c` metadata was accepted without proving consistency with the RSA JWK itself. RFC 7517 §4.7 requires a non-empty certificate-value array encoded with ordinary Base64 DER, and the public key in the first certificate must match the public key represented by the JWK's other members. RED `aa7b768e0f80b861ea2a87c47e52d528fc1f0630` plus coverage extension `7c97e6d7d42d019129e2c49befbce4869dc146c8` covers matching/mismatched leaves, malformed and noncanonical Base64/DER, empty/non-array/non-string chains, non-string trailing entries, EC certificates on an RSA JWK, and contradictory same-`kid` poisoning. Causal fix `8296bf1ae92b05d85303598115b4c25bde18d74f` validates the leaf before candidate counting; `66b0c7b648e7cfac0c9e2e7dee362791f0b600c7` closes remaining Unicode/type edge coverage. Exact-head Tests `35453392726` is Draft-policy skipped, so this is source repair only.
+The earlier RFC 7517 `x5c` repair also remains in force. RED `aa7b768e0f80b861ea2a87c47e52d528fc1f0630` plus coverage extension `7c97e6d7d42d019129e2c49befbce4869dc146c8` proved that contradictory/malformed leaf certificate metadata could enter candidate counting; causal fix `8296bf1ae92b05d85303598115b4c25bde18d74f` validates the leaf, and `66b0c7b648e7cfac0c9e2e7dee362791f0b600c7` closes remaining leaf type/Unicode edges.
 
-#1117 was ordinary/non-force reconstructed from the exact #1120 tree plus its existing README blob and advanced to `99abce5329f36fb164958cb63623de31e5dd96b0`. Fresh parent→child compare has merge-base `66b0c7b6...`, `behind_by=0`, and README-only effective delta. Child Tests `35453455079` is also Draft-policy skipped.
+Fresh review then found a narrower remaining §4.7 gap in `66b0c7b6...`: the selector required every `x5c` entry to be a non-empty string but decoded and parsed only `x5c[0]`. RFC 7517 defines every array entry as a Base64-encoded DER PKIX certificate. A valid matching leaf followed by malformed certificate text could therefore enter candidate counting, and a same-`kid` malformed-chain duplicate could manufacture ambiguity against an otherwise valid public JWK. Test-first commit `3d9fb8f220347686243dc8d341d7a55af14fc6cc` adds malformed trailing-member and same-`kid` poisoning contracts. Causal fix `04e042f021fc4749bd2835116ae5cb247f2c90c7` requires every advertised chain member to be canonical ordinary Base64 and parseable X.509 DER before the leaf is admitted, while retaining exact RSA `n`/`e` equality for the leaf. No `x5u` retrieval, trust-anchor ownership, or provider topology is copied into LineageWeave. Exact-head Tests `35456024370` is Draft-policy skipped, so this is source repair only rather than repository-wide GREEN.
+
+#1117 was ordinary/non-force reconstructed from the exact new #1120 tree plus its existing README blob and advanced to `2b23a1ee07ee19386e1fd16dafbf521dc0f6ac6f`. Fresh parent→child compare has merge-base exactly `04e042f0...`, `behind_by=0`, and README-only effective delta. No predecessor child workflow receipt transfers.
 
 Remaining auth RED: public-client password-grant consumers in backend/seed paths, public direct grants not yet safely disabled, metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0, and full browser Authorization Code + PKCE/session evidence is absent.
 
 ## Central CodeQL / owner workflows
 
-Canonical `.github/main` moved to `e6334e229581a918e2f22de18733b76fa65d7e71` after the GitHub API URL authority repair. Required owner checks remain centralized; LineageWeave must not fork provider-group or CodeQL owner logic locally. Any PR body or document still naming `64aa08d7...` as current canonical head is stale and must be refreshed before relying on owner receipts.
+Canonical `.github/main` remains `e6334e229581a918e2f22de18733b76fa65d7e71` after the GitHub API URL authority repair. Required owner checks remain centralized; LineageWeave must not fork provider-group or CodeQL owner logic locally. Any PR body or document still naming `64aa08d7...` as current canonical head is stale and must be refreshed before relying on owner receipts.
 
 ## Performance and immutable delivery
 
@@ -78,7 +80,7 @@ Canonical `.github/main` moved to `e6334e229581a918e2f22de18733b76fa65d7e71` aft
 | Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | source repaired / hosted pending | wait for fresh exact-head receipts; RCA/fix any new terminal RED; no stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `66b0c7b6...` → #1117 `99abce53...` | migration RED / JWKS source repair | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof; retain public-only and x5c-consistency JWKS invariants |
+| Authentication | #899 → #1118 → #1120 `04e042f0...` → #1117 `2b23a1ee...` | migration RED / JWKS source repair | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof; retain public-only and full-x5c-syntax/leaf-consistency invariants |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
