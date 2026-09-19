@@ -97,6 +97,19 @@ def _canonical_x5c_certificate(member: object) -> x509.Certificate | None:
         return None
 
 
+def _certificate_allows_signature_verification(certificate: x509.Certificate) -> bool:
+    """Honor an X.509 KeyUsage restriction when the embedded leaf declares one."""
+    try:
+        key_usage = certificate.extensions.get_extension_for_class(x509.KeyUsage).value
+    except x509.ExtensionNotFound:
+        return True
+    # RFC 5280 section 4.2.1.3 assigns digitalSignature and nonRepudiation
+    # (``content_commitment`` in cryptography) to verification of signatures on
+    # objects other than certificates/CRLs. An encryption-only leaf therefore
+    # contradicts this verifier's actual RS256 use even when its RSA n/e match.
+    return key_usage.digital_signature or key_usage.content_commitment
+
+
 def _x5c_leaf_matches_rsa_public_key(
     key: dict[str, Any], modulus: int, exponent: int
 ) -> bool:
@@ -115,11 +128,16 @@ def _x5c_leaf_matches_rsa_public_key(
             return False
         certificates.append(certificate)
 
-    public_key = certificates[0].public_key()
+    leaf = certificates[0]
+    public_key = leaf.public_key()
     if not isinstance(public_key, rsa.RSAPublicKey):
         return False
     numbers = public_key.public_numbers()
-    return numbers.n == modulus and numbers.e == exponent
+    return (
+        numbers.n == modulus
+        and numbers.e == exponent
+        and _certificate_allows_signature_verification(leaf)
+    )
 
 
 def select_rs256_signing_key(
@@ -142,21 +160,24 @@ def select_rs256_signing_key(
     minimum unsigned big-endian octet sequence and RFC 4648 canonical zero pad bits.
     When an RFC 7517 ``x5c`` certificate chain is present, it must be a non-empty
     array whose every member is canonical ordinary-Base64 DER for a valid X.509
-    certificate; its first certificate must contain an RSA public key and exactly
-    match the JWK ``n`` / ``e`` public key before the JWK can enter candidate
-    counting. RFC 7518 section 6.3.2 private RSA members are rejected before
-    candidate counting: this verifier consumes public signing material and must
-    never admit leaked private exponents, prime factors, CRT parameters, or
-    multi-prime private information. RFC 7518 section 3.3 requires RSA keys used
-    with RS256 to be at least 2048 bits. RFC 8017 section 3.1 defines the modulus
-    as a product of distinct odd primes, so an RSA modulus is odd, and requires the
-    public exponent to be between three and ``n - 1``. Even exponents are invalid
-    because the exponent must also be coprime to the modulus factors' Carmichael
-    value. RFC 7517 section 4.3 forbids duplicate ``key_ops`` entries and warns
-    against unrelated operation pairs, so an advertised operation set may contain
-    only the related sign/verify pair and must include ``verify``. LineageWeave
-    implements no JWS critical-header extensions, so any ``crit`` declaration fails
-    closed as required by RFC 7515 section 4.1.11.
+    certificate; its first certificate must contain an RSA public key, exactly match
+    the JWK ``n`` / ``e`` public key, and, when X.509 KeyUsage is present, permit
+    verification of ordinary digital signatures. RFC 7517 requires certificate
+    metadata to remain semantically consistent with the JWK; RFC 5280 section
+    4.2.1.3 makes an encryption-only leaf incompatible with this RS256 verifier.
+    RFC 7518 section 6.3.2 private RSA members are rejected before candidate
+    counting: this verifier consumes public signing material and must never admit
+    leaked private exponents, prime factors, CRT parameters, or multi-prime private
+    information. RFC 7518 section 3.3 requires RSA keys used with RS256 to be at
+    least 2048 bits. RFC 8017 section 3.1 defines the modulus as a product of
+    distinct odd primes, so an RSA modulus is odd, and requires the public exponent
+    to be between three and ``n - 1``. Even exponents are invalid because the
+    exponent must also be coprime to the modulus factors' Carmichael value. RFC 7517
+    section 4.3 forbids duplicate ``key_ops`` entries and warns against unrelated
+    operation pairs, so an advertised operation set may contain only the related
+    sign/verify pair and must include ``verify``. LineageWeave implements no JWS
+    critical-header extensions, so any ``crit`` declaration fails closed as
+    required by RFC 7515 section 4.1.11.
     """
     try:
         header = jwt.get_unverified_header(token)
