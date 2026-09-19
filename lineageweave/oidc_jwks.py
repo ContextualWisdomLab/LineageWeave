@@ -46,12 +46,6 @@ def _base64url_uint_value(value: object) -> int | None:
     return int.from_bytes(raw, "big")
 
 
-def _rsa_modulus_bit_length(modulus: object) -> int | None:
-    """Return an RSA JWK modulus bit length, or ``None`` for invalid Base64urlUInt."""
-    value = _base64url_uint_value(modulus)
-    return None if value is None else value.bit_length()
-
-
 def select_rs256_signing_key(
     jwks: dict[str, Any],
     token: str,
@@ -67,8 +61,9 @@ def select_rs256_signing_key(
     RS256 verification. Both ``n`` and ``e`` must be canonical unpadded
     Base64urlUInt values using the minimum unsigned big-endian octet sequence.
     RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
-    The public exponent must also satisfy the basic RSA public-key constraints
-    enforced by the downstream cryptography implementation: odd and at least three.
+    RFC 8017 section 3.1 requires the public exponent to be an integer between
+    three and ``n - 1``; even exponents are invalid because a valid RSA modulus is
+    odd and the exponent must be coprime to the modulus factors' Carmichael value.
     LineageWeave implements no JWS critical-header extensions, so any ``crit``
     declaration fails closed as required by RFC 7515 section 4.1.11.
     """
@@ -109,11 +104,16 @@ def select_rs256_signing_key(
             not isinstance(key_ops, list) or "verify" not in key_ops
         ):
             continue
-        modulus_bits = _rsa_modulus_bit_length(key.get("n"))
-        if modulus_bits is None or modulus_bits < 2048:
+        modulus = _base64url_uint_value(key.get("n"))
+        if modulus is None or modulus.bit_length() < 2048:
             continue
         exponent = _base64url_uint_value(key.get("e"))
-        if exponent is None or exponent < 3 or exponent % 2 == 0:
+        if (
+            exponent is None
+            or exponent < 3
+            or exponent % 2 == 0
+            or exponent >= modulus
+        ):
             continue
         candidates.append(key)
 
