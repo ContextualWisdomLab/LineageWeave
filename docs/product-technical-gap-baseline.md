@@ -12,69 +12,55 @@
 
 ## Protected and canonical-owner references
 
-- LineageWeave protected base: `main@83eba56149eb802cd63642c507c324c9976ec78e`; the commit is signature-valid.
-- Canonical reusable-workflow owner: `ContextualWisdomLab/.github@64aa08d7fa487deacd41c761c36277ca68cab6c9`; the commit is signature-valid and the branch remains protected.
-- These references are re-read at delivery time; this file does not freeze future protected movement.
+- LineageWeave protected base remains recorded as `main@83eba56149eb802cd63642c507c324c9976ec78e`; re-read before any merge or release.
+- Canonical reusable-workflow owner remains recorded as `ContextualWisdomLab/.github@64aa08d7fa487deacd41c761c36277ca68cab6c9`; re-read before relying on an owner-path receipt.
+- These references are live authorities, not frozen dependencies.
 
 ## Customer Master / translation authority
 
-The PostgreSQL translation-ledger owner remains #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`, Draft. Its known exact Tests receipt is terminal RED in the PostgreSQL suite while frontend lint/test/build/Storybook is GREEN. Required Dependency Review and CodeQL remain canonical `.github` owner-path failures rather than LineageWeave-local scanner exceptions.
-
-Customer Master presentation #932 remains stacked on #929. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource is still a draft pending independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence. Malformed-hierarchy presentation #996 remains gated by that translation/read-model prerequisite and separate Customer Master authorization work.
+The PostgreSQL translation-ledger owner remains #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`, Draft, with a known PostgreSQL-suite RED and canonical Dependency Review/CodeQL owner-path gaps. Customer Master presentation #932 remains dependent on #929. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource still requires independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence. Malformed-hierarchy presentation #996 remains gated by the translation/read-model prerequisite and separate Customer Master authorization work.
 
 ## Accessibility / material UI
 
-#977 exact `c614d683414b0af1af006c96ed53169ab5b21ee2` repaired stale App selectors after focused hosted validation of the LeftoverPairList accessibility edit. Its final-head repository/browser acceptance is still absent because the final Tests receipt completed without executable jobs. Component-level evidence is not a substitute for current-head Chromium/keyboard/focus/touch/mobile/security acceptance.
+#977 exact `c614d683414b0af1af006c96ed53169ab5b21ee2` repaired stale pair-list selectors after focused hosted validation, but final-head repository/browser acceptance remains absent. Component evidence is not a substitute for current-head Chromium, keyboard/focus, touch/mobile, responsive, localization, and security acceptance.
 
 ## Central CodeQL owner settlement
 
-#974 exact `4341080f6027d869acb08896e41d761c3f3b8e77` retains current-head Tests/SAST/Security GREEN but required CodeQL is terminal RED at canonical dispatch-verdict settlement. The specimen remains an owner-path issue for `.github`; no LineageWeave-local CodeQL fork, status synthesis, or gate weakening is permitted. Child #979 remains dependent on that settlement.
+#974 exact `4341080f6027d869acb08896e41d761c3f3b8e77` retains Tests/SAST/Security evidence but required CodeQL remains an owner-path settlement problem. No LineageWeave-local CodeQL fork, synthetic status, or gate weakening is permitted; dependent #979 remains gated on canonical `.github` publication/consumption.
 
 ## Authentication / authorization stack
 
-Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c8da74f3b231b61f04cc040fed1c8e96f36ae66c` → README child #1117 `ca69b521bc862bbf686c721f274ac44b33229e6b`.
+Recorded authority remains #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c8da74f3b231b61f04cc040fed1c8e96f36ae66c` → README child #1117 `ca69b521bc862bbf686c721f274ac44b33229e6b`.
 
-#1120 retains the normalized local service-account prerequisite. The realm fixture gives automation subject `33333333-3333-4333-8333-333333333333` `DEMO-PU-A` + `viewer` and a distinct admin-test subject `44444444-4444-4444-8444-444444444444` `DEMO-PU-HQ` + `admin`. The PostgreSQL-only provisioner replaces only those deterministic actors' affiliations/roles and does not authenticate to Keycloak or mint tokens.
+#1120 repaired shared JWT/JWK candidate admission through explicit optional-member typing, RFC 7517 `key_ops`, RSA modulus/exponent constraints, canonical unpadded Base64urlUInt, and canonical terminal pad-bit round-trip checks. Those are source/focused repairs; the exact-head Tests receipt was Draft-skipped and is not repository acceptance.
 
-Local authorization review already repaired two representation hazards. PU affiliations dropped by local account resolution were restored (`87d52c4c...` → `405b7ed8...` → edge proof `87e9aceb...`). The unrepresentable mixed `{corp-wide,NULL}` plus `{corp-scoped,pu}` shape now fails closed instead of widening a scoped corporation (`bca160c7...` → `801687f7...`).
-
-The shared JWT/JWK selector closes candidate-admission classes before loader/candidate counting: unsupported `crit`; malformed/noncanonical Base64urlUInt; RSA modulus below 2048 bits; invalid exponent encoding/range; `e >= n`; even modulus; nonconformant RFC 7517 `key_ops`; explicitly null optional metadata; and now noncanonical nonzero Base64url terminal pad bits.
-
-The earlier `key_ops` repair rejected duplicate operation values, non-string members, and unrelated `verify` + `encrypt` combinations. Test-first `6e9ca95a...` / `29d394b9...` produced `4 failed, 1 passed` against predecessor `81b8de43...`; causal fix `fbed153f...` produced `5 passed` in the focused set under PyJWT 2.13.0.
-
-RFC 7517 review then found that predecessor `fbed153f...` used `.get()` semantics for optional `alg`, `use`, and `key_ops`, so explicit JSON `null` was indistinguishable from member absence. Those members are optional by absence but have defined JSON types when present. A malformed same-`kid` null-valued key could therefore enter candidate counting and manufacture false ambiguity.
-
-Test-first `68af99be64e18ab4e07c28a2440b4e0420df5844` adds direct rejection and same-`kid` ambiguity cases for explicit-null `alg`, `use`, and `key_ops`. Causal fix `234d5c05aedd573cd6bbf37dfe1019afd0a67c40` distinguishes absent members from present values: optional strings must be exact strings when present, and present `key_ops` must be a conformant list.
-
-Fresh RFC 4648 §3.5 review found one more canonical-encoding gap on `234d5c05...`: Python's Base64 decoder accepts strings whose unused terminal pad bits are nonzero, so distinct Base64url spellings can decode to the same RSA `n` or `e` octets. Because candidate uniqueness is decided before the JWK loader, an equivalent-but-noncanonical same-`kid` modulus could also manufacture false ambiguity. Test-first `1ee1c470934c859f493e81bfd489a51dfa646fd5` covers both `n` and a one-octet exponent plus same-`kid` poisoning. Causal fix `c8da74f3b231b61f04cc040fed1c8e96f36ae66c` round-trips decoded bytes through canonical unpadded Base64url before admitting the key, while retaining the separate RFC 7518 minimum-octet check.
-
-#1117 was immediately ordinary/non-force converged by rebuilding from exact parent `c8da74f3...` plus its existing README blob. Exact parent→child compare has merge-base `c8da74f3...`, `behind_by=0`, and only `README.md` as effective child delta; child head is `ca69b521bc862bbf686c721f274ac44b33229e6b`.
-
-These are source/focused repairs, not hosted repository acceptance. #1120 exact-head Tests `35431238139` is terminal `skipped` by Draft admission.
-
-Remaining auth RED is explicit:
-
-- `backend/tests/test_api.py` still uses public `lineageweave-frontend` password grants for distinct analyst/admin authorization evidence.
-- `scripts/seed_demo_data.py` still uses `admin-cli` password grant to rediscover deterministic human fixture subjects and `demo.analyst` password grant for post-content warm-up.
-- The public realm client therefore still has `directAccessGrantsEnabled=true`; disabling it before consumer migration would break current evidence paths rather than complete the OAuth repair.
-- Project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0.
-- Required order remains: migrate remaining password-grant consumers while preserving distinct authorization semantics → disable public direct grants → align dependency metadata/lock → prove one exact-head hosted repository/security/static-analysis GREEN set → prove rendered Authorization Code + PKCE state/nonce/return-URL/session behavior.
+Remaining auth RED is unchanged: `backend/tests/test_api.py` still uses public `lineageweave-frontend` password grants for distinct analyst/admin authorization evidence; `scripts/seed_demo_data.py` still uses `admin-cli` password grant for deterministic-human subject rediscovery plus analyst ROPC warm-up; the public realm client therefore cannot yet be claimed migrated with `directAccessGrantsEnabled=false`; project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0. Required order remains consumer migration with authorization semantics preserved → disable public direct grants → align metadata/lock → exact-head repository/security/static-analysis GREEN → rendered Authorization Code + PKCE state/nonce/return-URL/session proof.
 
 ## Report / comparison stack
 
-The current recorded report-axis chain is #874 `02eeb4b396de4d8077512d30d9492c31ab64155b` → #875 `d1f96f97eb79a5498f312293217191c45611ef45`, with direct children #876 `a8ba471ffedfb0f6007706d758ee4a8bd5b37464` and #877 `0f1adc5b6468e1e7b3d06d822402358ce5783505`; #876 continues through #1033 `c8e6b6f55e65f270a77c43cae6e9f74a918e628a` → #1034 `4fb7122c01d6883f090d4f11794f5140f030700c`.
+Fresh Actions RCA identified #868, not #875, as the first exact head that invalidated the old comparison-tick source-shape sentinel. #867 `09ee432b1e0581b03485833325ac11883dfa05c4` still passed that specific contract. #868 legitimately introduced report-only `leftoverMapPlotTickAxisBadge` wiring while preserving comparison ticks as localized comparison-label + generic-tick composition; the old test incorrectly required the pre-refactor direct ternary syntax.
 
-#875 repaired stale source-shape sentinels by directly executing combined/singular-only-zero/share-only/invalid report-axis evidence states while retaining non-derivation of singular/share. Descendants preserve their isolated coordinate/origin/accessibility deltas. Moved-head hosted acceptance remains incomplete; predecessor receipts do not transfer.
+The repaired exact chain is now:
+
+`#868 208079ab70a84477331d567cd1e70b439c67056c → #869 7db16d6de8b62a7fcaffdc763308ab0f0c7b0d04 → #870 d65e431c4b9b6c46cacd8f4dc723817aa261aba4 → #871 4dc970bf8f4a76e807f19c37bb597305d0f3d1ae → #872 9adb1673a20ba4b36a2ec2ed28fe687e4f6ab9a6 → #873 80438dcc19c7fa01a04416ca18c649aaaa3beb42 → #874 43fbfd856816cbb96e23a4028d7efa7f7607df17 → #875 1a15a5b7d4a9ee189791bd0ab351be9cbf3dc183`.
+
+#875 has direct children #876 `eb08ef65deb0ef79b12eac24d51e739597ec1a98` and #877 `a7d57b970f810628f6d8e82eb0c12ccac0983714`; #876 continues through #1033 `1f4303151ed9cafe7eb12d158f30c72beb16aed5` → #1034 `8a26c4f9be10f234a8766a56e4cb1fab39736e18`.
+
+#868 exact `208079ab...` replaces the stale direct-ternary regex with a semantic wiring contract: report ticks may delegate persisted σ to the report badge helper, comparison ticks retain localized fallback copy, no comparison-only translation key is introduced, and tick positions remain persisted ξ/ζ rather than leftover-distance derivations. Exact-head Tests `35435905529` was queued at the latest read and is not acceptance evidence.
+
+Every moved descendant above was rebuilt by ordinary two-parent/non-force ancestry. Fresh compares showed exact-parent merge bases and `behind_by=0`. #877 preserves its stronger origin/i18n comparison-tick contract instead of being overwritten by the #868 test. #1033 likewise preserves its stronger evidence-aware comparison-tick contract; #1034 retains only its four-file post-coordinate/accessibility delta.
+
+Two independent report-stack gaps remain. First, predecessor #875 frontend evidence showed 40 `App.test.tsx` failures while focused `LeftoverMapPlot`/layout/accessibility suites were GREEN; the failures track stale App-level copy/accessible-name expectations and must be repaired without regressing current product semantics. Second, PostgreSQL runs still emit the OpenTelemetry deprecation warning for `opentelemetry.sdk._logs.LoggingHandler`; this requires a dependency/code root fix rather than suppression. Moved-head hosted receipts must be re-read before either gap can be considered closed.
 
 ## Buyer-path performance
 
-#995 exact `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains RED because durable exact-head cold buyer-path evidence is absent. Bundle splitting is not a substitute for measured transfer, parse/compile, main-thread/DOM, representative p95, method/environment, and limitations evidence.
+#995 exact `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains RED because durable exact-head cold buyer-path evidence is absent. Bundle splitting does not substitute for measured transfer, parse/compile, main-thread/DOM, representative p95, method/environment, and limitations evidence.
 
 #1009 exact `4fff982a96b0ad6e791aa8c463925388d036f08f` retains the stateless MCP protocol repair but remains performance RED. Previously recorded buyer-path observations exceed the repository p95 ≤20 ms contract. Do not shrink samples, hide I/O, rely on unrealistic cache warm-up, or relabel contention as GREEN; profile the representative path and repair the owned hot path if the baseline still exceeds budget.
 
 ## Release identity and immutable delivery
 
-#961 exact `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs protected runtime/package/frontend version mismatch to 2.28.0 and has repository Tests/SAST/Security GREEN, but required CodeQL and independent approval remain absent. Source-version coherence is not an immutable release.
+#961 exact `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs protected runtime/package/frontend version mismatch to 2.28.0 but required CodeQL/independent approval and immutable release evidence remain absent. Source-version coherence is not a release.
 
 Before publication, one protected exact candidate must prove built/installed package identity, CHANGELOG/release notes, immutable tag/release/package filename, SBOM/provenance predicates, exact source SHA, reproducibility, and rollback consistency through the canonical released `.github` attestation contract.
 
@@ -84,10 +70,10 @@ Before publication, one protected exact candidate must prove built/installed pac
 | --- | --- | --- | --- |
 | Translation ledger | #929 `d4f42f57...` → #932 | RED | recover/fix exact PostgreSQL failure; canonical Dependency Review + CodeQL settlement; independent 37×8 review/publication |
 | Customer Master hierarchy | #996 | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
-| Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | obtain final-head repository + Chromium + security evidence |
+| Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | final-head repository + Chromium + security evidence |
 | Python CodeQL baseline | #974 `4341080f...` → #979 | owner-control RED | canonical `.github` verdict publication/consumer settlement |
-| Local OIDC topology | #1120 `c8da74f3...` → #1117 `ca69b521...` | machine/admin + local scope + RSA/JWK canonical-admission source prerequisites repaired; migration still RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
-| Report axis/comparison | #875 `d1f96f97...` → #876/#877 → #1033/#1034 | source-repaired stack / hosted acceptance incomplete | terminal exact-head hosted validation without receipt transfer |
+| Local OIDC topology | #1120 `c8da74f3...` → #1117 `ca69b521...` | source prerequisites repaired / migration RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
+| Report axis/comparison | #868 `208079ab...` → #875 `1a15a5b7...` → #876/#877 → #1033/#1034 | root stale-contract repair + non-force convergence complete; hosted/UI/deprecation acceptance RED | exact-head hosted validation; causal App acceptance repair; OpenTelemetry deprecation root fix |
 | Frontend delivery performance | #995 `dbe5ac54...` | RED | commit exact-head representative cold buyer-path evidence and repair if over budget |
 | MCP buyer latency | #1009 `4fff982a...` | RED | representative uncontended profile and causal hot-path repair to p95 ≤20 ms |
 | Release identity | #961 `3bdec050...` | source repaired / release RED | current required gates + immutable build/tag/release/SBOM/provenance/reproducibility/rollback |
