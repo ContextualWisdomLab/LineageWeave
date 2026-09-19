@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.provision_local_service_accounts import (
     LOCAL_SERVICE_ACCOUNTS,
     load_local_service_accounts,
@@ -10,6 +12,11 @@ from scripts.provision_local_service_accounts import (
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_realm(path: Path, users: object) -> Path:
+    path.write_text(json.dumps({"users": users}))
+    return path
 
 
 def test_local_service_accounts_are_distinct_and_least_privilege() -> None:
@@ -30,22 +37,18 @@ def test_local_service_accounts_are_distinct_and_least_privilege() -> None:
 
 def test_service_subjects_are_loaded_from_the_realm_fixture(tmp_path: Path) -> None:
     """A changed realm subject must flow into DB provisioning without a copied constant."""
-    realm_path = tmp_path / "realm-export.json"
-    realm_path.write_text(
-        json.dumps(
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
             {
-                "users": [
-                    {
-                        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-                        "serviceAccountClientId": "lineageweave-test-automation",
-                    },
-                    {
-                        "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-                        "serviceAccountClientId": "lineageweave-test-admin",
-                    },
-                ]
-            }
-        )
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
     )
 
     accounts = {
@@ -59,6 +62,69 @@ def test_service_subjects_are_loaded_from_the_realm_fixture(tmp_path: Path) -> N
     assert accounts["lineageweave-test-admin"].subject_id == (
         "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
     )
+
+
+def test_service_subject_loader_fails_closed_when_a_required_actor_is_missing(
+    tmp_path: Path,
+) -> None:
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            }
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="lineageweave-test-admin"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_duplicate_client_identity(tmp_path: Path) -> None:
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {
+                "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                "serviceAccountClientId": "lineageweave-test-automation",
+            },
+            {
+                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="duplicate realm service account"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_non_array_users(tmp_path: Path) -> None:
+    realm_path = _write_realm(tmp_path / "realm-export.json", {"not": "an array"})
+
+    with pytest.raises(RuntimeError, match="users array"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_missing_subject_id(tmp_path: Path) -> None:
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        [
+            {"serviceAccountClientId": "lineageweave-test-automation"},
+            {
+                "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "serviceAccountClientId": "lineageweave-test-admin",
+            },
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="non-empty subject id"):
+        load_local_service_accounts(realm_path)
 
 
 def test_normalized_subjects_match_confidential_realm_service_accounts() -> None:
