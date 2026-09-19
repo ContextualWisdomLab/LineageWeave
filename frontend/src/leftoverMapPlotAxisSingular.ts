@@ -48,6 +48,12 @@ export const LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE =
 export const LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR =
   "leftover map comparison leftover axis {axis} tick {value} σ {singular}";
 
+export const LEFTOVER_MAP_COMPARE_AXIS_TICK_SHARE =
+  "leftover map comparison leftover axis {axis} tick {value} {share}%";
+
+export const LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR_SHARE =
+  "leftover map comparison leftover axis {axis} tick {value} σ {singular} {share}%";
+
 export type LeftoverMapPlotAxisSingular = {
   axis_index: LeftoverMapAxis["axis_index"];
   leftover_singular_value?: LeftoverMapAxis["leftover_singular_value"] | null;
@@ -213,18 +219,32 @@ export function leftoverMapComparePlotTickAxisBadge(
   };
 }
 
-/** Project finite persisted σ onto one comparison-strip tick without inventing share evidence. */
+/** Compose persisted comparison-strip tick σ/share without deriving either field. */
 export function leftoverMapCompareAxisTickBadge(
   axisIndex: number,
   tickLabel: string,
   leftoverSingular: number | null | undefined,
+  leftoverShare?: LeftoverMapAxis["leftover_share"] | null,
 ): LeftoverMapCompareAxisBadge | null {
   const singular = formatLeftoverMapPlotAxisSingular(leftoverSingular);
-  if (singular === null) {
+  const share = formatLeftoverMapPlotAxisShare(leftoverShare);
+  if (singular === null && share === null) {
     return null;
   }
+  if (singular === null) {
+    return {
+      template: LEFTOVER_MAP_COMPARE_AXIS_TICK_SHARE,
+      values: { axis: axisIndex, value: tickLabel, share: share as string },
+    };
+  }
+  if (share === null) {
+    return {
+      template: LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR,
+      values: { axis: axisIndex, value: tickLabel, singular },
+    };
+  }
   return {
-    template: LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR,
-    values: { axis: axisIndex, value: tickLabel, singular },
+    template: LEFTOVER_MAP_COMPARE_AXIS_TICK_SINGULAR_SHARE,
+    values: { axis: axisIndex, value: tickLabel, singular, share },
   };
 }
