@@ -25,11 +25,11 @@ def select_rs256_signing_key(
     *,
     jwk_loader: Callable[[str], object] | None = None,
 ) -> object:
-    """Return the exact RSA verification key selected by a non-empty JWT ``kid``.
+    """Return the unique RSA verification key selected by a non-empty JWT ``kid``.
 
     Selection is deliberately narrower than merely finding a key whose signature
-    happens to verify: the token must declare RS256 and a non-empty ``kid``; the
-    matching JWK must be an RSA signing/verification key whose advertised
+    happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
+    one matching JWK must be an RSA signing/verification key whose advertised
     algorithm, use, and key operations do not contradict RS256 verification.
     """
     try:
@@ -49,6 +49,7 @@ def select_rs256_signing_key(
         keys = []
     load_jwk = RSAAlgorithm.from_jwk if jwk_loader is None else jwk_loader
 
+    candidates: list[dict[str, Any]] = []
     for key in keys:
         if not isinstance(key, dict) or key.get("kid") != kid:
             continue
@@ -63,9 +64,16 @@ def select_rs256_signing_key(
             not isinstance(key_ops, list) or "verify" not in key_ops
         ):
             continue
-        try:
-            return load_jwk(json.dumps(key))
-        except (KeyError, TypeError, ValueError, jwt.PyJWTError) as exc:
-            raise JwksKeySelectionError("matching JWKS key is invalid") from exc
+        candidates.append(key)
 
-    raise JwksKeySelectionError(f"no JWKS key matched kid={kid!r}")
+    if not candidates:
+        raise JwksKeySelectionError(f"no JWKS key matched kid={kid!r}")
+    if len(candidates) != 1:
+        raise JwksKeySelectionError(
+            "multiple acceptable JWKS keys matched access-token kid"
+        )
+
+    try:
+        return load_jwk(json.dumps(candidates[0]))
+    except (KeyError, TypeError, ValueError, jwt.PyJWTError) as exc:
+        raise JwksKeySelectionError("matching JWKS key is invalid") from exc

@@ -48,6 +48,32 @@ def test_selects_only_the_exact_rs256_verification_key() -> None:
     assert json.loads(loaded[0])["kid"] == "wanted"
 
 
+def test_rejects_ambiguous_duplicate_verification_keys_before_loading() -> None:
+    """A reused ``kid`` must not make provider key ordering security-significant."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    first = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": "first",
+        "e": "AQAB",
+    }
+    second = {**first, "n": "second"}
+    loaded: list[str] = []
+
+    with pytest.raises(JwksKeySelectionError) as error:
+        select_rs256_signing_key(
+            {"keys": [first, second]},
+            token,
+            jwk_loader=lambda value: loaded.append(value) or object(),
+        )
+
+    assert str(error.value) == "multiple acceptable JWKS keys matched access-token kid"
+    assert loaded == []
+
+
 def test_rejects_malformed_token_header_without_leaking_parser_detail() -> None:
     with pytest.raises(JwksKeySelectionError) as error:
         select_rs256_signing_key({"keys": []}, "not-a-jwt")
