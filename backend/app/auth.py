@@ -229,11 +229,20 @@ async def resolve_current_account(
                 token_roles,
             )
         else:
-            entity_rows = await conn.fetch(
-                "select corporate_entity_id from account_affiliation where user_account_id = $1",
+            affiliation_rows = await conn.fetch(
+                "select corporate_entity_id, process_unit_id "
+                "from account_affiliation where user_account_id = $1",
                 account_row["user_account_id"],
             )
-            process_rows = []
+            entity_rows = affiliation_rows
+            # A NULL process-unit affiliation is the explicit corporate-wide
+            # scope. Otherwise preserve every normalized PU binding; dropping
+            # them would turn a PU-scoped local token into corporate-wide ABAC.
+            process_rows = (
+                []
+                if any(row["process_unit_id"] is None for row in affiliation_rows)
+                else affiliation_rows
+            )
             permission_rows = await conn.fetch(
                 """
                 select distinct rp.permission_code
