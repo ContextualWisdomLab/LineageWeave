@@ -20,6 +20,12 @@ def _token(header: dict[str, object]) -> str:
     return f"{_segment(header)}.{_segment({'sub': 'subject'})}.c2ln"
 
 
+def _rsa_modulus(bits: int = 2048, *, offset: int = 1) -> str:
+    value = (1 << (bits - 1)) | offset
+    raw = value.to_bytes((bits + 7) // 8, "big")
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
 def test_selects_only_the_exact_rs256_verification_key() -> None:
     loaded: list[str] = []
     jwks = {
@@ -31,7 +37,7 @@ def test_selects_only_the_exact_rs256_verification_key() -> None:
                 "alg": "RS256",
                 "use": "sig",
                 "key_ops": ["verify"],
-                "n": "y",
+                "n": _rsa_modulus(),
                 "e": "AQAB",
             },
         ]
@@ -57,10 +63,10 @@ def test_rejects_ambiguous_duplicate_verification_keys_before_loading() -> None:
         "alg": "RS256",
         "use": "sig",
         "key_ops": ["verify"],
-        "n": "first",
+        "n": _rsa_modulus(offset=1),
         "e": "AQAB",
     }
-    second = {**first, "n": "second"}
+    second = {**first, "n": _rsa_modulus(offset=3)}
     loaded: list[str] = []
 
     with pytest.raises(JwksKeySelectionError) as error:
@@ -98,7 +104,7 @@ def test_rejects_critical_extensions_even_if_declared_jwt_floor_accepts_them(
         "alg": "RS256",
         "use": "sig",
         "key_ops": ["verify"],
-        "n": "y",
+        "n": _rsa_modulus(),
         "e": "AQAB",
     }
 
@@ -126,6 +132,30 @@ def test_rejects_unacceptable_token_headers(header: dict[str, object], message: 
         select_rs256_signing_key({"keys": []}, _token(header))
 
 
+def test_rejects_rsa_modulus_below_rfc7518_minimum_before_loading() -> None:
+    """RS256 verification must reject RSA keys shorter than RFC 7518's 2048-bit floor."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    loaded: list[str] = []
+    key = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": _rsa_modulus(2047),
+        "e": "AQAB",
+    }
+
+    with pytest.raises(JwksKeySelectionError, match="no JWKS key matched"):
+        select_rs256_signing_key(
+            {"keys": [key]},
+            token,
+            jwk_loader=lambda value: loaded.append(value) or object(),
+        )
+
+    assert loaded == []
+
+
 def test_rejects_non_verification_jwks_and_invalid_key_sets() -> None:
     token = _token({"alg": "RS256", "kid": "wanted"})
     rejected = [
@@ -134,6 +164,15 @@ def test_rejects_non_verification_jwks_and_invalid_key_sets() -> None:
         {"kid": "wanted", "kty": "RSA", "use": "enc"},
         {"kid": "wanted", "kty": "RSA", "key_ops": ["encrypt"]},
         {"kid": "wanted", "kty": "RSA", "key_ops": "verify"},
+        {
+            "kid": "wanted",
+            "kty": "RSA",
+            "alg": "RS256",
+            "use": "sig",
+            "key_ops": ["verify"],
+            "n": "*",
+            "e": "AQAB",
+        },
     ]
 
     for key in rejected:
@@ -146,7 +185,13 @@ def test_rejects_non_verification_jwks_and_invalid_key_sets() -> None:
 
 def test_hides_matching_jwk_parse_failures() -> None:
     token = _token({"alg": "RS256", "kid": "wanted"})
-    key = {"kid": "wanted", "kty": "RSA", "alg": "RS256", "n": "bad", "e": "AQAB"}
+    key = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "n": _rsa_modulus(),
+        "e": "AQAB",
+    }
 
     for failure in (ValueError("provider detail"), jwt.InvalidKeyError("provider detail")):
         def fail_loader(_value: str, *, _failure: Exception = failure) -> object:
