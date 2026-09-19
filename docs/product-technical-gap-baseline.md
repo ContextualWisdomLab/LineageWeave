@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Current mutable authority overlay: 2026-09-19. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
+> Current mutable authority overlay: 2026-09-20. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
 
 ## Delivery rules
 
@@ -48,7 +48,9 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 ## Authentication / authorization stack
 
-Recorded auth authority remains #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c8da74f3b231b61f04cc040fed1c8e96f36ae66c` → #1117 `ca69b521bc862bbf686c721f274ac44b33229e6b` until a fresher live owner sweep supersedes it.
+Current auth authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c1b1841f1dfd7f014f78c82eac474b22806fdc58` → #1117 `0b5b5b5ca68c17f066a3c27d02c8d2b3464b50f2`.
+
+Fresh #1120 review found that predecessor `931d7275...` admitted RFC 7518 §6.3.2 RSA private-key members (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`) into the verification candidate set. This violates the consumer's public-verification boundary and lets a leaked-private same-`kid` duplicate manufacture ambiguity against a valid public key. Test-first `b1f55e20edcbfe1d832aee6b4763d929bf20cf44` covers all private members plus the poisoning case. Causal fix `c1b1841f1dfd7f014f78c82eac474b22806fdc58` rejects private RSA material before candidate counting. Exact-head Tests `35451262624` is Draft-policy skipped, so this is source repair only. #1117 was ordinary/non-force converged; exact parent→child compare has merge-base `c1b1841f...`, `behind_by=0`, and README-only effective delta. Child Tests `35451305277` is also Draft-policy skipped.
 
 Remaining auth RED: public-client password-grant consumers in backend/seed paths, public direct grants not yet safely disabled, metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0, and full browser Authorization Code + PKCE/session evidence is absent.
 
@@ -72,7 +74,7 @@ Canonical `.github/main` moved to `e6334e229581a918e2f22de18733b76fa65d7e71` aft
 | Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | source repaired / hosted pending | wait for fresh exact-head receipts; RCA/fix any new terminal RED; no stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 → #1117 | migration RED | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
+| Authentication | #899 → #1118 → #1120 `c1b1841f...` → #1117 `0b5b5b5c...` | migration RED / JWKS source repair | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof; retain public-only JWKS invariant |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
