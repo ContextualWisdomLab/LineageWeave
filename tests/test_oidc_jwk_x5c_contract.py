@@ -46,7 +46,9 @@ def _public_jwk(private_key: rsa.RSAPrivateKey) -> dict[str, object]:
     }
 
 
-def _certificate_for_private_key(private_key: object) -> str:
+def _certificate_for_private_key(
+    private_key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
+) -> str:
     """Return one self-signed DER certificate encoded for an RFC 7517 ``x5c`` member."""
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "lineageweave-x5c-test")])
     now = datetime.now(timezone.utc)
@@ -116,6 +118,7 @@ def test_mismatched_x5c_leaf_is_rejected_before_loading(
         ["not base64!"],
         ["AA=="],
         ["AB=="],
+        ["ré"],
         "not-a-chain",
         [1],
     ],
