@@ -1,0 +1,215 @@
+name: One-shot local ROPC migration
+
+on:
+  push:
+    branches: [fix/eliminate-public-client-ropc-20260918]
+    paths: [.github/workflows/one-shot-remove-local-ropc.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: fix/eliminate-public-client-ropc-20260918
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Write failing no-ROPC contract
+        shell: bash
+        run: |
+          cat > tests/test_local_oidc_no_password_grants.py <<'PY'
+          """Disposable local OIDC fixtures must not depend on OAuth password grants."""
+
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[1]
+          ANALYST_SUBJECT = "11111111-1111-4111-8111-111111111111"
+          ADMIN_SUBJECT = "22222222-2222-4222-8222-222222222222"
+
+
+          def _text(path: str) -> str:
+              return (ROOT / path).read_text()
+
+
+          def test_local_owned_consumers_do_not_use_password_grants() -> None:
+              """Backend integration and seed paths use confidential machine grants only."""
+              backend_test = _text("backend/tests/test_api.py")
+              seed_script = _text("scripts/seed_demo_data.py")
+              makefile = _text("Makefile")
+
+              assert '"grant_type": "password"' not in backend_test
+              assert '"grant_type": "password"' not in seed_script
+              assert '"client_id": "admin-cli"' not in seed_script
+              assert "KEYCLOAK_ADMIN_PASSWORD" not in makefile
+
+
+          def test_public_browser_client_disables_direct_grants() -> None:
+              """The browser fixture exposes Authorization Code + PKCE, not ROPC."""
+              realm = json.loads(_text("docker/keycloak/realm-export.json"))
+              frontend = next(
+                  client
+                  for client in realm["clients"]
+                  if client["clientId"] == "lineageweave-frontend"
+              )
+
+              assert frontend["publicClient"] is True
+              assert frontend["standardFlowEnabled"] is True
+              assert frontend["directAccessGrantsEnabled"] is False
+              assert frontend["attributes"]["pkce.code.challenge.method"] == "S256"
+
+
+          def test_seed_subject_constants_match_the_disposable_realm() -> None:
+              """Fixed synthetic subjects replace privileged admin discovery without drift."""
+              realm = json.loads(_text("docker/keycloak/realm-export.json"))
+              subjects = {
+                  user["username"]: user["id"]
+                  for user in realm["users"]
+                  if user.get("username") in {"demo.analyst", "demo.admin"}
+              }
+              seed_script = _text("scripts/seed_demo_data.py")
+
+              assert subjects == {
+                  "demo.analyst": ANALYST_SUBJECT,
+                  "demo.admin": ADMIN_SUBJECT,
+              }
+              assert ANALYST_SUBJECT in seed_script
+              assert ADMIN_SUBJECT in seed_script
+          PY
+          git add tests/test_local_oidc_no_password_grants.py
+          git -c user.name='LineageWeave Maintainer' -c user.email='actions@users.noreply.github.com' commit -m 'test(auth): expose remaining local password grants'
+
+      - name: Prove realistic RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_local_oidc_no_password_grants.py
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo 'Expected no-ROPC contract to fail before causal repair' >&2
+            exit 1
+          fi
+
+      - name: Apply causal migration
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement, found {count}")
+              target.write_text(text.replace(old, new, 1))
+
+          test_path = "backend/tests/test_api.py"
+          replace_once(
+              test_path,
+              '_REALM = "lineageweave-demo"\n',
+              '_REALM = "lineageweave-demo"\n'
+              '_AUTOMATION_CLIENT_SECRET = os.environ.get(\n'
+              '    "KEYCLOAK_CLIENT_SECRET", "lineageweave_test_automation_dev_only"\n'
+              ')\n'
+              '_ADMIN_CLIENT_SECRET = os.environ.get(\n'
+              '    "KEYCLOAK_TEST_ADMIN_CLIENT_SECRET", "lineageweave_test_admin_dev_only"\n'
+              ')\n',
+          )
+          replace_once(
+              test_path,
+              '''def _fetch_demo_analyst_token() -> str:\n    """Request a real resource-owner token for the synthetic demo.analyst user."""\n    token_response = post_form(\n        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",\n        {\n            "grant_type": "password",\n            "client_id": "lineageweave-frontend",\n            "username": "demo.analyst",\n            "password": "lineageweave-demo-only",\n        },\n        timeout=10,\n    )\n    return token_response["access_token"]\n''',
+              '''def _fetch_demo_analyst_token() -> str:\n    """Request the confidential viewer token used by API integration fixtures."""\n    token_response = post_form(\n        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",\n        {\n            "grant_type": "client_credentials",\n            "client_id": "lineageweave-test-automation",\n            "client_secret": _AUTOMATION_CLIENT_SECRET,\n        },\n        timeout=10,\n    )\n    return token_response["access_token"]\n''',
+          )
+          replace_once(
+              test_path,
+              '''    admin_token = post_form(\n        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",\n        {\n            "grant_type": "password",\n            "client_id": "lineageweave-frontend",\n            "username": "demo.admin",\n            "password": "lineageweave-demo-only",\n        },\n        timeout=10,\n    )["access_token"]\n''',
+              '''    admin_token = post_form(\n        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",\n        {\n            "grant_type": "client_credentials",\n            "client_id": "lineageweave-test-admin",\n            "client_secret": _ADMIN_CLIENT_SECRET,\n        },\n        timeout=10,\n    )["access_token"]\n''',
+          )
+
+          seed_path = "scripts/seed_demo_data.py"
+          replace_once(
+              seed_path,
+              'Genuinely real, not fabricated locally and hoped to match: this script logs\ninto Keycloak\'s own admin REST API to fetch the actual `sub` (user id) of\nthe two demo accounts seeded by docker/keycloak/realm-export.json, then\ninserts user_account rows in Postgres keyed by those real subject ids --\nthe same identity Keycloak issues in an access token\'s `sub` claim, which\nis exactly what backend.app.auth looks up. Seeded tickets also ``XADD``\nonto Valkey so the Activity panel is not empty after ``make seed``.\n',
+              'The disposable realm declares fixed synthetic subject ids for its two demo\nhuman accounts. This script uses those versioned fixture ids directly and a\nsource contract cross-checks them against docker/keycloak/realm-export.json;\nlocal seeding therefore needs no privileged Keycloak admin password grant.\nSeeded tickets also ``XADD`` onto Valkey so the Activity panel is not empty\nafter ``make seed``.\n',
+          )
+          replace_once(seed_path, 'from urllib.parse import urlencode\n', '')
+          replace_once(
+              seed_path,
+              'from lineageweave.http_client import get_json, get_json_list, post_form\n',
+              'from lineageweave.http_client import get_json, post_form\n'
+              'from scripts.provision_local_service_accounts import provision as provision_local_service_accounts\n',
+          )
+          replace_once(seed_path, 'DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")\n', '')
+          replace_once(
+              seed_path,
+              '''def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: str) -> dict[str, str]:\n    """Return {username: Keycloak subject id} for the two synthetic demo users."""\n    admin_token = post_form(\n        f"{base_url}/realms/master/protocol/openid-connect/token",\n        {\n            "grant_type": "password",\n            "client_id": "admin-cli",\n            "username": admin_user,\n            "password": admin_password,\n        },\n        timeout=10,\n    )["access_token"]\n\n    subjects: dict[str, str] = {}\n    for username in ("demo.analyst", "demo.admin"):\n        query = urlencode({"username": username, "exact": "true"})\n        users = get_json_list(\n            f"{base_url}/admin/realms/{REALM}/users?{query}",\n            headers={"Authorization": f"Bearer {admin_token}"},\n            timeout=10,\n            service_peer_name="oidc",\n        )\n        if not users:\n            raise SystemExit(f"Keycloak user '{username}' not found in realm '{REALM}' -- did the realm import run?")\n        subjects[username] = users[0]["id"]\n    return subjects\n''',
+              '''DEMO_USER_SUBJECTS = {\n    "demo.analyst": "11111111-1111-4111-8111-111111111111",\n    "demo.admin": "22222222-2222-4222-8222-222222222222",\n}\n\n\ndef _demo_user_subjects() -> dict[str, str]:\n    """Return the versioned synthetic human subjects from the disposable realm."""\n    return dict(DEMO_USER_SUBJECTS)\n''',
+          )
+          replace_once(
+              seed_path,
+              '''        {\n            "client_id": "lineageweave-frontend",\n            "grant_type": "password",\n            "username": "demo.analyst",\n            "password": "lineageweave-demo-only",\n        },\n        timeout=30.0,\n''',
+              '''        {\n            "client_id": "lineageweave-test-automation",\n            "client_secret": os.environ.get(\n                "KEYCLOAK_CLIENT_SECRET",\n                "lineageweave_test_automation_dev_only",\n            ),\n            "grant_type": "client_credentials",\n        },\n        timeout=30.0,\n''',
+          )
+          replace_once(
+              seed_path,
+              '''    parser.add_argument("--keycloak-admin-user", default=DEFAULT_KEYCLOAK_ADMIN_USER)\n    parser.add_argument(\n        "--keycloak-admin-password",\n        default=os.environ.get("KEYCLOAK_ADMIN_PASSWORD"),\n        help="Keycloak master admin password (or KEYCLOAK_ADMIN_PASSWORD). Required.",\n    )\n''',
+              '',
+          )
+          replace_once(
+              seed_path,
+              '''    if not args.keycloak_admin_password:\n        parser.error("set KEYCLOAK_ADMIN_PASSWORD or pass --keycloak-admin-password")\n\n    subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)\n    seed(args.postgres_dsn, subjects, args.valkey_url)\n    _warm_seeded_post_content(args.postgres_dsn, args.keycloak_base_url, args.backend_base_url)\n''',
+              '''    subjects = _demo_user_subjects()\n    seed(args.postgres_dsn, subjects, args.valkey_url)\n    provision_local_service_accounts(args.postgres_dsn)\n    _warm_seeded_post_content(args.postgres_dsn, args.keycloak_base_url, args.backend_base_url)\n''',
+          )
+
+          replace_once(
+              "Makefile",
+              '''seed:\n\t@test -n "$${KEYCLOAK_ADMIN_PASSWORD:-}" || { echo "KEYCLOAK_ADMIN_PASSWORD is required" >&2; exit 1; }; \\\n\tuv run --locked --extra dev --extra backend python scripts/seed_demo_data.py; \\\n\tuv run --locked --extra dev --extra backend python scripts/provision_local_service_accounts.py\n''',
+              '''seed:\n\tuv run --locked --extra dev --extra backend python scripts/seed_demo_data.py\n''',
+          )
+
+          realm = Path("docker/keycloak/realm-export.json")
+          realm_text = realm.read_text()
+          old = '"directAccessGrantsEnabled": true'
+          if realm_text.count(old) != 1:
+              raise SystemExit(f"realm-export.json: expected one enabled direct-grant client, found {realm_text.count(old)}")
+          realm.write_text(realm_text.replace(old, '"directAccessGrantsEnabled": false', 1))
+          PY
+
+          git add backend/tests/test_api.py scripts/seed_demo_data.py Makefile docker/keycloak/realm-export.json
+          git -c user.name='LineageWeave Maintainer' -c user.email='actions@users.noreply.github.com' commit -m 'fix(auth): remove local public password grants'
+
+      - name: Install locked test dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Prove focused GREEN and syntax
+        shell: bash
+        run: |
+          uv run --frozen python -m pytest -q tests/test_local_oidc_no_password_grants.py tests/test_auth_local_process_scope.py
+          uv run --frozen python -m compileall -q backend scripts lineageweave
+
+      - name: Remove purpose-complete workflow and push forward history
+        shell: bash
+        run: |
+          rm .github/workflows/one-shot-remove-local-ropc.yml
+          git add .github/workflows/one-shot-remove-local-ropc.yml
+          git -c user.name='LineageWeave Maintainer' -c user.email='actions@users.noreply.github.com' commit -m 'chore(ci): remove completed ROPC migration workflow'
+          git push origin HEAD:fix/eliminate-public-client-ropc-20260918
