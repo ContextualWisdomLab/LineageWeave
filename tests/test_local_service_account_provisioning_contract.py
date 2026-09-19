@@ -33,6 +33,7 @@ _VALID_SERVICE_CLIENTS = [
         "publicClient": False,
         "protocol": "openid-connect",
         "standardFlowEnabled": False,
+        "implicitFlowEnabled": False,
         "directAccessGrantsEnabled": False,
         "serviceAccountsEnabled": True,
         "secret": "automation-secret",
@@ -47,6 +48,7 @@ _VALID_SERVICE_CLIENTS = [
         "publicClient": False,
         "protocol": "openid-connect",
         "standardFlowEnabled": False,
+        "implicitFlowEnabled": False,
         "directAccessGrantsEnabled": False,
         "serviceAccountsEnabled": True,
         "secret": "admin-secret",
@@ -270,6 +272,8 @@ def test_service_subject_loader_rejects_duplicate_client_configuration(tmp_path:
         ("serviceAccountsEnabled", False, "must enable service accounts"),
         ("directAccessGrantsEnabled", True, "must disable direct access grants"),
         ("standardFlowEnabled", True, "must disable browser standard flow"),
+        ("implicitFlowEnabled", True, "must disable implicit flow"),
+        ("implicitFlowEnabled", None, "must disable implicit flow"),
         ("secret", "", "must declare a client secret"),
         ("secret", None, "must declare a client secret"),
     ],
@@ -368,6 +372,8 @@ def test_normalized_subjects_match_confidential_realm_service_accounts() -> None
         client = clients[client_id]
         assert client["publicClient"] is False
         assert client["directAccessGrantsEnabled"] is False
+        assert client["standardFlowEnabled"] is False
+        assert client["implicitFlowEnabled"] is False
         assert client["serviceAccountsEnabled"] is True
         assert isinstance(client.get("secret"), str) and client["secret"]
 
