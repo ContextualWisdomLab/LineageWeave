@@ -1,5 +1,6 @@
 """Contracts for DB-owned authorization of local confidential test clients."""
 
+import json
 from pathlib import Path
 
 from scripts.provision_local_service_accounts import LOCAL_SERVICE_ACCOUNTS
@@ -22,6 +23,36 @@ def test_local_service_accounts_are_distinct_and_least_privilege() -> None:
     assert admin.process_unit_code == "DEMO-PU-HQ"
     assert admin.role_code == "admin"
     assert automation.subject_id != admin.subject_id
+
+
+def test_normalized_subjects_match_confidential_realm_service_accounts() -> None:
+    """DB bindings consume the realm fixture's subjects instead of inventing ids."""
+    realm = json.loads(
+        (_REPO_ROOT / "docker" / "keycloak" / "realm-export.json").read_text()
+    )
+    realm_subjects = {
+        user["serviceAccountClientId"]: user["id"]
+        for user in realm["users"]
+        if user.get("serviceAccountClientId")
+    }
+    by_name = {account.client_id: account for account in LOCAL_SERVICE_ACCOUNTS}
+
+    assert set(by_name) == {
+        "lineageweave-test-automation",
+        "lineageweave-test-admin",
+    }
+    assert {
+        client_id: account.subject_id for client_id, account in by_name.items()
+    } == {
+        client_id: realm_subjects[client_id] for client_id in by_name
+    }
+
+    clients = {client["clientId"]: client for client in realm["clients"]}
+    for client_id in by_name:
+        client = clients[client_id]
+        assert client["publicClient"] is False
+        assert client["directAccessGrantsEnabled"] is False
+        assert client["serviceAccountsEnabled"] is True
 
 
 def test_local_service_account_provisioner_does_not_authenticate_to_keycloak() -> None:
