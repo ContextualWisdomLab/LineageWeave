@@ -26,6 +26,8 @@ DEFAULT_REALM_EXPORT_PATH = (
     Path(__file__).resolve().parents[1] / "docker" / "keycloak" / "realm-export.json"
 )
 DEMO_CORPORATE_ENTITY_CODE = "DEMO-CORP-01"
+LINEAGEWEAVE_API_AUDIENCE = "lineageweave-api"
+LINEAGEWEAVE_MCP_AUDIENCE = "http://localhost:18001/mcp"
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,7 @@ class LocalServiceAccountBinding:
     email_address: str
     process_unit_code: str
     role_code: str
+    required_audiences: tuple[str, ...]
 
 
 _LOCAL_SERVICE_ACCOUNT_BINDINGS = (
@@ -58,6 +61,7 @@ _LOCAL_SERVICE_ACCOUNT_BINDINGS = (
         email_address="lineageweave-test-automation@example.test",
         process_unit_code="DEMO-PU-A",
         role_code="viewer",
+        required_audiences=(LINEAGEWEAVE_API_AUDIENCE, LINEAGEWEAVE_MCP_AUDIENCE),
     ),
     LocalServiceAccountBinding(
         client_id="lineageweave-test-admin",
@@ -65,11 +69,43 @@ _LOCAL_SERVICE_ACCOUNT_BINDINGS = (
         email_address="lineageweave-test-admin@example.test",
         process_unit_code="DEMO-PU-HQ",
         role_code="admin",
+        required_audiences=(LINEAGEWEAVE_API_AUDIENCE,),
     ),
 )
 
 
-def _validate_machine_client(client_id: str, client: dict[str, object]) -> None:
+def _machine_access_token_audiences(client: dict[str, object]) -> frozenset[str]:
+    """Return exact custom audiences emitted into access tokens by this fixture."""
+    protocol_mappers = client.get("protocolMappers")
+    if not isinstance(protocol_mappers, list):
+        return frozenset()
+
+    audiences: set[str] = set()
+    for mapper in protocol_mappers:
+        if not isinstance(mapper, dict):
+            continue
+        if mapper.get("protocol") != "openid-connect":
+            continue
+        if mapper.get("protocolMapper") != "oidc-audience-mapper":
+            continue
+        config = mapper.get("config")
+        if not isinstance(config, dict) or config.get("access.token.claim") != "true":
+            continue
+        audience = config.get("included.custom.audience")
+        if (
+            isinstance(audience, str)
+            and audience
+            and audience == audience.strip()
+        ):
+            audiences.add(audience)
+    return frozenset(audiences)
+
+
+def _validate_machine_client(
+    client_id: str,
+    client: dict[str, object],
+    required_audiences: tuple[str, ...],
+) -> None:
     """Require a usable local confidential client before DB authorization exists."""
     if client.get("enabled") is not True:
         raise RuntimeError(f"realm client {client_id!r} must be enabled")
@@ -86,6 +122,16 @@ def _validate_machine_client(client_id: str, client: dict[str, object]) -> None:
     secret = client.get("secret")
     if not isinstance(secret, str) or not secret.strip():
         raise RuntimeError(f"realm client {client_id!r} must declare a client secret")
+
+    token_audiences = _machine_access_token_audiences(client)
+    missing_audiences = [
+        audience for audience in required_audiences if audience not in token_audiences
+    ]
+    if missing_audiences:
+        raise RuntimeError(
+            f"realm client {client_id!r} must map required access-token audience(s): "
+            + ", ".join(missing_audiences)
+        )
 
 
 def load_local_service_accounts(
@@ -164,7 +210,11 @@ def load_local_service_accounts(
             raise RuntimeError(
                 f"realm fixture is missing {binding.client_id!r} client configuration"
             )
-        _validate_machine_client(binding.client_id, client)
+        _validate_machine_client(
+            binding.client_id,
+            client,
+            binding.required_audiences,
+        )
         accounts.append(
             LocalServiceAccount(
                 client_id=binding.client_id,
