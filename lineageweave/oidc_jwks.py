@@ -43,16 +43,9 @@ def _base64url_uint_value(value: object) -> int | None:
     except (binascii.Error, ValueError):
         return None
 
-    # RFC 4648 canonical Base64url requires every unused terminal pad bit to be
-    # zero. Python's decoder accepts equivalent spellings with nonzero pad bits,
-    # so round-trip the decoded bytes before the key can enter candidate counting.
     canonical = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
     if canonical != value:
         return None
-
-    # RFC 7518 Base64urlUInt uses the minimum unsigned big-endian octet
-    # sequence. A leading zero therefore makes every multi-octet value
-    # noncanonical; zero itself is the one-octet sequence b"\x00" ("AA").
     if len(raw) > 1 and raw[0] == 0:
         return None
     return int.from_bytes(raw, "big")
@@ -74,8 +67,6 @@ def _key_ops_allow_rs256_verification(key_ops: object) -> bool:
         return False
     if any(not isinstance(operation, str) for operation in key_ops):
         return False
-    # RFC 7517 section 4.3 forbids duplicate operation values and warns against
-    # unrelated operations on one key. sign+verify is the related signature pair.
     if len(key_ops) != len(set(key_ops)):
         return False
     operations = set(key_ops)
@@ -89,8 +80,6 @@ def _canonical_x5c_certificate(member: object) -> tuple[x509.Certificate, bytes]
     try:
         encoded = member.encode("ascii")
         der = base64.b64decode(encoded, validate=True)
-        # RFC 7517 x5c uses ordinary RFC 4648 Base64, not Base64url. Re-encode
-        # every member so nonzero pad bits and alternate spellings fail closed.
         if base64.b64encode(der).decode("ascii") != member:
             return None
         return x509.load_der_x509_certificate(der), der
@@ -143,10 +132,6 @@ def _certificate_allows_signature_verification(certificate: x509.Certificate) ->
         key_usage = certificate.extensions.get_extension_for_class(x509.KeyUsage).value
     except x509.ExtensionNotFound:
         return True
-    # RFC 5280 section 4.2.1.3 assigns digitalSignature and nonRepudiation
-    # (``content_commitment`` in cryptography) to verification of signatures on
-    # objects other than certificates/CRLs. An encryption-only leaf therefore
-    # contradicts this verifier's actual RS256 use even when its RSA n/e match.
     return key_usage.digital_signature or key_usage.content_commitment
 
 
@@ -155,9 +140,6 @@ def _x509_metadata_matches_rsa_public_key(
 ) -> bool:
     """Validate RFC 7517 certificate metadata and match embedded x5c to JWK RSA."""
     if "x5c" not in key:
-        # x5t and x5t#S256 are independent optional JWK members. Without an
-        # embedded certificate there is no local DER value to compare, but their
-        # advertised digest encodings still have exact RFC-defined widths.
         return _certificate_thumbprints_match(key, None)
 
     chain = key["x5c"]
@@ -207,6 +189,9 @@ def select_rs256_signing_key(
     are optional only by absence: if present, their RFC 7517 JSON types must be valid.
     Both ``n`` and ``e`` must be canonical unpadded Base64urlUInt values using the
     minimum unsigned big-endian octet sequence and RFC 4648 canonical zero pad bits.
+    RFC 7517 ``x5u`` certificate URLs are rejected because this selector does not
+    retrieve and validate the remote certificate resource; accepting the metadata
+    would leave RFC-required consistency with the JWK public key unverified.
     When an RFC 7517 ``x5c`` certificate chain is present, it must be a non-empty
     array whose every member is canonical ordinary-Base64 DER for a valid X.509
     certificate; its first certificate must contain an RSA public key, exactly match
@@ -260,6 +245,8 @@ def select_rs256_signing_key(
         if not isinstance(key, dict) or key.get("kid") != kid:
             continue
         if key.get("kty") != "RSA":
+            continue
+        if "x5u" in key:
             continue
         if _RSA_PRIVATE_MEMBERS.intersection(key):
             continue
