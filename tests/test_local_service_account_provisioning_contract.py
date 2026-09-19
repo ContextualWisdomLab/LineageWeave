@@ -12,6 +12,20 @@ from scripts.provision_local_service_accounts import (
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _audience_mapper(audience: str) -> dict[str, object]:
+    return {
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "config": {
+            "included.custom.audience": audience,
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+        },
+    }
+
+
 _VALID_SERVICE_CLIENTS = [
     {
         "clientId": "lineageweave-test-automation",
@@ -22,6 +36,10 @@ _VALID_SERVICE_CLIENTS = [
         "directAccessGrantsEnabled": False,
         "serviceAccountsEnabled": True,
         "secret": "automation-secret",
+        "protocolMappers": [
+            _audience_mapper("lineageweave-api"),
+            _audience_mapper("http://localhost:18001/mcp"),
+        ],
     },
     {
         "clientId": "lineageweave-test-admin",
@@ -32,6 +50,7 @@ _VALID_SERVICE_CLIENTS = [
         "directAccessGrantsEnabled": False,
         "serviceAccountsEnabled": True,
         "secret": "admin-secret",
+        "protocolMappers": [_audience_mapper("lineageweave-api")],
     },
 ]
 
@@ -271,6 +290,54 @@ def test_service_subject_loader_rejects_non_machine_client_configuration(
     )
 
     with pytest.raises(RuntimeError, match=message):
+        load_local_service_accounts(realm_path)
+
+
+@pytest.mark.parametrize(
+    ("client_id", "required_audience"),
+    [
+        ("lineageweave-test-automation", "lineageweave-api"),
+        ("lineageweave-test-automation", "http://localhost:18001/mcp"),
+        ("lineageweave-test-admin", "lineageweave-api"),
+    ],
+)
+def test_service_subject_loader_rejects_missing_required_access_token_audience(
+    tmp_path: Path,
+    client_id: str,
+    required_audience: str,
+) -> None:
+    """Provision only actors whose access tokens target every owned consumer resource."""
+    clients = json.loads(json.dumps(_VALID_SERVICE_CLIENTS))
+    client = next(item for item in clients if item["clientId"] == client_id)
+    client["protocolMappers"] = [
+        mapper
+        for mapper in client["protocolMappers"]
+        if mapper["config"].get("included.custom.audience") != required_audience
+    ]
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        _service_users(),
+        clients=clients,
+    )
+
+    with pytest.raises(RuntimeError, match="required access-token audience"):
+        load_local_service_accounts(realm_path)
+
+
+def test_service_subject_loader_rejects_audience_mapper_without_access_token_claim(
+    tmp_path: Path,
+) -> None:
+    """An ID-token-only audience mapper cannot satisfy REST bearer verification."""
+    clients = json.loads(json.dumps(_VALID_SERVICE_CLIENTS))
+    automation = clients[0]
+    automation["protocolMappers"][0]["config"]["access.token.claim"] = "false"
+    realm_path = _write_realm(
+        tmp_path / "realm-export.json",
+        _service_users(),
+        clients=clients,
+    )
+
+    with pytest.raises(RuntimeError, match="required access-token audience"):
         load_local_service_accounts(realm_path)
 
 
