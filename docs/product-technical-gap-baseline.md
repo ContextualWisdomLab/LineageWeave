@@ -1,94 +1,88 @@
 # Product & Technical Gap Baseline
 
-> Current mutable authority overlay: 2026-09-19. Historical detail belongs in Git/PR history. A successful predecessor, sibling, descendant, isolated harness, or documentation workflow is not acceptance for a moved product head.
+> Current mutable authority overlay: 2026-09-19. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
 
 ## Delivery rules
 
-- Protected `main`, live PR heads/bases, repository `AGENTS.md`/`CLAUDE.md`, ADRs, PRD/TRD and exact workflow receipts are the authority.
+- Protected `main`, live PR heads/bases, repository `AGENTS.md`/`CLAUDE.md`, ADRs, PRD/TRD, and exact workflow receipts are the authority.
 - LineageWeave owns lineage/evidence/customer-master/composition/read-model behavior. Canonical-owner source is consumed only through released/versioned contracts; it is not copied here.
 - Draft/skipped, queued, `action_required`, runnerless, or owner-control-plane receipts are not product GREEN.
 - Parent movement requires ordinary non-force descendant convergence. Force push, destructive rebase, self-approval, gate weakening, synthetic status, and no-op wake commits are not acceptance tools.
 - Release readiness requires one exact protected candidate with version/CHANGELOG/package/tag/release/SBOM/provenance/reproducibility/rollback evidence.
 
-## Protected and canonical owner references
+## Protected and canonical-owner references
 
-- LineageWeave protected base: `main@83eba56149eb802cd63642c507c324c9976ec78e`.
-- Canonical reusable-workflow owner observed in the current maintenance lane: `ContextualWisdomLab/.github@64aa08d7fa487deacd41c761c36277ca68cab6c9`.
+- LineageWeave protected base: `main@83eba56149eb802cd63642c507c324c9976ec78e`; the commit is signature-valid.
+- Canonical reusable-workflow owner: `ContextualWisdomLab/.github@64aa08d7fa487deacd41c761c36277ca68cab6c9`; the commit is signature-valid and the branch remains protected.
 - These references are re-read at delivery time; this file does not freeze future protected movement.
 
 ## Customer Master / translation authority
 
-The versioned PostgreSQL translation-ledger owner remains #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`, Draft. Its exact Tests run `35236145547` is terminal RED in the real PostgreSQL suite while frontend lint/test/build/Storybook is GREEN. Required Security is terminal RED at fail-closed Dependency Review availability and is handed to canonical `.github#810`; required CodeQL is terminal RED at current-head verdict publication/consumption and is handed to `.github#1929`. Scorecard/OSV/Trivy, Ontology Pages, PROV-O and SAST success do not substitute for those failures.
+The PostgreSQL translation-ledger owner remains #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`, Draft. Its known exact Tests receipt is terminal RED in the PostgreSQL suite while frontend lint/test/build/Storybook is GREEN. Required Dependency Review and CodeQL remain canonical `.github` owner-path failures rather than LineageWeave-local scanner exceptions.
 
-Customer Master presentation consumer #932 remains exact `fb2422537216a19280860f710b55f4df963902db`, Draft on #929. Its exact Tests are Draft-skipped. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource is still a draft; independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence remain release gates.
-
-Malformed hierarchy presentation remains #996 exact `a640df40839ed7e2a15b9ab95a7f86faa050a248`, Draft. It must preserve stored hierarchy truth while repairing only presentation edges and remains gated by the translation/read-model prerequisite and separate Customer Master authorization work.
+Customer Master presentation #932 remains stacked on #929. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource is still a draft pending independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence. Malformed-hierarchy presentation #996 remains gated by that translation/read-model prerequisite and separate Customer Master authorization work.
 
 ## Accessibility / material UI
 
-#977 exact `c614d683414b0af1af006c96ed53169ab5b21ee2` causally repaired the stale App selectors after the hosted one-shot proved the narrow LeftoverPairList accessibility edit. Dedicated component/focused regressions and lint were GREEN. Final-head Tests `35340400072` completed `action_required` with zero jobs, so current-head repository/browser acceptance remains absent. The PR stays Draft pending full current-head repository, Chromium Storybook, keyboard/focus/touch/mobile, security/static-analysis and independent-review evidence.
+#977 exact `c614d683414b0af1af006c96ed53169ab5b21ee2` repaired stale App selectors after focused hosted validation of the LeftoverPairList accessibility edit. Its final-head repository/browser acceptance is still absent because the final Tests receipt completed without executable jobs. Component-level evidence is not a substitute for current-head Chromium/keyboard/focus/touch/mobile/security acceptance.
 
-## Central CodeQL baseline / owner settlement
+## Central CodeQL owner settlement
 
-#974 exact `4341080f6027d869acb08896e41d761c3f3b8e77` has current-head Tests/SAST/Security GREEN, including the causal TLS contract repair. Required CodeQL `35267030868` is terminal RED only at the canonical dispatch-verdict settlement boundary: language detection and compatibility jobs ran, read `verdict=pending`, then failed closed while the dispatch coordinator succeeded. The specimen is owned by `.github#1929`; no LineageWeave-local CodeQL fork/status synthesis is permitted. Child #979 remains exact `2dfd21110813f474d3068796d0733d96f28d6061`, Draft.
-
-#983 exact `f48afbe373cdb6aa64abf0f7c4e69e897f820cd8` remains the JavaScript post-body parser/coverage owner for protected-baseline `js/incomplete-multi-character-sanitization` findings. It requires a fresh repaired-head canonical CodeQL producer receipt rather than a scanner exemption.
+#974 exact `4341080f6027d869acb08896e41d761c3f3b8e77` retains current-head Tests/SAST/Security GREEN but required CodeQL is terminal RED at canonical dispatch-verdict settlement. The specimen remains an owner-path issue for `.github`; no LineageWeave-local CodeQL fork, status synthesis, or gate weakening is permitted. Child #979 remains dependent on that settlement.
 
 ## Authentication / authorization stack
 
-Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `81b8de43a533a15bf7fd4b64a12f970ba18aef1b` → README child #1117 `58196133c85b2050bcf67c2c27073ac5f28eb63a`.
+Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `fbed153fa7cf03726710d8801cf44ee3fdbc4726` → README child #1117 `0908bc03afa13c015b277c819db66c5ac1b2a10b`.
 
-#1120 closes the previously missing normalized local machine/admin authorization prerequisite at source level. Test-first contract `d6d01091ae7a07542821f4af7c517ee320e2e01e` preceded implementation `929095f18c62b0ef82dacf2cff1096a9407a01c1`; `1eb70c0c6a9f8e14f92852c76d7c2dd224c095a9` wires provisioning after the Demo Corp domain seed; `f6d788d5c4e7b255667a5137825ebf2e75a8da12` cross-checks the bindings against the realm fixture; ADR 0028 remains the normalized-service-actor decision record.
+#1120 retains the normalized local service-account prerequisite. The realm fixture gives automation subject `33333333-3333-4333-8333-333333333333` `DEMO-PU-A` + `viewer` and a distinct admin-test subject `44444444-4444-4444-8444-444444444444` `DEMO-PU-HQ` + `admin`. The PostgreSQL-only provisioner replaces only those deterministic actors' affiliations/roles and does not authenticate to Keycloak or mint tokens.
 
-The PostgreSQL-only provisioner maps the realm fixture's automation subject `33333333-3333-4333-8333-333333333333` to `DEMO-PU-A` + `viewer` and the distinct admin-test subject `44444444-4444-4444-8444-444444444444` to `DEMO-PU-HQ` + `admin`. It replaces only those deterministic fixture actors' affiliation/role mappings in one short transaction and does not authenticate to Keycloak or mint tokens.
+Local authorization review already repaired two representation hazards. PU affiliations dropped by local account resolution were restored (`87d52c4c...` → `405b7ed8...` → edge proof `87e9aceb...`). The unrepresentable mixed `{corp-wide,NULL}` plus `{corp-scoped,pu}` shape now fails closed instead of widening a scoped corporation (`bca160c7...` → `801687f7...`).
 
-Fresh review found two authorization prerequisites that made direct reuse of those service actors unsafe. First, local/Keycloak `resolve_current_account` loaded corporate affiliations but discarded normalized `process_unit_id` values. The shared source-post visibility contract interprets an empty process-unit set as corporate-wide, so a PU-scoped local subject could be widened to private posts in a different PU of the same corporate entity. Source RED `87d52c4c51875b4ca57fe68e1870a3d891362f6e` precedes causal fix `405b7ed82a7ecc9586ace9cd0214999d1cd9ea13`; edge contract `87e9aceb1d98b2ad81a24d948bd716ca20a9bbd1` proves the PU-scoped denial and the existing explicit-NULL corporate-wide meaning.
+The shared JWT/JWK selector now also closes the following candidate-admission classes before loader/candidate counting: unsupported `crit`; malformed/noncanonical Base64urlUInt; RSA modulus below 2048 bits; invalid exponent encoding/range; `e >= n`; even modulus; and nonconformant RFC 7517 `key_ops` metadata.
 
-The first repair exposed a second representation hazard. `CurrentAccount` carries one flat corporate-entity set and one flat process-unit set, while an empty process-unit set is corporate-wide for every authorized corporation. An account with `{corp-wide, NULL}` plus `{corp-scoped, pu-1}` therefore cannot be represented faithfully: collapsing on the wildcard would widen `corp-scoped` to every PU. Source RED `bca160c72ec322a6d4047a60cde0bf6c2920496e` requires fail-closed behavior for this mixed shape and preserves the valid case where every authorized corporation is explicitly wildcarded. Causal fix `801687f78deb444605c63a6b9ed6c2cb9ddf46b5` computes authorized and wildcard corporate IDs separately, preserves exact PU bindings when no wildcard exists, permits empty-PU corporate-wide semantics only when every authorized corporation is explicitly wildcarded, and returns HTTP 403 when only a subset is wildcarded.
+Fresh `key_ops` review found that predecessor `81b8de43...` accepted duplicate operation values, non-string members, and unrelated `verify` + `encrypt` operations as long as `verify` appeared somewhere in the list. RFC 7517 §4.3 says duplicate operation values MUST NOT be present and warns against unrelated operation combinations because of cross-algorithm vulnerability. A malformed same-`kid` key could therefore enter the candidate set and manufacture false ambiguity.
 
-Shared JWT/JWK review found two further mathematically invalid RSA candidate classes crossing the fail-closed admission boundary. First, the selector already required canonical Base64urlUInt, a ≥2048-bit modulus, and an odd exponent ≥3, but did not reject `e >= n`. RFC 8017 §3.1 requires a valid RSA public exponent to be between 3 and `n - 1`. Test-first `eb35bacb8c0478af01db46b8052fa2f937616ff0` demonstrates both direct admission of `e == n` and false same-`kid` ambiguity; causal fix `ad351c1522121cb8e126bc17d838ebabd4b19608` excludes `e >= n` before candidate counting/loading. Focused predecessor execution under the lock-resolved PyJWT 2.13.0 produced `2 failed`; repaired execution produced `2 passed`.
+Test-first commits `6e9ca95af96cef458bd52ca2831a39dd1abc0d34` and `29d394b9f620384b3f57b27b0015ee6498672959` cover direct rejection, non-string members, false same-`kid` ambiguity, and the permitted `sign` + `verify` pair. Focused execution against predecessor `81b8de43...` under PyJWT 2.13.0 produced `4 failed, 1 passed`. Causal fix `fbed153fa7cf03726710d8801cf44ee3fdbc4726` requires a string-only unique operation list, requires `verify`, and permits only the related signature-operation set; the same focused set is `5 passed` after repair.
 
-Second, a 2048-bit but even modulus still passed the selector, even though RFC 8017 §3.1 defines `n` as a product of distinct odd primes. PyJWT 2.13.0/cryptography accepts this malformed public-key shape far enough that downstream parsing cannot be the selector's only guard. Test-first `c39851c354f5479415ca1530fd795220519de86f` demonstrates direct admission plus false same-`kid` ambiguity. Causal fix `81b8de43a533a15bf7fd4b64a12f970ba18aef1b` rejects even moduli before candidate counting/loading. Focused repaired execution passes both even-modulus cases and retains both earlier `e < n` regression cases.
+#1117 was immediately ordinary/non-force converged by rebuilding from exact parent `fbed153f...` plus its existing README blob. Exact parent→child compare has merge-base `fbed153f...`, `behind_by=0`, and only `README.md` as effective child delta.
 
-Two intervening commits after `801687f7...` added and removed a non-running one-shot ROPC migration workflow (`ec6028ef...` → `fdf210e3...`). Their net product-tree delta is zero and no migration result is inferred from them. Parent movement was propagated to #1117. An earlier history-only convergence `041f5c7d...` had preserved the old child tree and exposed parent deltas as apparent reversions; it was immediately repaired by `fedf57fa...`. The latest movement was converged correctly by reconstructing from exact parent `81b8de43...` plus the README blob, producing #1117 `58196133...`. Fresh parent→child compare has merge-base exact parent, `behind_by=0`, and only `README.md` as effective child delta.
-
-These are source/focused repairs, not hosted acceptance: #1120 exact-head Tests `35426518958` is terminal `skipped` by Draft admission.
+These are source/focused repairs, not hosted repository acceptance. #1120 exact-head Tests `35427683341` is terminal `skipped` by Draft admission.
 
 Remaining auth RED is explicit:
 
-- `backend/tests/test_api.py` still uses the public browser client password grant for distinct analyst/admin authorization evidence.
-- `scripts/seed_demo_data.py` still uses `admin-cli` password grant only to rediscover deterministic human fixture subjects and uses `demo.analyst` password grant for post-content warm-up.
-- Therefore the public `lineageweave-frontend` fixture still has `directAccessGrantsEnabled=true`; disabling it before consumer migration would break current evidence paths rather than complete the OAuth repair.
-- Project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0; the safe declared floor/lock must be reconciled before release.
-- Required order: migrate remaining password-grant consumers while keeping distinct authorization semantics → disable public direct grants → align dependency metadata/lock → prove one exact-head hosted repository/security/static-analysis GREEN set → prove rendered Authorization Code + PKCE state/nonce/return-URL/session behavior.
+- `backend/tests/test_api.py` still uses public `lineageweave-frontend` password grants for distinct analyst/admin authorization evidence.
+- `scripts/seed_demo_data.py` still uses `admin-cli` password grant to rediscover deterministic human fixture subjects and `demo.analyst` password grant for post-content warm-up.
+- The public realm client therefore still has `directAccessGrantsEnabled=true`; disabling it before consumer migration would break current evidence paths rather than complete the OAuth repair.
+- Project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0.
+- Required order remains: migrate remaining password-grant consumers while preserving distinct authorization semantics → disable public direct grants → align dependency metadata/lock → prove one exact-head hosted repository/security/static-analysis GREEN set → prove rendered Authorization Code + PKCE state/nonce/return-URL/session behavior.
 
 ## Report / comparison stack
 
-The current report-axis chain is #874 `02eeb4b396de4d8077512d30d9492c31ab64155b` → #875 `d1f96f97eb79a5498f312293217191c45611ef45`, with direct children #876 `a8ba471ffedfb0f6007706d758ee4a8bd5b37464` and #877 `0f1adc5b6468e1e7b3d06d822402358ce5783505`; #876 continues through #1033 `c8e6b6f55e65f270a77c43cae6e9f74a918e628a` → #1034 `4fb7122c01d6883f090d4f11794f5140f030700c`.
+The current recorded report-axis chain is #874 `02eeb4b396de4d8077512d30d9492c31ab64155b` → #875 `d1f96f97eb79a5498f312293217191c45611ef45`, with direct children #876 `a8ba471ffedfb0f6007706d758ee4a8bd5b37464` and #877 `0f1adc5b6468e1e7b3d06d822402358ce5783505`; #876 continues through #1033 `c8e6b6f55e65f270a77c43cae6e9f74a918e628a` → #1034 `4fb7122c01d6883f090d4f11794f5140f030700c`.
 
-#875 repaired stale source-shape sentinels by directly executing combined/singular-only-zero/share-only/invalid report-axis evidence states and retaining non-derivation of singular/share. Descendants were ordinarily/non-force converged and preserve their isolated coordinate/origin/accessibility deltas. Their moved-head hosted Tests remain non-accepting until terminal exact-head evidence exists; no predecessor receipt transfers.
+#875 repaired stale source-shape sentinels by directly executing combined/singular-only-zero/share-only/invalid report-axis evidence states while retaining non-derivation of singular/share. Descendants preserve their isolated coordinate/origin/accessibility deltas. Moved-head hosted acceptance remains incomplete; predecessor receipts do not transfer.
 
 ## Buyer-path performance
 
-#995 exact `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains intentionally RED because the durable exact-head cold buyer-path evidence file required by #994 is absent. Headline bundle splitting is not a substitute for measured transfer, parse/compile, main-thread/DOM, representative p95, method/environment and limitations evidence.
+#995 exact `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains RED because durable exact-head cold buyer-path evidence is absent. Bundle splitting is not a substitute for measured transfer, parse/compile, main-thread/DOM, representative p95, method/environment, and limitations evidence.
 
-#1009 exact `4fff982a96b0ad6e791aa8c463925388d036f08f` retains the modern stateless MCP protocol repair but remains performance RED. Previously recorded buyer-path observations exceed the repository p95 ≤20 ms contract by a wide margin. Do not reduce samples, hide I/O, rely on unrealistic cache warm-up, or relabel contention as GREEN; profile the representative synchronous path and repair the owned hot path if the representative baseline still exceeds the contract.
+#1009 exact `4fff982a96b0ad6e791aa8c463925388d036f08f` retains the stateless MCP protocol repair but remains performance RED. Previously recorded buyer-path observations exceed the repository p95 ≤20 ms contract. Do not shrink samples, hide I/O, rely on unrealistic cache warm-up, or relabel contention as GREEN; profile the representative path and repair the owned hot path if the baseline still exceeds budget.
 
 ## Release identity and immutable delivery
 
-#961 exact `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs the protected runtime/package/frontend version mismatch to 2.28.0 and has repository Tests/SAST/Security GREEN, but required CodeQL and independent approval remain absent. Source-version coherence is not an immutable release.
+#961 exact `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs protected runtime/package/frontend version mismatch to 2.28.0 and has repository Tests/SAST/Security GREEN, but required CodeQL and independent approval remain absent. Source-version coherence is not an immutable release.
 
-Before publication, one protected exact candidate must prove built/installed package identity, CHANGELOG/release notes, immutable tag/release/package filename, SBOM/provenance predicates, exact source SHA, reproducibility and rollback consistency through the canonical released `.github` attestation contract. Existing GitHub Release absence does not prove no historical publication elsewhere.
+Before publication, one protected exact candidate must prove built/installed package identity, CHANGELOG/release notes, immutable tag/release/package filename, SBOM/provenance predicates, exact source SHA, reproducibility, and rollback consistency through the canonical released `.github` attestation contract.
 
 ## Buyer-gap register
 
 | Area | Current authority | State | Required causal next step |
 | --- | --- | --- | --- |
-| Translation ledger | #929 `d4f42f57...` → #932 `fb242253...` | RED | recover/fix exact PostgreSQL failure; canonical Dependency Review + CodeQL settlement; independent 37×8 review/publication |
-| Customer Master hierarchy | #996 `a640df40...` | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
+| Translation ledger | #929 `d4f42f57...` → #932 | RED | recover/fix exact PostgreSQL failure; canonical Dependency Review + CodeQL settlement; independent 37×8 review/publication |
+| Customer Master hierarchy | #996 | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
 | Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | obtain final-head repository + Chromium + security evidence |
-| Python CodeQL baseline | #974 `4341080f...` → #979 `2dfd211...` | owner-control RED | canonical `.github#1929` verdict publication/consumer settlement |
-| Local OIDC topology | #1120 `81b8de43...` → #1117 `58196133...` | machine/admin + local scope + RSA admission source prerequisites repaired; migration still RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
+| Python CodeQL baseline | #974 `4341080f...` → #979 | owner-control RED | canonical `.github` verdict publication/consumer settlement |
+| Local OIDC topology | #1120 `fbed153f...` → #1117 `0908bc03...` | machine/admin + local scope + RSA/JWK admission source prerequisites repaired; migration still RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
 | Report axis/comparison | #875 `d1f96f97...` → #876/#877 → #1033/#1034 | source-repaired stack / hosted acceptance incomplete | terminal exact-head hosted validation without receipt transfer |
 | Frontend delivery performance | #995 `dbe5ac54...` | RED | commit exact-head representative cold buyer-path evidence and repair if over budget |
 | MCP buyer latency | #1009 `4fff982a...` | RED | representative uncontended profile and causal hot-path repair to p95 ≤20 ms |
