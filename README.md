@@ -19,7 +19,7 @@ This is a **demo prototype**: it ships with synthetic sample data only
 (`lineageweave/fixtures.py`) and no connection to any real dataset or
 organization.
 
-The supporting [product requirements](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/docs/product-requirements.md) define
+The supporting [product requirements](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/docs/product-requirements.md) define
 the product outcomes, non-goals, ecosystem boundaries, and release evidence;
 ADRs remain normative for architecture and policy.
 
@@ -27,12 +27,12 @@ ADRs remain normative for architecture and policy.
 
 Given a pile of records with no native cross-record link, no single cheap
 signal reliably tells you which record continues which -- see
-[`docs/lineage-bi-research-notes.md`](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/docs/lineage-bi-research-notes.md) for
+[`docs/lineage-bi-research-notes.md`](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/docs/lineage-bi-research-notes.md) for
 the validation numbers and the literature this design follows. LineageWeave
 fuses several independent, individually-weak signals (temporal proximity, a
 shared grouping key, text similarity, and an optional LLM judgment) instead
 of trusting any one of them alone. The normative research-grounding policy is
-[ADR 0084](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/docs/adr/0084-lineage-research-grounding.md); the linked notes
+[ADR 0084](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/docs/adr/0084-lineage-research-grounding.md); the linked notes
 retain the supporting bibliography and aggregate evidence.
 
 ## How it fits with the rest of the ecosystem
@@ -48,7 +48,7 @@ fallback, structured-output compatibility, multi-agent orchestration,
 reasoning-effort allocation, usage/cost provenance, and provider credentials
 stay in contextual-orchestrator. LineageWeave receives versioned observations
 and provenance; it never treats an LLM judgment as truth and never falls back
-to a provider endpoint directly. See [ADR 0300](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/docs/adr/0300-contextual-orchestrator-owner-boundary.md).
+to a provider endpoint directly. See [ADR 0300](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/docs/adr/0300-contextual-orchestrator-owner-boundary.md).
 
 Reusable psychometric numerical/statistical kernels and their recovery
 evidence belong to
@@ -112,8 +112,8 @@ pytest
 ## Local product stack (Docker Compose)
 
 The reconstruction library above is being wrapped in a real product (see
-[ARCHITECTURE.md](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/ARCHITECTURE.md#product-schema-phase-1-of-a-larger-roadmap)
-and [ADR 0001](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/docs/adr/0001-demo-identity-and-data-boundary.md)). Phase 1's
+[ARCHITECTURE.md](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/ARCHITECTURE.md#product-schema-phase-1-of-a-larger-roadmap)
+and [ADR 0001](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/docs/adr/0001-demo-identity-and-data-boundary.md)). Phase 1's
 infrastructure -- PostgreSQL, Valkey, and a real Keycloak OIDC realm seeded
 with synthetic demo accounts -- runs via Docker Compose:
 
@@ -259,4 +259,4 @@ contract and fail closed when that contract is unavailable.
 
 ## License
 
-MIT -- see [LICENSE](https://github.com/ContextualWisdomLab/LineageWeave/blob/main/LICENSE).
+MIT -- see [LICENSE](https://github.com/ContextualWisdomLab/LineageWeave/blob/931d72750640cbf8aeac3b120f47a106ad6f6ba5/LICENSE).
