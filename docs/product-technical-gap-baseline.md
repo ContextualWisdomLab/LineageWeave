@@ -32,21 +32,23 @@ Customer Master presentation #932 remains stacked on #929. The 37-key × 8-local
 
 ## Authentication / authorization stack
 
-Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `fbed153fa7cf03726710d8801cf44ee3fdbc4726` → README child #1117 `0908bc03afa13c015b277c819db66c5ac1b2a10b`.
+Current stack authority is #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `234d5c05aedd573cd6bbf37dfe1019afd0a67c40` → README child #1117 `c258538eaca0d635b3163d0b5920c6f72a98464f`.
 
 #1120 retains the normalized local service-account prerequisite. The realm fixture gives automation subject `33333333-3333-4333-8333-333333333333` `DEMO-PU-A` + `viewer` and a distinct admin-test subject `44444444-4444-4444-8444-444444444444` `DEMO-PU-HQ` + `admin`. The PostgreSQL-only provisioner replaces only those deterministic actors' affiliations/roles and does not authenticate to Keycloak or mint tokens.
 
 Local authorization review already repaired two representation hazards. PU affiliations dropped by local account resolution were restored (`87d52c4c...` → `405b7ed8...` → edge proof `87e9aceb...`). The unrepresentable mixed `{corp-wide,NULL}` plus `{corp-scoped,pu}` shape now fails closed instead of widening a scoped corporation (`bca160c7...` → `801687f7...`).
 
-The shared JWT/JWK selector now also closes the following candidate-admission classes before loader/candidate counting: unsupported `crit`; malformed/noncanonical Base64urlUInt; RSA modulus below 2048 bits; invalid exponent encoding/range; `e >= n`; even modulus; and nonconformant RFC 7517 `key_ops` metadata.
+The shared JWT/JWK selector closes candidate-admission classes before loader/candidate counting: unsupported `crit`; malformed/noncanonical Base64urlUInt; RSA modulus below 2048 bits; invalid exponent encoding/range; `e >= n`; even modulus; nonconformant RFC 7517 `key_ops`; and now explicitly null optional metadata.
 
-Fresh `key_ops` review found that predecessor `81b8de43...` accepted duplicate operation values, non-string members, and unrelated `verify` + `encrypt` operations as long as `verify` appeared somewhere in the list. RFC 7517 §4.3 says duplicate operation values MUST NOT be present and warns against unrelated operation combinations because of cross-algorithm vulnerability. A malformed same-`kid` key could therefore enter the candidate set and manufacture false ambiguity.
+The earlier `key_ops` repair rejected duplicate operation values, non-string members, and unrelated `verify` + `encrypt` combinations. Test-first `6e9ca95a...` / `29d394b9...` produced `4 failed, 1 passed` against predecessor `81b8de43...`; causal fix `fbed153f...` produced `5 passed` in the focused set under PyJWT 2.13.0.
 
-Test-first commits `6e9ca95af96cef458bd52ca2831a39dd1abc0d34` and `29d394b9f620384b3f57b27b0015ee6498672959` cover direct rejection, non-string members, false same-`kid` ambiguity, and the permitted `sign` + `verify` pair. Focused execution against predecessor `81b8de43...` under PyJWT 2.13.0 produced `4 failed, 1 passed`. Causal fix `fbed153fa7cf03726710d8801cf44ee3fdbc4726` requires a string-only unique operation list, requires `verify`, and permits only the related signature-operation set; the same focused set is `5 passed` after repair.
+Fresh RFC 7517 review then found that predecessor `fbed153f...` used `.get()` semantics for optional `alg`, `use`, and `key_ops`, so explicit JSON `null` was indistinguishable from member absence. Those members are optional by absence but have defined JSON types when present. A malformed same-`kid` null-valued key could therefore enter candidate counting and manufacture false ambiguity.
 
-#1117 was immediately ordinary/non-force converged by rebuilding from exact parent `fbed153f...` plus its existing README blob. Exact parent→child compare has merge-base `fbed153f...`, `behind_by=0`, and only `README.md` as effective child delta.
+Test-first `68af99be64e18ab4e07c28a2440b4e0420df5844` adds direct rejection and same-`kid` ambiguity cases for explicit-null `alg`, `use`, and `key_ops`. Focused predecessor reproduction accepted all three malformed forms. Causal fix `234d5c05aedd573cd6bbf37dfe1019afd0a67c40` distinguishes absent members from present values: optional strings must be exact strings when present, and present `key_ops` must be a conformant list. The focused semantic matrix now rejects all explicit-null forms while preserving omission, valid metadata, and the permitted `sign` + `verify` operation pair.
 
-These are source/focused repairs, not hosted repository acceptance. #1120 exact-head Tests `35427683341` is terminal `skipped` by Draft admission.
+#1117 was immediately ordinary/non-force converged by rebuilding from exact parent `234d5c05...` plus its existing README blob. Exact parent→child compare has merge-base `234d5c05...`, `behind_by=0`, and only `README.md` as effective child delta.
+
+These are source/focused repairs, not hosted repository acceptance. #1120 exact-head Tests `35430344762` is terminal `skipped` by Draft admission.
 
 Remaining auth RED is explicit:
 
@@ -82,7 +84,7 @@ Before publication, one protected exact candidate must prove built/installed pac
 | Customer Master hierarchy | #996 | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
 | Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | obtain final-head repository + Chromium + security evidence |
 | Python CodeQL baseline | #974 `4341080f...` → #979 | owner-control RED | canonical `.github` verdict publication/consumer settlement |
-| Local OIDC topology | #1120 `fbed153f...` → #1117 `0908bc03...` | machine/admin + local scope + RSA/JWK admission source prerequisites repaired; migration still RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
+| Local OIDC topology | #1120 `234d5c05...` → #1117 `c258538e...` | machine/admin + local scope + RSA/JWK admission source prerequisites repaired; migration still RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
 | Report axis/comparison | #875 `d1f96f97...` → #876/#877 → #1033/#1034 | source-repaired stack / hosted acceptance incomplete | terminal exact-head hosted validation without receipt transfer |
 | Frontend delivery performance | #995 `dbe5ac54...` | RED | commit exact-head representative cold buyer-path evidence and repair if over budget |
 | MCP buyer latency | #1009 `4fff982a...` | RED | representative uncontended profile and causal hot-path repair to p95 ≤20 ms |
