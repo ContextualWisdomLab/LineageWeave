@@ -46,10 +46,18 @@ def _base64url_uint_value(value: object) -> int | None:
     return int.from_bytes(raw, "big")
 
 
-def _key_ops_allow_rs256_verification(key_ops: object) -> bool:
-    """Return whether optional RFC 7517 key operations fit this verify-only use."""
-    if key_ops is None:
+def _optional_string_member_equals(
+    key: dict[str, Any], member: str, expected: str
+) -> bool:
+    """Accept an omitted optional JWK string member or its exact expected value."""
+    if member not in key:
         return True
+    value = key[member]
+    return isinstance(value, str) and value == expected
+
+
+def _key_ops_allow_rs256_verification(key_ops: object) -> bool:
+    """Return whether present RFC 7517 key operations fit this verify-only use."""
     if not isinstance(key_ops, list):
         return False
     if any(not isinstance(operation, str) for operation in key_ops):
@@ -74,16 +82,17 @@ def select_rs256_signing_key(
     happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
     one matching JWK must be an RSA signing/verification key whose advertised
     algorithm, use, key operations, modulus, and public exponent do not contradict
-    RS256 verification. Both ``n`` and ``e`` must be canonical unpadded
-    Base64urlUInt values using the minimum unsigned big-endian octet sequence.
-    RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
-    RFC 8017 section 3.1 defines the modulus as a product of distinct odd primes,
-    so an RSA modulus is odd, and requires the public exponent to be between three
-    and ``n - 1``. Even exponents are invalid because the exponent must also be
-    coprime to the modulus factors' Carmichael value. RFC 7517 section 4.3 forbids
-    duplicate ``key_ops`` entries and warns against unrelated operation pairs, so
-    an advertised operation set may contain only the related sign/verify pair and
-    must include ``verify``.
+    RS256 verification. Optional ``alg``, ``use``, and ``key_ops`` members are
+    optional only by absence: if present, their RFC 7517 JSON types must be valid.
+    Both ``n`` and ``e`` must be canonical unpadded Base64urlUInt values using the
+    minimum unsigned big-endian octet sequence. RFC 7518 section 3.3 requires RSA
+    keys used with RS256 to be at least 2048 bits. RFC 8017 section 3.1 defines the
+    modulus as a product of distinct odd primes, so an RSA modulus is odd, and
+    requires the public exponent to be between three and ``n - 1``. Even exponents
+    are invalid because the exponent must also be coprime to the modulus factors'
+    Carmichael value. RFC 7517 section 4.3 forbids duplicate ``key_ops`` entries and
+    warns against unrelated operation pairs, so an advertised operation set may
+    contain only the related sign/verify pair and must include ``verify``.
     LineageWeave implements no JWS critical-header extensions, so any ``crit``
     declaration fails closed as required by RFC 7515 section 4.1.11.
     """
@@ -115,11 +124,13 @@ def select_rs256_signing_key(
             continue
         if key.get("kty") != "RSA":
             continue
-        if key.get("alg") not in (None, "RS256"):
+        if not _optional_string_member_equals(key, "alg", "RS256"):
             continue
-        if key.get("use") not in (None, "sig"):
+        if not _optional_string_member_equals(key, "use", "sig"):
             continue
-        if not _key_ops_allow_rs256_verification(key.get("key_ops")):
+        if "key_ops" in key and not _key_ops_allow_rs256_verification(
+            key["key_ops"]
+        ):
             continue
         modulus = _base64url_uint_value(key.get("n"))
         if (
