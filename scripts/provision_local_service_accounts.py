@@ -70,7 +70,7 @@ _LOCAL_SERVICE_ACCOUNT_BINDINGS = (
 
 
 def _validate_machine_client(client_id: str, client: dict[str, object]) -> None:
-    """Require the realm client shape that can safely back a DB machine actor."""
+    """Require a usable local confidential client before DB authorization exists."""
     if client.get("enabled") is not True:
         raise RuntimeError(f"realm client {client_id!r} must be enabled")
     if client.get("protocol") != "openid-connect":
@@ -83,12 +83,15 @@ def _validate_machine_client(client_id: str, client: dict[str, object]) -> None:
         raise RuntimeError(f"realm client {client_id!r} must disable direct access grants")
     if client.get("standardFlowEnabled") is not False:
         raise RuntimeError(f"realm client {client_id!r} must disable browser standard flow")
+    secret = client.get("secret")
+    if not isinstance(secret, str) or not secret.strip():
+        raise RuntimeError(f"realm client {client_id!r} must declare a client secret")
 
 
 def load_local_service_accounts(
     realm_export_path: Path = DEFAULT_REALM_EXPORT_PATH,
 ) -> tuple[LocalServiceAccount, ...]:
-    """Join local authorization bindings to disjoint realm-owned service subjects."""
+    """Join usable local machine clients to disjoint realm-owned service subjects."""
     realm = json.loads(realm_export_path.read_text())
     users = realm.get("users")
     if not isinstance(users, list):
@@ -108,6 +111,8 @@ def load_local_service_accounts(
             continue
         if not isinstance(client_id, str) or not client_id:
             raise RuntimeError("realm service account must declare a non-empty client id")
+        if user.get("enabled") is not True:
+            raise RuntimeError(f"realm service account {client_id!r} must be enabled")
         if not isinstance(subject_id, str) or not subject_id:
             raise RuntimeError(
                 f"realm service account {client_id!r} must declare a non-empty subject id"
