@@ -13,7 +13,7 @@
 Current protected references:
 
 - LineageWeave `main@83eba56149eb802cd63642c507c324c9976ec78e`, protected and signature-valid on the latest read.
-- Canonical reusable-workflow owner `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`, protected and signature-valid on the latest read.
+- Canonical reusable-workflow owner `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`, protected and signature-valid on the latest read. Its required owner-check set remains centrally enforced.
 
 Re-read both before merge or release; neither reference is a frozen dependency.
 
@@ -35,7 +35,7 @@ Current ordinary/non-force report chain:
 
 #875 children are #876 `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` and #877 `34b5682bfbc093a253f6b500c66116354e78c5b4`; #876 continues through #1033 `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` → #1034 `bb664b7aae733933c11b2fe056de2a7b16a02c15`.
 
-The previous #868 head exposed three stale report contracts rooted at #863/#865/#866. Their causal repairs are already converged into the current chain while preserving stronger descendant semantics. Fresh read of current #868 Tests `35448971227` is terminal FAILURE, not queued: Full test suite/PostgreSQL job `105912690728` completed SUCCESS, while Frontend lint/test/build job `105912690894` failed at the `Test` step after lint succeeded; Build and Storybook were skipped. The exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share, so that stale App acceptance remains a valid source finding even though the available Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
+#868 Tests `35448971227` is terminal FAILURE in the frontend `Test` step. The full/PostgreSQL suite is GREEN. Exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share. That stale App acceptance remains a valid source finding even though the available Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
 
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through protected integration or verified succession rather than duplicate telemetry source.
 
@@ -43,23 +43,21 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 8ec3f725ef15210dc75bc992f52d0bbca4b7b52e → #1117 1b301d28c73c71b4750cf0950ca5a3007b9f307d`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 76cc6b0716de48b96d39a67cd018dbd7972e032f → #1117 93737c525d772ce978437416b9860c38d03e18d4`.
 
-The accumulated JWKS consumer repairs remain part of #1120: verification candidates reject private RSA members; `x5c` members must be canonical Base64 / parseable X.509, the leaf RSA key must match JWK `n/e`, KeyUsage cannot contradict signature verification, and `x5t` / `x5t#S256` must be canonical and match embedded leaf DER when available. These are LineageWeave verifier boundaries, not Keyverse/provider identity ownership.
-
-Latest executable RED `97c99343fd188eeed8b011e5336b8784039cb331` found one remaining fail-open metadata path: the selector accepted RFC 7517 `x5u` without retrieving or validating the referenced certificate. RFC 7517 §4.6 requires the first certificate public key to match the other JWK members and requires integrity-protected retrieval with server identity validation. Because the shared selector owns no remote certificate retrieval or trust path, causal fix `334c5ad7ce8cd3c137c7ad12a2a6505ce76e482f` rejects every `x5u`-bearing candidate before key loading, including same-`kid` ambiguity poisoning. Follow-up `8ec3f725ef15210dc75bc992f52d0bbca4b7b52e` restores pre-existing rationale comments so the net production delta from predecessor `249d3fa2...` is five added lines plus the new contract. No remote fetch, SSRF surface, PKIX trust implementation, or Keyverse/provider source copy was introduced.
+The accumulated JWKS consumer repairs remain part of #1120: verification candidates reject private RSA members; `x5c` members must be canonical Base64 / parseable X.509, the leaf RSA key must match JWK `n/e`, KeyUsage cannot contradict signature verification, and `x5t` / `x5t#S256` must be canonical and match embedded leaf DER when available. Unsupported RFC 7517 `x5u` candidates are rejected because this consumer owns no authenticated remote-certificate retrieval/trust path. These are LineageWeave verifier boundaries, not Keyverse/provider identity ownership.
 
 The local service-account prerequisite remains fail closed across identity, client topology, authentication usability, and consumer-resource audience compatibility:
 
 - realm service-account `sub` values are derived from `docker/keycloak/realm-export.json` instead of copied into Python;
 - required service subjects are unique and disjoint from non-service resource-owner subjects;
-- each bound client must exist exactly once and be enabled OIDC, confidential, service-account enabled, direct-grant disabled, and browser-standard-flow disabled;
+- each bound client must exist exactly once and be enabled OIDC, confidential, service-account enabled, direct-grant disabled, browser-standard-flow disabled, and implicit-flow disabled;
 - a bound service-account user must be enabled and the current checked-in secret-based confidential client must carry a non-empty local secret;
 - automation requires `lineageweave-api` plus `http://localhost:18001/mcp` access-token audiences, while admin requires `lineageweave-api`, through direct OIDC audience mappers with `access.token.claim == "true"`.
 
-These conditions are intentionally local-fixture/consumer specific. They prove that the checked-in confidential actors are structurally capable of authenticating to the LineageWeave resources they are intended to exercise; they do not claim runtime secret resolution, provider availability, or Keyverse identity ownership.
+Latest auth finding closes an additional local-fixture fail-open boundary. Executable contract `787f9019fe49f13c3de6b6541861c58670f5b4b3` requires both confidential machine clients to declare `implicitFlowEnabled=false`; causal validator repair `c7700855f5559f6780859df8c0f5c6e38ff9dac7` rejects enabled or omitted implicit flow before DB authorization, and realm repair `bdfdb7a742bef0151ad829be6a1955bd4c1d6ff7` makes that state explicit. Follow-up contract `4dd4672a961758b1f234cfecdbeed37158ae5520` extends the same boundary to the public browser fixture, and current #1120 `76cc6b0716de48b96d39a67cd018dbd7972e032f` explicitly disables implicit flow there while preserving Authorization Code + S256 PKCE and leaving direct grants enabled only because migration consumers remain.
 
-#1120 exact-head Tests `35474448024` is terminal skipped under Draft admission. No repository GREEN is claimed. #1117 was immediately ordinary/non-force reconstructed from exact #1120 plus its existing README blob. Exact compare has merge-base `8ec3f725...`, `behind_by=0`, and README-only effective delta. #1117 exact-head Tests `35474459424` is also Draft-skipped.
+#1120 exact-head Tests `35477177048` is terminal skipped under Draft admission, so no repository GREEN is claimed. #1117 was ordinary/non-force converged from exact #1120 plus its existing README blob; its current head is `93737c525d772ce978437416b9860c38d03e18d4`. Final acceptance still requires exact-head hosted evidence rather than predecessor receipts.
 
 Remaining auth RED:
 
@@ -90,7 +88,7 @@ Canonical `.github/main` is `e6334e229581a918e2f22de18733b76fa65d7e71` on the la
 | Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | backend GREEN / frontend RED at #868 | recover or reproduce the exact frontend failing acceptance; repair at the causal owner, then converge descendants without stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `8ec3f725...` → #1117 `1b301d28...` | migration RED / verifier+machine fixture prerequisite repaired | migrate backend/seed password grants to validated confidential service actors; then disable public direct grants, align dependency floor+lock, and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `76cc6b07...` → #1117 `93737c52...` | migration RED / verifier+machine/browser-flow prerequisite repaired | migrate backend/seed password grants to standards-compliant actor paths; then disable public direct grants, align dependency floor+lock, and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
