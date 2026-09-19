@@ -3,9 +3,13 @@ import {
   leftoverMapAxisBadge,
   leftoverMapAxisBadgeShare,
   leftoverMapAxisBadgeSingular,
+  leftoverMapAxisTickBadge,
   LEFTOVER_MAP_AXIS_BADGE_SHARE,
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY,
+  LEFTOVER_MAP_AXIS_TICK_SHARE,
+  LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+  LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE,
 } from "./leftoverMapAxisBadge";
 import { LEFTOVER_MAP_COMPARE_PLOT_AXIS_SHARE } from "./leftoverMapPlotAxisShare";
 import {
@@ -113,6 +117,29 @@ describe("leftoverMapAxisBadge", () => {
         leftover_singular_value: Number.NaN,
         leftover_share: Number.POSITIVE_INFINITY,
       }),
+    ).toBeNull();
+  });
+});
+
+describe("leftoverMapAxisTickBadge", () => {
+  it("keeps persisted singular and share independently observable at a report tick", () => {
+    expect(leftoverMapAxisTickBadge(1, "-0.50", 1.24, 0.42)).toEqual({
+      template: LEFTOVER_MAP_AXIS_TICK_SINGULAR_SHARE,
+      values: { axis: 1, value: "-0.50", singular: "1.24", share: "42" },
+    });
+    expect(leftoverMapAxisTickBadge(2, "0.00", null, 0.18)).toEqual({
+      template: LEFTOVER_MAP_AXIS_TICK_SHARE,
+      values: { axis: 2, value: "0.00", share: "18" },
+    });
+    expect(leftoverMapAxisTickBadge(1, "0.50", 0, null)).toEqual({
+      template: LEFTOVER_MAP_AXIS_TICK_SINGULAR,
+      values: { axis: 1, value: "0.50", singular: "0.00" },
+    });
+  });
+
+  it("omits a tick badge when neither persisted measure is usable", () => {
+    expect(
+      leftoverMapAxisTickBadge(1, "0.00", Number.NaN, Number.POSITIVE_INFINITY),
     ).toBeNull();
   });
 });

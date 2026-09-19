@@ -9,26 +9,17 @@ PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 LAYOUT_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotLayout.ts"
 
 
-def test_comparison_graphic_names_ticks_with_distinct_accessible_copy() -> None:
-    """Comparison ticks keep localized comparison copy while report ticks may add persisted σ evidence."""
+def test_comparison_graphic_names_ticks_through_evidence_aware_badge_contract() -> None:
+    """Comparison ticks delegate persisted σ/share evidence and retain the localized plain-tick fallback."""
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
 
-    # v2.84 adds a report-only evidence badge. Comparison ticks must keep the
-    # existing localized comparison + generic tick composition rather than
-    # inheriting report evidence or introducing a comparison-only translation.
+    assert "leftoverMapComparePlotTickAxisBadge" in plot_source
     assert "leftoverMapPlotTickAxisBadge" in plot_source
     assert "leftoverSingularForAxis(leftoverMapAxes, tick.axis)" in plot_source
-    assert re.search(
-        r'reportTickBadge\s*=\s*variant\s*===\s*"report"\s*\?\s*leftoverMapPlotTickAxisBadge\(',
-        plot_source,
-        re.DOTALL,
-    )
-    assert re.search(
-        r'variant\s*===\s*"comparison"\s*\?\s*`\$\{t\(LEFTOVER_MAP_COMPARE_PLOT_LABEL\)\}:\s*\$\{tf\(LEFTOVER_MAP_PLOT_TICK,\s*\{\s*axis:\s*tick\.axis,\s*value:\s*tick\.label,?\s*\}\)\}`',
-        plot_source,
-        re.DOTALL,
-    )
-    assert "tf(reportTickBadge.template, reportTickBadge.values)" in plot_source
+    assert "leftoverShareForAxis(leftoverMapAxes, tick.axis)" in plot_source
+    assert "tf(comparisonTickBadge.template, comparisonTickBadge.values)" in plot_source
+    assert "LEFTOVER_MAP_COMPARE_PLOT_LABEL" in plot_source
+    assert "LEFTOVER_MAP_PLOT_TICK" in plot_source
     assert "LEFTOVER_MAP_COMPARE_PLOT_TICK" not in plot_source
 
 
