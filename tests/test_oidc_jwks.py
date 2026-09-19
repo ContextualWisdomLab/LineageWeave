@@ -132,6 +132,56 @@ def test_invalid_exponent_cannot_poison_same_kid_candidate_uniqueness() -> None:
     assert json.loads(loaded[0])["e"] == "AQAB"
 
 
+def test_rejects_even_rsa_modulus_before_loading() -> None:
+    """RFC 8017 RSA moduli are products of odd primes and therefore odd."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    loaded: list[str] = []
+    key = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": _rsa_modulus(offset=0),
+        "e": "AQAB",
+    }
+
+    with pytest.raises(JwksKeySelectionError, match="no JWKS key matched"):
+        select_rs256_signing_key(
+            {"keys": [key]},
+            token,
+            jwk_loader=lambda value: loaded.append(value) or object(),
+        )
+
+    assert loaded == []
+
+
+def test_even_modulus_cannot_poison_same_kid_candidate_uniqueness() -> None:
+    """A structurally invalid even modulus cannot manufacture duplicate ambiguity."""
+    token = _token({"alg": "RS256", "kid": "wanted"})
+    valid = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": _rsa_modulus(offset=1),
+        "e": "AQAB",
+    }
+    invalid = {**valid, "n": _rsa_modulus(offset=0)}
+    loaded: list[str] = []
+
+    selected = select_rs256_signing_key(
+        {"keys": [valid, invalid]},
+        token,
+        jwk_loader=lambda value: loaded.append(value) or "selected-key",
+    )
+
+    assert selected == "selected-key"
+    assert len(loaded) == 1
+    assert json.loads(loaded[0])["n"] == valid["n"]
+
+
 def test_rejects_malformed_token_header_without_leaking_parser_detail() -> None:
     with pytest.raises(JwksKeySelectionError) as error:
         select_rs256_signing_key({"keys": []}, "not-a-jwt")
