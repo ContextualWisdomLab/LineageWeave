@@ -23,6 +23,7 @@ class JwksKeySelectionError(ValueError):
 
 
 _BASE64URL_UINT = re.compile(r"^[A-Za-z0-9_-]+$")
+_RSA_PRIVATE_MEMBERS = frozenset({"d", "p", "q", "dp", "dq", "qi", "oth"})
 
 
 def _base64url_uint_value(value: object) -> int | None:
@@ -88,7 +89,7 @@ def select_rs256_signing_key(
 
     Selection is deliberately narrower than merely finding a key whose signature
     happens to verify: the token must declare RS256 and a non-empty ``kid``; exactly
-    one matching JWK must be an RSA signing/verification key whose advertised
+    one matching JWK must be a public RSA signing/verification key whose advertised
     algorithm, use, key operations, modulus, and public exponent do not contradict
     RS256 verification. The JWKS itself must be a JSON object; malformed provider
     JSON fails through this shared authentication boundary rather than escaping as
@@ -96,6 +97,9 @@ def select_rs256_signing_key(
     are optional only by absence: if present, their RFC 7517 JSON types must be valid.
     Both ``n`` and ``e`` must be canonical unpadded Base64urlUInt values using the
     minimum unsigned big-endian octet sequence and RFC 4648 canonical zero pad bits.
+    RFC 7518 section 6.3.2 private RSA members are rejected before candidate counting:
+    this verifier consumes public signing material and must never admit leaked private
+    exponents, prime factors, CRT parameters, or multi-prime private information.
     RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
     RFC 8017 section 3.1 defines the modulus as a product of distinct odd primes, so
     an RSA modulus is odd, and requires the public exponent to be between three and
@@ -136,6 +140,8 @@ def select_rs256_signing_key(
         if not isinstance(key, dict) or key.get("kid") != kid:
             continue
         if key.get("kty") != "RSA":
+            continue
+        if _RSA_PRIVATE_MEMBERS.intersection(key):
             continue
         if not _optional_string_member_equals(key, "alg", "RS256"):
             continue
