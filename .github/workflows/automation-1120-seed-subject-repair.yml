@@ -1,0 +1,222 @@
+name: Repair #1120 seed subject identity
+
+on:
+  push:
+    branches:
+      - fix/eliminate-public-client-ropc-20260918
+    paths:
+      - .github/workflows/automation-1120-seed-subject-repair.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automation-1120-seed-subject-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout triggering commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+
+      - name: Verify exact predecessor and workflow-only trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "1c6c2c873052daf0f89117e290bd47bf8ab7ac9a"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/automation-1120-seed-subject-repair.yml"
+
+      - name: Materialize realistic RED contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > tests/test_seed_demo_auth_contract.py <<'PY'
+          """Executable contracts for synthetic seed identity bootstrap."""
+
+          from __future__ import annotations
+
+          import ast
+          import json
+          import unittest
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[1]
+          SEED_SCRIPT = ROOT / "scripts" / "seed_demo_data.py"
+          REALM_FIXTURE = ROOT / "docker" / "keycloak" / "realm-export.json"
+
+
+          def _literal_mapping(source: str, name: str) -> dict[str, str]:
+              """Return one literal string mapping assigned to ``name``."""
+              tree = ast.parse(source)
+              for node in tree.body:
+                  if isinstance(node, ast.Assign):
+                      if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+                          value = ast.literal_eval(node.value)
+                          if not isinstance(value, dict) or not all(
+                              isinstance(key, str) and isinstance(item, str)
+                              for key, item in value.items()
+                          ):
+                              raise AssertionError(f"{name} must be a literal str->str mapping")
+                          return value
+              raise AssertionError(f"missing literal mapping {name}")
+
+
+          class SeedDemoAuthContractTests(unittest.TestCase):
+              def test_seed_uses_realm_fixed_human_subjects_without_admin_password_grant(self) -> None:
+                  """Seed bootstrap must not authenticate a privileged admin to rediscover fixed fixture IDs."""
+                  source = SEED_SCRIPT.read_text(encoding="utf-8")
+                  self.assertNotIn("_fetch_demo_user_subjects", source)
+                  self.assertNotIn('"admin-cli"', source)
+                  self.assertNotIn("KEYCLOAK_ADMIN_PASSWORD", source)
+                  self.assertNotIn("--keycloak-admin-password", source)
+                  self.assertNotIn("get_json_list", source)
+
+                  seed_subjects = _literal_mapping(source, "DEMO_USER_SUBJECTS")
+                  realm = json.loads(REALM_FIXTURE.read_text(encoding="utf-8"))
+                  fixture_subjects = {
+                      user["username"]: user["id"]
+                      for user in realm["users"]
+                      if user.get("username") in {"demo.analyst", "demo.admin"}
+                  }
+                  self.assertEqual(
+                      seed_subjects,
+                      {
+                          "demo.analyst": "11111111-1111-4111-8111-111111111111",
+                          "demo.admin": "22222222-2222-4222-8222-222222222222",
+                      },
+                  )
+                  self.assertEqual(seed_subjects, fixture_subjects)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          PY
+
+          set +e
+          python -m unittest discover -s tests -p 'test_seed_demo_auth_contract.py' -v
+          red_status=$?
+          set -e
+          if [ "$red_status" -eq 0 ]; then
+            echo "Expected privileged-subject-discovery RED did not reproduce" >&2
+            exit 1
+          fi
+
+      - name: Remove privileged subject rediscovery at the causal boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/seed_demo_data.py")
+          source = path.read_text(encoding="utf-8")
+
+          old_intro = '''Genuinely real, not fabricated locally and hoped to match: this script logs
+          into Keycloak's own admin REST API to fetch the actual `sub` (user id) of
+          the two demo accounts seeded by docker/keycloak/realm-export.json, then
+          inserts user_account rows in Postgres keyed by those real subject ids --
+          the same identity Keycloak issues in an access token's `sub` claim, which
+          is exactly what backend.app.auth looks up. Seeded tickets also ``XADD``
+          onto Valkey so the Activity panel is not empty after ``make seed``.
+          '''
+          new_intro = '''The disposable Keycloak realm owns deterministic synthetic `sub` values for
+          the two demo users. This script consumes those fixture identities directly and
+          inserts user_account rows in Postgres keyed by the same subjects Keycloak emits;
+          it does not authenticate a privileged master-realm admin merely to rediscover
+          fixture IDs. Seeded tickets also ``XADD`` onto Valkey so the Activity panel is
+          not empty after ``make seed``.
+          '''
+          if old_intro not in source:
+              raise SystemExit("seed module contract paragraph drifted")
+          source = source.replace(old_intro, new_intro, 1)
+          source = source.replace(
+              "Usage: KEYCLOAK_ADMIN_PASSWORD=... python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]",
+              "Usage: python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]",
+              1,
+          )
+          source = source.replace("import os\n", "", 1)
+          source = source.replace("from urllib.parse import urlencode\n", "", 1)
+          source = source.replace(
+              "from lineageweave.http_client import get_json, get_json_list, post_form",
+              "from lineageweave.http_client import get_json, post_form",
+              1,
+          )
+          source = source.replace('REALM = "lineageweave-demo"\n', "", 1)
+          source = source.replace('DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")\n', "", 1)
+          anchor = 'DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"\n'
+          mapping = '''DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
+          DEMO_USER_SUBJECTS = {
+              "demo.analyst": "11111111-1111-4111-8111-111111111111",
+              "demo.admin": "22222222-2222-4222-8222-222222222222",
+          }
+          '''
+          if source.count(anchor) != 1:
+              raise SystemExit("Keycloak base URL anchor drifted")
+          source = source.replace(anchor, mapping, 1)
+
+          start = source.find("\ndef _fetch_demo_user_subjects(")
+          end = source.find("\ndef seed(\n", start)
+          if start < 0 or end < 0:
+              raise SystemExit("subject lookup function boundary drifted")
+          source = source[:start] + source[end:]
+
+          old_main = '''    parser.add_argument("--keycloak-base-url", default=DEFAULT_KEYCLOAK_BASE_URL)
+              parser.add_argument("--keycloak-admin-user", default=DEFAULT_KEYCLOAK_ADMIN_USER)
+              parser.add_argument(
+                  "--keycloak-admin-password",
+                  default=os.environ.get("KEYCLOAK_ADMIN_PASSWORD"),
+                  help="Keycloak master admin password (or KEYCLOAK_ADMIN_PASSWORD). Required.",
+              )
+              parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
+              parser.add_argument("--backend-base-url", default=DEFAULT_BACKEND_BASE_URL)
+              args = parser.parse_args()
+              if not args.keycloak_admin_password:
+                  parser.error("set KEYCLOAK_ADMIN_PASSWORD or pass --keycloak-admin-password")
+
+              subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
+          '''
+          new_main = '''    parser.add_argument("--keycloak-base-url", default=DEFAULT_KEYCLOAK_BASE_URL)
+              parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
+              parser.add_argument("--backend-base-url", default=DEFAULT_BACKEND_BASE_URL)
+              args = parser.parse_args()
+
+              subjects = dict(DEMO_USER_SUBJECTS)
+          '''
+          if old_main not in source:
+              raise SystemExit("seed CLI auth block drifted")
+          source = source.replace(old_main, new_main, 1)
+
+          path.write_text(source, encoding="utf-8")
+          PY
+
+      - name: Prove GREEN and bounded delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_seed_demo_auth_contract.py' -v
+          python -m compileall -q scripts/seed_demo_data.py tests/test_seed_demo_auth_contract.py
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("scripts/seed_demo_data.py").read_text(encoding="utf-8")
+          assert '"grant_type": "password"' in source, "warm-up ROPC unexpectedly disappeared; this slice must remain causal"
+          assert '"client_id": "lineageweave-frontend"' in source, "expected remaining warm-up ROPC inventory missing"
+          PY
+          git rm .github/workflows/automation-1120-seed-subject-repair.yml
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' '.github/workflows/automation-1120-seed-subject-repair.yml' 'scripts/seed_demo_data.py' 'tests/test_seed_demo_auth_contract.py' | sort)"
+          test "$actual" = "$expected"
+
+      - name: Commit ordinary repair and publish without force
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/seed_demo_data.py tests/test_seed_demo_auth_contract.py .github/workflows/automation-1120-seed-subject-repair.yml
+          git commit -m "fix(auth): remove privileged seed subject lookup"
+          git push origin HEAD:fix/eliminate-public-client-ropc-20260918
