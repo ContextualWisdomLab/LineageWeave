@@ -38,6 +38,14 @@ def _base64url_uint_value(value: object) -> int | None:
         )
     except (binascii.Error, ValueError):
         return None
+
+    # RFC 4648 canonical Base64url requires every unused terminal pad bit to be
+    # zero. Python's decoder accepts equivalent spellings with nonzero pad bits,
+    # so round-trip the decoded bytes before the key can enter candidate counting.
+    canonical = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+    if canonical != value:
+        return None
+
     # RFC 7518 Base64urlUInt uses the minimum unsigned big-endian octet
     # sequence. A leading zero therefore makes every multi-octet value
     # noncanonical; zero itself is the one-octet sequence b"\x00" ("AA").
@@ -85,16 +93,16 @@ def select_rs256_signing_key(
     RS256 verification. Optional ``alg``, ``use``, and ``key_ops`` members are
     optional only by absence: if present, their RFC 7517 JSON types must be valid.
     Both ``n`` and ``e`` must be canonical unpadded Base64urlUInt values using the
-    minimum unsigned big-endian octet sequence. RFC 7518 section 3.3 requires RSA
-    keys used with RS256 to be at least 2048 bits. RFC 8017 section 3.1 defines the
-    modulus as a product of distinct odd primes, so an RSA modulus is odd, and
-    requires the public exponent to be between three and ``n - 1``. Even exponents
-    are invalid because the exponent must also be coprime to the modulus factors'
-    Carmichael value. RFC 7517 section 4.3 forbids duplicate ``key_ops`` entries and
-    warns against unrelated operation pairs, so an advertised operation set may
-    contain only the related sign/verify pair and must include ``verify``.
-    LineageWeave implements no JWS critical-header extensions, so any ``crit``
-    declaration fails closed as required by RFC 7515 section 4.1.11.
+    minimum unsigned big-endian octet sequence and RFC 4648 canonical zero pad bits.
+    RFC 7518 section 3.3 requires RSA keys used with RS256 to be at least 2048 bits.
+    RFC 8017 section 3.1 defines the modulus as a product of distinct odd primes, so
+    an RSA modulus is odd, and requires the public exponent to be between three and
+    ``n - 1``. Even exponents are invalid because the exponent must also be coprime
+    to the modulus factors' Carmichael value. RFC 7517 section 4.3 forbids duplicate
+    ``key_ops`` entries and warns against unrelated operation pairs, so an advertised
+    operation set may contain only the related sign/verify pair and must include
+    ``verify``. LineageWeave implements no JWS critical-header extensions, so any
+    ``crit`` declaration fails closed as required by RFC 7515 section 4.1.11.
     """
     try:
         header = jwt.get_unverified_header(token)
