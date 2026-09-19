@@ -73,6 +73,20 @@ public client; then prove the focused/full repository and rendered browser
 contracts on the same exact head. A realm-only hardening that breaks existing
 test/buyer actors is not an acceptable intermediate state.
 
+The current #1120 local fixture now performs the authorization half of that
+ordering explicitly. After `scripts/seed_demo_data.py` creates Demo Corp,
+process units and access roles, `scripts/provision_local_service_accounts.py`
+maps the realm-declared automation subject
+`33333333-3333-4333-8333-333333333333` to `DEMO-PU-A` + `viewer` and the
+distinct admin-test subject `44444444-4444-4444-8444-444444444444` to
+`DEMO-PU-HQ` + `admin`. The provisioner talks only to PostgreSQL, replaces only
+those deterministic fixture actors' affiliation/role rows in one transaction,
+and never authenticates to Keycloak. This closes the normalized machine/admin
+authorization prerequisite at source level without claiming hosted acceptance.
+The public client's direct grants remain enabled until the remaining backend and
+seed password-grant consumers have migrated, so this intermediate state does
+not break their current evidence paths.
+
 Keycloak startup realm import is a disposable local-fixture mechanism. The
 repository source remains `docker/keycloak/realm-export.json`; the image may
 install it under Keycloak's realm-name import filename. Because Keycloak skips
