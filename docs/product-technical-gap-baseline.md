@@ -12,76 +12,69 @@
 
 ## Protected and canonical-owner references
 
-- LineageWeave protected base remains recorded as `main@83eba56149eb802cd63642c507c324c9976ec78e`; re-read before any merge or release.
-- Canonical reusable-workflow owner remains recorded as `ContextualWisdomLab/.github@64aa08d7fa487deacd41c761c36277ca68cab6c9`; re-read before relying on an owner-path receipt.
-- These references are live authorities, not frozen dependencies.
+- LineageWeave protected base: `main@83eba56149eb802cd63642c507c324c9976ec78e`; signature is verified and the branch remains protected.
+- Canonical reusable-workflow owner: `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`, protected and signature-verified. This supersedes the previously recorded `64aa08d7...` after `.github` PR #2279 merged on 2026-09-19.
+- Re-read both before merge/release; neither reference is a frozen dependency.
 
 ## Customer Master / translation authority
 
-The PostgreSQL translation-ledger owner remains #929 exact `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`, Draft, with a known PostgreSQL-suite RED and canonical Dependency Review/CodeQL owner-path gaps. Customer Master presentation #932 remains dependent on #929. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource still requires independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence. Malformed-hierarchy presentation #996 remains gated by the translation/read-model prerequisite and separate Customer Master authorization work.
+#929 `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee` remains the PostgreSQL translation-ledger prerequisite for #932. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource still needs independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence. #996 remains gated by translation/read-model and Customer Master authorization prerequisites.
 
 ## Accessibility / material UI
 
-#977 exact `c614d683414b0af1af006c96ed53169ab5b21ee2` repaired stale pair-list selectors after focused hosted validation, but final-head repository/browser acceptance remains absent. Component evidence is not a substitute for current-head Chromium, keyboard/focus, touch/mobile, responsive, localization, and security acceptance.
+#861 remains the earliest proven App integration acceptance root: #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; #861 introduced persisted comparison-graphic σ+share semantics without updating inherited `App.test.tsx` expectations. Production semantics must not be rolled back merely to satisfy the stale share-only assertions.
 
-#861 also retains a verified material-UI defect on exact `59ae392c4729c78d31e290902ed290f1dd88b083`: the comparison plot's second-axis label still starts at `layout.originX + 8` with the default SVG start anchor inside a fixed 480px viewport, while the visible copy can now contain both independently persisted σ and share. Historical Devin thread `#discussion_r3891132445` is outdated only as a diff location, not as a product finding. Before changing production layout, establish a rendered/browser RED that keeps the visible label inside the SVG for ordinary and dense/responsive states plus CJK/translation text expansion while retaining the full accessible σ/share name and independent omission behavior. Hiding σ or loosening assertions is not a repair.
-
-## Central CodeQL owner settlement
-
-#974 exact `4341080f6027d869acb08896e41d761c3f3b8e77` retains Tests/SAST/Security evidence but required CodeQL remains an owner-path settlement problem. No LineageWeave-local CodeQL fork, synthetic status, or gate weakening is permitted; dependent #979 remains gated on canonical `.github` publication/consumption.
-
-## Authentication / authorization stack
-
-Recorded authority remains #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c8da74f3b231b61f04cc040fed1c8e96f36ae66c` → README child #1117 `ca69b521bc862bbf686c721f274ac44b33229e6b`.
-
-#1120 repaired shared JWT/JWK candidate admission through explicit optional-member typing, RFC 7517 `key_ops`, RSA modulus/exponent constraints, canonical unpadded Base64urlUInt, and canonical terminal pad-bit round-trip checks. Those are source/focused repairs; the exact-head Tests receipt was Draft-skipped and is not repository acceptance.
-
-Remaining auth RED is unchanged: `backend/tests/test_api.py` still uses public `lineageweave-frontend` password grants for distinct analyst/admin authorization evidence; `scripts/seed_demo_data.py` still uses `admin-cli` password grant for deterministic-human subject rediscovery plus analyst ROPC warm-up; the public realm client therefore cannot yet be claimed migrated with `directAccessGrantsEnabled=false`; project metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0. Required order remains consumer migration with authorization semantics preserved → disable public direct grants → align metadata/lock → exact-head repository/security/static-analysis GREEN → rendered Authorization Code + PKCE state/nonce/return-URL/session proof.
+#861 also retains a separate buyer-visible layout risk: comparison axis 2 starts near `layout.originX + 8` in a fixed SVG while visible copy may include σ and share. A rendered/browser bounding-box RED across responsive and translation-expansion states is required before changing layout; full accessible σ/share semantics must be retained.
 
 ## Report / comparison stack
 
-Fresh Actions RCA identified #868, not #875, as the first exact head that invalidated the old comparison-tick source-shape sentinel. #867 `09ee432b1e0581b03485833325ac11883dfa05c4` still passed that specific contract. #868 legitimately introduced report-only `leftoverMapPlotTickAxisBadge` wiring while preserving comparison ticks as localized comparison-label + generic-tick composition; the old test incorrectly required the pre-refactor direct ternary syntax.
+The old #868 exact head `208079ab70a84477331d567cd1e70b439c67056c` Tests run `35435905529` is terminal RED. PostgreSQL produced **3 failed / 1805 passed / 147 skipped / 1 warning**. Hosted ancestry and source review separated those failures into three stale contracts:
 
-The repaired exact chain is now:
+1. #863: a whole-module `leftover_share` prohibition incorrectly treated legitimate sibling σ+share composition as derivation. Causal repair: `1bab89ac47b60df2107e31dcace00e2423fd2521`, scoping independence to `formatLeftoverMapPlotAxisSingular` and requiring independent formatter delegation.
+2. #865: report-graphic copy was semantically correct but the test demanded a one-line constant declaration source shape. Causal repair plus parent convergence: `3178713cb294e930c2bb1e3b7fe04227f7d16e47`.
+3. #866: production correctly moved share into an independently formatted optional suffix and added singular-only copy, while the test still required `%` inside the template. Causal repair plus ancestry convergence: `8d63271c4644b39d11d65263cc59e8fca8a548cd`.
 
-`#868 208079ab70a84477331d567cd1e70b439c67056c → #869 7db16d6de8b62a7fcaffdc763308ab0f0c7b0d04 → #870 d65e431c4b9b6c46cacd8f4dc723817aa261aba4 → #871 4dc970bf8f4a76e807f19c37bb597305d0f3d1ae → #872 9adb1673a20ba4b36a2ec2ed28fe687e4f6ab9a6 → #873 80438dcc19c7fa01a04416ca18c649aaaa3beb42 → #874 43fbfd856816cbb96e23a4028d7efa7f7607df17 → #875 1a15a5b7d4a9ee189791bd0ab351be9cbf3dc183`.
+Current ordinary/non-force report chain:
 
-#875 has direct children #876 `eb08ef65deb0ef79b12eac24d51e739597ec1a98` and #877 `a7d57b970f810628f6d8e82eb0c12ccac0983714`; #876 continues through #1033 `1f4303151ed9cafe7eb12d158f30c72beb16aed5` → #1034 `8a26c4f9be10f234a8766a56e4cb1fab39736e18`.
+`#863 1bab89ac... → #865 3178713c... → #866 8d63271c... → #867 bbbb7f44... → #868 07558b5a... → #869 58e3eb52... → #870 5a8d9b27... → #871 abb24781... → #872 32a7da41... → #873 aefa45a3... → #874 164ec8e0... → #875 937415e2...`.
 
-#868 exact `208079ab...` replaces the stale direct-ternary regex with a semantic wiring contract: report ticks may delegate persisted σ to the report badge helper, comparison ticks retain localized fallback copy, no comparison-only translation key is introduced, and tick positions remain persisted ξ/ζ rather than leftover-distance derivations. Exact-head Tests `35435905529` was queued at the latest read and is not acceptance evidence.
+#875 children are #876 `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` and #877 `34b5682bfbc093a253f6b500c66116354e78c5b4`; #876 continues through #1033 `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` → #1034 `bb664b7aae733933c11b2fe056de2a7b16a02c15`.
 
-Every moved descendant above was rebuilt by ordinary two-parent/non-force ancestry. Fresh compares showed exact-parent merge bases and `behind_by=0`. #877 preserves its stronger origin/i18n comparison-tick contract instead of being overwritten by the #868 test. #1033 likewise preserves its stronger evidence-aware comparison-tick contract; #1034 retains only its four-file post-coordinate/accessibility delta.
+#873 already carried stronger semantic versions of overlapping contracts, so its convergence deliberately preserved the stronger child tree rather than overwriting it with weaker ancestor blobs. #877 preserves its origin/i18n contract; #1033 preserves stronger criterion/tick-evidence contracts; #1034 retains its post-coordinate/accessibility delta.
 
-Three independent report-stack gaps remain, with their causal owners explicit. First, the App-level acceptance drift starts at #861, not #865/#875: #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN, while #861 exact `59ae392c4729c78d31e290902ed290f1dd88b083` first introduced persisted comparison-graphic singular-value copy without changing `App.test.tsx`. The #861 fixture supplies axis 1 `σ=1.84`, share `82%` and axis 2 `σ=0.86`, share `18%`, while inherited App assertions still require share-only `leftover-map axis 1 (82%)` / `axis 2 (18%)`. Production correctly composes `leftover map comparison graphic leftover-map axis 1 σ 1.84 (82%)` and `... axis 2 σ 0.86 (18%)`; repair belongs in #861's App integration acceptance, followed by ordinary/non-force descendant convergence. Do not roll production semantics back to satisfy the stale assertions.
+Current exact-head acceptance is still RED/unknown, not GREEN: #863 Tests `35448677571`, #865 `35448826477`, #866 `35448866551`, and #868 `35448971227` were queued at the latest read. No historical receipt transfers to these moved heads.
 
-Second, #861 has a separate buyer-visible layout defect: current source still anchors comparison axis 2 at `layout.originX + 8` with default start alignment in a fixed 480px SVG even though the label can include σ plus share. The still-open Devin finding is therefore valid on the current exact head. The next causal UI step is a rendered/browser bounding-box RED across representative locale/text-expansion and responsive states, followed by a bounded layout repair that keeps the full accessible σ/share semantics. Do not treat a source-only string test as visual acceptance.
+The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through normal protected integration or verified succession rather than duplicate telemetry code.
 
-Third, the OpenTelemetry `LoggingHandler` deprecation already has a distinct LineageWeave owner lane: #973 exact `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6` replaces the deprecated SDK handler with the supported logging-instrumentation boundary, has 44 focused observability tests and 100% owned-module line/branch coverage, and has repository Tests/PROV-O/Ontology Pages/SAST GREEN. #973 is still Draft because Dependency Review/CodeQL owner-path evidence and qualifying independent approval remain non-GREEN. Report descendants must consume that repair after normal protected integration or a verified successor; they must not duplicate telemetry ownership merely to silence the warning.
+## Authentication / authorization stack
 
-## Buyer-path performance
+Recorded auth authority remains #899 `a2da5875525cd0950999487ff8fe7d439284dbd2` → #1118 `04120daa95c709ed0b095e127e2fdbce055edc83` → #1120 `c8da74f3b231b61f04cc040fed1c8e96f36ae66c` → #1117 `ca69b521bc862bbf686c721f274ac44b33229e6b` until a fresher live owner sweep supersedes it.
 
-#995 exact `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains RED because durable exact-head cold buyer-path evidence is absent. Bundle splitting does not substitute for measured transfer, parse/compile, main-thread/DOM, representative p95, method/environment, and limitations evidence.
+Remaining auth RED: public-client password-grant consumers in backend/seed paths, public direct grants not yet safely disabled, metadata still admits `pyjwt[crypto]>=2.8.0` while the lock resolves 2.13.0, and full browser Authorization Code + PKCE/session evidence is absent.
 
-#1009 exact `4fff982a96b0ad6e791aa8c463925388d036f08f` retains the stateless MCP protocol repair but remains performance RED. Previously recorded buyer-path observations exceed the repository p95 ≤20 ms contract. Do not shrink samples, hide I/O, rely on unrealistic cache warm-up, or relabel contention as GREEN; profile the representative path and repair the owned hot path if the baseline still exceeds budget.
+## Central CodeQL / owner workflows
 
-## Release identity and immutable delivery
+Canonical `.github/main` moved to `e6334e229581a918e2f22de18733b76fa65d7e71` after the GitHub API URL authority repair. Required owner checks remain centralized; LineageWeave must not fork provider-group or CodeQL owner logic locally. Any PR body or document still naming `64aa08d7...` as current canonical head is stale and must be refreshed before relying on owner receipts.
 
-#961 exact `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs protected runtime/package/frontend version mismatch to 2.28.0 but required CodeQL/independent approval and immutable release evidence remain absent. Source-version coherence is not a release.
+## Performance and immutable delivery
 
-Before publication, one protected exact candidate must prove built/installed package identity, CHANGELOG/release notes, immutable tag/release/package filename, SBOM/provenance predicates, exact source SHA, reproducibility, and rollback consistency through the canonical released `.github` attestation contract.
+#995 `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains performance RED because durable exact-head cold buyer-path evidence is absent. #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` remains MCP latency RED until representative profiling and causal hot-path work demonstrate p95 ≤20 ms without sample shrinking, hidden I/O, or unrealistic cache warm-up.
+
+#961 `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs source version identity but is not a release. Publication requires one protected exact candidate with required gates, installed/built package identity, CHANGELOG, immutable tag/release/package, SBOM/provenance, reproducibility, and rollback evidence.
 
 ## Buyer-gap register
 
 | Area | Current authority | State | Required causal next step |
 | --- | --- | --- | --- |
-| Translation ledger | #929 `d4f42f57...` → #932 | RED | recover/fix exact PostgreSQL failure; canonical Dependency Review + CodeQL settlement; independent 37×8 review/publication |
-| Customer Master hierarchy | #996 | Draft | satisfy translation/auth prerequisites, then current-head browser/a11y/performance acceptance |
-| Pair-list accessibility | #977 `c614d683...` | source repaired / acceptance RED | final-head repository + Chromium + security evidence |
-| Python CodeQL baseline | #974 `4341080f...` → #979 | owner-control RED | canonical `.github` verdict publication/consumer settlement |
-| Local OIDC topology | #1120 `c8da74f3...` → #1117 `ca69b521...` | source prerequisites repaired / migration RED | remove remaining password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
-| Report axis/comparison | #861 App-acceptance + axis-label-layout root; #868 `208079ab...` → #875 `1a15a5b7...` → #876/#877 → #1033/#1034; telemetry owner #973 `182d3c9d...` | source-contract repair + non-force convergence complete; App/UI/hosted/telemetry integration acceptance RED | repair exact #861 App expectations; add rendered clipping RED and bounded axis-label layout fix; exact-head hosted validation; consume #973 after protected integration/verified succession |
-| Frontend delivery performance | #995 `dbe5ac54...` | RED | commit exact-head representative cold buyer-path evidence and repair if over budget |
-| MCP buyer latency | #1009 `4fff982a...` | RED | representative uncontended profile and causal hot-path repair to p95 ≤20 ms |
-| Release identity | #961 `3bdec050...` | source repaired / release RED | current required gates + immutable build/tag/release/SBOM/provenance/reproducibility/rollback |
+| Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical owner checks, language review, browser/auth/performance acceptance |
+| App comparison acceptance | #861 | RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
+| App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
+| Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | source repaired / hosted pending | wait for fresh exact-head receipts; RCA/fix any new terminal RED; no stale-receipt transfer |
+| Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
+| Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
+| Authentication | #899 → #1118 → #1120 → #1117 | migration RED | remove password-grant consumers, disable public direct grants, align PyJWT floor, full/browser proof |
+| Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
+| MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
+| Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
 
-This baseline intentionally records unresolved authority. It must not be used to infer a merge or release that GitHub protected-state evidence does not show.
+This baseline records unresolved authority; it must not be used to infer a merge or release that protected-state evidence does not show.
