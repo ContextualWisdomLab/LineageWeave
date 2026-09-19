@@ -72,20 +72,24 @@ _LOCAL_SERVICE_ACCOUNT_BINDINGS = (
 def load_local_service_accounts(
     realm_export_path: Path = DEFAULT_REALM_EXPORT_PATH,
 ) -> tuple[LocalServiceAccount, ...]:
-    """Join local authorization bindings to subjects owned by the realm fixture."""
+    """Join local authorization bindings to disjoint realm-owned service subjects."""
     realm = json.loads(realm_export_path.read_text())
     users = realm.get("users")
     if not isinstance(users, list):
         raise RuntimeError("realm fixture must contain a users array")
 
     subjects: dict[str, str] = {}
+    service_subject_owners: dict[str, str] = {}
+    non_service_subjects: set[str] = set()
     for user in users:
         if not isinstance(user, dict):
             continue
         client_id = user.get("serviceAccountClientId")
-        if client_id is None:
-            continue
         subject_id = user.get("id")
+        if client_id is None:
+            if isinstance(subject_id, str) and subject_id:
+                non_service_subjects.add(subject_id)
+            continue
         if not isinstance(client_id, str) or not client_id:
             raise RuntimeError("realm service account must declare a non-empty client id")
         if not isinstance(subject_id, str) or not subject_id:
@@ -94,7 +98,21 @@ def load_local_service_accounts(
             )
         if client_id in subjects:
             raise RuntimeError(f"duplicate realm service account client id: {client_id}")
+        prior_client_id = service_subject_owners.get(subject_id)
+        if prior_client_id is not None:
+            raise RuntimeError(
+                "duplicate realm service account subject "
+                f"{subject_id!r}: {prior_client_id!r} and {client_id!r}"
+            )
         subjects[client_id] = subject_id
+        service_subject_owners[subject_id] = client_id
+
+    shared_subjects = set(service_subject_owners).intersection(non_service_subjects)
+    if shared_subjects:
+        shared_subject = sorted(shared_subjects)[0]
+        raise RuntimeError(
+            f"realm service account subject {shared_subject!r} collides with a non-service realm subject"
+        )
 
     accounts: list[LocalServiceAccount] = []
     for binding in _LOCAL_SERVICE_ACCOUNT_BINDINGS:
