@@ -26,10 +26,13 @@ smoke:
 
 # Seeds synthetic corp/account/post rows keyed to the actual Keycloak demo
 # users' real subject ids, plus Valkey ticket_created events so Activity
-# is not empty (see scripts/seed_demo_data.py). Run after `up`.
+# is not empty (see scripts/seed_demo_data.py). The second command binds the
+# realm's deterministic confidential service-account subjects to the same
+# DB-owned affiliation/role model; it does not authenticate to Keycloak.
 seed:
 	@test -n "$${KEYCLOAK_ADMIN_PASSWORD:-}" || { echo "KEYCLOAK_ADMIN_PASSWORD is required" >&2; exit 1; }; \
-	uv run --locked --extra dev --extra backend python scripts/seed_demo_data.py
+	uv run --locked --extra dev --extra backend python scripts/seed_demo_data.py; \
+	uv run --locked --extra dev --extra backend python scripts/provision_local_service_accounts.py
 
 # Authenticated Compose measurement with no invented pass/fail threshold.
 # The operator must supply a representative concurrency and observation window.
