@@ -75,3 +75,24 @@ def test_machine_token_rejects_a_missing_access_token(monkeypatch: pytest.Monkey
 
     with pytest.raises(RuntimeError, match="did not contain access_token"):
         oauth.fetch_viewer_machine_token()
+
+
+def test_empty_secret_env_matches_local_compose_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An explicitly empty local env must resolve like Compose's ``:-`` default."""
+    calls: list[dict[str, str]] = []
+
+    def fake_post_form(_url: str, form: dict[str, str], *, timeout: float):
+        assert timeout == 10
+        calls.append(form)
+        return {"access_token": f"{form['client_id']}-token"}
+
+    monkeypatch.setattr(oauth, "post_form", fake_post_form)
+    monkeypatch.setenv("KEYCLOAK_CLIENT_SECRET", "")
+    monkeypatch.setenv("KEYCLOAK_TEST_ADMIN_CLIENT_SECRET", "")
+
+    assert oauth.fetch_viewer_machine_token() == "lineageweave-test-automation-token"
+    assert oauth.fetch_admin_machine_token() == "lineageweave-test-admin-token"
+    assert [call["client_secret"] for call in calls] == [
+        "lineageweave_test_automation_dev_only",
+        "lineageweave_test_admin_dev_only",
+    ]
