@@ -43,7 +43,7 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 6786af06b02c20c339c38720e29af29ef1ad9249 → #1117 bbd77c73c9467fb93d52d3b77ffbfbd3d5638320`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 f39502ccd5665ef146ca1c112466798dff5e5339 → #1117 0048eafd2d50cee99876fa9b11ceff3bd113801c`.
 
 The accumulated JWKS consumer repairs remain part of #1120: verification candidates reject private RSA members; `x5c` members must be canonical Base64 / parseable X.509, the leaf RSA key must match JWK `n/e`, KeyUsage cannot contradict signature verification, and `x5t` / `x5t#S256` must be canonical and match embedded leaf DER when available. Unsupported RFC 7517 `x5u` candidates are rejected because this consumer owns no authenticated remote-certificate retrieval/trust path. These are LineageWeave verifier boundaries, not Keyverse/provider identity ownership.
 
@@ -55,18 +55,24 @@ The local service-account prerequisite remains fail closed across identity, clie
 - a bound service-account user must be enabled and the current checked-in secret-based confidential client must carry a non-empty local secret;
 - automation requires `lineageweave-api` plus `http://localhost:18001/mcp` access-token audiences, while admin requires `lineageweave-api`, through direct OIDC audience mappers with `access.token.claim == "true"`.
 
-The browser fixture now has two separate fail-closed prerequisites. Earlier contracts make implicit-flow disablement explicit while preserving Authorization Code + S256 PKCE. The latest finding closes redirect-registration overbreadth: the SPA emits `window.location.origin`, but the realm had registered `http://localhost:5173/*` and `http://localhost:15173/*`. Executable contract `ce6f0883b6c0575b61da86b2e3d11971776153ff` requires the exact two app origins and forbids wildcards; realm repair `ea366a22fc1a7ab5ed2e204c9e6f574c42f5fb65` narrows the callback registrations; ADR head `6786af06b02c20c339c38720e29af29ef1ad9249` records the RFC 9700 / RFC 10017 exact-redirect boundary. This does not complete browser acceptance or the direct-grant migration.
+The public browser fixture keeps Authorization Code + S256 PKCE, implicit flow disabled, and exact local redirect origins. Those prerequisites do not complete the direct-grant migration.
 
-#1120 exact-head Tests `35479666495` is terminal skipped under Draft admission, so no repository GREEN is claimed. #1117 was ordinary/non-force converged from exact #1120 plus its existing README blob; its current head is `bbd77c73c9467fb93d52d3b77ffbfbd3d5638320`. Exact compare from #1120 has merge-base `6786af06...`, `behind_by=0`, and README-only effective delta. Final acceptance still requires exact-head hosted evidence rather than predecessor receipts.
+The current causal RED is now executable as `tests/test_seed_demo_identity_contract.py` at `fd3edd04d93714d152db31473850c10fe30b31d0`. It requires seed/bootstrap to consume the checked-in `demo.analyst` and `demo.admin` subjects from the realm fixture, fail closed on missing/disabled/shared human subjects, remove master `admin-cli` and resource-owner password grant dependencies from seed/warm-up, move seeded-content warm-up to the existing confidential `lineageweave-test-automation` Client Credentials actor, and order `make seed` as human fixture seed → service-account authorization binding → machine warm-up.
+
+Current product source still contradicts that contract: `scripts/seed_demo_data.py` logs into the master realm using `admin-cli` + `grant_type=password` to rediscover deterministic human subjects. No source repair or GREEN is claimed yet.
+
+A temporary one-shot repair lane remains on #1120 only to apply the causal patch, verify focused tests, and delete itself plus its repair driver in the product commit. Commit `f39502ccd5665ef146ca1c112466798dff5e5339` moves the lane to an exact-SHA concurrency group and adds a live-branch/GITHUB_SHA fail-closed guard so stale queued runs cannot mutate a descendant head. Run `35485065477` now has one queued `ubuntu-latest` repair job. Queue state is not acceptance and the temporary workflow must not survive the completed product repair.
+
+#1120 exact-head Tests `35485067302` is terminal skipped under Draft admission, so no repository GREEN is claimed. #1117 was ordinary/non-force converged from exact #1120 plus its existing README blob; its current head is `0048eafd2d50cee99876fa9b11ceff3bd113801c`. Exact compare from #1120 has merge-base `f39502cc...`, `behind_by=0`, and README-only effective delta. Final acceptance still requires exact-head hosted evidence rather than predecessor receipts.
 
 Remaining auth RED:
 
-- `backend/tests/test_api.py` still mints analyst/admin tokens through public `lineageweave-frontend` Resource Owner Password Credentials.
-- `scripts/seed_demo_data.py` still uses master `admin-cli` password authentication for human-subject lookup and public-client analyst ROPC for content warm-up.
-- Human browser demo users remain product-form actors and must continue through redirect-based Authorization Code + PKCE. Machine integration/bootstrap consumers should migrate to the validated confidential automation/admin actors without collapsing viewer/admin or cross-account evidence.
-- Public frontend direct grants stay enabled until those consumers are migrated atomically.
-- Dependency metadata remains stale and must move with the lock and security regression evidence rather than through a metadata-only edit.
-- Exact-head hosted GREEN, rendered browser/session acceptance, and independent review remain outstanding.
+- land and verify the seed/bootstrap product repair above, including removal of the temporary one-shot workflow and driver;
+- `backend/tests/test_api.py` still mints analyst/admin tokens through public `lineageweave-frontend` Resource Owner Password Credentials;
+- human browser demo users remain product-form actors and must continue through redirect-based Authorization Code + PKCE. Machine integration/bootstrap consumers use validated confidential automation/admin actors without collapsing viewer/admin or cross-account evidence;
+- public frontend direct grants stay enabled until all password-grant consumers are migrated atomically;
+- dependency metadata remains stale and must move with the lock and security regression evidence rather than through a metadata-only edit;
+- exact-head hosted GREEN, rendered browser/session acceptance, and independent review remain outstanding.
 
 ## Central CI / CodeQL
 
@@ -88,7 +94,7 @@ Canonical `.github/main` is `e6334e229581a918e2f22de18733b76fa65d7e71` on the la
 | Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | backend GREEN / frontend RED at #868 | recover or reproduce the exact frontend failing acceptance; repair at the causal owner, then converge descendants without stale-receipt transfer |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `6786af06...` → #1117 `bbd77c73...` | migration RED / verifier+machine+browser redirect prerequisites repaired | migrate backend/seed password grants to standards-compliant actor paths; then disable public direct grants, align dependency floor+lock, and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `f39502cc...` → #1117 `0048eafd...` | migration RED / verifier+machine+browser prerequisites repaired / seed RED executable | land + verify passwordless seed/bootstrap repair, remove temporary repair lane, migrate remaining backend human ROPC, then disable public direct grants and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
