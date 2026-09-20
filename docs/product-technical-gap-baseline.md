@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head refresh: 2026-09-21 07:00 KST. Protected `main` remains
+> Exact-head refresh: 2026-09-21 08:00 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e`; the live aggregate inventory is
 > 164 open pull requests and 42 open issues. Those counts describe the queue,
 > not delivery. The largest current buyer-visible security gap is #1119:
@@ -51,23 +51,23 @@ The same mobile render still clips plot labels at the fixed SVG boundary. That o
 
 #861 remains the earliest App integration acceptance root. Parent #860 candidate `13b838a3ea4d23b3d358d2f0adecec9c21cb0a8f` must merge through its protected gate before the child is retargeted to `main`. That parent candidate repairs a valid review finding by deduplicating ticks on exact persisted coordinate values instead of their rounded labels; nearby coordinates that both display `+0.50` therefore remain separate plotted ticks, and React keys use the same exact value identity. Its 118 focused frontend tests, lint, and production build passed locally. Hosted Checks are queued and independent current-head approval is absent, so #860 remains Draft on #859 and these receipts do not authorize promotion.
 
-Current #861 candidate `d572f65187f1148c3c7ebcdcbad3361d0c19fd9f` replaces inherited share-only App expectations with exact persisted σ+share names, makes the singular-only and rank-0 states exact, and right-bounds both axis captions inside the SVG. It does not derive σ from share or hide either persisted value. The focused contract passed 3 tests; the frontend suite passed 867 tests, followed by lint and production build. These are local candidate receipts, not protected delivery.
+Current #861 candidate `69bdb2fc7613aeffd972cf2a114da1a9347fe505` replaces inherited share-only App expectations with exact persisted σ+share names, makes the singular-only and rank-0 states exact, and right-bounds both axis captions inside the SVG. It does not derive σ from share or hide either persisted value. The focused contract passed 3 tests; the frontend suite passed 867 tests, followed by lint and production build. These are local candidate receipts, not protected delivery.
 
 #860 and #861 retain dense origin-adjacent tick collisions as a separate buyer-visible risk. Current-head Storybook screenshots at 1440×1100 and 390×844 verify that #860 preserves the comparison plot on desktop and within the mobile horizontal-scroll viewport; #861 screenshots verify that the repaired σ+share captions stay inside the SVG. The screenshots are rendered local evidence, not authenticated PostgreSQL/API acceptance. Text-expansion locale and authenticated product acceptance remain unavailable.
 
-Fresh hosted Checks and independent approval for #861 candidate `d572f651...` remain authoritative and unverified. The PR stays Draft on its parent base; no predecessor receipt transfers.
+Fresh hosted Checks and independent approval for #861 candidate `69bdb2fc...` remain authoritative and unverified. The PR stays Draft on its parent base; no predecessor receipt transfers.
 
 ## Report / comparison stack
 
 Active ancestry is code-current through the owner repair stack:
 
-`#861 9f3923c1... → #862 c05b155b... → #863 a9e10500... → #865 a51b0ec4...`
+`#861 69bdb2fc... → #862 21ee0adc... → #863 7f1b97eb... → #865 688643cf...`
 
-#866 final source `8d63271c4644b39d11d65263cc59e8fca8a548cd` was normally merged into #865; its valid v2.82 product/test/ADR/CHANGELOG delta is materially present in #865 exact `a51b0ec4668fa4bef4cd45dfd777fe3df8871331`. #867 was safely retargeted from the closed #866 branch to active #865 without rewriting its head; exact #867 `fc19017063aab7df438f2603959f78ddbb62b8e5` has #865 as merge-base, `behind_by=0`, and only its four-file badge delta.
+#866 final source `8d63271c4644b39d11d65263cc59e8fca8a548cd` was normally merged into #865; its valid v2.82 product/test/ADR/CHANGELOG delta is materially present in #865 exact `688643cf317da7ad5b52bd0414dfae1e66da9bbb`. #867 was safely retargeted from the closed #866 branch to active #865 without rewriting its head; exact #867 `6b2611ce4d2d7d58acfcbe6b86a5fe640a41ef66` has #865 as merge-base, `behind_by=0`, and only its four-file badge delta.
 
 Descendants continue:
 
-`#867 fc190170... → #868 db281ce1... → #869 838dd8c0... → #870 a289ebd7... → #871 91cde2af... → #872 8bd9778a... → #873 050477cf... → #874 7192a978... → #875 b7e948ae...`
+`#867 6b2611ce... → #868 9ff3995b... → #869 e553f8ed... → #870 cc9f2d7b... → #871 014e7418... → #872 69119bb0... → #873 050477cf... → #874 7192a978... → #875 b7e948ae...`
 
 #875 children are #876 `52542e26...` → #1033 `ce461255...` → #1034 `53950a84...`, and #877 `f0a99af9...`. Historical #878/#879 remain delta carriers until verified GREEN succession proves all valid deltas are inherited; predecessor workflow failures remain diagnostic only.
 
@@ -149,14 +149,14 @@ Migration ordinal uniqueness remains separately owned by #1049 `5322971193d1ff4e
 | Area | Current authority | State | Required causal next step |
 | --- | --- | --- | --- |
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical-owner checks, language review, browser/auth/performance acceptance |
-| App comparison acceptance | #861 `9f3923c1...` | executable RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
-| App comparison layout | #861 `9f3923c1...` | rendered RED / owner repair pending | bounded layout repair retaining full evidence semantics; re-run responsive/text-expansion browser evidence |
+| App comparison acceptance | #861 `69bdb2fc...` | executable RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
+| App comparison layout | #861 `69bdb2fc...` | rendered RED / owner repair pending | bounded layout repair retaining full evidence semantics; re-run responsive/text-expansion browser evidence |
 | Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877); historical #878/#879 | converged / fresh acceptance pending | finish #861 owner repair, then exact-head validation; predecessor failures stay diagnostic only |
 | Catalog connection leases / TOCTOU | #1077 / #1080 | separate owner lanes | prove short transactions around external work, then obtain protected integration evidence |
 | Summary-read shared corporate catalog mutation | #1078 | separate owner lane / RED | enforce the `post_read`/`post_admin` mutation boundary, preserve summary-read behavior, then obtain exact-head security evidence |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 `306fc9dc...` → #1120 `0038f57f...` → #1117 `f1f5637c...` | seed/bootstrap repaired; machine smoke/k6 already Client Credentials; helper endpoint + empty-secret + remote-fallback + remote-cleartext defects source-repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend-integration ROPC still executable RED | move backend integration to distinct machine helpers, disable public direct grants atomically, then obtain hosted/browser proof |
+| Authentication | #899 → #1118 `306fc9dc...` → #1120 `867e2617...` → #1117 `f1f5637c...` | seed/bootstrap repaired; machine smoke/k6 already Client Credentials; helper endpoint + empty-secret + remote-fallback + remote-cleartext defects source-repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend-integration ROPC is source-repaired but runtime acceptance remains unavailable | merge parent-first, retarget each child to `main`, then obtain exact-head hosted, PostgreSQL, and rendered browser proof |
 | Voice ADR authority | #1121 `dbabff85...` | source repaired / hosted checks queued | exact-head GREEN + independent review + normal merge, then protected-main runtime evidence |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
