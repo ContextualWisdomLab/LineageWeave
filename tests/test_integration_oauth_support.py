@@ -31,6 +31,24 @@ def test_viewer_machine_token_uses_client_credentials(monkeypatch: pytest.Monkey
     ]
 
 
+def test_default_keycloak_base_url_honors_integration_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    def fake_post_form(url: str, _form: dict[str, str], *, timeout: float):
+        assert timeout == 10
+        calls.append(url)
+        return {"access_token": "viewer-token"}
+
+    monkeypatch.setattr(oauth, "post_form", fake_post_form)
+    monkeypatch.setenv("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://keycloak.override")
+    monkeypatch.setenv("KEYCLOAK_CLIENT_SECRET", "viewer-secret")
+
+    assert oauth.fetch_viewer_machine_token() == "viewer-token"
+    assert calls == [
+        "http://keycloak.override/realms/lineageweave-demo/protocol/openid-connect/token"
+    ]
+
+
 def test_admin_machine_token_is_a_distinct_client(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[dict[str, str]] = []
 
