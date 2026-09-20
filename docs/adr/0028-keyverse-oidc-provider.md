@@ -24,6 +24,12 @@ Owner Password Credentials grant, and browser applications require a redirect
 flow rather than a password-token shortcut. A machine token likewise must not
 be presented as evidence that the rendered browser flow works.
 
+The browser client previously registered wildcard redirect paths even though
+the SPA sends `window.location.origin` as its redirect URI. RFC 9700 section
+4.1.3 and RFC 10017 section 6.3.3.2.1 require exact registered redirect URIs for
+browser applications. A wildcard registration therefore widened the local
+callback surface beyond the URI the product actually emits.
+
 ## Decision
 
 1. Production sets `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID` to the actual
@@ -40,9 +46,11 @@ be presented as evidence that the rendered browser flow works.
    configured. It does not add a Keyverse-shaped identity implementation.
 5. The local public browser client uses Authorization Code with mandatory PKCE
    S256. Direct access/password grants and service accounts are disabled on
-   that public client. Rendered browser acceptance must exercise the actual
-   authorization endpoint, callback/session restoration, return URL, and a
-   protected product request; token/JWKS probes cannot substitute for it.
+   that public client. Redirect URIs are exact app origins matching the SPA's
+   `window.location.origin`; wildcard callback paths are not registered.
+   Rendered browser acceptance must exercise the actual authorization endpoint,
+   callback/session restoration, return URL, and a protected product request;
+   token/JWKS probes cannot substitute for it.
 6. Repository-owned non-browser smoke and load actors use a separate
    confidential, synthetic service-account client with the OAuth 2.0 Client
    Credentials grant. Its secret is runtime-only, its resource audiences are
@@ -97,8 +105,8 @@ fixture identity changes.
 ## Consequences
 
 - A real Keyverse tenant can be used without changing application code.
-- A deployment must provision the Keyverse client, redirect URI, and matching
-  `user_account` rows before login is usable.
+- A deployment must provision the Keyverse client, exact redirect URI, and
+  matching `user_account` rows before login is usable.
 - Local machine smoke tests prove signature/issuer/audience/client behavior only;
   they do not prove browser login, SSO, MFA, callback state, or return-URL
   restoration.
@@ -122,6 +130,10 @@ configuration, normalized authorization binding, and product acceptance.
 Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current
 practice for OAuth 2.0 security* (RFC 9700). Internet Engineering Task Force.
 https://doi.org/10.17487/RFC9700
+
+Parecki, A., Waite, D., & Mills, W. (2026). *OAuth 2.0 for browser-based
+applications* (RFC 10017). Internet Engineering Task Force.
+https://doi.org/10.17487/RFC10017
 
 OpenID Foundation. (2014). *OpenID Connect Core 1.0 incorporating errata set
 2*. https://openid.net/specs/openid-connect-core-1_0.html
