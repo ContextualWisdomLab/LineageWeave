@@ -2,6 +2,13 @@
 
 > Current mutable authority overlay: 2026-09-20. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
 
+> Live inventory at this read: 164 open PRs and 42 open issues. This count is
+> operational metadata, not release evidence. The baseline PR itself is
+> #1041 at exact head `9119775aa13ea7ea461a4c9aea914a85503ce670`
+> against `main@83eba56149eb802cd63642c507c324c9976ec78e`; it is Draft.
+> Its full/frontend jobs are Draft-policy skipped, while admission and analysis
+> checks are queued. None is product acceptance.
+
 ## Delivery authority
 
 - Protected `main`, live PR heads/bases, `AGENTS.md` / `CLAUDE.md`, ADRs, PRD/TRD, and exact workflow receipts are authoritative.
@@ -63,6 +70,34 @@ Remaining auth RED:
 - atomically set `lineageweave-frontend.directAccessGrantsEnabled=false` while preserving Authorization Code + S256 PKCE browser configuration;
 - human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only evidence;
 - obtain exact-head hosted GREEN, rendered browser session/return-URL/tampered-state/permission acceptance, and qualifying independent review.
+
+## Voice-of-X acceptance boundary
+
+Accepted ADR 0246 remains the vocabulary authority: twelve atomic Voice codes,
+an extensible scheme, and no Cartesian-product combination codes. The current
+implementation preserves one imported primary Voice and normalized additional
+assignments with explicit truth status and PROV-O derivation. API, exact-value
+CSV, and JSON-LD tests cover carrying-Post/evidence separation and paged
+multi-Voice union. These source contracts do not prove the live product.
+
+Current protected `main@83eba56149eb802cd63642c507c324c9976ec78e`
+has no newly collected, exact-head authenticated PostgreSQL API receipt or
+desktop/mobile rendered acceptance in this cycle. Voice delivery therefore
+remains **unverified at runtime**. A hidden evidence Post must omit the
+additional assignment rather than substitute the carrying Post, and a cutoff
+read must use the assignment interval effective at that cutoff. Completion
+requires synthetic authenticated PostgreSQL evidence plus rendered desktop and
+mobile evidence for zero-, one-, and multi-Voice states on the same candidate
+head.
+
+There is also a documentation identity collision that must not be resolved by
+intuition: ADR 0251 is the accepted I/O-Psychology semantic-layer decision,
+while ADR 0252 currently says it “extends ADR 0251” for temporal primary-Voice
+history. The Voice implementation authority is ADR 0246 plus the accepted
+temporal/persistence decisions and executable schema; the mismatched prose
+reference is unresolved until its owning ADR is corrected with an explicit
+amendment. No API, schema, release-number, or migration identity is changed by
+this baseline note.
 
 ## Performance / immutable delivery
 
