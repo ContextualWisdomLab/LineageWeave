@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_INTEGRATION = ROOT / "backend" / "tests" / "test_api.py"
+MACHINE_OAUTH_SUPPORT = ROOT / "tests" / "integration_oauth_support.py"
 REALM_EXPORT = ROOT / "docker" / "keycloak" / "realm-export.json"
 
 
@@ -29,18 +30,21 @@ def _realm_client(client_id: str) -> dict[str, object]:
 
 
 def test_backend_integration_uses_distinct_confidential_machine_actors() -> None:
-    source = BACKEND_INTEGRATION.read_text()
+    integration_source = BACKEND_INTEGRATION.read_text()
+    support_source = MACHINE_OAUTH_SUPPORT.read_text()
 
-    assert '"grant_type": "password"' not in source
-    assert '"username": "demo.analyst"' not in source
-    assert '"username": "demo.admin"' not in source
-    assert '"client_id": "lineageweave-frontend"' not in source
+    assert '"grant_type": "password"' not in integration_source
+    assert '"username": "demo.analyst"' not in integration_source
+    assert '"username": "demo.admin"' not in integration_source
+    assert '"client_id": "lineageweave-frontend"' not in integration_source
 
-    assert '"grant_type": "client_credentials"' in source
-    assert '"client_id": "lineageweave-test-automation"' in source
-    assert '"client_id": "lineageweave-test-admin"' in source
-    assert "KEYCLOAK_CLIENT_SECRET" in source
-    assert "KEYCLOAK_TEST_ADMIN_CLIENT_SECRET" in source
+    assert '"grant_type": "client_credentials"' in support_source
+    assert '"lineageweave-test-automation"' in support_source
+    assert '"lineageweave-test-admin"' in support_source
+    assert "KEYCLOAK_CLIENT_SECRET" in support_source
+    assert "KEYCLOAK_TEST_ADMIN_CLIENT_SECRET" in support_source
+    assert "fetch_viewer_machine_token" in integration_source
+    assert "fetch_admin_machine_token" in integration_source
 
 
 def test_public_browser_client_disables_direct_access_grants_after_migration() -> None:
