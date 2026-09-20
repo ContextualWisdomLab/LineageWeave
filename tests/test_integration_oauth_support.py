@@ -17,10 +17,10 @@ def test_viewer_machine_token_uses_client_credentials(monkeypatch: pytest.Monkey
     monkeypatch.setattr(oauth, "post_form", fake_post_form)
     monkeypatch.setenv("KEYCLOAK_CLIENT_SECRET", "viewer-secret")
 
-    assert oauth.fetch_viewer_machine_token("http://keycloak.test") == "viewer-token"
+    assert oauth.fetch_viewer_machine_token("https://keycloak.test") == "viewer-token"
     assert calls == [
         (
-            "http://keycloak.test/realms/lineageweave-demo/protocol/openid-connect/token",
+            "https://keycloak.test/realms/lineageweave-demo/protocol/openid-connect/token",
             {
                 "grant_type": "client_credentials",
                 "client_id": "lineageweave-test-automation",
@@ -40,12 +40,12 @@ def test_default_keycloak_base_url_honors_integration_env(monkeypatch: pytest.Mo
         return {"access_token": "viewer-token"}
 
     monkeypatch.setattr(oauth, "post_form", fake_post_form)
-    monkeypatch.setenv("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://keycloak.override")
+    monkeypatch.setenv("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "https://keycloak.override")
     monkeypatch.setenv("KEYCLOAK_CLIENT_SECRET", "viewer-secret")
 
     assert oauth.fetch_viewer_machine_token() == "viewer-token"
     assert calls == [
-        "http://keycloak.override/realms/lineageweave-demo/protocol/openid-connect/token"
+        "https://keycloak.override/realms/lineageweave-demo/protocol/openid-connect/token"
     ]
 
 
@@ -96,6 +96,36 @@ def test_empty_secret_env_matches_local_compose_defaults(monkeypatch: pytest.Mon
         "lineageweave_test_automation_dev_only",
         "lineageweave_test_admin_dev_only",
     ]
+
+
+@pytest.mark.parametrize(
+    ("fetch_token", "secret_env"),
+    [
+        (oauth.fetch_viewer_machine_token, "KEYCLOAK_CLIENT_SECRET"),
+        (oauth.fetch_admin_machine_token, "KEYCLOAK_TEST_ADMIN_CLIENT_SECRET"),
+    ],
+)
+def test_non_loopback_client_credentials_require_https(
+    monkeypatch: pytest.MonkeyPatch,
+    fetch_token,
+    secret_env: str,
+) -> None:
+    """OAuth client credentials must not cross a non-loopback cleartext token endpoint."""
+    monkeypatch.setenv(
+        "LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL",
+        "http://keycloak.remote.example",
+    )
+    monkeypatch.setenv(secret_env, "operator-secret")
+    monkeypatch.setattr(
+        oauth,
+        "post_form",
+        lambda *_args, **_kwargs: pytest.fail(
+            "non-loopback cleartext OAuth endpoint must fail before token I/O"
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="HTTPS"):
+        fetch_token()
 
 
 @pytest.mark.parametrize(

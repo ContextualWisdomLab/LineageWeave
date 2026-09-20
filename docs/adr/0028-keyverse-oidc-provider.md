@@ -30,6 +30,12 @@ the SPA sends `window.location.origin` as its redirect URI. RFC 9700 section
 browser applications. A wildcard registration therefore widened the local
 callback surface beyond the URI the product actually emits.
 
+Confidential machine actors transmit a client secret to the token endpoint.
+RFC 6749 sections 3.2, 10.8, and 10.9 require TLS for token-endpoint requests
+and prohibit transmitting client credentials in clear. The repository's
+loopback-only local fixture may use HTTP, but a non-loopback token endpoint is
+not a local transport exception and must fail before any secret-bearing request.
+
 ## Decision
 
 1. Production sets `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID` to the actual
@@ -56,6 +62,9 @@ callback surface beyond the URI the product actually emits.
    Credentials grant. Its secret is runtime-only, its resource audiences are
    explicit, and its `sub` must be provisioned into the same normalized local
    authorization tables before a buyer-path test can claim RBAC/ABAC evidence.
+   A non-loopback token endpoint must use HTTPS; cleartext HTTP is permitted
+   only for the loopback development fixture and must never receive an
+   operator client secret.
 7. Product integration tests that prove authorization between distinct people
    or accounts preserve distinct subjects. They must not collapse an analyst
    and an administrator into one service-account identity merely to remove a
@@ -120,12 +129,17 @@ fixture identity changes.
 ## Security boundary
 
 Non-HTTP(S) discovery and JWKS URLs are rejected by the shared HTTP client.
-No bearer token, client secret, or Keyverse credential belongs in this
-repository or in the browser bundle. LineageWeave does not copy Keyverse or
-Keycloak provider/domain truth; it owns only its local fixture, consumer
+Confidential machine-token requests additionally reject non-loopback HTTP before
+client credentials are sent; loopback HTTP remains a local Compose-only
+exception. No bearer token, client secret, or Keyverse credential belongs in
+this repository or in the browser bundle. LineageWeave does not copy Keyverse
+or Keycloak provider/domain truth; it owns only its local fixture, consumer
 configuration, normalized authorization binding, and product acceptance.
 
 ## References
+
+Hardt, D. (2012). *The OAuth 2.0 authorization framework* (RFC 6749). Internet
+Engineering Task Force. https://doi.org/10.17487/RFC6749
 
 Lodderstedt, T., Bradley, J., Labunets, A., & Fett, D. (2025). *Best current
 practice for OAuth 2.0 security* (RFC 9700). Internet Engineering Task Force.
