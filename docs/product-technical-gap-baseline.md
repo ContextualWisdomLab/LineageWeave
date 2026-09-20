@@ -2,7 +2,7 @@
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update adopts #1041 exact predecessor `bfca7e144f531a4245b1c7c4168bd3ac506cf9de` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. New completed successful exact-head protected workflow receipts created by this edit are authoritative for acceptance; queued, skipped, and failed receipts are non-accepting; predecessor receipts do not transfer.
+> This update adopts #1041 exact predecessor `ecc0c7916692d94fd6e092e42750a62751d4e588` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready with normal squash auto-merge enabled. Live inventory at collection time is 164 open PRs (6 Ready, 158 Draft) and 42 open issues. Those counts are operational metadata, not release evidence. New completed successful exact-head protected workflow receipts created by this edit are authoritative for acceptance; queued, skipped, and failed receipts are non-accepting; predecessor receipts do not transfer.
 
 ## Delivery authority
 
@@ -20,11 +20,17 @@ Fresh protected references:
 
 Re-read both before merge or release; neither is a frozen dependency.
 
+The six Ready PRs are exact #911 `2d91db2e76849dead722b343fb5d816886114b81`, #983 `f48afbe373cdb6aa64abf0f7c4e69e897f820cd8`, #1041 `ecc0c7916692d94fd6e092e42750a62751d4e588`, #1079 `c2923950e73c88a9f9fd932332ddd47682da124b`, #1115 `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and #1121 `dbabff85c72801a1a72a33dc69f969e032dc17b2`. #911, #1041, and #1121 retain normal auto-merge; all six remain protected-gate blocked. #983 and #1115 retain `CHANGES_REQUESTED`; no predecessor approval or workflow result transfers to those heads.
+
 ## Customer Master / translation
 
 #929 `d4f42f579663e88a0c9af0cc492aa6ff7cae96ee` remains the PostgreSQL translation-ledger prerequisite for #932. The 37-key × 8-locale (`ko/en/ja/zh/vi/es/de/fr`) resource still needs independent language/product review, immutable one-way publication, authenticated browser consumption, permission/error/empty/loading states, CJK/text-expansion/font fallback, and current performance evidence. #996 remains gated by translation/read-model and Customer Master authorization prerequisites.
 
 ## Material UI / accessibility
+
+#1041 closes one bounded buyer-visible accessibility gap in its own delta: closest/farthest pair buttons now start their accessible names with the exact visible localized label, append only finite persisted evidence, and wrap the existing token-backed title/evidence content on narrow screens. The focused component regression is locally GREEN (15 tests), documentation hygiene is GREEN (5 tests), and exact Storybook renders were inspected at 1440×1000 and 390×844. This is local candidate evidence only; protected exact-head Checks, independent approval, authenticated PostgreSQL API evidence, and protected-main delivery remain outstanding.
+
+The same mobile render still clips plot labels at the fixed SVG boundary. That observation belongs to the existing #861 comparison-layout RED below; #1041 does not hide ticks, fabricate coordinates, or claim that separate gap complete.
 
 #861 remains the earliest proven App integration acceptance root. #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; current #861 exact `9f3923c1d66ee56460e2660a3fbc6bfeacc3c2bd` introduces an executable RED that rejects inherited share-only App expectations and requires exact persisted σ+share accessible names. Production semantics must not be rolled back to satisfy stale assertions, and descendant-local fuzzy repairs are not substitutes for the owner fix.
 
@@ -100,6 +106,12 @@ Protected `main@83eba56149eb802cd63642c507c324c9976ec78e` has no newly collected
 #995 `dbe5ac54228162e3ad5a9c92460006fb5e49e935` remains performance RED because durable exact-head cold buyer-path evidence is absent. #1009 `4fff982a96b0ad6e791aa8c463925388d036f08f` remains MCP latency RED until representative profiling and causal hot-path work demonstrate p95 ≤20 ms without sample shrinking, hidden I/O, or unrealistic cache warm-up.
 
 #961 `3bdec0504a65e63f44bd49ba15de37182a1672cc` repairs source version identity but is not a release. Publication requires one protected exact candidate with required gates, installed/built package identity, CHANGELOG, immutable tag/release/package, SBOM/provenance, reproducibility, and rollback evidence.
+
+## Cross-PR identity and contract audit
+
+Open stacked work still has two release-identity collisions that must be resolved by parent-first protected integration rather than parallel publication: #843 and #844 both claim `v2.62.0`, while sibling #876 and #877 both claim `v2.92.0`. Their distinct API/UI deltas may remain separate review units, but one integrated release identity cannot name two divergent heads. Retarget descendants only after the selected parent merges, then refresh ADR, API, CHANGELOG, package, and exact-head evidence.
+
+Migration ordinal uniqueness remains separately owned by #1049 `5322971193d1ff4e0ae13c054d8f99615934d4dc`; the baseline does not infer a schema repair before that exact head is reviewed and protected-integrated. PRD/ADR identity reconciliation remains open in #997 and Voice authority in #1121. No current evidence supports renumbering another PR's ADR or migration from this documentation branch.
 
 ## Buyer-gap register
 

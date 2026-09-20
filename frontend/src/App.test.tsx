@@ -4175,7 +4175,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("R̂ +0.25");
     expect(closestPair).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
     expect(closestPair).toHaveTextContent("d 0.12");
-    expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
+    expect(closestPair).toHaveAccessibleName(/^Closest leftover: Public post · sales-lead/);
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Leftover map places this post at ξ (+0.90, +0.80) and the criterion at ζ (−0.70, −0.40) after IRT main effects. Open this post to read negative.",
