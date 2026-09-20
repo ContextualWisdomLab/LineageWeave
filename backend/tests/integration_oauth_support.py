@@ -29,6 +29,11 @@ def _configured_keycloak_base_url(explicit_base_url: str | None) -> str:
     return os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", DEFAULT_KEYCLOAK_BASE_URL)
 
 
+def _configured_client_secret(env_name: str, dev_secret: str) -> str:
+    """Mirror Compose ``${VAR:-default}`` semantics for local-only client secrets."""
+    return os.environ.get(env_name) or dev_secret
+
+
 def _machine_access_token(
     *,
     keycloak_base_url: str,
@@ -58,7 +63,7 @@ def fetch_viewer_machine_token(
     return _machine_access_token(
         keycloak_base_url=_configured_keycloak_base_url(keycloak_base_url),
         client_id=_VIEWER_CLIENT_ID,
-        client_secret=os.environ.get(_VIEWER_SECRET_ENV, _VIEWER_DEV_SECRET),
+        client_secret=_configured_client_secret(_VIEWER_SECRET_ENV, _VIEWER_DEV_SECRET),
     )
 
 
@@ -69,5 +74,5 @@ def fetch_admin_machine_token(
     return _machine_access_token(
         keycloak_base_url=_configured_keycloak_base_url(keycloak_base_url),
         client_id=_ADMIN_CLIENT_ID,
-        client_secret=os.environ.get(_ADMIN_SECRET_ENV, _ADMIN_DEV_SECRET),
+        client_secret=_configured_client_secret(_ADMIN_SECRET_ENV, _ADMIN_DEV_SECRET),
     )
