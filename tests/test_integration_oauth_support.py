@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests import integration_oauth_support as oauth
+from backend.tests import integration_oauth_support as oauth
 
 
 def test_viewer_machine_token_uses_client_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
