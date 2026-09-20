@@ -2,7 +2,7 @@
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update adopts #1041 exact predecessor `fd5126aa96984c2b974394fbf5821356a0da087e` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. New exact-head workflow receipts created by this edit are authoritative for acceptance; predecessor receipts do not transfer.
+> This update adopts #1041 exact predecessor `bfca7e144f531a4245b1c7c4168bd3ac506cf9de` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. New completed successful exact-head protected workflow receipts created by this edit are authoritative for acceptance; queued, skipped, and failed receipts are non-accepting; predecessor receipts do not transfer.
 
 ## Delivery authority
 
@@ -49,6 +49,12 @@ Descendants continue:
 The recovered #1033 predecessor failure is still useful causal evidence: PostgreSQL/full-suite was GREEN while frontend failed `App > shows the synthetic sigma overlay data` because share-only `leftover map comparison axis 1 (82%)` contradicted rendered persisted `leftover map comparison axis 1 (σ 1.84, 82%)`. That validates #861 ownership but is not current-head evidence for moved descendants.
 
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`; report lanes must consume that repair through protected integration or verified succession.
+
+## Summary-read catalog authorization
+
+#1078 remains a separate critical authorization/integrity owner from #1077/#1080. A `post_read`-authorized `GET /api/posts/{post_id}/summary` may derive and persist its summary projection, but it must not gain the capability to create or mutate the shared `corporate_entity` catalog or hierarchy. The causal repair must keep summary-read behavior intact while admitting live hierarchy-inference/relation-verification catalog mutation only for an explicit `post_admin` authority; exact-match consumption of already-known catalog identities may remain read-only. #1077/#1080 continue to own connection-lease/TOCTOU lifetime rather than this permission boundary.
+
+#1078 remains RED until executable real-service evidence proves a `post_read` account leaves global catalog rows/content invariant, a `post_admin` account retains the intended enrichment path, provider/network mutation capability is absent from the low-privilege path, and exact-head security evidence clears the original finding.
 
 ## Authentication / authorization stack
 
@@ -104,6 +110,7 @@ Protected `main@83eba56149eb802cd63642c507c324c9976ec78e` has no newly collected
 | App comparison layout | #861 `9f3923c1...` | rendered RED / owner repair pending | bounded layout repair retaining full evidence semantics; re-run responsive/text-expansion browser evidence |
 | Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877); historical #878/#879 | converged / fresh acceptance pending | finish #861 owner repair, then exact-head validation; predecessor failures stay diagnostic only |
 | Catalog connection leases / TOCTOU | #1077 / #1080 | separate owner lanes | prove short transactions around external work, then obtain protected integration evidence |
+| Summary-read shared corporate catalog mutation | #1078 | separate owner lane / RED | enforce the `post_read`/`post_admin` mutation boundary, preserve summary-read behavior, then obtain exact-head security evidence |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
 | Authentication | #899 → #1118 `306fc9dc...` → #1120 `0038f57f...` → #1117 `f1f5637c...` | seed/bootstrap repaired; machine smoke/k6 already Client Credentials; helper endpoint + empty-secret + remote-fallback + remote-cleartext defects source-repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend-integration ROPC still executable RED | move backend integration to distinct machine helpers, disable public direct grants atomically, then obtain hosted/browser proof |
