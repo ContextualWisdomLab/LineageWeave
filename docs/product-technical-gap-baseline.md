@@ -2,7 +2,7 @@
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update starts from #1041 exact predecessor `44befb5974cdf65f97b94331bfe566c85075fc50` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. New exact-head workflow receipts created by this edit are authoritative for acceptance; predecessor receipts do not transfer.
+> This update adopts #1041 exact predecessor `fd5126aa96984c2b974394fbf5821356a0da087e` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. New exact-head workflow receipts created by this edit are authoritative for acceptance; predecessor receipts do not transfer.
 
 ## Delivery authority
 
@@ -54,7 +54,7 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 306fc9dccf972c9fcb859b1379c32ec98649f137 → #1120 f597be93f29e330f97b294d4fb69795d333f8a7f → #1117 2a467401d65027aaa136a6b05a78968ac86b1c0f`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 306fc9dccf972c9fcb859b1379c32ec98649f137 → #1120 0038f57f02a022b47cb560970c803518c0d01de3 → #1117 f1f5637c94e04316c156c6436826df499ba3abfd`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: contradictory RSA/JWK metadata is rejected; `x5c` must be canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects come from the checked-in realm fixture and remain disjoint from human subjects; machine clients are unique enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and required REST/MCP audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
@@ -62,13 +62,14 @@ Seed/bootstrap ROPC is source-repaired. Human fixture subjects are read determin
 
 The final backend-integration ROPC finding remains executable in `tests/test_backend_integration_oauth_contract.py`: `backend/tests/test_api.py` must stop requesting `grant_type=password` from public `lineageweave-frontend`, use distinct viewer/admin machine helpers, and the browser client must move to `directAccessGrantsEnabled=false` in the same causal migration. Current source still has the two password-grant callers and current realm fixture still has public direct grants enabled, so this gap remains RED.
 
-The pre-migration machine helper now carries three causal repairs:
+The pre-migration machine helper now carries four causal repairs:
 
 - endpoint override RED `b7bb7a58ac72cd1a6974f1c4bf2375998c3ef2c7`: no-argument viewer/admin helpers honor `LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL`;
 - Compose empty/unset parity RED `3633a0d115d854adc3f33f8a3d0412c49667351a` / repair `ec2481dda8ed75fa17c31eae0c2e5974b39a75e3`: local loopback helpers mirror `${VAR:-dev_default}` semantics rather than sending an empty client secret;
-- remote-fallback RED `3ba75a6ee8ead09cbb5fa4547c2b4378d7736205` / repair `f597be93f29e330f97b294d4fb69795d333f8a7f`: repository-known synthetic dev secrets are allowed only for `localhost`, `127.0.0.1`, or `::1`. A non-loopback Keycloak endpoint with an absent or empty relevant secret now fails before token I/O instead of receiving a local fallback secret. Explicit non-empty operator secrets retain their prior behavior.
+- remote-fallback RED `3ba75a6ee8ead09cbb5fa4547c2b4378d7736205` / repair `f597be93f29e330f97b294d4fb69795d333f8a7f`: repository-known synthetic dev secrets are allowed only for `localhost`, `127.0.0.1`, or `::1`; a non-loopback Keycloak endpoint with an absent or empty secret fails before token I/O;
+- remote-cleartext RED `76b1884a5b64056f02cdb60c13610b02fd4b70d6` / repair `db3dda0c84b5bc9adefe16d6d462a0e56c7af2d7`: an explicit confidential-client secret is also rejected before token I/O when a non-loopback token endpoint is cleartext HTTP. Loopback HTTP remains a disposable local-fixture exception. Exact #1120 `0038f57f...` makes ADR 0028 code-current with RFC 6749 §§3.2, 10.8, and 10.9 plus the existing RFC 9700 / RFC 10017 references.
 
-Exact #1120 Tests `35528397368` is Draft-policy skipped, so the latest helper repair is source-repaired rather than hosted GREEN. #1117 was immediately reconstructed ordinary/non-force on exact #1120 at `2a467401d65027aaa136a6b05a78968ac86b1c0f`; exact compare has merge-base `f597be93...`, `behind_by=0`, and effective child delta only `README.md`. Exact #1117 Tests `35528461243` is Draft-skipped.
+Exact #1120 Tests `35529880681` is Draft-policy skipped, so the latest transport repair is source-repaired rather than hosted GREEN. #1117 was immediately reconstructed ordinary/non-force on exact #1120 at `f1f5637c94e04316c156c6436826df499ba3abfd`; exact compare has merge-base `0038f57f...`, `behind_by=0`, and effective child delta only `README.md`. Exact #1117 Tests `35529922687` is Draft-skipped.
 
 #1118 separately owns the PyJWT declared-floor repair: both install surfaces require `pyjwt[crypto]>=2.13.0`, the committed lock already resolves 2.13.0, owned JWT verification remains RS256-only, and `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` records APA 7th traceability for CVE-2026-48523/48524/48525/48526. Exact #1118 Tests `35506460512` is Draft-skipped; this remains source-repaired, not hosted GREEN.
 
@@ -105,7 +106,7 @@ Protected `main@83eba56149eb802cd63642c507c324c9976ec78e` has no newly collected
 | Catalog connection leases / TOCTOU | #1077 / #1080 | separate owner lanes | prove short transactions around external work, then obtain protected integration evidence |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 `306fc9dc...` → #1120 `f597be93...` → #1117 `2a467401...` | seed/bootstrap repaired; machine smoke/k6 already Client Credentials; helper endpoint + empty-secret + remote-fallback defects source-repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend-integration ROPC still executable RED | move backend integration to distinct machine helpers, disable public direct grants atomically, then obtain hosted/browser proof |
+| Authentication | #899 → #1118 `306fc9dc...` → #1120 `0038f57f...` → #1117 `f1f5637c...` | seed/bootstrap repaired; machine smoke/k6 already Client Credentials; helper endpoint + empty-secret + remote-fallback + remote-cleartext defects source-repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend-integration ROPC still executable RED | move backend integration to distinct machine helpers, disable public direct grants atomically, then obtain hosted/browser proof |
 | Voice ADR authority | #1121 `dbabff85...` | source repaired / hosted checks queued | exact-head GREEN + independent review + normal merge, then protected-main runtime evidence |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
