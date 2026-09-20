@@ -10,10 +10,10 @@
 - Parent movement requires ordinary non-force descendant convergence. Force push, destructive rebase, self-approval, gate weakening, synthetic status, and no-op wake commits are not acceptance tools.
 - Release readiness requires one exact protected candidate with version/CHANGELOG/package/tag/release/SBOM/provenance/reproducibility/rollback evidence.
 
-Current protected references:
+Current protected references on the latest read:
 
-- LineageWeave `main@83eba56149eb802cd63642c507c324c9976ec78e`, protected and signature-valid on the latest read.
-- Canonical reusable-workflow owner `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`, protected and signature-valid on the latest read. Its required owner-check set remains centrally enforced.
+- LineageWeave `main@83eba56149eb802cd63642c507c324c9976ec78e`.
+- Canonical reusable-workflow owner `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`.
 
 Re-read both before merge or release; neither reference is a frozen dependency.
 
@@ -25,15 +25,9 @@ Re-read both before merge or release; neither reference is a frozen dependency.
 
 #861 remains the earliest proven App integration acceptance root: #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; #861 introduced persisted comparison-graphic σ+share semantics without updating inherited `App.test.tsx` expectations. Production semantics must not be rolled back merely to satisfy stale share-only assertions.
 
-#861 also retains a distinct buyer-visible layout risk: comparison axis copy can grow through σ/share and translation expansion inside a fixed SVG. A rendered/browser bounding-box RED across responsive widths, keyboard/focus states, and text-expansion locales is required before changing layout; accessible σ/share semantics must remain intact.
+#861 also retains a separate buyer-visible layout risk: comparison axis copy can grow through σ/share and translation expansion inside a fixed SVG. A rendered/browser bounding-box RED across responsive widths, keyboard/focus states, and text-expansion locales is required before changing layout; accessible σ/share semantics must remain intact.
 
 ## Report / comparison stack
-
-Current ordinary/non-force report chain:
-
-`#863 1bab89ac... → #865 3178713c... → #866 8d63271c... → #867 bbbb7f44... → #868 07558b5a... → #869 58e3eb52... → #870 5a8d9b27... → #871 abb24781... → #872 32a7da41... → #873 aefa45a3... → #874 164ec8e0... → #875 937415e2...`.
-
-#875 children are #876 `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` and #877 `34b5682bfbc093a253f6b500c66116354e78c5b4`; #876 continues through #1033 `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` → #1034 `bb664b7aae733933c11b2fe056de2a7b16a02c15`.
 
 #868 Tests `35448971227` is terminal FAILURE in the frontend `Test` step. The full/PostgreSQL suite is GREEN. Exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share. That stale App acceptance remains a valid source finding even though the available Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
 
@@ -43,40 +37,25 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 f39502ccd5665ef146ca1c112466798dff5e5339 → #1117 0048eafd2d50cee99876fa9b11ceff3bd113801c`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 b1474368888a0a6c74c78bb4d04fbdb236f0e6da → #1117 9176f961f172d41456619bd9df2b11c7782f223a`.
 
-The accumulated JWKS consumer repairs remain part of #1120: verification candidates reject private RSA members; `x5c` members must be canonical Base64 / parseable X.509, the leaf RSA key must match JWK `n/e`, KeyUsage cannot contradict signature verification, and `x5t` / `x5t#S256` must be canonical and match embedded leaf DER when available. Unsupported RFC 7517 `x5u` candidates are rejected because this consumer owns no authenticated remote-certificate retrieval/trust path. These are LineageWeave verifier boundaries, not Keyverse/provider identity ownership.
+Accumulated #1120 verifier/auth-fixture prerequisites remain in force: private or contradictory RSA/JWK metadata is rejected; `x5c` is canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects are derived from the checked-in realm fixture; service and human subjects are disjoint; required machine clients are unique, enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and the required REST/MCP access-token audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
-The local service-account prerequisite remains fail closed across identity, client topology, authentication usability, and consumer-resource audience compatibility:
+The current causal RED is executable as `tests/test_seed_demo_identity_contract.py` from `fd3edd04d93714d152db31473850c10fe30b31d0`. It requires seed/bootstrap to consume checked-in `demo.analyst` and `demo.admin` subjects from the realm fixture, fail closed on missing/disabled/shared human subjects, remove master `admin-cli` and Resource Owner Password Credentials from seed/warm-up, move seeded-content warm-up to the existing confidential `lineageweave-test-automation` Client Credentials actor, and order `make seed` as human fixture seed → service-account authorization binding → machine warm-up.
 
-- realm service-account `sub` values are derived from `docker/keycloak/realm-export.json` instead of copied into Python;
-- required service subjects are unique and disjoint from non-service resource-owner subjects;
-- each bound client must exist exactly once and be enabled OIDC, confidential, service-account enabled, direct-grant disabled, browser-standard-flow disabled, and implicit-flow disabled;
-- a bound service-account user must be enabled and the current checked-in secret-based confidential client must carry a non-empty local secret;
-- automation requires `lineageweave-api` plus `http://localhost:18001/mcp` access-token audiences, while admin requires `lineageweave-api`, through direct OIDC audience mappers with `access.token.claim == "true"`.
+Current product source still contradicts that contract: `scripts/seed_demo_data.py` uses master `admin-cli` + `grant_type=password` to rediscover deterministic human subjects. No product repair or GREEN is claimed yet.
 
-The public browser fixture keeps Authorization Code + S256 PKCE, implicit flow disabled, and exact local redirect origins. Those prerequisites do not complete the direct-grant migration.
+A temporary one-shot repair lane remains on #1120 only to apply the causal patch, verify focused tests, and delete itself plus its repair driver in the resulting product commit. `f39502ccd5665ef146ca1c112466798dff5e5339` isolated execution by exact SHA and added a live-branch/GITHUB_SHA fail-closed guard. `b1474368888a0a6c74c78bb4d04fbdb236f0e6da` additionally pins the hosted image to `ubuntu-24.04` instead of the moving `ubuntu-latest` label. Push run `35487484700` remains queued; queue state is not acceptance and the temporary workflow must not survive the completed product repair. Ordinary Draft Tests for `b1474368...` are skipped and are not repository GREEN.
 
-The current causal RED is now executable as `tests/test_seed_demo_identity_contract.py` at `fd3edd04d93714d152db31473850c10fe30b31d0`. It requires seed/bootstrap to consume the checked-in `demo.analyst` and `demo.admin` subjects from the realm fixture, fail closed on missing/disabled/shared human subjects, remove master `admin-cli` and resource-owner password grant dependencies from seed/warm-up, move seeded-content warm-up to the existing confidential `lineageweave-test-automation` Client Credentials actor, and order `make seed` as human fixture seed → service-account authorization binding → machine warm-up.
-
-Current product source still contradicts that contract: `scripts/seed_demo_data.py` logs into the master realm using `admin-cli` + `grant_type=password` to rediscover deterministic human subjects. No source repair or GREEN is claimed yet.
-
-A temporary one-shot repair lane remains on #1120 only to apply the causal patch, verify focused tests, and delete itself plus its repair driver in the product commit. Commit `f39502ccd5665ef146ca1c112466798dff5e5339` moves the lane to an exact-SHA concurrency group and adds a live-branch/GITHUB_SHA fail-closed guard so stale queued runs cannot mutate a descendant head. Run `35485065477` now has one queued `ubuntu-latest` repair job. Queue state is not acceptance and the temporary workflow must not survive the completed product repair.
-
-#1120 exact-head Tests `35485067302` is terminal skipped under Draft admission, so no repository GREEN is claimed. #1117 was ordinary/non-force converged from exact #1120 plus its existing README blob; its current head is `0048eafd2d50cee99876fa9b11ceff3bd113801c`. Exact compare from #1120 has merge-base `f39502cc...`, `behind_by=0`, and README-only effective delta. Final acceptance still requires exact-head hosted evidence rather than predecessor receipts.
+#1117 was immediately ordinary/non-force converged from exact #1120 plus its existing README blob to `9176f961f172d41456619bd9df2b11c7782f223a`. Exact compare from `b1474368...` has merge-base exactly `b1474368...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
 
 Remaining auth RED:
 
-- land and verify the seed/bootstrap product repair above, including removal of the temporary one-shot workflow and driver;
-- `backend/tests/test_api.py` still mints analyst/admin tokens through public `lineageweave-frontend` Resource Owner Password Credentials;
-- human browser demo users remain product-form actors and must continue through redirect-based Authorization Code + PKCE. Machine integration/bootstrap consumers use validated confidential automation/admin actors without collapsing viewer/admin or cross-account evidence;
-- public frontend direct grants stay enabled until all password-grant consumers are migrated atomically;
-- dependency metadata remains stale and must move with the lock and security regression evidence rather than through a metadata-only edit;
-- exact-head hosted GREEN, rendered browser/session acceptance, and independent review remain outstanding.
-
-## Central CI / CodeQL
-
-Canonical `.github/main` is `e6334e229581a918e2f22de18733b76fa65d7e71` on the latest fresh read. Required owner checks stay centralized; LineageWeave must not fork provider-group or CodeQL owner logic locally. Any evidence naming another `.github` head as current must be refreshed before reliance.
+- land and verify the seed/bootstrap product repair and remove the temporary one-shot workflow/driver;
+- migrate `backend/tests/test_api.py` analyst/admin human ROPC without collapsing distinct viewer/admin authorization semantics;
+- keep public frontend direct grants enabled until all password-grant consumers migrate atomically, then disable them;
+- move PyJWT dependency floor, lock, and security regression evidence together rather than through metadata-only edits;
+- obtain exact-head hosted GREEN, rendered browser Authorization Code + PKCE/session acceptance, and qualifying independent review.
 
 ## Performance / immutable delivery
 
@@ -91,10 +70,10 @@ Canonical `.github/main` is `e6334e229581a918e2f22de18733b76fa65d7e71` on the la
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical owner checks, language review, browser/auth/performance acceptance |
 | App comparison acceptance | #861 | RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
 | App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
-| Report contracts | #863 → #875 → #876/#877 → #1033/#1034 | backend GREEN / frontend RED at #868 | recover or reproduce the exact frontend failing acceptance; repair at the causal owner, then converge descendants without stale-receipt transfer |
+| Report contracts | #868 | frontend RED / PostgreSQL GREEN | recover or reproduce exact frontend failing acceptance; repair at causal owner, then converge descendants |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `f39502cc...` → #1117 `0048eafd...` | migration RED / verifier+machine+browser prerequisites repaired / seed RED executable | land + verify passwordless seed/bootstrap repair, remove temporary repair lane, migrate remaining backend human ROPC, then disable public direct grants and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `b1474368...` → #1117 `9176f961...` | migration RED; verifier/machine/browser prerequisites repaired; seed RED executable; runner queued | land + verify passwordless seed/bootstrap repair, delete temporary repair lane, migrate backend human ROPC, then disable public direct grants and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
