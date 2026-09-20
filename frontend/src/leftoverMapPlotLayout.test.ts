@@ -206,6 +206,23 @@ describe("layoutLeftoverMapPlot", () => {
     expect(originAxis1).toMatchObject({ x: layout?.originX, y: layout?.originY, label: "0.00" });
   });
 
+  it("keeps distinct persisted coordinate ticks when their displayed labels match", () => {
+    const layout = layoutLeftoverMapPlot(
+      [
+        pair({
+          leftover_map_person_axis_1: 0.501,
+          leftover_map_item_axis_1: 0.504,
+        }),
+      ],
+      criterionLabel,
+    );
+    const matchingTicks = layout?.ticks.filter(
+      (tick) => tick.axis === 1 && tick.label === "+0.50",
+    );
+    expect(matchingTicks?.map((tick) => tick.value)).toEqual([0.501, 0.504]);
+    expect(matchingTicks?.[0]?.x).not.toBe(matchingTicks?.[1]?.x);
+  });
+
   it("does not invent drawing-scale leftover-map ticks on a rank-0 origin cell", () => {
     const layout = layoutLeftoverMapPlot(
       [
