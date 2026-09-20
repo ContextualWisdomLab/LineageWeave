@@ -2,7 +2,7 @@
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, cancelled workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update adopts #1041 exact predecessor `6fb0cb0d0cee204d48f2fb33d91e1a03cd7a0566` against `main@83eba56149eb802cd63642c507c324c9976ec78e`. This file intentionally does **not** hard-code its own newly-created #1041 head: writing this file creates a new commit, so the live PR API/body owns #1041's exact head and exact-head workflow receipts. Completed successful protected receipts on that live head are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless, or predecessor receipts are non-accepting and do not transfer.
+> This update adopts #1041 exact predecessor `4e3ca6b7e4dbd4c38085c11389824f869a3024b5` against `main@83eba56149eb802cd63642c507c324c9976ec78e`. The live inventory showed 164 open pull requests and 42 open issues. Those aggregate counts are operational metadata, not delivery evidence. This file intentionally does **not** hard-code its own newly-created #1041 head: writing this file creates a new commit, so the live PR API/body owns #1041's exact head and exact-head workflow receipts. Completed successful protected receipts on that live head are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless, or predecessor receipts are non-accepting and do not transfer.
 
 ## Delivery authority
 
@@ -34,11 +34,11 @@ Ready review lanes at the predecessor snapshot were #911 `2d91db2e76849dead722b3
 
 The same mobile render still clips plot labels at the fixed SVG boundary. That observation belongs to the existing #861 comparison-layout RED below; #1041 does not hide ticks, fabricate coordinates, or claim that separate gap complete.
 
-#861 remains the earliest proven App integration acceptance root. #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; current #861 exact `9f3923c1d66ee56460e2660a3fbc6bfeacc3c2bd` introduces an executable RED that rejects inherited share-only App expectations and requires exact persisted σ+share accessible names. Production semantics must not be rolled back to satisfy stale assertions, and descendant-local fuzzy repairs are not substitutes for the owner fix.
+#861 remains the earliest App integration acceptance root. Parent #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` must merge through its protected gate before the child is retargeted to `main`. Current #861 candidate `d572f65187f1148c3c7ebcdcbad3361d0c19fd9f` replaces inherited share-only App expectations with exact persisted σ+share names, makes the singular-only and rank-0 states exact, and right-bounds both axis captions inside the SVG. It does not derive σ from share or hide either persisted value. The focused contract passed 3 tests; the frontend suite passed 867 tests, followed by lint and production build. These are local candidate receipts, not protected delivery.
 
-#861 also retains a distinct buyer-visible layout risk: comparison axis copy can grow through σ/share and translation expansion inside a fixed SVG. Existing local Storybook evidence at desktop and 390×844 shows dense origin-adjacent tick collision and a 480 px SVG requiring horizontal scroll on mobile. This is rendered local RED, not authenticated product acceptance and not authority to omit persisted ticks. A current-head bounding-box/browser RED across responsive widths, keyboard/focus states, and text-expansion locales is required before a bounded layout repair.
+#861 retains dense origin-adjacent tick collisions as a separate buyer-visible risk. Current-head Storybook screenshots at 1440×1100 and 390×844 verify that the repaired σ+share captions stay inside the SVG; the mobile plot remains deliberately horizontally scrollable. The screenshots are rendered local evidence, not authenticated PostgreSQL/API acceptance. Text-expansion locale and authenticated product acceptance remain unavailable.
 
-Exact #861 Tests `35514822818` remains non-acceptance while queued.
+Fresh hosted Checks and independent approval for #861 candidate `d572f651...` remain authoritative and unverified. The PR stays Draft on its parent base; no predecessor receipt transfers.
 
 ## Report / comparison stack
 
