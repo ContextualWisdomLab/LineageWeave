@@ -80,6 +80,10 @@ def test_temporal_voice_history_extends_the_voice_combination_authority() -> Non
     assert "ADR 0251" not in temporal_voice
     assert "ADR 0256 records when a Voice assignment starts" in temporal_voice
 
+    adr_index = (_ADR_DIRECTORY / "README.md").read_text(encoding="utf-8")
+    assert "[0256](0256-evidence-bearing-voice-combinations.md)" in adr_index
+    assert "[0251](0256-evidence-bearing-voice-combinations.md)" not in adr_index
+
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
     """ADR 0019 / 0027: fetch must not rejoin the catalog by a non-unique name."""
