@@ -19,12 +19,12 @@ def test_comparison_graphic_has_distinct_persisted_singular_value_copy() -> None
 
     assert (
         'export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR =\n'
-        '  "leftover map comparison graphic leftover-map axis {axis} σ {value}";'
+        '  "leftover map comparison axis {axis} (σ {value})";'
         in singular_source
     )
     assert (
         'export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE =\n'
-        '  "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)";'
+        '  "leftover map comparison axis {axis} (σ {value}, {share}%)";'
         in singular_source
     )
     assert "LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR" in plot_source
