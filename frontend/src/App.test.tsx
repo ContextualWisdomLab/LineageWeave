@@ -4155,9 +4155,9 @@ describe("App, authenticated", () => {
       "Leftover map used 2 of 3 scored posts (complete-case)",
     );
     const coverageCaption = screen.getByLabelText("Leftover map coverage");
-    const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
+    const closestPair = screen.getByRole("button", { name: /closest leftover: public post/i });
     const farthestPair = screen.getByRole("button", {
-      name: /open leftover farthest pair: specification revision requested/i,
+      name: /farthest leftover: specification revision requested/i,
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     // Leftover-map coordinates are present, so they name the next action
@@ -4267,7 +4267,7 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
+      await screen.findByRole("button", { name: /closest leftover: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
@@ -4283,7 +4283,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(
       await screen.findByRole("button", {
-        name: /open leftover farthest pair: specification revision requested/i,
+        name: /farthest leftover: specification revision requested/i,
       }),
     );
     await waitFor(() =>
