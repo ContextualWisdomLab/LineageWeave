@@ -31,6 +31,8 @@ Re-read both before merge or release; neither reference is a frozen dependency.
 
 #868 Tests `35448971227` is terminal FAILURE in the frontend `Test` step. The full/PostgreSQL suite is GREEN. Exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share. That stale App acceptance remains a valid source finding even though the available Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
 
+The comparison-coordinate reconstruction stack is also not GREEN. #876 exact `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` has Tests `35449409685` failing in both frontend job `105913841595` (`Test` after lint) and full-suite job `105913841700` (`Run full test suite against PostgreSQL`). #1033 exact `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` has Tests `35449469635`: PostgreSQL/full-suite job `105914000303` is GREEN, while frontend job `105914000414` fails its `Test` step after lint. #1034 exact `bb664b7aae733933c11b2fe056de2a7b16a02c15` has the same classification in Tests `35449496627`: PostgreSQL/full-suite job `105914068322` is GREEN, frontend job `105914068148` fails its `Test` step after lint. Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by #1033/#1034; neither historical PR nor its successor is closable merely by substitution while the successor heads remain RED. The exact frontend failing test node/output is still unavailable from the current Actions surface, so geometry, copy, and expectation changes must not be guessed.
+
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through protected integration or verified succession rather than duplicate telemetry source.
 
 ## Authentication / authorization stack
@@ -76,7 +78,7 @@ Remaining auth RED:
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical owner checks, language review, browser/auth/performance acceptance |
 | App comparison acceptance | #861 | RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
 | App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
-| Report contracts | #868 | frontend RED / PostgreSQL GREEN | recover or reproduce exact frontend failing acceptance; repair at causal owner, then converge descendants |
+| Report contracts | #868; #876 → #1033 → #1034; historical #878/#879 | frontend RED; #876 PostgreSQL RED; #1033/#1034 PostgreSQL GREEN | recover exact frontend failing node/output; repair causal owner without guessing; converge descendants; keep historical delta carriers until verified GREEN succession |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
 | Authentication | #899 → #1118 → #1120 `f55956bf...` → #1117 `1220f9e4...` | seed/bootstrap repaired; backend ROPC executable RED; exact Tests skipped | wire distinct viewer/admin machine helpers into backend integration, disable public direct grants atomically, then obtain hosted/browser proof |
