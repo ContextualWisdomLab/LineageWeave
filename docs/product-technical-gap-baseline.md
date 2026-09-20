@@ -1,10 +1,10 @@
 # Product & Technical Gap Baseline
 
-> Current mutable authority overlay: 2026-09-20. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
+> Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
 
 > Live inventory at this read: 164 open PRs and 42 open issues. This count is
 > operational metadata, not release evidence. This update starts from #1041
-> exact head `bdfc8e30540fdad9ef7095d90eb41049e79727a5` against
+> exact head `bb7cecf721d67be0f0ce32f77c642cff2f58e3be` against
 > `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready.
 > New exact-head workflow receipts created by this edit remain authoritative for
 > acceptance; predecessor, skipped, queued, or documentation-only receipts are
@@ -22,6 +22,11 @@ Current protected references on the latest read:
 
 - LineageWeave `main@83eba56149eb802cd63642c507c324c9976ec78e`.
 - Canonical reusable-workflow owner `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`.
+- GitHub currently resolves the named ecosystem repositories as
+  `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+  `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+  `ContextualWisdomLab/TEPP`; `DiskSage` is the product name, not the repository
+  path casing.
 
 Re-read both before merge or release; neither reference is a frozen dependency.
 
@@ -34,6 +39,16 @@ Re-read both before merge or release; neither reference is a frozen dependency.
 #861 remains the earliest proven App integration acceptance root: #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; #861 introduced persisted comparison-graphic σ+share semantics without updating inherited `App.test.tsx` expectations. Production semantics must not be rolled back merely to satisfy stale share-only assertions.
 
 #861 also retains a separate buyer-visible layout risk: comparison axis copy can grow through σ/share and translation expansion inside a fixed SVG. A rendered/browser bounding-box RED across responsive widths, keyboard/focus states, and text-expansion locales is required before changing layout; accessible σ/share semantics must remain intact.
+
+Fresh local Storybook inspection on #1041 parent head
+`bb7cecf721d67be0f0ce32f77c642cff2f58e3be` covered the synthetic
+`Reports/LeftoverPairList/ClosestAndFarthest` story at the default desktop
+viewport and at 390 × 844. The pair actions wrap without horizontal page
+overflow at 390 px, preserving their exact values and next action. The plot's
+dense origin-adjacent tick labels still collide in both captures, and the fixed
+480 px SVG intentionally requires horizontal scrolling on mobile. This is
+rendered local RED for the separate comparison-layout gap, not authenticated
+product acceptance and not authority to omit or approximate persisted ticks.
 
 ## Report / comparison stack
 
