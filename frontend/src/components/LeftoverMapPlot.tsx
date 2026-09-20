@@ -370,7 +370,12 @@ export function LeftoverMapPlot({
                 : null;
             const comparisonTickBadge =
               variant === "comparison"
-                ? leftoverMapComparePlotTickAxisBadge(tick.axis, tick.label, singular)
+                ? leftoverMapComparePlotTickAxisBadge(
+                    tick.axis,
+                    tick.label,
+                    singular,
+                    leftoverShareForAxis(leftoverMapAxes, tick.axis),
+                  )
                 : null;
             const tickAriaLabel =
               variant === "comparison"
