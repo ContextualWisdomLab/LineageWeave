@@ -71,13 +71,14 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
 
 
 def test_temporal_voice_history_extends_the_voice_combination_authority() -> None:
-    """ADR 0252 must extend Voice composition rather than I/O psychology."""
+    """ADR 0252 must consistently extend Voice composition, never I/O psychology."""
 
     temporal_voice = (
         _ADR_DIRECTORY / "0252-temporal-primary-voice-history.md"
     ).read_text(encoding="utf-8")
     assert "Extends ADR 0256" in temporal_voice
-    assert "Extends ADR 0251" not in temporal_voice
+    assert "ADR 0251" not in temporal_voice
+    assert "ADR 0256 records when a Voice assignment starts" in temporal_voice
 
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
