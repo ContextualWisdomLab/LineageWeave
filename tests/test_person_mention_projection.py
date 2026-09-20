@@ -15,8 +15,6 @@ from urllib.parse import urlsplit, urlunsplit
 import uuid
 
 import asyncpg
-import psycopg2
-from psycopg2 import sql
 import pytest
 
 from backend.app.keyman_ingestion import ingest_post_keymen
@@ -27,6 +25,8 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
+from lineageweave import postgres_sync as psycopg2
+from lineageweave.postgres_sync import sql
 from backend.app import post_summary_ingestion as summary_ingestion
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,

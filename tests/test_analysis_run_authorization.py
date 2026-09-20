@@ -7,10 +7,10 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
-import psycopg2
 import pytest
-from psycopg2 import sql
 
+from lineageweave import postgres_sync as sync_postgres
+from lineageweave.postgres_sync import sql
 from backend.app.analysis_run_ingestion import (
     _COUNTS_BY_RUN_SQL,
     _RUN_DETAIL_SQL,
@@ -40,9 +40,9 @@ def test_visible_run_sql_is_parameterized_literals() -> None:
 def _postgres_available() -> bool:
     """Return whether the configured administrator DSN is reachable."""
     try:
-        psycopg2.connect(_ADMIN_DSN, connect_timeout=2).close()
+        sync_postgres.connect(_ADMIN_DSN, connect_timeout=2).close()
         return True
-    except psycopg2.OperationalError:
+    except sync_postgres.OperationalError:
         return False
 
 
@@ -58,14 +58,14 @@ def authz_db():
     if not _postgres_available():
         pytest.skip("a reachable PostgreSQL administrator DSN is required")
     database_name = f"lineageweave_authz_{uuid.uuid4().hex[:12]}"
-    admin_connection = psycopg2.connect(_ADMIN_DSN)
+    admin_connection = sync_postgres.connect(_ADMIN_DSN)
     admin_connection.autocommit = True
     with admin_connection.cursor() as cursor:
         cursor.execute(
             sql.SQL("create database {}").format(sql.Identifier(database_name))
         )
     try:
-        connection = psycopg2.connect(_database_dsn(database_name))
+        connection = sync_postgres.connect(_database_dsn(database_name))
         try:
             connection.autocommit = True
             with connection.cursor() as cursor:

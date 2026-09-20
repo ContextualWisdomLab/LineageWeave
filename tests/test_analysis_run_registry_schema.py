@@ -9,10 +9,10 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
-import psycopg2
-import psycopg2.errors
 import pytest
-from psycopg2 import sql
+
+from lineageweave import postgres_sync as psycopg2
+from lineageweave.postgres_sync import sql
 
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
