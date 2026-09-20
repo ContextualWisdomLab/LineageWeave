@@ -1,44 +1,38 @@
 #!/usr/bin/env python3
-"""Seeds synthetic Phase 1 demo data into the running Postgres/Keycloak
-stack, so the whole login -> post-list -> post-detail path is demonstrable
-end to end (per ADR 0001: real infrastructure, synthetic content only).
+"""Seed synthetic Phase 1 demo data from the checked-in local identity fixture.
 
-Genuinely real, not fabricated locally and hoped to match: this script logs
-into Keycloak's own admin REST API to fetch the actual `sub` (user id) of
-the two demo accounts seeded by docker/keycloak/realm-export.json, then
-inserts user_account rows in Postgres keyed by those real subject ids --
-the same identity Keycloak issues in an access token's `sub` claim, which
-is exactly what backend.app.auth looks up. Seeded tickets also ``XADD``
-onto Valkey so the Activity panel is not empty after ``make seed``.
+The demo users are defined by ``docker/keycloak/realm-export.json``. Their
+Keycloak subject ids are read directly from that versioned fixture and
+validated before LineageWeave writes DB-owned authorization rows. This seed
+step does not log in to Keycloak or mint a human token. Lazy post-content
+warm-up is a separate machine-client step run after service-account DB
+authorization has been provisioned.
 
-HTTP goes through ``lineageweave.http_client`` (http(s) allowlist).
-
-Usage: KEYCLOAK_ADMIN_PASSWORD=... python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]
+Usage: python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--realm-fixture ...] [--valkey-url ...]
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import os
-import time
+import json
 import sys
 from pathlib import Path
-from urllib.parse import urlencode
 
 # Allow `python3 scripts/seed_demo_data.py` from a checkout without install.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg2
 
-from lineageweave.http_client import get_json, get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 REALM = "lineageweave-demo"
+DEMO_USERNAMES = ("demo.analyst", "demo.admin")
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
-DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
-DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")
+DEFAULT_REALM_EXPORT_PATH = (
+    Path(__file__).resolve().parents[1] / "docker" / "keycloak" / "realm-export.json"
+)
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
 
 # ADR 0013: one Demo Corp capture, many runs (lineage + TEPP + report).
@@ -71,31 +65,36 @@ FIXTURE_TICKET_SPECS = (
 CALENDAR_TICKET_TITLE = "Send Riverbend the revised delivery schedule."
 
 
-def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: str) -> dict[str, str]:
-    """Return {username: Keycloak subject id} for the two synthetic demo users."""
-    admin_token = post_form(
-        f"{base_url}/realms/master/protocol/openid-connect/token",
-        {
-            "grant_type": "password",
-            "client_id": "admin-cli",
-            "username": admin_user,
-            "password": admin_password,
-        },
-        timeout=10,
-    )["access_token"]
+def _load_demo_user_subjects(realm_fixture: Path) -> dict[str, str]:
+    """Read unique enabled demo-user subjects from the versioned realm fixture."""
+    realm = json.loads(realm_fixture.read_text(encoding="utf-8"))
+    if realm.get("realm") != REALM:
+        raise RuntimeError(f"realm fixture must describe {REALM!r}")
+    users = realm.get("users")
+    if not isinstance(users, list):
+        raise RuntimeError("realm fixture is missing a users array")
 
     subjects: dict[str, str] = {}
-    for username in ("demo.analyst", "demo.admin"):
-        query = urlencode({"username": username, "exact": "true"})
-        users = get_json_list(
-            f"{base_url}/admin/realms/{REALM}/users?{query}",
-            headers={"Authorization": f"Bearer {admin_token}"},
-            timeout=10,
-            service_peer_name="oidc",
-        )
-        if not users:
-            raise SystemExit(f"Keycloak user '{username}' not found in realm '{REALM}' -- did the realm import run?")
-        subjects[username] = users[0]["id"]
+    for username in DEMO_USERNAMES:
+        matches = [
+            user
+            for user in users
+            if isinstance(user, dict) and user.get("username") == username
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"realm fixture is missing or duplicates required demo user {username!r}"
+            )
+        user = matches[0]
+        if user.get("enabled") is not True:
+            raise RuntimeError(f"demo user {username!r} must be enabled")
+        subject_id = user.get("id")
+        if not isinstance(subject_id, str) or not subject_id.strip():
+            raise RuntimeError(f"demo user {username!r} must declare a non-empty subject id")
+        subjects[username] = subject_id
+
+    if len(set(subjects.values())) != len(subjects):
+        raise RuntimeError("demo user subject ids must be unique")
     return subjects
 
 
@@ -235,7 +234,7 @@ def seed(
                 "returning process_unit_code, process_unit_id",
                 (corporate_entity_id, corporate_entity_id, corporate_entity_id),
             )
-            process_units = dict(cur.fetchall())  # {code: id}
+            process_units = dict(cur.fetchall())
 
             cur.execute(
                 "insert into access_role (role_code, role_name) values "
@@ -243,7 +242,7 @@ def seed(
                 "on conflict (role_code) do update set role_name = excluded.role_name "
                 "returning role_code, access_role_id"
             )
-            roles = dict(cur.fetchall())  # {code: id}
+            roles = dict(cur.fetchall())
 
             cur.execute(
                 "insert into role_permission (access_role_id, permission_code) values (%s, 'post_read') "
@@ -492,9 +491,6 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
             )
-            # Fixture occurred_at was stored as created_at. Name that instant
-            # as the event clock so Global Ask can disclose the event axis
-            # without inventing a second date (ADR 0202).
             cur.execute(
                 "update source_post set event_occurred_at = created_at "
                 "where event_occurred_at is null"
@@ -582,15 +578,7 @@ def demo_channel_weight_estimate():
 
 
 def _persist_demo_channel_weights(cur, estimate) -> None:
-    """Persist the demo estimate with full provenance (migration 0200).
-
-    Product reconstruction fails closed without an activated estimate;
-    seeding the demo estimate keeps POST /api/lineage/rebuild and
-    analysis-run start working on a freshly seeded environment. The
-    provenance snapshot digest names the demo's declared generative
-    design, the honest anchor label applies, and the estimator version
-    is the installed fast-mlsirm.
-    """
+    """Persist the demo estimate with full provenance (migration 0200)."""
     import uuid as uuid_module
     from datetime import datetime, timezone
 
@@ -635,18 +623,10 @@ def _persist_demo_channel_weights(cur, estimate) -> None:
 
 
 def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
-    """Persist fixtures.sample_records() as source_posts plus reconstruct edges.
-
-    Without this, GET /api/posts/{id}/lineage is empty on a freshly seeded
-    demo: the Event Lineage panel has nothing to show even though
-    reconstruct() already knows the A-100 fork.
-    """
+    """Persist fixtures.sample_records() as source_posts plus reconstruct edges."""
     from lineageweave.fixtures import sample_records
     from lineageweave.lineage_persistence import lineage_edge_specs, lineage_rebuild_spec
 
-    # Idempotency first: a re-seed of an already-seeded database (whose
-    # estimate was persisted on the first pass) must not abort just
-    # because fast-mlsirm is absent in this environment.
     records = sample_records()
     cur.execute("select 1 from source_post where post_title = %s", (records[0].label,))
     if cur.fetchone() is not None:
@@ -782,12 +762,7 @@ def _write_post_chat(cur, post_id, question: str, chat) -> None:
 
 
 def _seed_demo_public_chat(cur, post_id) -> None:
-    """Write the popup Ask answers for the demo public post.
-
-    Idempotent: re-seed replaces the same rows so GET/POST chat stay
-    non-empty without a live orchestrator. Writes the canned
-    questions so the chips are not a single prompt.
-    """
+    """Write the popup Ask answers for the demo public post."""
     from backend.app.post_chat_ingestion import seeded_demo_exchanges
 
     for question, chat in seeded_demo_exchanges():
@@ -795,13 +770,7 @@ def _seed_demo_public_chat(cur, post_id) -> None:
 
 
 def _seed_fixture_chats(cur) -> None:
-    """Write Ask answers for A-100/B-200 reconstruct posts and Calendar.
-
-    Event Lineage click-through stays an empty Ask box without this
-    when the orchestrator is off. Idempotent -- finds existing titles
-    so a re-seed after the lineage insert's early-return still fills
-    the popup. Writes the canned questions per fixture.
-    """
+    """Write Ask answers for A-100/B-200 reconstruct posts and Calendar."""
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from backend.app.post_chat_ingestion import seeded_fixture_exchanges
 
@@ -820,27 +789,14 @@ def _seed_fixture_chats(cur) -> None:
 
 
 def _seed_demo_public_summary(cur, post_id) -> None:
-    """Write the popup summary for the demo public post.
-
-    Idempotent: re-seed replaces the same row so GET /api/posts/{id}/summary
-    stays non-empty without a live orchestrator.
-    """
+    """Write the popup summary for the demo public post."""
     from backend.app.post_summary_ingestion import seeded_demo_summary
 
     _write_post_summary(cur, post_id, seeded_demo_summary())
 
 
 def _seed_fixture_summaries(cur) -> None:
-    """Write Korean summaries for A-100/B-200 reconstruct posts and Calendar.
-
-    Event Lineage click-through and the calendar commitment stay empty
-    without this: those posts have only their English title as body, and
-    GET /api/posts/{id}/summary 503s when the orchestrator is off.
-    A-100/B-200 casts also get R&R (Ada West / Priya Nair / Jordan Hale)
-    so the popup R&R list is not empty. rec-006 and Calendar stay
-    role-less. Idempotent -- finds existing titles so a re-seed after
-    the lineage insert's early-return still fills the popup.
-    """
+    """Write Korean summaries for A-100/B-200 reconstruct posts and Calendar."""
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from backend.app.post_summary_ingestion import seeded_fixture_summary
 
@@ -858,11 +814,7 @@ def _seed_fixture_summaries(cur) -> None:
 
 
 def constructed_evaluation_categories(title: str) -> dict[str, int]:
-    """Deterministic rubric cells from a synthetic title -- not an LLM judge.
-
-    Thetas still come only from ``calibrate_period_report``. These cells
-    exist so GET /api/posts/{id}/evaluation is not empty after ``make seed``.
-    """
+    """Deterministic rubric cells from a synthetic title -- not an LLM judge."""
     from lineageweave.post_evaluation import CRITERION_CODES
 
     lower = title.lower()
@@ -878,12 +830,7 @@ def constructed_evaluation_categories(title: str) -> dict[str, int]:
 
 
 def _seed_fixture_evaluations(cur) -> None:
-    """Write constructed IRT categories for demo + A-100/B-200 + calendar posts.
-
-    Without this, the Post quality panel is ``Not yet evaluated`` after
-    ``make seed`` -- only the dedicated report-band posts have cells.
-    Idempotent: existing (post, criterion, rubric) rows are left alone.
-    """
+    """Write constructed IRT categories for demo + A-100/B-200 + calendar posts."""
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from lineageweave.post_evaluation import RUBRIC_VERSION
 
@@ -954,12 +901,7 @@ def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
 
 
 def _seed_fixture_keymen_and_voc(cur, corporate_entity_id) -> None:
-    """Attach Keymen, affiliate orgs, and VOC counterparties to fixture posts.
-
-    Event Lineage click-through otherwise shows empty Keyman / affiliate
-    / VOC panels: sample_records bodies are the English title only.
-    Idempotent -- mentions and counterparties use ON CONFLICT DO NOTHING.
-    """
+    """Attach Keymen, affiliate orgs, and VOC counterparties to fixture posts."""
     from lineageweave.fixtures import (
         ambiguous_commitment_post,
         fixture_thread_cast,
@@ -1038,15 +980,7 @@ def _seed_fixture_keymen_and_voc(cur, corporate_entity_id) -> None:
 
 
 def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
-    """Put one dated synthetic commitment on the calendar after `make seed`.
-
-    Without this, GET /api/calendar is empty on a freshly seeded stack --
-    the home-page Calendar panel the 0.18.0 work added has nothing to
-    show until someone clicks Derive. The post is
-    fixtures.ambiguous_commitment_post (relative "by next Friday",
-    created_at 2026-01-05) so Derive against DCT still resolves to
-    2026-01-09 if an admin re-runs it.
-    """
+    """Put one dated synthetic commitment on the calendar after `make seed`."""
     from datetime import timezone
 
     from lineageweave.fixtures import (
@@ -1098,15 +1032,7 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
 
 
 def _seed_fixture_tickets(cur) -> None:
-    """Open tickets on Event Lineage posts a report-member click opens.
-
-    Without this, GET /api/posts/{id}/tickets is empty after ``make seed``
-    even though the post already has lineage, Keyman, and evaluation.
-    Dated rows also appear on GET /api/calendar (A-100 pricing due
-    2026-01-12, B-200 revision due 2026-01-14) so home Calendar is
-    not only the Riverbend commitment. Idempotent: a matching ticket
-    title on that post is left alone.
-    """
+    """Open tickets on Event Lineage posts a report-member click opens."""
     for post_title, ticket_title, due_date in FIXTURE_TICKET_SPECS:
         cur.execute("select post_id from source_post where post_title = %s", (post_title,))
         row = cur.fetchone()
@@ -1156,14 +1082,8 @@ def _seed_lineage_interval_relations(cur) -> None:
         )
 
 
-
 def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> None:
-    """``XADD`` ticket_created onto each seeded ticket's post stream.
-
-    Without this, GET /api/posts/{id}/activity is empty after ``make seed``
-    even though the ticket row exists -- Activity reads Valkey, not
-    Postgres. Idempotent: a matching summary on that stream is left alone.
-    """
+    """``XADD`` ticket_created onto each seeded ticket's post stream."""
     try:
         import redis
     except ImportError as exc:
@@ -1214,12 +1134,7 @@ def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> Non
 def _fixture_eval_members(
     cur, period_code: str
 ) -> dict[str, tuple[list[str], list[tuple[str, str, int]]]]:
-    """IRT cells for Event Lineage / calendar fixtures in ``period_code``.
-
-    Dummy high/low band posts stay in ``_ensure_eval_posts``. This only
-    returns reconstruct and calendar titles so the seeded report can
-    click through to A-100/B-200 DAG posts.
-    """
+    """IRT cells for Event Lineage / calendar fixtures in ``period_code``."""
     from lineageweave.fixtures import fixture_titles_in_iso_week
     from lineageweave.post_evaluation import RUBRIC_VERSION
 
@@ -1472,18 +1387,7 @@ def _persist_seed_period_report(
 
 
 def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
-    """Insert two process units on one shared metric, plus a linked W03.
-
-    High-band and low-band posts live in different process units. A
-    pooled free-calibrate writes the shared bank; each unit is then
-    FIPC-scored so the buyer can compare them. W03 is all-high on the
-    high unit. Categories are constructed; thetas come only from
-    ``score_groups_on_shared_metric``. A-100 fixtures (and the
-    Riverbend calendar post) fold into the high unit; B-200 fixtures
-    fold into the low unit. Report members with Event Lineage +
-    Keyman + evaluation sort first so a member click is not a dummy
-    band row.
-    """
+    """Insert two process units on one shared metric, plus a linked W03."""
     from datetime import datetime, timezone
 
     from lineageweave.period_report import score_groups_on_shared_metric
@@ -1600,12 +1504,7 @@ def demo_source_snapshot_sha256() -> str:
 
 
 def _ensure_demo_source_snapshot(cur):
-    """Return the shared Demo Corp capture, inserting it on first seed.
-
-    Lineage, TEPP, and period-report runs share this snapshot
-    (ADR 0013: one capture, many runs). The digest is a hash of a
-    fixed demo contract string -- never a source row or DSN.
-    """
+    """Return the shared Demo Corp capture, inserting it on first seed."""
     digest = demo_source_snapshot_sha256()
     cur.execute(
         "select analysis_source_snapshot_id from analysis_source_snapshot "
@@ -1630,14 +1529,7 @@ def _ensure_demo_source_snapshot(cur):
 
 
 def _ensure_demo_source_counts(cur, snapshot_id) -> None:
-    """Insert demo counts only when the snapshot still has none.
-
-    ``enforce_analysis_source_count_freeze`` runs BEFORE INSERT. After
-    the first run points at the snapshot, a later ``INSERT ... ON
-    CONFLICT DO NOTHING`` still raises ``analysis_source_count_frozen_after_run``
-    and rolls back the whole ``seed()`` transaction. Skip when counts
-    already exist so ``make seed`` can be re-run.
-    """
+    """Insert demo counts only when the snapshot still has none."""
     cur.execute(
         "select 1 from analysis_source_count "
         "where analysis_source_snapshot_id = %s limit 1",
@@ -1689,12 +1581,7 @@ def _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id) 
 
 
 def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
-    """Insert one Demo-Corp lineage run so Analysis runs is not empty.
-
-    Aggregates only: three synthetic documents, one thread. Reuses the
-    shared Demo Corp snapshot so a later TEPP run can attach to the
-    same capture.
-    """
+    """Insert one Demo-Corp lineage run so Analysis runs is not empty."""
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
     _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
@@ -1763,12 +1650,7 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
 
 
 def seed_reconstruction_edges(rows: list[dict], weights: dict[str, float]) -> tuple:
-    """ThreadWeave parent choices and digest for seed and start. Never a theta.
-
-    ``weights`` is required (ADR 0200 point 1): the seed passes its
-    fast-mlsirm demo-design estimate; unit tests inject synthetic
-    weights.
-    """
+    """ThreadWeave parent choices and digest for seed and start. Never a theta."""
     from backend.app.analysis_run_start import reconstruction_result_digest
     from backend.app.lineage_ingestion import records_from_source_posts
     from lineageweave.lineage_persistence import lineage_edge_specs
@@ -1778,12 +1660,7 @@ def seed_reconstruction_edges(rows: list[dict], weights: dict[str, float]) -> tu
 
 
 def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> None:
-    """Persist the designed A-100 fork on the seeded Succeeded lineage run.
-
-    Seed already stamps Succeeded. Without run-scoped edges the home
-    detail has cutoff titles and no fork. Reuses the same ThreadWeave
-    path start uses. Does not invent a TEPP score.
-    """
+    """Persist the designed A-100 fork on the seeded Succeeded lineage run."""
     from datetime import datetime, timezone
 
     cur.execute(
@@ -1847,13 +1724,7 @@ def tepp_seed_request() -> AnalysisRunRequest:
 
 
 def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
-    """Ask TEPP through the published client. A missing transport is Failed.
-
-    Never invents a psychometric score. ``tepp_not_available`` means the
-    channel was dropped, not a calibrated negative result. A live
-    envelope is also not a persistable measurement in this seed, so the
-    run is not stamped Succeeded.
-    """
+    """Ask TEPP through the published client. A missing transport is Failed."""
     request = tepp_seed_request()
     try:
         (client or TeppClient()).submit_analysis_run(request)
@@ -1863,12 +1734,7 @@ def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None
 
 
 def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
-    """Insert one Demo-Corp TEPP run so the kind is visible without a live TEPP.
-
-    Uses :func:`tepp_seed_outcome` against the shared lineage snapshot.
-    Default transport is unavailable, so the run ends Failed /
-    ``tepp_not_available`` -- never a fake theta.
-    """
+    """Insert one Demo-Corp TEPP run without fabricating a psychometric result."""
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
     _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
@@ -1938,13 +1804,7 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
 
 
 def topic_lineage_seed_request() -> AnalysisRunRequest:
-    """Build the Demo Corp topic-lineage request against the shared snapshot digest.
-
-    Same wire shape as :func:`tepp_seed_request` (ADR 0132) -- only the
-    model contract and output profile select TRSL-TM topic identity plus
-    CHRONOS/TDT event-intelligence status instead of calibrated
-    psychometric measurement.
-    """
+    """Build the Demo Corp topic-lineage request against the shared snapshot digest."""
     return AnalysisRunRequest(
         idempotency_key=DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
         tenant_workspace_id="demo-workspace",
@@ -1956,13 +1816,7 @@ def topic_lineage_seed_request() -> AnalysisRunRequest:
 
 
 def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
-    """Ask TEPP through the published client. A missing transport is Failed.
-
-    Never invents a topic identity or CHRONOS/TDT event prediction.
-    ``tepp_not_available`` means the channel was dropped, not an abstained
-    measurement. A live envelope is also not yet a persistable result in
-    this seed, so the run is not stamped Succeeded.
-    """
+    """Ask TEPP through the published client. A missing transport is Failed."""
     request = topic_lineage_seed_request()
     try:
         (client or TeppClient()).submit_analysis_run(request)
@@ -1972,12 +1826,7 @@ def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, s
 
 
 def _seed_demo_topic_lineage_run(cur, requested_by_account_id, corporate_entity_id) -> None:
-    """Insert one Demo-Corp topic-lineage run so the kind is visible without a live TEPP.
-
-    Mirrors :func:`_seed_demo_tepp_run` (ADR 0132). Default transport is
-    unavailable, so the run ends Failed / ``tepp_not_available`` -- never
-    a fabricated topic model.
-    """
+    """Insert one Demo-Corp topic-lineage run without fabricating a topic result."""
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
     _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
@@ -2047,14 +1896,7 @@ def _seed_demo_topic_lineage_run(cur, requested_by_account_id, corporate_entity_
 
 
 def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
-    """Record the already-built Demo Corp period report on the shared snapshot.
-
-    ``_seed_demo_period_report`` persists calibrated report tables first.
-    This registry row is Succeeded because that write already happened.
-    It does not copy a theta onto ``analysis_run``, does not invent a
-    local psychometric substitute, and does not enqueue start outbox
-    work (ADR 0024). Start stays 422.
-    """
+    """Record the already-built Demo Corp period report on the shared snapshot."""
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
     _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
@@ -2121,11 +1963,7 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
 
 
 def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
-    """Record a delivered start-work item for the seeded run.
-
-    Seed already stamped the terminal status. The outbox row proves the
-    same durable path start uses. No theta is stored.
-    """
+    """Record a delivered start-work item for the seeded run."""
     from datetime import datetime, timezone
 
     from backend.app.analysis_run_outbox import outbox_request_digest
@@ -2186,80 +2024,21 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         )
 
 
-DEFAULT_BACKEND_BASE_URL = "http://localhost:18420"
-
-
-def _warm_seeded_post_content(
-    postgres_dsn: str, keycloak_base_url: str, backend_base_url: str
-) -> None:
-    """Open each seeded post once through the API to start content ingestion.
-
-    Post-content extraction (units, embeddings, embedded images) is
-    enqueued lazily when a post detail is first served. Seeded posts are
-    inserted straight into Postgres, so until someone opens them the
-    pipeline stays empty and image citation has nothing to cite. This
-    replays the exact production path with the demo reader account
-    instead of duplicating the enqueue SQL here.
-    """
-    for _ in range(60):
-        try:
-            get_json(f"{backend_base_url}/healthz", timeout=5.0)
-            break
-        except Exception:
-            time.sleep(2)
-    else:
-        raise RuntimeError(
-            f"backend at {backend_base_url} is not serving /healthz; run `make up` first"
-        )
-    token = post_form(
-        f"{keycloak_base_url}/realms/lineageweave-demo/protocol/openid-connect/token",
-        {
-            "client_id": "lineageweave-frontend",
-            "grant_type": "password",
-            "username": "demo.analyst",
-            "password": "lineageweave-demo-only",
-        },
-        timeout=30.0,
-    )["access_token"]
-    connection = psycopg2.connect(postgres_dsn)
-    try:
-        with connection.cursor() as cur:
-            cur.execute(
-                "select post_id from source_post where post_title like 'Demo %post'"
-            )
-            post_ids = [str(row[0]) for row in cur.fetchall()]
-    finally:
-        # psycopg2's context manager only manages the transaction; close
-        # explicitly so no idle connection outlives the HTTP warm-up.
-        connection.close()
-    for post_id in post_ids:
-        get_json(
-            f"{backend_base_url}/api/posts/{post_id}/content",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=60.0,
-        )
-    print(f"Warmed post-content ingestion for {len(post_ids)} seeded posts")
-
-
 def main() -> None:
+    """Seed synthetic product fixtures from repository-owned local identity truth."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--postgres-dsn", default=DEFAULT_POSTGRES_DSN)
-    parser.add_argument("--keycloak-base-url", default=DEFAULT_KEYCLOAK_BASE_URL)
-    parser.add_argument("--keycloak-admin-user", default=DEFAULT_KEYCLOAK_ADMIN_USER)
     parser.add_argument(
-        "--keycloak-admin-password",
-        default=os.environ.get("KEYCLOAK_ADMIN_PASSWORD"),
-        help="Keycloak master admin password (or KEYCLOAK_ADMIN_PASSWORD). Required.",
+        "--realm-fixture",
+        type=Path,
+        default=DEFAULT_REALM_EXPORT_PATH,
+        help="Checked-in Keycloak realm export containing the deterministic demo subjects.",
     )
     parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
-    parser.add_argument("--backend-base-url", default=DEFAULT_BACKEND_BASE_URL)
     args = parser.parse_args()
-    if not args.keycloak_admin_password:
-        parser.error("set KEYCLOAK_ADMIN_PASSWORD or pass --keycloak-admin-password")
 
-    subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
+    subjects = _load_demo_user_subjects(args.realm_fixture)
     seed(args.postgres_dsn, subjects, args.valkey_url)
-    _warm_seeded_post_content(args.postgres_dsn, args.keycloak_base_url, args.backend_base_url)
     print(f"Seeded synthetic demo data for accounts: {subjects}")
 
 
