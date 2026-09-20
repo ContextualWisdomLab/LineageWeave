@@ -352,12 +352,17 @@ export function LeftoverMapPlot({
           <text className="leftover-map-plot-axis-label" x={layout.width - 8} y={layout.originY - 8} textAnchor="end">
             {leftoverMapPlotAxisText(1, leftoverMapAxes, variant)}
           </text>
-          <text className="leftover-map-plot-axis-label" x={layout.originX + 8} y={16}>
+          <text
+            className="leftover-map-plot-axis-label"
+            x={layout.width - 8}
+            y={16}
+            textAnchor="end"
+          >
             {leftoverMapPlotAxisText(2, leftoverMapAxes, variant)}
           </text>
           {layout.ticks.map((tick) => (
             <g
-              key={`tick:${tick.axis}:${tick.label}`}
+              key={`tick:${tick.axis}:${tick.value}`}
               className="leftover-map-plot-tick"
               aria-label={
                 variant === "comparison"
