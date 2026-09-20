@@ -100,9 +100,10 @@ distinct admin-test subject `44444444-4444-4444-8444-444444444444` to
 those deterministic fixture actors' affiliation/role rows in one transaction,
 and never authenticates to Keycloak. This closes the normalized machine/admin
 authorization prerequisite at source level without claiming hosted acceptance.
-The public client's direct grants remain enabled until the remaining backend and
-seed password-grant consumers have migrated, so this intermediate state does
-not break their current evidence paths.
+The backend integration actors now use those distinct confidential clients,
+and the public client disables direct grants in the same causal change. The
+viewer and administrator paths keep separate subjects and normalized roles;
+machine-token evidence still does not count as rendered browser acceptance.
 
 Keycloak startup realm import is a disposable local-fixture mechanism. The
 repository source remains `docker/keycloak/realm-export.json`; the image may
