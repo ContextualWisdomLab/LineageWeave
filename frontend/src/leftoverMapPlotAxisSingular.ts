@@ -3,10 +3,10 @@
 import type { LeftoverMapAxis } from "./api";
 
 export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR =
-  "leftover map comparison graphic leftover-map axis {axis} σ {value}";
+  "leftover map comparison axis {axis} (σ {value})";
 
 export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE =
-  "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)";
+  "leftover map comparison axis {axis} (σ {value}, {share}%)";
 
 export type LeftoverMapPlotAxisSingular = {
   axis_index: LeftoverMapAxis["axis_index"];
