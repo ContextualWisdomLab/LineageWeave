@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BADGE_SOURCE = ROOT / "frontend" / "src" / "leftoverMapAxisBadge.ts"
-BADGE_TEST_SOURCE = ROOT / "frontend" / "src" / "leftoverMapAxisTickBadge.test.ts"
+BADGE_TEST_SOURCE = ROOT / "frontend" / "src" / "leftoverMapAxisBadge.test.ts"
 
 
 def test_report_leftover_axis_tick_keeps_persisted_singular_without_share() -> None:
@@ -17,23 +17,22 @@ def test_report_leftover_axis_tick_keeps_persisted_singular_without_share() -> N
     assert "leftover axis {axis} tick {value} σ {singular}" in source
 
 
-def test_report_leftover_axis_tick_never_infers_sigma_or_share() -> None:
-    """Tick σ/share are delegated to their persisted-value formatters without derivation."""
+def test_report_leftover_axis_tick_never_derives_sigma_or_share() -> None:
+    """Tick composition delegates both persisted measures instead of synthesizing either one."""
     assert BADGE_SOURCE.exists(), "report-axis badge helper is missing"
     source = BADGE_SOURCE.read_text(encoding="utf-8")
-    tick_badge = source.split("export function leftoverMapAxisTickBadge", 1)[1]
 
-    assert "formatLeftoverMapPlotAxisSingular(leftoverSingular)" in tick_badge
-    assert "formatLeftoverMapPlotAxisShare(leftoverShare)" in tick_badge
-    assert "Math.sqrt(" not in tick_badge
-    assert "Math.max(" not in tick_badge
+    assert "formatLeftoverMapPlotAxisSingular(leftoverSingular)" in source
+    assert "formatLeftoverMapPlotAxisShare(leftoverShare)" in source
+    assert "Math.sqrt" not in source
+    assert "Math.max" not in source
 
 
-def test_report_leftover_axis_tick_singular_states_are_executable() -> None:
-    """Frontend tests execute singular-only zero and fail-closed invalid evidence states."""
-    assert BADGE_TEST_SOURCE.exists(), "report-axis tick badge behavior test is missing"
-    test_source = BADGE_TEST_SOURCE.read_text(encoding="utf-8")
+def test_report_leftover_axis_tick_behavior_preserves_zero_and_empty_state() -> None:
+    """The executable frontend contract preserves finite zero and rejects unusable evidence."""
+    assert BADGE_TEST_SOURCE.exists(), "report-axis badge behavior tests are missing"
+    source = BADGE_TEST_SOURCE.read_text(encoding="utf-8")
 
-    assert 'leftoverMapAxisTickBadge(1, "0.00", 0, null)' in test_source
-    assert 'singular: "0.00"' in test_source
-    assert "Number.NaN" in test_source
+    assert 'leftoverMapAxisTickBadge(1, "0.50", 0, null)' in source
+    assert 'singular: "0.00"' in source
+    assert 'leftoverMapAxisTickBadge(1, "0.00", Number.NaN, Number.POSITIVE_INFINITY)' in source
