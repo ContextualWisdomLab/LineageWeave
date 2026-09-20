@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (2026-08-27). Extends ADR 0251 and closes issue #748.
+Accepted (2026-08-27). Extends ADR 0256 and closes issue #748.
 
 ## Context
 
