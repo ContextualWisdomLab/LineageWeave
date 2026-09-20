@@ -39,7 +39,7 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 fb68d896d927272db8e0bcc404d74a923b0f5bfb → #1117 755d3e24849623f5aedc5361599c5e2bd24a9b70`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 e8ad79da959eef8c628164a8651e53313313dcd8 → #1120 93a74935857625c0d37423717213e45904490042 → #1117 344d720dc0ddb9a9839545330b7d266d18cb2ac7`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: private or contradictory RSA/JWK metadata is rejected; `x5c` is canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects are derived from the checked-in realm fixture; service and human subjects are disjoint; required machine clients are unique, enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and the required REST/MCP access-token audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
@@ -47,20 +47,21 @@ Executable seed/bootstrap contract `fd3edd04d93714d152db31473850c10fe30b31d0` re
 
 The final backend-integration ROPC finding remains executable rather than prose-only. `tests/test_backend_integration_oauth_contract.py` fails unless `backend/tests/test_api.py` stops requesting `grant_type=password` from public `lineageweave-frontend`, consumes distinct viewer/admin machine token helpers, and the public browser client has `directAccessGrantsEnabled=false` after migration. `backend/tests/integration_oauth_support.py` provides the existing `lineageweave-test-automation` viewer actor and `lineageweave-test-admin` admin actor and rejects token responses without a non-empty access token.
 
-Review of that helper exposed a concrete pre-migration integration defect: its no-argument path used the hard-coded local default even when the suite had selected a different endpoint through `LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL`. Source RED `b7bb7a58ac72cd1a6974f1c4bf2375998c3ef2c7` pins the expected configured endpoint. Causal repair #1120 `fb68d896d927272db8e0bcc404d74a923b0f5bfb` resolves the environment override at call time for both viewer and admin helpers while preserving explicit caller overrides and the existing secret sources.
+Review of that helper exposed a concrete pre-migration integration defect: its no-argument path used the hard-coded local default even when the suite had selected a different endpoint through `LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL`. Source RED `b7bb7a58ac72cd1a6974f1c4bf2375998c3ef2c7` pins the expected configured endpoint. Causal repair inherited by #1120 resolves the environment override at call time for both viewer and admin helpers while preserving explicit caller overrides and the existing secret sources.
 
-That focused helper defect is source-repaired but not hosted GREEN: exact #1120 Tests `35500682613` is Draft-policy skipped. The larger ROPC migration is still RED. Exact source inspection still finds the two analyst/admin password-grant calls in `backend/tests/test_api.py`, and `docker/keycloak/realm-export.json` still has `lineageweave-frontend.directAccessGrantsEnabled=true`. Those two source changes must move atomically so the final local ROPC consumer is removed before the browser client is disabled.
+A fresh #1118 dependency review also closed a separate source-level security gap. `uv.lock` already resolved PyJWT 2.13.0, but `pyproject.toml` still admitted `pyjwt[crypto]>=2.8.0` in both `dev` and `backend`. RED `6ea095400a0b95fe586161dcfd0730d91ce9f96d` requires both declared floors to be `>=2.13.0`, requires every committed PyJWT lock entry to satisfy that floor, and requires owned JWT verifier algorithm allow-lists to remain RS256-only rather than mix symmetric and asymmetric families. Repair `990dfdf30517262afebc7c8202f2c9b8f301d392` raises both floors; #1118 exact `e8ad79da959eef8c628164a8651e53313313dcd8` adds the security changelog. The lock was already compliant, so no generated-lock rewrite was needed. Exact #1118 Tests `35506239753` is Draft-policy skipped; this is source-repaired but not hosted GREEN.
+
+The larger ROPC migration is still RED. Exact source inspection still finds the two analyst/admin password-grant calls in `backend/tests/test_api.py`, and `docker/keycloak/realm-export.json` still has `lineageweave-frontend.directAccessGrantsEnabled=true`. Those two source changes must move atomically so the final local ROPC consumer is removed before the browser client is disabled.
 
 Human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only integration evidence. The two confidential helper actors are appropriate for a test suite that exercises API authorization as a machine caller; they do not prove login redirect/callback/session semantics.
 
-#1117 was immediately ordinary/non-force converged from exact #1120 plus its existing README delta to `755d3e24849623f5aedc5361599c5e2bd24a9b70`. Exact compare from `fb68d896...` has merge-base exactly `fb68d896...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
+#1120 ordinary/non-force adopted the exact #1118 security-floor/changelog parent at `93a74935857625c0d37423717213e45904490042`. Exact compare from #1118 `e8ad79da...` has merge-base exactly `e8ad79da...` and `behind_by=0`, with the parent dependency/test/changelog files inherited rather than removed. #1117 is converged on exact #1120 at `344d720dc0ddb9a9839545330b7d266d18cb2ac7`; exact compare has merge-base `93a74935...`, `behind_by=0`, and effective child delta only `README.md`.
 
 Remaining auth RED:
 
 - wire `backend/tests/test_api.py` to the viewer/admin Client Credentials helpers and remove both public-client password-grant calls;
 - atomically set `lineageweave-frontend.directAccessGrantsEnabled=false` while preserving Authorization Code + S256 PKCE browser configuration;
 - human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only evidence;
-- move PyJWT dependency floor, lock, and security regression evidence together rather than through metadata-only edits;
 - obtain exact-head hosted GREEN, rendered browser session/return-URL/tampered-state/permission acceptance, and qualifying independent review.
 
 ## Performance / immutable delivery
@@ -79,7 +80,7 @@ Remaining auth RED:
 | Report contracts | #868; #876 → #1033 → #1034; historical #878/#879 | frontend RED; #876 PostgreSQL RED; #1033/#1034 PostgreSQL GREEN | recover exact frontend failing node/output; repair causal owner without guessing; converge descendants; keep historical delta carriers until verified GREEN succession |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 → #1120 `fb68d896...` → #1117 `755d3e24...` | seed/bootstrap repaired; helper endpoint drift source-repaired; backend ROPC still executable RED; exact Tests skipped | wire distinct viewer/admin machine helpers into backend integration, disable public direct grants atomically, then obtain hosted/browser proof |
+| Authentication | #899 → #1118 `e8ad79da...` → #1120 `93a74935...` → #1117 `344d720d...` | seed/bootstrap repaired; helper endpoint drift repaired; PyJWT floor/lock/verifier contract source-repaired; backend ROPC still executable RED | wire distinct viewer/admin machine helpers into backend integration, disable public direct grants atomically, then obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
