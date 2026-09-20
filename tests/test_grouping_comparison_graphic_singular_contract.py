@@ -17,18 +17,14 @@ def test_comparison_graphic_has_distinct_persisted_singular_value_copy() -> None
     singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
     plot_source = PLOT_SOURCE.read_text(encoding="utf-8")
 
-    assert (
-        'export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR =\n'
-        '  "leftover map comparison graphic leftover-map axis {axis} σ {value}";'
-        in singular_source
-    )
-    assert (
-        'export const LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE =\n'
-        '  "leftover map comparison graphic leftover-map axis {axis} σ {value} ({share}%)";'
-        in singular_source
-    )
-    assert "LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR" in plot_source
-    assert "LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE" in plot_source
+    assert singular_source.count("function formatLeftoverSingularValue") == 1
+    assert singular_source.count("function fillTemplate") == 1
+    assert "export function formatLeftoverSingularValue" in singular_source
+    assert "export function renderLeftoverMapAxisSingular" in singular_source
+    assert "export function renderLeftoverMapAxisSingularShare" in singular_source
+    assert "return renderLeftoverMapAxisSingular(" in singular_source
+    assert "return renderLeftoverMapAxisSingularShare(" in singular_source
+    assert "formatLeftoverSingularValue(" not in plot_source
 
 
 def test_singular_value_is_read_from_axis_evidence_and_fails_closed() -> None:
@@ -41,7 +37,6 @@ def test_singular_value_is_read_from_axis_evidence_and_fails_closed() -> None:
     assert "< 0" in singular_source
     assert "return null" in singular_source
     assert ".toFixed(2)" in singular_source
-    assert "leftover_share" not in singular_source
     assert "Math.max" not in singular_source
     assert "Math.min" not in singular_source
 
