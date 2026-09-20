@@ -37,11 +37,17 @@ def _configured_client_secret(
     *,
     keycloak_base_url: str,
 ) -> str:
-    """Use synthetic Compose defaults only when the Keycloak target is loopback."""
+    """Resolve credentials without sending secrets over a remote cleartext endpoint."""
+    parsed = urlsplit(keycloak_base_url)
+    hostname = parsed.hostname
+    if hostname not in _LOOPBACK_HOSTS and parsed.scheme != "https":
+        raise RuntimeError(
+            f"non-loopback Keycloak endpoint must use HTTPS: {keycloak_base_url!r}"
+        )
+
     configured = os.environ.get(env_name)
     if configured:
         return configured
-    hostname = urlsplit(keycloak_base_url).hostname
     if hostname in _LOOPBACK_HOSTS:
         return dev_secret
     raise RuntimeError(
