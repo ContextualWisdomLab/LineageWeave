@@ -19,7 +19,7 @@
       "protocol": "openid-connect",
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": ["http://localhost:5173", "http://localhost:15173"],
       "webOrigins": ["http://localhost:5173", "http://localhost:15173"],
