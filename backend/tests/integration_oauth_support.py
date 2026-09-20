@@ -22,6 +22,13 @@ _VIEWER_DEV_SECRET = "lineageweave_test_automation_dev_only"
 _ADMIN_DEV_SECRET = "lineageweave_test_admin_dev_only"
 
 
+def _configured_keycloak_base_url(explicit_base_url: str | None) -> str:
+    """Resolve the same Keycloak endpoint override used by the integration suite."""
+    if explicit_base_url is not None:
+        return explicit_base_url
+    return os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", DEFAULT_KEYCLOAK_BASE_URL)
+
+
 def _machine_access_token(
     *,
     keycloak_base_url: str,
@@ -45,22 +52,22 @@ def _machine_access_token(
 
 
 def fetch_viewer_machine_token(
-    keycloak_base_url: str = DEFAULT_KEYCLOAK_BASE_URL,
+    keycloak_base_url: str | None = None,
 ) -> str:
     """Return the viewer-scoped automation token used by backend integration tests."""
     return _machine_access_token(
-        keycloak_base_url=keycloak_base_url,
+        keycloak_base_url=_configured_keycloak_base_url(keycloak_base_url),
         client_id=_VIEWER_CLIENT_ID,
         client_secret=os.environ.get(_VIEWER_SECRET_ENV, _VIEWER_DEV_SECRET),
     )
 
 
 def fetch_admin_machine_token(
-    keycloak_base_url: str = DEFAULT_KEYCLOAK_BASE_URL,
+    keycloak_base_url: str | None = None,
 ) -> str:
     """Return the distinct admin service token used for cross-account checks."""
     return _machine_access_token(
-        keycloak_base_url=keycloak_base_url,
+        keycloak_base_url=_configured_keycloak_base_url(keycloak_base_url),
         client_id=_ADMIN_CLIENT_ID,
         client_secret=os.environ.get(_ADMIN_SECRET_ENV, _ADMIN_DEV_SECRET),
     )
