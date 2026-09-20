@@ -3,9 +3,9 @@
 > Current mutable authority overlay: 2026-09-20. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
 
 > Live inventory at this read: 164 open PRs and 42 open issues. This count is
-> operational metadata, not release evidence. The baseline PR itself is
-> #1041 at exact head `9119775aa13ea7ea461a4c9aea914a85503ce670`
-> against `main@83eba56149eb802cd63642c507c324c9976ec78e`; it is Draft.
+> operational metadata, not release evidence. This update was based on #1041
+> parent head `9119775aa13ea7ea461a4c9aea914a85503ce670` against
+> `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR remains Draft.
 > Its full/frontend jobs are Draft-policy skipped, while admission and analysis
 > checks are queued. None is product acceptance.
 
