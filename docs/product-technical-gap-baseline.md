@@ -37,27 +37,25 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 74ecf53a3a2b7273eefb4eb6aeeaa79041fce90c → #1117 b1bd9e0d19354a9bf7ec4a70093b472afdb66800`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 16bb3ab3b1325e1fce27a7564adf16ea50c6c719 → #1117 bd2e686da9140b15ae8272b428aa46cc508b374d`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: private or contradictory RSA/JWK metadata is rejected; `x5c` is canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects are derived from the checked-in realm fixture; service and human subjects are disjoint; required machine clients are unique, enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and the required REST/MCP access-token audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
-The current causal RED is executable as `tests/test_seed_demo_identity_contract.py` from `fd3edd04d93714d152db31473850c10fe30b31d0`. It requires seed/bootstrap to consume checked-in `demo.analyst` and `demo.admin` subjects from the realm fixture, fail closed on missing/disabled/shared human subjects, remove master `admin-cli` and Resource Owner Password Credentials from seed/warm-up, move seeded-content warm-up to the existing confidential `lineageweave-test-automation` Client Credentials actor, and order `make seed` as human fixture seed → service-account authorization binding → machine warm-up.
+Executable seed/bootstrap contract `fd3edd04d93714d152db31473850c10fe30b31d0` is now source-satisfied. #1120 exact `16bb3ab3...` reads deterministic `demo.analyst` / `demo.admin` subjects from `docker/keycloak/realm-export.json`, fails closed on missing/disabled/shared subject identities, and no longer logs into master `admin-cli` or mints a human password-grant token. New `scripts/warm_seeded_post_content.py` uses the validated confidential `lineageweave-test-automation` Client Credentials actor, and `make seed` orders deterministic human fixture seed → service-account authorization binding → machine warm-up while requiring only `KEYCLOAK_CLIENT_SECRET` for the OAuth step.
 
-Current product source still contradicts that contract: `scripts/seed_demo_data.py` uses master `admin-cli` + `grant_type=password` to rediscover deterministic human subjects and still uses public `lineageweave-frontend` + `demo.analyst` password grant for post-content warm-up. No product repair or GREEN is claimed yet.
+Source inspection at the exact head finds no `admin-cli`, `grant_type=password`, or `KEYCLOAK_ADMIN_PASSWORD` in `scripts/seed_demo_data.py`. The machine warm-up posts only `grant_type=client_credentials`, `client_id=lineageweave-test-automation`, and its supplied client secret. This closes the seed/bootstrap ROPC finding at source level, but exact-head Tests run `35492733630` is Draft-policy skipped; Devin Review and CodeRabbit success statuses are not repository GREEN.
 
-The predecessor #1120 head `b1474368888a0a6c74c78bb4d04fbdb236f0e6da` carried a temporary exact-SHA-guarded self-modifying repair workflow. Run `35487484700` reached job admission on exact `ubuntu-24.04` but remained runnerless (`steps=[]`, `runner_id=0`); #1041 CodeQL run `35487716395` independently showed the same runner-acquisition boundary. GitHub's public status summary read during the same sweep reported Actions operational with no active incident. Consumer evidence is recorded on canonical organization queue owner `.github#712` comment `5747709798`.
+The earlier temporary exact-SHA-guarded self-modifying repair workflow remains removed. Its predecessor runnerless run is stale and cannot mutate the moved #1120 branch. Queue/runner acquisition evidence remains with canonical organization owner `.github#712`; no new source-neutral wake commit or blind rerun was introduced.
 
-Current #1120 `74ecf53a3a2b7273eefb4eb6aeeaa79041fce90c` removes `.github/workflows/automation-1120-seed-ropc-repair.yml` and `.github/automation/repair_1120_seed_ropc.py` rather than adding another source-neutral wake commit. The predecessor run is stale and its live-branch/exact-SHA guard prevents mutation after the branch moved. This cleanup is not product GREEN and does not satisfy the seed RED.
-
-#1117 was immediately ordinary/non-force converged from exact #1120 plus its existing README blob to `b1bd9e0d19354a9bf7ec4a70093b472afdb66800`. Exact compare from `74ecf53a...` has merge-base exactly `74ecf53a...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
+#1117 was immediately ordinary/non-force converged from exact #1120 plus a code-current README to `bd2e686da9140b15ae8272b428aa46cc508b374d`. Exact compare from `16bb3ab3...` has merge-base exactly `16bb3ab3...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
 
 Remaining auth RED:
 
-- land and verify the seed/bootstrap product repair described by `fd3edd04...` without reintroducing a purpose-complete self-modifying workflow or no-op wake commit;
-- migrate `backend/tests/test_api.py` analyst/admin human ROPC without collapsing distinct viewer/admin authorization semantics;
-- keep public frontend direct grants enabled until all password-grant consumers migrate atomically, then disable them;
+- `backend/tests/test_api.py` still obtains both `demo.analyst` and `demo.admin` access tokens from public `lineageweave-frontend` using `grant_type=password`; migrate that final local ROPC caller without collapsing its distinct viewer/admin authorization semantics;
+- human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only evidence;
+- keep public frontend direct grants enabled until the final password-grant consumer migrates atomically, then set `directAccessGrantsEnabled=false` with a repository contract;
 - move PyJWT dependency floor, lock, and security regression evidence together rather than through metadata-only edits;
-- obtain exact-head hosted GREEN, rendered browser Authorization Code + PKCE/session acceptance, and qualifying independent review.
+- obtain exact-head hosted GREEN, rendered browser session/return-URL/tampered-state/permission acceptance, and qualifying independent review.
 
 ## Performance / immutable delivery
 
@@ -75,7 +73,7 @@ Remaining auth RED:
 | Report contracts | #868 | frontend RED / PostgreSQL GREEN | recover or reproduce exact frontend failing acceptance; repair at causal owner, then converge descendants |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 → #1120 `74ecf53a...` → #1117 `b1bd9e0d...` | migration RED; verifier/machine/browser prerequisites repaired; seed RED executable; temp repair lane removed | land + verify passwordless seed/bootstrap repair, migrate backend human ROPC, then disable public direct grants and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `16bb3ab3...` → #1117 `bd2e686d...` | seed/bootstrap source repaired; exact Tests skipped; backend ROPC still RED | migrate backend analyst/admin ROPC preserving role semantics, then disable public direct grants and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
