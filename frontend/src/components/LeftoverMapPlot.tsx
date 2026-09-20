@@ -30,6 +30,7 @@ import {
 import {
   formatLeftoverMapPlotAxisSingular,
   leftoverMapComparePlotAxisBadge,
+  leftoverMapComparePlotTickAxisBadge,
   leftoverMapPlotTickAxisBadge,
   leftoverSingularForAxis,
   LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR,
@@ -362,20 +363,23 @@ export function LeftoverMapPlot({
             {leftoverMapPlotAxisText(2, leftoverMapAxes, variant)}
           </text>
           {layout.ticks.map((tick) => {
+            const singular = leftoverSingularForAxis(leftoverMapAxes, tick.axis);
             const reportTickBadge =
               variant === "report"
-                ? leftoverMapPlotTickAxisBadge(
-                    tick.axis,
-                    tick.label,
-                    leftoverSingularForAxis(leftoverMapAxes, tick.axis),
-                  )
+                ? leftoverMapPlotTickAxisBadge(tick.axis, tick.label, singular)
+                : null;
+            const comparisonTickBadge =
+              variant === "comparison"
+                ? leftoverMapComparePlotTickAxisBadge(tick.axis, tick.label, singular)
                 : null;
             const tickAriaLabel =
               variant === "comparison"
-                ? `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_TICK, {
-                    axis: tick.axis,
-                    value: tick.label,
-                  })}`
+                ? comparisonTickBadge !== null
+                  ? tf(comparisonTickBadge.template, comparisonTickBadge.values)
+                  : `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_TICK, {
+                      axis: tick.axis,
+                      value: tick.label,
+                    })}`
                 : reportTickBadge !== null
                   ? tf(reportTickBadge.template, reportTickBadge.values)
                   : tf(LEFTOVER_MAP_PLOT_TICK, { axis: tick.axis, value: tick.label });
