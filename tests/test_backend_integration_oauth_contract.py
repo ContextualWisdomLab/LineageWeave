@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_INTEGRATION = ROOT / "backend" / "tests" / "test_api.py"
-MACHINE_OAUTH_SUPPORT = ROOT / "tests" / "integration_oauth_support.py"
+MACHINE_OAUTH_SUPPORT = ROOT / "backend" / "tests" / "integration_oauth_support.py"
 REALM_EXPORT = ROOT / "docker" / "keycloak" / "realm-export.json"
 
 
