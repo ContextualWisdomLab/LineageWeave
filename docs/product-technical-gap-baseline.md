@@ -37,23 +37,29 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 16bb3ab3b1325e1fce27a7564adf16ea50c6c719 → #1117 bd2e686da9140b15ae8272b428aa46cc508b374d`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 f55956bfd39da2c5696f70f5e7278ff77374dac3 → #1117 1220f9e4e1c2ab0b888174ce71287846a11132a6`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: private or contradictory RSA/JWK metadata is rejected; `x5c` is canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects are derived from the checked-in realm fixture; service and human subjects are disjoint; required machine clients are unique, enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and the required REST/MCP access-token audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
-Executable seed/bootstrap contract `fd3edd04d93714d152db31473850c10fe30b31d0` is now source-satisfied. #1120 exact `16bb3ab3...` reads deterministic `demo.analyst` / `demo.admin` subjects from `docker/keycloak/realm-export.json`, fails closed on missing/disabled/shared subject identities, and no longer logs into master `admin-cli` or mints a human password-grant token. New `scripts/warm_seeded_post_content.py` uses the validated confidential `lineageweave-test-automation` Client Credentials actor, and `make seed` orders deterministic human fixture seed → service-account authorization binding → machine warm-up while requiring only `KEYCLOAK_CLIENT_SECRET` for the OAuth step.
+Executable seed/bootstrap contract `fd3edd04d93714d152db31473850c10fe30b31d0` remains source-satisfied. The seed reads deterministic `demo.analyst` / `demo.admin` subjects from `docker/keycloak/realm-export.json`, fails closed on missing/disabled/shared subject identities, and no longer logs into master `admin-cli` or mints a human password-grant token. `scripts/warm_seeded_post_content.py` uses the validated confidential `lineageweave-test-automation` Client Credentials actor, and `make seed` orders deterministic human fixture seed → service-account authorization binding → machine warm-up while requiring only `KEYCLOAK_CLIENT_SECRET` for that OAuth step.
 
-Source inspection at the exact head finds no `admin-cli`, `grant_type=password`, or `KEYCLOAK_ADMIN_PASSWORD` in `scripts/seed_demo_data.py`. The machine warm-up posts only `grant_type=client_credentials`, `client_id=lineageweave-test-automation`, and its supplied client secret. This closes the seed/bootstrap ROPC finding at source level, but exact-head Tests run `35492733630` is Draft-policy skipped; Devin Review and CodeRabbit success statuses are not repository GREEN.
+The final backend-integration ROPC finding is now executable rather than prose-only. At #1120 exact `f55956bf...`:
 
-The earlier temporary exact-SHA-guarded self-modifying repair workflow remains removed. Its predecessor runnerless run is stale and cannot mutate the moved #1120 branch. Queue/runner acquisition evidence remains with canonical organization owner `.github#712`; no new source-neutral wake commit or blind rerun was introduced.
+- `tests/test_backend_integration_oauth_contract.py` fails unless `backend/tests/test_api.py` stops requesting `grant_type=password` from public `lineageweave-frontend`, consumes distinct viewer/admin machine token helpers, and the public browser client has `directAccessGrantsEnabled=false` after migration;
+- `backend/tests/integration_oauth_support.py` provides test-only Client Credentials helpers backed by the already-declared `lineageweave-test-automation` viewer actor and `lineageweave-test-admin` admin actor and rejects token responses without a non-empty access token;
+- `tests/test_integration_oauth_support.py` pins the exact endpoint/payload, secret source, distinct admin actor, and malformed-response failure behavior.
 
-#1117 was immediately ordinary/non-force converged from exact #1120 plus a code-current README to `bd2e686da9140b15ae8272b428aa46cc508b374d`. Exact compare from `16bb3ab3...` has merge-base exactly `16bb3ab3...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
+This is a realistic RED, not a claimed repair. Exact source inspection still finds the two analyst/admin password-grant calls in `backend/tests/test_api.py`, and `docker/keycloak/realm-export.json` still has `lineageweave-frontend.directAccessGrantsEnabled=true`. These must move atomically so the final local ROPC consumer is removed before the browser client is disabled. Exact-head Tests run `35495321684` completed with both jobs Draft-policy skipped, so there is no hosted RED/GREEN receipt yet.
+
+Human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only integration evidence. The two confidential helper actors are appropriate for a test suite that exercises API authorization as a machine caller; they do not prove login redirect/callback/session semantics.
+
+#1117 was immediately ordinary/non-force converged from exact #1120 plus its existing README delta to `1220f9e4e1c2ab0b888174ce71287846a11132a6`. Exact compare from `f55956bf...` has merge-base exactly `f55956bf...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
 
 Remaining auth RED:
 
-- `backend/tests/test_api.py` still obtains both `demo.analyst` and `demo.admin` access tokens from public `lineageweave-frontend` using `grant_type=password`; migrate that final local ROPC caller without collapsing its distinct viewer/admin authorization semantics;
+- wire `backend/tests/test_api.py` to the new viewer/admin Client Credentials helpers and remove both public-client password-grant calls;
+- atomically set `lineageweave-frontend.directAccessGrantsEnabled=false` while preserving Authorization Code + S256 PKCE browser configuration;
 - human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only evidence;
-- keep public frontend direct grants enabled until the final password-grant consumer migrates atomically, then set `directAccessGrantsEnabled=false` with a repository contract;
 - move PyJWT dependency floor, lock, and security regression evidence together rather than through metadata-only edits;
 - obtain exact-head hosted GREEN, rendered browser session/return-URL/tampered-state/permission acceptance, and qualifying independent review.
 
@@ -73,7 +79,7 @@ Remaining auth RED:
 | Report contracts | #868 | frontend RED / PostgreSQL GREEN | recover or reproduce exact frontend failing acceptance; repair at causal owner, then converge descendants |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 → #1120 `16bb3ab3...` → #1117 `bd2e686d...` | seed/bootstrap source repaired; exact Tests skipped; backend ROPC still RED | migrate backend analyst/admin ROPC preserving role semantics, then disable public direct grants and obtain hosted/browser proof |
+| Authentication | #899 → #1118 → #1120 `f55956bf...` → #1117 `1220f9e4...` | seed/bootstrap repaired; backend ROPC executable RED; exact Tests skipped | wire distinct viewer/admin machine helpers into backend integration, disable public direct grants atomically, then obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
