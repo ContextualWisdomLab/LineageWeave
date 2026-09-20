@@ -1,14 +1,14 @@
 # Product & Technical Gap Baseline
 
-> Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, or documentation-only workflow is not acceptance for a moved product head.
+> Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, cancelled workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update adopts #1041 exact predecessor `ecc0c7916692d94fd6e092e42750a62751d4e588` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready with normal squash auto-merge enabled. Live inventory at collection time is 164 open PRs (6 Ready, 158 Draft) and 42 open issues. Those counts are operational metadata, not release evidence. New completed successful exact-head protected workflow receipts created by this edit are authoritative for acceptance; queued, skipped, and failed receipts are non-accepting; predecessor receipts do not transfer.
+> This update adopts #1041 exact predecessor `6fb0cb0d0cee204d48f2fb33d91e1a03cd7a0566` against `main@83eba56149eb802cd63642c507c324c9976ec78e`. This file intentionally does **not** hard-code its own newly-created #1041 head: writing this file creates a new commit, so the live PR API/body owns #1041's exact head and exact-head workflow receipts. Completed successful protected receipts on that live head are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless, or predecessor receipts are non-accepting and do not transfer.
 
 ## Delivery authority
 
 - Protected `main`, live PR heads/bases, `AGENTS.md` / `CLAUDE.md`, ADRs, PRD/TRD, and exact workflow receipts are authoritative.
 - LineageWeave owns lineage/evidence/customer-master/composition/read-model behavior. Canonical-owner source is consumed only through released/versioned contracts; it is not copied here.
-- Draft/skipped, queued, `action_required`, runnerless, review-skipped, or owner-control-plane receipts are not product GREEN.
+- Draft/skipped, queued, cancelled, `action_required`, runnerless, review-skipped, or owner-control-plane receipts are not product GREEN.
 - Parent movement requires ordinary non-force descendant convergence, reconstruction, or safe retargeting. Closed intermediate branches must not remain live ancestry after verified normal merge into an active parent.
 - Force push, destructive rebase, self-approval, gate weakening, synthetic status, blind rerun, and no-op wake commits are not acceptance tools.
 - Release readiness requires one exact protected candidate with version/CHANGELOG/package/tag/release/SBOM/provenance/reproducibility/rollback evidence.
@@ -20,7 +20,9 @@ Fresh protected references:
 
 Re-read both before merge or release; neither is a frozen dependency.
 
-The six Ready PRs are exact #911 `2d91db2e76849dead722b343fb5d816886114b81`, #983 `f48afbe373cdb6aa64abf0f7c4e69e897f820cd8`, #1041 `ecc0c7916692d94fd6e092e42750a62751d4e588`, #1079 `c2923950e73c88a9f9fd932332ddd47682da124b`, #1115 `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and #1121 `dbabff85c72801a1a72a33dc69f969e032dc17b2`. #911, #1041, and #1121 retain normal auto-merge; all six remain protected-gate blocked. #983 and #1115 retain `CHANGES_REQUESTED`; no predecessor approval or workflow result transfers to those heads.
+Ready review lanes at the predecessor snapshot were #911 `2d91db2e76849dead722b343fb5d816886114b81`, #983 `f48afbe373cdb6aa64abf0f7c4e69e897f820cd8`, #1041 (this documentation branch; exact head must be read live), #1079 `c2923950e73c88a9f9fd932332ddd47682da124b`, #1115 `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and #1121 `dbabff85c72801a1a72a33dc69f969e032dc17b2`. Readiness is not acceptance. #983 and #1115 retain `CHANGES_REQUESTED`; no predecessor approval or workflow result transfers to moved heads.
+
+#1041 predecessor `ecc0c7916692d94fd6e092e42750a62751d4e588` had CodeQL PR `35530132994`, Tests `35530132918`, SAST `35530133109`, and Security `35530132977`; all four were cancelled when the branch advanced to `6fb0cb0d...`. Tests jobs `106129146183` and `106129146237` finished cancelled with `runner_id=0` and no steps, so they never executed repository code. The successor `6fb0cb0d...` then received Tests `35532215015`, SAST `35532214984`, CodeQL PR `35532214983`, and Security `35532214903`; at collection time those successor jobs were queued and runnerless. Both predecessor and successor receipts are diagnostic-only after this file moves the head again.
 
 ## Customer Master / translation
 
@@ -28,7 +30,7 @@ The six Ready PRs are exact #911 `2d91db2e76849dead722b343fb5d816886114b81`, #98
 
 ## Material UI / accessibility
 
-#1041 closes one bounded buyer-visible accessibility gap in its own delta: closest/farthest pair buttons now start their accessible names with the exact visible localized label, append only finite persisted evidence, and wrap the existing token-backed title/evidence content on narrow screens. The focused component regression is locally GREEN (15 tests), documentation hygiene is GREEN (5 tests), and exact Storybook renders were inspected at 1440×1000 and 390×844. This is local candidate evidence only; protected exact-head Checks, independent approval, authenticated PostgreSQL API evidence, and protected-main delivery remain outstanding.
+#1041 carries one bounded buyer-visible accessibility repair in its own delta: closest/farthest pair buttons start their accessible names with the exact visible localized label, append finite persisted evidence, and wrap the existing token-backed title/evidence content on narrow screens. Focused component and Storybook evidence are local candidate evidence only; protected exact-head Checks, independent approval, authenticated PostgreSQL API evidence, and protected-main delivery remain outstanding.
 
 The same mobile render still clips plot labels at the fixed SVG boundary. That observation belongs to the existing #861 comparison-layout RED below; #1041 does not hide ticks, fabricate coordinates, or claim that separate gap complete.
 
