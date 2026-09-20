@@ -9,6 +9,15 @@ SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
 APP_TEST_SOURCE = ROOT / "frontend" / "src" / "App.test.tsx"
 
 
+def _exported_function_source(source: str, signature: str) -> str:
+    """Return one exported function so independence checks stay scoped to that function."""
+    start = source.index(signature)
+    next_export = source.find("\nexport function ", start + len(signature))
+    if next_export == -1:
+        return source[start:]
+    return source[start:next_export]
+
+
 def test_comparison_graphic_has_distinct_persisted_singular_value_copy() -> None:
     """Comparison-axis σ copy must remain distinct from report, strip, share, and tick copy."""
     assert SINGULAR_SOURCE.exists(), (
@@ -32,24 +41,28 @@ def test_comparison_graphic_has_distinct_persisted_singular_value_copy() -> None
 
 
 def test_singular_value_is_read_from_axis_evidence_and_fails_closed() -> None:
-    """Persisted σ and share are formatted independently; neither is derived from the other."""
+    """Persisted σ=0 stays explicit; missing, non-finite, or negative σ omits independently."""
     assert SINGULAR_SOURCE.exists(), "persisted singular-value projection helper is missing"
     singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
-    badge_source = singular_source.split(
-        "export function leftoverMapComparePlotAxisBadge", 1
-    )[-1].split("export function leftoverMapCompareAxisBadge", 1)[0]
+    formatter_source = _exported_function_source(
+        singular_source,
+        "export function formatLeftoverMapPlotAxisSingular",
+    )
 
-    assert "axis.leftover_singular_value" in badge_source
-    assert "axis.leftover_share" in badge_source
-    assert "formatLeftoverMapPlotAxisSingular" in badge_source
-    assert "formatLeftoverMapPlotAxisShare" in badge_source
-    assert "Number.isFinite" in singular_source
-    assert "< 0" in singular_source
-    assert "return null" in singular_source
-    assert ".toFixed(2)" in singular_source
-    assert "Math.sqrt" not in badge_source
-    assert "Math.max" not in badge_source
-    assert "Math.min" not in badge_source
+    assert "Number.isFinite" in formatter_source
+    assert "< 0" in formatter_source
+    assert "return null" in formatter_source
+    assert ".toFixed(2)" in formatter_source
+    assert "leftover_share" not in formatter_source
+    assert "Math.sqrt" not in formatter_source
+    assert "Math.max" not in formatter_source
+    assert "Math.min" not in formatter_source
+
+    assert (
+        "const singular = formatLeftoverMapPlotAxisSingular(axis.leftover_singular_value);"
+        in singular_source
+    )
+    assert "const share = formatLeftoverMapPlotAxisShare(axis.leftover_share);" in singular_source
 
 
 def test_app_acceptance_requires_exact_comparison_sigma_and_share_copy() -> None:

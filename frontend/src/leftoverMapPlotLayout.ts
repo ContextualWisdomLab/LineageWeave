@@ -264,17 +264,19 @@ function boundedCaptionY(y: number, height: number): number {
 }
 
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
-  const byLabel = new Map<string, number>();
+  const uniqueValues = new Set<number>();
+  const ticks: { value: number; label: string }[] = [];
   for (const value of values) {
     const label = formatSignedLeftoverValue(value);
     if (label === null) {
       continue;
     }
-    if (!byLabel.has(label)) {
-      byLabel.set(label, value);
+    if (!uniqueValues.has(value)) {
+      uniqueValues.add(value);
+      ticks.push({ value, label });
     }
   }
-  return [...byLabel.entries()].map(([label, value]) => ({ value, label }));
+  return ticks;
 }
 
 function leftoverMapCoordinateTicks(
