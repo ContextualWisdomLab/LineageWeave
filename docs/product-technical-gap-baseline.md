@@ -1,34 +1,25 @@
 # Product & Technical Gap Baseline
 
-> Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
+> Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> Live inventory at this read: 164 open PRs and 42 open issues. This count is
-> operational metadata, not release evidence. This update starts from #1041
-> exact head `bb7cecf721d67be0f0ce32f77c642cff2f58e3be` against
-> `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready.
-> New exact-head workflow receipts created by this edit remain authoritative for
-> acceptance; predecessor, skipped, queued, or documentation-only receipts are
-> not product GREEN.
+> This update starts from #1041 exact predecessor `15c14e53f81acb6d9e5f430c5aaaf5acad881402` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. Open-PR/issue counts are operational metadata and are intentionally not treated as release evidence. New exact-head workflow receipts created by this edit remain authoritative for acceptance; predecessor receipts do not transfer.
 
 ## Delivery authority
 
 - Protected `main`, live PR heads/bases, `AGENTS.md` / `CLAUDE.md`, ADRs, PRD/TRD, and exact workflow receipts are authoritative.
 - LineageWeave owns lineage/evidence/customer-master/composition/read-model behavior. Canonical-owner source is consumed only through released/versioned contracts; it is not copied here.
 - Draft/skipped, queued, `action_required`, runnerless, review-skipped, or owner-control-plane receipts are not product GREEN.
-- Parent movement requires ordinary non-force descendant convergence. Force push, destructive rebase, self-approval, gate weakening, synthetic status, and no-op wake commits are not acceptance tools.
+- Parent movement requires ordinary non-force descendant convergence, reconstruction, or safe retargeting. When an intermediate PR is normally merged into its parent, live descendants must not remain based on the closed branch when the merged parent is their verified ancestry.
+- Force push, destructive rebase, self-approval, gate weakening, synthetic status, blind rerun, and no-op wake commits are not acceptance tools.
 - Release readiness requires one exact protected candidate with version/CHANGELOG/package/tag/release/SBOM/provenance/reproducibility/rollback evidence.
 
 Current protected references on the latest read:
 
 - LineageWeave `main@83eba56149eb802cd63642c507c324c9976ec78e`.
 - Canonical reusable-workflow owner `ContextualWisdomLab/.github@e6334e229581a918e2f22de18733b76fa65d7e71`.
-- GitHub currently resolves the named ecosystem repositories as
-  `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
-  `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
-  `ContextualWisdomLab/TEPP`; `DiskSage` is the product name, not the repository
-  path casing.
+- GitHub resolves the named ecosystem repositories as `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`; `DiskSage` is the product name, not the repository path casing.
 
-Re-read both before merge or release; neither reference is a frozen dependency.
+Re-read both protected references before merge or release; neither is a frozen dependency.
 
 ## Customer Master / translation
 
@@ -36,25 +27,38 @@ Re-read both before merge or release; neither reference is a frozen dependency.
 
 ## Material UI / accessibility
 
-#861 remains the earliest proven App integration acceptance root: #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; #861 introduced persisted comparison-graphic σ+share semantics without updating inherited `App.test.tsx` expectations. Production semantics must not be rolled back merely to satisfy stale share-only assertions.
+#861 remains the earliest proven App integration acceptance root. #860 exact `2084d534cef027aacf515a0907e36a3aa600fa62` was hosted GREEN; current #861 exact `9f3923c1d66ee56460e2660a3fbc6bfeacc3c2bd` introduces an executable RED that rejects inherited share-only App expectations and requires exact persisted σ+share accessible names. Production semantics must not be rolled back merely to satisfy stale assertions, and descendant-local duplicate/fuzzy repairs are not substitutes for the owner fix.
 
 #861 also retains a separate buyer-visible layout risk: comparison axis copy can grow through σ/share and translation expansion inside a fixed SVG. A rendered/browser bounding-box RED across responsive widths, keyboard/focus states, and text-expansion locales is required before changing layout; accessible σ/share semantics must remain intact.
 
-Fresh local Storybook inspection on #1041 parent head
-`bb7cecf721d67be0f0ce32f77c642cff2f58e3be` covered the synthetic
-`Reports/LeftoverPairList/ClosestAndFarthest` story at the default desktop
-viewport and at 390 × 844. The pair actions wrap without horizontal page
-overflow at 390 px, preserving their exact values and next action. The plot's
-dense origin-adjacent tick labels still collide in both captures, and the fixed
-480 px SVG intentionally requires horizontal scrolling on mobile. This is
-rendered local RED for the separate comparison-layout gap, not authenticated
-product acceptance and not authority to omit or approximate persisted ticks.
+Fresh local Storybook inspection on #1041 predecessor `bb7cecf721d67be0f0ce32f77c642cff2f58e3be` covered the synthetic `Reports/LeftoverPairList/ClosestAndFarthest` story at the default desktop viewport and at 390 × 844. The pair actions wrap without horizontal page overflow at 390 px, preserving their exact values and next action. The plot's dense origin-adjacent tick labels still collide in both captures, and the fixed 480 px SVG intentionally requires horizontal scrolling on mobile. This is rendered local RED for the separate comparison-layout gap, not authenticated product acceptance and not authority to omit or approximate persisted ticks.
+
+Exact #861 Tests `35514822818` is queued and is not acceptance evidence.
 
 ## Report / comparison stack
 
-#868 Tests `35448971227` is terminal FAILURE in the frontend `Test` step. The full/PostgreSQL suite is GREEN. Exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share. That stale App acceptance remains a valid source finding even though the available #868 Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
+The report lineage has been converged ordinary/non-force through current #861. Exact active ancestry is:
 
-The comparison-coordinate reconstruction stack is also not GREEN. #876 exact `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` has Tests `35449409685` failing in both frontend job `105913841595` (`Test` after lint) and full-suite job `105913841700` (`Run full test suite against PostgreSQL`). #1033 exact `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` has Tests `35449469635`: PostgreSQL/full-suite job `105914000303` is GREEN, while frontend job `105914000414` fails `App > shows the synthetic sigma overlay data` at `src/__tests__/App.test.tsx:2010:36`. The stale expectation requires accessible name `leftover map comparison axis 1 (82%)`; the rendered contract exposes `leftover map comparison axis 1 (σ 1.84, 82%)`. The job ends with 1 failed / 64 passed tests. This is exact evidence that #861's inherited share-only accessible-label expectation is stale relative to the σ+share product contract; it is not a PostgreSQL/query failure and does not justify rolling production semantics backward. #1034 exact `bb664b7aae733933c11b2fe056de2a7b16a02c15` has Tests `35449496627`: PostgreSQL/full-suite job `105914068322` is GREEN and frontend job `105914068148` fails its `Test` step after lint; its exact failing Vitest node is not transferred from #1033 without its own receipt. Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by #1033/#1034; neither historical PR nor its successor is closable merely by substitution while the successor heads remain RED.
+`#861 9f3923c1... → #862 c05b155b... → #863 a9e10500... → #865 a51b0ec4...`
+
+#866 final source `8d63271c4644b39d11d65263cc59e8fca8a548cd` was **normally merged** into #865. Its valid v2.82 product/test/ADR/CHANGELOG delta is materially present in #865 exact `a51b0ec4668fa4bef4cd45dfd777fe3df8871331`; #866 is closed/merged rather than merely closed or replaced by a successor. Exact compare from #863 to #865 has merge-base `a9e10500...`, `behind_by=0`, and retains both v2.81 and v2.82 deltas. Fresh #865 Tests `35517757738` is queued and is not acceptance evidence.
+
+Because #866 is now a closed intermediate, #867 was retargeted from the closed #866 branch to active #865 without rewriting the #867 head. Current #867 exact `fc19017063aab7df438f2603959f78ddbb62b8e5` has #865 `a51b0ec...` as exact merge-base, `behind_by=0`, and only its four-file comparison-axis badge delta. Fresh #867 Tests `35517813171` is queued and is not acceptance evidence.
+
+The active descendants continue:
+
+`#867 fc190170... → #868 db281ce1... → #869 838dd8c0... → #870 a289ebd7... → #871 91cde2af... → #872 8bd9778a... → #873 050477cf... → #874 7192a978... → #875 b7e948ae...`
+
+#875 has two current children:
+
+- #876 `52542e26f6d602a3303859b39f173d57800135e6` → #1033 `ce4612557f26a2e0fd2fa62d520f5677d1cccbe7` → #1034 `53950a849c849b2e172234613ffd4c742cea393e`;
+- #877 `f0a99af9e7962364a5f0f7ed96dc3b9a6d07fd32`.
+
+Tests `35448971227` on predecessor #868 `07558b5a...`, Tests `35449409685` on predecessor #876 `1dc3cec3...`, Tests `35449469635` on predecessor #1033 `dc9efcb0...`, and Tests `35449496627` on predecessor #1034 `bb664b7a...` remain diagnostic evidence only. They do not transfer to the moved heads above.
+
+The recovered #1033 predecessor receipt remains useful causal evidence: PostgreSQL/full-suite was GREEN while frontend failed `App > shows the synthetic sigma overlay data` because a share-only expectation (`leftover map comparison axis 1 (82%)`) contradicted rendered persisted σ+share (`leftover map comparison axis 1 (σ 1.84, 82%)`). That validates #861 ownership; it is not current-head GREEN/RED evidence for moved #1033 or #1034.
+
+Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by #1033/#1034. They are not substitutes for exact-head successor evidence.
 
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through protected integration or verified succession rather than duplicate telemetry source.
 
@@ -72,9 +76,9 @@ The final backend-integration ROPC finding remains executable rather than prose-
 
 Review of that helper exposed a concrete pre-migration integration defect: its no-argument path used the hard-coded local default even when the suite had selected a different endpoint through `LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL`. Source RED `b7bb7a58ac72cd1a6974f1c4bf2375998c3ef2c7` pins the expected configured endpoint. Causal repair inherited by #1120 resolves the environment override at call time for both viewer and admin helpers while preserving explicit caller overrides and the existing secret sources.
 
-A fresh #1118 dependency review closed a separate source-level security gap. `uv.lock` already resolved PyJWT 2.13.0, but `pyproject.toml` still admitted `pyjwt[crypto]>=2.8.0` in both `dev` and `backend`. RED `6ea095400a0b95fe586161dcfd0730d91ce9f96d` requires both declared floors to be `>=2.13.0`, requires every committed PyJWT lock entry to satisfy that floor, and requires owned JWT verifier algorithm allow-lists to remain RS256-only rather than mix symmetric and asymmetric families. Repair `990dfdf30517262afebc7c8202f2c9b8f301d392` raises both floors; `e8ad79da959eef8c628164a8651e53313313dcd8` records the security changelog; exact #1118 `306fc9dccf972c9fcb859b1379c32ec98649f137` adds `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` with APA 7th traceability to GitHub Reviewed CVE-2026-48523/48524/48525/48526 advisories and the RS256-only defense-in-depth rationale. The lock was already compliant, so no generated-lock rewrite was needed. Exact #1118 Tests `35506460512` is Draft-policy skipped; this is source-repaired but not hosted GREEN.
+A #1118 dependency review closed a separate source-level security gap. `uv.lock` already resolved PyJWT 2.13.0, but `pyproject.toml` still admitted `pyjwt[crypto]>=2.8.0` in both `dev` and `backend`. RED `6ea095400a0b95fe586161dcfd0730d91ce9f96d` requires both declared floors to be `>=2.13.0`, every committed PyJWT lock entry to satisfy that floor, and owned JWT verifier algorithm allow-lists to remain RS256-only rather than mix symmetric and asymmetric families. Repair `990dfdf30517262afebc7c8202f2c9b8f301d392` raises both floors; `e8ad79da959eef8c628164a8651e53313313dcd8` records the security changelog; exact #1118 `306fc9dccf972c9fcb859b1379c32ec98649f137` adds `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` with APA 7th traceability to GitHub Reviewed CVE-2026-48523/48524/48525/48526 advisories and the RS256-only defense-in-depth rationale. Exact #1118 Tests `35506460512` is Draft-policy skipped; this is source-repaired but not hosted GREEN.
 
-The larger ROPC migration is still RED. Exact source inspection still finds the two analyst/admin password-grant calls in `backend/tests/test_api.py`, and `scripts/smoke_test_oidc.py` still requests a password grant from the public browser client. The smoke path is part of the removal scope, not an approved diagnostic exception. Those three consumers and `docker/keycloak/realm-export.json` must move atomically so every repository-owned public-client password grant is removed before `lineageweave-frontend.directAccessGrantsEnabled` becomes `false`.
+The larger ROPC migration is still RED. Exact source inspection still finds the two analyst/admin password-grant calls in `backend/tests/test_api.py`, and `scripts/smoke_test_oidc.py` still requests a password grant from the public browser client. The smoke path is part of the removal scope, not an approved diagnostic exception. Those consumers and `docker/keycloak/realm-export.json` must move atomically so every repository-owned public-client password grant is removed before `lineageweave-frontend.directAccessGrantsEnabled` becomes `false`.
 
 Human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only integration evidence. The two confidential helper actors are appropriate for a test suite that exercises API authorization as a machine caller; they do not prove login redirect/callback/session semantics.
 
@@ -83,42 +87,17 @@ Human browser product acceptance remains a rendered Authorization Code + S256 PK
 Remaining auth RED:
 
 - wire `backend/tests/test_api.py` to the viewer/admin Client Credentials helpers and remove both public-client password-grant calls;
+- remove the repository-owned public-browser-client password grant from `scripts/smoke_test_oidc.py` rather than preserving a diagnostic exception;
 - atomically set `lineageweave-frontend.directAccessGrantsEnabled=false` while preserving Authorization Code + S256 PKCE browser configuration;
-- human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only evidence;
 - obtain exact-head hosted GREEN, rendered browser session/return-URL/tampered-state/permission acceptance, and qualifying independent review.
 
 ## Voice-of-X acceptance boundary
 
-Accepted ADR 0246 remains the vocabulary authority: twelve atomic Voice codes,
-an extensible scheme, and no Cartesian-product combination codes. The current
-implementation preserves one imported primary Voice and normalized additional
-assignments with explicit truth status and PROV-O derivation. API, exact-value
-CSV, and JSON-LD tests cover carrying-Post/evidence separation and paged
-multi-Voice union. These source contracts do not prove the live product.
+Accepted ADR 0246 remains the vocabulary authority: twelve atomic Voice codes, an extensible scheme, and no Cartesian-product combination codes. The implementation preserves one imported primary Voice and normalized additional assignments with explicit truth status and PROV-O derivation. API, exact-value CSV, and JSON-LD tests cover carrying-Post/evidence separation and paged multi-Voice union. These source contracts do not prove the live product.
 
-Current protected `main@83eba56149eb802cd63642c507c324c9976ec78e`
-has no newly collected, exact-head authenticated PostgreSQL API receipt or
-desktop/mobile rendered acceptance in this cycle. Voice delivery therefore
-remains **unverified at runtime**. A hidden evidence Post must omit the
-additional assignment rather than substitute the carrying Post, and a cutoff
-read must use the assignment interval effective at that cutoff. Completion
-requires synthetic authenticated PostgreSQL evidence plus rendered desktop and
-mobile evidence for zero-, one-, and multi-Voice states on the same candidate
-head.
+Current protected `main@83eba56149eb802cd63642c507c324c9976ec78e` has no newly collected, exact-head authenticated PostgreSQL API receipt or desktop/mobile rendered acceptance in this cycle. Voice delivery therefore remains **unverified at runtime**. A hidden evidence Post must omit the additional assignment rather than substitute the carrying Post, and a cutoff read must use the assignment interval effective at that cutoff. Completion requires synthetic authenticated PostgreSQL evidence plus rendered desktop and mobile evidence for zero-, one-, and multi-Voice states on the same candidate head.
 
-The ADR authority collision now has an explicit owner repair candidate rather
-than an unresolved prose note. Protected `main` still contains the stale ADR
-0252 references to unrelated I/O-Psychology ADR 0251. Fresh review of #1121
-found its original Status-only correction incomplete because ADR 0252's Context
-still attributed Voice-assignment start semantics to ADR 0251. RED
-`98276b96ccdbf3bbdf9305c9faa2337988f5cd6a` now rejects any remaining `ADR
-0251` reference in ADR 0252 and requires the Context to name ADR 0256. Causal
-fix `00c4944c5a423c1df12fab40d287981e246f2eea` corrects that Context authority
-reference as well. ADR 0256 is the evidence-bearing Voice-composition authority
-that defines the assignment interval semantics. #1121 is source-repaired, but
-its exact-head Tests/CodeQL/Security/SAST receipts are still pending and it is
-not protected delivery. This documentation repair also does not substitute for
-the runtime PostgreSQL/browser Voice-history acceptance above.
+#1121 current exact head is `dbabff85c72801a1a72a33dc69f969e032dc17b2`. It repairs ADR 0252 so Status/Context authority and the ADR index point to evidence-bearing ADR 0256 rather than unrelated I/O-Psychology ADR 0251. Local documentation hygiene is source-GREEN, but hosted CodeQL `35514992028`, Tests `35514992029`, SAST `35514992064`, and Security `35514992065` are queued. #1121 is source-repaired, not protected delivery. This documentation repair does not substitute for runtime PostgreSQL/browser Voice-history acceptance.
 
 ## Performance / immutable delivery
 
@@ -130,17 +109,17 @@ the runtime PostgreSQL/browser Voice-history acceptance above.
 
 | Area | Current authority | State | Required causal next step |
 | --- | --- | --- | --- |
-| Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical owner checks, language review, browser/auth/performance acceptance |
-| App comparison acceptance | #861 | RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
-| App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
-| Report contracts | #868; #859 → #1033 → #1034; historical #878/#879 | frontend RED; #1033/#1034 PostgreSQL GREEN | repair the exact stale accessible-label expectation, verify #1034 independently, converge descendants, and retain historical carriers until verified GREEN succession |
+| Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical-owner checks, language review, browser/auth/performance acceptance |
+| App comparison acceptance | #861 `9f3923c1...` | executable RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
+| App comparison layout | #861 `9f3923c1...` | rendered RED / owner repair pending | bounded layout repair retaining full evidence semantics; re-run responsive/text-expansion browser evidence |
+| Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877) | converged / fresh acceptance pending | finish #861 owner repair, then exact-head validation; predecessor failures stay diagnostic only |
 | Catalog connection leases / TOCTOU | #1077 / #1080 | separate owner lanes | prove short transactions around external work, then obtain protected integration evidence |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 `306fc9dc...` → #1120 `fb7b6c61...` → #1117 `dd060d31...` | seed/bootstrap repaired; helper endpoint drift repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend ROPC still executable RED | wire distinct viewer/admin machine helpers into backend integration, disable public direct grants atomically, then obtain hosted/browser proof |
-| Voice ADR authority | #1121 `00c4944c...` | source repaired / exact-head checks pending | obtain exact-head GREEN + independent review, normal merge, then refresh protected-main authority evidence |
+| Authentication | #899 → #1118 `306fc9dc...` → #1120 `fb7b6c61...` → #1117 `dd060d31...` | seed/bootstrap repaired; helper endpoint drift repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend/public-client ROPC still executable RED | move all repository-owned public-client ROPC consumers, disable public direct grants atomically, then obtain hosted/browser proof |
+| Voice ADR authority | #1121 `dbabff85...` | source repaired / hosted checks queued | exact-head GREEN + independent review + normal merge, then protected-main runtime evidence |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
 
-This baseline records unresolved authority; it must not be used to infer a merge or release that protected-state evidence does not show.
+This baseline records unresolved authority; it must not be used to infer a merge, approval, release, or GREEN state that exact protected evidence does not show.
