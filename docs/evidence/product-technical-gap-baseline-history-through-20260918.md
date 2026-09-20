@@ -2,7 +2,7 @@
 
 > Current authority snapshot: 2026-09-18.
 >
-> Live protected refs, PRs/Issues, ADRs, exact heads and exact-head receipts remain authoritative. Historical overlays through 2026-09-13 live in [`docs/evidence/product-technical-gap-baseline-history-through-20260913.md`](evidence/product-technical-gap-baseline-history-through-20260913.md).
+> Live protected refs, PRs/Issues, ADRs, exact heads and exact-head receipts remain authoritative. Historical overlays through 2026-09-13 live in [`docs/evidence/product-technical-gap-baseline-history-through-20260913.md`](product-technical-gap-baseline-history-through-20260913.md).
 
 ## Delivery rules
 

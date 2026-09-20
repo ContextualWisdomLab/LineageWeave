@@ -1,7 +1,10 @@
-# Product & Technical Gap Baseline
+# Product & Technical Gap Baseline — Historical Snapshot Through 2026-09-13
 
-
-> Live-authority overlay: 2026-09-13 20:27 KST. Protected `main` remains
+> Historical evidence only. This snapshot is not current merge or release
+> authority. Use the [current product and technical gap baseline](../product-technical-gap-baseline.md)
+> for live authority.
+>
+> Overlay captured at 2026-09-13 20:27 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e`, protected with a valid verified
 > commit signature after two fresh sweeps. No protected-main merge or base movement
 > occurred during this maintenance turn.

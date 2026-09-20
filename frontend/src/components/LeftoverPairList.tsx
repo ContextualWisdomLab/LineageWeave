@@ -206,6 +206,21 @@ export function LeftoverPairList({
             { residual, criterion },
           );
         }
+        const accessibleEvidence = [
+          nextAction,
+          Number.isFinite(pair.leftover_residual) ? `R ${residual}` : null,
+          observedExpected,
+          rankBadge,
+          unexplained,
+          unexplainedShareBadge,
+          explainedShareBadge,
+          crossShareBadge,
+          reconstruction,
+          coordinatesBadge,
+          Number.isFinite(pair.leftover_distance)
+            ? `d ${pair.leftover_distance.toFixed(2)}`
+            : null,
+        ].filter((value): value is string => value !== null);
         return (
           <li
             key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -214,11 +229,7 @@ export function LeftoverPairList({
             <button
               type="button"
               className="post-list-item"
-              aria-label={tf("Open leftover {kind} pair: {title} · {criterion}", {
-                kind: pair.pair_kind,
-                title: pair.post_title,
-                criterion,
-              })}
+              aria-label={`${kindLabel}: ${pair.post_title} · ${criterion} · ${accessibleEvidence.join(" · ")}`}
               title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
             >
