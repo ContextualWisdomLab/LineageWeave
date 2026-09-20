@@ -1,0 +1,22 @@
+.leftover-pair-button {
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-chip-gap) var(--space-chip-inline);
+}
+
+.leftover-pair-button .ticket-title {
+  flex: 1 0 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.leftover-pair-button .post-badge {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .leftover-pair-button .post-badge {
+    flex: 1 1 9rem;
+  }
+}

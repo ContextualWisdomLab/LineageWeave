@@ -34,6 +34,7 @@ import {
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
 } from "../leftoverMapUnexplainedShare";
 import { LeftoverMapPlot } from "./LeftoverMapPlot";
+import "./LeftoverPairList.css";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -228,7 +229,7 @@ export function LeftoverPairList({
           >
             <button
               type="button"
-              className="post-list-item"
+              className="post-list-item leftover-pair-button"
               aria-label={`${kindLabel}: ${pair.post_title} · ${criterion} · ${accessibleEvidence.join(" · ")}`}
               title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
