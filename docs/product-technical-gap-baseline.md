@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+> Exact-head refresh: 2026-09-21 07:00 KST. Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e`; the live aggregate inventory is
+> 164 open pull requests and 42 open issues. Those counts describe the queue,
+> not delivery. The largest current buyer-visible security gap is #1119:
+> public-browser password grants plus missing rendered Authorization Code
+> acceptance. Candidate #1120 now has the minimal source repair at
+> `867e26175a90cd7c6048be6aa91983686cc8d897`: the two backend integration
+> actors use distinct confidential viewer/admin identities and the public
+> browser client disables direct grants while retaining Authorization Code +
+> S256 PKCE. Focused source contracts pass locally (20 tests), but #1120 is
+> still a Draft stacked on #1118. No authenticated PostgreSQL/browser render,
+> protected exact-head Checks, independent approval, merge, or release is
+> claimed. Parent #1118 must protectively merge first; only then may #1120 be
+> retargeted to `main` and collect fresh exact-head evidence.
+
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, cancelled workflow, or documentation-only workflow is not acceptance for a moved product head.
 
 > This update adopts #1041 exact predecessor `4e3ca6b7e4dbd4c38085c11389824f869a3024b5` against `main@83eba56149eb802cd63642c507c324c9976ec78e`. The live inventory showed 164 open pull requests and 42 open issues. Those aggregate counts are operational metadata, not delivery evidence. This file intentionally does **not** hard-code its own newly-created #1041 head: writing this file creates a new commit, so the live PR API/body owns #1041's exact head and exact-head workflow receipts. Completed successful protected receipts on that live head are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless, or predecessor receipts are non-accepting and do not transfer.
@@ -70,13 +85,21 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 306fc9dccf972c9fcb859b1379c32ec98649f137 → #1120 0038f57f02a022b47cb560970c803518c0d01de3 → #1117 f1f5637c94e04316c156c6436826df499ba3abfd`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 306fc9dccf972c9fcb859b1379c32ec98649f137 → #1120 867e26175a90cd7c6048be6aa91983686cc8d897`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: contradictory RSA/JWK metadata is rejected; `x5c` must be canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects come from the checked-in realm fixture and remain disjoint from human subjects; machine clients are unique enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and required REST/MCP audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
 Seed/bootstrap ROPC is source-repaired. Human fixture subjects are read deterministically from `docker/keycloak/realm-export.json`; seed no longer logs into master `admin-cli` or mints a human password token. `scripts/warm_seeded_post_content.py` uses the validated confidential `lineageweave-test-automation` Client Credentials actor, and `make seed` orders human fixture seed → service-account authorization binding → machine warm-up. `scripts/smoke_test_oidc.py` and the k6 HTTP/MCP paths are already machine Client Credentials consumers and are not remaining public-client ROPC callers.
 
-The final backend-integration ROPC finding remains executable in `tests/test_backend_integration_oauth_contract.py`: `backend/tests/test_api.py` must stop requesting `grant_type=password` from public `lineageweave-frontend`, use distinct viewer/admin machine helpers, and the browser client must move to `directAccessGrantsEnabled=false` in the same causal migration. Current source still has the two password-grant callers and current realm fixture still has public direct grants enabled, so this gap remains RED.
+The final backend-integration ROPC finding is source-repaired at #1120 exact
+`867e26175a90cd7c6048be6aa91983686cc8d897`: `backend/tests/test_api.py`
+uses distinct confidential viewer/admin helpers, and the public browser client
+sets `directAccessGrantsEnabled=false` in the same causal migration. The
+focused OAuth, documentation, and public-docstring contracts pass locally (20
+tests). This is candidate evidence only. Rendered browser Authorization Code +
+S256 PKCE, callback/session restoration, return-path restoration, a protected
+buyer API call, invalid-state rejection, authenticated PostgreSQL execution,
+hosted exact-head Checks, and independent approval remain unavailable.
 
 The pre-migration machine helper now carries four causal repairs:
 
@@ -85,7 +108,11 @@ The pre-migration machine helper now carries four causal repairs:
 - remote-fallback RED `3ba75a6ee8ead09cbb5fa4547c2b4378d7736205` / repair `f597be93f29e330f97b294d4fb69795d333f8a7f`: repository-known synthetic dev secrets are allowed only for `localhost`, `127.0.0.1`, or `::1`; a non-loopback Keycloak endpoint with an absent or empty secret fails before token I/O;
 - remote-cleartext RED `76b1884a5b64056f02cdb60c13610b02fd4b70d6` / repair `db3dda0c84b5bc9adefe16d6d462a0e56c7af2d7`: an explicit confidential-client secret is also rejected before token I/O when a non-loopback token endpoint is cleartext HTTP. Loopback HTTP remains a disposable local-fixture exception. Exact #1120 `0038f57f...` makes ADR 0028 code-current with RFC 6749 §§3.2, 10.8, and 10.9 plus the existing RFC 9700 / RFC 10017 references.
 
-Exact #1120 Tests `35529880681` is Draft-policy skipped, so the latest transport repair is source-repaired rather than hosted GREEN. #1117 was immediately reconstructed ordinary/non-force on exact #1120 at `f1f5637c94e04316c156c6436826df499ba3abfd`; exact compare has merge-base `0038f57f...`, `behind_by=0`, and effective child delta only `README.md`. Exact #1117 Tests `35529922687` is Draft-skipped.
+The predecessor #1120 Tests `35529880681` is Draft-policy skipped and does not
+transfer to `867e2617...`. #1117 still targets the predecessor #1120 head and
+must not be treated as converged on the moved parent until ordinary ancestry
+and effective delta are rechecked. Neither candidate has protected GREEN or
+rendered-browser acceptance.
 
 #1118 separately owns the PyJWT declared-floor repair: both install surfaces require `pyjwt[crypto]>=2.13.0`, the committed lock already resolves 2.13.0, owned JWT verification remains RS256-only, and `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` records APA 7th traceability for CVE-2026-48523/48524/48525/48526. Exact #1118 Tests `35506460512` is Draft-skipped; this remains source-repaired, not hosted GREEN.
 
