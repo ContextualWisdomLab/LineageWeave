@@ -96,3 +96,38 @@ def test_empty_secret_env_matches_local_compose_defaults(monkeypatch: pytest.Mon
         "lineageweave_test_automation_dev_only",
         "lineageweave_test_admin_dev_only",
     ]
+
+
+@pytest.mark.parametrize(
+    ("fetch_token", "secret_env"),
+    [
+        (oauth.fetch_viewer_machine_token, "KEYCLOAK_CLIENT_SECRET"),
+        (oauth.fetch_admin_machine_token, "KEYCLOAK_TEST_ADMIN_CLIENT_SECRET"),
+    ],
+)
+@pytest.mark.parametrize("secret_state", ("unset", "empty"))
+def test_dev_secret_fallback_is_loopback_only(
+    monkeypatch: pytest.MonkeyPatch,
+    fetch_token,
+    secret_env: str,
+    secret_state: str,
+) -> None:
+    """Synthetic local secrets must never be sent to a non-loopback issuer."""
+    monkeypatch.setenv(
+        "LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL",
+        "https://keycloak.remote.example",
+    )
+    if secret_state == "unset":
+        monkeypatch.delenv(secret_env, raising=False)
+    else:
+        monkeypatch.setenv(secret_env, "")
+    monkeypatch.setattr(
+        oauth,
+        "post_form",
+        lambda *_args, **_kwargs: pytest.fail(
+            "remote Keycloak must not receive a synthetic local fallback secret"
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match=secret_env):
+        fetch_token()
