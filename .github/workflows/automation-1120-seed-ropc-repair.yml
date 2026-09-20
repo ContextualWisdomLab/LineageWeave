@@ -8,8 +8,11 @@ on:
 permissions:
   contents: write
 
+# Each exact head gets its own lane. Older queued runs checkout the live branch,
+# so the explicit GITHUB_SHA guard below makes them fail closed after a newer
+# commit instead of serializing or mutating a descendant head.
 concurrency:
-  group: automation-1120-seed-ropc-repair
+  group: automation-1120-seed-ropc-repair-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -33,10 +36,11 @@ jobs:
           version: "0.11.28"
           enable-cache: false
 
-      - name: Guard ancestry and install locked dependencies
+      - name: Guard exact head, ancestry, and install locked dependencies
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_SHA" = "$(git rev-parse HEAD)"
           git merge-base --is-ancestor 6786af06b02c20c339c38720e29af29ef1ad9249 HEAD
           uv sync --frozen --extra dev --extra backend
 
@@ -73,6 +77,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_SHA" = "$(git rev-parse HEAD)"
           rm .github/workflows/automation-1120-seed-ropc-repair.yml
           rm .github/automation/repair_1120_seed_ropc.py
           expected=$(printf '%s\n' \
