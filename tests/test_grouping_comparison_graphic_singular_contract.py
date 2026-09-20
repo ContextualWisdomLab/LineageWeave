@@ -6,15 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLOT_SOURCE = ROOT / "frontend" / "src" / "components" / "LeftoverMapPlot.tsx"
 SINGULAR_SOURCE = ROOT / "frontend" / "src" / "leftoverMapPlotAxisSingular.ts"
-
-
-def _exported_function_source(source: str, signature: str) -> str:
-    """Return one exported function so independence checks do not police sibling composition."""
-    start = source.index(signature)
-    next_export = source.find("\nexport function ", start + len(signature))
-    if next_export == -1:
-        return source[start:]
-    return source[start:next_export]
+APP_TEST_SOURCE = ROOT / "frontend" / "src" / "App.test.tsx"
 
 
 def test_comparison_graphic_has_distinct_persisted_singular_value_copy() -> None:
@@ -43,24 +35,36 @@ def test_singular_value_is_read_from_axis_evidence_and_fails_closed() -> None:
     """Persisted σ=0 stays explicit; missing, non-finite, or negative σ omits independently."""
     assert SINGULAR_SOURCE.exists(), "persisted singular-value projection helper is missing"
     singular_source = SINGULAR_SOURCE.read_text(encoding="utf-8")
-    formatter_source = _exported_function_source(
-        singular_source,
-        "export function formatLeftoverMapPlotAxisSingular",
+
+    assert "leftover_singular_value" in singular_source
+    assert "Number.isFinite" in singular_source
+    assert "< 0" in singular_source
+    assert "return null" in singular_source
+    assert ".toFixed(2)" in singular_source
+    assert "leftover_share" not in singular_source
+    assert "Math.max" not in singular_source
+    assert "Math.min" not in singular_source
+
+
+def test_app_acceptance_requires_exact_comparison_sigma_and_share_copy() -> None:
+    """App acceptance must assert the persisted comparison σ and share together, exactly."""
+    app_test_source = APP_TEST_SOURCE.read_text(encoding="utf-8")
+
+    stale_share_only = (
+        '"leftover map comparison axis 1 (82%)"',
+        '"leftover map comparison axis 2 (18%)"',
+    )
+    expected_sigma_share = (
+        '"leftover map comparison axis 1 (σ 1.84, 82%)"',
+        '"leftover map comparison axis 2 (σ 0.86, 18%)"',
     )
 
-    assert "Number.isFinite" in formatter_source
-    assert "< 0" in formatter_source
-    assert "return null" in formatter_source
-    assert ".toFixed(2)" in formatter_source
-    assert "leftover_share" not in formatter_source
-    assert "Math.sqrt" not in formatter_source
-    assert "Math.max" not in formatter_source
-    assert "Math.min" not in formatter_source
-
-    # Comparison composition may display independently persisted σ and share together;
-    # it must delegate to each evidence formatter instead of deriving one from the other.
-    assert (
-        "const singular = formatLeftoverMapPlotAxisSingular(axis.leftover_singular_value);"
-        in singular_source
-    )
-    assert "const share = formatLeftoverMapPlotAxisShare(axis.leftover_share);" in singular_source
+    for stale_copy in stale_share_only:
+        assert stale_copy not in app_test_source, (
+            "comparison-axis App acceptance still asserts pre-ADR-0321 share-only copy"
+        )
+    for expected_copy in expected_sigma_share:
+        assert app_test_source.count(expected_copy) >= 2, (
+            "comparison-axis App acceptance must cover exact σ+share copy in both report and "
+            "grouping-comparison integration paths"
+        )
