@@ -18,20 +18,29 @@ def test_comparison_graphic_tick_keeps_persisted_singular_value_without_share() 
 
 
 def test_comparison_graphic_consumes_tick_singular_projection() -> None:
-    """The buyer-visible comparison graphic must consume its persisted-σ tick projection."""
+    """The buyer-visible comparison graphic consumes independently persisted σ/share."""
     source = PLOT_COMPONENT_SOURCE.read_text(encoding="utf-8")
 
     assert "leftoverMapComparePlotTickAxisBadge" in source
+    assert "leftoverSingularForAxis(leftoverMapAxes, tick.axis)" in source
+    assert "leftoverShareForAxis(leftoverMapAxes, tick.axis)" in source
     assert "tf(comparisonTickBadge.template, comparisonTickBadge.values)" in source
 
 
 def test_comparison_graphic_tick_does_not_infer_sigma_or_share() -> None:
-    """Invalid σ falls back to the comparison tick and tick captions never synthesize share."""
+    """Comparison ticks compose independently persisted σ/share without deriving either."""
     assert SINGULAR_SOURCE.exists(), "singular-value axis helper is missing"
     source = SINGULAR_SOURCE.read_text(encoding="utf-8")
+    helper = source.split("export function leftoverMapComparePlotTickAxisBadge", 1)[-1].split(
+        "export function leftoverMapCompareAxisTickBadge", 1
+    )[0]
 
-    assert "formatLeftoverMapPlotAxisSingular" in source
-    assert "Number.isFinite" in source
-    assert "Math.sqrt" not in source
-    tail = source.split("leftoverMapComparePlotTickAxisBadge", 1)[-1][:1600]
-    assert "leftover_share" not in tail
+    assert "formatLeftoverMapPlotAxisSingular" in helper
+    assert "formatLeftoverMapPlotAxisShare" in helper
+    assert "leftoverSingular" in helper
+    assert "leftoverShare" in helper
+    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK_SHARE" in helper
+    assert "LEFTOVER_MAP_COMPARE_PLOT_TICK_SINGULAR_SHARE" in helper
+    assert "Math.sqrt" not in helper
+    assert "Math.max" not in helper
+    assert "Math.min" not in helper
