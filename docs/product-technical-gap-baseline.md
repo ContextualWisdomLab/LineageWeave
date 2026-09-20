@@ -2,7 +2,7 @@
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update starts from #1041 exact predecessor `15c14e53f81acb6d9e5f430c5aaaf5acad881402` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. Open-PR/issue counts are operational metadata and are intentionally not treated as release evidence. New exact-head workflow receipts created by this edit remain authoritative for acceptance; predecessor receipts do not transfer.
+> This update starts from #1041 exact predecessor `85e3d743ad1fe430d5a21a8841159b8ab28101ba` against `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready. Open-PR/issue counts are operational metadata and are intentionally not treated as release evidence. New exact-head workflow receipts created by this edit remain authoritative for acceptance; predecessor receipts do not transfer.
 
 ## Delivery authority
 
@@ -58,7 +58,7 @@ Tests `35448971227` on predecessor #868 `07558b5a...`, Tests `35449409685` on pr
 
 The recovered #1033 predecessor receipt remains useful causal evidence: PostgreSQL/full-suite was GREEN while frontend failed `App > shows the synthetic sigma overlay data` because a share-only expectation (`leftover map comparison axis 1 (82%)`) contradicted rendered persisted σ+share (`leftover map comparison axis 1 (σ 1.84, 82%)`). That validates #861 ownership; it is not current-head GREEN/RED evidence for moved #1033 or #1034.
 
-Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by #1033/#1034. They are not substitutes for exact-head successor evidence.
+Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by current #1033/#1034. Their live PR authority has been refreshed to the current #876/#1033/#1034 heads; they remain open until verified GREEN succession proves all valid deltas are inherited.
 
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through protected integration or verified succession rather than duplicate telemetry source.
 
@@ -78,16 +78,17 @@ Review of that helper exposed a concrete pre-migration integration defect: its n
 
 A #1118 dependency review closed a separate source-level security gap. `uv.lock` already resolved PyJWT 2.13.0, but `pyproject.toml` still admitted `pyjwt[crypto]>=2.8.0` in both `dev` and `backend`. RED `6ea095400a0b95fe586161dcfd0730d91ce9f96d` requires both declared floors to be `>=2.13.0`, every committed PyJWT lock entry to satisfy that floor, and owned JWT verifier algorithm allow-lists to remain RS256-only rather than mix symmetric and asymmetric families. Repair `990dfdf30517262afebc7c8202f2c9b8f301d392` raises both floors; `e8ad79da959eef8c628164a8651e53313313dcd8` records the security changelog; exact #1118 `306fc9dccf972c9fcb859b1379c32ec98649f137` adds `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` with APA 7th traceability to GitHub Reviewed CVE-2026-48523/48524/48525/48526 advisories and the RS256-only defense-in-depth rationale. Exact #1118 Tests `35506460512` is Draft-policy skipped; this is source-repaired but not hosted GREEN.
 
-The larger ROPC migration is still RED. Exact source inspection still finds the two analyst/admin password-grant calls in `backend/tests/test_api.py`, and `scripts/smoke_test_oidc.py` still requests a password grant from the public browser client. The smoke path is part of the removal scope, not an approved diagnostic exception. Those consumers and `docker/keycloak/realm-export.json` must move atomically so every repository-owned public-client password grant is removed before `lineageweave-frontend.directAccessGrantsEnabled` becomes `false`.
+Current exact #1120 inspection shows `scripts/smoke_test_oidc.py` is already a confidential-machine smoke: it requests `grant_type=client_credentials` for `lineageweave-test-automation`, validates live JWKS/RS256/issuer/audience/authorized-party/subject, and explicitly states that it is not browser OIDC acceptance. It is therefore **not** a remaining public-client ROPC consumer. The earlier baseline wording that put the smoke path in the ROPC removal scope was stale and has been removed.
 
-Human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only integration evidence. The two confidential helper actors are appropriate for a test suite that exercises API authorization as a machine caller; they do not prove login redirect/callback/session semantics.
+The remaining ROPC migration is the backend integration lane. Exact source/contract authority still requires the two analyst/admin password-grant calls in `backend/tests/test_api.py` to move to the distinct confidential viewer/admin helpers before `lineageweave-frontend.directAccessGrantsEnabled` becomes `false`.
+
+Human browser product acceptance remains a rendered Authorization Code + S256 PKCE lane and must not be silently replaced by machine-only integration evidence. The confidential integration and smoke actors are machine evidence only; they do not prove login redirect/callback/session semantics.
 
 #1120 ordinary/non-force adopted the complete exact #1118 dependency/test/changelog/doctoring parent at `fb7b6c61fa5b552cc241e31bf8924cf5c63355d7`. Exact compare from #1118 `306fc9dc...` has merge-base exactly `306fc9dc...` and `behind_by=0`, with the parent files inherited rather than removed. Exact #1120 Tests `35506471984` is Draft-skipped. #1117 is converged on exact #1120 at `dd060d315bf4666f60e802bfd68d88cc4b8f3985`; exact compare has merge-base `fb7b6c61...`, `behind_by=0`, and effective child delta only `README.md`. Exact #1117 Tests `35506484694` is Draft-skipped.
 
 Remaining auth RED:
 
 - wire `backend/tests/test_api.py` to the viewer/admin Client Credentials helpers and remove both public-client password-grant calls;
-- remove the repository-owned public-browser-client password grant from `scripts/smoke_test_oidc.py` rather than preserving a diagnostic exception;
 - atomically set `lineageweave-frontend.directAccessGrantsEnabled=false` while preserving Authorization Code + S256 PKCE browser configuration;
 - obtain exact-head hosted GREEN, rendered browser session/return-URL/tampered-state/permission acceptance, and qualifying independent review.
 
@@ -112,11 +113,11 @@ Current protected `main@83eba56149eb802cd63642c507c324c9976ec78e` has no newly c
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical-owner checks, language review, browser/auth/performance acceptance |
 | App comparison acceptance | #861 `9f3923c1...` | executable RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
 | App comparison layout | #861 `9f3923c1...` | rendered RED / owner repair pending | bounded layout repair retaining full evidence semantics; re-run responsive/text-expansion browser evidence |
-| Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877) | converged / fresh acceptance pending | finish #861 owner repair, then exact-head validation; predecessor failures stay diagnostic only |
+| Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877); historical #878/#879 | converged / fresh acceptance pending | finish #861 owner repair, then exact-head validation; predecessor failures stay diagnostic only |
 | Catalog connection leases / TOCTOU | #1077 / #1080 | separate owner lanes | prove short transactions around external work, then obtain protected integration evidence |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 `306fc9dc...` → #1120 `fb7b6c61...` → #1117 `dd060d31...` | seed/bootstrap repaired; helper endpoint drift repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend/public-client ROPC still executable RED | move all repository-owned public-client ROPC consumers, disable public direct grants atomically, then obtain hosted/browser proof |
+| Authentication | #899 → #1118 `306fc9dc...` → #1120 `fb7b6c61...` → #1117 `dd060d31...` | seed/bootstrap repaired; machine smoke already Client Credentials; helper endpoint drift repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend-integration ROPC still executable RED | move backend integration to distinct machine helpers, disable public direct grants atomically, then obtain hosted/browser proof |
 | Voice ADR authority | #1121 `dbabff85...` | source repaired / hosted checks queued | exact-head GREEN + independent review + normal merge, then protected-main runtime evidence |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
