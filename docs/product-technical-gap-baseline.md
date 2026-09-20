@@ -37,21 +37,23 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 b1474368888a0a6c74c78bb4d04fbdb236f0e6da → #1117 9176f961f172d41456619bd9df2b11c7782f223a`.
+`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 04120daa95c709ed0b095e127e2fdbce055edc83 → #1120 74ecf53a3a2b7273eefb4eb6aeeaa79041fce90c → #1117 b1bd9e0d19354a9bf7ec4a70093b472afdb66800`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: private or contradictory RSA/JWK metadata is rejected; `x5c` is canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects are derived from the checked-in realm fixture; service and human subjects are disjoint; required machine clients are unique, enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and the required REST/MCP access-token audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
 The current causal RED is executable as `tests/test_seed_demo_identity_contract.py` from `fd3edd04d93714d152db31473850c10fe30b31d0`. It requires seed/bootstrap to consume checked-in `demo.analyst` and `demo.admin` subjects from the realm fixture, fail closed on missing/disabled/shared human subjects, remove master `admin-cli` and Resource Owner Password Credentials from seed/warm-up, move seeded-content warm-up to the existing confidential `lineageweave-test-automation` Client Credentials actor, and order `make seed` as human fixture seed → service-account authorization binding → machine warm-up.
 
-Current product source still contradicts that contract: `scripts/seed_demo_data.py` uses master `admin-cli` + `grant_type=password` to rediscover deterministic human subjects. No product repair or GREEN is claimed yet.
+Current product source still contradicts that contract: `scripts/seed_demo_data.py` uses master `admin-cli` + `grant_type=password` to rediscover deterministic human subjects and still uses public `lineageweave-frontend` + `demo.analyst` password grant for post-content warm-up. No product repair or GREEN is claimed yet.
 
-A temporary one-shot repair lane remains on #1120 only to apply the causal patch, verify focused tests, and delete itself plus its repair driver in the resulting product commit. `f39502ccd5665ef146ca1c112466798dff5e5339` isolated execution by exact SHA and added a live-branch/GITHUB_SHA fail-closed guard. `b1474368888a0a6c74c78bb4d04fbdb236f0e6da` additionally pins the hosted image to `ubuntu-24.04` instead of the moving `ubuntu-latest` label. Push run `35487484700` remains queued; queue state is not acceptance and the temporary workflow must not survive the completed product repair. Ordinary Draft Tests for `b1474368...` are skipped and are not repository GREEN.
+The predecessor #1120 head `b1474368888a0a6c74c78bb4d04fbdb236f0e6da` carried a temporary exact-SHA-guarded self-modifying repair workflow. Run `35487484700` reached job admission on exact `ubuntu-24.04` but remained runnerless (`steps=[]`, `runner_id=0`); #1041 CodeQL run `35487716395` independently showed the same runner-acquisition boundary. GitHub's public status summary read during the same sweep reported Actions operational with no active incident. Consumer evidence is recorded on canonical organization queue owner `.github#712` comment `5747709798`.
 
-#1117 was immediately ordinary/non-force converged from exact #1120 plus its existing README blob to `9176f961f172d41456619bd9df2b11c7782f223a`. Exact compare from `b1474368...` has merge-base exactly `b1474368...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
+Current #1120 `74ecf53a3a2b7273eefb4eb6aeeaa79041fce90c` removes `.github/workflows/automation-1120-seed-ropc-repair.yml` and `.github/automation/repair_1120_seed_ropc.py` rather than adding another source-neutral wake commit. The predecessor run is stale and its live-branch/exact-SHA guard prevents mutation after the branch moved. This cleanup is not product GREEN and does not satisfy the seed RED.
+
+#1117 was immediately ordinary/non-force converged from exact #1120 plus its existing README blob to `b1bd9e0d19354a9bf7ec4a70093b472afdb66800`. Exact compare from `74ecf53a...` has merge-base exactly `74ecf53a...`, `behind_by=0`, and effective delta only `README.md`; predecessor child receipts do not transfer.
 
 Remaining auth RED:
 
-- land and verify the seed/bootstrap product repair and remove the temporary one-shot workflow/driver;
+- land and verify the seed/bootstrap product repair described by `fd3edd04...` without reintroducing a purpose-complete self-modifying workflow or no-op wake commit;
 - migrate `backend/tests/test_api.py` analyst/admin human ROPC without collapsing distinct viewer/admin authorization semantics;
 - keep public frontend direct grants enabled until all password-grant consumers migrate atomically, then disable them;
 - move PyJWT dependency floor, lock, and security regression evidence together rather than through metadata-only edits;
@@ -72,8 +74,8 @@ Remaining auth RED:
 | App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
 | Report contracts | #868 | frontend RED / PostgreSQL GREEN | recover or reproduce exact frontend failing acceptance; repair at causal owner, then converge descendants |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
-| Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority | refresh consumers/receipts against current released owner contracts |
-| Authentication | #899 → #1118 → #1120 `b1474368...` → #1117 `9176f961...` | migration RED; verifier/machine/browser prerequisites repaired; seed RED executable; runner queued | land + verify passwordless seed/bootstrap repair, delete temporary repair lane, migrate backend human ROPC, then disable public direct grants and obtain hosted/browser proof |
+| Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
+| Authentication | #899 → #1118 → #1120 `74ecf53a...` → #1117 `b1bd9e0d...` | migration RED; verifier/machine/browser prerequisites repaired; seed RED executable; temp repair lane removed | land + verify passwordless seed/bootstrap repair, migrate backend human ROPC, then disable public direct grants and obtain hosted/browser proof |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
