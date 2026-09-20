@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  leftoverMapAxisBadge,
   leftoverMapAxisBadgeShare,
   leftoverMapAxisBadgeSingular,
   LEFTOVER_MAP_AXIS_BADGE_SHARE,
   LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
+  LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY,
 } from "./leftoverMapAxisBadge";
 import {
   leftoverMapCompareAxisBadge,
@@ -17,10 +19,13 @@ import {
 } from "./leftoverMapPlotAxisSingular";
 
 describe("leftoverMapAxisBadgeShare", () => {
-  it("formats leftover-axis share percent without inventing a leftover score", () => {
-    expect(leftoverMapAxisBadgeShare(0.82)).toBe("82");
-    expect(leftoverMapAxisBadgeShare(0.18)).toBe("18");
-    expect(leftoverMapAxisBadgeShare(0)).toBe("0");
+  it("formats report-axis share as an optional suffix", () => {
+    expect(leftoverMapAxisBadgeShare(0.82)).toBe(" 82%");
+    expect(leftoverMapAxisBadgeShare(0.18)).toBe(" 18%");
+    expect(leftoverMapAxisBadgeShare(0)).toBe(" 0%");
+    expect(leftoverMapAxisBadgeShare(undefined)).toBe("");
+    expect(leftoverMapAxisBadgeShare(Number.NaN)).toBe("");
+    expect(leftoverMapAxisBadgeShare(Number.POSITIVE_INFINITY)).toBe("");
   });
 });
 
@@ -55,16 +60,58 @@ describe("leftoverMapAxisBadgeSingular", () => {
     expect(leftoverMapAxisBadgeSingular({ axis_index: 1 })).toBeNull();
   });
 
-  it("stays distinct from leftover-map graphic and comparison graphic leftover-map axis σ copy", () => {
-    expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).toBe("leftover axis {axis} σ {value} {share}%");
-    expect(LEFTOVER_MAP_AXIS_BADGE_SHARE).toBe("leftover axis {axis} {share}%");
+  it("keeps report copy distinct from plot and comparison copy", () => {
+    expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).toBe("leftover axis {axis} σ {value}{share}");
+    expect(LEFTOVER_MAP_AXIS_BADGE_SHARE).toBe("leftover axis {axis}{share}");
+    expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY).toBe("leftover axis {axis} σ {value}");
     expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SINGULAR);
     expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe(LEFTOVER_MAP_PLOT_AXIS_SINGULAR_SHARE);
     expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe(LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR);
     expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe(
       LEFTOVER_MAP_COMPARE_PLOT_AXIS_SINGULAR_SHARE,
     );
-    expect(LEFTOVER_MAP_AXIS_BADGE_SINGULAR).not.toBe("leftover axis {axis} σ {value}");
+  });
+});
+
+describe("leftoverMapAxisBadge", () => {
+  it("keeps singular-only, share-only, combined, and empty states independent", () => {
+    expect(
+      leftoverMapAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: 1.24,
+        leftover_share: 0.42,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_AXIS_BADGE_SINGULAR,
+      values: { axis: 1, value: "1.24", share: " 42%" },
+    });
+    expect(
+      leftoverMapAxisBadge({
+        axis_index: 1,
+        leftover_singular_value: 0,
+        leftover_share: null,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_AXIS_BADGE_SINGULAR_ONLY,
+      values: { axis: 1, value: "0.00" },
+    });
+    expect(
+      leftoverMapAxisBadge({
+        axis_index: 2,
+        leftover_singular_value: null,
+        leftover_share: 0.18,
+      }),
+    ).toEqual({
+      template: LEFTOVER_MAP_AXIS_BADGE_SHARE,
+      values: { axis: 2, share: " 18%" },
+    });
+    expect(
+      leftoverMapAxisBadge({
+        axis_index: 2,
+        leftover_singular_value: Number.NaN,
+        leftover_share: Number.POSITIVE_INFINITY,
+      }),
+    ).toBeNull();
   });
 });
 
