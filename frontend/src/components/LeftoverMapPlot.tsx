@@ -42,6 +42,7 @@ import {
   firstPlottablePairForPost,
   layoutLeftoverMapPlot,
   leftoverMapComparePlotCriterionBadge,
+  leftoverMapComparePlotPostBadge,
   leftoverMapPlotCriterionBadge,
   LEFTOVER_MAP_COMPARE_PLOT_CAPTION,
   LEFTOVER_MAP_COMPARE_PLOT_LABEL,
@@ -148,12 +149,31 @@ function leftoverMapPlotCriterionText(
   return `${t("Criterion ζ")} ${badge.values.label} · ζ ${badge.values.item}`;
 }
 
+function leftoverMapPlotPostText(
+  marker: { label: string; axis1: number; axis2: number },
+  variant: LeftoverMapPlotVariant,
+): string {
+  if (variant === "comparison") {
+    const badge = leftoverMapComparePlotPostBadge(marker.label, marker.axis1, marker.axis2);
+    if (badge === null) {
+      return `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${t("Post ξ")} ${marker.label}`;
+    }
+    return `${t(LEFTOVER_MAP_COMPARE_PLOT_LABEL)}: ${tf(LEFTOVER_MAP_PLOT_POST_ACTION, badge.values)}`;
+  }
+  const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
+  return tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
+    title: marker.label,
+    person,
+  });
+}
+
 /**
  * Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *
  * Person markers are posts; item markers are leftover criteria. Report and
  * comparison criterion markers keep distinct accessible names while composing
- * the already-localized criterion label with persisted ζ.
+ * the already-localized criterion label with persisted ζ. Comparison post
+ * markers name only persisted finite person axes with distinct accessible copy.
  * Click a post marker to open that post. Caption leftover-map axes with persisted
  * Gabriel inertia share when finite, including rank-0 zero-share axes.
  * Report and comparison graphic axes additionally name finite, non-negative
@@ -605,34 +625,28 @@ export function LeftoverMapPlot({
               </text>
             </g>
           ))}
-          {layout.persons.map((marker) => {
-            const person = formatLeftoverMapCoordinatePair(marker.axis1, marker.axis2) ?? "";
-            return (
-              <g
-                key={`person:${marker.id}`}
-                className="leftover-map-plot-marker"
-                role="button"
-                tabIndex={0}
-                aria-label={tf(LEFTOVER_MAP_PLOT_POST_ACTION, {
-                  title: marker.label,
-                  person,
-                })}
-                onClick={() => openPost(marker.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    openPost(marker.id);
-                  }
-                }}
-              >
-                <circle className="leftover-map-plot-person-hit" cx={marker.x} cy={marker.y} r={22} />
-                <circle className="leftover-map-plot-person" cx={marker.x} cy={marker.y} r={6} />
-                <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y - 10}>
-                  {marker.label}
-                </text>
-              </g>
-            );
-          })}
+          {layout.persons.map((marker) => (
+            <g
+              key={`person:${marker.id}`}
+              className="leftover-map-plot-marker"
+              role="button"
+              tabIndex={0}
+              aria-label={leftoverMapPlotPostText(marker, variant)}
+              onClick={() => openPost(marker.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openPost(marker.id);
+                }
+              }}
+            >
+              <circle className="leftover-map-plot-person-hit" cx={marker.x} cy={marker.y} r={22} />
+              <circle className="leftover-map-plot-person" cx={marker.x} cy={marker.y} r={6} />
+              <text className="leftover-map-plot-label" x={marker.x + 10} y={marker.y - 10}>
+                {marker.label}
+              </text>
+            </g>
+          ))}
         </svg>
       </div>
     </figure>
