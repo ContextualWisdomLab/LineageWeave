@@ -3,11 +3,12 @@
 > Current mutable authority overlay: 2026-09-20. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, or documentation workflow is not acceptance for a moved product head.
 
 > Live inventory at this read: 164 open PRs and 42 open issues. This count is
-> operational metadata, not release evidence. This update was based on #1041
-> parent head `9119775aa13ea7ea461a4c9aea914a85503ce670` against
-> `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR remains Draft.
-> Its full/frontend jobs are Draft-policy skipped, while admission and analysis
-> checks are queued. None is product acceptance.
+> operational metadata, not release evidence. This update starts from #1041
+> exact head `bdfc8e30540fdad9ef7095d90eb41049e79727a5` against
+> `main@83eba56149eb802cd63642c507c324c9976ec78e`; the PR is Ready.
+> New exact-head workflow receipts created by this edit remain authoritative for
+> acceptance; predecessor, skipped, queued, or documentation-only receipts are
+> not product GREEN.
 
 ## Delivery authority
 
@@ -36,9 +37,9 @@ Re-read both before merge or release; neither reference is a frozen dependency.
 
 ## Report / comparison stack
 
-#868 Tests `35448971227` is terminal FAILURE in the frontend `Test` step. The full/PostgreSQL suite is GREEN. Exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share. That stale App acceptance remains a valid source finding even though the available Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
+#868 Tests `35448971227` is terminal FAILURE in the frontend `Test` step. The full/PostgreSQL suite is GREEN. Exact #868 `App.test.tsx` still contains inherited share-only comparison-axis assertions while #861 production composes independently persisted σ and share. That stale App acceptance remains a valid source finding even though the available #868 Actions surface does not expose the failing Vitest node/output. Do not attribute this run to PostgreSQL or create a blind rerun.
 
-The comparison-coordinate reconstruction stack is also not GREEN. #876 exact `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` has Tests `35449409685` failing in both frontend job `105913841595` (`Test` after lint) and full-suite job `105913841700` (`Run full test suite against PostgreSQL`). #1033 exact `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` has Tests `35449469635`: PostgreSQL/full-suite job `105914000303` is GREEN, while frontend job `105914000414` fails its `Test` step after lint. #1034 exact `bb664b7aae733933c11b2fe056de2a7b16a02c15` has the same classification in Tests `35449496627`: PostgreSQL/full-suite job `105914068322` is GREEN, frontend job `105914068148` fails its `Test` step after lint. Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by #1033/#1034; neither historical PR nor its successor is closable merely by substitution while the successor heads remain RED. The exact frontend failing test node/output is still unavailable from the current Actions surface, so geometry, copy, and expectation changes must not be guessed.
+The comparison-coordinate reconstruction stack is also not GREEN. #876 exact `1dc3cec3c251a1cf4d4b53acfb8a21532c57f54b` has Tests `35449409685` failing in both frontend job `105913841595` (`Test` after lint) and full-suite job `105913841700` (`Run full test suite against PostgreSQL`). #1033 exact `dc9efcb0b16f8e9887e9d72ebef76fe28cf4b2ab` has Tests `35449469635`: PostgreSQL/full-suite job `105914000303` is GREEN, while frontend job `105914000414` fails `App > shows the synthetic sigma overlay data` at `src/__tests__/App.test.tsx:2010:36`. The stale expectation requires accessible name `leftover map comparison axis 1 (82%)`; the rendered contract exposes `leftover map comparison axis 1 (σ 1.84, 82%)`. The job ends with 1 failed / 64 passed tests. This is exact evidence that #861's inherited share-only accessible-label expectation is stale relative to the σ+share product contract; it is not a PostgreSQL/query failure and does not justify rolling production semantics backward. #1034 exact `bb664b7aae733933c11b2fe056de2a7b16a02c15` has Tests `35449496627`: PostgreSQL/full-suite job `105914068322` is GREEN and frontend job `105914068148` fails its `Test` step after lint; its exact failing Vitest node is not transferred from #1033 without its own receipt. Historical #878/#879 remain delta carriers whose valid criterion/post-coordinate intent is reconstructed by #1033/#1034; neither historical PR nor its successor is closable merely by substitution while the successor heads remain RED.
 
 The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 `182d3c9d4c5f2a8ab2d63e77b8a9ced663a183f6`. Report lanes must consume that repair through protected integration or verified succession rather than duplicate telemetry source.
 
@@ -90,14 +91,19 @@ requires synthetic authenticated PostgreSQL evidence plus rendered desktop and
 mobile evidence for zero-, one-, and multi-Voice states on the same candidate
 head.
 
-There is also a documentation identity collision that must not be resolved by
-intuition: ADR 0251 is the accepted I/O-Psychology semantic-layer decision,
-while ADR 0252 currently says it “extends ADR 0251” for temporal primary-Voice
-history. The Voice implementation authority is ADR 0246 plus the accepted
-temporal/persistence decisions and executable schema; the mismatched prose
-reference is unresolved until its owning ADR is corrected with an explicit
-amendment. No API, schema, release-number, or migration identity is changed by
-this baseline note.
+The ADR authority collision now has an explicit owner repair candidate rather
+than an unresolved prose note. Protected `main` still contains the stale ADR
+0252 references to unrelated I/O-Psychology ADR 0251. Fresh review of #1121
+found its original Status-only correction incomplete because ADR 0252's Context
+still attributed Voice-assignment start semantics to ADR 0251. RED
+`98276b96ccdbf3bbdf9305c9faa2337988f5cd6a` now rejects any remaining `ADR
+0251` reference in ADR 0252 and requires the Context to name ADR 0256. Causal
+fix `00c4944c5a423c1df12fab40d287981e246f2eea` corrects that Context authority
+reference as well. ADR 0256 is the evidence-bearing Voice-composition authority
+that defines the assignment interval semantics. #1121 is source-repaired, but
+its exact-head Tests/CodeQL/Security/SAST receipts are still pending and it is
+not protected delivery. This documentation repair also does not substitute for
+the runtime PostgreSQL/browser Voice-history acceptance above.
 
 ## Performance / immutable delivery
 
@@ -112,10 +118,11 @@ this baseline note.
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical owner checks, language review, browser/auth/performance acceptance |
 | App comparison acceptance | #861 | RED | repair exact σ+share App integration expectations, then ordinary descendant convergence |
 | App comparison layout | #861 | RED | rendered clipping/bounds RED across responsive + text-expansion states, then bounded layout fix |
-| Report contracts | #868; #876 → #1033 → #1034; historical #878/#879 | frontend RED; #876 PostgreSQL RED; #1033/#1034 PostgreSQL GREEN | recover exact frontend failing node/output; repair causal owner without guessing; converge descendants; keep historical delta carriers until verified GREEN succession |
+| Report contracts | #868; #876 → #1033 → #1034; historical #878/#879 | frontend RED; #876 PostgreSQL RED; #1033/#1034 PostgreSQL GREEN | repair #861-owned stale exact accessible-label expectation proven by #1033; verify #1034 independently; converge descendants; retain historical carriers until verified GREEN succession |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
 | Authentication | #899 → #1118 `306fc9dc...` → #1120 `fb7b6c61...` → #1117 `dd060d31...` | seed/bootstrap repaired; helper endpoint drift repaired; PyJWT floor/lock/verifier + APA 7th advisory trace source-repaired; backend ROPC still executable RED | wire distinct viewer/admin machine helpers into backend integration, disable public direct grants atomically, then obtain hosted/browser proof |
+| Voice ADR authority | #1121 `00c4944c...` | source repaired / exact-head checks pending | obtain exact-head GREEN + independent review, normal merge, then refresh protected-main authority evidence |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
 | Release identity | #961 | release RED | required gates + immutable release/SBOM/provenance/reproducibility/rollback |
