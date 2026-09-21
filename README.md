@@ -118,7 +118,8 @@ infrastructure -- PostgreSQL, Valkey, and a real Keycloak OIDC realm seeded
 with synthetic demo accounts -- runs via Docker Compose:
 
 ```bash
-make up      # docker compose up -d: postgres, valkey, keycloak, backend, frontend
+make up      # postgres, database_migration, valkey, searxng, keycloak,
+             # backend, frontend (the optional mcp profile stays off)
 make smoke   # real login as the synthetic demo user + JWT signature
              # verification against Keycloak's live JWKS -- proves the
              # OIDC round-trip actually works, not just that containers
