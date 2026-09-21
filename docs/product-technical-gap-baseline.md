@@ -1,12 +1,17 @@
 # Product & Technical Gap Baseline
 
-> Exact-head authority overlay: 2026-09-21 KST. Protected `main` is
-> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports 163
-> open PRs and 42 open issues. Organization ruleset 18156473 requires one
-> independent approval, resolved review threads, current central required
-> workflows, and non-fast-forward protection; repository ruleset 21065108 also
-> prohibits force pushes. This overlay is the current authority for queue and
-> delivery status. Older dated overlays and inventories below are retained as
+> Exact-head authority overlay: 2026-09-21T05:47:37Z (KST 2026-09-21 14:47:37+09:00). Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). At the capture timestamp,
+> GitHub Search reported 164 open PRs and 42 open issues. The snapshot includes
+> only items that were open and created at or before the capture timestamp;
+> items created after that timestamp are excluded until the next overlay. A
+> verification query found zero open PRs and zero open issues created after the
+> cutoff. Organization ruleset 18156473 requires one independent approval,
+> resolved review threads, current central required workflows, and
+> non-fast-forward protection; repository ruleset 21065108 also prohibits force
+> pushes. This overlay is point-in-time authority for queue and delivery status
+> at the capture timestamp; live GitHub state must be re-fetched before any
+> lifecycle action. Older dated overlays and inventories below are retained as
 > historical evidence only.
 >
 > The canonical remote names rechecked for this cycle are
@@ -971,7 +976,7 @@ post-merge reruns (not transferable evidence for later heads):
 | #762 | Evidence-bound project history (ADR 0243): /api/projects/{key}/history endpoint, project_history.py projection, fetchProjectHistory client, standalone ProjectHistoryTimeline component; supersedes #668 (3-way merge kept only the additive +2279/-0, dropping the branch's 8k shared-file reverts; popup UI hookup deferred as a scoped follow-up) | ADR 0243 |
 | #763 | Live-PostgreSQL A→B→A Voice history validation (ADR 0252) proving effective_from/effective_to interval replacement across repeated primary-Voice imports | ADR 0252 |
 | #764 | Test-only coverage lift: observability 78%→96%, post_summary 77%→89%, claim_verification 86%→99%; package line coverage 93.5%→95% (484→371 missing); 1651 Python tests green | — |
-| #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + synchronize trigger), refined 0237 `least()` effective_from backfill, `effective_from/effective_to` dataclass/export + `coalesce($2,$3)` cutoff predicate. Completes the half-shipped main layer that queried `voice.effective_to` against a missing column. CI Full suite 19m13s green | ADR 0252 |
+| #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + `clock_timestamp()` after the source-row lock, API/ontology half-open cutoff SQL). v2.22.1 adds synthetic PostgreSQL integration tests for A → B → A at before/between/after cutoffs, concurrent primary updates, additional-assignment close, and 0237→0243 trigger replay. CI Full suite 19m13s green | ADR 0252 |
 | #629 | Provider work released before embedding pool bound; landing reads bounded (k6-verified concurrency); merged with strix-only infra timeout (Full suite + all other gates green) | — |
 | #750 | Leftover-map unexplained leftover share persisted (`report_leftover_map_unexplained_share`, share `s = U² / R²`) | ADR 0233 |
 | #749 | Authorized job-family/job-series import snapshots (`0223_authorized_job_architecture`) | ADR 0263 |
