@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+> Exact-head authority overlay: 2026-09-21T11:31:18Z (KST 2026-09-21
+> 20:31:18+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub GraphQL
+> reported 164 open PRs and 42 open issues at this capture; these counts are a
+> point-in-time queue inventory of items open and created at or before the
+> capture timestamp, not delivery evidence. Items created after the capture are
+> excluded until the next overlay. Lifecycle decisions still require a fresh
+> exact-head, ruleset, review-thread, approval, and Check query.
+>
+> The highest user-impact gap remains browser sign-in continuity. Stacked draft
+> PR #1124 now carries the safe recovery increment at exact head
+> `395742312682011624cd9a03d2fd8a5486249f89`, above #1120 and its required
+> parents #1118 and #899. The candidate preserves a same-origin deep link,
+> removes one-time authorization response fields, requires correlated callback
+> evidence before remembered-path precedence, and gives the user one safe retry
+> action without exposing identity-provider details. On this exact candidate,
+> frontend lint passed, all 536 frontend tests passed, and the production build
+> completed. Authenticated Playwright acceptance passed on desktop and mobile:
+> the browser used Authorization Code with PKCE, restored the requested path,
+> reached `/api/me`, and rendered the provider-detail-free recovery state in
+> both viewports. Those local receipts do not satisfy protected delivery: #1124
+> stays Draft on #1120, and the stack must land #899 first, then retarget and
+> recollect exact-head evidence one child at a time.
+>
+> A synthetic authenticated k6 observation was attempted with 4 VUs, a
+> 15-second window, and a declared 20-second request boundary. The active
+> canonical Compose Keycloak rejected the test-automation client before Ask
+> submission, so no concurrency, latency, error-rate, throughput, PostgreSQL,
+> worker, Valkey, or gateway saturation claim is available from that run. The
+> failure is an authentication/configuration admission failure, not an observed
+> application bottleneck; no product workaround or threshold is inferred.
+
 > Exact-head authority overlay: 2026-09-21T05:47:37Z (KST 2026-09-21 14:47:37+09:00). Protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). At the capture timestamp,
 > GitHub Search reported 164 open PRs and 42 open issues. The snapshot includes
