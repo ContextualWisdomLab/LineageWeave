@@ -45,6 +45,17 @@ export type LeftoverPairListProps = {
   onSelectPost: (pair: LeftoverPair) => void;
 };
 
+type AccessibleEvidenceKey =
+  | "residual"
+  | "observedExpected"
+  | "rank"
+  | "unexplained"
+  | "unexplainedShare"
+  | "explainedShare"
+  | "crossShare"
+  | "reconstruction"
+  | "coordinates";
+
 /** Join buyer-visible evidence without inventing unavailable values. */
 function leftoverPairAccessibleName(parts: Array<string | null | undefined>): string {
   return parts
@@ -172,6 +183,7 @@ export function LeftoverPairList({
           pair.leftover_map_item_axis_1,
           pair.leftover_map_item_axis_2,
         );
+        const nextActionEvidence = new Set<AccessibleEvidenceKey>();
         let nextAction: string;
         if (coordinatesBadge !== null && personCoordinateValue !== null && itemCoordinateValue !== null) {
           nextAction = tf(LEFTOVER_MAP_COORDINATES_ACTION, {
@@ -179,21 +191,25 @@ export function LeftoverPairList({
             item: itemCoordinateValue,
             criterion,
           });
+          nextActionEvidence.add("coordinates");
         } else if (explainedShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_EXPLAINED_SHARE_ACTION, {
             value: explainedShareValue,
             criterion,
           });
+          nextActionEvidence.add("explainedShare");
         } else if (unexplainedShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION, {
             value: unexplainedShareValue,
             criterion,
           });
+          nextActionEvidence.add("unexplainedShare");
         } else if (crossShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_CROSS_SHARE_ACTION, {
             value: crossShareValue,
             criterion,
           });
+          nextActionEvidence.add("crossShare");
         } else if (reconstruction !== null) {
           const signedReconstruction =
             formatSignedLeftoverValue(pair.leftover_map_reconstruction ?? Number.NaN) ?? "—";
@@ -201,6 +217,7 @@ export function LeftoverPairList({
             value: signedReconstruction,
             criterion,
           });
+          nextActionEvidence.add("reconstruction");
         } else if (unexplained !== null) {
           const signedUnexplained =
             formatSignedLeftoverValue(pair.leftover_map_unexplained ?? Number.NaN) ?? "—";
@@ -208,6 +225,7 @@ export function LeftoverPairList({
             value: signedUnexplained,
             criterion,
           });
+          nextActionEvidence.add("unexplained");
         } else if (rankBadge !== null && observedExpected !== null) {
           nextAction =
             pair.leftover_map_rank === 0
@@ -226,6 +244,7 @@ export function LeftoverPairList({
                     expected: Number(pair.expected_response).toFixed(2),
                   },
                 );
+          nextActionEvidence.add("rank").add("observedExpected");
         } else if (rankBadge !== null) {
           nextAction =
             pair.leftover_map_rank === 0
@@ -233,6 +252,7 @@ export function LeftoverPairList({
               : tf(LEFTOVER_RANK_STRUCTURE_ACTION, {
                   rank: String(pair.leftover_map_rank),
                 });
+          nextActionEvidence.add("rank");
         } else if (observedExpected !== null) {
           nextAction = tf(
             "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
@@ -241,11 +261,13 @@ export function LeftoverPairList({
               expected: Number(pair.expected_response).toFixed(2),
             },
           );
+          nextActionEvidence.add("observedExpected");
         } else if (residualBadge !== null) {
           nextAction = tf(
             "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
             { residual, criterion },
           );
+          nextActionEvidence.add("residual");
         } else {
           nextAction = t("Open this post so the leftover criterion is current in Post quality.");
         }
@@ -260,15 +282,15 @@ export function LeftoverPairList({
               aria-label={leftoverPairAccessibleName([
                 visibleLabel,
                 nextAction,
-                residualBadge,
-                observedExpected,
-                rankBadge,
-                unexplained,
-                unexplainedShareBadge,
-                explainedShareBadge,
-                crossShareBadge,
-                reconstruction,
-                coordinatesBadge,
+                !nextActionEvidence.has("residual") ? residualBadge : null,
+                !nextActionEvidence.has("observedExpected") ? observedExpected : null,
+                !nextActionEvidence.has("rank") ? rankBadge : null,
+                !nextActionEvidence.has("unexplained") ? unexplained : null,
+                !nextActionEvidence.has("unexplainedShare") ? unexplainedShareBadge : null,
+                !nextActionEvidence.has("explainedShare") ? explainedShareBadge : null,
+                !nextActionEvidence.has("crossShare") ? crossShareBadge : null,
+                !nextActionEvidence.has("reconstruction") ? reconstruction : null,
+                !nextActionEvidence.has("coordinates") ? coordinatesBadge : null,
                 distanceBadge,
               ])}
               title={t("Open this post so the leftover criterion is current in Post quality.")}
