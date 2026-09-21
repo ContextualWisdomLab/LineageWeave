@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-21T16:44:17Z (KST 2026-09-22
+> 01:44:17+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). Lifecycle actions
+> still require a fresh exact-head, ruleset, review-thread, approval, and Check
+> query; this overlay records only evidence actually re-read in this run.
+>
+> Canonical-owner promotion is now a first-class blocker for parent PR #899 at
+> exact `c943060c7c16f74faf48d1ee40eaa5301c830065`. The repository-local cleanup
+> removed embedded provider/orchestrator ownership, but its remaining consumer
+> still authors `POST /v1/chat/completions`, parses the owner wire response,
+> exposes caller-selected reasoning effort, and defaults the model call to
+> `180.0s`. The contextual-orchestrator Releases API still returns `[]`; owner
+> issue `contextual-orchestrator#1083` therefore remains the release authority.
+> #899 must consume a released API/client/schema contract after that immutable
+> owner release and must not copy the owner client/schema or bind to mutable
+> `main`. The consumer bump must also remove the local fixed timeout so the
+> released contract owns cancellation/provider/admin-timeout outcomes. #899's
+> exact-head Tests and SAST are successful, while Security and CodeQL remain
+> queued; those local receipts do not satisfy the unreleased-owner boundary or
+> independent-approval gate.
+>
+> Ready PR #1121 remains fail-closed at exact
+> `dbabff85c72801a1a72a33dc69f969e032dc17b2`: Tests, SAST, and Security are
+> current-head successes, but CodeQL attempt 2 has only completed language
+> detection; its JavaScript/TypeScript, Actions, and Python compatibility jobs
+> remain queued without runner admission. Ready PR #1123 is the single writer
+> for this baseline; predecessor hosted receipts do not transfer after this
+> overlay/test change, and no independent approval is inferred. Stacked Draft
+> #1124 remains candidate-only browser evidence above #1120. No self-approval,
+> force push, destructive rebase, mutable-owner pin, stale receipt transfer,
+> gate weakening, blind rerun, protected-main merge, or release is used.
+
 > Exact-head validation overlay: 2026-09-21T16:18:01Z (KST 2026-09-22
 > 01:18:01+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub Search
