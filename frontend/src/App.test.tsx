@@ -4203,9 +4203,9 @@ describe("App, authenticated", () => {
       "Leftover map dropped 0 incomplete criteria",
     );
     const coverageCaption = screen.getByLabelText("Leftover map coverage");
-    const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
+    const closestPair = screen.getByRole("button", { name: /^closest leftover: public post · sales-lead /i });
     const farthestPair = screen.getByRole("button", {
-      name: /open leftover farthest pair: specification revision requested/i,
+      name: /^farthest leftover: specification revision requested · negative /i,
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     // Leftover-map coordinates are present, so they name the next action
@@ -4223,7 +4223,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("R̂ +0.25");
     expect(closestPair).toHaveTextContent("ξ (+0.50, +0.10) ζ (+0.50, −0.02)");
     expect(closestPair).toHaveTextContent("d 0.12");
-    expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
+    expect(closestPair).toHaveAccessibleName(/^Closest leftover: Public post · sales-lead /);
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Leftover map places this post at ξ (+0.90, +0.80) and the criterion at ζ (−0.70, −0.40) after IRT main effects. Open this post to read negative.",
@@ -4438,7 +4438,7 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
+      await screen.findByRole("button", { name: /^closest leftover: public post · sales-lead /i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
@@ -4454,7 +4454,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(
       await screen.findByRole("button", {
-        name: /open leftover farthest pair: specification revision requested/i,
+        name: /^farthest leftover: specification revision requested · negative /i,
       }),
     );
     await waitFor(() =>

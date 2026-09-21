@@ -100,3 +100,11 @@ jobs:
       - name: Build Storybook
         working-directory: frontend
         run: pnpm run build-storybook
+
+      - name: Install Chromium for Storybook browser acceptance
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Exercise Storybook interactions in Chromium
+        working-directory: frontend
+        run: pnpm run test:storybook:browser

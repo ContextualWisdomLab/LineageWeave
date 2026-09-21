@@ -46,7 +46,7 @@ describe("LeftoverPairList", () => {
 
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
     const closest = screen.getByRole("button", {
-      name: "Open leftover closest pair: Public post · sales-lead",
+      name: /^Closest leftover: Public post · sales-lead /,
     });
     expect(closest).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closest).toHaveTextContent(
@@ -58,7 +58,7 @@ describe("LeftoverPairList", () => {
     expect(closest).toHaveTextContent("d 0.12");
 
     const farthest = screen.getByRole("button", {
-      name: "Open leftover farthest pair: Specification revision requested · negative",
+      name: /^Farthest leftover: Specification revision requested · negative /,
     });
     expect(farthest).toHaveTextContent("R −1.10");
     expect(farthest).toHaveTextContent("Y 0.90 · E 2.00");
@@ -148,7 +148,7 @@ describe("LeftoverPairList", () => {
     );
 
     const closest = screen.getByRole("button", {
-      name: "Open leftover closest pair: Public post · sales-lead",
+      name: /^Closest leftover: Public post · sales-lead /,
     });
     expect(closest).toHaveTextContent(
       "Leftover map places this post at ξ (+0.50, +0.10) and the criterion at ζ (+0.50, −0.02) after IRT main effects. Open this post to read sales-lead.",
