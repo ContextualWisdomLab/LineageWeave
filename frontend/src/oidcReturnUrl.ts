@@ -32,27 +32,33 @@ function isSafeReturnUrl(value: string): boolean {
   );
 }
 
+function sanitizeReturnUrl(value: string): string {
+  if (!isSafeReturnUrl(value)) return "";
+  const url = new URL(value, "https://lineageweave.invalid");
+  stripOidcCallbackParams(url);
+  const cleaned = `${url.pathname}${url.search}${url.hash}`;
+  return isSafeReturnUrl(cleaned) ? cleaned : "";
+}
+
 export function returnUrlFromLocation(location: UrlLike = window.location): string {
   // A restored return URL can itself be a post-redirect URL still carrying
   // Keycloak callback artifacts (devin review thread on PR #576): strip
   // them here too, so no consumer of this module re-mints a URL with a
   // one-time authorization code in it.
-  const params = new URLSearchParams(location.search);
-  OIDC_CALLBACK_PARAMS.forEach((param) => params.delete(param));
-  const cleanedSearch = params.toString();
-  const value = `${location.pathname}${cleanedSearch ? `?${cleanedSearch}` : ""}${location.hash}`;
-  return isSafeReturnUrl(value) ? value : "/";
+  const value = `${location.pathname}${location.search}${location.hash}`;
+  return sanitizeReturnUrl(value) || "/";
 }
 
 export function rememberOidcReturnUrl(value: string): void {
-  if (!isSafeReturnUrl(value)) return;
+  const cleaned = sanitizeReturnUrl(value);
+  if (!cleaned) return;
   try {
-    window.sessionStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, value);
+    window.sessionStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, cleaned);
   } catch {
     // OIDC state remains the fallback when session storage is unavailable.
   }
   try {
-    window.localStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, value);
+    window.localStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, cleaned);
   } catch {
     // The OIDC state and session storage remain the fallbacks.
   }
@@ -61,7 +67,8 @@ export function rememberOidcReturnUrl(value: string): void {
 function stateReturnUrl(state: unknown): string {
   let candidate = state;
   if (typeof candidate === "string") {
-    if (isSafeReturnUrl(candidate)) return candidate;
+    const cleaned = sanitizeReturnUrl(candidate);
+    if (cleaned) return cleaned;
     if (candidate.length > MAX_OIDC_RETURN_URL_LENGTH) return "";
     try {
       candidate = JSON.parse(candidate);
@@ -73,7 +80,7 @@ function stateReturnUrl(state: unknown): string {
     return "";
   }
   const value = (candidate as { returnUrl?: unknown }).returnUrl;
-  return typeof value === "string" && isSafeReturnUrl(value) ? value : "";
+  return typeof value === "string" ? sanitizeReturnUrl(value) : "";
 }
 
 export function restoreOidcReturnUrl(state: unknown): string {
@@ -93,8 +100,10 @@ export function restoreOidcReturnUrl(state: unknown): string {
     // Fall through to the current path.
   }
   if (fromState) return fromState;
-  if (isSafeReturnUrl(sessionStored)) return sessionStored;
-  if (isSafeReturnUrl(localStored)) return localStored;
+  const fromSession = sanitizeReturnUrl(sessionStored);
+  if (fromSession) return fromSession;
+  const fromLocal = sanitizeReturnUrl(localStored);
+  if (fromLocal) return fromLocal;
   return new URLSearchParams(window.location.search).has("post")
     ? returnUrlFromLocation()
     : window.location.pathname;
