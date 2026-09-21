@@ -27,8 +27,11 @@ itself, prove that the current URL is the response to the OIDC transaction that
 created remembered return-path storage. LineageWeave sends `state` on the
 Authorization Code request; OAuth 2.0 and OpenID Connect require that value to
 be returned on both success and error responses when it was present in the
-request. Remembered-path precedence therefore needs both the returned `state`
-and a response signal. `state` alone is likewise insufficient.
+request. A valid Authorization Code response also has a primary outcome member:
+`code` for success or `error` for failure. `session_state`, `iss`,
+`error_description`, and `error_uri` are ancillary metadata and cannot establish
+a success or error response by themselves. Remembered-path precedence therefore
+needs returned `state` plus `code` or `error`; either side alone is insufficient.
 
 A lexical leading-slash check is not sufficient to prove that a candidate is a
 same-origin path. WHATWG URL parsing treats backslashes as authority separators
@@ -59,13 +62,15 @@ local deep link rather than rejecting the invalid admission.
 - When retrying while the browser is still on an OIDC success/error callback,
   prefer the validated path remembered before redirect over the callback's
   sanitized redirect-URI path only when `state` is present together with a
-  response signal (`code`, an OAuth `error*` field, `session_state`, or `iss`).
-  `state` alone and response-looking query names without `state` are still
-  scrubbed as reserved protocol data, but neither condition authorizes stale
-  browser storage to override otherwise current product navigation. This is
-  consistent with RFC 6749 §§4.1.2 and 4.1.2.1 and OpenID Connect Core 1.0,
-  which require the authorization response to return `state` when the request
-  supplied it.
+  primary Authorization Code response member: `code` for success or `error`
+  for failure. `state` alone, `code`/`error` without `state`, and ancillary
+  metadata (`session_state`, `iss`, `error_description`, `error_uri`) without a
+  primary outcome are still scrubbed as reserved protocol data, but none of
+  those incomplete shapes authorizes stale browser storage to override current
+  product navigation. This follows RFC 6749 §§4.1.2 and 4.1.2.1: success
+  responses carry `code`, error responses carry `error`, and either response
+  returns `state` when the request supplied it. OpenID Connect metadata does
+  not replace that primary OAuth response member.
 - Ordinary product navigation without correlated callback evidence continues
   to derive its return path from the current location.
 - On callback, remove the key from both stores and use session storage before
@@ -79,15 +84,15 @@ local deep link rather than rejecting the invalid admission.
 Opening a shared post link survives a missing OIDC state payload or a changed
 storage context without losing the post. A failed provider callback no longer
 replaces the pre-redirect deep link with `/` merely because the callback was
-rooted at the redirect URI, while an unrelated lone `state`, `code`, `error`,
-or other response-shaped query cannot make stale return-path storage win over
-current product navigation without the correlated `state` + response-signal
-shape. Successful and failed authorization response fields are not minted into
-a later product return path, including when an older stored/state value is
-recovered. Inputs that only look path-relative before parsing but resolve to
-another origin are rejected instead of being host-stripped into a different
-local path. A stale internal return path is removed at callback, and
-authorization still comes only from the authenticated OIDC token and backend
+rooted at the redirect URI, while incomplete response-shaped query combinations
+cannot make stale return-path storage win over current product navigation. A
+remembered path is preferred only for the correlated `state + code` or
+`state + error` shapes. Successful and failed authorization response fields are
+not minted into a later product return path, including when an older
+stored/state value is recovered. Inputs that only look path-relative before
+parsing but resolve to another origin are rejected instead of being host-stripped
+into a different local path. A stale internal return path is removed at callback,
+and authorization still comes only from the authenticated OIDC token and backend
 ABAC checks.
 
 ## References
