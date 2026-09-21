@@ -1,5 +1,68 @@
 # Product & Technical Gap Baseline
 
+> Exact-head authority overlay: 2026-09-21 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports 163
+> open PRs and 42 open issues. Organization ruleset 18156473 requires one
+> independent approval, resolved review threads, current central required
+> workflows, and non-fast-forward protection; repository ruleset 21065108 also
+> prohibits force pushes. This overlay is the current authority for queue and
+> delivery status. Older dated overlays and inventories below are retained as
+> historical evidence only.
+>
+> The canonical remote names rechecked for this cycle are
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/contextual-orchestrator`. LineageWeave's current PRD,
+> RankWeave's architecture authority, ThreadWeave's PRD, DiskSage's current
+> product authority, TEPP's approved PRD v0.4, and contextual-orchestrator's
+> architecture authority were re-read before selecting work.
+>
+> Current protected-main Voice-of-X source contracts preserve ADR 0246's 12
+> atomic classifications as an extensible catalog and ADR 0252's temporal
+> primary-Voice history. The normalized additional-Voice store, explicit truth
+> state, PROV-O assignment projection, cutoff-aware read path, exact-value
+> carrying-Post/evidence separation, and paged JSON-LD property union all exist
+> in source with synthetic regressions. They are not promoted here to current
+> runtime acceptance: this cycle has not produced a fresh authenticated
+> PostgreSQL API receipt and inspected desktop/mobile rendering from this exact
+> protected head. Hidden evidence remains omitted rather than replaced with the
+> carrying Post, and no fixed combination code or B2B2C-only cross-product is
+> introduced.
+> The repository's ADR numbers matter here: ADR 0251 governs the FJA
+> I/O-Psychology semantic layer, not Voice composition. Evidence-bearing
+> multi-Voice composition is governed by ADR 0256, with temporal primary-Voice
+> history in ADR 0252. PR #1121 repairs the stale authority link at exact head
+> `dbabff85c72801a1a72a33dc69f969e032dc17b2`; its checks and auto-merge cannot
+> substitute for the still-missing independent approval.
+>
+> Highest user-impact delivery lane: critical authorization issue #1119 is
+> implemented in stacked candidate #1120, but its parent order remains #899 →
+> #1118 → #1120. Parent #899 exact head
+> `c943060c7c16f74faf48d1ee40eaa5301c830065` has normal squash auto-merge
+> armed and is waiting on current-head workflows plus an independent approval;
+> the draft children remain on their parent branches and cannot inherit parent
+> evidence. Critical summary-catalog authorization candidate #1079 exact head
+> `c2923950e73c88a9f9fd932332ddd47682da124b` has its focused authenticated
+> PostgreSQL integration receipt and auto-merge armed, but still lacks an
+> independent approval and has failed/cancelled required-review jobs. Neither
+> candidate is a protected-main or deployed-product claim.
+>
+> Next safe implementation remains unavailable while those ownership gates are
+> unresolved: catalog pool-lease repair #1077 must follow authorization #1078 /
+> PR #1079, and must change the canonical catalog lease boundary rather than
+> duplicate hierarchy, provider, or matching logic in a caller. No pool-size
+> workaround, local heuristic, or Python replacement for owner arithmetic is
+> accepted. Pending Checks are not treated as a reason to rewrite another PR's
+> scope; independent work continues only where ancestry and ownership are
+> non-overlapping.
+>
+> Cross-PR identity audit also found an unresolved release collision in the
+> open leftover-map stack: PRs #876 and #877 both advertise `v2.92.0` while
+> carrying different heads and changes. They must not both be retargeted or
+> released under that identity. Resolve the parent order and assign one
+> canonical release number before collecting fresh `main`-targeted evidence.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
