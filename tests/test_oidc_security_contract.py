@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
+
+import pytest
 
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +79,20 @@ def test_machine_smoke_and_backend_share_one_jwks_key_selector() -> None:
     assert "select_rs256_signing_key" in backend_auth
     assert "def _signing_key_from_jwks" not in smoke
     assert "RSAAlgorithm" not in smoke
+
+
+def test_shared_selector_contract_rejects_comment_only_mentions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A comment naming the selector is not evidence that either actor imports it."""
+    comment_only = tmp_path / "comment_only.py"
+    comment_only.write_text("# select_rs256_signing_key\n", encoding="utf-8")
+    module = sys.modules[__name__]
+    monkeypatch.setattr(module, "_SMOKE_SCRIPT", comment_only)
+    monkeypatch.setattr(module, "_BACKEND_AUTH", comment_only)
+
+    with pytest.raises(AssertionError):
+        test_machine_smoke_and_backend_share_one_jwks_key_selector()
 
 
 def test_repository_owned_auth_actors_do_not_use_password_grants() -> None:
