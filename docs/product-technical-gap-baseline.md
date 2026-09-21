@@ -1,5 +1,36 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-21T13:57:52Z (KST 2026-09-21
+> 22:57:52+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The highest
+> user-impact browser sign-in continuity candidate is stacked Draft #1124 at
+> exact head `a5281e85fb5765c9b0d1ccf3831233eb2627a9cb`; parent order remains
+> #899 → #1118 → #1120 → #1124, so none of this child's evidence
+> transfers to protected `main` or its parents.
+>
+> Fresh local verification on that exact head passed frontend lint, all 538
+> frontend tests, the production build, and the Storybook build. The existing
+> `Chrome/Sign-in recovery` story was rendered and visually inspected at
+> 1440×1000 and 390×844 CSS pixels: the recovery message and single retry
+> action remain complete, readable, and horizontally contained with existing
+> product styling. These are exact-head local and component-rendering receipts,
+> not authenticated browser-to-PostgreSQL acceptance or protected delivery.
+> The current head has only a Draft-admission-skipped hosted Tests run and no
+> qualifying independent approval, so the acceptance condition remains
+> unavailable and the PR stays Draft.
+>
+> PR #1121 remains fail-closed at exact head
+> `dbabff85c72801a1a72a33dc69f969e032dc17b2`: Tests, SAST, Security, and the
+> independent Noema approval are current-head evidence, but required CodeQL is
+> terminal failed while its final coordinator succeeded without publishing the
+> authenticated terminal receipt consumed by the receiver. This is a canonical
+> workflow-producer/reconciliation blocker, not a Voice source defect. PR #1123
+> has no unresolved review thread at exact head
+> `1c0c88e9f625a4ad04e3fbcca311fe59cc50444d`; local documentation hygiene is
+> 15/15, while its hosted product checks and independent approval remain
+> unavailable. No self-approval, bypass, force push, blind retry, or stale-head
+> receipt transfer is used.
+
 > Exact-head authority overlay: 2026-09-21T11:31:18Z (KST 2026-09-21
 > 20:31:18+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub GraphQL

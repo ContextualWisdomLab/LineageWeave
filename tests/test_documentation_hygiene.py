@@ -145,9 +145,10 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
 
 def test_product_gap_baseline_queue_snapshot_is_timestamped_and_scoped() -> None:
     """Queue counts are auditable snapshots, not self-updating current-state claims."""
-    overlay = "\n".join(
-        _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8").splitlines()[:20]
-    )
+    baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+    overlay = "> Exact-head authority overlay:" + baseline.split(
+        "> Exact-head authority overlay:", 1
+    )[1].split("\n> Exact-head authority overlay:", 1)[0]
     assert re.search(
         r"Exact-head authority overlay: 2026-09-21T11:31:18Z \(KST [^)]+\)",
         overlay,
@@ -160,9 +161,10 @@ def test_product_gap_baseline_queue_snapshot_is_timestamped_and_scoped() -> None
 
 def test_latest_gap_snapshot_keeps_auth_head_observed_at_its_capture() -> None:
     """A timestamped point-in-time overlay cannot be rewritten with a later PR head."""
-    overlay = "\n".join(
-        _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8").splitlines()[:36]
-    )
+    baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+    overlay = "> Exact-head authority overlay:" + baseline.split(
+        "> Exact-head authority overlay:", 1
+    )[1].split("\n> Exact-head authority overlay:", 1)[0]
 
     assert "`395742312682011624cd9a03d2fd8a5486249f89`" in overlay
     assert "all 536 frontend tests passed" in overlay
