@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-21T16:18:01Z (KST 2026-09-22
+> 01:18:01+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub Search
+> reported 164 open PRs and 42 open issues at this cutoff; zero currently open
+> PRs and issues were created after it. Items created later belong to the next
+> overlay. Lifecycle actions still require a fresh exact-head, ruleset,
+> review-thread, approval, and Check query.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Its
+> minimal candidate is stacked Draft #1124 at exact head
+> `a5281e85fb5765c9b0d1ccf3831233eb2627a9cb`, based on #1120 rather than
+> `main`. The candidate preserves an admitted same-origin return path, removes
+> one-time authorization response fields, requires a correlated success or
+> error response before remembered-path precedence, and renders one safe retry
+> action with existing tokens and Storybook inventory. Exact-head local lint,
+> 538 frontend tests, production build, Storybook build, and inspected
+> 1440x1000 and 390x844 component renders are candidate evidence only. The
+> hosted Tests jobs were skipped under Draft admission, and no authenticated
+> browser-to-PostgreSQL receipt exists on this head. The acceptance condition
+> therefore remains unavailable. Parent order stays #899 -> #1118 -> #1120 ->
+> #1124; no child evidence transfers to a parent or protected `main`.
+>
+> Ready PR #1121 remains open and normally auto-merge-enabled at exact head
+> `dbabff85c72801a1a72a33dc69f969e032dc17b2`. It has zero unresolved review
+> threads and current-head Tests, SAST, Security, Noema, Strix, coverage, and
+> primary CodeQL success. Three CodeQL compatibility jobs and OpenCode review
+> remain queued, while the ruleset's independent approval is still unmet;
+> `reviewDecision` is `REVIEW_REQUIRED`. Ready PR #1123 is also normally
+> auto-merge-enabled at this document head, with every published review thread
+> resolved, but its hosted jobs and independent approval remain pending. No
+> self-approval, admin bypass, force push, stale-head receipt transfer, or
+> speculative unavailable-state promotion is used.
+
 > Exact-head validation overlay: 2026-09-21T13:57:52Z (KST 2026-09-21
 > 22:57:52+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The highest
