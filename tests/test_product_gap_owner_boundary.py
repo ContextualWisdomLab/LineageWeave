@@ -27,3 +27,19 @@ def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() 
     assert "`180.0s`" in overlay
     assert "released API/client/schema" in overlay
     assert "bind to mutable `main`" in overlay
+
+
+def test_latest_validation_overlay_classifies_translation_ledger_hosted_failure() -> None:
+    """The #929 hosted RED must retain its runner-provenance classification."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+
+    assert "#929" in overlay
+    assert "`d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`" in overlay
+    assert "`35236145547`" in overlay
+    assert "`105252445377`" in overlay
+    assert "file or directory not found: tests" in overlay
+    assert "collected 0 items" in overlay
+    assert "workspace/config-provenance" in overlay
+    assert ".github#712" in overlay
+    assert "not an i18n/product assertion failure" in overlay
+    assert "blind rerun" in overlay
