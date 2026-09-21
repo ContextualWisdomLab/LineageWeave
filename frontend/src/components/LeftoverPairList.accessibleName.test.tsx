@@ -16,12 +16,91 @@ const PAIR: LeftoverPair = {
   leftover_map_rank: 1,
 };
 
+const ACTION_EVIDENCE_CASES: Array<[string, Partial<LeftoverPair>, string]> = [
+  [
+    "rank-only",
+    { observed_response: null, expected_response: null, leftover_map_rank: 2 },
+    "rank 2",
+  ],
+  ["observed/expected", { leftover_map_rank: null }, "Y 2.40"],
+  ["unexplained", { leftover_map_unexplained: 0.05 }, "U +0.05"],
+  [
+    "reconstruction",
+    { leftover_map_unexplained: 0.05, leftover_map_reconstruction: 0.35 },
+    "R̂ +0.35",
+  ],
+  [
+    "cross share",
+    {
+      leftover_map_unexplained: 0.05,
+      leftover_map_reconstruction: 0.35,
+      leftover_map_cross_share: 0.13,
+    },
+    "0.13",
+  ],
+  [
+    "unexplained share",
+    {
+      leftover_map_unexplained: 0.05,
+      leftover_map_reconstruction: 0.35,
+      leftover_map_cross_share: 0.13,
+      leftover_map_unexplained_share: 0.23,
+    },
+    "0.23",
+  ],
+  [
+    "explained share",
+    {
+      leftover_map_unexplained: 0.05,
+      leftover_map_reconstruction: 0.35,
+      leftover_map_cross_share: 0.13,
+      leftover_map_unexplained_share: 0.23,
+      leftover_map_explained_share: 0.76,
+    },
+    "0.76",
+  ],
+  [
+    "coordinates",
+    {
+      leftover_map_unexplained: 0.05,
+      leftover_map_reconstruction: 0.35,
+      leftover_map_cross_share: 0.13,
+      leftover_map_unexplained_share: 0.23,
+      leftover_map_explained_share: 0.76,
+      leftover_map_person_axis_1: 0.5,
+      leftover_map_person_axis_2: 0.1,
+      leftover_map_item_axis_1: 0.5,
+      leftover_map_item_axis_2: -0.02,
+    },
+    "ξ (+0.50, +0.10)",
+  ],
+];
+
 function criterionLabel(code: string): string {
   return code === "sales_lead_quality" ? "sales-lead" : code;
 }
 
+function occurrences(value: string, token: string): number {
+  return value.split(token).length - 1;
+}
+
+function accessibleNameFor(overrides: Partial<LeftoverPair> = {}): string {
+  render(
+    <LeftoverPairList
+      pairs={[{ ...PAIR, ...overrides }]}
+      criterionLabel={criterionLabel}
+      onSelectPost={vi.fn()}
+    />,
+  );
+  return (
+    screen
+      .getByRole("button", { name: /^Closest leftover: Public post · sales-lead / })
+      .getAttribute("aria-label") ?? ""
+  );
+}
+
 describe("LeftoverPairList accessible action name", () => {
-  it("starts with the rendered label and carries the finite evidence on the action", async () => {
+  it("starts with the rendered label and carries each finite evidence value once", async () => {
     const onSelectPost = vi.fn();
     render(
       <LeftoverPairList
@@ -40,9 +119,38 @@ describe("LeftoverPairList accessible action name", () => {
     expect(action).toHaveAccessibleName(/rank 1/);
     expect(action).toHaveAccessibleName(/d 0\.12/);
 
+    const name = action.getAttribute("aria-label") ?? "";
+    expect(occurrences(name, "rank 1")).toBe(1);
+    expect(occurrences(name, "Y 2.40")).toBe(1);
+    expect(occurrences(name, "E 2.00")).toBe(1);
+    expect(occurrences(name, "R +0.40")).toBe(1);
+    expect(occurrences(name, "d 0.12")).toBe(1);
+
     await userEvent.click(action);
     expect(onSelectPost).toHaveBeenCalledWith(PAIR);
   });
+
+  it("keeps residual guidance while announcing finite residual evidence once", () => {
+    const name = accessibleNameFor({
+      observed_response: null,
+      expected_response: null,
+      leftover_map_rank: null,
+    });
+
+    expect(name).toContain(
+      "Leftover residual R +0.40 after IRT main effects. Open this post to read sales-lead.",
+    );
+    expect(occurrences(name, "R +0.40")).toBe(1);
+    expect(occurrences(name, "d 0.12")).toBe(1);
+  });
+
+  it.each(ACTION_EVIDENCE_CASES)(
+    "announces %s action evidence once",
+    (_label, overrides, token) => {
+      const name = accessibleNameFor(overrides);
+      expect(occurrences(name, token)).toBe(1);
+    },
+  );
 
   it("keeps every finite persisted pair-evidence badge in the same accessible name", () => {
     render(
