@@ -189,7 +189,7 @@ describe("LeftoverPairList accessible action name", () => {
     expect(action).toHaveAccessibleName(/d 0\.12/);
   });
 
-  it("omits non-finite residual and distance from both rendering and the accessible name", () => {
+  it("keeps non-finite residual visual disclosure while omitting it and non-finite distance from the accessible name", () => {
     render(
       <LeftoverPairList
         pairs={[
@@ -210,11 +210,11 @@ describe("LeftoverPairList accessible action name", () => {
     expect(action).toHaveAccessibleName(/rank 1/);
     expect(action).not.toHaveAccessibleName(/R —/);
     expect(action).not.toHaveAccessibleName(/d NaN/);
-    expect(action).not.toHaveTextContent("R —");
+    expect(action).toHaveTextContent("R —");
     expect(action).not.toHaveTextContent("d NaN");
   });
 
-  it("falls back to the existing localized open action when no numeric evidence is finite", () => {
+  it("falls back to the existing localized open action while preserving the visual non-finite residual marker", () => {
     render(
       <LeftoverPairList
         pairs={[
@@ -240,7 +240,7 @@ describe("LeftoverPairList accessible action name", () => {
     );
     expect(action).not.toHaveAccessibleName(/R —/);
     expect(action).not.toHaveAccessibleName(/d NaN/);
-    expect(action).not.toHaveTextContent("R —");
+    expect(action).toHaveTextContent("R —");
     expect(action).not.toHaveTextContent("d NaN");
   });
 });
