@@ -210,7 +210,7 @@ export function LeftoverPairList({
           nextAction = t("Open this post so the leftover criterion is current in Post quality.");
         }
         const accessibleEvidence = [
-          nextAction,
+          t("Open this post so the leftover criterion is current in Post quality."),
           Number.isFinite(pair.leftover_residual) ? `R ${residual}` : null,
           observedExpected,
           rankBadge,
