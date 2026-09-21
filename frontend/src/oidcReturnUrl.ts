@@ -151,5 +151,5 @@ export function restoreOidcReturnUrl(state: unknown): string {
   if (fromLocal) return fromLocal;
   return new URLSearchParams(window.location.search).has("post")
     ? returnUrlFromLocation()
-    : window.location.pathname;
+    : sanitizeReturnUrl(window.location.pathname) || "/";
 }
