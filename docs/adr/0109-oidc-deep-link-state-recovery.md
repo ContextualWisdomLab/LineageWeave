@@ -39,8 +39,12 @@ callback alone can overwrite the path that was remembered before redirect.
   boundary existed.
 - When retrying while the browser is still on an OIDC success/error callback,
   prefer the validated path remembered before redirect over the callback's
-  sanitized redirect-URI path. Ordinary product navigation without callback
-  artifacts continues to derive its return path from the current location.
+  sanitized redirect-URI path. Treat `code`, an OAuth `error*` field, or OIDC
+  response metadata such as `session_state`/`iss` as callback evidence;
+  `state` alone is scrubbed as reserved protocol data but does not authorize
+  stale browser storage to override an otherwise current product URL.
+- Ordinary product navigation without callback evidence continues to derive
+  its return path from the current location.
 - On callback, remove the key from both stores and use session storage before
   local storage. Reject external and protocol-relative URLs.
 - Keep member language preference account-scoped in
@@ -52,8 +56,9 @@ callback alone can overwrite the path that was remembered before redirect.
 Opening a shared post link survives a missing OIDC state payload or a changed
 storage context without losing the post. A failed provider callback no longer
 replaces the pre-redirect deep link with `/` merely because the callback was
-rooted at the redirect URI. Successful and failed authorization response fields
-are not minted into a later product return path, including when an older
-stored/state value is recovered. A stale internal return path is removed at
-callback, and authorization still comes only from the authenticated OIDC token
-and backend ABAC checks.
+rooted at the redirect URI, while an unrelated lone `state` query cannot make
+stale return-path storage win over current product navigation. Successful and
+failed authorization response fields are not minted into a later product
+return path, including when an older stored/state value is recovered. A stale
+internal return path is removed at callback, and authorization still comes only
+from the authenticated OIDC token and backend ABAC checks.
