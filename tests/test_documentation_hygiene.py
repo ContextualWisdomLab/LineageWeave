@@ -180,6 +180,8 @@ def test_retired_adr_status_is_excluded_without_hiding_partial_amendments() -> N
     """Only a fully retired or superseded ADR leaves current PRD traceability."""
     assert not _adr_is_current("# ADR\n\n- Status: Superseded by ADR 0002\n")
     assert not _adr_is_current("# ADR\n\n## Status\n\nRetired\n")
+    assert not _adr_is_current("# ADR\n\n**Status:** Superseded by ADR 0002\n")
+    assert not _adr_is_current("# ADR\n\n**Decision status:** Retired\n")
     assert _adr_is_current(
         "# ADR\n\n**Decision status:** Accepted, point 3 superseded by ADR 0002\n"
     )
