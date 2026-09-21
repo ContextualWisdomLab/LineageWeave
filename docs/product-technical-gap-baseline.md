@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Exact-head refresh: 2026-09-21 08:30 KST. Protected `main` remains
+> Exact-head refresh: 2026-09-21 11:55 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e`. Aggregate open-PR/issue counts
 > describe queue size rather than delivery. The current authentication delivery
 > gap tracked by #1119 is no longer source-level public-client ROPC: #1120 exact
@@ -13,7 +13,15 @@
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, cancelled workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> This update adopts #1041 predecessor `3b66e5b5c1274fa7897c14f8e6654c64d18cde1e` against `main@83eba56149eb802cd63642c507c324c9976ec78e`. This file intentionally does **not** hard-code its own newly-created #1041 head: writing this file creates a new commit, so the live PR API/body owns #1041's exact head and exact-head workflow receipts. Completed successful protected receipts on that live head are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless, or predecessor receipts are non-accepting and do not transfer.
+> Accessibility source ownership is now serialized: #977 exact
+> `d162aaf307108fbbbda807c2dc4c0c74f33eda7a` owns `LeftoverPairList` source and
+> rendered-browser acceptance. #1041 was converged ordinary/non-force on top of
+> that owner and retargeted as a documentation/evidence child. This file intentionally
+> does **not** hard-code the newly-created #1041 head: writing this file creates a new
+> commit, so the live PR API/body owns #1041's exact head and exact-head workflow
+> receipts. Completed successful protected receipts on the live product owner head
+> are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless,
+> documentation-only, or predecessor receipts are non-accepting and do not transfer.
 
 ## Delivery authority
 
@@ -39,16 +47,11 @@ Readiness is not acceptance. #983 and #1115 retain `CHANGES_REQUESTED`; no prede
 
 ## Material UI / accessibility
 
-#1041 carries one bounded buyer-visible accessibility repair in its own delta: closest/farthest pair buttons start their accessible names with the exact visible localized label, append finite persisted evidence, and wrap the existing token-backed title/evidence content on narrow screens. Focused component and Storybook evidence are local candidate evidence only; protected exact-head Checks, independent approval, authenticated PostgreSQL API evidence, and protected-main delivery remain outstanding.
+#977 exact `d162aaf307108fbbbda807c2dc4c0c74f33eda7a` is the single source owner for the leftover-pair actionable-name/browser lane. Fresh comparison exposed an invalid dual-writer state: #1041 and #977 had diverged from protected `main` while both modifying `LeftoverPairList`. The valid #1041 finding was adopted into #977 rather than continuing parallel source ownership. #1041 is now an ordinary/non-force documentation/evidence child of #977 and carries no product-source delta relative to that base.
 
-The same candidate now omits a distance badge when the supplied persisted
-distance is non-finite, matching ADR 0271 instead of rendering `d NaN` as if it
-were evidence. The focused 16-test component run, frontend lint, and Storybook
-static build passed locally. A 1440 × 900 and 390 × 844 Storybook audit found no
-page-level or pair-card horizontal overflow; the narrow plot still clips
-right-side labels, so responsive plot acceptance remains open. These are local
-synthetic-fixture observations, not authenticated PostgreSQL or protected-main
-acceptance.
+On #977, RED `2a9696b25ce2423ebfff48217ea2e0a31ee3630f` proves that a rich measurement-bearing `nextAction` could announce rank/Y/E or higher-priority evidence and then append the same formatter evidence again. Fix `57c60f622b0cbda0a746a99d3af9dd98b50c679b` records typed evidence ownership for the chosen action branch and removes only the duplicate trailing accessible evidence. RED `5dd4a63bb007c27c23b26e5c3895f8fa9e6abe52` restores the separate accepted ADR 0162 visual invariant: a non-finite residual is visibly `R —` while remaining absent from the accessible name. Current `d162aaf3...` applies that causal source repair. Distance remains omitted when non-finite rather than fabricating `d NaN`.
+
+The #977 lane retains the earlier component-scoped narrow-screen wrapping, 44px touch target, keyboard/focus, mouse/touch and Storybook Chromium acceptance harness. Exact-head repository Tests `35555602909` is Draft-policy skipped, so these new repairs are source-repaired rather than hosted GREEN. Predecessor focused/browser receipts remain historical only. Responsive leftover-map plot right-side clipping, text-expansion/CJK bounds, exact-head browser execution, security gates, and qualifying independent review remain open.
 
 #861 is the earliest App comparison owner. Parent #860 exact `13b838a3ea4d23b3d358d2f0adecec9c21cb0a8f` repairs exact numeric coordinate-tick identity: coordinates such as `0.501` and `0.504` remain distinct even when both display `+0.50`, and React keys use the persisted numeric value. Current #861 exact `69bdb2fc7613aeffd972cf2a114da1a9347fe505` then preserves that repair while replacing inherited share-only App expectations with exact persisted σ+share names and right-bounding both SVG axis captions. Commit `d572f651...` also retains desktop/mobile Storybook screenshot evidence. These are source/local-render repairs, not protected delivery.
 
@@ -125,6 +128,7 @@ Migration ordinal uniqueness remains separately owned by #1049 `5322971193d1ff4e
 | Area | Current authority | State | Required causal next step |
 | --- | --- | --- | --- |
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical-owner checks, language review, browser/auth/performance acceptance |
+| Leftover-pair actionable accessibility | #977 `d162aaf3...` → docs child #1041 | source repaired / exact-head acceptance pending | exact-head frontend/full-suite + Storybook Chromium + security + locale/font-fallback + independent approval; no parallel source writer |
 | App comparison acceptance | #861 `69bdb2fc...` | source repaired / exact-head acceptance pending | completed successful current-head checks + authenticated browser/accessibility acceptance |
 | App comparison layout | #861 `69bdb2fc...` | source repaired / rendered acceptance pending | responsive + text-expansion/CJK browser bounds; keep dense tick/mobile-scroll risk explicit |
 | Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877); historical #878/#879 | converged / fresh acceptance pending | exact-head repository/browser/a11y/security validation; predecessor failures stay diagnostic only |
