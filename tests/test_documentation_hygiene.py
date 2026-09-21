@@ -158,6 +158,17 @@ def test_product_gap_baseline_queue_snapshot_is_timestamped_and_scoped() -> None
     assert "next overlay" in overlay
 
 
+def test_latest_gap_snapshot_keeps_auth_head_observed_at_its_capture() -> None:
+    """A timestamped point-in-time overlay cannot be rewritten with a later PR head."""
+    overlay = "\n".join(
+        _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8").splitlines()[:36]
+    )
+
+    assert "`395742312682011624cd9a03d2fd8a5486249f89`" in overlay
+    assert "all 536 frontend tests passed" in overlay
+    assert "`fca1b35669f1deac5a780058ca478a7866bafbe6`" not in overlay
+
+
 def test_product_requirement_identifiers_are_unique() -> None:
     """Each PRD identifier names one current requirement and acceptance contract."""
     product_requirements = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
