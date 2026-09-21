@@ -1,5 +1,6 @@
 export const OIDC_RETURN_URL_STORAGE_KEY = "lineageweave.oidc.returnUrl";
 const MAX_OIDC_RETURN_URL_LENGTH = 4096;
+const OIDC_RETURN_URL_BASE = "https://lineageweave.invalid";
 
 /** Authorization-endpoint response params appended to the redirect URI.
  * Success responses use `code`/`state`; OAuth error responses may add
@@ -46,7 +47,11 @@ function isSafeReturnUrl(value: string): boolean {
 
 function sanitizeReturnUrl(value: string): string {
   if (!isSafeReturnUrl(value)) return "";
-  const url = new URL(value, "https://lineageweave.invalid");
+  const url = new URL(value, OIDC_RETURN_URL_BASE);
+  // WHATWG URL parsing treats backslashes as authority separators for special
+  // schemes. Reject any value that parses away from the product origin rather
+  // than silently re-minting its path as a local deep link.
+  if (url.origin !== OIDC_RETURN_URL_BASE) return "";
   stripOidcCallbackParams(url);
   const cleaned = `${url.pathname}${url.search}${url.hash}`;
   return isSafeReturnUrl(cleaned) ? cleaned : "";
