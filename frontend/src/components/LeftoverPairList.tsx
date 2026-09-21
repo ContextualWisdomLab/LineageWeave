@@ -298,7 +298,7 @@ export function LeftoverPairList({
             >
               <span className="ticket-title">{visibleLabel}</span>
               <span className="post-badge">{nextAction}</span>
-              {residualBadge ? <span className="post-badge">{residualBadge}</span> : null}
+              <span className="post-badge">R {residual}</span>
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {unexplained ? <span className="post-badge">{unexplained}</span> : null}
