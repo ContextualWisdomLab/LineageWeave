@@ -1,10 +1,13 @@
-"""Executable ownership checks for the live product-gap validation overlay."""
+"""Executable ownership checks for live product-gap and evidence contracts."""
 
 from pathlib import Path
 
 
 _ROOT = Path(__file__).resolve().parents[1]
 _PRODUCT_GAP_BASELINE = _ROOT / "docs" / "product-technical-gap-baseline.md"
+_TRANSLATION_LEDGER_RUNNER_RECEIPT = (
+    _ROOT / "docs" / "doctoring" / "translation-ledger-hosted-runner-provenance.md"
+)
 _LATEST_VALIDATION_MARKER = "> Exact-head validation overlay:"
 
 
@@ -29,17 +32,17 @@ def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() 
     assert "bind to mutable `main`" in overlay
 
 
-def test_latest_validation_overlay_classifies_translation_ledger_hosted_failure() -> None:
+def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
     """The #929 hosted RED must retain its runner-provenance classification."""
-    overlay = _latest_validation_overlay().replace("\n> ", " ")
+    receipt = _TRANSLATION_LEDGER_RUNNER_RECEIPT.read_text(encoding="utf-8")
 
-    assert "#929" in overlay
-    assert "`d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`" in overlay
-    assert "`35236145547`" in overlay
-    assert "`105252445377`" in overlay
-    assert "file or directory not found: tests" in overlay
-    assert "collected 0 items" in overlay
-    assert "workspace/config-provenance" in overlay
-    assert ".github#712" in overlay
-    assert "not an i18n/product assertion failure" in overlay
-    assert "blind rerun" in overlay
+    assert "#929" in receipt
+    assert "`d4f42f579663e88a0c9af0cc492aa6ff7cae96ee`" in receipt
+    assert "`35236145547`" in receipt
+    assert "`105252445377`" in receipt
+    assert "file or directory not found: tests" in receipt
+    assert "collected 0 items" in receipt
+    assert "workspace/config-provenance" in receipt
+    assert ".github#712" in receipt
+    assert "not an i18n/product assertion failure" in receipt
+    assert "blind rerun" in receipt
