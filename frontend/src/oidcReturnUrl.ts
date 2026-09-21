@@ -17,9 +17,10 @@ const OIDC_CALLBACK_PARAMS = [
   "error_uri",
 ] as const;
 
-/** A callback must carry something stronger than a lone `state` parameter.
- * `state` is scrubbed when present, but by itself it must not let stale auth
- * storage override an otherwise current product URL. */
+/** A correlated callback carries the client-supplied `state` plus a response
+ * signal. `state` alone is not sufficient, and response-looking query names
+ * without `state` must not let stale auth storage override current product
+ * navigation. */
 const OIDC_CALLBACK_SIGNAL_PARAMS = [
   "code",
   "session_state",
@@ -59,7 +60,10 @@ function sanitizeReturnUrl(value: string): string {
 
 function isOidcCallbackLocation(location: UrlLike): boolean {
   const params = new URLSearchParams(location.search);
-  return OIDC_CALLBACK_SIGNAL_PARAMS.some((param) => params.has(param));
+  return (
+    params.has("state") &&
+    OIDC_CALLBACK_SIGNAL_PARAMS.some((param) => params.has(param))
+  );
 }
 
 function peekRememberedReturnUrl(): string {
@@ -81,8 +85,8 @@ function peekRememberedReturnUrl(): string {
 export function returnUrlFromLocation(location: UrlLike = window.location): string {
   // A provider callback is rooted at redirect_uri, so rebuilding a retry URL
   // from that callback alone can erase the deep link remembered before the
-  // redirect. Prefer the validated remembered path while callback artifacts
-  // are still present; ordinary product navigation continues to use location.
+  // redirect. Prefer the validated remembered path only for a correlated
+  // callback; ordinary product navigation continues to use location.
   if (isOidcCallbackLocation(location)) {
     const remembered = peekRememberedReturnUrl();
     if (remembered) return remembered;
