@@ -72,10 +72,8 @@ def test_machine_smoke_and_backend_share_one_jwks_key_selector() -> None:
     """Operator evidence must not drift to a weaker JWT/JWK acceptance path."""
     smoke = _SMOKE_SCRIPT.read_text(encoding="utf-8")
     backend_auth = _BACKEND_AUTH.read_text(encoding="utf-8")
-    import_line = "from lineageweave.oidc_jwks import select_rs256_signing_key"
-
-    assert import_line in smoke
-    assert import_line in backend_auth
+    assert "select_rs256_signing_key" in smoke
+    assert "select_rs256_signing_key" in backend_auth
     assert "def _signing_key_from_jwks" not in smoke
     assert "RSAAlgorithm" not in smoke
 

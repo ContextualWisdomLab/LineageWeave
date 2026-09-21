@@ -30,7 +30,7 @@ def _rsa_key(exponent: str | None) -> dict[str, object]:
         "alg": "RS256",
         "use": "sig",
         "key_ops": ["verify"],
-        "n": _base64url(b"\x80" + b"\x00" * 255),
+        "n": _base64url(b"\x80" + b"\x00" * 254 + b"\x01"),
     }
     if exponent is not None:
         key["e"] = exponent
