@@ -121,7 +121,7 @@ def test_local_oidc_rejects_unrepresentable_mixed_corporate_wildcard_scope() -> 
         )
 
     assert caught.value.status_code == 403
-    assert "mixed corporate-wide and process-unit scopes" in str(caught.value.detail)
+    assert "mix corporate-wide and process-unit scopes" in str(caught.value.detail)
 
 
 def test_local_oidc_all_corporations_may_be_explicitly_corporate_wide() -> None:
