@@ -201,11 +201,13 @@ export function LeftoverPairList({
               expected: Number(pair.expected_response).toFixed(2),
             },
           );
-        } else {
+        } else if (Number.isFinite(pair.leftover_residual)) {
           nextAction = tf(
             "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
             { residual, criterion },
           );
+        } else {
+          nextAction = t("Open this post so the leftover criterion is current in Post quality.");
         }
         const accessibleEvidence = [
           nextAction,
