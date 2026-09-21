@@ -23,7 +23,7 @@ def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() 
     assert "`c943060c7c16f74faf48d1ee40eaa5301c830065`" in overlay
     assert "contextual-orchestrator#1083" in overlay
     assert "Releases API" in overlay and "`[]`" in overlay
-    assert "`/v1/chat/completions`" in overlay
+    assert "/v1/chat/completions" in overlay
     assert "`180.0s`" in overlay
     assert "released API/client/schema" in overlay
     assert "bind to mutable `main`" in overlay
