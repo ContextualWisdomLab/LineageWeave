@@ -21,12 +21,22 @@ A provider callback is also rooted at the configured redirect URI rather than
 the original buyer deep link, so rebuilding retry state from the failed
 callback alone can overwrite the path that was remembered before redirect.
 
+A lexical leading-slash check is not sufficient to prove that a candidate is a
+same-origin path. WHATWG URL parsing treats backslashes as authority separators
+for special schemes, so a value such as `/\\example.invalid/path` can begin
+with a single slash yet parse to a different origin. Reconstructing only the
+parsed pathname would then silently turn an external-shaped value into a new
+local deep link rather than rejecting the invalid admission.
+
 ## Decision
 
 - Keep the OIDC `state.returnUrl` as the first recovery source.
 - Accept only a direct same-origin path, one bounded serialized object, or one
   object value. Never recursively parse JSON-encoded strings; reject serialized
   state and return paths longer than 4,096 characters before further handling.
+- Validate return paths after WHATWG parsing against the product origin, not
+  only by string prefix. Reject any candidate whose parsed origin differs;
+  never strip an unexpected authority and re-mint only its pathname as local.
 - Persist the same validated same-origin path in both `sessionStorage` and
   `localStorage` before redirecting to OIDC. `localStorage` is only a bounded
   recovery fallback, not an authentication or authorization store.
@@ -59,6 +69,8 @@ replaces the pre-redirect deep link with `/` merely because the callback was
 rooted at the redirect URI, while an unrelated lone `state` query cannot make
 stale return-path storage win over current product navigation. Successful and
 failed authorization response fields are not minted into a later product
-return path, including when an older stored/state value is recovered. A stale
+return path, including when an older stored/state value is recovered. Inputs
+that only look path-relative before parsing but resolve to another origin are
+rejected instead of being host-stripped into a different local path. A stale
 internal return path is removed at callback, and authorization still comes only
 from the authenticated OIDC token and backend ABAC checks.
