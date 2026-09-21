@@ -41,6 +41,31 @@ describe("OIDC return URL handling", () => {
     expect(cleaned).toBe("/?post=abc#evidence");
   });
 
+  it("never persists or restores authorization response artifacts", () => {
+    rememberOidcReturnUrl(
+      "/?post=stored&code=private-code&state=private-state&error=access_denied&error_description=provider-detail#evidence",
+    );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=stored#evidence",
+    );
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=stored#evidence",
+    );
+
+    expect(
+      restoreOidcReturnUrl({
+        returnUrl:
+          "/?post=state&code=stale-code&state=stale-state&error_uri=https%3A%2F%2Fidp.example%2Ferror#workspace",
+      }),
+    ).toBe("/?post=state#workspace");
+
+    window.sessionStorage.setItem(
+      "lineageweave.oidc.returnUrl",
+      "/?post=legacy&session_state=legacy-session&iss=https%3A%2F%2Fidp.example#error",
+    );
+    expect(restoreOidcReturnUrl(undefined)).toBe("/?post=legacy#error");
+  });
+
   it("restores an object or serialized OIDC state before storage fallback", () => {
     rememberOidcReturnUrl("/?post=stored-before-direct");
     expect(restoreOidcReturnUrl("/?post=from-direct-state")).toBe(
