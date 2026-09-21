@@ -41,6 +41,15 @@ Readiness is not acceptance. #983 and #1115 retain `CHANGES_REQUESTED`; no prede
 
 #1041 carries one bounded buyer-visible accessibility repair in its own delta: closest/farthest pair buttons start their accessible names with the exact visible localized label, append finite persisted evidence, and wrap the existing token-backed title/evidence content on narrow screens. Focused component and Storybook evidence are local candidate evidence only; protected exact-head Checks, independent approval, authenticated PostgreSQL API evidence, and protected-main delivery remain outstanding.
 
+The same candidate now omits a distance badge when the supplied persisted
+distance is non-finite, matching ADR 0271 instead of rendering `d NaN` as if it
+were evidence. The focused 16-test component run, frontend lint, and Storybook
+static build passed locally. A 1440 × 900 and 390 × 844 Storybook audit found no
+page-level or pair-card horizontal overflow; the narrow plot still clips
+right-side labels, so responsive plot acceptance remains open. These are local
+synthetic-fixture observations, not authenticated PostgreSQL or protected-main
+acceptance.
+
 #861 is the earliest App comparison owner. Parent #860 exact `13b838a3ea4d23b3d358d2f0adecec9c21cb0a8f` repairs exact numeric coordinate-tick identity: coordinates such as `0.501` and `0.504` remain distinct even when both display `+0.50`, and React keys use the persisted numeric value. Current #861 exact `69bdb2fc7613aeffd972cf2a114da1a9347fe505` then preserves that repair while replacing inherited share-only App expectations with exact persisted σ+share names and right-bounding both SVG axis captions. Commit `d572f651...` also retains desktop/mobile Storybook screenshot evidence. These are source/local-render repairs, not protected delivery.
 
 The original axis-2 σ/share clipping finding is therefore source-repaired rather than pending source work. Dense origin-adjacent tick collisions, the fixed-width plot's mobile horizontal-scroll behavior, text-expansion/CJK bounds, and authenticated browser acceptance remain separate buyer-visible evidence gaps. Exact-head Tests `35536928685` is queued, and the clipping review thread remains open until current-head rendered/bounding acceptance and hosted checks are GREEN.

@@ -93,6 +93,20 @@ describe("LeftoverPairList", () => {
     );
   });
 
+  it("omits a non-finite persisted distance instead of displaying an invented value", () => {
+    render(
+      <LeftoverPairList
+        pairs={[{ ...PAIRS[0], leftover_distance: Number.NaN }]}
+        criterionLabel={criterionLabel}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const closest = screen.getByRole("button");
+    expect(closest).not.toHaveTextContent("d NaN");
+    expect(closest).not.toHaveAccessibleName(/d NaN/);
+  });
+
   it.each([
     [
       "rank-zero observed evidence",

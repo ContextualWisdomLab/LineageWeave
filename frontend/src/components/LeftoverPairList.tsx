@@ -251,7 +251,9 @@ export function LeftoverPairList({
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               {coordinatesBadge ? <span className="post-badge">{coordinatesBadge}</span> : null}
-              <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+              {Number.isFinite(pair.leftover_distance) ? (
+                <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+              ) : null}
             </button>
           </li>
         );
