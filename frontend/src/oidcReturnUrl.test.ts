@@ -41,6 +41,18 @@ describe("OIDC return URL handling", () => {
     expect(cleaned).toBe("/?post=abc#evidence");
   });
 
+  it("retries an OIDC error callback with the remembered pre-redirect deep link", () => {
+    rememberOidcReturnUrl("/?post=requested#evidence");
+
+    const retryTarget = returnUrlFromLocation({
+      pathname: "/",
+      search: "?error=access_denied&error_description=provider-detail&state=callback-state",
+      hash: "",
+    });
+
+    expect(retryTarget).toBe("/?post=requested#evidence");
+  });
+
   it("never persists or restores authorization response artifacts", () => {
     rememberOidcReturnUrl(
       "/?post=stored&code=private-code&state=private-state&error=access_denied&error_description=provider-detail#evidence",
