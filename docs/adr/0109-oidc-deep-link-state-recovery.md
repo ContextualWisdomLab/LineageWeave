@@ -17,6 +17,9 @@ OAuth error response. Those response fields are one-time protocol artifacts,
 not application navigation state. If a failed callback is turned back into a
 remembered return URL, provider error fields can be replayed on the next
 successful sign-in and can expose provider detail in a product-controlled URL.
+A provider callback is also rooted at the configured redirect URI rather than
+the original buyer deep link, so rebuilding retry state from the failed
+callback alone can overwrite the path that was remembered before redirect.
 
 ## Decision
 
@@ -34,6 +37,10 @@ successful sign-in and can expose provider detail in a product-controlled URL.
   `error_uri`. Preserve unrelated same-origin product query parameters and the
   fragment. This also cleans values persisted by an older client before this
   boundary existed.
+- When retrying while the browser is still on an OIDC success/error callback,
+  prefer the validated path remembered before redirect over the callback's
+  sanitized redirect-URI path. Ordinary product navigation without callback
+  artifacts continues to derive its return path from the current location.
 - On callback, remove the key from both stores and use session storage before
   local storage. Reject external and protocol-relative URLs.
 - Keep member language preference account-scoped in
@@ -43,8 +50,10 @@ successful sign-in and can expose provider detail in a product-controlled URL.
 ## Consequences
 
 Opening a shared post link survives a missing OIDC state payload or a changed
-storage context without losing the post. Successful and failed authorization
-response fields are not minted into a later product return path, including when
-an older stored/state value is recovered. A stale internal return path is
-removed at callback, and authorization still comes only from the authenticated
-OIDC token and backend ABAC checks.
+storage context without losing the post. A failed provider callback no longer
+replaces the pre-redirect deep link with `/` merely because the callback was
+rooted at the redirect URI. Successful and failed authorization response fields
+are not minted into a later product return path, including when an older
+stored/state value is recovered. A stale internal return path is removed at
+callback, and authorization still comes only from the authenticated OIDC token
+and backend ABAC checks.
