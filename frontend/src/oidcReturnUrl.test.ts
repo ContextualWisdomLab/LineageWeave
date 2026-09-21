@@ -73,6 +73,25 @@ describe("OIDC return URL handling", () => {
     expect(currentTarget).toBe("/?post=current#workspace");
   });
 
+  it("does not let uncorrelated response-looking params make stale storage override current navigation", () => {
+    rememberOidcReturnUrl("/?post=stale");
+
+    expect(
+      returnUrlFromLocation({
+        pathname: "/",
+        search: "?post=current&error=validation_failed",
+        hash: "#workspace",
+      }),
+    ).toBe("/?post=current#workspace");
+    expect(
+      returnUrlFromLocation({
+        pathname: "/",
+        search: "?post=current&code=customer-code",
+        hash: "#workspace",
+      }),
+    ).toBe("/?post=current#workspace");
+  });
+
   it("never persists or restores authorization response artifacts", () => {
     rememberOidcReturnUrl(
       "/?post=stored&code=private-code&state=private-state&error=access_denied&error_description=provider-detail#evidence",
