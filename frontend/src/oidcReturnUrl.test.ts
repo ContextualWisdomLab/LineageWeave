@@ -30,6 +30,17 @@ describe("OIDC return URL handling", () => {
     expect(cleaned).toBe("/?post=abc");
   });
 
+  it("strips OAuth/OIDC error response fields before retrying a failed sign-in", () => {
+    const cleaned = returnUrlFromLocation({
+      pathname: "/",
+      search:
+        "?post=abc&error=access_denied&error_description=provider%20correlation%20details&error_uri=https%3A%2F%2Fidp.example%2Ferrors%2F42&state=s",
+      hash: "#evidence",
+    });
+
+    expect(cleaned).toBe("/?post=abc#evidence");
+  });
+
   it("restores an object or serialized OIDC state before storage fallback", () => {
     rememberOidcReturnUrl("/?post=stored-before-direct");
     expect(restoreOidcReturnUrl("/?post=from-direct-state")).toBe(
