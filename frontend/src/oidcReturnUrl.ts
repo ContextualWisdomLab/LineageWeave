@@ -16,6 +16,18 @@ const OIDC_CALLBACK_PARAMS = [
   "error_uri",
 ] as const;
 
+/** A callback must carry something stronger than a lone `state` parameter.
+ * `state` is scrubbed when present, but by itself it must not let stale auth
+ * storage override an otherwise current product URL. */
+const OIDC_CALLBACK_SIGNAL_PARAMS = [
+  "code",
+  "session_state",
+  "iss",
+  "error",
+  "error_description",
+  "error_uri",
+] as const;
+
 /** Removes OIDC callback artifacts from `url` in place -- call before turning
  * `window.location` into a link a user can copy or share. */
 export function stripOidcCallbackParams(url: URL): void {
@@ -42,7 +54,7 @@ function sanitizeReturnUrl(value: string): string {
 
 function isOidcCallbackLocation(location: UrlLike): boolean {
   const params = new URLSearchParams(location.search);
-  return OIDC_CALLBACK_PARAMS.some((param) => params.has(param));
+  return OIDC_CALLBACK_SIGNAL_PARAMS.some((param) => params.has(param));
 }
 
 function peekRememberedReturnUrl(): string {
