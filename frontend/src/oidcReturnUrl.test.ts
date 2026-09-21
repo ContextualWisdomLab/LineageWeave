@@ -53,6 +53,18 @@ describe("OIDC return URL handling", () => {
     expect(retryTarget).toBe("/?post=requested#evidence");
   });
 
+  it("does not let a lone state parameter make stale storage override current product navigation", () => {
+    rememberOidcReturnUrl("/?post=stale");
+
+    const currentTarget = returnUrlFromLocation({
+      pathname: "/",
+      search: "?post=current&state=product-state",
+      hash: "#workspace",
+    });
+
+    expect(currentTarget).toBe("/?post=current#workspace");
+  });
+
   it("never persists or restores authorization response artifacts", () => {
     rememberOidcReturnUrl(
       "/?post=stored&code=private-code&state=private-state&error=access_denied&error_description=provider-detail#evidence",
