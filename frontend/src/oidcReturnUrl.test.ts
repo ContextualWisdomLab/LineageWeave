@@ -92,6 +92,25 @@ describe("OIDC return URL handling", () => {
     ).toBe("/?post=current#workspace");
   });
 
+  it("requires a primary code or error response before ancillary OIDC metadata can activate remembered-path precedence", () => {
+    rememberOidcReturnUrl("/?post=stale");
+
+    for (const search of [
+      "?post=current&state=product-state&session_state=provider-session",
+      "?post=current&state=product-state&iss=https%3A%2F%2Fidp.example",
+      "?post=current&state=product-state&error_description=provider-detail",
+      "?post=current&state=product-state&error_uri=https%3A%2F%2Fidp.example%2Ferrors%2F42",
+    ]) {
+      expect(
+        returnUrlFromLocation({
+          pathname: "/",
+          search,
+          hash: "#workspace",
+        }),
+      ).toBe("/?post=current#workspace");
+    }
+  });
+
   it("never persists or restores authorization response artifacts", () => {
     rememberOidcReturnUrl(
       "/?post=stored&code=private-code&state=private-state&error=access_denied&error_description=provider-detail#evidence",
