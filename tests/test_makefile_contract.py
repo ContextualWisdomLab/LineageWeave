@@ -47,7 +47,7 @@ def test_machine_auth_targets_fail_closed_without_client_secret() -> None:
 
     makefile = (_ROOT / "Makefile").read_text(encoding="utf-8")
 
-    assert makefile.count('KEYCLOAK_CLIENT_SECRET is required') == 3
+    assert makefile.count('KEYCLOAK_CLIENT_SECRET is required') == 4
     assert "KEYCLOAK_CLIENT_SECRET:-" in makefile
 
 
@@ -58,7 +58,7 @@ def test_oidc_smoke_is_machine_evidence_not_browser_authentication_evidence() ->
 
     assert '"grant_type": "client_credentials"' in script
     assert '"grant_type": "password"' not in script
-    assert "not browser OIDC authorization-flow acceptance" in script
+    assert "not browser OIDC authorization-flow acceptance" in " ".join(script.split())
     assert "Authorization Code +" in script
     assert "machine-token/JWKS/audience" in script
     assert "PASS: real login round-trip verified." not in script
