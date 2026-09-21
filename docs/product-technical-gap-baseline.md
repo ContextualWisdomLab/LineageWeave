@@ -11,12 +11,12 @@
 >
 > The highest user-impact gap remains browser sign-in continuity. Stacked draft
 > PR #1124 now carries the safe recovery increment at exact head
-> `395742312682011624cd9a03d2fd8a5486249f89`, above #1120 and its required
+> `fca1b35669f1deac5a780058ca478a7866bafbe6`, above #1120 and its required
 > parents #1118 and #899. The candidate preserves a same-origin deep link,
 > removes one-time authorization response fields, requires correlated callback
 > evidence before remembered-path precedence, and gives the user one safe retry
 > action without exposing identity-provider details. On this exact candidate,
-> frontend lint passed, all 536 frontend tests passed, and the production build
+> frontend lint passed, all 537 frontend tests passed, and the production build
 > completed. Authenticated Playwright acceptance passed on desktop and mobile:
 > the browser used Authorization Code with PKCE, restored the requested path,
 > reached `/api/me`, and rendered the provider-detail-free recovery state in
