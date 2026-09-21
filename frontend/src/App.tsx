@@ -1,5 +1,6 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
+import { SignInRecovery } from "./components/SignInRecovery";
 
 import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -5302,7 +5303,18 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">{t(auth.error.message)}</p>;
+    return (
+      <SignInRecovery
+        brandName={brandName}
+        message={t("Sign-in could not be completed. Start again to return to your work.")}
+        actionLabel={t("Start sign-in again")}
+        onRetry={() => {
+          const returnUrl = returnUrlFromLocation();
+          rememberOidcReturnUrl(returnUrl);
+          void auth.signinRedirect({ state: { returnUrl } });
+        }}
+      />
+    );
   }
 
   if (!auth.isAuthenticated) {

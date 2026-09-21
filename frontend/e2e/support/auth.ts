@@ -16,12 +16,36 @@ const DEMO_PASSWORD = "lineageweave-demo-only";
  * Next action: call this once per test before interacting with any
  * authenticated destination.
  */
-export async function loginAsDemoAnalyst(page: Page): Promise<void> {
-  await page.goto("/");
+export async function loginAsDemoAnalyst(
+  page: Page,
+  returnPath = "/",
+): Promise<void> {
+  const tokenRequest = page.waitForRequest((request) =>
+    request.url().includes("/protocol/openid-connect/token") && request.method() === "POST"
+  );
+  await page.goto(returnPath);
   await page.getByRole("button", { name: "Log in" }).click();
   await page.waitForURL(/\/realms\/lineageweave-demo\/protocol\/openid-connect\/auth/);
+  const authorizationUrl = new URL(page.url());
+  if (authorizationUrl.searchParams.get("response_type") !== "code") {
+    throw new Error("browser sign-in did not request an authorization code");
+  }
+  if (authorizationUrl.searchParams.get("code_challenge_method") !== "S256") {
+    throw new Error("browser sign-in did not request PKCE S256");
+  }
+  if (!authorizationUrl.searchParams.get("code_challenge")) {
+    throw new Error("browser sign-in omitted the PKCE challenge");
+  }
   await page.getByLabel("Username or email").fill(DEMO_USERNAME);
   await page.getByLabel("Password", { exact: true }).fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL((url) => !url.pathname.includes("/realms/"));
+  const exchange = await tokenRequest;
+  const form = new URLSearchParams(exchange.postData() ?? "");
+  if (form.get("grant_type") !== "authorization_code" || !form.get("code_verifier")) {
+    throw new Error("browser sign-in did not exchange an authorization code with PKCE");
+  }
+  if (form.has("username") || form.has("password")) {
+    throw new Error("browser sign-in attempted a password-token exchange");
+  }
 }
