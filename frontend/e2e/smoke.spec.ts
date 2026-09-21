@@ -22,6 +22,11 @@ test("rejects a callback with unrecognized state without exposing provider detai
   );
   await expect(page.getByRole("button", { name: "Start sign-in again" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/invalid_grant|correlation|state mismatch/i);
+  expect(
+    await page.evaluate<boolean>(
+      "document.documentElement.scrollWidth <= document.documentElement.clientWidth",
+    ),
+  ).toBe(true);
   await page.screenshot({
     path: testInfo.outputPath(`rejected-callback-${testInfo.project.name}.png`),
     fullPage: true,
