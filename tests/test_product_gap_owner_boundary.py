@@ -18,7 +18,7 @@ def _latest_validation_overlay() -> str:
 
 def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() -> None:
     """A local CO wire client cannot be promoted while the owner has no release."""
-    overlay = _latest_validation_overlay()
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
 
     assert "`c943060c7c16f74faf48d1ee40eaa5301c830065`" in overlay
     assert "contextual-orchestrator#1083" in overlay
@@ -26,4 +26,4 @@ def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() 
     assert "`/v1/chat/completions`" in overlay
     assert "`180.0s`" in overlay
     assert "released API/client/schema" in overlay
-    assert "mutable `main`" in overlay
+    assert "bind to mutable `main`" in overlay
