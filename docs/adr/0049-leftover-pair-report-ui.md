@@ -15,16 +15,7 @@
 [ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display);
 [ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display);
 [ADR 0270](0270-leftover-map-coordinate-ticks.md) (leftover-map coordinate ticks);
-[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments);
-[ADR 0272](0272-leftover-map-segment-reconstruction.md) (leftover-map reconstruction on pair segments);
-[ADR 0273](0273-leftover-map-segment-explained-share.md) (leftover-map explained leftover share on pair segments);
-[ADR 0274](0274-leftover-map-segment-unexplained-share.md) (leftover-map unexplained leftover share on pair segments);
-[ADR 0275](0275-leftover-map-segment-cross-share.md) (leftover-map cross share on pair segments);
-[ADR 0276](0276-leftover-map-segment-unexplained-leftover.md) (leftover-map unexplained leftover on pair segments);
-[ADR 0277](0277-leftover-map-segment-residual.md) (leftover residual on pair segments);
-[ADR 0278](0278-leftover-map-segment-observed.md) (leftover observed Y on pair segments);
-[ADR 0279](0279-leftover-map-segment-expected.md) (leftover expected E on pair segments);
-[ADR 0280](0280-leftover-map-segment-rank.md) (leftover-map rank on pair segments)
+[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments)
 
 ## Context
 
@@ -52,16 +43,7 @@ sits above the pair buttons (ADR 0268); click a post marker to open
 that post. Leftover-map axis share captions those leftover-map axes
 when finite (ADR 0269). Leftover-map axis ticks name persisted `ξ` /
 `ζ` coordinates (ADR 0270). Pair segments name persisted leftover-map
-distance `d` (ADR 0271). Pair segments name persisted leftover-map
-reconstruction `R̂` (ADR 0272). Pair segments name persisted leftover-map
-explained leftover share `e` (ADR 0273). Pair segments name persisted leftover-map
-unexplained leftover share `s` (ADR 0274). Pair segments name persisted leftover-map
-cross share `x` (ADR 0275). Pair segments name persisted leftover-map
-unexplained leftover `U` (ADR 0276). Pair segments name persisted leftover
-residual `R` (ADR 0277). Pair segments name persisted leftover observed
-`Y` (ADR 0278). Pair segments name persisted leftover expected
-`E` (ADR 0279). Pair segments name persisted leftover-map rank
-(ADR 0280). The pair renders every available finite measurement.
+distance `d` (ADR 0271). The pair renders every available finite measurement.
 The next action uses the first available value in the priority below; no
 amendment hides another badge, rank 0
 explicitly names no leftover structure, and unexplained leftover names
@@ -94,24 +76,6 @@ Leftover-map coordinate ticks are
 [ADR 0270](0270-leftover-map-coordinate-ticks.md).
 Leftover-map distance on pair segments is
 [ADR 0271](0271-leftover-map-segment-distance.md).
-Leftover-map reconstruction on pair segments is
-[ADR 0272](0272-leftover-map-segment-reconstruction.md).
-Leftover-map explained leftover share on pair segments is
-[ADR 0273](0273-leftover-map-segment-explained-share.md).
-Leftover-map unexplained leftover share on pair segments is
-[ADR 0274](0274-leftover-map-segment-unexplained-share.md).
-Leftover-map cross share on pair segments is
-[ADR 0275](0275-leftover-map-segment-cross-share.md).
-Leftover-map unexplained leftover on pair segments is
-[ADR 0276](0276-leftover-map-segment-unexplained-leftover.md).
-Leftover residual on pair segments is
-[ADR 0277](0277-leftover-map-segment-residual.md).
-Leftover observed Y on pair segments is
-[ADR 0278](0278-leftover-map-segment-observed.md).
-Leftover expected E on pair segments is
-[ADR 0279](0279-leftover-map-segment-expected.md).
-Leftover-map rank on pair segments is
-[ADR 0280](0280-leftover-map-segment-rank.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover
@@ -123,10 +87,22 @@ A hidden post never appears as a leftover pair.
 ## Consequences
 
 The authorized report payload carries `leftover_pairs` next to
-`members` and `selected_items`. Screen-reader names are
-`Open leftover closest pair: {title}` and
-`Open leftover farthest pair: {title}` so the control announces the
-next action, not only the distance.
+`members` and `selected_items`.
+
+The button's accessible name begins with the **exact localized label that is
+visibly rendered on that button**: `Closest leftover: {title} · {criterion}` or
+`Farthest leftover: {title} · {criterion}`. Localized next-action text follows
+that visible-label prefix, then only formatter-admitted persisted evidence that
+is actually available and finite. Missing or non-finite values are omitted from
+the accessible name; they are never announced as `R —`, `d NaN`, or another
+placeholder. This keeps the programmatic name aligned with the visible label
+required by WCAG 2.2 SC 2.5.3 while still exposing the same buyer evidence to
+screen-reader users. The accessible name does not derive, clamp, repair, or
+synthesize psychometric values.
+
+The historical `Open leftover closest/farthest pair: …` prefix is not the
+screen-reader contract. It may describe the action conceptually, but it must
+not replace the rendered label at the start of the accessible name.
 
 ## Related
 
@@ -136,3 +112,6 @@ coverage of the leftover map is [ADR 0168](0168-leftover-map-complete-case-cover
 
 [ADR 0003](0003-fast-mlsirm-report-integration.md). The grouping
 comparison strip reuses this leftover store ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)).
+
+Accessibility naming follows W3C, *Web Content Accessibility Guidelines (WCAG)
+2.2*, Success Criterion 2.5.3, Label in Name.
