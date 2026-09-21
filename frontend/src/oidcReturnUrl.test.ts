@@ -27,6 +27,18 @@ describe("OIDC return URL handling", () => {
     expect(restoreOidcReturnUrl({ returnUrl: "/\\evil.example/forged?post=attacker" })).toBe("/");
   });
 
+  it("sanitizes the current-path fallback before returning it to the History API", () => {
+    const originalUrl = window.location.href;
+    try {
+      window.history.replaceState({}, "", `${window.location.origin}//evil.example/callback`);
+      expect(window.location.pathname).toBe("//evil.example/callback");
+
+      expect(restoreOidcReturnUrl(undefined)).toBe("/");
+    } finally {
+      window.history.replaceState({}, "", originalUrl);
+    }
+  });
+
   it("strips OIDC callback params from a restored post-redirect location", () => {
     // After Keycloak redirects back, window.location still carries the
     // one-time code/state; a return URL built from it must not.
