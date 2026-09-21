@@ -31,9 +31,12 @@ function occurrences(value: string, token: string): number {
 }
 
 describe("LeftoverPairList accessible evidence", () => {
-  it("announces rank and observed/expected evidence once", () => {
+  it("keeps rank guidance while announcing rank and observed/expected evidence once", () => {
     const name = renderPair(BASE_PAIR);
 
+    expect(name).toContain(
+      "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
+    );
     expect(occurrences(name, "rank 1")).toBe(1);
     expect(occurrences(name, "Y 2.40")).toBe(1);
     expect(occurrences(name, "E 2.00")).toBe(1);
@@ -41,7 +44,7 @@ describe("LeftoverPairList accessible evidence", () => {
     expect(occurrences(name, "d 0.12")).toBe(1);
   });
 
-  it("announces finite residual evidence once when it is the fallback measurement", () => {
+  it("keeps residual guidance while announcing finite residual evidence once", () => {
     const name = renderPair({
       ...BASE_PAIR,
       observed_response: null,
@@ -49,6 +52,9 @@ describe("LeftoverPairList accessible evidence", () => {
       leftover_map_rank: null,
     });
 
+    expect(name).toContain(
+      "Leftover residual R +0.40 after IRT main effects. Open this post to read sales-lead.",
+    );
     expect(occurrences(name, "R +0.40")).toBe(1);
     expect(occurrences(name, "d 0.12")).toBe(1);
   });
