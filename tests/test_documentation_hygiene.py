@@ -38,7 +38,7 @@ _FORBIDDEN_MARKERS = (
 def _adr_is_current(content: str) -> bool:
     """Return false only for an ADR whose own status fully retires it."""
     inline_status = re.search(
-        r"(?im)^(?:[-*]\s*)?(?:\*\*)?(?:decision\s+)?status(?:\*\*)?\s*:\s*(.+)$",
+        r"(?im)^(?:[-*]\s*)?(?:\*\*)?(?:decision\s+)?status(?:(?:\*\*)?\s*:\s*(?:\*\*)?)\s*(.+)$",
         content,
     )
     if inline_status is not None:
