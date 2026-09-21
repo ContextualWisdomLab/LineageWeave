@@ -1,27 +1,26 @@
 # Product & Technical Gap Baseline
 
-> Exact-head refresh: 2026-09-21 11:55 KST. Protected `main` remains
+> Exact-head refresh: 2026-09-21 13:48 KST. Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e`. Aggregate open-PR/issue counts
 > describe queue size rather than delivery. The current authentication delivery
-> gap tracked by #1119 is no longer source-level public-client ROPC: #1120 exact
-> `867e26175a90cd7c6048be6aa91983686cc8d897` moves the two backend integration
-> actors to distinct confidential viewer/admin identities and disables public
-> browser direct grants in the same causal change. Rendered Authorization Code +
-> S256 PKCE/session/return-path/permission acceptance, authenticated PostgreSQL
-> evidence, protected exact-head Checks, independent approval, merge, and release
-> remain unavailable.
+> gap tracked by #1119 is no longer source-level public-client ROPC: current #1120
+> source carries distinct confidential viewer/admin integration actors and disables
+> public browser direct grants in the same causal migration. Rendered Authorization
+> Code + S256 PKCE/session/return-path/permission acceptance, authenticated
+> PostgreSQL evidence, protected exact-head Checks, independent approval, merge,
+> and release remain unavailable.
 
 > Current mutable authority overlay: 2026-09-21. Historical implementation detail belongs in Git/PR history. A predecessor, sibling, descendant, focused harness, skipped workflow, queued workflow, cancelled workflow, or documentation-only workflow is not acceptance for a moved product head.
 
-> Accessibility source ownership is now serialized: #977 exact
-> `d162aaf307108fbbbda807c2dc4c0c74f33eda7a` owns `LeftoverPairList` source and
-> rendered-browser acceptance. #1041 was converged ordinary/non-force on top of
-> that owner and retargeted as a documentation/evidence child. This file intentionally
-> does **not** hard-code the newly-created #1041 head: writing this file creates a new
-> commit, so the live PR API/body owns #1041's exact head and exact-head workflow
-> receipts. Completed successful protected receipts on the live product owner head
-> are authoritative for acceptance; queued, skipped, cancelled, failed, runnerless,
-> documentation-only, or predecessor receipts are non-accepting and do not transfer.
+> Accessibility source ownership is serialized in #977. The last source-bearing
+> accessibility repair before this documentation refresh is
+> `bce09c145b979e348d3db3ecad01246ff2d20ed9`; the live PR API/body owns #977's
+> exact current head because writing this baseline necessarily creates another
+> commit. #1041 is merged documentation history, not a second `LeftoverPairList`
+> source writer. Completed successful protected receipts on the unchanged live
+> product-owner head are authoritative for acceptance; queued, skipped, cancelled,
+> failed, runnerless, documentation-only, or predecessor receipts are non-accepting
+> and do not transfer.
 
 ## Delivery authority
 
@@ -47,11 +46,13 @@ Readiness is not acceptance. #983 and #1115 retain `CHANGES_REQUESTED`; no prede
 
 ## Material UI / accessibility
 
-#977 exact `d162aaf307108fbbbda807c2dc4c0c74f33eda7a` is the single source owner for the leftover-pair actionable-name/browser lane. Fresh comparison exposed an invalid dual-writer state: #1041 and #977 had diverged from protected `main` while both modifying `LeftoverPairList`. The valid #1041 finding was adopted into #977 rather than continuing parallel source ownership. #1041 is now an ordinary/non-force documentation/evidence child of #977 and carries no product-source delta relative to that base.
+#977 is the single source owner for the leftover-pair actionable-name/browser lane. Fresh comparison previously exposed an invalid dual-writer state: #1041 and #977 had diverged from protected `main` while both modifying `LeftoverPairList`. The valid #1041 finding was adopted into #977 rather than continuing parallel source ownership; #1041 is merged documentation history and carries no continuing product-source authority.
 
-On #977, RED `2a9696b25ce2423ebfff48217ea2e0a31ee3630f` proves that a rich measurement-bearing `nextAction` could announce rank/Y/E or higher-priority evidence and then append the same formatter evidence again. Fix `57c60f622b0cbda0a746a99d3af9dd98b50c679b` records typed evidence ownership for the chosen action branch and removes only the duplicate trailing accessible evidence. RED `5dd4a63bb007c27c23b26e5c3895f8fa9e6abe52` restores the separate accepted ADR 0162 visual invariant: a non-finite residual is visibly `R —` while remaining absent from the accessible name. Current `d162aaf3...` applies that causal source repair. Distance remains omitted when non-finite rather than fabricating `d NaN`.
+On #977, RED `2a9696b25ce2423ebfff48217ea2e0a31ee3630f` proves that a rich measurement-bearing `nextAction` could announce rank/Y/E or higher-priority evidence and then append the same formatter evidence again. Fix `57c60f622b0cbda0a746a99d3af9dd98b50c679b` records typed evidence ownership for the chosen action branch and removes only duplicate trailing accessible evidence. RED `5dd4a63bb007c27c23b26e5c3895f8fa9e6abe52` restores the separate accepted ADR 0162 visual invariant: a non-finite residual is visibly `R —` while remaining absent from the accessible name. Distance remains omitted when non-finite rather than fabricating `d NaN`.
 
-The #977 lane retains the earlier component-scoped narrow-screen wrapping, 44px touch target, keyboard/focus, mouse/touch and Storybook Chromium acceptance harness. Exact-head repository Tests `35555602909` is Draft-policy skipped, so these new repairs are source-repaired rather than hosted GREEN. Predecessor focused/browser receipts remain historical only. Responsive leftover-map plot right-side clipping, text-expansion/CJK bounds, exact-head browser execution, security gates, and qualifying independent review remain open.
+Fresh review then found the rank-only zero edge case: `formatLeftoverMapRank(0)` admits and visibly renders persisted `rank 0`, while `LEFTOVER_RANK_ZERO_ACTION` explains the zero-rank state without literally naming that measurement. RED `7b6ff5bc16beb9c2ae91961bc753fb10ff3d7a89` pins the rendered/accessibility mismatch. Source fix `bce09c145b979e348d3db3ecad01246ff2d20ed9` preserves the existing localized zero-rank guidance and leaves the formatter badge unsuppressed only in that branch, so `rank 0` is announced exactly once. Rank-zero + observed/expected and non-zero rank paths retain their existing deduplication because their rich actions already name the numeric rank. No translation key or psychometric value changed.
+
+The #977 lane retains component-scoped narrow-screen wrapping, 44px touch target, keyboard/focus, mouse/touch and Storybook Chromium acceptance harness. The latest source-bearing head had no pull-request workflow receipt at review time; Devin Review and CodeRabbit status success are not focused/frontend/full-suite/Storybook/Security/SAST/CodeQL acceptance or independent approval. Responsive leftover-map plot right-side clipping, text-expansion/CJK bounds, exact-head browser execution, security gates, and qualifying independent review remain open.
 
 #861 is the earliest App comparison owner. Parent #860 exact `13b838a3ea4d23b3d358d2f0adecec9c21cb0a8f` repairs exact numeric coordinate-tick identity: coordinates such as `0.501` and `0.504` remain distinct even when both display `+0.50`, and React keys use the persisted numeric value. Current #861 exact `69bdb2fc7613aeffd972cf2a114da1a9347fe505` then preserves that repair while replacing inherited share-only App expectations with exact persisted σ+share names and right-bounding both SVG axis captions. Commit `d572f651...` also retains desktop/mobile Storybook screenshot evidence. These are source/local-render repairs, not protected delivery.
 
@@ -87,19 +88,21 @@ The OpenTelemetry `LoggingHandler` deprecation remains separately owned by #973 
 
 Current authority:
 
-`#899 a2da5875525cd0950999487ff8fe7d439284dbd2 → #1118 306fc9dccf972c9fcb859b1379c32ec98649f137 → #1120 867e26175a90cd7c6048be6aa91983686cc8d897 → #1117 1a3a62c874ee82d718b55a01044dacbb35bf0fca`.
+`#899 c943060c7c16f74faf48d1ee40eaa5301c830065 → #1118 e661211f10df1afffa99ab1647a7d94074a5ad81 → #1120 5cc0dc509efb17ae5b1746b64660e26a604f67c7 → #1117 2769b92172dd089ae9ffec207c9130abe057a728`.
 
 Accumulated #1120 verifier/auth-fixture prerequisites remain in force: contradictory RSA/JWK metadata is rejected; `x5c` must be canonical/parseable and consistent with JWK `n/e` and KeyUsage; unsupported `x5u` candidates fail closed because LineageWeave owns no remote-certificate retrieval/trust path; service-account subjects come from the checked-in realm fixture and remain disjoint from human subjects; machine clients are unique enabled OIDC confidential service-account clients with direct/browser/implicit grants disabled and required REST/MCP audiences. The public browser fixture remains Authorization Code + S256 PKCE with implicit flow disabled and exact local redirect origins.
 
 Seed/bootstrap ROPC is source-repaired. Human fixture subjects are read deterministically from `docker/keycloak/realm-export.json`; seed no longer logs into master `admin-cli` or mints a human password token. `scripts/warm_seeded_post_content.py`, `scripts/smoke_test_oidc.py`, and k6 HTTP/MCP paths use confidential Client Credentials actors rather than public-browser password grants.
 
-The final backend-integration ROPC finding is also source-repaired at #1120 exact `867e26175a90cd7c6048be6aa91983686cc8d897`: `backend/tests/test_api.py` uses distinct confidential viewer/admin helpers, and `lineageweave-frontend.directAccessGrantsEnabled=false` lands in the same causal migration. Exact predecessor→head compare contains only `backend/tests/test_api.py`, `docker/keycloak/realm-export.json`, and ADR 0028. Exact-head Tests `35539945115` is Draft-policy skipped, so source repair is not hosted GREEN.
+The final backend-integration ROPC finding remains source-repaired on current #1120 `5cc0dc509efb17ae5b1746b64660e26a604f67c7`: `backend/tests/test_api.py` uses distinct confidential viewer/admin helpers and `lineageweave-frontend.directAccessGrantsEnabled=false` remains in the same causal migration. #1120's move from the earlier repair head is parent convergence onto current #1118, not a rollback of that source contract. Exact-head Tests `35559128056` is Draft-policy skipped, so source repair is not hosted GREEN.
 
 The machine helper retains four causal hardening steps: endpoint override; Compose empty/unset-secret parity; repository-known fallback-secret restriction to `localhost`/`127.0.0.1`/`::1`; and fail-closed rejection of explicit confidential-client secrets over non-loopback cleartext HTTP. Loopback HTTP remains a disposable local-fixture exception. ADR 0028 records the RFC 6749 TLS/client-credential boundary plus the existing RFC 9700 / RFC 10017 boundary.
 
-#1117 was reconstructed ordinary/non-force after #1120 moved. Current child exact `1a3a62c874ee82d718b55a01044dacbb35bf0fca` has #1120 `867e2617...` as exact merge-base, `behind_by=0`, and effective delta only `README.md`.
+#1117 is ordinary/non-force converged on current #1120. Exact child `2769b92172dd089ae9ffec207c9130abe057a728` has #1120 `5cc0dc50...` as exact merge-base, `behind_by=0`, and effective delta only `README.md` plus the focused README auth-contract regression. That repair removes stale public-client ROPC/direct-grant claims while retaining current local-stack inventory.
 
-#1118 separately owns the PyJWT declared-floor repair: both install surfaces require `pyjwt[crypto]>=2.13.0`, the committed lock already resolves 2.13.0, owned JWT verification remains RS256-only, and `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` records APA 7th traceability for CVE-2026-48523/48524/48525/48526. Exact #1118 Tests remains Draft-skipped; this is source-repaired, not hosted GREEN.
+#1118 separately owns the PyJWT declared-floor repair: both install surfaces require `pyjwt[crypto]>=2.13.0`, the committed lock resolves 2.13.0, owned JWT verification remains RS256-only, and `docs/doctoring/PYJWT_SECURITY_REFERENCES.md` records APA 7th traceability for CVE-2026-48523/48524/48525/48526. Current #1118 exact `e661211f...` is converged on #899 `c943060c...`; exact-head Tests `35558975815` remains Draft-skipped, so this is source-repaired rather than hosted GREEN.
+
+#899 current exact `c943060c7c16f74faf48d1ee40eaa5301c830065` is Ready for validation admission only. Its repository/security/static-analysis workflows are queued and its Tests jobs remain runnerless; that state is not merge readiness. The four direct descendants have already been ordinary/non-force converged on this parent.
 
 Remaining authentication work is acceptance/integration rather than ROPC source migration: obtain exact-head hosted GREEN where policy executes it; rendered Authorization Code + S256 PKCE redirect/callback/session/return-path/tampered-state/permission acceptance; authenticated PostgreSQL/buyer API evidence; and qualifying independent review before parent-first merge/retarget.
 
@@ -128,7 +131,7 @@ Migration ordinal uniqueness remains separately owned by #1049 `5322971193d1ff4e
 | Area | Current authority | State | Required causal next step |
 | --- | --- | --- | --- |
 | Translation / Customer Master | #929 → #932 → #996 | RED/Draft | PostgreSQL + canonical-owner checks, language review, browser/auth/performance acceptance |
-| Leftover-pair actionable accessibility | #977 `d162aaf3...` → docs child #1041 | source repaired / exact-head acceptance pending | exact-head frontend/full-suite + Storybook Chromium + security + locale/font-fallback + independent approval; no parallel source writer |
+| Leftover-pair actionable accessibility | #977 live source owner; last source-bearing repair `bce09c14...`; #1041 merged history | source repaired / exact-head acceptance pending | exact-head frontend/full-suite + Storybook Chromium + security + locale/font-fallback + independent approval; no parallel source writer |
 | App comparison acceptance | #861 `69bdb2fc...` | source repaired / exact-head acceptance pending | completed successful current-head checks + authenticated browser/accessibility acceptance |
 | App comparison layout | #861 `69bdb2fc...` | source repaired / rendered acceptance pending | responsive + text-expansion/CJK browser bounds; keep dense tick/mobile-scroll risk explicit |
 | Report contracts | #862 → #863 → #865; merged #866; #867 → … → #875 → (#876 → #1033 → #1034, #877); historical #878/#879 | converged / fresh acceptance pending | exact-head repository/browser/a11y/security validation; predecessor failures stay diagnostic only |
@@ -136,7 +139,7 @@ Migration ordinal uniqueness remains separately owned by #1049 `5322971193d1ff4e
 | Summary-read shared corporate catalog mutation | #1078 | separate owner lane / RED | enforce the `post_read`/`post_admin` mutation boundary, preserve summary-read behavior, then obtain exact-head security evidence |
 | Telemetry deprecation | #973 | source repaired / integration pending | consume through protected integration or verified succession |
 | Canonical CI/CodeQL | `.github@e6334e22...` | live owner authority; queue owner #712 active | refresh consumers/receipts against current released owner contracts; keep runner starvation separate from product source |
-| Authentication | #899 → #1118 `306fc9dc...` → #1120 `867e2617...` → #1117 `1a3a62c8...` | ROPC/helper/JWT source repaired; runtime/browser acceptance pending | exact-head hosted + PostgreSQL + rendered Authorization Code/S256 PKCE proof, then parent-first merge/retarget |
+| Authentication | #899 `c943060c...` → #1118 `e661211f...` → #1120 `5cc0dc50...` → #1117 `2769b921...` | ROPC/helper/JWT source repaired; runtime/browser acceptance pending | exact-head hosted + PostgreSQL + rendered Authorization Code/S256 PKCE proof, then parent-first merge/retarget |
 | Voice ADR authority | #1121 `dbabff85...` | source repaired / hosted acceptance pending | exact-head GREEN + independent review + normal merge, then protected-main runtime evidence |
 | Frontend performance | #995 | RED | representative cold buyer-path measurement and causal repair if over budget |
 | MCP latency | #1009 | RED | representative profile and hot-path repair to p95 ≤20 ms |
