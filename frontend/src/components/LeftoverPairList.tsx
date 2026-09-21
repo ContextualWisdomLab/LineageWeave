@@ -252,7 +252,9 @@ export function LeftoverPairList({
               : tf(LEFTOVER_RANK_STRUCTURE_ACTION, {
                   rank: String(pair.leftover_map_rank),
                 });
-          nextActionEvidence.add("rank");
+          if (pair.leftover_map_rank !== 0) {
+            nextActionEvidence.add("rank");
+          }
         } else if (observedExpected !== null) {
           nextAction = tf(
             "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
