@@ -70,6 +70,21 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
     assert match is None, f"private post identifier in product-gap baseline: {match.group(0)!r}"
 
 
+def test_product_gap_baseline_queue_snapshot_is_timestamped_and_scoped() -> None:
+    """Queue counts are auditable snapshots, not self-updating current-state claims."""
+    overlay = "\n".join(
+        _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8").splitlines()[:20]
+    )
+    assert re.search(
+        r"Exact-head authority overlay: 2026-09-21T\d{2}:\d{2}:\d{2}Z \(KST [^)]+\)",
+        overlay,
+    )
+    assert "capture timestamp" in overlay
+    assert "created at or before" in overlay
+    assert "created after" in overlay
+    assert "next overlay" in overlay
+
+
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
     """ADR 0019 / 0027: fetch must not rejoin the catalog by a non-unique name."""
 
