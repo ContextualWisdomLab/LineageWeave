@@ -43,8 +43,9 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "leftover axis {axis} {share}%",
+    "leftover axis {axis} σ {value} {share}%",
     "Leftover-map axis share",
-    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Leftover-map singular values are the Gabriel scale of those axes. Open a leftover pair to read the post–criterion cell. The shares and singular values do not invent a leftover score.",
     "Leftover pairs",
     "Closest leftover",
     "Farthest leftover",
@@ -65,9 +66,38 @@ describe("i18n", () => {
     "leftover-map axis 1",
     "leftover-map axis 2",
     "leftover-map axis {axis} ({share}%)",
+    "leftover-map axis {axis} σ {value}",
+    "leftover-map axis {axis} σ {value} ({share}%)",
     "leftover-map axis {axis} tick {value}",
     "leftover-map distance {label}",
-    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.",
+    "leftover-map reconstruction {label}",
+    "leftover-map explained leftover share {label}",
+    "leftover-map unexplained leftover share {label}",
+    "leftover-map cross share {label}",
+    "leftover-map unexplained leftover {label}",
+    "leftover residual {label}",
+    "leftover observed {label}",
+    "leftover expected {label}",
+    "leftover-map rank {label}",
+    "Leftover-map graphic coverage",
+    "Leftover map comparison coverage",
+    "Leftover map comparison item coverage",
+    "Leftover map comparison incomplete posts",
+    "Leftover map comparison incomplete items",
+    "leftover map comparison axis {axis} {share}%",
+    "Leftover map comparison reconstruction",
+    "Leftover map comparison explained leftover share",
+    "Leftover map comparison unexplained leftover share",
+    "Leftover-map graphic item coverage",
+    "Leftover map item coverage",
+    "Leftover map incomplete posts",
+    "Leftover map incomplete items",
+    "Leftover-map graphic incomplete posts",
+    "Leftover-map graphic incomplete items",
+    "Leftover map used {used} of {scored} scored criteria (complete-case)",
+    "Leftover map dropped {dropped} incomplete posts",
+    "Leftover map dropped {dropped} incomplete criteria",
+    "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
     "Open leftover-map post {title} at ξ {person}",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
@@ -331,24 +361,134 @@ describe("i18n", () => {
   it.each([
     [
       "ko",
-      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d입니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
+      "IRT 주효과 이후 잔여 지도입니다. 축 눈금은 저장된 잔여 지도 좌표입니다. 쌍 선분은 잔여 지도 거리 d, 잔여 지도 재구성 R̂, 잔여 지도 설명 잔여 점유율 e, 잔여 지도 미설명 잔여 점유율 s, 잔여 지도 교차 점유율 x, 잔여 지도 미설명 잔여 U, 잔여 R, 관측 Y, 기대 E, 잔여 지도 순위입니다. 저장된 완전사례 포함 범위와 기준 포함 범위와 불완전 글과 불완전 기준이 있으면 그림이 그 범위를 표시합니다. 글 표식을 눌러 그 글을 여세요. 이 그림은 잔여 점수를 만들어내지 않습니다.",
     ],
-    ["zh", "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
+    ["zh", "IRT 主效应后的残差图。轴刻度标出已保存的残差图坐标。配对线段标出残差图距离 d、残差图重建 R̂、残差图已解释残差份额 e、残差图未解释残差份额 s、残差图交叉份额 x、残差图未解释残差 U、残差 R、观测 Y、期望 E 与残差图秩。图在已保存时标出完全案例覆盖范围、准则完全案例覆盖范围、不完整帖文与不完整准则。点击帖子标记打开该帖子。此图不会虚构残差分数。"],
     [
       "ja",
-      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d です。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
+      "IRT主効果後の残差マップです。軸目盛は保存済みの残差マップ座標です。ペア線分は残差マップ距離 d、残差マップ再構成 R̂、残差マップ説明済み残差割合 e、残差マップ未説明残差割合 s、残差マップ交差割合 x、残差マップ未説明残差 U、残差 R、観測 Y、期待 E、残差マップ階数です。保存済みの完全ケース対象範囲と基準の完全ケース対象範囲と不完全投稿と不完全基準があるときはその範囲を示します。投稿マーカーをクリックしてその投稿を開いてください。この図は残差スコアを作りません。",
     ],
     [
       "vi",
-      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
+      "Bản đồ phần dư sau hiệu ứng chính IRT. Vạch trục ghi tọa độ bản đồ phần dư đã lưu. Đoạn cặp ghi khoảng cách bản đồ phần dư d, tái dựng bản đồ phần dư R̂, tỷ phần phần dư được giải thích e, phần dư chưa giải thích s, phần giao x, phần dư chưa giải thích U, phần dư R, Y quan sát, E kỳ vọng và hạng bản đồ phần dư. Hình ghi phạm vi trường hợp đầy đủ của bài viết và tiêu chí cùng bài không đầy đủ và tiêu chí không đầy đủ khi đã lưu. Nhấn dấu bài viết để mở bài đó. Hình này không tạo ra điểm phần dư.",
     ],
   ] as const)("formats leftover-map graphic display caption in %s", (locale, expected) => {
     setLocale(locale);
     expect(
       t(
-        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.",
+        "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, leftover-map explained leftover share e, leftover-map unexplained leftover share s, leftover-map cross share x, leftover-map unexplained leftover U, leftover residual R, leftover observed Y, leftover expected E, and leftover-map rank. The plot names leftover-map complete-case coverage, leftover-map item complete-case coverage, leftover-map incomplete post coverage, and leftover-map incomplete item coverage when persisted. Click a post marker to open that post. The plot does not invent a leftover score.",
       ),
     ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 그림 포함 범위"],
+    ["zh", "残差图图形覆盖范围"],
+    ["ja", "残差マップ図の対象範囲"],
+    ["vi", "Phạm vi đồ họa bản đồ phần dư"],
+  ] as const)("formats leftover-map graphic coverage label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover-map graphic coverage")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 포함 범위"],
+    ["zh", "残差地图比较覆盖范围"],
+    ["ja", "残差マップの比較対象範囲"],
+    ["vi", "Phạm vi so sánh bản đồ phần dư"],
+  ] as const)("formats leftover map comparison coverage label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map comparison coverage")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 기준 포함 범위"],
+    ["zh", "残差地图比较准则覆盖范围"],
+    ["ja", "残差マップの比較基準対象範囲"],
+    ["vi", "Phạm vi so sánh tiêu chí bản đồ phần dư"],
+  ] as const)("formats leftover map comparison item coverage label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map comparison item coverage")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 불완전 글"],
+    ["zh", "残差地图比较不完整帖文"],
+    ["ja", "残差マップの比較不完全投稿"],
+    ["vi", "Bài không đầy đủ so sánh trên bản đồ phần dư"],
+  ] as const)("formats leftover map comparison incomplete posts label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map comparison incomplete posts")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 비교 불완전 기준"],
+    ["zh", "残差地图比较不完整准则"],
+    ["ja", "残差マップの比較不完全基準"],
+    ["vi", "Tiêu chí không đầy đủ so sánh trên bản đồ phần dư"],
+  ] as const)("formats leftover map comparison incomplete items label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map comparison incomplete items")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 그림 기준 포함 범위"],
+    ["zh", "残差图图形准则覆盖范围"],
+    ["ja", "残差マップ図の基準対象範囲"],
+    ["vi", "Phạm vi đồ họa tiêu chí bản đồ phần dư"],
+  ] as const)("formats leftover-map graphic item coverage label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover-map graphic item coverage")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 기준 포함 범위"],
+    ["zh", "残差地图准则覆盖范围"],
+    ["ja", "残差マップの基準対象範囲"],
+    ["vi", "Phạm vi tiêu chí bản đồ phần dư"],
+  ] as const)("formats leftover map item coverage label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map item coverage")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 불완전 글"],
+    ["zh", "残差地图不完整帖文"],
+    ["ja", "残差マップの不完全投稿"],
+    ["vi", "Bài không đầy đủ trên bản đồ phần dư"],
+  ] as const)("formats leftover map incomplete posts label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map incomplete posts")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 불완전 기준"],
+    ["zh", "残差地图不完整准则"],
+    ["ja", "残差マップの不完全基準"],
+    ["vi", "Tiêu chí không đầy đủ trên bản đồ phần dư"],
+  ] as const)("formats leftover map incomplete items label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover map incomplete items")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 그림 불완전 글"],
+    ["zh", "残差图图形不完整帖文"],
+    ["ja", "残差マップ図の不完全投稿"],
+    ["vi", "Bài không đầy đủ trên đồ họa bản đồ phần dư"],
+  ] as const)("formats leftover-map graphic incomplete posts label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover-map graphic incomplete posts")).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 그림 불완전 기준"],
+    ["zh", "残差图图形不完整准则"],
+    ["ja", "残差マップ図の不完全基準"],
+    ["vi", "Tiêu chí không đầy đủ trên đồ họa bản đồ phần dư"],
+  ] as const)("formats leftover-map graphic incomplete items label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Leftover-map graphic incomplete items")).toBe(expected);
   });
 
   it.each([
@@ -372,6 +512,100 @@ describe("i18n", () => {
   });
 
   it.each([
+    ["ko", "잔여 지도 재구성 R̂ +0.35"],
+    ["zh", "残差图重建 R̂ +0.35"],
+    ["ja", "残差マップ再構成 R̂ +0.35"],
+    ["vi", "tái dựng bản đồ phần dư R̂ +0.35"],
+  ] as const)("formats leftover-map segment reconstruction in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map reconstruction {label}", { label: "R̂ +0.35" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 설명 잔여 점유율 R̂²/R² 0.76"],
+    ["zh", "残差图已解释残差份额 R̂²/R² 0.76"],
+    ["ja", "残差マップ説明済み残差割合 R̂²/R² 0.76"],
+    ["vi", "tỷ phần phần dư được giải thích trên bản đồ phần dư R̂²/R² 0.76"],
+  ] as const)("formats leftover-map segment explained leftover share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map explained leftover share {label}", { label: "R̂²/R² 0.76" })).toBe(
+      expected,
+    );
+  });
+
+  it.each([
+    ["ko", "잔여 지도 미설명 잔여 점유율 U²/R² 0.02"],
+    ["zh", "残差图未解释残差份额 U²/R² 0.02"],
+    ["ja", "残差マップ未説明残差割合 U²/R² 0.02"],
+    ["vi", "phần dư chưa giải thích bản đồ phần dư U²/R² 0.02"],
+  ] as const)("formats leftover-map segment unexplained leftover share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map unexplained leftover share {label}", { label: "U²/R² 0.02" })).toBe(
+      expected,
+    );
+  });
+
+  it.each([
+    ["ko", "잔여 지도 교차 점유율 2R̂U/R² 0.12"],
+    ["zh", "残差图交叉份额 2R̂U/R² 0.12"],
+    ["ja", "残差マップ交差割合 2R̂U/R² 0.12"],
+    ["vi", "phần giao bản đồ phần dư 2R̂U/R² 0.12"],
+  ] as const)("formats leftover-map segment cross share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map cross share {label}", { label: "2R̂U/R² 0.12" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 미설명 잔여 U +0.05"],
+    ["zh", "残差图未解释残差 U +0.05"],
+    ["ja", "残差マップ未説明残差 U +0.05"],
+    ["vi", "phần dư chưa giải thích U +0.05"],
+  ] as const)("formats leftover-map segment unexplained leftover in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map unexplained leftover {label}", { label: "U +0.05" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 R +0.40"],
+    ["zh", "残差 R +0.40"],
+    ["ja", "残差 R +0.40"],
+    ["vi", "phần dư R +0.40"],
+  ] as const)("formats leftover-map segment leftover residual in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover residual {label}", { label: "R +0.40" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "관측 Y 2.40"],
+    ["zh", "观测 Y 2.40"],
+    ["ja", "観測 Y 2.40"],
+    ["vi", "quan sát Y 2.40"],
+  ] as const)("formats leftover-map segment leftover observed in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover observed {label}", { label: "Y 2.40" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "기대 E 2.00"],
+    ["zh", "期望 E 2.00"],
+    ["ja", "期待 E 2.00"],
+    ["vi", "kỳ vọng E 2.00"],
+  ] as const)("formats leftover-map segment leftover expected in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover expected {label}", { label: "E 2.00" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 순위 rank 1"],
+    ["zh", "残差图秩 rank 1"],
+    ["ja", "残差マップ階数 rank 1"],
+    ["vi", "hạng bản đồ phần dư rank 1"],
+  ] as const)("formats leftover-map segment leftover-map rank in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map rank {label}", { label: "rank 1" })).toBe(expected);
+  });
+
+  it.each([
     ["ko", "잔여 지도 축 1 (82%)"],
     ["zh", "残差图轴 1 (82%)"],
     ["ja", "残差マップ軸 1 (82%)"],
@@ -379,6 +613,40 @@ describe("i18n", () => {
   ] as const)("formats leftover-map plot axis share in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("leftover-map axis {axis} ({share}%)", { axis: 1, share: "82" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 σ 1.84"],
+    ["zh", "残差图轴 1 σ 1.84"],
+    ["ja", "残差マップ軸 1 σ 1.84"],
+    ["vi", "trục bản đồ phần dư 1 σ 1.84"],
+  ] as const)("formats leftover-map plot axis singular value in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("leftover-map axis {axis} σ {value}", { axis: 1, value: "1.84" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔여 지도 축 1 σ 1.84 (82%)"],
+    ["zh", "残差图轴 1 σ 1.84 (82%)"],
+    ["ja", "残差マップ軸 1 σ 1.84 (82%)"],
+    ["vi", "trục bản đồ phần dư 1 σ 1.84 (82%)"],
+  ] as const)("formats leftover-map plot axis singular value with share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover-map axis {axis} σ {value} ({share}%)", { axis: 1, value: "1.84", share: "82" }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "잔차 축 1 σ 1.84 82%"],
+    ["zh", "残差轴 1 σ 1.84 82%"],
+    ["ja", "残差軸 1 σ 1.84 82%"],
+    ["vi", "trục phần dư 1 σ 1.84 82%"],
+  ] as const)("formats leftover-axis badge singular value with share in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("leftover axis {axis} σ {value} {share}%", { axis: 1, value: "1.84", share: "82" }),
+    ).toBe(expected);
   });
 
   it.each([

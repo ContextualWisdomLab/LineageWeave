@@ -2,6 +2,8 @@
 
 **Decision status:** Draft
 **Date:** 2026-08-24
+**Amended by:** [ADR 0275](0275-leftover-map-segment-cross-share.md)
+(leftover-map cross share on graphic-display pair segments)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0049](0049-leftover-pair-report-ui.md).
@@ -83,7 +85,9 @@ invent a leftover score. Do not invent a theta.
 `GET /api/reports/{grouping}/{period}` returns
 `leftover_map_cross_share`. After `make seed`, closest and farthest
 leftover pairs sit above the member list with named `2R̂U/R²` next
-to `d`; click opens that post. Hidden posts stay hidden.
+to `d`; click opens that post. Hidden posts stay hidden. ADR 0275
+captions leftover-map graphic-display pair segments with that same
+persisted leftover-map cross share; it adds no columns.
 
 ## Related
 

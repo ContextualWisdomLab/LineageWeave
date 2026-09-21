@@ -1,22 +1,20 @@
-.leftover-pair-button {
-  justify-content: flex-start;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: var(--space-chip-gap) var(--space-chip-inline);
-}
-
-.leftover-pair-button .ticket-title {
-  flex: 1 0 100%;
+.leftover-pair-action {
   min-width: 0;
+  min-height: var(--size-touch-target);
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-control-gap);
+}
+
+.leftover-pair-action > .ticket-title {
+  min-width: 0;
+  flex: 1 1 18rem;
   overflow-wrap: anywhere;
 }
 
-.leftover-pair-button .post-badge {
+.leftover-pair-action > .post-badge {
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 768px) {
-  .leftover-pair-button .post-badge {
-    flex: 1 1 9rem;
-  }
 }

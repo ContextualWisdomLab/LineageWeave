@@ -14,7 +14,16 @@
 [ADR 0268](0268-leftover-map-graphic-display.md) (leftover-map graphic display);
 [ADR 0269](0269-leftover-map-axis-share-plot.md) (leftover-map axis share on the graphic display);
 [ADR 0270](0270-leftover-map-coordinate-ticks.md) (leftover-map coordinate ticks);
-[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments)
+[ADR 0271](0271-leftover-map-segment-distance.md) (leftover-map distance on pair segments);
+[ADR 0272](0272-leftover-map-segment-reconstruction.md) (leftover-map reconstruction on pair segments);
+[ADR 0273](0273-leftover-map-segment-explained-share.md) (leftover-map explained leftover share on pair segments);
+[ADR 0274](0274-leftover-map-segment-unexplained-share.md) (leftover-map unexplained leftover share on pair segments);
+[ADR 0275](0275-leftover-map-segment-cross-share.md) (leftover-map cross share on pair segments);
+[ADR 0276](0276-leftover-map-segment-unexplained-leftover.md) (leftover-map unexplained leftover on pair segments);
+[ADR 0277](0277-leftover-map-segment-residual.md) (leftover residual on pair segments);
+[ADR 0278](0278-leftover-map-segment-observed.md) (leftover observed Y on pair segments);
+[ADR 0279](0279-leftover-map-segment-expected.md) (leftover expected E on pair segments);
+[ADR 0280](0280-leftover-map-segment-rank.md) (leftover-map rank on pair segments)
 
 ## Context
 
@@ -74,7 +83,21 @@ those leftover-map axes with persisted leftover-map axis share; it
 adds no columns. ADR 0270 ticks leftover-map axes at persisted `ξ` /
 `ζ` coordinates; it adds no columns. ADR 0271 captions leftover-map
 pair segments with persisted leftover-map distance `d`; it adds no
-columns.
+columns. ADR 0272 captions leftover-map pair segments with persisted
+leftover-map reconstruction `R̂`; it adds no columns. ADR 0273 captions
+leftover-map pair segments with persisted leftover-map explained leftover
+share `e`; it adds no columns. ADR 0274 captions leftover-map pair
+segments with persisted leftover-map unexplained leftover share `s`; it
+adds no columns. ADR 0275 captions leftover-map pair segments with
+persisted leftover-map cross share `x`; it adds no columns. ADR 0276
+captions leftover-map pair segments with persisted leftover-map
+unexplained leftover `U`; it adds no columns. ADR 0277 captions leftover-map
+pair segments with persisted leftover residual `R`; it adds no columns.
+ADR 0278 captions leftover-map pair segments with persisted leftover
+observed `Y`; it adds no columns. ADR 0279 captions leftover-map pair
+segments with persisted leftover expected `E`; it adds no columns. ADR 0280
+captions leftover-map pair segments with persisted leftover-map rank; it
+adds no columns.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

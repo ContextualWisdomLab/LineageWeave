@@ -1,4 +1,4 @@
-import type { LeftoverMapAxis, LeftoverPair } from "../api";
+import type { LeftoverMapAxis, LeftoverMapCoverage, LeftoverPair } from "../api";
 import { t, tf } from "../i18n";
 import {
   formatLeftoverMapCrossShare,
@@ -33,12 +33,14 @@ import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
 } from "../leftoverMapUnexplainedShare";
-import { LeftoverMapPlot } from "./LeftoverMapPlot";
+import { formatLeftoverMapDistance } from "../leftoverMapPlotLayout";
 import "./LeftoverPairList.css";
+import { LeftoverMapPlot } from "./LeftoverMapPlot";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
   leftoverMapAxes?: LeftoverMapAxis[];
+  leftoverMapCoverage?: LeftoverMapCoverage | null;
   criterionLabel: (criterionCode: string) => string;
   onSelectPost: (pair: LeftoverPair) => void;
 };
@@ -53,6 +55,13 @@ type AccessibleEvidenceKey =
   | "crossShare"
   | "reconstruction"
   | "coordinates";
+
+/** Join buyer-visible evidence without inventing unavailable values. */
+function leftoverPairAccessibleName(parts: Array<string | null | undefined>): string {
+  return parts
+    .filter((part): part is string => typeof part === "string" && part.length > 0)
+    .join(" ");
+}
 
 /**
  * Closest and farthest leftover post–criterion pairs after IRT main effects.
@@ -70,15 +79,42 @@ type AccessibleEvidenceKey =
  * next action. When four finite coordinates exist, ADR 0268 draws the
  * leftover-map graphic display above the pair buttons; click a post
  * marker opens that post. ADR 0269 captions those leftover-map axes with
- * persisted leftover-map axis share when finite. ADR 0270 ticks those
+ * persisted leftover-map axis share when finite. ADR 0289 captions those
+ * leftover-map axes with persisted leftover-map singular values when
+ * finite and non-negative, independently of leftover-map axis share, and
+ * does not invent ``σ_k`` from leftover-map axis share. ADR 0270 ticks those
  * leftover-map axes at persisted ``ξ`` / ``ζ`` so the pair-row badge matches
  * the plot. ADR 0271 names persisted leftover-map distance ``d`` on those
- * pair segments. Every badge still
+ * pair segments. ADR 0272 names persisted leftover-map reconstruction
+ * ``R̂`` on those pair segments. ADR 0273 names persisted leftover-map
+ * explained leftover share ``e`` on those pair segments. ADR 0274 names
+ * persisted leftover-map unexplained leftover share ``s`` on those pair
+ * segments. ADR 0275 names persisted leftover-map cross share ``x`` on
+ * those pair segments. ADR 0276 names persisted leftover-map unexplained
+ * leftover ``U`` on those pair segments. ADR 0277 names persisted leftover
+ * residual ``R`` on those pair segments. ADR 0278 names persisted leftover
+ * observed ``Y`` on those pair segments. ADR 0279 names persisted leftover
+ * expected ``E`` on those pair segments. ADR 0280 names persisted leftover-map
+ * rank on those pair segments. ADR 0281 names persisted leftover-map
+ * complete-case coverage on the graphic. ADR 0282 names persisted leftover-map
+ * item complete-case coverage on the graphic. ADR 0283 names persisted leftover-map
+ * incomplete post coverage on the graphic. ADR 0284 names persisted leftover-map
+ * incomplete item coverage on the graphic. ADR 0285 names persisted leftover-map
+ * item complete-case coverage on the pair-list note. ADR 0286 names persisted leftover-map
+ * incomplete post coverage on the pair-list note. ADR 0287 names persisted leftover-map
+ * incomplete item coverage on the pair-list note. ADR 0288 fail-closes pair-list
+ * leftover-map post complete-case coverage through leftoverMapCoverageCounts so
+ * used-greater-than-scored, negative, or non-integer counts omit that note. ADR 0290
+ * names persisted leftover-map post complete-case coverage on the grouping
+ * comparison strip, not this pair list. ADR 0291 names persisted leftover-map
+ * item complete-case coverage on the grouping comparison strip, not this pair
+ * list. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
   leftoverMapAxes,
+  leftoverMapCoverage,
   criterionLabel,
   onSelectPost,
 }: LeftoverPairListProps) {
@@ -90,6 +126,7 @@ export function LeftoverPairList({
       <LeftoverMapPlot
         pairs={pairs}
         leftoverMapAxes={leftoverMapAxes}
+        leftoverMapCoverage={leftoverMapCoverage}
         criterionLabel={criterionLabel}
         onSelectPost={onSelectPost}
       />
@@ -98,7 +135,10 @@ export function LeftoverPairList({
         const kindLabel =
           pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
         const criterion = criterionLabel(pair.criterion_code);
+        const visibleLabel = `${kindLabel}: ${pair.post_title} · ${criterion}`;
         const residual = formatLeftoverResidual(pair.leftover_residual);
+        const residualBadge = Number.isFinite(pair.leftover_residual) ? `R ${residual}` : null;
+        const distanceBadge = formatLeftoverMapDistance(pair.leftover_distance);
         const observedExpected = formatLeftoverObservedExpected(
           pair.observed_response,
           pair.expected_response,
@@ -222,7 +262,7 @@ export function LeftoverPairList({
             },
           );
           nextActionEvidence.add("observedExpected");
-        } else if (Number.isFinite(pair.leftover_residual)) {
+        } else if (residualBadge !== null) {
           nextAction = tf(
             "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
             { residual, criterion },
@@ -231,23 +271,6 @@ export function LeftoverPairList({
         } else {
           nextAction = t("Open this post so the leftover criterion is current in Post quality.");
         }
-        const accessibleEvidence = [
-          nextAction,
-          !nextActionEvidence.has("residual") && Number.isFinite(pair.leftover_residual)
-            ? `R ${residual}`
-            : null,
-          !nextActionEvidence.has("observedExpected") ? observedExpected : null,
-          !nextActionEvidence.has("rank") ? rankBadge : null,
-          !nextActionEvidence.has("unexplained") ? unexplained : null,
-          !nextActionEvidence.has("unexplainedShare") ? unexplainedShareBadge : null,
-          !nextActionEvidence.has("explainedShare") ? explainedShareBadge : null,
-          !nextActionEvidence.has("crossShare") ? crossShareBadge : null,
-          !nextActionEvidence.has("reconstruction") ? reconstruction : null,
-          !nextActionEvidence.has("coordinates") ? coordinatesBadge : null,
-          Number.isFinite(pair.leftover_distance)
-            ? `d ${pair.leftover_distance.toFixed(2)}`
-            : null,
-        ].filter((value): value is string => value !== null);
         return (
           <li
             key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -255,14 +278,25 @@ export function LeftoverPairList({
           >
             <button
               type="button"
-              className="post-list-item leftover-pair-button"
-              aria-label={`${kindLabel}: ${pair.post_title} · ${criterion} · ${accessibleEvidence.join(" · ")}`}
+              className="post-list-item leftover-pair-action"
+              aria-label={leftoverPairAccessibleName([
+                visibleLabel,
+                nextAction,
+                !nextActionEvidence.has("residual") ? residualBadge : null,
+                !nextActionEvidence.has("observedExpected") ? observedExpected : null,
+                !nextActionEvidence.has("rank") ? rankBadge : null,
+                !nextActionEvidence.has("unexplained") ? unexplained : null,
+                !nextActionEvidence.has("unexplainedShare") ? unexplainedShareBadge : null,
+                !nextActionEvidence.has("explainedShare") ? explainedShareBadge : null,
+                !nextActionEvidence.has("crossShare") ? crossShareBadge : null,
+                !nextActionEvidence.has("reconstruction") ? reconstruction : null,
+                !nextActionEvidence.has("coordinates") ? coordinatesBadge : null,
+                distanceBadge,
+              ])}
               title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
             >
-              <span className="ticket-title">
-                {kindLabel}: {pair.post_title} · {criterion}
-              </span>
+              <span className="ticket-title">{visibleLabel}</span>
               <span className="post-badge">{nextAction}</span>
               <span className="post-badge">R {residual}</span>
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
@@ -277,9 +311,7 @@ export function LeftoverPairList({
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               {reconstruction ? <span className="post-badge">{reconstruction}</span> : null}
               {coordinatesBadge ? <span className="post-badge">{coordinatesBadge}</span> : null}
-              {Number.isFinite(pair.leftover_distance) ? (
-                <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
-              ) : null}
+              {distanceBadge ? <span className="post-badge">{distanceBadge}</span> : null}
             </button>
           </li>
         );

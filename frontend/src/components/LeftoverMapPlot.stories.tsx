@@ -12,6 +12,14 @@ const meta = {
       { axis_index: 1, leftover_singular_value: 1.84, leftover_share: 0.82 },
       { axis_index: 2, leftover_singular_value: 0.86, leftover_share: 0.18 },
     ],
+    leftoverMapCoverage: {
+      map_post_count: 2,
+      scored_post_count: 3,
+      map_item_count: 2,
+      scored_item_count: 2,
+      incomplete_post_count: 1,
+      incomplete_item_count: 0,
+    },
     pairs: [
       {
         pair_kind: "closest",
@@ -69,6 +77,14 @@ export const RankZeroOrigin: Story = {
       { axis_index: 1, leftover_singular_value: 0, leftover_share: 0 },
       { axis_index: 2, leftover_singular_value: 0, leftover_share: 0 },
     ],
+    leftoverMapCoverage: {
+      map_post_count: 1,
+      scored_post_count: 1,
+      map_item_count: 1,
+      scored_item_count: 1,
+      incomplete_post_count: 0,
+      incomplete_item_count: 0,
+    },
     pairs: [
       {
         pair_kind: "closest",
@@ -80,6 +96,11 @@ export const RankZeroOrigin: Story = {
         observed_response: 1,
         expected_response: 1,
         leftover_map_rank: 0,
+        leftover_map_reconstruction: 0,
+        leftover_map_explained_share: 0,
+        leftover_map_unexplained_share: 0,
+        leftover_map_cross_share: 0,
+        leftover_map_unexplained: 0,
         leftover_map_person_axis_1: 0,
         leftover_map_person_axis_2: 0,
         leftover_map_item_axis_1: 0,
@@ -113,6 +134,14 @@ export const MissingAxisShare: Story = {
   args: {
     leftoverMapAxes: [
       { axis_index: 1, leftover_singular_value: 1.84, leftover_share: Number.NaN },
+    ],
+  },
+};
+
+export const MissingAxisSingular: Story = {
+  args: {
+    leftoverMapAxes: [
+      { axis_index: 1, leftover_singular_value: Number.NaN, leftover_share: 0.82 },
     ],
   },
 };

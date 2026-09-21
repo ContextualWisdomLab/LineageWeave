@@ -3,6 +3,9 @@
 export const LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION =
   "Leftover map leaves unexplained leftover share {value} of raw residual after IRT main effects. Open this post to read {criterion}.";
 
+export const LEFTOVER_MAP_COMPARE_UNEXPLAINED_SHARE_LABEL =
+  "Leftover map comparison unexplained leftover share";
+
 export function formatLeftoverMapUnexplainedShare(
   value: number | null | undefined,
 ): string | null {
