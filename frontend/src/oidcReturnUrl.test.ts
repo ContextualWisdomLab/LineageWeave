@@ -17,6 +17,14 @@ describe("OIDC return URL handling", () => {
       "/?post=abc#evidence",
     );
     expect(returnUrlFromLocation({ pathname: "//evil.example", search: "", hash: "" })).toBe("/");
+    expect(
+      returnUrlFromLocation({
+        pathname: "/\\evil.example/forged",
+        search: "?post=attacker",
+        hash: "#workspace",
+      }),
+    ).toBe("/");
+    expect(restoreOidcReturnUrl({ returnUrl: "/\\evil.example/forged?post=attacker" })).toBe("/");
   });
 
   it("strips OIDC callback params from a restored post-redirect location", () => {
