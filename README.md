@@ -118,7 +118,8 @@ infrastructure -- PostgreSQL, Valkey, and a real Keycloak OIDC realm seeded
 with synthetic demo accounts -- runs via Docker Compose:
 
 ```bash
-make up      # docker compose up -d: postgres, valkey, keycloak, backend, frontend
+make up      # postgres, database_migration, valkey, searxng, keycloak,
+             # backend, frontend (the optional mcp profile stays off)
 KEYCLOAK_CLIENT_SECRET=lineageweave_test_automation_dev_only make smoke
              # machine client-credentials token/JWKS/API-audience check;
              # not browser Authorization Code/OIDC acceptance
@@ -133,17 +134,16 @@ the backend API audience. It does not impersonate `demo.analyst` and is not
 evidence for redirect/PKCE, state/nonce, SSO, MFA, or browser-session behavior.
 Those product-login properties require the rendered Authorization Code path.
 
-The public `lineageweave-frontend` client is configured for S256 PKCE. The
-seed/bootstrap path no longer uses a resource-owner password grant: human
-subject ids are read from the checked-in realm fixture, service-account DB
-authorization is provisioned separately, and lazy post-content warm-up uses
-`lineageweave-test-automation` Client Credentials. The remaining local ROPC
-consumer is `backend/tests/test_api.py`, which still obtains distinct analyst
-and admin human tokens for authorization acceptance. Public direct grants stay
-enabled until that final caller migrates without collapsing viewer/admin
-semantics. OAuth 2.0 Security BCP [RFC 9700 §2.4](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.4)
-forbids that grant, and browser applications must use a redirect-based flow
-under [RFC 10017 §7.3](https://www.rfc-editor.org/rfc/rfc10017.html#section-7.3).
+The public `lineageweave-frontend` client uses Authorization Code + S256 PKCE,
+and public direct grants are disabled. Human browser login never uses the
+resource-owner password grant. The seed/bootstrap path reads human subject ids
+from the checked-in realm fixture, provisions service-account DB authorization
+separately, and uses `lineageweave-test-automation` Client Credentials for lazy
+post-content warm-up. Backend integration actors use distinct confidential
+viewer/admin clients with Client Credentials; machine-token evidence is not
+browser-login evidence. OAuth 2.0 Security BCP [RFC 9700 §2.4](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.4)
+forbids the resource-owner password grant, and browser applications must use a
+redirect-based flow under [RFC 10017 §7.3](https://www.rfc-editor.org/rfc/rfc10017.html#section-7.3).
 
 The local stack does not build or start contextual-orchestrator and does not
 load provider credentials. If model-backed channels are required, deploy or
@@ -217,9 +217,10 @@ is only mentioned on a post the account cannot see is 403, same deny
 path. `backend/tests/test_api.py` proves both the allow and the deny
 path against a live Keycloak + throwaway Postgres database, including
 that a private post scoped to a *different* corporate entity is excluded
-from the list and 403s on direct fetch. Its local token fixture is still a
-known password-grant migration item under #1119/#1120 and is not a production
-authentication recommendation.
+from the list and 403s on direct fetch. Its local integration token fixtures
+use the distinct confidential viewer/admin clients for authorization
+acceptance; those machine tokens are not production or browser
+authentication recommendations.
 
 `frontend/` (React + Vite + TypeScript, `docker compose`'s frontend service)
 is a real client, not mocked or static: `react-oidc-context` drives an
