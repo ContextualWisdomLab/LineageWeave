@@ -17,18 +17,12 @@ const OIDC_CALLBACK_PARAMS = [
   "error_uri",
 ] as const;
 
-/** A correlated callback carries the client-supplied `state` plus a response
- * signal. `state` alone is not sufficient, and response-looking query names
- * without `state` must not let stale auth storage override current product
- * navigation. */
-const OIDC_CALLBACK_SIGNAL_PARAMS = [
-  "code",
-  "session_state",
-  "iss",
-  "error",
-  "error_description",
-  "error_uri",
-] as const;
+/** A correlated Authorization Code response carries client `state` plus a
+ * primary response member: `code` on success or `error` on failure. Ancillary
+ * metadata such as `iss`, `session_state`, `error_description`, or `error_uri`
+ * never proves a response by itself and must not let stale auth storage
+ * override current product navigation. */
+const OIDC_CALLBACK_PRIMARY_PARAMS = ["code", "error"] as const;
 
 /** Removes OIDC callback artifacts from `url` in place -- call before turning
  * `window.location` into a link a user can copy or share. */
@@ -62,7 +56,7 @@ function isOidcCallbackLocation(location: UrlLike): boolean {
   const params = new URLSearchParams(location.search);
   return (
     params.has("state") &&
-    OIDC_CALLBACK_SIGNAL_PARAMS.some((param) => params.has(param))
+    OIDC_CALLBACK_PRIMARY_PARAMS.some((param) => params.has(param))
   );
 }
 
