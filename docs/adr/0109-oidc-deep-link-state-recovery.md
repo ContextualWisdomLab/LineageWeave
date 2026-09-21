@@ -40,6 +40,13 @@ with a single slash yet parse to a different origin. Reconstructing only the
 parsed pathname would then silently turn an external-shaped value into a new
 local deep link rather than rejecting the invalid admission.
 
+The same rule must also cover the final callback fallback. A same-origin document
+can itself have a pathname beginning with `//`; returning that raw pathname to
+`history.replaceState` makes it a protocol-relative URL candidate even though
+it came from the current document. Bypassing the shared sanitizer at that last
+fallback can therefore turn a harmless current path into a `SecurityError`
+during callback cleanup and leave sign-in completion broken.
+
 ## Decision
 
 - Keep the OIDC `state.returnUrl` as the first recovery source.
@@ -72,7 +79,11 @@ local deep link rather than rejecting the invalid admission.
   returns `state` when the request supplied it. OpenID Connect metadata does
   not replace that primary OAuth response member.
 - Ordinary product navigation without correlated callback evidence continues
-  to derive its return path from the current location.
+  to derive its return path from the current location. Every value returned to
+  the History API, including the no-state/no-storage current-path fallback,
+  must pass the same bounded same-origin sanitizer; a protocol-relative or
+  otherwise inadmissible current pathname falls back to `/` rather than being
+  returned raw.
 - On callback, remove the key from both stores and use session storage before
   local storage. Reject external and protocol-relative URLs.
 - Keep member language preference account-scoped in
@@ -91,9 +102,11 @@ remembered path is preferred only for the correlated `state + code` or
 not minted into a later product return path, including when an older
 stored/state value is recovered. Inputs that only look path-relative before
 parsing but resolve to another origin are rejected instead of being host-stripped
-into a different local path. A stale internal return path is removed at callback,
-and authorization still comes only from the authenticated OIDC token and backend
-ABAC checks.
+into a different local path. The final current-path fallback is subject to the
+same admission rule, so a `//...` pathname cannot escape as a protocol-relative
+History API target and break callback cleanup. A stale internal return path is
+removed at callback, and authorization still comes only from the authenticated
+OIDC token and backend ABAC checks.
 
 ## References
 
