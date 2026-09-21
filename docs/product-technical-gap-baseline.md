@@ -1,41 +1,72 @@
 # Product & Technical Gap Baseline
 
-> Exact-head loop overlay: 2026-09-21 KST. Protected `main` is
-> `83eba56149eb802cd63642c507c324c9976ec78e` (#931). This candidate is
-> PR #847 at `9bb4f07a61a9275953974ef276a4af81940ba883`, based directly on that
-> protected head. GitHub search returns at least 100 open PRs (the query page
-> limit) and 42 open issues; the PR total is deliberately not promoted to an
-> exact count. PR #847 is Draft, mechanically mergeable, has no unresolved
-> review thread, no qualifying independent exact-head approval, and no
-> transferable successful hosted check on this head. It therefore remains
-> candidate documentation evidence, not protected delivery. The candidate
-> removes duplicated PRD requirement identifiers, keeps unsupported full SOC,
-> O*NET linkage, and review-UI claims explicitly unavailable, and adds a
-> fail-closed documentation regression. No ADR status, API, schema, runtime,
-> model, or release number changes. Canonical remote names rechecked in this
-> cycle are `ContextualWisdomLab/LineageWeave`,
-> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
-> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
-
-> Exact-head loop overlay: 2026-08-31 KST. Protected `main` is
-> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`, the merge SHA for #782.
-> GitHub records no independent `APPROVED` review on #782 and its author merged
-> it while exact-head required controls were not successful; this is a
-> governance violation, not protected-delivery proof. Draft revert #808 is
-> `1af3e53e55d7a1c8572ab514d14d06c615c7c0d0` and also lacks independent
-> approval, so it remains unmerged. There are 55 open PRs and 10 open issues.
-> Main-based ready PRs #771, #772, #774, and #780 retain normal squash
-> auto-merge and remain blocked on an independent approval plus exact-head
-> required checks. Drafts and dirty branches are candidate evidence only.
-> Canonical remote names rechecked this cycle are
+> Exact-head authority overlay: 2026-09-21T05:47:37Z (KST 2026-09-21 14:47:37+09:00). Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). At the capture timestamp,
+> GitHub Search reported 164 open PRs and 42 open issues. The snapshot includes
+> only items that were open and created at or before the capture timestamp;
+> items created after that timestamp are excluded until the next overlay. A
+> verification query found zero open PRs and zero open issues created after the
+> cutoff. Organization ruleset 18156473 requires one independent approval,
+> resolved review threads, current central required workflows, and
+> non-fast-forward protection; repository ruleset 21065108 also prohibits force
+> pushes. This overlay is point-in-time authority for queue and delivery status
+> at the capture timestamp; live GitHub state must be re-fetched before any
+> lifecycle action. Older dated overlays and inventories below are retained as
+> historical evidence only.
+>
+> The canonical remote names rechecked for this cycle are
 > `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
-> `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
-> `ContextualWisdomLab/TEPP`. The current PRD had repeated identifiers for
-> PRD-FR-2A, PRD-FR-2B, and PRD-FR-2C plus a conflicting PRD-FR-2B-2 draft.
-> The superseded copies are removed in the current candidate and a regression
-> test now makes duplicate PRD identifiers fail closed. This resolves issue
-> #807's authority ambiguity without changing an ADR, API, schema, model, or
-> release number.
+> `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/contextual-orchestrator`. LineageWeave's current PRD,
+> RankWeave's architecture authority, ThreadWeave's PRD, DiskSage's current
+> product authority, TEPP's approved PRD v0.4, and contextual-orchestrator's
+> architecture authority were re-read before selecting work.
+>
+> Current protected-main Voice-of-X source contracts preserve ADR 0246's 12
+> atomic classifications as an extensible catalog and ADR 0252's temporal
+> primary-Voice history. The normalized additional-Voice store, explicit truth
+> state, PROV-O assignment projection, cutoff-aware read path, exact-value
+> carrying-Post/evidence separation, and paged JSON-LD property union all exist
+> in source with synthetic regressions. They are not promoted here to current
+> runtime acceptance: this cycle has not produced a fresh authenticated
+> PostgreSQL API receipt and inspected desktop/mobile rendering from this exact
+> protected head. Hidden evidence remains omitted rather than replaced with the
+> carrying Post, and no fixed combination code or B2B2C-only cross-product is
+> introduced.
+> The repository's ADR numbers matter here: ADR 0251 governs the FJA
+> I/O-Psychology semantic layer, not Voice composition. Evidence-bearing
+> multi-Voice composition is governed by ADR 0256, with temporal primary-Voice
+> history in ADR 0252. PR #1121 repairs the stale authority link at exact head
+> `dbabff85c72801a1a72a33dc69f969e032dc17b2`; its checks and auto-merge cannot
+> substitute for the still-missing independent approval.
+>
+> Highest user-impact delivery lane: critical authorization issue #1119 is
+> implemented in stacked candidate #1120, but its parent order remains #899 →
+> #1118 → #1120. Parent #899 exact head
+> `c943060c7c16f74faf48d1ee40eaa5301c830065` has normal squash auto-merge
+> armed and is waiting on current-head workflows plus an independent approval;
+> the draft children remain on their parent branches and cannot inherit parent
+> evidence. Critical summary-catalog authorization candidate #1079 exact head
+> `c2923950e73c88a9f9fd932332ddd47682da124b` has its focused authenticated
+> PostgreSQL integration receipt and auto-merge armed, but still lacks an
+> independent approval and has failed/cancelled required-review jobs. Neither
+> candidate is a protected-main or deployed-product claim.
+>
+> Next safe implementation remains unavailable while those ownership gates are
+> unresolved: catalog pool-lease repair #1077 must follow authorization #1078 /
+> PR #1079, and must change the canonical catalog lease boundary rather than
+> duplicate hierarchy, provider, or matching logic in a caller. No pool-size
+> workaround, local heuristic, or Python replacement for owner arithmetic is
+> accepted. Pending Checks are not treated as a reason to rewrite another PR's
+> scope; independent work continues only where ancestry and ownership are
+> non-overlapping.
+>
+> Cross-PR identity audit also found an unresolved release collision in the
+> open leftover-map stack: PRs #876 and #877 both advertise `v2.92.0` while
+> carrying different heads and changes. They must not both be retargeted or
+> released under that identity. Resolve the parent order and assign one
+> canonical release number before collecting fresh `main`-targeted evidence.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
@@ -945,7 +976,7 @@ post-merge reruns (not transferable evidence for later heads):
 | #762 | Evidence-bound project history (ADR 0243): /api/projects/{key}/history endpoint, project_history.py projection, fetchProjectHistory client, standalone ProjectHistoryTimeline component; supersedes #668 (3-way merge kept only the additive +2279/-0, dropping the branch's 8k shared-file reverts; popup UI hookup deferred as a scoped follow-up) | ADR 0243 |
 | #763 | Live-PostgreSQL A→B→A Voice history validation (ADR 0252) proving effective_from/effective_to interval replacement across repeated primary-Voice imports | ADR 0252 |
 | #764 | Test-only coverage lift: observability 78%→96%, post_summary 77%→89%, claim_verification 86%→99%; package line coverage 93.5%→95% (484→371 missing); 1651 Python tests green | — |
-| #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + synchronize trigger), refined 0237 `least()` effective_from backfill, `effective_from/effective_to` dataclass/export + `coalesce($2,$3)` cutoff predicate. Completes the half-shipped main layer that queried `voice.effective_to` against a missing column. CI Full suite 19m13s green | ADR 0252 |
+| #761 | Temporal imported-primary Voice history (ADR 0252): migration 0243 (`effective_to` + GiST primary-period exclusion + `clock_timestamp()` after the source-row lock, API/ontology half-open cutoff SQL). v2.22.1 adds synthetic PostgreSQL integration tests for A → B → A at before/between/after cutoffs, concurrent primary updates, additional-assignment close, and 0237→0243 trigger replay. CI Full suite 19m13s green | ADR 0252 |
 | #629 | Provider work released before embedding pool bound; landing reads bounded (k6-verified concurrency); merged with strix-only infra timeout (Full suite + all other gates green) | — |
 | #750 | Leftover-map unexplained leftover share persisted (`report_leftover_map_unexplained_share`, share `s = U² / R²`) | ADR 0233 |
 | #749 | Authorized job-family/job-series import snapshots (`0223_authorized_job_architecture`) | ADR 0263 |
