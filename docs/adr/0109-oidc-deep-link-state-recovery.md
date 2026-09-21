@@ -27,10 +27,13 @@ successful sign-in and can expose provider detail in a product-controlled URL.
 - Persist the same validated same-origin path in both `sessionStorage` and
   `localStorage` before redirecting to OIDC. `localStorage` is only a bounded
   recovery fallback, not an authentication or authorization store.
-- Before deriving, storing, sharing, or retrying a return URL from the browser
-  location, remove authorization-response artifacts: `code`, `state`,
-  `session_state`, `iss`, `error`, `error_description`, and `error_uri`.
-  Preserve unrelated same-origin product query parameters and the fragment.
+- On every return-path admission boundary — current browser location,
+  `state.returnUrl`, `sessionStorage`, and `localStorage` — and before writing a
+  return path back to storage, remove authorization-response artifacts: `code`,
+  `state`, `session_state`, `iss`, `error`, `error_description`, and
+  `error_uri`. Preserve unrelated same-origin product query parameters and the
+  fragment. This also cleans values persisted by an older client before this
+  boundary existed.
 - On callback, remove the key from both stores and use session storage before
   local storage. Reject external and protocol-relative URLs.
 - Keep member language preference account-scoped in
@@ -41,6 +44,7 @@ successful sign-in and can expose provider detail in a product-controlled URL.
 
 Opening a shared post link survives a missing OIDC state payload or a changed
 storage context without losing the post. Successful and failed authorization
-response fields are not minted into a later product return path. A stale
-internal return path is removed at callback, and authorization still comes only
-from the authenticated OIDC token and backend ABAC checks.
+response fields are not minted into a later product return path, including when
+an older stored/state value is recovered. A stale internal return path is
+removed at callback, and authorization still comes only from the authenticated
+OIDC token and backend ABAC checks.
