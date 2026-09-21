@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop overlay: 2026-09-21 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (#931). This candidate is
+> PR #847 at `9bb4f07a61a9275953974ef276a4af81940ba883`, based directly on that
+> protected head. GitHub search returns at least 100 open PRs (the query page
+> limit) and 42 open issues; the PR total is deliberately not promoted to an
+> exact count. PR #847 is Draft, mechanically mergeable, has no unresolved
+> review thread, no qualifying independent exact-head approval, and no
+> transferable successful hosted check on this head. It therefore remains
+> candidate documentation evidence, not protected delivery. The candidate
+> removes duplicated PRD requirement identifiers, keeps unsupported full SOC,
+> O*NET linkage, and review-UI claims explicitly unavailable, and adds a
+> fail-closed documentation regression. No ADR status, API, schema, runtime,
+> model, or release number changes. Canonical remote names rechecked in this
+> cycle are `ContextualWisdomLab/LineageWeave`,
+> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
+
 > Exact-head loop overlay: 2026-08-31 KST. Protected `main` is
 > `cb187cadee5fb6c46d8a944815ccc154a1e028d1`, the merge SHA for #782.
 > GitHub records no independent `APPROVED` review on #782 and its author merged
