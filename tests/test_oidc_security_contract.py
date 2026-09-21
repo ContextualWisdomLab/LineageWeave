@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -57,6 +58,17 @@ def _custom_audiences(client: dict[str, object]) -> set[str]:
     return audiences
 
 
+def _imports_shared_jwks_selector(path: Path) -> bool:
+    """Return whether executable Python imports the canonical RS256 selector."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "lineageweave.oidc_jwks"
+        and any(alias.name == "select_rs256_signing_key" for alias in node.names)
+        for node in ast.walk(tree)
+    )
+
+
 def test_keycloak_image_uses_startup_import_realm_filename() -> None:
     """Keycloak startup import requires the realm-name file convention."""
     dockerfile = _KEYCLOAK_DOCKERFILE.read_text(encoding="utf-8")
@@ -71,11 +83,19 @@ def test_keycloak_image_uses_startup_import_realm_filename() -> None:
 def test_machine_smoke_and_backend_share_one_jwks_key_selector() -> None:
     """Operator evidence must not drift to a weaker JWT/JWK acceptance path."""
     smoke = _SMOKE_SCRIPT.read_text(encoding="utf-8")
-    backend_auth = _BACKEND_AUTH.read_text(encoding="utf-8")
-    assert "select_rs256_signing_key" in smoke
-    assert "select_rs256_signing_key" in backend_auth
+
+    assert _imports_shared_jwks_selector(_SMOKE_SCRIPT)
+    assert _imports_shared_jwks_selector(_BACKEND_AUTH)
     assert "def _signing_key_from_jwks" not in smoke
     assert "RSAAlgorithm" not in smoke
+
+
+def test_shared_selector_contract_rejects_comment_only_mentions(tmp_path: Path) -> None:
+    """A comment naming the selector is not evidence that an actor imports it."""
+    comment_only = tmp_path / "comment_only.py"
+    comment_only.write_text("# select_rs256_signing_key\n", encoding="utf-8")
+
+    assert not _imports_shared_jwks_selector(comment_only)
 
 
 def test_repository_owned_auth_actors_do_not_use_password_grants() -> None:
