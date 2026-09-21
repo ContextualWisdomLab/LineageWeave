@@ -1,11 +1,20 @@
 export const OIDC_RETURN_URL_STORAGE_KEY = "lineageweave.oidc.returnUrl";
 const MAX_OIDC_RETURN_URL_LENGTH = 4096;
 
-/** Authorization-code response params Keycloak appends to the redirect URI
- * (RFC 6749 sec. 4.1.2; `session_state` per OIDC Session Management). Any
- * link built from `window.location` must strip these -- they're a one-time
- * auth exchange, never part of a shareable URL. */
-const OIDC_CALLBACK_PARAMS = ["code", "state", "session_state", "iss"] as const;
+/** Authorization-endpoint response params appended to the redirect URI.
+ * Success responses use `code`/`state`; OAuth error responses may add
+ * `error`, `error_description`, and `error_uri` (RFC 6749 sec. 4.1.2/4.1.2.1).
+ * `session_state` and `iss` are OIDC/session-response metadata. None belongs
+ * in a shareable or retried product return URL. */
+const OIDC_CALLBACK_PARAMS = [
+  "code",
+  "state",
+  "session_state",
+  "iss",
+  "error",
+  "error_description",
+  "error_uri",
+] as const;
 
 /** Removes OIDC callback artifacts from `url` in place -- call before turning
  * `window.location` into a link a user can copy or share. */
