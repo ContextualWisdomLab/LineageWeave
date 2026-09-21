@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-21T21:14:09Z (KST 2026-09-22
+> 06:14:09+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). Lifecycle actions
+> still require a fresh exact-head, ruleset, review-thread, approval, and Check
+> query; this overlay records only evidence re-read or reproduced in this run.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Stacked
+> Draft #1124 now has exact head
+> `5e734e3040a6f1a61566074cc3e5122a2acfef3e` above #1120. A fresh Storybook
+> render reproduced horizontal overflow at 390x844 because the full-width
+> recovery card added padding and borders outside its declared width. The
+> minimal repair makes that existing card use border-box sizing and adds a real
+> browser regression that rejects document-width overflow on the callback-error
+> screen. Fresh exact-head local lint, all 538 frontend tests, the production
+> build, and the Storybook build passed. Inspected 1440x1000 and 390x844 renders
+> keep the message and single retry action readable; the mobile document and
+> body scroll widths now equal the 390 CSS-pixel viewport. Existing product
+> tokens and the `Chrome/Sign-in recovery` story remain the styling authority.
+>
+> This candidate is not accepted runtime evidence. Draft admission skipped the
+> hosted Tests jobs, and no authenticated browser-to-PostgreSQL receipt exists
+> on this head. Parent order remains #899 -> #1118 -> #1120 -> #1124; no child
+> receipt transfers to a parent or protected `main`. Parent #899 also remains
+> blocked at exact `c943060c7c16f74faf48d1ee40eaa5301c830065`: the
+> contextual-orchestrator Releases API still returns `[]`, while the consumer
+> authors `/v1/chat/completions` and a fixed `180.0s` default. Owner issue
+> `contextual-orchestrator#1083` must first publish a released API/client/schema;
+> the consumer must not bind to mutable `main`. PR #1121 and this baseline PR
+> #1123 remain normally
+> auto-merge-enabled but still require current-head protected workflows and a
+> qualifying independent approval. No self-approval, admin bypass, force push,
+> stale receipt transfer, or provider/runtime reimplementation is used.
+
 > Exact-head validation overlay: 2026-09-21T16:44:17Z (KST 2026-09-22
 > 01:44:17+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). Lifecycle actions
