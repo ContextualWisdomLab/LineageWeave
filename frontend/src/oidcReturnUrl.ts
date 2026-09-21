@@ -40,7 +40,37 @@ function sanitizeReturnUrl(value: string): string {
   return isSafeReturnUrl(cleaned) ? cleaned : "";
 }
 
+function isOidcCallbackLocation(location: UrlLike): boolean {
+  const params = new URLSearchParams(location.search);
+  return OIDC_CALLBACK_PARAMS.some((param) => params.has(param));
+}
+
+function peekRememberedReturnUrl(): string {
+  try {
+    const sessionStored = window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY) ?? "";
+    const fromSession = sanitizeReturnUrl(sessionStored);
+    if (fromSession) return fromSession;
+  } catch {
+    // Fall through to local storage or the current callback location.
+  }
+  try {
+    const localStored = window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY) ?? "";
+    return sanitizeReturnUrl(localStored);
+  } catch {
+    return "";
+  }
+}
+
 export function returnUrlFromLocation(location: UrlLike = window.location): string {
+  // A provider callback is rooted at redirect_uri, so rebuilding a retry URL
+  // from that callback alone can erase the deep link remembered before the
+  // redirect. Prefer the validated remembered path while callback artifacts
+  // are still present; ordinary product navigation continues to use location.
+  if (isOidcCallbackLocation(location)) {
+    const remembered = peekRememberedReturnUrl();
+    if (remembered) return remembered;
+  }
+
   // A restored return URL can itself be a post-redirect URL still carrying
   // Keycloak callback artifacts (devin review thread on PR #576): strip
   // them here too, so no consumer of this module re-mints a URL with a
