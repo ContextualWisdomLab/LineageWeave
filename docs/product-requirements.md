@@ -128,8 +128,10 @@ prohibit FJA equivalence and require exact Post/evidence/PROV statement
 structure. ADRs 0249, 0250, 0253, and 0255 govern normalized persistence,
 the pinned catalog, contextual-orchestrator extraction, and graph projection.
 The review UI remains unavailable without its own accepted ADR. Unsupported
-O*NET linkage tables remain unavailable; Voice combination ADR 0256 is not
-occupational authority.
+O*NET linkage tables remain unavailable. ADR 0253 also keeps affective and
+performance-behavior vocabularies and their extraction unavailable; extraction
+must not invent either family. Voice combination ADR 0256 is not occupational
+authority.
 
 ### PRD-FR-2C — FJA I/O-Psychology semantic layer
 

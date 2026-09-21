@@ -149,7 +149,7 @@ def test_product_gap_baseline_queue_snapshot_is_timestamped_and_scoped() -> None
         _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8").splitlines()[:20]
     )
     assert re.search(
-        r"Exact-head authority overlay: 2026-09-21T\d{2}:\d{2}:\d{2}Z \(KST [^)]+\)",
+        r"Exact-head authority overlay: 2026-09-21T05:47:37Z \(KST [^)]+\)",
         overlay,
     )
     assert "capture timestamp" in overlay
