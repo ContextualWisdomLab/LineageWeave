@@ -16,20 +16,34 @@ const PAIR: LeftoverPair = {
   leftover_map_item_axis_2: -0.02,
 };
 
+function renderPlot(onSelectPost: (pair: LeftoverPair) => void) {
+  render(
+    <LeftoverMapPlot
+      pairs={[PAIR]}
+      criterionLabel={(code) => code}
+      onSelectPost={onSelectPost}
+    />,
+  );
+  return screen.getByRole("button");
+}
+
 describe("LeftoverMapPlot keyboard activation", () => {
   it("ignores non-activation keys on a post marker", () => {
     const onSelectPost = vi.fn();
-    render(
-      <LeftoverMapPlot
-        pairs={[PAIR]}
-        criterionLabel={(code) => code}
-        onSelectPost={onSelectPost}
-      />,
-    );
+    const postMarker = renderPlot(onSelectPost);
 
-    const postMarker = screen.getByRole("button");
     fireEvent.keyDown(postMarker, { key: "ArrowRight" });
 
     expect(onSelectPost).not.toHaveBeenCalled();
+  });
+
+  it("activates a post marker with the Space key", () => {
+    const onSelectPost = vi.fn();
+    const postMarker = renderPlot(onSelectPost);
+
+    fireEvent.keyDown(postMarker, { key: " " });
+
+    expect(onSelectPost).toHaveBeenCalledTimes(1);
+    expect(onSelectPost).toHaveBeenCalledWith(PAIR);
   });
 });
