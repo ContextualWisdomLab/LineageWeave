@@ -400,34 +400,6 @@ Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
 
-The frontend coverage gate is evidence-bearing: on PR #983 exact head
-`85c74137b6d64783322c52f39c2c28c8ac250d79`, all 727 Vitest tests passed, but
-the strict global gate failed at lines 95.43%, statements 93.56%, functions
-92.93%, and branches 83.57%. The largest gap was `frontend/src/App.tsx`.
-Keep the source in the coverage denominator and add behavior tests for the
-unexercised paths; do not lower the threshold or exclude product code to make
-the check green. A passing test count without a passing coverage report is not
-frontend CI completion.
-
-The local full coverage run on `98f64d723` exposed four timing-sensitive
-failures under instrumented load (three 5-second timeouts and one
-occupation-data wait); each failed test passed when rerun alone. A follow-up
-run with Vitest file parallelism disabled still exposed five `App.test.tsx`
-timeouts, so do not treat serializing files as the fix. Preserve both facts:
-isolated reruns are diagnostic evidence, not a green full-suite result, and the
-suite needs a reproducible instrumentation-timeout fix before treating the
-coverage run as stable. Raising only the coverage timeout to 15 seconds removed
-the timeout failures in one follow-up run, but the occupation catalog still
-failed to load under the full instrumented suite; do not treat that setting as
-the root-cause repair.
-Hosted run `34306991982` at exact head
-`0ba5daf4ac048337779ccffdcc4d741a1b490d07` completed the PostgreSQL full suite
-successfully and ran all 728 frontend tests successfully; the frontend job
-still failed only at the strict coverage gate with lines 95.49%, statements
-93.61%, functions 93.03%, and branches 83.60%. Treat this as a coverage
-implementation gap, not a test correctness failure or a reason to lower the
-gate.
-
 ## W3C PROV-O boundary
 
 - Add standard provenance through `lineageweave.prov_o` and the
@@ -494,3 +466,73 @@ When an E2E login helper tolerates a narrowly identified navigation error,
 reassert the expected authorization URL before locating or filling credential
 fields. A matching form label is not evidence that the navigation reached its
 expected destination; retain the post-login destination check as well.
+
+## Runtime measurement attribution
+
+Before timing a local endpoint, verify its service with `docker port` or live
+container port bindings; Compose port overrides can invalidate remembered
+ports. Record attempted requests and failures, retain timeout observations, and
+state whether the measurement covers liveness, HTML, or authenticated rendered
+pages. Correlate timestamped logs before attributing latency to provider errors.
+
+For host/container latency differences, record logical CPU counts, load, and
+Linux `/proc/pressure/{cpu,memory,io}` with timestamps. High CPU pressure is a
+measurement condition, not proof that a particular request stalled there.
+
+When a UI test alternates between timeout and missing-element failures, inspect
+the failing phase before changing selectors or deadlines. A timer firing late
+is evidence of delayed execution, not proof that the product is correct. Keep
+full-run failures distinct from focused passes and remove ineffective diagnostic
+edits instead of shipping a speculative fix.
+
+Batch related frontend regression changes before pushing a PR head. A new push
+can cancel an in-progress PostgreSQL suite through the existing concurrency
+policy; repeated small pushes can prevent terminal full-suite evidence. Track
+the current run to completion while developing independent work, and distinguish
+superseded cancellation from an actual test failure.
+
+For API request-contract tests, decode generated URLs with URL/URLSearchParams
+and assert repeated parameters, opaque cursors, timezone offsets, and explicit
+false/zero values survive transport. Mocked fetch tests establish client request
+serialization and error propagation only; they do not prove server authorization,
+valid parameter ranges, or database-backed evidence availability.
+
+When checking an interactive Storybook scene in a browser, wait for its authored
+play function to finish before testing keyboard input. Assert the additional
+callback separately from the play callback so an earlier click cannot mask a
+broken keyboard action. Record viewport and document scroll widths together.
+
+The API privacy boundary includes successful-response body reads and decoding:
+await them inside the shared catch boundary so parser/body diagnostics cannot
+reach UI handlers. Preserve observed HTTP status; a rejected decode is not proof
+of an upstream 5xx. Keep actionable client errors distinct (ADR 0123). Use the
+repository lint script; the frontend currently uses oxlint, not eslint.
+
+For mocks with queued one-shot responses, reset the implementation between tests.
+`mockClear()` only clears call history: an early assertion failure or timeout can
+leave a response queued for the next test. Use the existing scoped lifecycle
+hook with `mockReset()` so one failed test cannot consume another test's data.
+This isolates later failures; it does not repair the first timeout.
+
+Coverage artifact upload cannot retain a report the test runner never produced.
+Keep Vitest `coverage.reportOnFailure` enabled so assertion failures still emit
+reports; retain the nonzero test exit and the complete configured denominator.
+Verify this with an ephemeral intentional failure, then remove the probe.
+
+When a full-run test count drops, inspect unhandled worker-start errors before
+calling it a smaller passing suite. Preserve the intended file/test inventory,
+reported passes/failures, and unstarted files separately; retained coverage does
+not prove that every planned test ran.
+
+Bounded numeric regexes must reject a longer numeric token, not match its prefix.
+For quantity exponents, keep browser normalization, React text-run splitting,
+and ingestion normalization aligned; test signed and braced unsupported values
+without changing the supported short-exponent range (ADR 0165).
+
+Numeric token-boundary tests should include decimal continuations as well as
+extra digits. Keep a sentence-ending period distinct from a period followed
+by a digit so preserving unsupported numbers does not break ordinary prose.
+
+Exercise missing and whitespace-only 4xx guidance at the shared API boundary.
+Fallback errors must not expose route paths even when the server supplies no
+message; retain HTTP status separately for caller decisions (ADR 0123).
