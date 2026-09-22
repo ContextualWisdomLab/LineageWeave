@@ -23,7 +23,16 @@
 > Ready #899 is exact `c10b6545520afb342e68d01ea4bcfce75a6e5bab`.
 > Normal squash auto-merge was re-enabled after a live head/base/ruleset check;
 > required owner/review workflows and a qualifying independent approval remain
-> nonterminal. Ready #1039, #1079, #1115, and this baseline PR #1123 remain
+> nonterminal. Its canonical owner prerequisite contextual-orchestrator #1209
+> is Draft at exact `70f0ca6da8ca41e6c19712b67755edaf23636f7f`.
+> The historical lifecycle receipt used fast-mlsirm 0.11.3 while that owner
+> head locked 0.11.4. The Releases API remains `[]`, so
+> contextual-orchestrator#1083 still owns publication of an immutable released
+> API/client/schema identity. The local `/v1/chat/completions` consumer and
+> fixed `180.0s` timeout remain unavailable for promotion; LineageWeave does
+> not copy the owner implementation or bind to mutable `main`.
+>
+> Ready #1039, #1079, #1115, and this baseline PR #1123 remain
 > exact `68b4dcd09b3c638ef3d79378a0300082aa4cb82d`,
 > `c2923950e73c88a9f9fd932332ddd47682da124b`,
 > `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and
@@ -33,9 +42,10 @@
 >
 > Draft #1121 remains exact
 > `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. The Voice-of-X contract still
-> preserves twelve extensible atomic Voices, separate carrying Post and
+> preserves twelve atomic Voices in an extensible vocabulary, separate carrying Post and
 > derivation evidence, truth status, cutoff, and PROV-O lineage without fixed
-> combination codes. This capture adds no authenticated Voice-of-X PostgreSQL
+> combination codes and adds no fixed Voice combination. This capture adds no
+> authenticated Voice-of-X PostgreSQL
 > API and rendered-UI receipt, so runtime acceptance remains unavailable.
 > Release identity collisions #843/#844 (`v2.62.0`) and #876/#877 (`v2.92.0`)
 > remain unresolved and cannot be promoted under duplicate versions.

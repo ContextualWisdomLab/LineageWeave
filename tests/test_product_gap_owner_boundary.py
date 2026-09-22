@@ -23,7 +23,7 @@ def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() 
     """A local CO wire client cannot be promoted while the owner has no release."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "`c943060c7c16f74faf48d1ee40eaa5301c830065`" in overlay
+    assert "`c10b6545520afb342e68d01ea4bcfce75a6e5bab`" in overlay
     assert "contextual-orchestrator#1083" in overlay
     assert "Releases API" in overlay and "`[]`" in overlay
     assert "/v1/chat/completions" in overlay
@@ -36,8 +36,8 @@ def test_latest_validation_overlay_records_current_owner_and_voice_heads() -> No
     """The mutable overlay must bind owner and Voice evidence to exact heads."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "`9375f4596670adfe72815f963f8802788f414235`" in overlay
-    assert "`c103fdf6b5c05a06accc76fb96b23741a3eddfd6`" in overlay
+    assert "`70f0ca6da8ca41e6c19712b67755edaf23636f7f`" in overlay
+    assert "`8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`" in overlay
     assert "fast-mlsirm 0.11.3" in overlay
     assert "locked 0.11.4" in overlay
     assert "twelve atomic Voices" in overlay
