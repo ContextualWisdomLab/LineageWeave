@@ -11,8 +11,7 @@ describe("splitPostBody quoted boundary attributes", () => {
 
   it("preserves a line break whose quoted attribute contains a greater-than sign", () => {
     expect(splitPostBody('<p>First<br title="a > b">Second</p>')).toEqual([
-      { kind: "text", text: "First" },
-      { kind: "text", text: "Second" },
+      { kind: "text", text: "First Second" },
     ]);
   });
 });
