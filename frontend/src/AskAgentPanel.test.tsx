@@ -110,4 +110,20 @@ describe("AskAgentPanel public verification", () => {
       "Retained revision",
     );
   });
+
+  it("contains an unreachable Ask transport failure without retrying", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("socket detail must not escape"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AskAgentPanel accessToken="access-token" onOpenPost={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText("Ask a question"), "What changed?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(
+      await screen.findByText(/The service is unreachable\. Try again later\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/socket detail must not escape/)).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
