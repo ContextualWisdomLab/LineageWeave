@@ -148,6 +148,28 @@ jobs:
     assert _direct_scalar(environment, "POSTGRES_INITDB_ARGS") == "--locale=C"
 
 
+def test_locale_step_evidence_requires_the_steps_direct_run_field() -> None:
+    """A nested ``env.run`` must not impersonate the workflow step's run field."""
+
+    workflow = """\
+jobs:
+  pytest:
+    steps:
+      - name: Verify PostgreSQL locale contract
+        env:
+          run: |
+            psql -Atqc 'select datcollate, datctype from pg_database'
+        run: |
+          echo 'locale verification removed'
+"""
+    jobs = _mapping_block(workflow, "jobs")
+    job = _mapping_block(jobs, "pytest")
+    locale_run = _named_step_run(job, "Verify PostgreSQL locale contract")
+
+    assert "select datcollate, datctype from pg_database" not in locale_run
+    assert "locale verification removed" in locale_run
+
+
 def test_acceptance_workflows_pin_one_debian_postgres_locale_contract() -> None:
     """Both PostgreSQL acceptance lanes must use the same service locale."""
 
