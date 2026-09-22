@@ -36,12 +36,25 @@ def test_latest_validation_overlay_records_current_owner_and_voice_heads() -> No
     """The mutable overlay must bind owner and Voice evidence to exact heads."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "`70f0ca6da8ca41e6c19712b67755edaf23636f7f`" in overlay
+    assert "`33c14c4b05a6fff6c11800b60184d2bdd3eb01db`" in overlay
     assert "`8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`" in overlay
     assert "fast-mlsirm 0.11.3" in overlay
     assert "locked 0.11.4" in overlay
     assert "twelve atomic Voices" in overlay
     assert "adds no fixed Voice combination" in overlay
+
+
+def test_latest_validation_overlay_keeps_browser_and_load_evidence_bounded() -> None:
+    """Candidate browser proof must not promote a failed load admission to acceptance."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+
+    assert "all 538 frontend tests" in overlay
+    assert "Four authenticated Playwright scenarios passed" in overlay
+    assert "`/api/me` returned successfully" in overlay
+    assert "not protected-main delivery" in overlay
+    assert "no admitted `lineageweave-test-automation` client" in overlay
+    assert "No concurrency, latency, error-rate, throughput" in overlay
+    assert "not an observed product bottleneck" in overlay
 
 
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:

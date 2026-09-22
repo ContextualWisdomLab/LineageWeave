@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head validation overlay: 2026-09-22T17:17:23Z (KST 2026-09-23
-> 02:17:23+09:00). Protected `main` remains
+> Exact-head validation overlay: 2026-09-22T22:07:27Z (KST 2026-09-23
+> 07:07:27+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
 > 164 open PRs and 42 open issues created at or before this capture timestamp;
 > later-created items belong to the next overlay. Active rulesets 18156473 and
@@ -14,17 +14,24 @@
 > The largest user-visible gap remains safe browser sign-in continuity. Its
 > stacked Draft candidate #1124 is exact
 > `c49aff397736db601fd1d2cb428c8006d0090d26` on Draft #1120 and remains
-> mergeable. The minimal candidate and its synthetic rendered receipts do not
-> establish authenticated PostgreSQL/API/browser acceptance or protected-main
-> delivery. Parent order #899 -> #1118 -> #1120 -> #1124, current-head hosted
-> gates, canonical eight-locale acceptance, and independent approval remain
-> required; no child is retargeted before its parent is protected-merged.
+> mergeable. Fresh exact-head local validation passed lint, all 538 frontend
+> tests, the production build, and the Storybook build. Four authenticated
+> Playwright scenarios passed on desktop and mobile: Authorization Code with
+> PKCE restored the requested path, `/api/me` returned successfully from the
+> PostgreSQL-backed API, and an unrecognized callback rendered the bounded
+> recovery action without provider detail. Fresh 1440x1000 and 390x844
+> Storybook screenshots were inspected and showed the complete message and
+> action without visible horizontal clipping. These remain candidate receipts,
+> not protected-main delivery. Parent order #899 -> #1118 -> #1120 -> #1124,
+> current-head hosted gates, canonical locale-ledger acceptance, and independent
+> approval remain required; no child is retargeted before its parent is
+> protected-merged.
 >
-> Ready #899 is exact `c10b6545520afb342e68d01ea4bcfce75a6e5bab`.
-> Normal squash auto-merge was re-enabled after a live head/base/ruleset check;
-> required owner/review workflows and a qualifying independent approval remain
-> nonterminal. Its canonical owner prerequisite contextual-orchestrator #1209
-> is Draft at exact `70f0ca6da8ca41e6c19712b67755edaf23636f7f`.
+> Draft #899 is exact `c10b6545520afb342e68d01ea4bcfce75a6e5bab`.
+> It has no active auto-merge request; required owner/review workflows and a
+> qualifying independent approval remain nonterminal. Its canonical owner
+> prerequisite contextual-orchestrator #1209 is Draft at exact
+> `33c14c4b05a6fff6c11800b60184d2bdd3eb01db`.
 > The historical lifecycle receipt used fast-mlsirm 0.11.3 while that owner
 > head locked 0.11.4. The Releases API remains `[]`, so
 > contextual-orchestrator#1083 still owns publication of an immutable released
@@ -32,13 +39,17 @@
 > fixed `180.0s` timeout remain unavailable for promotion; LineageWeave does
 > not copy the owner implementation or bind to mutable `main`.
 >
-> Ready #1039, #1079, #1115, and this baseline PR #1123 remain
+> Draft #1039, #1079, and #1115 remain
 > exact `68b4dcd09b3c638ef3d79378a0300082aa4cb82d`,
 > `c2923950e73c88a9f9fd932332ddd47682da124b`,
-> `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and
-> `8ed33b2e4d66bf1290ddf59fc15603ca9273cd2c`, respectively. Their valid review
+> and `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, respectively. Their valid review
 > findings are already represented in those heads; remaining failed, queued,
 > cancelled, or approval states are not reused as passing evidence.
+> Ready baseline PR #1123 was observed at exact input head
+> `4f87723c57b176921c2b6f19c06cb4077047b83f` before this documentation commit,
+> with normal squash auto-merge retained, every published review thread
+> resolved, repository Tests and primary CodeQL successful, and required
+> review/security/compatibility jobs plus independent approval nonterminal.
 >
 > Draft #1121 remains exact
 > `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. The Voice-of-X contract still
@@ -49,6 +60,14 @@
 > API and rendered-UI receipt, so runtime acceptance remains unavailable.
 > Release identity collisions #843/#844 (`v2.62.0`) and #876/#877 (`v2.92.0`)
 > remain unresolved and cannot be promoted under duplicate versions.
+>
+> A synthetic authenticated k6 observation was attempted with 4 VUs, a
+> 15-second window, and a declared 20-second request boundary. The active realm
+> has no admitted `lineageweave-test-automation` client, so setup stopped before
+> any product request. No concurrency, latency, error-rate, throughput,
+> PostgreSQL, worker, Valkey, or gateway saturation conclusion is available;
+> this is an authentication-configuration admission gap, not an observed
+> product bottleneck. No threshold or product-side workaround is inferred.
 
 > Exact-head validation overlay: 2026-09-22T16:05:53Z (KST 2026-09-23
 > 01:05:53+09:00). Protected `main` remains
