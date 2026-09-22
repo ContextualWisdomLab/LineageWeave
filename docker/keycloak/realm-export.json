@@ -18,10 +18,14 @@
       "publicClient": true,
       "protocol": "openid-connect",
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["http://localhost:5173/*", "http://localhost:15173/*"],
+      "redirectUris": ["http://localhost:5173", "http://localhost:15173"],
       "webOrigins": ["http://localhost:5173", "http://localhost:15173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
       "protocolMappers": [
         {
           "name": "lineageweave-api-audience",
@@ -70,10 +74,84 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "lineageweave-test-automation",
+      "name": "LineageWeave local test automation",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${KEYCLOAK_CLIENT_SECRET}",
+      "protocolMappers": [
+        {
+          "name": "lineageweave-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "lineageweave-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "lineageweave-mcp-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "http://localhost:18001/mcp",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "lineageweave-test-admin",
+      "name": "LineageWeave cross-account API integration admin",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${KEYCLOAK_TEST_ADMIN_CLIENT_SECRET}",
+      "protocolMappers": [
+        {
+          "name": "lineageweave-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "lineageweave-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [
     {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "username": "service-account-lineageweave-test-automation",
+      "enabled": true,
+      "serviceAccountClientId": "lineageweave-test-automation",
+      "credentials": [],
+      "realmRoles": ["post_viewer"]
+    },
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "username": "service-account-lineageweave-test-admin",
+      "enabled": true,
+      "serviceAccountClientId": "lineageweave-test-admin",
+      "credentials": []
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
       "username": "demo.analyst",
       "email": "demo.analyst@example.test",
       "enabled": true,
@@ -85,11 +163,12 @@
         "pu_code": ["DEMO-PU-A"]
       },
       "credentials": [
-        { "type": "password", "value": "lineageweave-demo-only", "temporary": false }
+        { "type": "password", "value": "${LINEAGEWEAVE_DEMO_USER_PASSWORD}", "temporary": false }
       ],
       "realmRoles": ["post_viewer"]
     },
     {
+      "id": "22222222-2222-4222-8222-222222222222",
       "username": "demo.admin",
       "email": "demo.admin@example.test",
       "enabled": true,
@@ -101,7 +180,7 @@
         "pu_code": ["DEMO-PU-HQ"]
       },
       "credentials": [
-        { "type": "password", "value": "lineageweave-demo-only", "temporary": false }
+        { "type": "password", "value": "${LINEAGEWEAVE_DEMO_USER_PASSWORD}", "temporary": false }
       ],
       "realmRoles": ["post_admin", "post_viewer"]
     }

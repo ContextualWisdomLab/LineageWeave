@@ -27,7 +27,11 @@ import psycopg2
 import pytest
 import redis
 
-from lineageweave.http_client import HttpClientError, get_json, post_form
+from backend.tests.integration_oauth_support import (
+    fetch_admin_machine_token,
+    fetch_viewer_machine_token,
+)
+from lineageweave.http_client import HttpClientError, get_json
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
@@ -288,24 +292,10 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _fetch_demo_analyst_token() -> str:
-    """Request a real resource-owner token for the synthetic demo.analyst user."""
-    token_response = post_form(
-        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",
-        {
-            "grant_type": "password",
-            "client_id": "lineageweave-frontend",
-            "username": "demo.analyst",
-            "password": "lineageweave-demo-only",
-        },
-        timeout=10,
-    )
-    return token_response["access_token"]
-
-
 @pytest.fixture(scope="module")
 def demo_analyst_token() -> str:
-    return _fetch_demo_analyst_token()
+    """Return the viewer-scoped confidential integration actor token."""
+    return fetch_viewer_machine_token(_KEYCLOAK_BASE_URL)
 
 
 @pytest.fixture
@@ -5306,16 +5296,7 @@ def test_ask_job_reads_are_owner_scoped(
     )
     assert submitted.status_code == 202
     job_id = submitted.json()["ask_job_id"]
-    admin_token = post_form(
-        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",
-        {
-            "grant_type": "password",
-            "client_id": "lineageweave-frontend",
-            "username": "demo.admin",
-            "password": "lineageweave-demo-only",
-        },
-        timeout=10,
-    )["access_token"]
+    admin_token = fetch_admin_machine_token(_KEYCLOAK_BASE_URL)
     other = client.get(
         f"/api/ask/jobs/{job_id}",
         headers={"Authorization": f"Bearer {admin_token}"},

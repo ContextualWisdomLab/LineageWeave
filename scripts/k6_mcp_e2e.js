@@ -7,9 +7,8 @@ import { Counter, Trend } from "k6/metrics";
 const mcpUrl = __ENV.MCP_URL || "http://localhost:18001/mcp";
 const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
 const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
-const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
-const username = __ENV.K6_USERNAME || "demo.analyst";
-const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
+const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-test-automation";
+const clientSecret = __ENV.KEYCLOAK_CLIENT_SECRET;
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const keycloakHost = __ENV.KEYCLOAK_HOST;
 const protocolVersion = "2025-11-25";
@@ -24,13 +23,18 @@ let vuToken;
 let vuSession;
 
 function authenticate() {
+  if (!clientSecret) {
+    fail("KEYCLOAK_CLIENT_SECRET is required for the local test-automation client");
+  }
   const headers = keycloakHost ? { Host: keycloakHost } : {};
   const response = http.post(
     `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
-    { grant_type: "password", client_id: clientId, username, password },
+    { grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret },
     { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
   );
-  if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
+  if (response.status !== 200) {
+    fail(`synthetic machine OIDC token request failed with HTTP ${response.status}`);
+  }
   return response.json("access_token");
 }
 
