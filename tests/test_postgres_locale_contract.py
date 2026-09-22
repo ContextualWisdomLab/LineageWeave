@@ -35,6 +35,27 @@ def _mapping_block(document: str, key: str) -> str:
     raise AssertionError(f"missing YAML mapping: {key}")
 
 
+def test_locale_mapping_evidence_cannot_be_satisfied_by_comments() -> None:
+    """Comment-only locale strings must never satisfy the workflow contract."""
+
+    workflow = """\
+services:
+  postgres:
+    image: wrong-image
+    env:
+      LANG: C
+      POSTGRES_INITDB_ARGS: "--locale=C"
+      # LANG: en_US.utf8
+      # POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"
+"""
+    services = _mapping_block(workflow, "services")
+    postgres = _mapping_block(services, "postgres")
+    environment = _mapping_block(postgres, "env")
+
+    assert "LANG: en_US.utf8" not in environment
+    assert 'POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"' not in environment
+
+
 def test_acceptance_workflows_pin_one_debian_postgres_locale_contract() -> None:
     """Both PostgreSQL acceptance lanes must use the same service locale."""
 
