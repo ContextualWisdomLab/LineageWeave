@@ -33,7 +33,7 @@ type Story = StoryObj<typeof meta>;
 
 function ForestList({ nodes }: { nodes: ReturnType<typeof buildCustomerEntityTree> }) {
   return (
-    <ul>
+    <ul className="customer-master-list customer-master-tree">
       {nodes.map((node) => (
         <CustomerEntityTreeRow
           key={node.entity.corporate_entity_id}
@@ -138,7 +138,7 @@ export const LoadingRelatedPosts: Story = {
   render: () => {
     const [node] = buildCustomerEntityTree([entity("root", null, "Root")]);
     return (
-      <ul>
+      <ul className="customer-master-list customer-master-tree">
         <CustomerEntityTreeRow
           node={node}
           depth={0}
@@ -161,7 +161,7 @@ export const EmptyRelatedPosts: Story = {
   render: () => {
     const [node] = buildCustomerEntityTree([entity("root", null, "Root")]);
     return (
-      <ul>
+      <ul className="customer-master-list customer-master-tree">
         <CustomerEntityTreeRow
           node={node}
           depth={0}
