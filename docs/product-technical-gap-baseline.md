@@ -47,9 +47,10 @@
 > cancelled, or approval states are not reused as passing evidence.
 > Ready baseline PR #1123 was observed at exact input head
 > `4f87723c57b176921c2b6f19c06cb4077047b83f` before this documentation commit,
-> with normal squash auto-merge retained, every published review thread
-> resolved, repository Tests and primary CodeQL successful, and required
-> review/security/compatibility jobs plus independent approval nonterminal.
+> with normal squash auto-merge retained and every published review thread
+> resolved. Repository Tests succeeded and CodeQL language detection succeeded;
+> Security, CodeQL compatibility/dispatch settlement, and independent approval
+> remained nonterminal.
 >
 > Draft #1121 remains exact
 > `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. The Voice-of-X contract still
@@ -575,7 +576,7 @@
 > independent APPROVE. Auto-merge squash remains armed on
 > #782/#780/#774/#772/#771/#770. Drafts remain dirty against `main`.
 > #96 stays closed as a weaker duplicate of #91. GitHub writes through
-> `gh`/MCP succeed (comment/create-branch/auto-merge). `git push` HTTPS
+> MCP succeed (comment/create-branch/git push/auto-merge). `git push` HTTPS
 > still fails (empty `X-OAuth-Scopes`). Copilot review is not
 > independent APPROVE. Do not self-approve.
 >
@@ -617,8 +618,8 @@
 > Next buyer increment on this cycle: leftover-map graphic display
 > of already-persisted `ξ_{1:2}` / `ζ_{1:2}` (ADR 0268 / v2.25.0).
 > UI-only; no new columns. `R̂` and `d` already are inner product and
-> length. Do not invent leftover scores. Do not mix into dashboard
-> stacks #640/#778/#781.
+> length. Do not invent leftover scores. Do not mix into dashboard stacks
+> #640/#778/#781.
 
 > Exact-head loop overlay: 2026-08-28 13:00 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
@@ -866,8 +867,7 @@ types and their published adjacency, six explicitly legacy work-value clusters, 
 revised work-style dimensions, and four ability domains. It asserts no
 occupation-to-characteristic instance profile and therefore does **not** yet
 satisfy the requested job-family, job-series, and occupation-level coverage of
-work cognition, affect, behavior, or their empirical relations. This is an
-explicit unavailable state, not a reason to infer mappings from labels.
+work cognition, affect, behavior, or their empirical relations. This is an explicit unavailable state, not a reason to infer mappings from labels.
 
 | Gap | Current evidence | Acceptance requirement |
 |---|---|---|
@@ -973,8 +973,8 @@ At this snapshot there were 11 open PRs and 10 open issues. PRs #660 and #659
 merged to protected `main`; PR #666 remains only non-default-branch stack
 composition inside #663. Every remaining open head required refreshed hosted
 gates and/or independent review after the base changed. These observations are
-not merge readiness. Re-fetch exact heads, unresolved threads, checks,
-approvals, rulesets, and merge SHA before any lifecycle claim.
+not merge readiness. Re-fetch exact heads, unresolved threads, approvals,
+rulesets, and the merge SHA before any lifecycle claim.
 
 > Audit snapshot: 2026-08-26 07:15 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
@@ -1107,7 +1107,7 @@ Recent protected-default-branch delivery evidence (squash merges onto
 | #581 | 2026-08-25 03:32 | relative-time Ask filtering bound to event time |
 | #596 | 2026-08-25 03:27 | hierarchy/name-resolution deep-work timeouts aligned at 600 seconds |
 | #585 | 2026-08-25 03:27 | raw Global Ask transport exceptions replaced by bounded client-safe detail |
-| #355 | 2026-08-25 02:38 | Naruon calendar projection contract and conformance fixture |
+| #355 | 2026-08-25 02:38 | Naruon event projection contract and conformance fixture |
 | #562 | 2026-08-24 02:05 | parameter-free classic RRF; deleted the last hand-picked fused score |
 | #561 | 2026-08-24 01:47 | knowledge-graph precedence/hierarchy relation classification and layout order |
 | #555 | 2026-08-24 01:29 | per-channel score breakdown persisted on `post_lineage_edge.channel_scores` (ADR 0195) |
