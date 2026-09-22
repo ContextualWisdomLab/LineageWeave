@@ -15,37 +15,48 @@ from lineageweave.customer_hint_resolution import (
 
 
 def test_null_client_is_unavailable() -> None:
-    client = NullCustomerHintResolutionClient()
-    assert client.available is False
+    resolution_client = NullCustomerHintResolutionClient()
+    assert resolution_client.available is False
 
 
 def test_live_client_uses_adaptive_orchestrator_mode(monkeypatch) -> None:
-    seen: dict[str, object] = {}
+    transport_observations: dict[str, object] = {}
 
-    def fake_post_json(url, body, *, headers, timeout):
-        seen.update(url=url, body=body, headers=headers, timeout=timeout)
+    def fake_post_json(request_url, request_body, *, headers, timeout):
+        transport_observations.update(
+            url=request_url, body=request_body, headers=headers, timeout=timeout
+        )
         return {"choices": [{"message": {"content": "Northridge Grid"}}]}
 
-    monkeypatch.setattr("lineageweave.customer_hint_resolution.post_json", fake_post_json)
-    client = ContextualOrchestratorCustomerHintResolutionClient(
+    monkeypatch.setattr(
+        "lineageweave.customer_hint_resolution.post_json", fake_post_json
+    )
+    resolution_client = ContextualOrchestratorCustomerHintResolutionClient(
         "http://orchestrator", "secret", reasoning_effort="high", timeout=11.0
     )
 
-    assert client.resolve("0019999999", "Northridge Grid visited our booth") == "Northridge Grid"
-    assert seen["url"] == "http://orchestrator/v1/chat/completions"
-    assert seen["body"]["mode"] == "auto"
-    assert seen["body"]["reasoning_effort"] == "high"
-    assert seen["timeout"] == 11.0
+    assert (
+        resolution_client.resolve("0019999999", "Northridge Grid visited our booth")
+        == "Northridge Grid"
+    )
+    assert transport_observations["url"] == "http://orchestrator/v1/chat/completions"
+    assert transport_observations["body"]["mode"] == "auto"
+    assert transport_observations["body"]["reasoning_effort"] == "high"
+    assert transport_observations["timeout"] == 11.0
     # The opaque hint code is threaded into the prompt so the model knows
     # which records it is naming, even though the code itself never
     # appears in their text.
-    assert "0019999999" in seen["body"]["messages"][0]["content"]
+    assert "0019999999" in transport_observations["body"]["messages"][0]["content"]
 
 
 def test_live_client_returns_none_when_model_declines(monkeypatch) -> None:
     monkeypatch.setattr(
         "lineageweave.customer_hint_resolution.post_json",
-        lambda *args, **kwargs: {"choices": [{"message": {"content": "UNKNOWN"}}]},
+        lambda *call_arguments, **call_keyword_arguments: {
+            "choices": [{"message": {"content": "UNKNOWN"}}]
+        },
     )
-    client = ContextualOrchestratorCustomerHintResolutionClient("http://orchestrator", "secret")
-    assert client.resolve("0019999999", "ambiguous context") is None
+    resolution_client = ContextualOrchestratorCustomerHintResolutionClient(
+        "http://orchestrator", "secret"
+    )
+    assert resolution_client.resolve("0019999999", "ambiguous context") is None

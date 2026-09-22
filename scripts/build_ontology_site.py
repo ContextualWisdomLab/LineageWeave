@@ -67,60 +67,80 @@ RELATION_FIELDS: tuple[tuple[str, URIRef], ...] = (
 )
 
 
-def _sha256(path: Path) -> str:
+def _file_sha256(file_path: Path) -> str:
     """Return a lowercase SHA-256 digest for one file."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(file_path.read_bytes()).hexdigest()
 
 
-def _fragment(value: URIRef) -> str:
+def _ontology_fragment(ontology_resource: URIRef) -> str:
     """Return the stable local fragment used as the HTML anchor."""
-    iri = str(value)
-    if "#" in iri:
-        return iri.rsplit("#", 1)[1]
-    return iri.rstrip("/").rsplit("/", 1)[-1]
+    ontology_iri = str(ontology_resource)
+    if "#" in ontology_iri:
+        return ontology_iri.rsplit("#", 1)[1]
+    return ontology_iri.rstrip("/").rsplit("/", 1)[-1]
 
 
-def _preferred_literal(graph: Graph, subject: URIRef, predicate: URIRef) -> str | None:
+def _preferred_literal(
+    ontology_graph: Graph,
+    ontology_subject: URIRef,
+    ontology_predicate: URIRef,
+) -> str | None:
     """Choose an English, untagged, or first literal in a deterministic order."""
     literals = sorted(
-        (value for value in graph.objects(subject, predicate) if isinstance(value, Literal)),
-        key=lambda value: (
-            0 if value.language == "en" else 1 if value.language is None else 2,
-            value.language or "",
-            str(value),
+        (
+            literal_value
+            for literal_value in ontology_graph.objects(
+                ontology_subject, ontology_predicate
+            )
+            if isinstance(literal_value, Literal)
+        ),
+        key=lambda literal_value: (
+            0
+            if literal_value.language == "en"
+            else 1
+            if literal_value.language is None
+            else 2,
+            literal_value.language or "",
+            str(literal_value),
         ),
     )
     return str(literals[0]) if literals else None
 
 
-def _canonicalize_json(value: Any, parent_key: str | None = None) -> Any:
+def _canonicalize_json(json_value: Any, parent_key: str | None = None) -> Any:
     """Canonicalize JSON-LD while preserving explicit ``@list`` ordering."""
-    if isinstance(value, dict):
-        return {key: _canonicalize_json(value[key], key) for key in sorted(value)}
-    if isinstance(value, list):
-        canonical = [_canonicalize_json(item, parent_key) for item in value]
+    if isinstance(json_value, dict):
+        return {
+            json_key: _canonicalize_json(json_value[json_key], json_key)
+            for json_key in sorted(json_value)
+        }
+    if isinstance(json_value, list):
+        canonical_items = [
+            _canonicalize_json(json_item, parent_key) for json_item in json_value
+        ]
         if parent_key == "@list":
-            return canonical
+            return canonical_items
         return sorted(
-            canonical,
-            key=lambda item: json.dumps(
-                item,
+            canonical_items,
+            key=lambda json_item: json.dumps(
+                json_item,
                 ensure_ascii=False,
                 sort_keys=True,
                 separators=(",", ":"),
             ),
         )
-    return value
+    return json_value
 
 
-def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
+def _write_serializations(ontology_graph: Graph, ontology_dir: Path) -> None:
     """Write deterministic JSON-LD and line-sorted N-Triples serializations."""
-    canonical_graph = to_canonical_graph(graph)
+    canonical_graph = to_canonical_graph(ontology_graph)
     raw_jsonld = canonical_graph.serialize(format="json-ld", auto_compact=False)
     parsed_jsonld = json.loads(raw_jsonld)
     canonical_jsonld = _canonicalize_json(parsed_jsonld)
     (ontology_dir / "ontology.jsonld").write_text(
-        json.dumps(canonical_jsonld, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        json.dumps(canonical_jsonld, ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n",
         encoding="utf-8",
     )
 
@@ -132,53 +152,84 @@ def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
     )
 
 
-def _render_link(value: URIRef, ontology_subjects: set[URIRef]) -> str:
+def _render_link(ontology_resource: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Render a local term link or a non-navigating external RDF identifier."""
-    if value not in ontology_subjects:
-        return f"<code>{html.escape(str(value))}</code>"
-    href = html.escape(f"#{public_fragment(_fragment(value))}", quote=True)
-    return f'<a href="{href}">{html.escape(_fragment(value))}</a>'
+    if ontology_resource not in ontology_subjects:
+        return f"<code>{html.escape(str(ontology_resource))}</code>"
+    local_fragment_href = html.escape(
+        f"#{public_fragment(_ontology_fragment(ontology_resource))}", quote=True
+    )
+    return (
+        f'<a href="{local_fragment_href}">'
+        f"{html.escape(_ontology_fragment(ontology_resource))}</a>"
+    )
 
 
 def _render_relation_rows(
-    graph: Graph,
-    subject: URIRef,
+    ontology_graph: Graph,
+    ontology_subject: URIRef,
     ontology_subjects: set[URIRef],
 ) -> str:
     """Render standard semantic relations for one term."""
-    rows: list[str] = []
-    for heading, predicate in RELATION_FIELDS:
-        values = sorted(
-            (value for value in graph.objects(subject, predicate) if isinstance(value, URIRef)),
+    relation_rows: list[str] = []
+    for relation_heading, relation_predicate in RELATION_FIELDS:
+        relation_targets = sorted(
+            (
+                ontology_resource
+                for ontology_resource in ontology_graph.objects(
+                    ontology_subject, relation_predicate
+                )
+                if isinstance(ontology_resource, URIRef)
+            ),
             key=str,
         )
-        if not values:
+        if not relation_targets:
             continue
-        rendered = ", ".join(_render_link(value, ontology_subjects) for value in values)
-        rows.append(f"<dt>{html.escape(heading)}</dt><dd>{rendered}</dd>")
-    return "".join(rows)
+        rendered_links = ", ".join(
+            _render_link(ontology_resource, ontology_subjects)
+            for ontology_resource in relation_targets
+        )
+        relation_rows.append(
+            f"<dt>{html.escape(relation_heading)}</dt><dd>{rendered_links}</dd>"
+        )
+    return "".join(relation_rows)
 
 
-def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) -> str:
+def _render_term(
+    ontology_graph: Graph,
+    ontology_subject: URIRef,
+    ontology_subjects: set[URIRef],
+) -> str:
     """Render one fragment-addressable ontology term section."""
-    raw_fragment = _fragment(subject)
+    raw_fragment = _ontology_fragment(ontology_subject)
     fragment_href = public_fragment(raw_fragment)
-    label = (
-        _preferred_literal(graph, subject, RDFS.label)
-        or _preferred_literal(graph, subject, SKOS.prefLabel)
+    term_label = (
+        _preferred_literal(ontology_graph, ontology_subject, RDFS.label)
+        or _preferred_literal(ontology_graph, ontology_subject, SKOS.prefLabel)
         or raw_fragment
     )
-    comment = _preferred_literal(graph, subject, SKOS.definition) or _preferred_literal(
-        graph, subject, RDFS.comment
-    )
+    term_comment = _preferred_literal(
+        ontology_graph, ontology_subject, SKOS.definition
+    ) or _preferred_literal(ontology_graph, ontology_subject, RDFS.comment)
     lookup_predicate = URIRef(CANONICAL_LOOKUP_PREDICATE)
-    lookup_codes = sorted(str(value) for value in graph.objects(subject, lookup_predicate))
+    lookup_codes = sorted(
+        str(lookup_value)
+        for lookup_value in ontology_graph.objects(ontology_subject, lookup_predicate)
+    )
     type_values = sorted(
-        (value for value in graph.objects(subject, RDF.type) if isinstance(value, URIRef)),
+        (
+            type_value
+            for type_value in ontology_graph.objects(ontology_subject, RDF.type)
+            if isinstance(type_value, URIRef)
+        ),
         key=str,
     )
-    relation_rows = _render_relation_rows(graph, subject, ontology_subjects)
-    type_links = ", ".join(_render_link(value, ontology_subjects) for value in type_values)
+    relation_rows = _render_relation_rows(
+        ontology_graph, ontology_subject, ontology_subjects
+    )
+    type_links = ", ".join(
+        _render_link(type_value, ontology_subjects) for type_value in type_values
+    )
     lookup_row = (
         "<dt>Lookup code</dt><dd>"
         + "".join(f"<code>{html.escape(code)}</code>" for code in lookup_codes)
@@ -187,22 +238,29 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         else ""
     )
     fja_rows = "".join(
-        f"<dt>{heading}</dt><dd><code>{html.escape(value)}</code></dd>"
-        for heading, predicate in (
+        f"<dt>{fja_heading}</dt><dd><code>{html.escape(fja_value)}</code></dd>"
+        for fja_heading, fja_predicate in (
             ("FJA domain", CANONICAL_FJA_DOMAIN_PREDICATE),
             ("FJA rank", CANONICAL_FJA_RANK_PREDICATE),
         )
-        if (value := _preferred_literal(graph, subject, predicate)) is not None
+        if (
+            fja_value := _preferred_literal(
+                ontology_graph, ontology_subject, fja_predicate
+            )
+        )
+        is not None
     )
     comment_html = (
-        f'<p class="term-comment">{html.escape(comment)}</p>' if comment else ""
+        f'<p class="term-comment">{html.escape(term_comment)}</p>'
+        if term_comment
+        else ""
     )
     return (
         f'<article class="term-card" id="{html.escape(raw_fragment, quote=True)}">'
         f'<h3><a class="fragment-link" href="#{html.escape(fragment_href, quote=True)}" '
-        f'aria-label="Link to {html.escape(label, quote=True)}">#</a> '
-        f"{html.escape(label)}</h3>"
-        f'<p class="iri"><code>{html.escape(str(subject))}</code></p>'
+        f'aria-label="Link to {html.escape(term_label, quote=True)}">#</a> '
+        f"{html.escape(term_label)}</h3>"
+        f'<p class="iri"><code>{html.escape(str(ontology_subject))}</code></p>'
         f"{comment_html}"
         '<dl class="term-facts">'
         f"<dt>RDF type</dt><dd>{type_links or '<span>Unspecified</span>'}</dd>"
@@ -214,80 +272,95 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
     )
 
 
-def _ontology_subjects(graph: Graph) -> set[URIRef]:
+def _ontology_subjects(ontology_graph: Graph) -> set[URIRef]:
     """Return every URI subject that belongs in the generated term inventory."""
-    subjects: set[URIRef] = set()
+    ontology_subjects: set[URIRef] = set()
     for _, rdf_type in TERM_TYPES:
-        subjects.update(
-            subject
-            for subject in graph.subjects(RDF.type, rdf_type)
-            if isinstance(subject, URIRef)
+        ontology_subjects.update(
+            ontology_subject
+            for ontology_subject in ontology_graph.subjects(RDF.type, rdf_type)
+            if isinstance(ontology_subject, URIRef)
         )
-    return subjects
+    return ontology_subjects
 
 
-def _render_term_sections(graph: Graph) -> tuple[str, str, int]:
+def _render_term_sections(ontology_graph: Graph) -> tuple[str, str, int]:
     """Render the navigation and categorized term sections."""
-    subjects = _ontology_subjects(graph)
-    nav_items: list[str] = []
-    sections: list[str] = []
-    counted: set[URIRef] = set()
+    ontology_subjects = _ontology_subjects(ontology_graph)
+    navigation_items: list[str] = []
+    term_sections: list[str] = []
+    documented_ontology_subjects: set[URIRef] = set()
 
-    for heading, rdf_type in TERM_TYPES:
-        terms = sorted(
+    for type_heading, rdf_type in TERM_TYPES:
+        ontology_terms = sorted(
             (
-                subject
-                for subject in graph.subjects(RDF.type, rdf_type)
-                if isinstance(subject, URIRef)
+                ontology_subject
+                for ontology_subject in ontology_graph.subjects(RDF.type, rdf_type)
+                if isinstance(ontology_subject, URIRef)
             ),
-            key=lambda subject: (
+            key=lambda ontology_subject: (
                 (
-                    _preferred_literal(graph, subject, RDFS.label)
-                    or _preferred_literal(graph, subject, SKOS.prefLabel)
-                    or _fragment(subject)
+                    _preferred_literal(ontology_graph, ontology_subject, RDFS.label)
+                    or _preferred_literal(
+                        ontology_graph, ontology_subject, SKOS.prefLabel
+                    )
+                    or _ontology_fragment(ontology_subject)
                 ).casefold(),
-                str(subject),
+                str(ontology_subject),
             ),
         )
-        terms = [term for term in terms if term not in counted]
-        if not terms:
+        ontology_terms = [
+            ontology_term
+            for ontology_term in ontology_terms
+            if ontology_term not in documented_ontology_subjects
+        ]
+        if not ontology_terms:
             continue
-        section_id = heading.lower().replace(" ", "-")
-        nav_items.append(
-            f'<li><a href="#{section_id}">{html.escape(heading)} '
-            f"<span>{len(terms)}</span></a></li>"
+        section_id = type_heading.lower().replace(" ", "-")
+        navigation_items.append(
+            f'<li><a href="#{section_id}">{html.escape(type_heading)} '
+            f"<span>{len(ontology_terms)}</span></a></li>"
         )
-        cards: list[str] = []
-        for term in terms:
-            counted.add(term)
-            cards.append(_render_term(graph, term, subjects))
-        sections.append(
+        term_cards: list[str] = []
+        for ontology_term in ontology_terms:
+            documented_ontology_subjects.add(ontology_term)
+            term_cards.append(
+                _render_term(ontology_graph, ontology_term, ontology_subjects)
+            )
+        term_sections.append(
             f'<section class="term-section" id="{section_id}">'
-            f"<h2>{html.escape(heading)}</h2>"
-            '<div class="term-grid">' + "".join(cards) + "</div>"
+            f"<h2>{html.escape(type_heading)}</h2>"
+            '<div class="term-grid">' + "".join(term_cards) + "</div>"
             "</section>"
         )
-    return "".join(nav_items), "".join(sections), len(counted)
+    return (
+        "".join(navigation_items),
+        "".join(term_sections),
+        len(documented_ontology_subjects),
+    )
 
 
-def _ontology_metadata(graph: Graph) -> tuple[str, str, str]:
+def _ontology_metadata(ontology_graph: Graph) -> tuple[str, str, str]:
     """Return ontology IRI, label, and comment from the source graph."""
     ontology_nodes = sorted(
         (
-            subject
-            for subject in graph.subjects(RDF.type, OWL.Ontology)
-            if isinstance(subject, URIRef)
+            ontology_subject
+            for ontology_subject in ontology_graph.subjects(RDF.type, OWL.Ontology)
+            if isinstance(ontology_subject, URIRef)
         ),
         key=str,
     )
     if not ontology_nodes:
         raise ValueError("source graph does not declare an owl:Ontology resource")
-    subject = ontology_nodes[0]
-    label = _preferred_literal(graph, subject, RDFS.label) or "LineageWeave ontology"
-    comment = _preferred_literal(graph, subject, RDFS.comment) or (
-        "Formal OWL 2, RDF Schema, and SKOS vocabulary for LineageWeave."
+    ontology_subject = ontology_nodes[0]
+    ontology_label = (
+        _preferred_literal(ontology_graph, ontology_subject, RDFS.label)
+        or "LineageWeave ontology"
     )
-    return str(subject), label, comment
+    ontology_comment = _preferred_literal(
+        ontology_graph, ontology_subject, RDFS.comment
+    ) or ("Formal OWL 2, RDF Schema, and SKOS vocabulary for LineageWeave.")
+    return str(ontology_subject), ontology_label, ontology_comment
 
 
 def _style_sheet() -> str:
@@ -341,17 +414,19 @@ footer { border-top: 1px solid #c8d2df; padding: 2rem 1.25rem; text-align: cente
 """.strip()
 
 
-def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
+def _render_ontology_page(ontology_graph: Graph, source_sha256: str) -> tuple[str, int]:
     """Render the complete ontology documentation page and unique term count."""
-    ontology_iri, label, comment = _ontology_metadata(graph)
-    nav, term_sections, term_count = _render_term_sections(graph)
+    ontology_iri, ontology_label, ontology_comment = _ontology_metadata(ontology_graph)
+    category_navigation, term_sections, term_count = _render_term_sections(
+        ontology_graph
+    )
     return (
         "<!doctype html>\n"
         '<html lang="en">\n<head>\n'
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{html.escape(label)}</title>\n"
-        f'<meta name="description" content="{html.escape(comment, quote=True)}">\n'
+        f"<title>{html.escape(ontology_label)}</title>\n"
+        f'<meta name="description" content="{html.escape(ontology_comment, quote=True)}">\n'
         f'<link rel="canonical" href="{DOCUMENTATION_URL}"> '
         f"{CANONICAL_LINK_SUPPRESSION}\n"
         '<link rel="alternate" type="text/turtle" href="ontology.ttl" title="Turtle">\n'
@@ -361,9 +436,9 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         "</head>\n<body>\n"
         "<header>"
         '<p><a href="../">LineageWeave</a> / Ontology</p>'
-        f"<h1>{html.escape(label)}</h1>"
-        f"<p>{html.escape(comment)}</p>"
-        f'<p>Ontology IRI: <code>{html.escape(ontology_iri)}</code></p>'
+        f"<h1>{html.escape(ontology_label)}</h1>"
+        f"<p>{html.escape(ontology_comment)}</p>"
+        f"<p>Ontology IRI: <code>{html.escape(ontology_iri)}</code></p>"
         "</header>"
         "<main>"
         '<section aria-labelledby="downloads-heading">'
@@ -379,15 +454,15 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         "</div></section>"
         '<section class="summary-grid" aria-label="Ontology publication summary">'
         f'<div class="summary-card"><strong>{term_count}</strong><br>Unique documented terms</div>'
-        f'<div class="summary-card"><strong>{len(graph)}</strong><br>RDF triples</div>'
+        f'<div class="summary-card"><strong>{len(ontology_graph)}</strong><br>RDF triples</div>'
         f'<div class="summary-card"><strong><code>{html.escape(source_sha256[:12])}</code></strong><br>Source SHA-256 prefix</div>'
         "</section>"
         '<p class="notice"><strong>Identity boundary:</strong> this project page is the stable documentation endpoint requested for the repository. Per ADR 0207 the repository-case ontology IRI shown above is the canonical semantic identifier; the lowercase namespace remains a deprecated compatibility vocabulary with validated mappings.</p>'
         '<nav class="on-this-page" aria-label="Ontology term categories"><strong>Term categories</strong><ul>'
-        f"{nav}</ul></nav>"
+        f"{category_navigation}</ul></nav>"
         f"{term_sections}"
         "</main>"
-        '<footer><p>Generated deterministically from <code>docs/ontology/lineageweave-kg.ttl</code>. No analytics or external scripts.</p></footer>'
+        "<footer><p>Generated deterministically from <code>docs/ontology/lineageweave-kg.ttl</code>. No analytics or external scripts.</p></footer>"
         "</body>\n</html>\n",
         term_count,
     )
@@ -405,7 +480,7 @@ def _render_root_page() -> str:
         f"<style>{_style_sheet()}</style></head><body>"
         "<header><h1>LineageWeave public specifications</h1>"
         "<p>Stable, machine-readable public artifacts published from the protected repository source.</p></header>"
-        '<main><section><h2>Ontology</h2><p>Inspect the OWL 2, RDF Schema, SKOS, and provenance vocabulary.</p>'
+        "<main><section><h2>Ontology</h2><p>Inspect the OWL 2, RDF Schema, SKOS, and provenance vocabulary.</p>"
         '<p><a href="ontology/">Open the ontology documentation</a></p></section></main>'
         "<footer><p>ContextualWisdomLab / LineageWeave</p></footer>"
         "</body></html>\n"
@@ -414,12 +489,12 @@ def _render_root_page() -> str:
 
 def _write_manifest(
     ontology_dir: Path,
-    source: Path,
-    graph: Graph,
+    ontology_source_path: Path,
+    ontology_graph: Graph,
     term_count: int,
 ) -> None:
     """Write deterministic provenance metadata for the published ontology."""
-    payload = {
+    manifest_payload = {
         "documentation_url": DOCUMENTATION_URL,
         "generated_artifacts": [
             "index.html",
@@ -432,60 +507,73 @@ def _write_manifest(
             "prov-o-support-profile.ttl",
         ],
         "shapes_path": SHAPES_RELATIVE_PATH.as_posix(),
-        "ontology_triple_count": len(graph),
+        "ontology_triple_count": len(ontology_graph),
         "ontology_unique_term_count": term_count,
         "source_path": SOURCE_RELATIVE_PATH.as_posix(),
-        "source_sha256": _sha256(source),
+        "source_sha256": _file_sha256(ontology_source_path),
     }
     (ontology_dir / "manifest.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        json.dumps(manifest_payload, ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n",
         encoding="utf-8",
     )
 
 
 def build_site(repository_root: Path, output_dir: Path) -> None:
     """Build the complete static ontology site under ``output_dir``."""
-    root = repository_root.resolve()
-    output = output_dir.resolve()
-    source = root / SOURCE_RELATIVE_PATH
-    prov_profile = root / PROV_PROFILE_RELATIVE_PATH
-    compatibility = root / COMPATIBILITY_RELATIVE_PATH
-    shapes = root / SHAPES_RELATIVE_PATH
-    if not source.is_file():
-        raise FileNotFoundError(f"ontology source is missing: {source}")
-    if not prov_profile.is_file():
-        raise FileNotFoundError(f"PROV-O support profile is missing: {prov_profile}")
-    if not compatibility.is_file():
-        raise FileNotFoundError(f"namespace compatibility vocabulary is missing: {compatibility}")
-    if not shapes.is_file():
-        raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes}")
+    repository_root_path = repository_root.resolve()
+    publication_output_dir = output_dir.resolve()
+    ontology_source_path = repository_root_path / SOURCE_RELATIVE_PATH
+    provenance_profile_path = repository_root_path / PROV_PROFILE_RELATIVE_PATH
+    namespace_compatibility_path = repository_root_path / COMPATIBILITY_RELATIVE_PATH
+    shacl_shapes_path = repository_root_path / SHAPES_RELATIVE_PATH
+    if not ontology_source_path.is_file():
+        raise FileNotFoundError(f"ontology source is missing: {ontology_source_path}")
+    if not provenance_profile_path.is_file():
+        raise FileNotFoundError(
+            f"PROV-O support profile is missing: {provenance_profile_path}"
+        )
+    if not namespace_compatibility_path.is_file():
+        raise FileNotFoundError(
+            "namespace compatibility vocabulary is missing: "
+            f"{namespace_compatibility_path}"
+        )
+    if not shacl_shapes_path.is_file():
+        raise FileNotFoundError(f"SHACL shapes graph is missing: {shacl_shapes_path}")
 
-    if output.exists():
+    if publication_output_dir.exists():
         raise FileExistsError(
             "refusing to replace an existing output directory; "
             "use publish_ontology_site for marked replacement"
         )
-    ontology_dir = output / "ontology"
+    ontology_dir = publication_output_dir / "ontology"
     ontology_dir.mkdir(parents=True)
 
-    graph = Graph().parse(source, format="turtle")
-    source_sha256 = _sha256(source)
-    ontology_html, term_count = _render_ontology_page(graph, source_sha256)
+    ontology_graph = Graph().parse(ontology_source_path, format="turtle")
+    source_sha256 = _file_sha256(ontology_source_path)
+    ontology_html, term_count = _render_ontology_page(ontology_graph, source_sha256)
 
-    (output / ".nojekyll").write_text("", encoding="utf-8")
-    (output / "index.html").write_text(_render_root_page(), encoding="utf-8")
+    (publication_output_dir / ".nojekyll").write_text("", encoding="utf-8")
+    (publication_output_dir / "index.html").write_text(
+        _render_root_page(), encoding="utf-8"
+    )
     (ontology_dir / "index.html").write_text(ontology_html, encoding="utf-8")
-    shutil.copyfile(source, ontology_dir / "ontology.ttl")
-    shutil.copyfile(prov_profile, ontology_dir / "prov-o-support-profile.ttl")
-    shutil.copyfile(compatibility, ontology_dir / "namespace-compatibility.ttl")
-    shutil.copyfile(shapes, ontology_dir / "lineageweave-kg-shapes.ttl")
-    _write_serializations(graph, ontology_dir)
-    _write_manifest(ontology_dir, source, graph, term_count)
-    (output / "robots.txt").write_text(
-        "User-agent: *\nAllow: /\nSitemap: " f"{PUBLIC_BASE_URL}/sitemap.xml\n",
+    shutil.copyfile(ontology_source_path, ontology_dir / "ontology.ttl")
+    shutil.copyfile(
+        provenance_profile_path, ontology_dir / "prov-o-support-profile.ttl"
+    )
+    shutil.copyfile(
+        namespace_compatibility_path,
+        ontology_dir / "namespace-compatibility.ttl",
+    )
+    shutil.copyfile(shacl_shapes_path, ontology_dir / "lineageweave-kg-shapes.ttl")
+    _write_serializations(ontology_graph, ontology_dir)
+    _write_manifest(ontology_dir, ontology_source_path, ontology_graph, term_count)
+    (publication_output_dir / "robots.txt").write_text(
+        f"User-agent: *\nAllow: /\nSitemap: {PUBLIC_BASE_URL}/sitemap.xml\n",
         encoding="utf-8",
     )
-    (output / "sitemap.xml").write_text(
+    (publication_output_dir / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"  <url><loc>{PUBLIC_BASE_URL}/</loc></url>\n"
@@ -495,28 +583,30 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     )
 
 
-def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
+def _parse_site_build_arguments(
+    argv: Iterable[str] | None = None,
+) -> argparse.Namespace:
     """Parse command-line arguments for repository and output locations."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    site_build_parser = argparse.ArgumentParser(description=__doc__)
+    site_build_parser.add_argument(
         "--repository-root",
         type=Path,
         default=Path(__file__).resolve().parents[1],
         help="LineageWeave repository root (default: inferred from this script)",
     )
-    parser.add_argument(
+    site_build_parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("_site"),
         help="Static site output directory (default: _site)",
     )
-    return parser.parse_args(argv)
+    return site_build_parser.parse_args(argv)
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     """Build the site from CLI arguments and return a process exit code."""
-    args = _parse_args(argv)
-    build_site(args.repository_root, args.output_dir)
+    command_arguments = _parse_site_build_arguments(argv)
+    build_site(command_arguments.repository_root, command_arguments.output_dir)
     return 0
 
 

@@ -21,15 +21,15 @@ from backend.app.post_content_queue import (
 )
 
 
-def _parser() -> argparse.ArgumentParser:
+def _post_content_requeue_parser() -> argparse.ArgumentParser:
     """Build the operator-only command-line parser."""
-    parser = argparse.ArgumentParser(
+    command_parser = argparse.ArgumentParser(
         description="Explicitly requeue one failed post-content ingestion job."
     )
-    parser.add_argument("--post-id", required=True)
-    parser.add_argument("--target-dsn")
-    parser.add_argument("--valkey-url")
-    return parser
+    command_parser.add_argument("--post-id", required=True)
+    command_parser.add_argument("--target-dsn")
+    command_parser.add_argument("--valkey-url")
+    return command_parser
 
 
 async def requeue_post_content(
@@ -39,43 +39,49 @@ async def requeue_post_content(
     valkey_url: str,
 ) -> None:
     """Reset one failed job, append its audit event, and publish its wake-up."""
-    connection = await asyncpg.connect(target_dsn)
-    client = redis.from_url(valkey_url, decode_responses=True)
+    database_connection = await asyncpg.connect(target_dsn)
+    valkey_client = redis.from_url(valkey_url, decode_responses=True)
     try:
-        body_row = await connection.fetchrow(
+        source_post_body_row = await database_connection.fetchrow(
             "select post_body from source_post where post_id = $1::uuid",
             post_id,
         )
-        if body_row is None:
+        if source_post_body_row is None:
             raise ValueError(f"source post does not exist: {post_id}")
-        async with connection.transaction():
-            request = await requeue_failed_post_content_job(
-                connection,
+        async with database_connection.transaction():
+            post_content_job_request = await requeue_failed_post_content_job(
+                database_connection,
                 post_id,
-                str(body_row["post_body"] or ""),
+                str(source_post_body_row["post_body"] or ""),
             )
-        entry_id = await publish_post_content_event(
-            client,
-            post_id=request.post_id,
-            source_body_digest=request.source_body_sha256,
+        valkey_stream_entry_id = await publish_post_content_event(
+            valkey_client,
+            post_id=post_content_job_request.post_id,
+            source_body_digest=post_content_job_request.source_body_sha256,
         )
-        if entry_id is None:
+        if valkey_stream_entry_id is None:
             raise RuntimeError("Valkey did not publish the explicit retry wake-up")
-        print({"post_id": post_id, "status": request.status_code, "published": True})
+        print(
+            {
+                "post_id": post_id,
+                "status": post_content_job_request.status_code,
+                "published": True,
+            }
+        )
     finally:
-        await connection.close()
-        await client.aclose()
+        await database_connection.close()
+        await valkey_client.aclose()
 
 
 def main() -> None:
     """Parse the target and run one explicit terminal-job recovery."""
-    args = _parser().parse_args()
-    settings = load_settings()
+    command_arguments = _post_content_requeue_parser().parse_args()
+    runtime_settings = load_settings()
     asyncio.run(
         requeue_post_content(
-            args.post_id,
-            target_dsn=args.target_dsn or settings.database_url,
-            valkey_url=args.valkey_url or settings.valkey_url,
+            command_arguments.post_id,
+            target_dsn=command_arguments.target_dsn or runtime_settings.database_url,
+            valkey_url=command_arguments.valkey_url or runtime_settings.valkey_url,
         )
     )
 

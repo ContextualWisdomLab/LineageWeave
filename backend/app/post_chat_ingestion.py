@@ -496,7 +496,7 @@ def _fuse_global_candidate_ids(
 
 
 async def gather_global_chat_sources(
-    conn: asyncpg.Connection,
+    database_connection: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
     authorized_corporate_entity_ids: Iterable[str] = (),
     authorized_process_unit_ids: Iterable[str] = (),
@@ -569,7 +569,7 @@ async def gather_global_chat_sources(
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
     if knowledge_cutoff is not None:
-        candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        candidate_rows = await database_connection.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with evidence_query as (
                 select websearch_to_tsquery('simple', phrase) as terms
@@ -616,7 +616,7 @@ async def gather_global_chat_sources(
                     or (post.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or post.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              order by channel_rank
@@ -632,8 +632,8 @@ async def gather_global_chat_sources(
             limit,
         )
     else:
-        candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        f"""
+        candidate_rows = await database_connection.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
         with question_vector as (
             select ordinality - 1 as dimension_index, dimension_value
               from unnest($1::double precision[]) with ordinality
@@ -662,7 +662,7 @@ async def gather_global_chat_sources(
                     or (post.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or post.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              group by unit.post_id, unit.unit_index, unit.source_evidence_reference,
@@ -721,7 +721,7 @@ async def gather_global_chat_sources(
                     or (endpoint.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or endpoint.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='endpoint')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="endpoint")}
         ), matching_edges as (
             select edge.knowledge_graph_edge_id
               from knowledge_graph_edge edge
@@ -802,7 +802,7 @@ async def gather_global_chat_sources(
                     or (post.corporate_entity_id::text = any($4::text[])
                         and (cardinality($5::text[]) = 0
                              or post.process_unit_id::text = any($5::text[]))))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              group by candidate.post_id
@@ -819,38 +819,42 @@ async def gather_global_chat_sources(
           from authorized_evidence_candidates
          order by candidate_channel, channel_rank
         """,
-        question_vector,
-        question_norm,
-        embedding_model_code,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
-        resolved_time_range[0] if resolved_time_range else None,
-        resolved_time_range[1] if resolved_time_range else None,
-        limit,
-        list(retrieval_phrases),
-        _ontology_lookup_codes_in_question(question),
-        embedding_enabled,
-    )
+            question_vector,
+            question_norm,
+            embedding_model_code,
+            list(authorized_corporate_entity_ids),
+            list(authorized_process_unit_ids),
+            resolved_time_range[0] if resolved_time_range else None,
+            resolved_time_range[1] if resolved_time_range else None,
+            limit,
+            list(retrieval_phrases),
+            _ontology_lookup_codes_in_question(question),
+            embedding_enabled,
+        )
     embedding_candidate_ids: list[str] = []
     evidence_candidate_ids: list[str] = []
     evidence_open_actions: dict[str, EvidenceOpenAction] = {}
-    for row in candidate_rows:
-        channel = str(row.get("candidate_channel") or "embedding")
-        post_id = str(row["post_id"])
-        unit_index = row.get("unit_index")
+    for candidate_post_row in candidate_rows:
+        candidate_channel_code = str(
+            candidate_post_row.get("candidate_channel") or "embedding"
+        )
+        post_id = str(candidate_post_row["post_id"])
+        unit_index = candidate_post_row.get("unit_index")
         if (
-            channel == "embedding"
-            and row.get("evidence_open_available") is True
+            candidate_channel_code == "embedding"
+            and candidate_post_row.get("evidence_open_available") is True
             and isinstance(unit_index, int)
         ):
             evidence_open_actions.setdefault(
                 post_id,
                 EvidenceOpenAction(post_id=post_id, unit_index=unit_index),
             )
-        target = (
-            evidence_candidate_ids if channel == "evidence" else embedding_candidate_ids
+        channel_candidate_ids = (
+            evidence_candidate_ids
+            if candidate_channel_code == "evidence"
+            else embedding_candidate_ids
         )
-        target.append(post_id)
+        channel_candidate_ids.append(post_id)
     candidate_ids = _fuse_global_candidate_ids(
         embedding_candidate_ids, evidence_candidate_ids, limit
     )
@@ -867,20 +871,22 @@ async def gather_global_chat_sources(
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
     if lineage_anchor_id and knowledge_cutoff is None:
-        lineage_rows = await conn.fetch(
+        lineage_rows = await database_connection.fetch(
             "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
             "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
             lineage_anchor_id,
         )
         lineage_neighbor_ids = sorted(
             {
-                str(row["other_id"])
-                for row in lineage_rows
-                if str(row["other_id"]) not in candidate_id_set
+                str(lineage_edge_row["other_id"])
+                for lineage_edge_row in lineage_rows
+                if str(lineage_edge_row["other_id"]) not in candidate_id_set
             }
         )
         candidate_ids = list(
-            dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
+            dict.fromkeys(
+                [lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]]
+            )
         )[:limit]
     elif not lineage_anchor_id:
         candidate_ids = []
@@ -888,7 +894,7 @@ async def gather_global_chat_sources(
 
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and identity values remain asyncpg parameters.
-    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+    source_post_rows = await database_connection.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id,
                source_system_code, source_record_key, source_author_code, source_author_name,
@@ -903,7 +909,7 @@ async def gather_global_chat_sources(
                 and (cardinality($2::text[]) = 0
                      or process_unit_id::text = any($2::text[]))))
            and source_post.post_id = any($3::uuid[])
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
            and ($7::timestamptz is null or source_post.created_at <= $7)
            and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
            and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
@@ -920,29 +926,48 @@ async def gather_global_chat_sources(
         knowledge_cutoff,
     )
     visible_rows = [
-        row
-        for row in rows
-        if can_see_post(row) and row_matches_time_range(row, resolved_time_range)
+        source_post_row
+        for source_post_row in source_post_rows
+        if can_see_post(source_post_row)
+        and row_matches_time_range(source_post_row, resolved_time_range)
     ][:limit]
-    visible_ids = [str(row["post_id"]) for row in visible_rows]
+    visible_ids = [
+        str(visible_post_row["post_id"]) for visible_post_row in visible_rows
+    ]
     anchor_is_visible = lineage_anchor_id in visible_ids
-    revisions = await fetch_known_at_revisions(conn, visible_ids, knowledge_cutoff) if knowledge_cutoff else {}
-    semantic_facts = await _semantic_facts_for_posts(conn, visible_ids, knowledge_cutoff)
-    graph_facts = await _graph_facts_for_posts(conn, visible_ids, knowledge_cutoff)
+    revisions = (
+        await fetch_known_at_revisions(
+            database_connection, visible_ids, knowledge_cutoff
+        )
+        if knowledge_cutoff
+        else {}
+    )
+    semantic_facts = await _semantic_facts_for_posts(
+        database_connection, visible_ids, knowledge_cutoff
+    )
+    graph_facts = await _graph_facts_for_posts(
+        database_connection, visible_ids, knowledge_cutoff
+    )
     remaining_graph_facts = 16
     time_filter_active = resolved_time_range is not None
-    sources: list[ChatSourceDocument] = []
-    for index, row in enumerate(visible_rows):
-        post_id = str(row["post_id"])
+    source_documents: list[ChatSourceDocument] = []
+    for visible_post_row in visible_rows:
+        post_id = str(visible_post_row["post_id"])
         revision = revisions.get(post_id) if knowledge_cutoff else None
         historical_body_unavailable = knowledge_cutoff is not None and revision is None
         source_title = (
             revision["post_title"]
             if revision is not None
-            else ("Historical body unavailable" if historical_body_unavailable else row["post_title"])
+            else (
+                "Historical body unavailable"
+                if historical_body_unavailable
+                else visible_post_row["post_title"]
+            )
         )
-        source_body = revision["post_body"] if revision is not None else (
-            "" if historical_body_unavailable else row["post_body"]
+        source_body = (
+            revision["post_body"]
+            if revision is not None
+            else ("" if historical_body_unavailable else visible_post_row["post_body"])
         )
         normalized_body = await _normalize_post_body_text(source_body, vision_client)
         if len(normalized_body) > 4000:
@@ -951,7 +976,9 @@ async def gather_global_chat_sources(
                 + "\n[Source body truncated for Global Ask; open the cited post for the full body.]"
             )
         lineage_fact = (
-            (f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",)
+            (
+                f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",
+            )
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
@@ -959,7 +986,7 @@ async def gather_global_chat_sources(
         remaining_graph_facts -= len(post_graph_facts)
         source_type = (
             GlobalAskSourceDocument
-            if row["visibility_code"] == "public"
+            if visible_post_row["visibility_code"] == "public"
             else ChatSourceDocument
         )
         source_arguments: dict[str, Any] = {}
@@ -967,31 +994,59 @@ async def gather_global_chat_sources(
             source_arguments["external_claim_facts"] = (
                 semantic_facts.get(post_id, ()) + post_graph_facts
             )
-        sources.append(
+        source_documents.append(
             source_type(
                 post_id,
                 source_title,
                 normalized_body,
                 graph_facts=post_graph_facts,
                 evidence_facts=(
-                    () if knowledge_cutoff is not None else _source_hint_facts(row)
+                    ()
+                    if knowledge_cutoff is not None
+                    else _source_hint_facts(visible_post_row)
                 )
                 + semantic_facts.get(post_id, ())
                 + lineage_fact
-                + time_axis_evidence_fact(row, time_filter_active=time_filter_active),
-                source_post_revision_id=(
-                    revision["source_post_revision_id"] if revision is not None else None
+                + time_axis_evidence_fact(
+                    visible_post_row, time_filter_active=time_filter_active
                 ),
-                evidence_available_at=(revision["written_at"] if revision is not None else None),
-                knowledge_cutoff=(knowledge_cutoff.isoformat() if knowledge_cutoff else None),
+                source_post_revision_id=(
+                    revision["source_post_revision_id"]
+                    if revision is not None
+                    else None
+                ),
+                evidence_available_at=(
+                    revision["written_at"] if revision is not None else None
+                ),
+                knowledge_cutoff=(
+                    knowledge_cutoff.isoformat() if knowledge_cutoff else None
+                ),
                 live_changed_after_cutoff=(
-                    knowledge_cutoff is not None and row["updated_at"] > knowledge_cutoff
+                    knowledge_cutoff is not None
+                    and visible_post_row["updated_at"] > knowledge_cutoff
                 ),
                 historical_body_unavailable=historical_body_unavailable,
                 unavailable_channels=(
-                    ("historical_body", "semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image")
+                    (
+                        "historical_body",
+                        "semantic_role",
+                        "semantic_keyman",
+                        "knowledge_graph",
+                        "lineage",
+                        "image",
+                    )
                     if historical_body_unavailable
-                    else (("semantic_role", "semantic_keyman", "knowledge_graph", "lineage", "image") if knowledge_cutoff else ())
+                    else (
+                        (
+                            "semantic_role",
+                            "semantic_keyman",
+                            "knowledge_graph",
+                            "lineage",
+                            "image",
+                        )
+                        if knowledge_cutoff
+                        else ()
+                    )
                 ),
                 evidence_open_action=(
                     None
@@ -1001,7 +1056,7 @@ async def gather_global_chat_sources(
                 **source_arguments,
             )
         )
-    return sources
+    return source_documents
 
 
 async def cited_post_images(

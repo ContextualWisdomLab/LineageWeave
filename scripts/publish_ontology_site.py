@@ -54,96 +54,146 @@ _MAPPING_FOR_KIND = {
 
 def _load_renderer(repository_root: Path) -> ModuleType:
     """Load the sibling deterministic renderer from one repository root."""
-    script = repository_root / "scripts" / "build_ontology_site.py"
-    spec = importlib.util.spec_from_file_location("lineageweave_ontology_renderer", script)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"ontology renderer could not be loaded: {script}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    renderer_script_path = repository_root / "scripts" / "build_ontology_site.py"
+    renderer_module_spec = importlib.util.spec_from_file_location(
+        "lineageweave_ontology_renderer", renderer_script_path
+    )
+    if renderer_module_spec is None or renderer_module_spec.loader is None:
+        raise RuntimeError(
+            f"ontology renderer could not be loaded: {renderer_script_path}"
+        )
+    renderer_module = importlib.util.module_from_spec(renderer_module_spec)
+    renderer_module_spec.loader.exec_module(renderer_module)
+    return renderer_module
 
 
-def _fragment(value: URIRef) -> str:
+def _ontology_fragment(ontology_resource: URIRef) -> str:
     """Return the local fragment used by the renderer as an HTML identifier."""
-    iri = str(value)
-    if "#" in iri:
-        return iri.rsplit("#", 1)[1]
-    return iri.rstrip("/").rsplit("/", 1)[-1]
+    ontology_iri = str(ontology_resource)
+    if "#" in ontology_iri:
+        return ontology_iri.rsplit("#", 1)[1]
+    return ontology_iri.rstrip("/").rsplit("/", 1)[-1]
 
 
-def _public_subjects(graph: Graph, renderer: ModuleType) -> set[URIRef]:
+def _public_ontology_subjects(
+    ontology_graph: Graph,
+    ontology_renderer: ModuleType,
+) -> set[URIRef]:
     """Return URI subjects included in the renderer's public term inventory."""
     return {
-        subject
-        for _, term_type in renderer.TERM_TYPES
-        for subject in graph.subjects(RDF.type, term_type)
-        if isinstance(subject, URIRef)
+        ontology_subject
+        for _, term_type in ontology_renderer.TERM_TYPES
+        for ontology_subject in ontology_graph.subjects(RDF.type, term_type)
+        if isinstance(ontology_subject, URIRef)
     }
 
 
-def validate_public_graph(graph: Graph, renderer: ModuleType) -> None:
+def validate_public_graph(
+    ontology_graph: Graph,
+    ontology_renderer: ModuleType,
+) -> None:
     """Reject renderer-visible RDF that cannot be published safely."""
-    subjects = _public_subjects(graph, renderer)
-    fragment_owner: dict[str, URIRef] = {}
-    for subject in sorted(subjects, key=str):
-        fragment = public_fragment(_fragment(subject))
-        owner = fragment_owner.setdefault(fragment, subject)
-        if owner != subject:
+    ontology_subjects = _public_ontology_subjects(ontology_graph, ontology_renderer)
+    fragment_owner_by_id: dict[str, URIRef] = {}
+    for ontology_subject in sorted(ontology_subjects, key=str):
+        public_fragment_id = public_fragment(_ontology_fragment(ontology_subject))
+        previous_fragment_owner = fragment_owner_by_id.setdefault(
+            public_fragment_id, ontology_subject
+        )
+        if previous_fragment_owner != ontology_subject:
             raise ValueError(
-                f"duplicate ontology fragment {fragment!r}: {owner} and {subject}"
+                f"duplicate ontology fragment {public_fragment_id!r}: "
+                f"{previous_fragment_owner} and {ontology_subject}"
             )
 
-    for subject in subjects:
-        for predicate in (RDF.type, *(item[1] for item in renderer.RELATION_FIELDS)):
-            for value in graph.objects(subject, predicate):
-                if not isinstance(value, URIRef) or value in subjects:
+    for ontology_subject in ontology_subjects:
+        for relation_predicate in (
+            RDF.type,
+            *(
+                relation_field[1]
+                for relation_field in ontology_renderer.RELATION_FIELDS
+            ),
+        ):
+            for linked_resource in ontology_graph.objects(
+                ontology_subject, relation_predicate
+            ):
+                if (
+                    not isinstance(linked_resource, URIRef)
+                    or linked_resource in ontology_subjects
+                ):
                     continue
-                scheme = urlsplit(str(value)).scheme.lower()
-                if scheme not in {"http", "https"}:
+                linked_iri_scheme = urlsplit(str(linked_resource)).scheme.lower()
+                if linked_iri_scheme not in {"http", "https"}:
                     raise ValueError(
-                        f"unsafe linked IRI scheme {scheme!r} for {value}"
+                        f"unsafe linked IRI scheme {linked_iri_scheme!r} "
+                        f"for {linked_resource}"
                     )
 
 
-def _term_kind(graph: Graph, subject: URIRef) -> URIRef | None:
+def _ontology_term_kind(
+    ontology_graph: Graph,
+    ontology_subject: URIRef,
+) -> URIRef | None:
     """Return one supported RDF term kind, including entailed classes."""
-    kinds = {kind for kind in _MAPPING_FOR_KIND if (subject, RDF.type, kind) in graph}
-    if any(graph.objects(subject, RDFS.subClassOf)):
-        kinds.add(OWL.Class)
-    return next(iter(kinds)) if len(kinds) == 1 else None
+    ontology_term_kinds = {
+        ontology_term_kind
+        for ontology_term_kind in _MAPPING_FOR_KIND
+        if (ontology_subject, RDF.type, ontology_term_kind) in ontology_graph
+    }
+    if any(ontology_graph.objects(ontology_subject, RDFS.subClassOf)):
+        ontology_term_kinds.add(OWL.Class)
+    return next(iter(ontology_term_kinds)) if len(ontology_term_kinds) == 1 else None
 
 
 def validate_compatibility_graph(
-    canonical: Graph,
-    compatibility: Graph,
+    canonical_ontology_graph: Graph,
+    compatibility_ontology_graph: Graph,
 ) -> None:
     """Reject namespace mappings whose local name or RDF term kind differs."""
-    mappings = {
-        (subject, predicate, target)
-        for predicate in set(_MAPPING_FOR_KIND.values())
-        for subject, target in compatibility.subject_objects(predicate)
+    namespace_mappings = {
+        (canonical_resource, mapping_predicate, deprecated_resource)
+        for mapping_predicate in set(_MAPPING_FOR_KIND.values())
+        for canonical_resource, deprecated_resource in (
+            compatibility_ontology_graph.subject_objects(mapping_predicate)
+        )
     }
-    if not mappings:
+    if not namespace_mappings:
         raise ValueError("namespace compatibility vocabulary has no mappings")
-    for subject, predicate, target in mappings:
-        canonical_iri, deprecated_iri = str(subject), str(target)
-        if not canonical_iri.startswith(CANONICAL_NAMESPACE) or not deprecated_iri.startswith(
-            DEPRECATED_NAMESPACE
-        ):
-            raise ValueError("namespace compatibility mapping has an unexpected namespace")
-        if canonical_iri.removeprefix(CANONICAL_NAMESPACE) != deprecated_iri.removeprefix(
-            DEPRECATED_NAMESPACE
-        ):
-            raise ValueError("namespace compatibility mapping has different local names")
-        canonical_kind = _term_kind(canonical, subject)
-        deprecated_kind = _term_kind(compatibility, target)
-        if canonical_kind is None or canonical_kind != deprecated_kind:
+    for (
+        canonical_resource,
+        mapping_predicate,
+        deprecated_resource,
+    ) in namespace_mappings:
+        canonical_iri = str(canonical_resource)
+        deprecated_iri = str(deprecated_resource)
+        if not canonical_iri.startswith(
+            CANONICAL_NAMESPACE
+        ) or not deprecated_iri.startswith(DEPRECATED_NAMESPACE):
+            raise ValueError(
+                "namespace compatibility mapping has an unexpected namespace"
+            )
+        if canonical_iri.removeprefix(
+            CANONICAL_NAMESPACE
+        ) != deprecated_iri.removeprefix(DEPRECATED_NAMESPACE):
+            raise ValueError(
+                "namespace compatibility mapping has different local names"
+            )
+        canonical_term_kind = _ontology_term_kind(
+            canonical_ontology_graph, canonical_resource
+        )
+        deprecated_term_kind = _ontology_term_kind(
+            compatibility_ontology_graph, deprecated_resource
+        )
+        if canonical_term_kind is None or canonical_term_kind != deprecated_term_kind:
             raise ValueError("namespace compatibility mapping has different term kinds")
-        if _MAPPING_FOR_KIND[canonical_kind] != predicate:
+        if _MAPPING_FOR_KIND[canonical_term_kind] != mapping_predicate:
             raise ValueError("namespace compatibility mapping uses the wrong predicate")
 
 
-def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
+def validate_shapes_graph(
+    shacl_shapes_graph: Graph,
+    canonical_ontology_graph: Graph,
+) -> None:
     """Reject SHACL shapes whose targets dangle outside the ontology.
 
     A shape that targets a class absent from the canonical graph, or
@@ -153,123 +203,157 @@ def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
     Only URI-valued targets and paths are checked; literal sh:path values
     are not part of this contract.
     """
-    if not any(shapes.triples((None, RDF.type, SH.NodeShape))):
+    if not any(shacl_shapes_graph.triples((None, RDF.type, SH.NodeShape))):
         raise ValueError("SHACL shapes graph declares no sh:NodeShape")
-    for predicate in (SH.targetClass, SH.path):
-        for value in shapes.objects(None, predicate):
+    for shacl_predicate in (SH.targetClass, SH.path):
+        for linked_resource in shacl_shapes_graph.objects(None, shacl_predicate):
             if (
-                not isinstance(value, URIRef)
-                or str(value).startswith(CANONICAL_NAMESPACE)
-                or (predicate == SH.path and value in STANDARD_SHACL_PATHS)
+                not isinstance(linked_resource, URIRef)
+                or str(linked_resource).startswith(CANONICAL_NAMESPACE)
+                or (
+                    shacl_predicate == SH.path
+                    and linked_resource in STANDARD_SHACL_PATHS
+                )
             ):
                 continue
-            kind = "targetClass" if predicate == SH.targetClass else "path"
-            raise ValueError(
-                f"SHACL {kind} target outside the canonical namespace: {value}"
+            resource_kind = (
+                "targetClass" if shacl_predicate == SH.targetClass else "path"
             )
-    declared_classes = {
-        subject
-        for subject in canonical.subjects(RDF.type, OWL.Class)
-        if isinstance(subject, URIRef)
+            raise ValueError(
+                f"SHACL {resource_kind} target outside the canonical namespace: "
+                f"{linked_resource}"
+            )
+    declared_ontology_classes = {
+        ontology_subject
+        for ontology_subject in canonical_ontology_graph.subjects(RDF.type, OWL.Class)
+        if isinstance(ontology_subject, URIRef)
     }
     # Entailed classes: anything with a subclass assertion is a class.
-    declared_classes.update(
-        subject
-        for subject, _ in canonical.subject_objects(RDFS.subClassOf)
-        if isinstance(subject, URIRef)
-    )
-    declared_properties = {
-        subject
-        for subject in canonical.subjects(RDF.type, OWL.ObjectProperty)
-        if isinstance(subject, URIRef)
-    }
-    declared_properties.update(
-        subject
-        for subject in canonical.subjects(RDF.type, OWL.DatatypeProperty)
-        if isinstance(subject, URIRef)
-    )
-    declared_properties.update(STANDARD_SHACL_PATHS)
-    for target in shapes.objects(None, SH.targetClass):
-        if target not in declared_classes:
-            raise ValueError(f"SHACL targetClass is not an ontology class: {target}")
-    for path in shapes.objects(None, SH.path):
-        if path not in declared_properties:
-            raise ValueError(f"SHACL property path is not an ontology property: {path}")
-
-
-def _validate_output_directory(output_dir: Path, source: Path, profile: Path) -> Path:
-    """Resolve an output path and ensure replacement cannot delete source data."""
-    requested = output_dir.expanduser()
-    if requested.is_symlink():
-        raise ValueError("output directory must not be a symbolic link")
-    output = requested.resolve()
-    if source.is_relative_to(output) or profile.is_relative_to(output):
-        raise ValueError("output directory overlaps ontology source files")
-    if output.exists() and not (output / OUTPUT_MARKER).is_file():
-        raise ValueError("refusing to replace an unmarked output directory")
-    return output
-
-
-def publish_site(repository_root: Path, output_dir: Path) -> None:
-    """Validate sources and publish one safely replaceable static site tree."""
-    root = repository_root.resolve()
-    source = root / SOURCE_RELATIVE_PATH
-    profile = root / PROV_PROFILE_RELATIVE_PATH
-    compatibility_source = root / COMPATIBILITY_RELATIVE_PATH
-    shapes_source = root / SHAPES_RELATIVE_PATH
-    if not source.is_file():
-        raise FileNotFoundError(f"ontology source is missing: {source}")
-    if not profile.is_file():
-        raise FileNotFoundError(f"PROV-O support profile is missing: {profile}")
-    if not compatibility_source.is_file():
-        raise FileNotFoundError(
-            f"namespace compatibility vocabulary is missing: {compatibility_source}"
+    declared_ontology_classes.update(
+        ontology_subject
+        for ontology_subject, _ in canonical_ontology_graph.subject_objects(
+            RDFS.subClassOf
         )
-    if not shapes_source.is_file():
-        raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes_source}")
+        if isinstance(ontology_subject, URIRef)
+    )
+    declared_ontology_properties = {
+        ontology_subject
+        for ontology_subject in canonical_ontology_graph.subjects(
+            RDF.type, OWL.ObjectProperty
+        )
+        if isinstance(ontology_subject, URIRef)
+    }
+    declared_ontology_properties.update(
+        ontology_subject
+        for ontology_subject in canonical_ontology_graph.subjects(
+            RDF.type, OWL.DatatypeProperty
+        )
+        if isinstance(ontology_subject, URIRef)
+    )
+    declared_ontology_properties.update(STANDARD_SHACL_PATHS)
+    for target_class in shacl_shapes_graph.objects(None, SH.targetClass):
+        if target_class not in declared_ontology_classes:
+            raise ValueError(
+                f"SHACL targetClass is not an ontology class: {target_class}"
+            )
+    for property_path in shacl_shapes_graph.objects(None, SH.path):
+        if property_path not in declared_ontology_properties:
+            raise ValueError(
+                f"SHACL property path is not an ontology property: {property_path}"
+            )
 
-    output = _validate_output_directory(output_dir, source, profile)
-    renderer = _load_renderer(root)
-    graph = Graph().parse(source, format="turtle")
-    Graph().parse(profile, format="turtle")
-    compatibility_graph = Graph().parse(compatibility_source, format="turtle")
-    shapes_graph = Graph().parse(shapes_source, format="turtle")
-    validate_public_graph(graph, renderer)
-    validate_compatibility_graph(graph, compatibility_graph)
-    validate_shapes_graph(shapes_graph, graph)
 
-    if output.exists():
-        shutil.rmtree(output)
+def _validate_output_directory(
+    publication_output_dir: Path,
+    ontology_source_path: Path,
+    prov_profile_path: Path,
+) -> Path:
+    """Resolve an output path and ensure replacement cannot delete source data."""
+    requested_output_path = publication_output_dir.expanduser()
+    if requested_output_path.is_symlink():
+        raise ValueError("output directory must not be a symbolic link")
+    resolved_output_path = requested_output_path.resolve()
+    if ontology_source_path.is_relative_to(
+        resolved_output_path
+    ) or prov_profile_path.is_relative_to(resolved_output_path):
+        raise ValueError("output directory overlaps ontology source files")
+    if (
+        resolved_output_path.exists()
+        and not (resolved_output_path / OUTPUT_MARKER).is_file()
+    ):
+        raise ValueError("refusing to replace an unmarked output directory")
+    return resolved_output_path
+
+
+def publish_site(repository_root: Path, publication_output_dir: Path) -> None:
+    """Validate sources and publish one safely replaceable static site tree."""
+    resolved_repository_root = repository_root.resolve()
+    ontology_source_path = resolved_repository_root / SOURCE_RELATIVE_PATH
+    prov_profile_path = resolved_repository_root / PROV_PROFILE_RELATIVE_PATH
+    compatibility_source_path = resolved_repository_root / COMPATIBILITY_RELATIVE_PATH
+    shapes_source_path = resolved_repository_root / SHAPES_RELATIVE_PATH
+    if not ontology_source_path.is_file():
+        raise FileNotFoundError(f"ontology source is missing: {ontology_source_path}")
+    if not prov_profile_path.is_file():
+        raise FileNotFoundError(
+            f"PROV-O support profile is missing: {prov_profile_path}"
+        )
+    if not compatibility_source_path.is_file():
+        raise FileNotFoundError(
+            "namespace compatibility vocabulary is missing: "
+            f"{compatibility_source_path}"
+        )
+    if not shapes_source_path.is_file():
+        raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes_source_path}")
+
+    resolved_output_dir = _validate_output_directory(
+        publication_output_dir, ontology_source_path, prov_profile_path
+    )
+    ontology_renderer = _load_renderer(resolved_repository_root)
+    canonical_ontology_graph = Graph().parse(ontology_source_path, format="turtle")
+    Graph().parse(prov_profile_path, format="turtle")
+    compatibility_ontology_graph = Graph().parse(
+        compatibility_source_path, format="turtle"
+    )
+    shacl_shapes_graph = Graph().parse(shapes_source_path, format="turtle")
+    validate_public_graph(canonical_ontology_graph, ontology_renderer)
+    validate_compatibility_graph(canonical_ontology_graph, compatibility_ontology_graph)
+    validate_shapes_graph(shacl_shapes_graph, canonical_ontology_graph)
+
+    if resolved_output_dir.exists():
+        shutil.rmtree(resolved_output_dir)
     try:
-        renderer.build_site(root, output)
+        ontology_renderer.build_site(resolved_repository_root, resolved_output_dir)
     except BaseException:
-        shutil.rmtree(output, ignore_errors=True)
+        shutil.rmtree(resolved_output_dir, ignore_errors=True)
         raise
-    (output / OUTPUT_MARKER).write_text("", encoding="utf-8")
+    (resolved_output_dir / OUTPUT_MARKER).write_text("", encoding="utf-8")
 
 
-def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
+def _parse_publication_arguments(
+    command_line_arguments: Iterable[str] | None = None,
+) -> argparse.Namespace:
     """Parse repository and output paths for the publication command."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    ontology_publication_parser = argparse.ArgumentParser(description=__doc__)
+    ontology_publication_parser.add_argument(
         "--repository-root",
         type=Path,
         default=Path(__file__).resolve().parents[1],
         help="LineageWeave repository root",
     )
-    parser.add_argument(
+    ontology_publication_parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("_site"),
         help="Static site output directory",
     )
-    return parser.parse_args(argv)
+    return ontology_publication_parser.parse_args(command_line_arguments)
 
 
-def main(argv: Iterable[str] | None = None) -> int:
+def main(command_line_arguments: Iterable[str] | None = None) -> int:
     """Publish the site from CLI arguments and return a process exit code."""
-    args = _parse_args(argv)
-    publish_site(args.repository_root, args.output_dir)
+    command_arguments = _parse_publication_arguments(command_line_arguments)
+    publish_site(command_arguments.repository_root, command_arguments.output_dir)
     return 0
 
 

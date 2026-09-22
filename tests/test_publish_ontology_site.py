@@ -205,7 +205,7 @@ def test_compatibility_validation_is_term_kind_safe() -> None:
     ambiguous = Graph()
     ambiguous.add((post, RDF.type, OWL.Class))
     ambiguous.add((post, RDF.type, OWL.ObjectProperty))
-    assert publisher._term_kind(ambiguous, post) is None
+    assert publisher._ontology_term_kind(ambiguous, post) is None
 
 
 def test_shapes_validation_rejects_dangling_targets_and_outside_namespace() -> None:
@@ -323,7 +323,10 @@ def test_main_publishes_site(tmp_path: Path) -> None:
 
 def test_loader_and_fragment_failure_branches(tmp_path: Path, monkeypatch) -> None:
     publisher = _load_publisher()
-    assert publisher._fragment(URIRef("https://example.test/vocabulary/Term")) == "Term"
+    assert (
+        publisher._ontology_fragment(URIRef("https://example.test/vocabulary/Term"))
+        == "Term"
+    )
     monkeypatch.setattr(publisher.importlib.util, "spec_from_file_location", lambda *_args: None)
     with pytest.raises(RuntimeError, match="could not be loaded"):
         publisher._load_renderer(tmp_path)
