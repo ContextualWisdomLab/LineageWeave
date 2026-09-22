@@ -97,6 +97,25 @@ describe("App, unauthenticated", () => {
     render(<App showLabPanels />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
   });
+
+  it("keeps provider errors private and offers a safe sign-in restart", async () => {
+    window.history.replaceState({}, "", "/?code=private-code&state=invalid#evidence");
+    mockAuth = {
+      ...mockAuth,
+      error: new Error("invalid_grant: provider correlation details"),
+    };
+    render(<App showLabPanels />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Sign-in could not be completed. Start again to return to your work.",
+    );
+    expect(screen.queryByText(/invalid_grant|provider correlation/i)).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Start sign-in again" }));
+    expect(signinRedirect).toHaveBeenCalledWith({
+      state: { returnUrl: "/#evidence" },
+    });
+  });
 });
 
 function jsonResponse(body: unknown): Response {

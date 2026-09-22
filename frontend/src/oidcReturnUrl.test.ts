@@ -17,6 +17,26 @@ describe("OIDC return URL handling", () => {
       "/?post=abc#evidence",
     );
     expect(returnUrlFromLocation({ pathname: "//evil.example", search: "", hash: "" })).toBe("/");
+    expect(
+      returnUrlFromLocation({
+        pathname: "/\\evil.example/forged",
+        search: "?post=attacker",
+        hash: "#workspace",
+      }),
+    ).toBe("/");
+    expect(restoreOidcReturnUrl({ returnUrl: "/\\evil.example/forged?post=attacker" })).toBe("/");
+  });
+
+  it("sanitizes the current-path fallback before returning it to the History API", () => {
+    const originalUrl = window.location.href;
+    try {
+      window.history.replaceState({}, "", `${window.location.origin}//evil.example/callback`);
+      expect(window.location.pathname).toBe("//evil.example/callback");
+
+      expect(restoreOidcReturnUrl(undefined)).toBe("/");
+    } finally {
+      window.history.replaceState({}, "", originalUrl);
+    }
   });
 
   it("strips OIDC callback params from a restored post-redirect location", () => {
@@ -28,6 +48,104 @@ describe("OIDC return URL handling", () => {
       hash: "",
     });
     expect(cleaned).toBe("/?post=abc");
+  });
+
+  it("strips OAuth/OIDC error response fields before retrying a failed sign-in", () => {
+    const cleaned = returnUrlFromLocation({
+      pathname: "/",
+      search:
+        "?post=abc&error=access_denied&error_description=provider%20correlation%20details&error_uri=https%3A%2F%2Fidp.example%2Ferrors%2F42&state=s",
+      hash: "#evidence",
+    });
+
+    expect(cleaned).toBe("/?post=abc#evidence");
+  });
+
+  it("retries an OIDC error callback with the remembered pre-redirect deep link", () => {
+    rememberOidcReturnUrl("/?post=requested#evidence");
+
+    const retryTarget = returnUrlFromLocation({
+      pathname: "/",
+      search: "?error=access_denied&error_description=provider-detail&state=callback-state",
+      hash: "",
+    });
+
+    expect(retryTarget).toBe("/?post=requested#evidence");
+  });
+
+  it("does not let a lone state parameter make stale storage override current product navigation", () => {
+    rememberOidcReturnUrl("/?post=stale");
+
+    const currentTarget = returnUrlFromLocation({
+      pathname: "/",
+      search: "?post=current&state=product-state",
+      hash: "#workspace",
+    });
+
+    expect(currentTarget).toBe("/?post=current#workspace");
+  });
+
+  it("does not let uncorrelated response-looking params make stale storage override current navigation", () => {
+    rememberOidcReturnUrl("/?post=stale");
+
+    expect(
+      returnUrlFromLocation({
+        pathname: "/",
+        search: "?post=current&error=validation_failed",
+        hash: "#workspace",
+      }),
+    ).toBe("/?post=current#workspace");
+    expect(
+      returnUrlFromLocation({
+        pathname: "/",
+        search: "?post=current&code=customer-code",
+        hash: "#workspace",
+      }),
+    ).toBe("/?post=current#workspace");
+  });
+
+  it("requires a primary code or error response before ancillary OIDC metadata can activate remembered-path precedence", () => {
+    rememberOidcReturnUrl("/?post=stale");
+
+    for (const search of [
+      "?post=current&state=product-state&session_state=provider-session",
+      "?post=current&state=product-state&iss=https%3A%2F%2Fidp.example",
+      "?post=current&state=product-state&error_description=provider-detail",
+      "?post=current&state=product-state&error_uri=https%3A%2F%2Fidp.example%2Ferrors%2F42",
+    ]) {
+      expect(
+        returnUrlFromLocation({
+          pathname: "/",
+          search,
+          hash: "#workspace",
+        }),
+      ).toBe("/?post=current#workspace");
+    }
+  });
+
+  it("never persists or restores authorization response artifacts", () => {
+    rememberOidcReturnUrl(
+      "/?post=stored&code=private-code&state=private-state&error=access_denied&error_description=provider-detail#evidence",
+    );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=stored#evidence",
+    );
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=stored#evidence",
+    );
+
+    expect(
+      restoreOidcReturnUrl({
+        returnUrl:
+          "/?post=state&code=stale-code&state=stale-state&error_uri=https%3A%2F%2Fidp.example%2Ferror#workspace",
+      }),
+    ).toBe("/?post=state#workspace");
+
+    window.sessionStorage.setItem(
+      "lineageweave.oidc.returnUrl",
+      "/?post=legacy&session_state=legacy-session&iss=https%3A%2F%2Fidp.example#error",
+    );
+    expect(restoreOidcReturnUrl(undefined)).toBe("/?post=legacy#error");
   });
 
   it("restores an object or serialized OIDC state before storage fallback", () => {
