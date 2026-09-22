@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-22T11:22:40Z (KST 2026-09-22
+> 20:22:40+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
+> 164 open PRs and 42 open issues at this capture; later-created items belong
+> to the next overlay. Canonical repository case remains
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
+>
+> The largest user-visible gap remains safe browser sign-in continuity.
+> Stacked Draft #1124 is unchanged at exact
+> `6ed78b2e8623e35e88e1ab6f285b38976f7e9625`; its authenticated desktop and
+> mobile evidence remains candidate evidence only. Parent order #899 -> #1118
+> -> #1120 -> #1124, current-head hosted gates, eight-locale acceptance, and
+> independent approval still prevent promotion. No child was retargeted before
+> its parent merged.
+>
+> Parent #899 remains exact
+> `c943060c7c16f74faf48d1ee40eaa5301c830065`. Its canonical owner
+> prerequisite contextual-orchestrator #1209 remains exact
+> `9375f4596670adfe72815f963f8802788f414235`; its historical lifecycle
+> receipt used fast-mlsirm 0.11.3 while that head locks 0.11.4. The Releases
+> API remains empty, and contextual-orchestrator#1083 still owns the released
+> API/client/schema contract. The local `/v1/chat/completions` consumer and
+> fixed `180.0s` timeout therefore remain unavailable for promotion;
+> LineageWeave does not copy that implementation.
+>
+> Ready #983 advanced normally to exact
+> `e825c250ab3988eb6af96bb31bbba41a16895dcf` after current-head review found
+> that the quote-aware HTML boundary repair changed ordinary `<br>` authoring
+> lines into separate semantic paragraphs. The minimal root correction keeps
+> quoted `>` attributes from leaking into buyer-visible text while restoring
+> the established single-line continuation contract. Five focused files pass
+> 60/60 tests and frontend lint passes. All review threads are resolved and
+> normal squash auto-merge is armed, but fresh hosted checks and qualifying
+> independent approval remain required; this is not protected-main or
+> authenticated runtime evidence.
+>
+> Ready #1121 remains exact
+> `c103fdf6b5c05a06accc76fb96b23741a3eddfd6`, and ready #1039 remains exact
+> `68b4dcd09b3c638ef3d79378a0300082aa4cb82d`; both retain normal auto-merge
+> and remain blocked on current-head protection conditions. The Voice-of-X
+> contract still preserves twelve extensible atomic Voices, separate carrying
+> Post and derivation evidence, truth status, cutoff, and PROV-O lineage. This
+> capture adds no fixed combination, inferred weight, hidden-evidence
+> substitution, self-approval, Admin bypass, force push, or stale-head receipt.
+
 > Exact-head validation overlay: 2026-09-22T10:04:17Z (KST 2026-09-22
 > 19:04:17+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The live canonical
