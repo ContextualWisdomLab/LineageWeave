@@ -18,10 +18,12 @@
 > authentication path. The candidate still preserves a same-origin return
 > path, removes one-time authorization fields, requires a correlated callback
 > outcome before remembered-path precedence, and gives one safe retry action
-> using existing tokens and the `Chrome/Sign-in recovery` story. Prior
-> desktop/mobile render inspection remains product-source evidence because the
-> rendered source is byte-identical, but it is not authenticated runtime or
-> protected-main acceptance.
+> using existing tokens and the `Chrome/Sign-in recovery` story. Fresh local
+> exact-head lint, all 538 frontend tests, the production build, and the
+> Storybook build passed. Fresh 1440x1000 and 390x844 screenshots show the
+> complete message and single retry action; both document and body scroll
+> widths equal their viewport widths. This remains component evidence, not
+> authenticated browser-to-PostgreSQL runtime or protected-main acceptance.
 >
 > Parent order remains #899 -> #1118 -> #1120 -> #1124. Parent #899 is open
 > with normal squash auto-merge enabled at exact
