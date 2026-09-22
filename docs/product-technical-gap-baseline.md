@@ -1,5 +1,56 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-22T16:05:53Z (KST 2026-09-23
+> 01:05:53+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
+> 164 open PRs and 42 open issues created at or before this capture timestamp;
+> items created after it belong to the next overlay. The live remote names are
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Its
+> stacked Draft candidate #1124 is exact
+> `c49aff397736db601fd1d2cb428c8006d0090d26` on Draft #1120. Fresh local
+> exact-head validation passed frontend lint, all 538 component tests, the
+> production build, and the Storybook build. The `Chrome/Sign-in recovery`
+> story was rendered and inspected at 1440x1000 and 390x844: the complete
+> next-action message and retry control remain readable with no visible
+> horizontal clipping. These are source and rendered-component receipts, not
+> authenticated PostgreSQL/API/browser acceptance or protected-main delivery.
+> Parent order #899 -> #1118 -> #1120 -> #1124, the canonical eight-locale
+> ledger, current-head hosted gates, and independent approval remain required.
+>
+> Parent #899 advanced normally to exact
+> `c10b6545520afb342e68d01ea4bcfce75a6e5bab`; normal squash auto-merge
+> remains enabled, but required workflows and a qualifying independent approval
+> are nonterminal. Its canonical owner prerequisite contextual-orchestrator
+> #1209 is Draft at exact `70f0ca6da8ca41e6c19712b67755edaf23636f7f`.
+> The owner Releases API remains empty, so contextual-orchestrator#1083 still
+> owns publication of an immutable API/client/schema identity. LineageWeave
+> does not copy the owner implementation or bind a release claim to mutable
+> `main`.
+>
+> Ready #1039, #1079, #1115, and this baseline PR #1123 retain normal
+> auto-merge at exact heads `68b4dcd09b3c638ef3d79378a0300082aa4cb82d`,
+> `c2923950e73c88a9f9fd932332ddd47682da124b`,
+> `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and
+> `cd65b25e19587dd4b8fe4bc9340dd270e93c3e29`, respectively. Their remaining
+> failures are protection/review evidence, not authority to weaken gates or
+> reuse a stale receipt. Draft #1121 advanced to
+> `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`; it still preserves ADR
+> 0246/0251's twelve atomic Voices and the evidence/truth/cutoff/PROV-O
+> boundaries without enumerating fixed combinations. No authenticated
+> Voice-of-X PostgreSQL API and rendered-UI receipt was produced in this
+> capture, so that acceptance remains unavailable.
+>
+> Release identity collisions remain open: #843/#844 both claim `v2.62.0`,
+> and #876/#877 both claim `v2.92.0`. They must receive unique release
+> identities before stack promotion. No self-approval, Admin bypass, force
+> push, hidden-evidence substitution, heuristic weight, or consumer-side
+> replacement of TEPP, fast-mlsirm, RankWeave, or contextual-orchestrator is
+> introduced.
+
 > Exact-head validation overlay: 2026-09-22T11:22:40Z (KST 2026-09-22
 > 20:22:40+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
