@@ -15,6 +15,11 @@ describe("Customer Master Storybook viewport contract", () => {
     expect(stories).not.toContain("parameters: { viewport: { defaultViewport:");
   });
 
+  it("renders every story through the production Customer Master root-list chrome", () => {
+    expect(stories).toContain('<ul className="customer-master-list customer-master-tree">');
+    expect(stories).not.toContain("<ul>");
+  });
+
   it("keeps entity identity, level, and ancestry as separate responsive rows", () => {
     expect(styles).toMatch(
       /\.customer-entity-button\s*\{[^}]*display:\s*grid;[^}]*gap:\s*var\(--space-control-gap\);/s,
