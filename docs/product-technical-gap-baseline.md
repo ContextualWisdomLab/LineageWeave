@@ -45,7 +45,7 @@
 > contract still preserves twelve atomic Voices in an extensible vocabulary,
 > separate carrying
 > Post and derivation evidence, truth status, cutoff, and PROV-O lineage. This
-> capture adds no fixed combination, inferred weight, hidden-evidence
+> capture adds no fixed Voice combination, inferred weight, hidden-evidence
 > substitution, self-approval, Admin bypass, force push, or stale-head receipt.
 
 > Exact-head validation overlay: 2026-09-22T10:04:17Z (KST 2026-09-22
