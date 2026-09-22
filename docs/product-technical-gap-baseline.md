@@ -21,11 +21,11 @@
 > `c943060c7c16f74faf48d1ee40eaa5301c830065`. Its canonical owner
 > prerequisite contextual-orchestrator #1209 remains exact
 > `9375f4596670adfe72815f963f8802788f414235`; its historical lifecycle
-> receipt used fast-mlsirm 0.11.3 while that head locks 0.11.4. The Releases
-> API remains empty, and contextual-orchestrator#1083 still owns the released
+> receipt used fast-mlsirm 0.11.3 while that head locked 0.11.4. The Releases
+> API remains `[]`, and contextual-orchestrator#1083 still owns the released
 > API/client/schema contract. The local `/v1/chat/completions` consumer and
 > fixed `180.0s` timeout therefore remain unavailable for promotion;
-> LineageWeave does not copy that implementation.
+> LineageWeave does not copy that implementation or bind to mutable `main`.
 >
 > Ready #983 advanced normally to exact
 > `e825c250ab3988eb6af96bb31bbba41a16895dcf` after current-head review found
@@ -42,7 +42,8 @@
 > `c103fdf6b5c05a06accc76fb96b23741a3eddfd6`, and ready #1039 remains exact
 > `68b4dcd09b3c638ef3d79378a0300082aa4cb82d`; both retain normal auto-merge
 > and remain blocked on current-head protection conditions. The Voice-of-X
-> contract still preserves twelve extensible atomic Voices, separate carrying
+> contract still preserves twelve atomic Voices in an extensible vocabulary,
+> separate carrying
 > Post and derivation evidence, truth status, cutoff, and PROV-O lineage. This
 > capture adds no fixed combination, inferred weight, hidden-evidence
 > substitution, self-approval, Admin bypass, force push, or stale-head receipt.
