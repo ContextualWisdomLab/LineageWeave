@@ -294,7 +294,7 @@ function replaceBoundaryTags(text: string): string {
   return replaceHtmlLikeTags(text, (rawTag) => {
     const tag = readHtmlLikeTag(rawTag, 0);
     if (!tag) return rawTag;
-    if (!tag.closing && tag.name === "br") return "\n\n";
+    if (!tag.closing && tag.name === "br") return "\n";
     if (!tag.closing && tag.name === "w:ind") {
       return indentMarker(declaredIndentWidth(rawTag));
     }
