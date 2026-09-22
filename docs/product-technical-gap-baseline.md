@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-22T06:13:41Z (KST 2026-09-22
+> 15:13:41+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The canonical
+> repository names re-read from GitHub are
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/TEPP`, and
+> lowercase `ContextualWisdomLab/disksage`. GitHub reports 164 open PRs and
+> 42 open issues at this capture; items created after the timestamp belong to
+> the next overlay. Ruleset 18156473 still requires independent approval,
+> resolved threads, and required workflows; ruleset 21065108 still prohibits
+> force pushes.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Stacked
+> Draft #1124 remains exact
+> `6ed78b2e8623e35e88e1ab6f285b38976f7e9625` above Draft #1120. Its
+> minimal implementation preserves a bounded same-origin return path, removes
+> one-time authorization artifacts, offers one actionable retry, reuses the
+> existing product tokens and Storybook inventory, and carries desktop/mobile
+> component evidence. It is not accepted runtime evidence: no current-head
+> authenticated browser-to-PostgreSQL receipt exists, and Draft admission did
+> not produce product GREEN. Parent order remains #899 -> #1118 -> #1120 ->
+> #1124; each child stays on its parent until normal protected parent merge.
+>
+> Parent #899 remains exact
+> `c943060c7c16f74faf48d1ee40eaa5301c830065` with auto-merge enabled but
+> without terminal required workflows or independent approval. Its canonical
+> owner prerequisite contextual-orchestrator #1209 advanced normally to
+> `9375f4596670adfe72815f963f8802788f414235`: the only new delta qualifies
+> a historical lifecycle test receipt against its actual execution commit and
+> records that it used fast-mlsirm 0.11.3 rather than the head's locked 0.11.4.
+> Fresh owner checks and review must settle on that head, and the Releases API
+> still returns `[]`. Owner issue `contextual-orchestrator#1083` remains
+> responsible for the released API/client/schema contract. Until that release,
+> #899's local `/v1/chat/completions` client and fixed `180.0s` boundary
+> cannot be promoted; LineageWeave must not copy the owner client/schema or
+> bind to mutable `main`.
+>
+> Ready #1121 advanced normally to
+> `c103fdf6b5c05a06accc76fb96b23741a3eddfd6` after scoping its ADR-index
+> regression to the exact Voice-combination supporting-document row. Focused
+> documentation hygiene is 6/6 locally; hosted checks and a qualifying
+> current-head approval are pending, so normal squash auto-merge remains
+> armed. The change preserves ADR 0246/0251's twelve atomic Voices and the
+> ADR 0256/0252 evidence-bearing, truth-status, provenance, and cutoff
+> contracts; it adds no fixed Voice combination. No self-approval, admin
+> bypass, force push, stale receipt transfer, or unavailable-state promotion
+> is used.
+
 > Exact-head validation overlay: 2026-09-22T01:06:05Z (KST 2026-09-22
 > 10:06:05+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`); GitHub Search

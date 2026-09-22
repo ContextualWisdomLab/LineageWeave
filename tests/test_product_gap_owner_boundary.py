@@ -32,6 +32,18 @@ def test_latest_validation_overlay_records_released_orchestrator_consumer_gap() 
     assert "bind to mutable `main`" in overlay
 
 
+def test_latest_validation_overlay_records_current_owner_and_voice_heads() -> None:
+    """The mutable overlay must bind owner and Voice evidence to exact heads."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+
+    assert "`9375f4596670adfe72815f963f8802788f414235`" in overlay
+    assert "`c103fdf6b5c05a06accc76fb96b23741a3eddfd6`" in overlay
+    assert "fast-mlsirm 0.11.3" in overlay
+    assert "locked 0.11.4" in overlay
+    assert "twelve atomic Voices" in overlay
+    assert "adds no fixed Voice combination" in overlay
+
+
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
     """The #929 hosted RED must retain its runner-provenance classification."""
     receipt = _TRANSLATION_LEDGER_RUNNER_RECEIPT.read_text(encoding="utf-8")
