@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted (2026-08-27). Extends ADR 0251 and closes issue #748.
+Accepted (2026-08-27). Extends ADR 0256 and closes issue #748.
 
 ## Context
 
-ADR 0251 records when a Voice assignment starts, but migration 0237 deletes
+ADR 0256 records when a Voice assignment starts, but migration 0237 deletes
 the former imported primary when `source_post.voc_type_code` changes. The live
 value is honest, yet an authorized knowledge-cutoff read after that update can
 no longer recover the primary that was effective at the cutoff. The existing
