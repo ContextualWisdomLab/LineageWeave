@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-22T01:06:05Z (KST 2026-09-22
+> 10:06:05+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`); GitHub Search
+> reports 164 open PRs and 42 open issues. Organization ruleset 18156473
+> still requires one independent approval, resolved review threads, and the
+> seven central required workflows, while repository ruleset 21065108
+> prohibits force pushes. These counts and states are a current inventory,
+> not protected delivery evidence.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Its
+> stacked Draft candidate #1124 is now exact
+> `6ed78b2e8623e35e88e1ab6f285b38976f7e9625`, based on Draft #1120 rather
+> than `main`. The buyer-visible recovery implementation is unchanged from
+> `5e734e3040a6f1a61566074cc3e5122a2acfef3e`; the five descendant commits
+> converge parent OIDC/JWKS contract tests without adding a second browser
+> authentication path. The candidate still preserves a same-origin return
+> path, removes one-time authorization fields, requires a correlated callback
+> outcome before remembered-path precedence, and gives one safe retry action
+> using existing tokens and the `Chrome/Sign-in recovery` story. Prior
+> desktop/mobile render inspection remains product-source evidence because the
+> rendered source is byte-identical, but it is not authenticated runtime or
+> protected-main acceptance.
+>
+> Parent order remains #899 -> #1118 -> #1120 -> #1124. Parent #899 is open
+> with normal squash auto-merge enabled at exact
+> `c943060c7c16f74faf48d1ee40eaa5301c830065`; its required owner/review
+> workflows and independent approval remain unsatisfied. The
+> contextual-orchestrator Releases API still returns `[]`; owner issue
+> `contextual-orchestrator#1083` must publish a released API/client/schema
+> contract before this consumer can remove its remaining local ownership of
+> `/v1/chat/completions` and the fixed `180.0s` boundary. The consumer must not
+> bind to mutable `main`.
+> Draft children stay
+> on their parent branches and must be retargeted to `main` only after each
+> parent is protected-merged, with fresh exact-head evidence at every step.
+> Ready #1121 and this baseline PR #1123 also retain normal squash auto-merge,
+> but neither has a qualifying current-head approval and terminal successful
+> required workflows. No self-approval, admin bypass, force push, stale receipt
+> transfer, or consumer-side replacement of an owner contract is used.
+
 > Exact-head validation overlay: 2026-09-21T21:14:09Z (KST 2026-09-22
 > 06:14:09+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). Lifecycle actions
