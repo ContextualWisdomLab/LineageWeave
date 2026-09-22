@@ -78,7 +78,7 @@ def _direct_scalar(mapping: str, key: str) -> str:
 
 
 def _named_step_run(job: str, step_name: str) -> str:
-    """Return the literal run block belonging to one exact workflow step."""
+    """Return the direct literal ``run`` block of one exact workflow step."""
 
     lines = job.splitlines()
     marker = f"- name: {step_name}"
@@ -96,24 +96,50 @@ def _named_step_run(job: str, step_name: str) -> str:
                     break
             step_lines.append(nested_line)
 
+        direct_indentation: int | None = None
+        for candidate_line in step_lines:
+            candidate_stripped = candidate_line.lstrip()
+            if not candidate_stripped or candidate_stripped.startswith("#"):
+                continue
+            candidate_indentation = len(candidate_line) - len(candidate_stripped)
+            if candidate_indentation <= step_indentation:
+                continue
+            if direct_indentation is None or candidate_indentation < direct_indentation:
+                direct_indentation = candidate_indentation
+
+        if direct_indentation is None:
+            raise AssertionError(f"empty workflow step: {step_name}")
+
+        direct_runs: list[tuple[int, str]] = []
         for run_index, run_line in enumerate(step_lines):
             run_stripped = run_line.lstrip()
-            if not run_stripped.startswith("run:"):
+            if not run_stripped or run_stripped.startswith("#"):
                 continue
             run_indentation = len(run_line) - len(run_stripped)
-            run_value = run_stripped[len("run:") :].strip()
-            if run_value not in {"|", "|-", ">", ">-"}:
-                raise AssertionError(f"expected block scalar run step: {step_name}")
-            body: list[str] = []
-            for body_line in step_lines[run_index + 1 :]:
-                body_stripped = body_line.lstrip()
-                if body_stripped:
-                    body_indentation = len(body_line) - len(body_stripped)
-                    if body_indentation <= run_indentation:
-                        break
-                body.append(body_line)
-            return "\n".join(body)
-        raise AssertionError(f"missing run block for workflow step: {step_name}")
+            if run_indentation == direct_indentation and run_stripped.startswith("run:"):
+                direct_runs.append((run_index, run_line))
+
+        if len(direct_runs) != 1:
+            raise AssertionError(
+                f"expected one direct run block for workflow step {step_name}, "
+                f"found {len(direct_runs)}"
+            )
+
+        run_index, run_line = direct_runs[0]
+        run_stripped = run_line.lstrip()
+        run_indentation = len(run_line) - len(run_stripped)
+        run_value = run_stripped[len("run:") :].strip()
+        if run_value not in {"|", "|-", ">", ">-"}:
+            raise AssertionError(f"expected block scalar run step: {step_name}")
+        body: list[str] = []
+        for body_line in step_lines[run_index + 1 :]:
+            body_stripped = body_line.lstrip()
+            if body_stripped:
+                body_indentation = len(body_line) - len(body_stripped)
+                if body_indentation <= run_indentation:
+                    break
+            body.append(body_line)
+        return "\n".join(body)
     raise AssertionError(f"missing workflow step: {step_name}")
 
 
