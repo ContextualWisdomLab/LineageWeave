@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-22T17:17:23Z (KST 2026-09-23
+> 02:17:23+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
+> 164 open PRs and 42 open issues created at or before this capture timestamp;
+> later-created items belong to the next overlay. Active rulesets 18156473 and
+> 21065108 still require one independent approval, resolved review threads,
+> seven central required workflows, and non-fast-forward protection. The live
+> canonical repositories remain `ContextualWisdomLab/LineageWeave`,
+> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Its
+> stacked Draft candidate #1124 is exact
+> `c49aff397736db601fd1d2cb428c8006d0090d26` on Draft #1120 and remains
+> mergeable. The minimal candidate and its synthetic rendered receipts do not
+> establish authenticated PostgreSQL/API/browser acceptance or protected-main
+> delivery. Parent order #899 -> #1118 -> #1120 -> #1124, current-head hosted
+> gates, canonical eight-locale acceptance, and independent approval remain
+> required; no child is retargeted before its parent is protected-merged.
+>
+> Ready #899 is exact `c10b6545520afb342e68d01ea4bcfce75a6e5bab`.
+> Normal squash auto-merge was re-enabled after a live head/base/ruleset check;
+> required owner/review workflows and a qualifying independent approval remain
+> nonterminal. Ready #1039, #1079, #1115, and this baseline PR #1123 remain
+> exact `68b4dcd09b3c638ef3d79378a0300082aa4cb82d`,
+> `c2923950e73c88a9f9fd932332ddd47682da124b`,
+> `6545b5ff7ed88d98daad74ca3ba8f8606dad3fc4`, and
+> `8ed33b2e4d66bf1290ddf59fc15603ca9273cd2c`, respectively. Their valid review
+> findings are already represented in those heads; remaining failed, queued,
+> cancelled, or approval states are not reused as passing evidence.
+>
+> Draft #1121 remains exact
+> `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. The Voice-of-X contract still
+> preserves twelve extensible atomic Voices, separate carrying Post and
+> derivation evidence, truth status, cutoff, and PROV-O lineage without fixed
+> combination codes. This capture adds no authenticated Voice-of-X PostgreSQL
+> API and rendered-UI receipt, so runtime acceptance remains unavailable.
+> Release identity collisions #843/#844 (`v2.62.0`) and #876/#877 (`v2.92.0`)
+> remain unresolved and cannot be promoted under duplicate versions.
+
 > Exact-head validation overlay: 2026-09-22T16:05:53Z (KST 2026-09-23
 > 01:05:53+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
