@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { CitationChip } from "./CitationChip";
 
 const meta = {
@@ -7,7 +8,7 @@ const meta = {
   args: {
     postId: "post-demo-public",
     postTitle: "Demo public post",
-    onOpenEvidence: () => undefined,
+    onOpenEvidence: fn(),
   },
 } satisfies Meta<typeof CitationChip>;
 

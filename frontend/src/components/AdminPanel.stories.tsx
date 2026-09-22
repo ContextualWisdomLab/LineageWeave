@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { AdminPanel } from "./AdminPanel";
 
 const meta = {
@@ -6,7 +7,7 @@ const meta = {
   component: AdminPanel,
   args: {
     currentBrandName: "LineageWeave",
-    onBrandNameChange: () => undefined,
+    onBrandNameChange: fn(),
     accessToken: "demo-access-token",
   },
 } satisfies Meta<typeof AdminPanel>;

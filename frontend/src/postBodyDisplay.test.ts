@@ -209,6 +209,19 @@ describe("splitPostBody", () => {
     }
   });
 
+  it("preserves a data-URI image when another quoted attribute contains a greater-than sign", () => {
+    const html = `<img alt="a > b" src="data:image/png;base64,${TINY_PNG_B64}">`;
+
+    expect(splitPostBody(html)).toEqual([
+      {
+        kind: "image",
+        src: `data:image/png;base64,${TINY_PNG_B64}`,
+        mimeType: "image/png",
+        position: 0,
+      },
+    ]);
+  });
+
   it("keeps two images in document order when a paragraph sits between them", () => {
     const html =
       `<img src="data:image/png;base64,${TINY_PNG_B64}"><p>between</p>` +
@@ -231,7 +244,8 @@ describe("splitPostBody", () => {
   });
 
   it("does not turn a remote http img into a loaded image", () => {
-    const html = '<p>See</p><img src="https://example.test/invoice.png"><p>end</p>';
+    const html =
+      '<p>See</p><img alt="a > b" src="https://example.test/invoice.png"><p>end</p>';
     const segments = splitPostBody(html);
     expect(segments.every((segment) => segment.kind === "text")).toBe(true);
     expect(segments.map((segment) => (segment.kind === "text" ? segment.text : "")).join(" ")).toContain(
@@ -348,6 +362,21 @@ describe("splitPostBody", () => {
       { text: "3", script: "super" },
       { text: "." },
     ]);
+  });
+
+  it.each([
+    ["x^123", "x¹²³", "123"],
+    ["x^-123", "x⁻¹²³", "-123"],
+    ["x^+123", "x⁺¹²³", "+123"],
+    ["x^{123}", "x¹²³", "123"],
+  ])("retains the supported three-digit boundary: %s", (text, normalized, script) => {
+    expect(normalizeScriptText(text)).toBe(normalized);
+    expect(splitScriptRuns(text)).toEqual([{ text: "x" }, { text: script, script: "super" }]);
+  });
+
+  it.each(["x^1234", "x^-1234", "x^+1234", "x^{1234}", "x^1.5", "x^-12.5"])("keeps unsupported numeric exponents intact: %s", (text) => {
+    expect(normalizeScriptText(text)).toBe(text);
+    expect(splitScriptRuns(text)).toEqual([{ text }]);
   });
 
   it("keeps mixed script content as a visible fallback", () => {

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { LineageDag } from "./LineageDag";
 import type { LineageGraph } from "./api";
 
@@ -84,7 +85,7 @@ const meta = {
   component: LineageDag,
   args: {
     graph: a100Graph,
-    onSelectPost: () => undefined,
+    onSelectPost: fn(),
     currentPostId: "rec-002",
   },
 } satisfies Meta<typeof LineageDag>;

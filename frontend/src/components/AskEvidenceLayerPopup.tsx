@@ -80,11 +80,6 @@ export function AskEvidenceLayerPopup({
       const focusable = Array.from(
         panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
       ).filter(isFocusableVisible);
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
