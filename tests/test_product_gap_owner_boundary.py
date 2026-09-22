@@ -57,6 +57,15 @@ def test_latest_validation_overlay_keeps_browser_and_load_evidence_bounded() -> 
     assert "not an observed product bottleneck" in overlay
 
 
+def test_latest_validation_overlay_does_not_promote_partial_codeql_admission() -> None:
+    """A successful CodeQL detector must not be described as successful CodeQL."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+
+    assert "CodeQL language detection succeeded" in overlay
+    assert "CodeQL compatibility/dispatch settlement" in overlay
+    assert "primary CodeQL successful" not in overlay
+
+
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
     """The #929 hosted RED must retain its runner-provenance classification."""
     receipt = _TRANSLATION_LEDGER_RUNNER_RECEIPT.read_text(encoding="utf-8")
