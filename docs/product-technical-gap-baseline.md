@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-22T10:04:17Z (KST 2026-09-22
+> 19:04:17+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The live canonical
+> repository names are `ContextualWisdomLab/LineageWeave`,
+> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/contextual-orchestrator`. Active rulesets 18156473 and
+> 21065108 require one independent approval, resolved threads, the seven central
+> workflows, and non-fast-forward protection; classic branch protection is not
+> separately configured. This overlay is a validation capture, not release or
+> protected-delivery evidence.
+>
+> The largest user-visible gap remains safe browser sign-in continuity. Stacked
+> Draft #1124 is unchanged at exact
+> `6ed78b2e8623e35e88e1ab6f285b38976f7e9625` above #1120. On that exact head,
+> frontend lint, all 538 component tests, the production build, and the
+> Storybook build passed. The `Chrome/Sign-in recovery` story was freshly
+> inspected at 1440x1000 and 390x844 with no horizontal clipping. A fresh
+> authenticated desktop/mobile Playwright run against the formal
+> `lineageweave` Compose project passed 4/4: Authorization Code with PKCE S256,
+> an authorization-code token exchange with no username/password grant fields,
+> requested-path restoration, protected `/api/me` success, provider-detail
+> redaction, and narrow-screen overflow rejection. The first development-origin
+> attempt was rejected by the backend's origin contract and is not counted as
+> product evidence. This candidate remains Draft because parent order #899 ->
+> #1118 -> #1120 -> #1124, canonical eight-locale acceptance, current-head
+> hosted gates, and independent approval remain unresolved.
+>
+> Parent #899 remains exact
+> `c943060c7c16f74faf48d1ee40eaa5301c830065`. The owner prerequisite
+> contextual-orchestrator #1209 remains exact
+> `9375f4596670adfe72815f963f8802788f414235`; the historical receipt used
+> fast-mlsirm 0.11.3 while that owner head locked 0.11.4. The Releases API still
+> returns `[]`, so contextual-orchestrator#1083 remains the authority for a
+> released API/client/schema. LineageWeave must not promote its local
+> `/v1/chat/completions` client or fixed `180.0s` timeout, and must not bind to
+> mutable `main` before the released owner contract exists.
+>
+> Ready #1121 remains exact
+> `c103fdf6b5c05a06accc76fb96b23741a3eddfd6`; it preserves twelve atomic
+> Voices, evidence-bearing truth/provenance/cutoff history, and adds no fixed
+> Voice combination. Ready #1123 remains the single writer for this baseline.
+> Both retain normal squash auto-merge but lack a qualifying current-head
+> independent approval, while required central workflows remain queued. The
+> release-identity audit also finds two separate unresolved collisions: #843
+> and #844 both claim `v2.62.0`, while #876 and #877 both claim `v2.92.0`.
+> Neither pair may be promoted under one identity; parent order and a unique
+> release number must be settled before retargeting or fresh acceptance.
+>
+> No authenticated Voice-of-X PostgreSQL/API/UI run was performed in this
+> capture, so Voice runtime acceptance remains unavailable even though the
+> source contracts and synthetic regressions exist. No fixed combination,
+> hidden-evidence substitution, stale receipt transfer, self-approval, Admin
+> bypass, force push, heuristic score, or consumer-side owner reimplementation
+> is introduced.
+
 > Exact-head validation overlay: 2026-09-22T06:13:41Z (KST 2026-09-22
 > 15:13:41+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The canonical
