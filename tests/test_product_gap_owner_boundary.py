@@ -84,13 +84,12 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T09:06:49Z" in overlay
-    assert "`925e0ab29200e7a03c0566001150fd0d820c9b61`" in overlay
-    assert "Migration 0251" in overlay
+    assert "2026-09-23T11:35:34Z" in overlay
+    assert "`ea12095279796b832e3b8c94fc0b2023ef1bfabc`" in overlay
     assert "two-session PostgreSQL serialization" in overlay
     assert "k6 burst" in overlay
-    assert "evidence is unavailable" in overlay
-    assert "capacity defaults therefore remain unavailable" in overlay
+    assert "evidence remains unavailable" in overlay
+    assert "unavailable capacity default" in overlay
 
 
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
