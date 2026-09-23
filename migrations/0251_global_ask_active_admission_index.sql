@@ -6,16 +6,18 @@
 do $$
 declare
     existing_index regclass;
+    indexed_table regclass;
     index_definition text;
     index_is_valid boolean;
     index_is_ready boolean;
 begin
     existing_index := to_regclass('public.global_ask_job_active_account_idx');
     if existing_index is not null then
-        select index_catalog.indisvalid,
+        select index_catalog.indrelid,
+               index_catalog.indisvalid,
                index_catalog.indisready,
                pg_get_indexdef(index_catalog.indexrelid)
-          into index_is_valid, index_is_ready, index_definition
+          into indexed_table, index_is_valid, index_is_ready, index_definition
           from pg_index index_catalog
          where index_catalog.indexrelid = existing_index;
 
@@ -25,7 +27,8 @@ begin
                 'global_ask_job_active_account_idx is invalid; run rollback/0251_global_ask_active_admission_index.sql and retry migration 0251';
         end if;
 
-        if lower(index_definition) like 'create unique index%'
+        if indexed_table is distinct from 'public.global_ask_job'::regclass
+           or lower(index_definition) like 'create unique index%'
            or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%'
            or index_definition not ilike '%where%job_status_code%'
            or index_definition not ilike '%queued%'
