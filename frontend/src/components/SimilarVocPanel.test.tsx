@@ -62,6 +62,28 @@ describe("SimilarVocPanel", () => {
     expect(onRetry).not.toHaveBeenCalled();
   });
 
+  it("retries an empty failed next page instead of restarting the initial query", async () => {
+    const onRetry = vi.fn();
+    const onLoadMore = vi.fn();
+    render(
+      <SimilarVocPanel
+        items={[]}
+        error="이전 VOC를 더 불러오지 못했습니다."
+        onOpenPost={() => undefined}
+        onLoadMore={onLoadMore}
+        onRetry={onRetry}
+      />,
+    );
+
+    const notice = screen.getByRole("alert");
+    expect(notice).toHaveTextContent("실패한 다음 페이지를 다시 요청하세요");
+    expect(notice).not.toHaveTextContent("불러온 근거는 그대로 유지됩니다");
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "이전 VOC 더 불러오기 다시 시도" }));
+    expect(onLoadMore).toHaveBeenCalledOnce();
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+
   it("does not claim retained evidence when the initial query failed", async () => {
     const onRetry = vi.fn();
     render(
