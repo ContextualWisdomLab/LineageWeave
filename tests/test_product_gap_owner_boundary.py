@@ -84,8 +84,8 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T11:35:34Z" in overlay
-    assert "`ea12095279796b832e3b8c94fc0b2023ef1bfabc`" in overlay
+    assert "2026-09-23T14:03:36Z" in overlay
+    assert "`2cbc64bbf436d63e7851f8f977872683c0a40d9d`" in overlay
     assert "two-session PostgreSQL serialization" in overlay
     assert "k6 burst" in overlay
     assert "evidence remains unavailable" in overlay
