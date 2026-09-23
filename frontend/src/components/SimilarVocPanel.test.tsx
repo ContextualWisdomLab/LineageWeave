@@ -62,7 +62,7 @@ describe("SimilarVocPanel", () => {
     expect(onRetry).not.toHaveBeenCalled();
   });
 
-  it("offers the same safe retry without hiding saved evidence", async () => {
+  it("does not claim retained evidence when the initial query failed", async () => {
     const onRetry = vi.fn();
     render(
       <SimilarVocPanel
@@ -74,7 +74,8 @@ describe("SimilarVocPanel", () => {
     );
 
     const notice = screen.getByRole("alert");
-    expect(notice).toHaveTextContent("저장된 근거는 그대로 볼 수 있습니다");
+    expect(notice).toHaveTextContent("같은 조회를 다시 시도하세요");
+    expect(notice).not.toHaveTextContent("저장된 근거는 그대로 볼 수 있습니다");
     await userEvent.click(screen.getByRole("button", { name: "유사 VOC 다시 조회" }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
