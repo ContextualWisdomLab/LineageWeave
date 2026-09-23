@@ -27,9 +27,9 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
-_ACTIVE_ADMISSION_MIGRATION = _MIGRATIONS_DIR / "0246_global_ask_active_admission_index.sql"
+_ACTIVE_ADMISSION_MIGRATION = _MIGRATIONS_DIR / "0251_global_ask_active_admission_index.sql"
 _ACTIVE_ADMISSION_ROLLBACK = (
-    _MIGRATIONS_DIR / "rollback" / "0246_global_ask_active_admission_index.sql"
+    _MIGRATIONS_DIR / "rollback" / "0251_global_ask_active_admission_index.sql"
 )
 _ACCOUNT_ID = "00000000-0000-0000-0000-000000000001"
 
