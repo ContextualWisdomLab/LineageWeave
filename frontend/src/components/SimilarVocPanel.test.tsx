@@ -38,6 +38,29 @@ describe("SimilarVocPanel", () => {
     expect(screen.getByRole("button", { name: "이전 VOC를 불러오는 중..." })).toBeDisabled();
   });
 
+  it("retries a failed next page without discarding loaded evidence", async () => {
+    const onRetry = vi.fn();
+    const onLoadMore = vi.fn();
+    render(
+      <SimilarVocPanel
+        items={[{
+          post_id: "post-2", post_title: "합성 과거 VOC", issue_summary: "동일 고장 유형",
+          focal_evidence_text: "현재 고장 근거", candidate_evidence_text: "과거 고장 근거",
+          customer_cohort_text: null, action_history: [], occurred_at: "2026-08-20T09:00:00Z",
+        }]}
+        error="이전 VOC를 더 불러오지 못했습니다."
+        onOpenPost={() => undefined}
+        onLoadMore={onLoadMore}
+        onRetry={onRetry}
+      />,
+    );
+
+    expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "이전 VOC 더 불러오기 다시 시도" }));
+    expect(onLoadMore).toHaveBeenCalledOnce();
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+
   it("offers the same safe retry without hiding saved evidence", async () => {
     const onRetry = vi.fn();
     render(
