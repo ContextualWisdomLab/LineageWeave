@@ -22,6 +22,11 @@ terminal history. Relying on the pre-existing single-column account and status
 indexes lets historical rows remain part of the candidate access path and makes
 admission cost grow with a principal's completed-job history.
 
+PostgreSQL retains a same-named `INVALID` index after some failed
+`CREATE INDEX CONCURRENTLY` attempts. Replaying `CREATE INDEX CONCURRENTLY IF
+NOT EXISTS` against that relation can otherwise return success while leaving the
+capacity access path unusable.
+
 ## Decision
 
 1. The shared application service enforces a UTF-8 question-byte ceiling, the
@@ -42,7 +47,11 @@ admission cost grow with a principal's completed-job history.
 5. PostgreSQL maintains a partial index on `requesting_account_id` for only
    `queued` and `running` Global Ask rows. The index is created concurrently so
    migration does not require a write-blocking index build on accumulated job
-   history. The corresponding rollback drops it concurrently.
+   history. Before `IF NOT EXISTS` is allowed to accept a same-named relation,
+   migration 0246 requires that relation to be valid, ready, non-unique, and
+   structurally compatible. An invalid or incompatible relation fails migration
+   closed. Recovery is explicit: run the paired concurrent rollback for 0246,
+   then replay migration 0246 and require `indisvalid=true` and `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -60,8 +69,9 @@ admission cost grow with a principal's completed-job history.
   terminal per-principal history; the smaller partial index also avoids indexing
   terminal rows that the admission query never consumes.
 - Concurrent index creation follows the repository migration contract and must
-  run outside a transaction; a failed concurrent build must be detected rather
-  than treated as valid capacity evidence.
+  run outside a transaction. A failed concurrent build cannot be silently
+  accepted on replay; rollout stops until the invalid relation is removed with
+  the paired rollback and the migration is replayed successfully.
 - An unmeasured deployment remains explicitly unavailable until it records
   capacity evidence.
 - The advisory lock can conservatively serialize colliding hash keys; it does
@@ -79,6 +89,9 @@ admission cost grow with a principal's completed-job history.
   it indexes terminal history even though synchronous admission only consumes
   queued/running rows, increasing index size and write amplification without
   serving this invariant better.
+- Silently replaying `CREATE INDEX CONCURRENTLY IF NOT EXISTS` after a failed
+  concurrent build was rejected because PostgreSQL can retain a same-named
+  invalid relation and turn the replay into a false-success deployment.
 - Renaming the existing Valkey quota key in place was rejected because old and
   new replicas can coexist during rollout and would then enforce different
   counters for the same principal.
