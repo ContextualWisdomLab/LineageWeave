@@ -27,6 +27,11 @@ PostgreSQL retains a same-named `INVALID` index after some failed
 NOT EXISTS` against that relation can otherwise return success while leaving the
 capacity access path unusable.
 
+The active-admission migration also needs an unambiguous composition slot across
+live LineageWeave lanes. Open translation-ledger work owns 0246 through 0248 and
+customer-resolution work owns 0250, so this lane uses 0251 rather than colliding
+with another writer's migration identity.
+
 ## Decision
 
 1. The shared application service enforces a UTF-8 question-byte ceiling, the
@@ -48,10 +53,10 @@ capacity access path unusable.
    `queued` and `running` Global Ask rows. The index is created concurrently so
    migration does not require a write-blocking index build on accumulated job
    history. Before `IF NOT EXISTS` is allowed to accept a same-named relation,
-   migration 0246 requires that relation to be valid, ready, non-unique, and
+   migration 0251 requires that relation to be valid, ready, non-unique, and
    structurally compatible. An invalid or incompatible relation fails migration
-   closed. Recovery is explicit: run the paired concurrent rollback for 0246,
-   then replay migration 0246 and require `indisvalid=true` and `indisready=true`.
+   closed. Recovery is explicit: run the paired concurrent rollback for 0251,
+   then replay migration 0251 and require `indisvalid=true` and `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -72,6 +77,9 @@ capacity access path unusable.
   run outside a transaction. A failed concurrent build cannot be silently
   accepted on replay; rollout stops until the invalid relation is removed with
   the paired rollback and the migration is replayed successfully.
+- Live migration identities remain composable with the translation-ledger and
+  customer-resolution lanes instead of depending on merge order to resolve a
+  duplicate numeric slot.
 - An unmeasured deployment remains explicitly unavailable until it records
   capacity evidence.
 - The advisory lock can conservatively serialize colliding hash keys; it does
@@ -92,6 +100,9 @@ capacity access path unusable.
 - Silently replaying `CREATE INDEX CONCURRENTLY IF NOT EXISTS` after a failed
   concurrent build was rejected because PostgreSQL can retain a same-named
   invalid relation and turn the replay into a false-success deployment.
+- Retaining migration number 0246 was rejected because another live owner lane
+  already uses 0246 for the UI translation ledger; merge order must not decide
+  which semantic migration owns a sequence identity.
 - Renaming the existing Valkey quota key in place was rejected because old and
   new replicas can coexist during rollout and would then enforce different
   counters for the same principal.
