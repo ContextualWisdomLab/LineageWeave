@@ -233,6 +233,41 @@ async def _same_table_unfiltered_index_scenario() -> None:
             await admin.close()
 
 
+async def _same_table_hash_index_scenario() -> None:
+    database_name = f"lineageweave_ask_index_hash_{uuid.uuid4().hex[:12]}"
+    database_dsn = _database_dsn(database_name)
+    admin = await _connect_admin_or_skip()
+    observer: asyncpg.Connection | None = None
+    try:
+        await admin.execute(f'create database "{database_name}"')
+        _apply_migrations_before_active_admission(database_dsn)
+
+        observer = await asyncpg.connect(database_dsn)
+        await observer.execute(
+            """
+            create index global_ask_job_active_account_idx
+                on global_ask_job using hash (requesting_account_id)
+                where job_status_code in ('queued', 'running')
+            """
+        )
+        await observer.execute(
+            "comment on index global_ask_job_active_account_idx is $1",
+            _INDEX_CONTRACT,
+        )
+
+        retry = _run_sql_file(database_dsn, _ACTIVE_ADMISSION_MIGRATION, check=False)
+        output = (retry.stdout + retry.stderr).lower()
+        assert retry.returncode != 0
+        assert "incompatible" in output
+    finally:
+        if observer is not None:
+            await observer.close()
+        try:
+            await _drop_database(admin, database_name)
+        finally:
+            await admin.close()
+
+
 async def _temporary_table_shadow_scenario() -> None:
     database_name = f"lineageweave_ask_index_temp_shadow_{uuid.uuid4().hex[:12]}"
     database_dsn = _database_dsn(database_name)
@@ -348,6 +383,11 @@ def test_same_table_index_with_narrower_predicate_fails_closed() -> None:
 def test_same_table_unfiltered_index_fails_closed() -> None:
     """A version-marked non-partial index must not bypass predicate validation."""
     asyncio.run(_same_table_unfiltered_index_scenario())
+
+
+def test_same_table_hash_index_fails_closed() -> None:
+    """A version-marked non-B-tree index must not satisfy the canonical access path."""
+    asyncio.run(_same_table_hash_index_scenario())
 
 
 def test_temporary_table_shadow_cannot_capture_forward_migration() -> None:
