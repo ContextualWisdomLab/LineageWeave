@@ -1,5 +1,71 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-24T05:20:00+09:00. Protected `main`
+> remains `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`), with 166 open
+> PRs and 42 open non-PR issues. GitHub's repository metadata resolves the
+> canonical names to `ContextualWisdomLab/LineageWeave`,
+> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+> `ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/contextual-orchestrator`. The LineageWeave PRD and the
+> linked repositories' current PRD or product/architecture authority were read
+> before this capture.
+>
+> The largest independently deliverable buyer gap remains safe Similar VOC
+> recovery. Draft PR #1126 is exact
+> `fe5682d17be0baf5711af39ffed8eea16f74278a`. On that unchanged head, all 534
+> frontend tests, lint, the production build, and the Storybook build pass
+> locally. `RetainedEvidenceRetry` was rendered in the browser at the desktop
+> viewport and 320 x 568: the failed-page action, retained evidence, and next
+> action remain visible without horizontal overflow. This is candidate UI
+> evidence only. Exact-head hosted functional/security checks are nonterminal,
+> no qualifying independent approval exists, and authenticated PostgreSQL/API
+> acceptance is unavailable; the PR therefore remains Draft with auto-merge
+> off.
+>
+> The browser-sign-in stack remains Draft #899 exact
+> `c10b6545520afb342e68d01ea4bcfce75a6e5bab` -> #1118 -> #1120 -> #1124.
+> Candidate evidence has all 538 frontend tests and Four authenticated
+> Playwright scenarios passed, with `/api/me` returned successfully. It is not
+> protected-main delivery because there is no admitted
+> `lineageweave-test-automation` client. No concurrency, latency, error-rate,
+> throughput, or saturation evidence exists; authentication is not an observed
+> product bottleneck. Parent #899 still depends on contextual-orchestrator
+> candidate #1209 exact `33c14c4b05a6fff6c11800b60184d2bdd3eb01db`.
+> contextual-orchestrator#1083 owns the released API/client/schema boundary;
+> its Releases API remains `[]`. Historical consumer evidence used fast-mlsirm
+> 0.11.3 while the owner head locked 0.11.4. LineageWeave does not promote a
+> local `/v1/chat/completions` client or fixed `180.0s` timeout and does not
+> bind to mutable `main`.
+>
+> Global Ask shared admission remains Draft PR #1125 at exact
+> `2be09275a8843af3d62a838fa22d5cf091608707`. Its migration and concurrency
+> repairs preserve the unavailable capacity default and do not establish
+> named-deployment authenticated API or k6 burst,
+> parallelism, quota-expiry, capacity-release, principal-isolation, latency,
+> throughput, error-rate, or PostgreSQL/worker/Valkey/gateway saturation
+> evidence remains unavailable. No capacity or bottleneck is inferred from
+> unavailable evidence.
+>
+> ADR 0251 remains the separate FJA/I-O psychology authority, not a Voice
+> composition decision. Voice-of-X candidate #1121 remains Draft at exact
+> `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. ADRs 0246, 0256, and 0252 own
+> the twelve atomic Voices, extensible evidence-bearing composition, and
+> temporal primary-Voice history. The candidate adds no fixed Voice combination.
+> Carrying Post and derivation evidence remain distinct, hidden evidence is
+> omitted rather than substituted, and every additional Voice preserves an
+> authorized evidence Post, truth status, cutoff, and PROV-O derivation. No
+> authenticated PostgreSQL API plus rendered UI receipt exists on protected
+> `main`, so no Voice acceptance criterion is marked complete.
+>
+> This baseline update was prepared from PR #1123 input head
+> `297fd3a6f659722e963f7ca43bc5f2feaf573922`. Its own hosted checks and
+> independent approval must be recollected on the resulting head. Open release
+> collisions #843/#844 (`v2.62.0`) and #876/#877 (`v2.92.0`) remain
+> unavailable for promotion; no review, check, runtime receipt, or approval is
+> transferred across heads or PRs. CodeQL language detection and CodeQL
+> compatibility/dispatch settlement remain queued; no partial detector result
+> is promoted as successful required CodeQL.
+
 > Exact-head validation overlay: 2026-09-23T18:59:09Z (KST 2026-09-24
 > 03:59:09+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub shows 166

@@ -84,9 +84,9 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T18:59:09Z" in overlay
-    assert "`f2a9c868502ad4e4c22d74dfe2ea679d4b9b8b49`" in overlay
-    assert "rollback ownership repair" in overlay
+    assert "2026-09-24T05:20:00+09:00" in overlay
+    assert "`2be09275a8843af3d62a838fa22d5cf091608707`" in overlay
+    assert "migration and concurrency repairs" in overlay
     assert "k6 burst" in overlay
     assert "evidence remains unavailable" in overlay
     assert "unavailable capacity default" in overlay
@@ -96,14 +96,13 @@ def test_latest_validation_overlay_pins_similar_voc_retry_acceptance_boundary() 
     """Similar VOC recovery keeps exact-head UI proof below runtime acceptance."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T18:59:09Z" in overlay
+    assert "2026-09-24T05:20:00+09:00" in overlay
     assert "`fe5682d17be0baf5711af39ffed8eea16f74278a`" in overlay
-    assert "109 focused frontend tests" in overlay
-    assert "retained evidence retry story" in overlay
-    assert "Storybook 320 x 568 small-mobile viewport" in overlay
-    assert "real `AuthContext`" in overlay
-    assert "Authenticated PostgreSQL/API acceptance" in overlay
-    assert "qualifying independent approval remain unavailable" in overlay
+    assert "all 534 frontend tests" in overlay
+    assert "`RetainedEvidenceRetry` was rendered" in overlay
+    assert "320 x 568" in overlay
+    assert "authenticated PostgreSQL/API acceptance is unavailable" in overlay
+    assert "no qualifying independent approval exists" in overlay
 
 
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
