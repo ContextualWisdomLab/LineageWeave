@@ -43,6 +43,21 @@ create/no-create decision must therefore be captured before validation and, when
 creation was required, executed as a plain concurrent CREATE that fails on a
 raced duplicate before any ownership marker is written.
 
+That fail-closed external-race rule does not by itself make cooperating rollout
+processes idempotent. Two LineageWeave migration runners can both observe the
+name as absent, pass preflight, and then race the same unconditional concurrent
+CREATE. One can succeed while the other fails with a duplicate relation even
+though both are executing the same repository migration against the same valid
+state. `CREATE INDEX CONCURRENTLY` cannot run inside a transaction, so a
+transaction-scoped advisory lock cannot span the capture, preflight, concurrent
+DDL, and ownership comment. The production runner is one `psql` session,
+however, so a session-level advisory lock can serialize only cooperating 0251
+runners across that full sequence. PostgreSQL releases session advisory locks
+when the session ends, including abnormal disconnect; successful migration also
+releases the lock explicitly. Non-cooperating external DDL remains outside that
+coordination and must continue to fail closed through the duplicate-relation
+path rather than being adopted.
+
 Index names share PostgreSQL's schema relation namespace with tables, views,
 sequences, and other relations. A same-named non-index relation can therefore
 occupy `public.global_ask_job_active_account_idx` before migration 0251 runs.
@@ -116,10 +131,17 @@ with another writer's migration identity.
    redirected by `pg_temp` or another `search_path` entry. Migration 0251 stamps
    the repository-owned index with the immutable catalog marker
    `lineageweave/global-ask-active-admission-index/v1`. The production migration
-   runner is `psql -X -v ON_ERROR_STOP=1 -f`; migration 0251 uses that contract
-   to capture whether the canonical name was absent before validation. If
-   creation was required it executes an unconditional concurrent CREATE through
-   psql conditional execution. A relation that races into the namespace after
+   runner is `psql -X -v ON_ERROR_STOP=1 -f`. Migration 0251 first acquires the
+   session-level advisory lock derived from
+   `lineageweave:migration:0251_global_ask_active_admission_index`, holds it
+   across create-decision capture, replay validation, concurrent CREATE, and the
+   ownership comment, then explicitly releases it on success. This serializes
+   cooperating LineageWeave rollout runners even though concurrent index DDL
+   must remain outside a transaction; an error still releases the session lock
+   when `psql` exits. Under that lock, migration 0251 captures whether the
+   canonical name was absent before validation. If creation was required it
+   executes an unconditional concurrent CREATE through psql conditional
+   execution. A non-cooperating relation that races into the namespace after
    the captured decision therefore causes duplicate-relation failure before the
    ownership comment instead of turning `IF NOT EXISTS` into a false success.
    Before index-specific replay validation, migration 0251 resolves the existing
@@ -177,6 +199,11 @@ with another writer's migration identity.
   accepted on replay, and neither a same-named index on another relation nor a
   version-marked narrower same-table lookalike can masquerade as the canonical
   access path.
+- Cooperating 0251 migration runners serialize through one session-level
+  advisory lock spanning capture through ownership publication. A rolling
+  deployment therefore does not turn two correct repository migration attempts
+  into a duplicate-DDL startup failure. Non-cooperating external DDL is not
+  trusted by that lock and still fails closed before ownership can be stamped.
 - The create decision is bound before replay validation. A same-named relation
   created concurrently after an absent preflight causes the plain CREATE to
   fail before LineageWeave can attach its ownership marker; foreign ownership is
@@ -227,6 +254,14 @@ with another writer's migration identity.
 - Re-checking name existence with `IF NOT EXISTS` after preflight was rejected
   because a relation can be created in that gap and then receive the repository
   ownership comment despite never being created or validated by LineageWeave.
+- Leaving cooperating rollout processes uncoordinated was rejected because two
+  correct 0251 invocations can both capture an absent name and race the same
+  CREATE, turning idempotent rollout into an avoidable duplicate-DDL failure.
+  A transaction-level advisory lock is insufficient because `CREATE INDEX
+  CONCURRENTLY` cannot run in that transaction. The session-level lock matches
+  the repository's one-session `psql` runner and spans the complete
+  capture/preflight/create/comment sequence without weakening the external-DDL
+  fail-closed rule.
 - Treating every same-named relation as an invalid index and recommending
   `DROP INDEX` was rejected because PostgreSQL's relation namespace can contain
   a table, view, sequence, partitioned index, or other unsupported relation at
@@ -279,6 +314,9 @@ with another writer's migration identity.
   documentation. https://www.postgresql.org/docs/current/sql-dropindex.html
 - PostgreSQL Global Development Group. (2026). *LOCK*. PostgreSQL 18
   documentation. https://www.postgresql.org/docs/current/sql-lock.html
+- PostgreSQL Global Development Group. (2026). *System Administration Functions:
+  Advisory Lock Functions*. PostgreSQL 18 documentation.
+  https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS
 - PostgreSQL Global Development Group. (2026). *CREATE TABLE: Temporary tables*.
   PostgreSQL 18 documentation.
   https://www.postgresql.org/docs/current/sql-createtable.html
