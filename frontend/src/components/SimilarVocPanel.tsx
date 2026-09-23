@@ -14,6 +14,9 @@ type Props = {
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
 export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
+  const retryLoadedPage = Boolean(error && items && items.length > 0 && onLoadMore);
+  const retryAction = retryLoadedPage ? onLoadMore : onRetry;
+
   return (
     <section className="similar-voc" aria-labelledby="similar-voc-heading">
       <header>
@@ -24,9 +27,13 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
         <StatusNotice
           kind="retry"
           message={error}
-          nextAction="저장된 근거는 그대로 볼 수 있습니다. 같은 조회를 다시 시도하세요."
-          retryLabel="유사 VOC 다시 조회"
-          onRetry={onRetry ?? undefined}
+          nextAction={
+            retryLoadedPage
+              ? "불러온 근거는 그대로 유지됩니다. 실패한 다음 페이지를 다시 요청하세요."
+              : "저장된 근거는 그대로 볼 수 있습니다. 같은 조회를 다시 시도하세요."
+          }
+          retryLabel={retryLoadedPage ? "이전 VOC 더 불러오기 다시 시도" : "유사 VOC 다시 조회"}
+          onRetry={retryAction ?? undefined}
         />
       ) : null}
       {items === null && !error ? (
@@ -55,7 +62,7 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
           ))}
         </ol>
       ) : null}
-      {onLoadMore ? (
+      {onLoadMore && !retryLoadedPage ? (
         <button type="button" onClick={onLoadMore} disabled={loadingMore}>
           {loadingMore ? "이전 VOC를 불러오는 중..." : "이전 VOC 더 보기"}
         </button>
