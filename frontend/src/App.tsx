@@ -1,7 +1,7 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -1989,12 +1989,14 @@ function PostDetailPopup({
   const [similarVocRetry, setSimilarVocRetry] = useState(0);
   const similarVocLoadingMoreRef = useRef(false);
   const similarVocScopeRef = useRef({ postId, accessToken });
-  if (
-    similarVocScopeRef.current.postId !== postId ||
-    similarVocScopeRef.current.accessToken !== accessToken
-  ) {
-    similarVocScopeRef.current = { postId, accessToken };
-  }
+  useLayoutEffect(() => {
+    if (
+      similarVocScopeRef.current.postId !== postId ||
+      similarVocScopeRef.current.accessToken !== accessToken
+    ) {
+      similarVocScopeRef.current = { postId, accessToken };
+    }
+  }, [postId, accessToken]);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
