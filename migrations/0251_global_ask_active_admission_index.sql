@@ -8,6 +8,10 @@ declare
     existing_index regclass;
     indexed_table regclass;
     index_definition text;
+    first_index_key text;
+    index_contract text;
+    index_key_count integer;
+    index_attribute_count integer;
     index_is_valid boolean;
     index_is_ready boolean;
 begin
@@ -16,8 +20,19 @@ begin
         select index_catalog.indrelid,
                index_catalog.indisvalid,
                index_catalog.indisready,
-               pg_get_indexdef(index_catalog.indexrelid)
-          into indexed_table, index_is_valid, index_is_ready, index_definition
+               index_catalog.indnkeyatts,
+               index_catalog.indnatts,
+               pg_get_indexdef(index_catalog.indexrelid),
+               pg_get_indexdef(index_catalog.indexrelid, 1, true),
+               obj_description(index_catalog.indexrelid, 'pg_class')
+          into indexed_table,
+               index_is_valid,
+               index_is_ready,
+               index_key_count,
+               index_attribute_count,
+               index_definition,
+               first_index_key,
+               index_contract
           from pg_index index_catalog
          where index_catalog.indexrelid = existing_index;
 
@@ -28,6 +43,10 @@ begin
         end if;
 
         if indexed_table is distinct from 'public.global_ask_job'::regclass
+           or index_key_count is distinct from 1
+           or index_attribute_count is distinct from 1
+           or first_index_key is distinct from 'requesting_account_id'
+           or index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1'
            or lower(index_definition) like 'create unique index%'
            or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%'
            or index_definition not ilike '%where%job_status_code%'
@@ -43,3 +62,6 @@ $$;
 create index concurrently if not exists global_ask_job_active_account_idx
     on global_ask_job (requesting_account_id)
     where job_status_code in ('queued', 'running');
+
+comment on index global_ask_job_active_account_idx is
+    'lineageweave/global-ask-active-admission-index/v1';
