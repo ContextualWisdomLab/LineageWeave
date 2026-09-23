@@ -42,6 +42,18 @@ safe remediation for a table, view, sequence, or unsupported index relation
 kind. Migration diagnostics must distinguish the relation kind before giving an
 operator the paired index-rollback procedure.
 
+Rollback has a second ownership boundary. A valid ordinary index can occupy the
+canonical name and even have the same useful physical definition without being
+a LineageWeave-owned object. An unconditional `DROP INDEX CONCURRENTLY IF
+EXISTS` would delete that operator-owned relation merely because its name
+matches the migration. Conversely, a failed `CREATE INDEX CONCURRENTLY` can
+leave an unmarked but incomplete index before the catalog ownership marker is
+written. Recovery must therefore distinguish a valid unowned index from an
+incomplete canonical-shaped failed-build artifact: valid unmarked or mismarked
+indexes require an explicit operator decision, while an invalid/not-ready
+canonical-shaped unmarked index may be removed by the paired rollback as the
+failed migration artifact it is intended to recover.
+
 PostgreSQL temporary relations also shadow same-named permanent relations for
 the creating session unless the permanent object is schema-qualified. Because
 indexes on temporary tables are always built and dropped non-concurrently, an
@@ -89,12 +101,18 @@ with another writer's migration identity.
    active predicate for queued/running rows, and that version marker. The
    predicate check is anchored to the whole decompiled expression rather than
    token presence, so a version-marked `AND false` or otherwise narrowed
-   lookalike cannot pass. Invalid or incompatible ordinary indexes fail closed;
-   their recovery is the schema-qualified paired concurrent rollback for 0251,
-   replay of migration 0251, and verification of both the marker and
-   `indisvalid=true` / `indisready=true`. Non-index relation collisions instead
-   require an explicit operator decision to rename or remove that conflicting
-   relation before replay.
+   lookalike cannot pass. The paired rollback performs its own destructive-action
+   preflight: it accepts only the canonical `public.global_ask_job` btree,
+   non-unique, single-key, no-INCLUDE shape and exact queued/running predicate.
+   A valid/ready index must additionally carry the exact repository marker before
+   rollback may delete it. An unmarked index is rollback-eligible only while it
+   is invalid or not ready and otherwise has that exact canonical physical
+   shape, covering a failed concurrent build that stopped before `COMMENT ON
+   INDEX` ran. A valid unmarked index, an unexpected marker, another table,
+   another access method/key/predicate, or a non-index relation fails closed and
+   requires an explicit operator ownership decision. Recovery of an accepted
+   failed-build artifact is paired rollback, migration 0251 replay, and
+   verification of the marker plus `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -115,8 +133,11 @@ with another writer's migration identity.
   run outside a transaction. A failed concurrent build cannot be silently
   accepted on replay, and neither a same-named index on another relation nor a
   version-marked narrower same-table lookalike can masquerade as the canonical
-  access path. Actual invalid/incompatible ordinary indexes use the paired
-  rollback-and-replay recovery path.
+  access path.
+- Rollback is fail-closed as a destructive operation. It can remove a marked
+  repository-owned canonical index or an incomplete unmarked canonical-shaped
+  failed-build artifact, but it refuses a valid unmarked/mismarked index or an
+  incompatible relation even when the canonical name matches.
 - A table, view, sequence, partitioned index, or other unsupported relation that
   occupies the canonical index name stops rollout without destructive automated
   cleanup. Operators must resolve that ownership collision explicitly before
@@ -152,6 +173,11 @@ with another writer's migration identity.
   a table, view, sequence, partitioned index, or other unsupported relation at
   that name. Recovery guidance must not turn a fail-closed collision into an
   unsafe or inapplicable destructive action.
+- Making the paired rollback an unconditional `DROP INDEX CONCURRENTLY IF
+  EXISTS` was rejected because a valid same-named ordinary index can be
+  operator-owned. Destructive rollback requires canonical physical shape plus
+  repository ownership, except for an incomplete canonical-shaped failed-build
+  artifact that can exist before the ownership marker is written.
 - Accepting a same-named index by textual definition tokens or catalog marker
   alone was rejected because another relation can carry a lookalike index and a
   narrower predicate on the canonical table can retain both the expected tokens
