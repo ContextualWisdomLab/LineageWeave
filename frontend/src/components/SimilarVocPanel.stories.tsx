@@ -1,7 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { setLocale } from "../i18n";
 import { SimilarVocPanel } from "./SimilarVocPanel";
 
-const meta = { title: "Post/Similar VOC", component: SimilarVocPanel } satisfies Meta<typeof SimilarVocPanel>;
+const meta = {
+  title: "Post/Similar VOC",
+  component: SimilarVocPanel,
+  decorators: [
+    (Story) => {
+      setLocale("ko");
+      return Story();
+    },
+  ],
+} satisfies Meta<typeof SimilarVocPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
