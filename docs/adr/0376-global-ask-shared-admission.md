@@ -32,6 +32,14 @@ insufficient on the canonical table: a narrower predicate such as the intended
 queued/running predicate combined with `AND false` still contains every expected
 token while being unusable for the admission query.
 
+PostgreSQL temporary relations also shadow same-named permanent relations for
+the creating session unless the permanent object is schema-qualified. Because
+indexes on temporary tables are always built and dropped non-concurrently, an
+unqualified migration or rollback can appear to succeed while operating only on
+a session-local `pg_temp` relation. The durable admission access path must
+therefore bind both forward and rollback DDL to `public` explicitly rather than
+trusting `search_path`.
+
 The active-admission migration also needs an unambiguous composition slot across
 live LineageWeave lanes. Open translation-ledger work owns 0246 through 0248 and
 customer-resolution work owns 0250, so this lane uses 0251 rather than colliding
@@ -55,17 +63,19 @@ with another writer's migration identity.
    jobs, and inserts within that transaction. No database transaction remains
    open during Valkey, worker, or contextual-orchestrator work.
 5. PostgreSQL maintains a partial index on `requesting_account_id` for only
-   `queued` and `running` Global Ask rows. The index is created concurrently so
-   migration does not require a write-blocking index build on accumulated job
-   history. Migration 0251 stamps the repository-owned index with the immutable
-   catalog marker `lineageweave/global-ask-active-admission-index/v1`. Before
-   `IF NOT EXISTS` is allowed to accept a same-named relation, replay requires
-   the exact canonical table, valid/ready non-unique single-key shape,
-   `requesting_account_id` key, expected active-status definition, and that
-   version marker. An invalid, shadow-table, unversioned lookalike, or otherwise
-   incompatible relation fails migration closed. Recovery is explicit: run the
-   paired concurrent rollback for 0251, replay migration 0251, and require both
-   the marker and `indisvalid=true` / `indisready=true`.
+   `queued` and `running` Global Ask rows. The index is created concurrently on
+   `public.global_ask_job`, and the paired rollback addresses
+   `public.global_ask_job_active_account_idx` explicitly, so neither path can be
+   redirected by `pg_temp` or another `search_path` entry. Migration 0251 stamps
+   the repository-owned index with the immutable catalog marker
+   `lineageweave/global-ask-active-admission-index/v1`. Before `IF NOT EXISTS` is
+   allowed to accept a same-named relation, replay requires the exact canonical
+   table, valid/ready non-unique single-key shape, `requesting_account_id` key,
+   expected active-status definition, and that version marker. An invalid,
+   shadow-table, unversioned lookalike, or otherwise incompatible relation fails
+   migration closed. Recovery is explicit: run the schema-qualified paired
+   concurrent rollback for 0251, replay migration 0251, and require both the
+   marker and `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -88,6 +98,9 @@ with another writer's migration identity.
   unversioned same-table lookalike can masquerade as the canonical access path;
   rollout stops until the conflicting relation is removed with the paired
   rollback and migration 0251 is replayed successfully.
+- Forward migration and rollback are immune to temporary-table/index name
+  shadowing because the durable table and index are schema-qualified; a session
+  cannot satisfy recovery by mutating only `pg_temp`.
 - Live migration identities remain composable with the translation-ledger and
   customer-resolution lanes instead of depending on merge order to resolve a
   duplicate numeric slot.
@@ -116,6 +129,9 @@ with another writer's migration identity.
   on the canonical table can contain the expected tokens while still being
   unusable. The catalog marker makes the repository-owned definition explicit
   and replay-verifiable.
+- Leaving forward or rollback DDL unqualified was rejected because a temporary
+  relation can shadow the durable name for the session; successful DDL against
+  `pg_temp` is not durable migration or recovery evidence.
 - Retaining migration number 0246 was rejected because another live owner lane
   already uses 0246 for the UI translation ledger; merge order must not decide
   which semantic migration owns a sequence identity.
@@ -124,3 +140,13 @@ with another writer's migration identity.
   counters for the same principal.
 - Fixed repository defaults were rejected because they would be unsupported
   rules of thumb rather than observed capacity.
+
+## Traceability
+
+- PostgreSQL Global Development Group. (2026). *CREATE INDEX*. PostgreSQL 18
+  documentation. https://www.postgresql.org/docs/current/sql-createindex.html
+- PostgreSQL Global Development Group. (2026). *DROP INDEX*. PostgreSQL 18
+  documentation. https://www.postgresql.org/docs/current/sql-dropindex.html
+- PostgreSQL Global Development Group. (2026). *CREATE TABLE: Temporary tables*.
+  PostgreSQL 18 documentation.
+  https://www.postgresql.org/docs/current/sql-createtable.html
