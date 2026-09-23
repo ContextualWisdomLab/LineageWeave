@@ -1,3 +1,5 @@
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "react-oidc-context";
 import "./SimilarVocPanel.css";
 
 import type { SimilarVocItem } from "../api";
@@ -14,9 +16,22 @@ type Props = {
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
 export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
-  const retryLoadedPage = Boolean(error && onLoadMore);
-  const hasRetainedEvidence = Boolean(items && items.length > 0);
-  const retryAction = retryLoadedPage ? onLoadMore : onRetry;
+  const auth = useContext(AuthContext);
+  const authorizationScope = auth?.user?.access_token ?? null;
+  const [displayedAuthorizationScope, setDisplayedAuthorizationScope] = useState(authorizationScope);
+
+  useEffect(() => {
+    if (items === null) setDisplayedAuthorizationScope(authorizationScope);
+  }, [authorizationScope, items]);
+
+  const authorizationScopeIsCurrent = displayedAuthorizationScope === authorizationScope;
+  const scopedItems = authorizationScopeIsCurrent ? items : null;
+  const scopedError = authorizationScopeIsCurrent ? error : null;
+  const scopedOnLoadMore = authorizationScopeIsCurrent ? onLoadMore : null;
+  const scopedLoadingMore = authorizationScopeIsCurrent && loadingMore;
+  const retryLoadedPage = Boolean(scopedError && scopedOnLoadMore);
+  const hasRetainedEvidence = Boolean(scopedItems && scopedItems.length > 0);
+  const retryAction = retryLoadedPage ? scopedOnLoadMore : onRetry;
 
   return (
     <section className="similar-voc" aria-labelledby="similar-voc-heading">
@@ -24,10 +39,10 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
         <h3 id="similar-voc-heading">유사 VOC · 고객군 확인</h3>
         <p>같은 문제 유형으로 판정된 과거 근거와 조치 이력을 확인하세요.</p>
       </header>
-      {error ? (
+      {scopedError ? (
         <StatusNotice
           kind="retry"
-          message={error}
+          message={scopedError}
           nextAction={
             retryLoadedPage
               ? hasRetainedEvidence
@@ -39,13 +54,13 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
           onRetry={retryAction ?? undefined}
         />
       ) : null}
-      {items === null && !error ? (
+      {scopedItems === null && !scopedError ? (
         <p role="status">유사 VOC 근거를 판정하고 있습니다.</p>
-      ) : items?.length === 0 && !error ? (
+      ) : scopedItems?.length === 0 && !scopedError ? (
         <p role="status">같은 문제 유형으로 판정된 과거 VOC가 없습니다.</p>
-      ) : items && items.length > 0 ? (
+      ) : scopedItems && scopedItems.length > 0 ? (
         <ol>
-          {items.map((item) => (
+          {scopedItems.map((item) => (
             <li key={item.post_id}>
               <article>
                 <p className="similar-voc-time">사건 시각 {new Date(item.occurred_at).toLocaleString()}</p>
@@ -65,9 +80,9 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
           ))}
         </ol>
       ) : null}
-      {onLoadMore && !retryLoadedPage ? (
-        <button type="button" onClick={onLoadMore} disabled={loadingMore}>
-          {loadingMore ? "이전 VOC를 불러오는 중..." : "이전 VOC 더 보기"}
+      {scopedOnLoadMore && !retryLoadedPage ? (
+        <button type="button" onClick={scopedOnLoadMore} disabled={scopedLoadingMore}>
+          {scopedLoadingMore ? "이전 VOC를 불러오는 중..." : "이전 VOC 더 보기"}
         </button>
       ) : null}
     </section>
