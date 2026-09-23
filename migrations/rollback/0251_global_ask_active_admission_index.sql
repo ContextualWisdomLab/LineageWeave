@@ -1,11 +1,13 @@
 -- Destructive rollback must validate and delete the same relation identity. Keep
 -- the parent table exclusively locked for the short rollback transaction so a
 -- concurrent session cannot replace the validated index before DROP executes.
--- This deliberately favors destructive-action safety over concurrent writes;
--- the normal forward path remains CREATE INDEX CONCURRENTLY.
+-- Fail immediately when that lock is unavailable: operators can drain the busy
+-- path and retry instead of leaving a destructive recovery session waiting on
+-- production traffic. This deliberately favors destructive-action safety over
+-- concurrent writes; the normal forward path remains CREATE INDEX CONCURRENTLY.
 begin;
 
-lock table public.global_ask_job in access exclusive mode;
+lock table public.global_ask_job in access exclusive mode nowait;
 
 -- Fail closed before destructive rollback. A valid same-named index without the
 -- repository ownership marker may be operator-owned even when its physical
