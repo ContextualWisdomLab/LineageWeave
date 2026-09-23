@@ -148,6 +148,10 @@ async def _same_table_narrow_predicate_scenario() -> None:
                 where job_status_code in ('queued', 'running') and false
             """
         )
+        await observer.execute(
+            "comment on index global_ask_job_active_account_idx is $1",
+            _INDEX_CONTRACT,
+        )
 
         retry = _run_sql_file(database_dsn, _ACTIVE_ADMISSION_MIGRATION, check=False)
         output = (retry.stdout + retry.stderr).lower()
@@ -265,7 +269,7 @@ def test_same_named_index_on_shadow_table_fails_closed() -> None:
 
 
 def test_same_table_index_with_narrower_predicate_fails_closed() -> None:
-    """A lookalike index that cannot serve all active rows must not be accepted."""
+    """A version-marked lookalike that cannot serve all active rows must fail."""
     asyncio.run(_same_table_narrow_predicate_scenario())
 
 
