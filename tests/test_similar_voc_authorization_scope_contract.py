@@ -30,6 +30,21 @@ def test_similar_voc_pagination_scope_includes_authorization_context() -> None:
     assert "similarVocScopeRef.current === requestScope" in source
 
 
+def test_similar_voc_scope_ref_rotates_only_after_commit() -> None:
+    """An abandoned concurrent render must not mutate the live pagination scope ref."""
+    source = _APP_SOURCE.read_text(encoding="utf-8")
+
+    assert "useLayoutEffect" in source, "Commit-phase scope rotation must use React useLayoutEffect"
+    assert re.search(
+        r"useLayoutEffect\(\(\)\s*=>\s*\{[\s\S]{0,360}"
+        r"similarVocScopeRef\.current\.postId\s*!==\s*postId[\s\S]{0,220}"
+        r"similarVocScopeRef\.current\.accessToken\s*!==\s*accessToken[\s\S]{0,220}"
+        r"similarVocScopeRef\.current\s*=\s*\{\s*postId\s*,\s*accessToken\s*\}[\s\S]{0,180}"
+        r"\},\s*\[postId,\s*accessToken\]\);",
+        source,
+    ), "Similar VOC request scope must rotate in commit phase, never as a render side effect"
+
+
 def test_similar_voc_render_masks_evidence_from_previous_authorization_scope() -> None:
     """A token switch must not paint evidence or pagination controls from the prior account."""
     source = _PANEL_SOURCE.read_text(encoding="utf-8")
