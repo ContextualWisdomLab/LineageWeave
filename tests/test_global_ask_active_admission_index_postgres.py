@@ -131,6 +131,39 @@ async def _shadow_index_scenario() -> None:
             await admin.close()
 
 
+async def _same_named_non_index_relation_scenario() -> None:
+    database_name = f"lineageweave_ask_index_relation_{uuid.uuid4().hex[:12]}"
+    database_dsn = _database_dsn(database_name)
+    admin = await _connect_admin_or_skip()
+    observer: asyncpg.Connection | None = None
+    try:
+        await admin.execute(f'create database "{database_name}"')
+        _apply_migrations_before_active_admission(database_dsn)
+
+        observer = await asyncpg.connect(database_dsn)
+        await observer.execute(
+            "create table global_ask_job_active_account_idx (sentinel integer)"
+        )
+
+        retry = _run_sql_file(database_dsn, _ACTIVE_ADMISSION_MIGRATION, check=False)
+        output = (retry.stdout + retry.stderr).lower()
+        assert retry.returncode != 0
+        assert "non-index relation" in output
+        assert "rollback/0251_global_ask_active_admission_index.sql" not in output
+        relation_kind = await observer.fetchval(
+            "select relkind from pg_class "
+            "where oid = 'public.global_ask_job_active_account_idx'::regclass"
+        )
+        assert relation_kind == "r"
+    finally:
+        if observer is not None:
+            await observer.close()
+        try:
+            await _drop_database(admin, database_name)
+        finally:
+            await admin.close()
+
+
 async def _same_table_narrow_predicate_scenario() -> None:
     database_name = f"lineageweave_ask_index_predicate_{uuid.uuid4().hex[:12]}"
     database_dsn = _database_dsn(database_name)
@@ -300,6 +333,11 @@ async def _canonical_index_replay_scenario() -> None:
 def test_same_named_index_on_shadow_table_fails_closed() -> None:
     """A same-named index on another table must never satisfy migration 0251."""
     asyncio.run(_shadow_index_scenario())
+
+
+def test_same_named_non_index_relation_has_safe_recovery_guidance() -> None:
+    """A table-name collision must fail without prescribing destructive rollback."""
+    asyncio.run(_same_named_non_index_relation_scenario())
 
 
 def test_same_table_index_with_narrower_predicate_fails_closed() -> None:
