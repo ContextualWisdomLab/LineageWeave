@@ -8,6 +8,7 @@ declare
     existing_index regclass;
     indexed_table regclass;
     index_definition text;
+    index_predicate text;
     first_index_key text;
     index_contract text;
     index_key_count integer;
@@ -23,6 +24,7 @@ begin
                index_catalog.indnkeyatts,
                index_catalog.indnatts,
                pg_get_indexdef(index_catalog.indexrelid),
+               pg_get_expr(index_catalog.indpred, index_catalog.indrelid, true),
                pg_get_indexdef(index_catalog.indexrelid, 1, true),
                obj_description(index_catalog.indexrelid, 'pg_class')
           into indexed_table,
@@ -31,6 +33,7 @@ begin
                index_key_count,
                index_attribute_count,
                index_definition,
+               index_predicate,
                first_index_key,
                index_contract
           from pg_index index_catalog
@@ -47,11 +50,12 @@ begin
            or index_attribute_count is distinct from 1
            or first_index_key is distinct from 'requesting_account_id'
            or index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1'
+           or regexp_replace(lower(index_predicate), '\s+', ' ', 'g') not in (
+               'job_status_code = any (array[''queued''::text, ''running''::text])',
+               '(job_status_code = any (array[''queued''::text, ''running''::text]))'
+           )
            or lower(index_definition) like 'create unique index%'
-           or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%'
-           or index_definition not ilike '%where%job_status_code%'
-           or index_definition not ilike '%queued%'
-           or index_definition not ilike '%running%' then
+           or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%' then
             raise exception
                 'global_ask_job_active_account_idx exists with an incompatible definition';
         end if;
