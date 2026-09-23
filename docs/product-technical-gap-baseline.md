@@ -39,8 +39,8 @@
 >
 > Voice-of-X candidate #1121 remains Draft at exact
 > `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. It preserves the twelve atomic
-> Voices and extensible evidence-bearing composition from ADRs 0246,
-> 0251, 0252, and 0256 without enumerating compound codes; it adds no fixed
+> Voices and extensible evidence-bearing composition from ADRs 0246, 0252,
+> and 0256 without enumerating compound codes; it adds no fixed
 > Voice combination. Carrying Post and
 > derivation-evidence Post remain distinct; truth status, cutoff, and PROV-O
 > derivation remain mandatory; hidden evidence is never substituted. No
