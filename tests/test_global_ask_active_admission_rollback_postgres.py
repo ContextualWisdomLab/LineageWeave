@@ -170,6 +170,49 @@ async def _rollback_fails_fast_when_table_is_busy_scenario() -> None:
             await admin.close()
 
 
+async def _rollback_noops_without_index_when_table_is_busy_scenario() -> None:
+    database_name = f"lineageweave_ask_rollback_absent_{uuid.uuid4().hex[:12]}"
+    database_dsn = _database_dsn(database_name)
+    admin = await _connect_admin_or_skip()
+    blocker: asyncpg.Connection | None = None
+    observer: asyncpg.Connection | None = None
+    transaction: asyncpg.Transaction | None = None
+    try:
+        await admin.execute(f'create database "{database_name}"')
+        _apply_migrations_before_active_admission(database_dsn)
+
+        blocker = await asyncpg.connect(database_dsn)
+        observer = await asyncpg.connect(database_dsn)
+        transaction = blocker.transaction()
+        await transaction.start()
+        await blocker.execute("lock table public.global_ask_job in access share mode")
+
+        rollback = _run_sql_file(
+            database_dsn,
+            _ACTIVE_ADMISSION_ROLLBACK,
+            check=False,
+            timeout_seconds=1.0,
+        )
+        assert rollback.returncode == 0, rollback.stderr
+        assert (
+            await observer.fetchval(
+                "select to_regclass('public.global_ask_job_active_account_idx')"
+            )
+            is None
+        )
+    finally:
+        if transaction is not None:
+            await transaction.rollback()
+        if blocker is not None:
+            await blocker.close()
+        if observer is not None:
+            await observer.close()
+        try:
+            await _drop_database(admin, database_name)
+        finally:
+            await admin.close()
+
+
 def test_rollback_refuses_valid_unowned_same_named_index() -> None:
     """Rollback must not delete a valid index that lacks repository ownership."""
     asyncio.run(_rollback_preserves_unowned_valid_index_scenario())
@@ -178,6 +221,11 @@ def test_rollback_refuses_valid_unowned_same_named_index() -> None:
 def test_rollback_fails_fast_instead_of_waiting_for_access_exclusive_lock() -> None:
     """Busy-table rollback must fail closed instead of waiting indefinitely."""
     asyncio.run(_rollback_fails_fast_when_table_is_busy_scenario())
+
+
+def test_rollback_without_target_is_idempotent_even_when_table_is_busy() -> None:
+    """A rollback with no target index must not require an exclusive table lock."""
+    asyncio.run(_rollback_noops_without_index_when_table_is_busy_scenario())
 
 
 def test_rollback_validation_and_drop_share_one_locked_transaction() -> None:
