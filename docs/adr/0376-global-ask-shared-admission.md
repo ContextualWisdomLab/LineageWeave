@@ -63,6 +63,14 @@ indexes require an explicit operator decision, while an invalid/not-ready
 canonical-shaped unmarked index may be removed by the paired rollback as the
 failed migration artifact it is intended to recover.
 
+Destructive rollback also cannot leave ownership validation and deletion as two
+independent autocommit statements. After a valid repository-owned index passes
+preflight, another privileged session could drop it and install a same-named
+foreign index before `DROP INDEX CONCURRENTLY` executes. The rollback would then
+delete an object that never passed its destructive-action guard. A second name
+or catalog re-check immediately before DROP only moves the race window; the
+validation and destructive action need one lock-protected transaction boundary.
+
 PostgreSQL temporary relations also shadow same-named permanent relations for
 the creating session unless the permanent object is schema-qualified. Because
 indexes on temporary tables are always built and dropped non-concurrently, an
@@ -117,18 +125,22 @@ with another writer's migration identity.
    for queued/running rows, and that version marker. The predicate check is
    anchored to the whole decompiled expression rather than token presence, so a
    version-marked `AND false` or otherwise narrowed lookalike cannot pass. The
-   paired rollback performs its own destructive-action preflight: it accepts
-   only the canonical `public.global_ask_job` btree, non-unique, single-key,
-   no-INCLUDE shape and exact queued/running predicate. A valid/ready index must
-   additionally carry the exact repository marker before rollback may delete it.
-   An unmarked index is rollback-eligible only while it is invalid or not ready
-   and otherwise has that exact canonical physical shape, covering a failed
-   concurrent build that stopped before `COMMENT ON INDEX` ran. A valid unmarked
-   index, an unexpected marker, another table, another access method/key/predicate,
-   or a non-index relation fails closed and requires an explicit operator
-   ownership decision. Recovery of an accepted failed-build artifact is paired
-   rollback, migration 0251 replay, and verification of the marker plus
-   `indisvalid=true` / `indisready=true`.
+   paired rollback performs its destructive-action preflight and DROP in one
+   transaction after acquiring `ACCESS EXCLUSIVE` on
+   `public.global_ask_job`. It accepts only the canonical
+   `public.global_ask_job` btree, non-unique, single-key, no-INCLUDE shape and
+   exact queued/running predicate. A valid/ready index must additionally carry
+   the exact repository marker before rollback may delete it. An unmarked index
+   is rollback-eligible only while it is invalid or not ready and otherwise has
+   that exact canonical physical shape, covering a failed concurrent build that
+   stopped before `COMMENT ON INDEX` ran. A valid unmarked index, an unexpected
+   marker, another table, another access method/key/predicate, or a non-index
+   relation fails closed and requires an explicit operator ownership decision.
+   Because `DROP INDEX CONCURRENTLY` cannot execute inside that protective
+   transaction, the exceptional rollback uses ordinary schema-qualified
+   `DROP INDEX` while holding the parent-table lock. Recovery of an accepted
+   failed-build artifact is paired rollback, migration 0251 replay, and
+   verification of the marker plus `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -158,6 +170,11 @@ with another writer's migration identity.
   repository-owned canonical index or an incomplete unmarked canonical-shaped
   failed-build artifact, but it refuses a valid unmarked/mismarked index or an
   incompatible relation even when the canonical name matches.
+- Rollback validation and deletion now share one transaction and parent-table
+  lock, so a privileged concurrent session cannot replace the validated index
+  before the destructive statement. The trade-off is a brief `ACCESS EXCLUSIVE`
+  outage on `global_ask_job` during exceptional rollback; operators must schedule
+  that recovery rather than treating rollback as a zero-impact online action.
 - A table, view, sequence, partitioned index, or other unsupported relation that
   occupies the canonical index name stops rollout without destructive automated
   cleanup. Operators must resolve that ownership collision explicitly before
@@ -201,6 +218,11 @@ with another writer's migration identity.
   operator-owned. Destructive rollback requires canonical physical shape plus
   repository ownership, except for an incomplete canonical-shaped failed-build
   artifact that can exist before the ownership marker is written.
+- Keeping ownership preflight and `DROP INDEX CONCURRENTLY` as separate
+  autocommit statements was rejected because a privileged session can replace
+  the validated relation in that gap. Re-checking immediately before DROP does
+  not remove the race. Exceptional rollback therefore uses one lock-protected
+  transaction and an ordinary DROP instead of concurrent deletion.
 - Accepting a same-named index by textual definition tokens or catalog marker
   alone was rejected because another relation can carry a lookalike index and a
   narrower predicate on the canonical table can retain both the expected tokens
@@ -225,6 +247,8 @@ with another writer's migration identity.
   documentation. https://www.postgresql.org/docs/current/sql-createindex.html
 - PostgreSQL Global Development Group. (2026). *DROP INDEX*. PostgreSQL 18
   documentation. https://www.postgresql.org/docs/current/sql-dropindex.html
+- PostgreSQL Global Development Group. (2026). *LOCK*. PostgreSQL 18
+  documentation. https://www.postgresql.org/docs/current/sql-lock.html
 - PostgreSQL Global Development Group. (2026). *CREATE TABLE: Temporary tables*.
   PostgreSQL 18 documentation.
   https://www.postgresql.org/docs/current/sql-createtable.html
