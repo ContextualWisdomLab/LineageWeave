@@ -30,7 +30,7 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
           nextAction={
             retryLoadedPage
               ? "불러온 근거는 그대로 유지됩니다. 실패한 다음 페이지를 다시 요청하세요."
-              : "저장된 근거는 그대로 볼 수 있습니다. 같은 조회를 다시 시도하세요."
+              : "같은 조회를 다시 시도하세요."
           }
           retryLabel={retryLoadedPage ? "이전 VOC 더 불러오기 다시 시도" : "유사 VOC 다시 조회"}
           onRetry={retryAction ?? undefined}
