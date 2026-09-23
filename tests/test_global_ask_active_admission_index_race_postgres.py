@@ -22,7 +22,6 @@ _ROOT = Path(__file__).resolve().parents[1]
 _MIGRATIONS_DIR = _ROOT / "migrations"
 _MIGRATION = _MIGRATIONS_DIR / "0251_global_ask_active_admission_index.sql"
 _INDEX_NAME = "global_ask_job_active_account_idx"
-_INDEX_CONTRACT = "lineageweave/global-ask-active-admission-index/v1"
 
 
 def _database_dsn(database_name: str) -> str:
@@ -78,9 +77,9 @@ async def _race_scenario() -> None:
         observer = await asyncpg.connect(database_dsn)
 
         source = _MIGRATION.read_text(encoding="utf-8")
-        needle = f"create index concurrently if not exists {_INDEX_NAME}"
-        assert needle in source, "race fixture must intercept the executable 0251 CREATE"
-        raced = source.replace(needle, "select pg_sleep(3);\n\n" + needle, 1)
+        marker = "-- Conditional DDL starts here."
+        assert marker in source, "race fixture must intercept the post-preflight DDL boundary"
+        raced = source.replace(marker, "select pg_sleep(3);\n\n" + marker, 1)
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".sql", encoding="utf-8", delete=False
         ) as handle:
@@ -125,10 +124,10 @@ async def _race_scenario() -> None:
 
         stdout, stderr = process.communicate(timeout=8)
         assert process.returncode != 0, stdout + stderr
-        marker = await observer.fetchval(
+        ownership = await observer.fetchval(
             f"select obj_description('public.{_INDEX_NAME}'::regclass, 'pg_class')"
         )
-        assert marker is None, "migration must never stamp ownership onto a raced foreign index"
+        assert ownership is None, "migration must never stamp ownership onto a raced foreign index"
         predicate = await observer.fetchval(
             f"select pg_get_expr(indpred, indrelid, true) from pg_index "
             f"where indexrelid = 'public.{_INDEX_NAME}'::regclass"
