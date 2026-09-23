@@ -25,4 +25,5 @@ def test_similar_voc_pagination_scope_includes_authorization_context() -> None:
     ), "Similar VOC scope identity must rotate when either post or authorization changes"
 
     assert "const requestScope = similarVocScopeRef.current;" in source
-    assert source.count("similarVocScopeRef.current !== requestScope") >= 3
+    assert source.count("similarVocScopeRef.current !== requestScope") >= 2
+    assert "similarVocScopeRef.current === requestScope" in source
