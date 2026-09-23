@@ -27,7 +27,10 @@ PostgreSQL retains a same-named `INVALID` index after some failed
 NOT EXISTS` against that relation can otherwise return success while leaving the
 capacity access path unusable. A valid same-named index on a different relation
 is equally unsafe: relation-name reuse must not satisfy the canonical
-`global_ask_job` access-path contract.
+`global_ask_job` access-path contract. Textual token checks alone are also
+insufficient on the canonical table: a narrower predicate such as the intended
+queued/running predicate combined with `AND false` still contains every expected
+token while being unusable for the admission query.
 
 The active-admission migration also needs an unambiguous composition slot across
 live LineageWeave lanes. Open translation-ledger work owns 0246 through 0248 and
@@ -54,13 +57,15 @@ with another writer's migration identity.
 5. PostgreSQL maintains a partial index on `requesting_account_id` for only
    `queued` and `running` Global Ask rows. The index is created concurrently so
    migration does not require a write-blocking index build on accumulated job
-   history. Before `IF NOT EXISTS` is allowed to accept a same-named relation,
-   migration 0251 requires that relation to be bound exactly to
-   `public.global_ask_job`, valid, ready, non-unique, and structurally
-   compatible. An invalid, shadow-table, or otherwise incompatible relation
-   fails migration closed. Recovery is explicit: run the paired concurrent
-   rollback for 0251, then replay migration 0251 and require `indisvalid=true`
-   and `indisready=true`.
+   history. Migration 0251 stamps the repository-owned index with the immutable
+   catalog marker `lineageweave/global-ask-active-admission-index/v1`. Before
+   `IF NOT EXISTS` is allowed to accept a same-named relation, replay requires
+   the exact canonical table, valid/ready non-unique single-key shape,
+   `requesting_account_id` key, expected active-status definition, and that
+   version marker. An invalid, shadow-table, unversioned lookalike, or otherwise
+   incompatible relation fails migration closed. Recovery is explicit: run the
+   paired concurrent rollback for 0251, replay migration 0251, and require both
+   the marker and `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -79,10 +84,10 @@ with another writer's migration identity.
   terminal rows that the admission query never consumes.
 - Concurrent index creation follows the repository migration contract and must
   run outside a transaction. A failed concurrent build cannot be silently
-  accepted on replay, and a same-named index on another relation cannot
-  masquerade as the canonical access path; rollout stops until the conflicting
-  relation is removed with the paired rollback and the migration is replayed
-  successfully.
+  accepted on replay, and neither a same-named index on another relation nor an
+  unversioned same-table lookalike can masquerade as the canonical access path;
+  rollout stops until the conflicting relation is removed with the paired
+  rollback and migration 0251 is replayed successfully.
 - Live migration identities remain composable with the translation-ledger and
   customer-resolution lanes instead of depending on merge order to resolve a
   duplicate numeric slot.
@@ -107,8 +112,10 @@ with another writer's migration identity.
   concurrent build was rejected because PostgreSQL can retain a same-named
   invalid relation and turn the replay into a false-success deployment.
 - Accepting a same-named index by textual definition alone was rejected because
-  another relation can carry a lookalike index and cause `IF NOT EXISTS` to
-  skip creation on `public.global_ask_job`.
+  another relation can carry a lookalike index and because a narrower predicate
+  on the canonical table can contain the expected tokens while still being
+  unusable. The catalog marker makes the repository-owned definition explicit
+  and replay-verifiable.
 - Retaining migration number 0246 was rejected because another live owner lane
   already uses 0246 for the UI translation ledger; merge order must not decide
   which semantic migration owns a sequence identity.
