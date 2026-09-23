@@ -44,6 +44,19 @@ def test_latest_validation_overlay_records_current_owner_and_voice_heads() -> No
     assert "adds no fixed Voice combination" in overlay
 
 
+def test_latest_validation_overlay_keeps_voice_adr_authority_exact() -> None:
+    """Voice composition must not absorb the unrelated ADR 0251 FJA authority."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+    _, voice_marker, voice_tail = overlay.partition("Voice-of-X candidate #1121")
+
+    assert voice_marker, "latest overlay must include the current Voice candidate"
+    voice_contract = voice_tail.split("This baseline PR was inspected", 1)[0]
+    assert "ADRs 0246" in voice_contract
+    assert "0252" in voice_contract
+    assert "0256" in voice_contract
+    assert "0251" not in voice_contract
+
+
 def test_latest_validation_overlay_keeps_browser_and_load_evidence_bounded() -> None:
     """Candidate browser proof must not promote a failed load admission to acceptance."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
