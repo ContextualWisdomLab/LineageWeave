@@ -36,13 +36,14 @@ class FakeValkey:
 
 
 @pytest.mark.anyio
-async def test_limiter_uses_opaque_account_key_and_atomic_window() -> None:
+async def test_limiter_preserves_existing_opaque_account_key_and_atomic_window() -> None:
+    """Rolling REST/MCP convergence must not split one distributed quota."""
     client = FakeValkey([1, 60])
     limiter = ValkeyMcpRateLimiter(client, request_limit=2, window_seconds=60)
     await limiter.consume("customer-account")
     assert client.call[1:] == (
         1,
-        "lineageweave:global-ask-principal-quota:v1:"
+        "lineageweave:mcp-rate-limit:v1:"
         + hashlib.sha256(b"customer-account").hexdigest(),
         60,
     )
