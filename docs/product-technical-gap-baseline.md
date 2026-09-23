@@ -1,5 +1,67 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-23T09:06:49Z (KST 2026-09-23
+> 18:06:49+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The capture contains
+> 165 open PRs and 42 open non-PR issues. Remote metadata confirms
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/contextual-orchestrator` as the canonical repository
+> names. RankWeave and disksage still have no standalone protected-main PRD;
+> their README/architecture and current design specification remain the product
+> authority rather than an inferred PRD.
+>
+> The largest user-visible gap remains safe browser sign-in continuity.
+> Parent-first stack authority is #899 `c10b6545520afb342e68d01ea4bcfce75a6e5bab`
+> -> #1118 -> #1120 `73ab7ea24517bfcb1edfc83676f9fb56ea524bc0`
+> -> #1124 `c49aff397736db601fd1d2cb428c8006d0090d26`.
+> Every member remains Draft. Prior authenticated desktop/mobile render and
+> `/api/me` receipts are candidate evidence only: all 538 frontend tests passed.
+> Four authenticated Playwright scenarios passed, and `/api/me` returned
+> successfully. This is not protected-main delivery; no current protected-main
+> merge SHA, current-head hosted acceptance, or independent approval exists.
+> There is no admitted `lineageweave-test-automation` client. No concurrency,
+> latency, error-rate, throughput, or saturation conclusion is available, so
+> authentication admission is not an observed product bottleneck.
+> The stack must merge parent first, retarget each child to `main`, and collect
+> fresh exact-head evidence after every parent merge.
+>
+> Global Ask shared-admission candidate #1125 is Draft at exact
+> `925e0ab29200e7a03c0566001150fd0d820c9b61`. Migration 0251 now belongs to
+> that candidate; translation-ledger #929 owns 0246-0248 and customer-resolution
+> #1055 owns 0250. The candidate has source-level two-session PostgreSQL
+> serialization and fail-closed index identity/replay coverage, but the required
+> named-deployment authenticated API plus k6 burst, parallelism, quota-window
+> expiry, capacity release, principal isolation, latency, throughput, error-rate,
+> and PostgreSQL/worker/Valkey/gateway saturation evidence is unavailable.
+> Repository capacity defaults therefore remain unavailable rather than guessed.
+>
+> Voice-of-X candidate #1121 remains Draft at exact
+> `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. It preserves the twelve atomic
+> Voices and extensible evidence-bearing composition from ADRs 0246,
+> 0251, 0252, and 0256 without enumerating compound codes; it adds no fixed
+> Voice combination. Carrying Post and
+> derivation-evidence Post remain distinct; truth status, cutoff, and PROV-O
+> derivation remain mandatory; hidden evidence is never substituted. No
+> authenticated PostgreSQL/API plus rendered desktop/mobile acceptance exists,
+> so the Voice acceptance criteria remain candidate-only. Release identities
+> #843/#844 (`v2.62.0`) and #876/#877 (`v2.92.0`) still collide and remain
+> unavailable for promotion.
+>
+> This baseline PR was inspected at exact input head
+> `8bc5ea0b79f14872bce32b43618c560e5f64f519`. Its current-head Tests are
+> Draft-skipped, central SAST/Security/CodeQL work is nonterminal, and no
+> qualifying independent approval exists. contextual-orchestrator #1209 is
+> still Draft at `33c14c4b05a6fff6c11800b60184d2bdd3eb01db`, and its Releases API is
+> `[]`. contextual-orchestrator#1083 still owns its released API/client/schema
+> contract. Historical consumer evidence used fast-mlsirm 0.11.3 while that
+> owner head locked 0.11.4. LineageWeave therefore does not promote its local
+> `/v1/chat/completions` client or fixed `180.0s` timeout, copy owner
+> transport/model policy, or bind to mutable `main`. CodeQL language detection
+> and CodeQL compatibility/dispatch settlement remain queued; no partial
+> detector result is treated as a successful required check.
+
 > Exact-head validation overlay: 2026-09-23T07:57:56Z (KST 2026-09-23
 > 16:57:56+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
@@ -36,7 +98,7 @@
 > `63b5f2518cffec6b9b2afb53ddb48709fb2c141d`. Exact-head review removed an
 > unsupported `Retry-After` estimate, bounded the active-job lookup with a
 > replay-safe PostgreSQL access path, and moved that migration away from the
-> existing Voice-of-X `0246` identity. The focused
+> translation-ledger `0246`-`0248` sequence. The focused
 > admission/service/PostgreSQL/documentation suite passes 60/60 locally.
 > GitHub returned the PR to Draft after its Ready transition, so repository
 > Tests remain skipped and normal auto-merge is no longer active. Fresh
