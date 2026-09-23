@@ -1,18 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AuthContext, type AuthContextProps } from "react-oidc-context";
 import { describe, expect, it, vi } from "vitest";
 import { SimilarVocPanel } from "./SimilarVocPanel";
+
+const evidence = [{
+  post_id: "post-2", post_title: "합성 과거 VOC", issue_summary: "동일 씰 고장 유형",
+  focal_evidence_text: "인수 검사 중 씰 누설이 확인되었습니다.",
+  candidate_evidence_text: "시험 중 씰 누설이 확인되었습니다.", customer_cohort_text: "합성 고객군 A",
+  action_history: ["가스켓을 교체하고 압력을 재검증했습니다."], occurred_at: "2026-08-20T09:00:00Z",
+}];
+
+function authContext(accessToken: string): AuthContextProps {
+  return { user: { access_token: accessToken } } as unknown as AuthContextProps;
+}
 
 describe("SimilarVocPanel", () => {
   it("opens a cited prior VOC and shows its action history", async () => {
     const onOpenPost = vi.fn();
     const onLoadMore = vi.fn();
-    render(<SimilarVocPanel items={[{
-      post_id: "post-2", post_title: "합성 과거 VOC", issue_summary: "동일 씰 고장 유형",
-      focal_evidence_text: "인수 검사 중 씰 누설이 확인되었습니다.",
-      candidate_evidence_text: "시험 중 씰 누설이 확인되었습니다.", customer_cohort_text: "합성 고객군 A",
-      action_history: ["가스켓을 교체하고 압력을 재검증했습니다."], occurred_at: "2026-08-20T09:00:00Z",
-    }]} onOpenPost={onOpenPost} onLoadMore={onLoadMore} />);
+    render(<SimilarVocPanel items={evidence} onOpenPost={onOpenPost} onLoadMore={onLoadMore} />);
     expect(screen.getByText("가스켓을 교체하고 압력을 재검증했습니다.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "근거 글 열기" }));
     expect(onOpenPost).toHaveBeenCalledWith("post-2");
@@ -100,5 +107,36 @@ describe("SimilarVocPanel", () => {
     expect(notice).not.toHaveTextContent("저장된 근거는 그대로 볼 수 있습니다");
     await userEvent.click(screen.getByRole("button", { name: "유사 VOC 다시 조회" }));
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("hides prior-account evidence and pagination until the new authorization scope resets", () => {
+    const onLoadMore = vi.fn();
+    const { rerender } = render(
+      <AuthContext.Provider value={authContext("token-a")}>
+        <SimilarVocPanel items={evidence} onOpenPost={() => undefined} onLoadMore={onLoadMore} />
+      </AuthContext.Provider>,
+    );
+    expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
+
+    rerender(
+      <AuthContext.Provider value={authContext("token-b")}>
+        <SimilarVocPanel items={evidence} onOpenPost={() => undefined} onLoadMore={onLoadMore} />
+      </AuthContext.Provider>,
+    );
+    expect(screen.queryByText("합성 과거 VOC")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("유사 VOC 근거를 판정하고 있습니다");
+
+    rerender(
+      <AuthContext.Provider value={authContext("token-b")}>
+        <SimilarVocPanel items={null} onOpenPost={() => undefined} onLoadMore={onLoadMore} />
+      </AuthContext.Provider>,
+    );
+    rerender(
+      <AuthContext.Provider value={authContext("token-b")}>
+        <SimilarVocPanel items={[{ ...evidence[0], post_id: "post-3", post_title: "새 권한 범위 VOC" }]} onOpenPost={() => undefined} />
+      </AuthContext.Provider>,
+    );
+    expect(screen.getByText("새 권한 범위 VOC")).toBeInTheDocument();
   });
 });
