@@ -84,12 +84,25 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T14:03:36Z" in overlay
+    assert "2026-09-23T15:22:05Z" in overlay
     assert "`2cbc64bbf436d63e7851f8f977872683c0a40d9d`" in overlay
     assert "two-session PostgreSQL serialization" in overlay
     assert "k6 burst" in overlay
     assert "evidence remains unavailable" in overlay
     assert "unavailable capacity default" in overlay
+
+
+def test_latest_validation_overlay_pins_similar_voc_retry_acceptance_boundary() -> None:
+    """Similar VOC recovery keeps exact-head UI proof below runtime acceptance."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+
+    assert "2026-09-23T15:22:05Z" in overlay
+    assert "`1515b872d32b7e943c6c09b0f7da2806fe1224ac`" in overlay
+    assert "all 533 frontend tests" in overlay
+    assert "`RetainedEvidenceRetry`" in overlay
+    assert "`EmptyNextPageRetry`" in overlay
+    assert "authenticated PostgreSQL/API acceptance" in overlay
+    assert "no qualifying independent approval exists" in overlay
 
 
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:

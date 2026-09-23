@@ -1,5 +1,75 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-23T15:22:05Z (KST 2026-09-24
+> 00:22:05+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The capture contains
+> 166 open PRs and 42 open non-PR issues. Remote metadata confirms the
+> canonical repository names `ContextualWisdomLab/LineageWeave`,
+> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`. The
+> LineageWeave supporting PRD and normative ADRs were read before this update;
+> RankWeave and disksage still use their current architecture/product authority
+> because no standalone protected-main PRD is present.
+>
+> The highest-impact independently deliverable buyer increment remains Similar
+> VOC recovery after a failed initial or later-page request. Draft PR #1126 is
+> now exact `1515b872d32b7e943c6c09b0f7da2806fe1224ac`. Backend pagination can
+> return `items=[]` with a non-null next offset, so the repaired UI identifies a
+> failed later-page request from its page retry action rather than from retained
+> item count. It retries that page without restarting at offset zero, claims
+> retained evidence only when evidence is mounted, avoids a duplicate recovery
+> action, and reuses `StatusNotice` plus existing tokens. Exact-head local
+> evidence is all 533 frontend tests, lint, production build, and Storybook
+> build passing. `RetainedEvidenceRetry` was inspected at 1440 x 900 and
+> `EmptyNextPageRetry` at 390 x 844; the recovery action and evidence state fit
+> without horizontal overflow. This is source and rendered candidate evidence,
+> not authenticated PostgreSQL/API acceptance or protected-main delivery.
+> Current-head repository Tests are Draft-skipped; SAST, Security, and CodeQL
+> remain nonterminal, and no qualifying independent approval exists.
+>
+> Global Ask shared admission remains Draft PR #1125 at exact
+> `2cbc64bbf436d63e7851f8f977872683c0a40d9d`. Its two-session PostgreSQL
+> serialization and unavailable capacity default remain source evidence. Named
+> deployment authenticated API plus k6 burst, quota expiry, capacity recovery,
+> principal isolation, synchronous admission p95, throughput, error-rate, and
+> PostgreSQL/worker/Valkey/gateway saturation evidence remains unavailable. No
+> unobserved bottleneck, threshold, or capacity value is inferred.
+>
+> The browser-sign-in stack remains Draft #899 exact
+> `c10b6545520afb342e68d01ea4bcfce75a6e5bab` -> #1118 -> #1120 -> #1124.
+> Prior candidate evidence has all 538 frontend tests and Four authenticated
+> Playwright scenarios passed, with `/api/me` returned successfully. It is not
+> protected-main delivery because there is no admitted
+> `lineageweave-test-automation` client. No concurrency, latency, error-rate,
+> throughput, or saturation evidence exists; authentication is not an observed
+> product bottleneck. Parent #899 still depends on contextual-orchestrator
+> candidate #1209 exact `33c14c4b05a6fff6c11800b60184d2bdd3eb01db`.
+> contextual-orchestrator#1083 owns the released API/client/schema boundary;
+> the owner Releases API remains `[]`. Historical consumer evidence used
+> fast-mlsirm 0.11.3 while the owner head locked 0.11.4. LineageWeave does not
+> promote a local `/v1/chat/completions` client or fixed `180.0s` timeout and
+> does not bind to mutable `main`.
+>
+> ADR 0251 remains the separate FJA/I-O psychology authority, not a Voice
+> composition decision. Voice-of-X candidate #1121 remains Draft at exact
+> `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. ADRs 0246, 0256, and 0252 own
+> the twelve atomic Voices, extensible evidence-bearing composition, and
+> temporal primary-Voice history. The candidate adds no fixed Voice combination.
+> Carrying Post and derivation evidence remain distinct; hidden evidence is
+> omitted rather than replaced, and truth status, cutoff, authorization, and
+> PROV-O derivation remain mandatory. Without fresh authenticated PostgreSQL
+> API and rendered UI evidence on a protected head, no Voice acceptance item is
+> promoted to complete.
+>
+> This baseline PR was inspected at exact input head
+> `c3eba2eeb225f907fe2e13d2c31baccd7e4a3929`. Its published review findings
+> are resolved, but its repository Tests are Draft-skipped, central
+> SAST/Security/CodeQL work is nonterminal, and no qualifying independent
+> approval exists. CodeQL language detection and CodeQL compatibility/dispatch
+> settlement remain queued; no partial detector result is promoted as
+> successful required CodeQL. Open release collisions #843/#844 (`v2.62.0`)
+> and #876/#877 (`v2.92.0`) remain unavailable for promotion.
+
 > Exact-head validation overlay: 2026-09-23T14:03:36Z (KST 2026-09-23
 > 23:03:36+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The capture contains
