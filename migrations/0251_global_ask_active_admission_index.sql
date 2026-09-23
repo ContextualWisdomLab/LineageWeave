@@ -60,8 +60,8 @@ end
 $$;
 
 create index concurrently if not exists global_ask_job_active_account_idx
-    on global_ask_job (requesting_account_id)
+    on public.global_ask_job (requesting_account_id)
     where job_status_code in ('queued', 'running');
 
-comment on index global_ask_job_active_account_idx is
+comment on index public.global_ask_job_active_account_idx is
     'lineageweave/global-ask-active-admission-index/v1';
