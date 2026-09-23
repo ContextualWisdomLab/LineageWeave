@@ -1,15 +1,30 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { setLocale } from "../i18n";
+import { useLayoutEffect, useState, type ComponentType } from "react";
+import { getLocale, setLocale } from "../i18n";
 import { SimilarVocPanel } from "./SimilarVocPanel";
+
+function KoreanStoryBoundary({ Story }: { Story: ComponentType }) {
+  const [localeReady, setLocaleReady] = useState(() => getLocale() === "ko");
+
+  useLayoutEffect(() => {
+    const previousLocale = getLocale();
+    if (previousLocale !== "ko") {
+      setLocale("ko");
+      setLocaleReady(true);
+    }
+    return () => {
+      setLocale(previousLocale);
+    };
+  }, []);
+
+  return localeReady ? <Story /> : null;
+}
 
 const meta = {
   title: "Post/Similar VOC",
   component: SimilarVocPanel,
   decorators: [
-    (Story) => {
-      setLocale("ko");
-      return Story();
-    },
+    (Story) => <KoreanStoryBoundary Story={Story as ComponentType} />,
   ],
 } satisfies Meta<typeof SimilarVocPanel>;
 export default meta;
