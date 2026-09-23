@@ -97,7 +97,7 @@ def test_latest_validation_overlay_pins_similar_voc_retry_acceptance_boundary() 
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
     assert "2026-09-23T18:59:09Z" in overlay
-    assert "`fe5682d17a8afeebcbcc0de927d14b0fe7aa9122`" in overlay
+    assert "`fe5682d17be0baf5711af39ffed8eea16f74278a`" in overlay
     assert "109 focused frontend tests" in overlay
     assert "retained evidence retry story" in overlay
     assert "Storybook 320 x 568 small-mobile viewport" in overlay

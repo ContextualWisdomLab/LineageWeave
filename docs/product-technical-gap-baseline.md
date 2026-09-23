@@ -13,7 +13,7 @@
 >
 > The largest independently deliverable buyer gap remains safe Similar VOC
 > recovery after an initial or later-page failure. Draft PR #1126 is exact
-> `fe5682d17a8afeebcbcc0de927d14b0fe7aa9122`. Review of the preceding exact
+> `fe5682d17be0baf5711af39ffed8eea16f74278a`. Review of the preceding exact
 > head found that `App.test.tsx` replaced the whole OIDC module, so importing
 > the real `AuthContext` from `SimilarVocPanel` failed and two App regression
 > paths fell into the surface error boundary. The minimal fix preserves the
