@@ -1,40 +1,5 @@
 # Product & Technical Gap Baseline
 
-> Exact-head authority overlay captured `2026-09-23T00:27:49Z`
-> (`2026-09-23 09:27:49 KST`). Protected `main` was
-> `83eba56149eb802cd63642c507c324c9976ec78e`. The snapshot includes PRs and
-> issues returned before that UTC cutoff only; later creations or pushes must
-> be re-fetched rather than appended to this immutable count. There were 164
-> open PRs and 42 open issues excluding PRs. These are live aggregate inventory
-> counts, not product capability or population inference.
->
-> Authority is separated as follows. ADRs remain normative decisions; cited
-> research supports them but does not create runtime behavior; protected
-> `main` is the current implementation authority; open PRs/issues are candidate
-> or missing work only. Exact #1121 head
-> `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c` was ready with normal squash
-> auto-merge enabled, but remained blocked pending fresh required checks and a
-> qualifying independent exact-head approval. No predecessor review receipt is
-> transferred.
->
-> The largest admitted user-impact gap selected in this cycle is critical issue
-> #1051: protected `main` lets authenticated REST callers enqueue unbounded
-> durable Global Ask work. ADR 0272 and the current candidate add a shared
-> REST/MCP principal quota, UTF-8 question-byte admission, and transactionally
-> serialized active-job admission. All capacity values remain unavailable
-> until supplied from a named deployment's authenticated k6 saturation
-> evidence; no guessed limit is shipped. This candidate is not protected-main
-> capability, and authenticated PostgreSQL/API plus rendered runtime evidence
-> remain unverified.
->
-> Remote canonical names verified at this capture are
-> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
-> `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/TEPP`, and lowercase
-> `ContextualWisdomLab/disksage`. Product-authority documents were read before
-> implementation. This candidate corrects the PRD's stale
-> `ContextualWisdomLab/DiskSage` spelling, but that correction is not current
-> product authority until protected integration.
-
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
