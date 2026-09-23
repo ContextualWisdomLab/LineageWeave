@@ -505,7 +505,7 @@ A release claim requires one exact protected-main head that proves:
 
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
-- Shared Global Ask admission: ADR 0272.
+- Shared Global Ask admission: ADR 0376.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
   ADR 0184, ADR 0207, ADR 0222, ADR 0246.
