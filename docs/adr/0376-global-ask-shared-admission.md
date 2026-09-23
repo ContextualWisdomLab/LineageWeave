@@ -34,6 +34,14 @@ token while being unusable for the admission query. A catalog comment/version
 marker is identity evidence, not proof of predicate semantics; a copied marker
 on a malformed index must therefore fail as well.
 
+Index names share PostgreSQL's schema relation namespace with tables, views,
+sequences, and other relations. A same-named non-index relation can therefore
+occupy `public.global_ask_job_active_account_idx` before migration 0251 runs.
+That collision is not an invalid-index recovery case: `DROP INDEX` is not the
+safe remediation for a table, view, sequence, or unsupported index relation
+kind. Migration diagnostics must distinguish the relation kind before giving an
+operator the paired index-rollback procedure.
+
 PostgreSQL temporary relations also shadow same-named permanent relations for
 the creating session unless the permanent object is schema-qualified. Because
 indexes on temporary tables are always built and dropped non-concurrently, an
@@ -70,17 +78,23 @@ with another writer's migration identity.
    `public.global_ask_job_active_account_idx` explicitly, so neither path can be
    redirected by `pg_temp` or another `search_path` entry. Migration 0251 stamps
    the repository-owned index with the immutable catalog marker
-   `lineageweave/global-ask-active-admission-index/v1`. Before `IF NOT EXISTS` is
-   allowed to accept a same-named relation, replay requires the exact canonical
-   table, valid/ready non-unique single-key shape, `requesting_account_id` key,
-   the exact PostgreSQL-decompiled active predicate for queued/running rows, and
-   that version marker. The predicate check is anchored to the whole decompiled
-   expression rather than token presence, so a version-marked `AND false` or
-   otherwise narrowed lookalike cannot pass. An invalid, shadow-table,
-   unversioned, predicate-incompatible, or otherwise incompatible relation fails
-   migration closed. Recovery is explicit: run the schema-qualified paired
-   concurrent rollback for 0251, replay migration 0251, and require both the
-   marker and `indisvalid=true` / `indisready=true`.
+   `lineageweave/global-ask-active-admission-index/v1`. Before index-specific
+   replay validation, migration 0251 resolves the existing schema relation and
+   verifies that it is an ordinary index relation. A same-named table, view,
+   sequence, partitioned/otherwise unsupported index relation, or other relation
+   kind fails closed with explicit operator remediation and is never described
+   as safe to remove through the paired index rollback. For an ordinary index,
+   replay then requires the exact canonical table, valid/ready non-unique
+   single-key shape, `requesting_account_id` key, the exact PostgreSQL-decompiled
+   active predicate for queued/running rows, and that version marker. The
+   predicate check is anchored to the whole decompiled expression rather than
+   token presence, so a version-marked `AND false` or otherwise narrowed
+   lookalike cannot pass. Invalid or incompatible ordinary indexes fail closed;
+   their recovery is the schema-qualified paired concurrent rollback for 0251,
+   replay of migration 0251, and verification of both the marker and
+   `indisvalid=true` / `indisready=true`. Non-index relation collisions instead
+   require an explicit operator decision to rename or remove that conflicting
+   relation before replay.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -101,8 +115,12 @@ with another writer's migration identity.
   run outside a transaction. A failed concurrent build cannot be silently
   accepted on replay, and neither a same-named index on another relation nor a
   version-marked narrower same-table lookalike can masquerade as the canonical
-  access path; rollout stops until the conflicting relation is removed with the
-  paired rollback and migration 0251 is replayed successfully.
+  access path. Actual invalid/incompatible ordinary indexes use the paired
+  rollback-and-replay recovery path.
+- A table, view, sequence, partitioned index, or other unsupported relation that
+  occupies the canonical index name stops rollout without destructive automated
+  cleanup. Operators must resolve that ownership collision explicitly before
+  migration replay; the ordinary index rollback is not advertised as a remedy.
 - Forward migration and rollback are immune to temporary-table/index name
   shadowing because the durable table and index are schema-qualified; a session
   cannot satisfy recovery by mutating only `pg_temp`.
@@ -129,6 +147,11 @@ with another writer's migration identity.
 - Silently replaying `CREATE INDEX CONCURRENTLY IF NOT EXISTS` after a failed
   concurrent build was rejected because PostgreSQL can retain a same-named
   invalid relation and turn the replay into a false-success deployment.
+- Treating every same-named relation as an invalid index and recommending
+  `DROP INDEX` was rejected because PostgreSQL's relation namespace can contain
+  a table, view, sequence, partitioned index, or other unsupported relation at
+  that name. Recovery guidance must not turn a fail-closed collision into an
+  unsafe or inapplicable destructive action.
 - Accepting a same-named index by textual definition tokens or catalog marker
   alone was rejected because another relation can carry a lookalike index and a
   narrower predicate on the canonical table can retain both the expected tokens
