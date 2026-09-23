@@ -50,6 +50,7 @@ begin
            or index_attribute_count is distinct from 1
            or first_index_key is distinct from 'requesting_account_id'
            or index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1'
+           or index_predicate is null
            or regexp_replace(lower(index_predicate), '\s+', ' ', 'g') not in (
                'job_status_code = any (array[''queued''::text, ''running''::text])',
                '(job_status_code = any (array[''queued''::text, ''running''::text]))'
