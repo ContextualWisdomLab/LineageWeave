@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head validation overlay: 2026-09-23T15:22:05Z (KST 2026-09-24
-> 00:22:05+09:00). Protected `main` remains
+> Exact-head validation overlay: 2026-09-23T16:39:25Z (KST 2026-09-24
+> 01:39:25+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). The capture contains
 > 166 open PRs and 42 open non-PR issues. Remote metadata confirms the
 > canonical repository names `ContextualWisdomLab/LineageWeave`,
@@ -12,23 +12,26 @@
 > because no standalone protected-main PRD is present.
 >
 > The highest-impact independently deliverable buyer increment remains Similar
-> VOC recovery after a failed initial or later-page request. Draft PR #1126 is
-> now exact `1515b872d32b7e943c6c09b0f7da2806fe1224ac`. Backend pagination can
+> VOC recovery after a failed initial or later-page request. Ready PR #1126 is
+> now exact `a8e0ca6e4bbd60df80be04f6ecc1c963b4291887` with normal squash
+> auto-merge enabled. Backend pagination can
 > return `items=[]` with a non-null next offset, so the repaired UI identifies a
 > failed later-page request from its page retry action rather than from retained
 > item count. It retries that page without restarting at offset zero, claims
 > retained evidence only when evidence is mounted, avoids a duplicate recovery
-> action, and reuses `StatusNotice` plus existing tokens. Exact-head local
+> action, rejects an obsolete page response after the authorization scope
+> changes, and reuses `StatusNotice` plus existing tokens. Exact-head local
 > evidence is all 533 frontend tests, lint, production build, and Storybook
-> build passing. `RetainedEvidenceRetry` was inspected at 1440 x 900 and
-> `EmptyNextPageRetry` at 390 x 844; the recovery action and evidence state fit
+> build passing. `RetainedEvidenceRetry` was inspected in the current desktop
+> viewport and at 390 x 844, and `EmptyNextPageRetry` was inspected at
+> 390 x 844; the recovery action and evidence state fit
 > without horizontal overflow. This is source and rendered candidate evidence,
 > not authenticated PostgreSQL/API acceptance or protected-main delivery.
-> Current-head repository Tests are Draft-skipped; SAST, Security, and CodeQL
+> Fresh exact-head repository Tests are queued; SAST, Security, and CodeQL
 > remain nonterminal, and no qualifying independent approval exists.
 >
 > Global Ask shared admission remains Draft PR #1125 at exact
-> `2cbc64bbf436d63e7851f8f977872683c0a40d9d`. Its two-session PostgreSQL
+> `2f2bac4d999482a68422811b20c92dc715b0375d`. Its two-session PostgreSQL
 > serialization and unavailable capacity default remain source evidence. Named
 > deployment authenticated API plus k6 burst, quota expiry, capacity recovery,
 > principal isolation, synchronous admission p95, throughput, error-rate, and
@@ -51,7 +54,7 @@
 > does not bind to mutable `main`.
 >
 > ADR 0251 remains the separate FJA/I-O psychology authority, not a Voice
-> composition decision. Voice-of-X candidate #1121 remains Draft at exact
+> composition decision. Voice-of-X candidate #1121 is Ready at exact
 > `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`. ADRs 0246, 0256, and 0252 own
 > the twelve atomic Voices, extensible evidence-bearing composition, and
 > temporal primary-Voice history. The candidate adds no fixed Voice combination.
@@ -59,10 +62,11 @@
 > omitted rather than replaced, and truth status, cutoff, authorization, and
 > PROV-O derivation remain mandatory. Without fresh authenticated PostgreSQL
 > API and rendered UI evidence on a protected head, no Voice acceptance item is
-> promoted to complete.
+> promoted to complete. Normal squash auto-merge is enabled, while fresh
+> exact-head repository Tests are queued and independent approval is absent.
 >
 > This baseline PR was inspected at exact input head
-> `c3eba2eeb225f907fe2e13d2c31baccd7e4a3929`. Its published review findings
+> `2871758617af727a606934f1becc25c41b933ed6`. Its published review findings
 > are resolved, but its repository Tests are Draft-skipped, central
 > SAST/Security/CodeQL work is nonterminal, and no qualifying independent
 > approval exists. CodeQL language detection and CodeQL compatibility/dispatch

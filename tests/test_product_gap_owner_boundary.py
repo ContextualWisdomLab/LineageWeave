@@ -84,8 +84,8 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T15:22:05Z" in overlay
-    assert "`2cbc64bbf436d63e7851f8f977872683c0a40d9d`" in overlay
+    assert "2026-09-23T16:39:25Z" in overlay
+    assert "`2f2bac4d999482a68422811b20c92dc715b0375d`" in overlay
     assert "two-session PostgreSQL serialization" in overlay
     assert "k6 burst" in overlay
     assert "evidence remains unavailable" in overlay
@@ -96,11 +96,12 @@ def test_latest_validation_overlay_pins_similar_voc_retry_acceptance_boundary() 
     """Similar VOC recovery keeps exact-head UI proof below runtime acceptance."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T15:22:05Z" in overlay
-    assert "`1515b872d32b7e943c6c09b0f7da2806fe1224ac`" in overlay
+    assert "2026-09-23T16:39:25Z" in overlay
+    assert "`a8e0ca6e4bbd60df80be04f6ecc1c963b4291887`" in overlay
     assert "all 533 frontend tests" in overlay
     assert "`RetainedEvidenceRetry`" in overlay
     assert "`EmptyNextPageRetry`" in overlay
+    assert "authorization scope changes" in overlay
     assert "authenticated PostgreSQL/API acceptance" in overlay
     assert "no qualifying independent approval exists" in overlay
 
