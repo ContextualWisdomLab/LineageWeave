@@ -32,7 +32,11 @@ insufficient on the canonical table: a narrower predicate such as the intended
 queued/running predicate combined with `AND false` still contains every expected
 token while being unusable for the admission query. A catalog comment/version
 marker is identity evidence, not proof of predicate semantics; a copied marker
-on a malformed index must therefore fail as well.
+on a malformed index must therefore fail as well. The access method is part of
+that physical identity too: migration 0251 creates a B-tree by default, while a
+marked hash index can have the same table, key, and predicate but different
+planner and operational behavior. Replay must reject that lookalike rather than
+adopt it as the canonical admission path.
 
 A preflight followed by `CREATE INDEX CONCURRENTLY IF NOT EXISTS` also has a
 TOCTOU ownership failure. If the name is absent during preflight but another
@@ -152,9 +156,9 @@ with another writer's migration identity.
    partitioned/otherwise unsupported index relation, or other relation kind
    fails closed with explicit operator remediation and is never described as
    safe to remove through the paired index rollback. For an ordinary index,
-   replay then requires the exact canonical table, valid/ready non-unique
-   single-key shape, `requesting_account_id` key, the exact
-   PostgreSQL-decompiled active predicate for queued/running rows, and that
+   replay then requires the exact canonical table, B-tree access method,
+   valid/ready non-unique single-key shape, `requesting_account_id` key, the
+   exact PostgreSQL-decompiled active predicate for queued/running rows, and that
    version marker. The predicate check is anchored to the whole decompiled
    expression rather than token presence, so a version-marked `AND false` or
    otherwise narrowed lookalike cannot pass. The paired rollback first resolves
@@ -198,9 +202,9 @@ with another writer's migration identity.
   terminal rows that the admission query never consumes.
 - Concurrent index creation follows the repository migration contract and must
   run outside a transaction. A failed concurrent build cannot be silently
-  accepted on replay, and neither a same-named index on another relation nor a
-  version-marked narrower same-table lookalike can masquerade as the canonical
-  access path.
+  accepted on replay, and neither a same-named index on another relation, a
+  version-marked narrower same-table lookalike, nor a non-B-tree lookalike can
+  masquerade as the canonical access path.
 - Competing cooperating 0251 runners do not wait on a blocking advisory lock.
   The lock holder proceeds; a contender fails promptly with explicit retry
   guidance, and an ordinary replay after the holder exits validates the
@@ -298,6 +302,11 @@ with another writer's migration identity.
   and copied marker while still being unusable. Replay therefore validates the
   decompiled predicate as a complete expression in addition to identity and
   physical-key metadata.
+- Accepting an existing marked index without checking its access method was
+  rejected because PostgreSQL permits alternate methods such as `hash`, and a
+  partial hash index can otherwise match the same table/key/predicate while not
+  being the B-tree migration 0251 created. Forward replay and destructive
+  rollback therefore require the same canonical B-tree identity.
 - Leaving forward or rollback DDL unqualified was rejected because a temporary
   relation can shadow the durable name for the session; successful DDL against
   `pg_temp` is not durable migration or recovery evidence.
