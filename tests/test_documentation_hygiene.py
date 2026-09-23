@@ -57,6 +57,7 @@ def test_global_ask_admission_adr_uses_reserved_proposed_identity() -> None:
     """The Global Ask admission decision must not reuse another live ADR identity."""
     adr = _ADR_DIRECTORY / "0376-global-ask-shared-admission.md"
     stale_collision = _ADR_DIRECTORY / "0272-global-ask-shared-admission.md"
+    prd = (_ROOT / "docs" / "product-requirements.md").read_text(encoding="utf-8")
 
     assert adr.exists(), "Global Ask shared admission must use reserved ADR 0376"
     assert not stale_collision.exists(), "ADR 0272 is already owned by another live lane"
@@ -64,6 +65,8 @@ def test_global_ask_admission_adr_uses_reserved_proposed_identity() -> None:
     assert content.startswith("# ADR 0376: Global Ask admission is shared and capacity-bound")
     assert "## Status\n\nProposed" in content
     assert "Accepted (2026-09-23)" not in content
+    assert "- Shared Global Ask admission: ADR 0376." in prd
+    assert "- Shared Global Ask admission: ADR 0272." not in prd
 
 
 def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
