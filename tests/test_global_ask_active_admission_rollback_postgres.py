@@ -229,30 +229,42 @@ def test_rollback_without_target_is_idempotent_even_when_table_is_busy() -> None
 
 
 def test_rollback_validation_and_drop_share_one_locked_transaction() -> None:
-    """Ownership validation and destructive DROP must not have a replacement race."""
+    """Only a present target may enter the locked destructive rollback section."""
     normalized = " ".join(_ACTIVE_ADMISSION_ROLLBACK.read_text().lower().split())
     begin_position = normalized.find("begin;")
-    lock_position = normalized.find(
-        "lock table public.global_ask_job in access exclusive mode nowait;"
-    )
     validation_position = normalized.find("do $$")
+    missing_guard_position = normalized.find(
+        "if existing_index is null then return; end if;"
+    )
+    lock_position = normalized.find(
+        "execute 'lock table public.global_ask_job in access exclusive mode nowait';"
+    )
+    recheck_position = normalized.find(
+        "existing_index := to_regclass('public.global_ask_job_active_account_idx');",
+        lock_position,
+    )
     drop_position = normalized.find(
-        "drop index if exists public.global_ask_job_active_account_idx;"
+        "execute 'drop index public.global_ask_job_active_account_idx';"
     )
     commit_position = normalized.rfind("commit;")
 
     assert min(
         begin_position,
-        lock_position,
         validation_position,
+        missing_guard_position,
+        lock_position,
+        recheck_position,
         drop_position,
         commit_position,
     ) >= 0
     assert (
         begin_position
-        < lock_position
         < validation_position
+        < missing_guard_position
+        < lock_position
+        < recheck_position
         < drop_position
         < commit_position
     )
     assert "drop index concurrently" not in normalized
+    assert "drop index if exists public.global_ask_job_active_account_idx" not in normalized
