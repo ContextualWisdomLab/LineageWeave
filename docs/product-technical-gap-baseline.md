@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head validation overlay: 2026-09-23T01:47:45Z (KST 2026-09-23
-> 10:47:45+09:00). Protected `main` remains
+> Exact-head validation overlay: 2026-09-23T03:06:04Z (KST 2026-09-23
+> 12:06:04+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
 > 165 open PRs and 42 open issues at this capture. Canonical remote names are
 > `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
@@ -32,13 +32,16 @@
 > `/v1/chat/completions` consumer or its fixed `180.0s` timeout and does not
 > bind to mutable `main`.
 >
-> Draft #1125 now carries the smallest current admission slice for the next
+> Ready #1125 now carries the smallest current admission slice for the next
 > user-visible Global Ask gap at exact
-> `09e0a890b77c517869df765c26a6054ba4dc15d3`: REST and MCP share bounded
+> `3000ffda7f47ed02e0e4f8984950893ca4bf887b`: REST and MCP share bounded
 > question, quota, and active-job admission, and a focused concurrent
 > two-connection regression proves that capacity one admits exactly one job.
-> The focused queue suite passes 13/13 locally. Authenticated PostgreSQL/API
-> execution and admission-focused k6 burst, parallelism, recovery, latency,
+> The focused unit suite passes 57/57 locally and the isolated live PostgreSQL
+> concurrency proof passes 1/1. Normal squash auto-merge is enabled, but hosted
+> checks are nonterminal and an independent approval is still required.
+> Authenticated API execution and admission-focused k6 burst, parallelism,
+> recovery, latency,
 > throughput, and saturation evidence remain unavailable, so #1051 is not an
 > accepted runtime or protected-main capability.
 >

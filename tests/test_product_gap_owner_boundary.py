@@ -66,6 +66,19 @@ def test_latest_validation_overlay_does_not_promote_partial_codeql_admission() -
     assert "primary CodeQL successful" not in overlay
 
 
+def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
+    """Global Ask evidence names its reviewed head without promoting delivery."""
+    overlay = _latest_validation_overlay().replace("\n> ", " ")
+
+    assert "2026-09-23T03:06:04Z" in overlay
+    assert "`3000ffda7f47ed02e0e4f8984950893ca4bf887b`" in overlay
+    assert "57/57" in overlay
+    assert "1/1" in overlay
+    assert "Normal squash auto-merge is enabled" in overlay
+    assert "hosted checks are nonterminal" in overlay
+    assert "independent approval is still required" in overlay
+
+
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
     """The #929 hosted RED must retain its runner-provenance classification."""
     receipt = _TRANSLATION_LEDGER_RUNNER_RECEIPT.read_text(encoding="utf-8")
