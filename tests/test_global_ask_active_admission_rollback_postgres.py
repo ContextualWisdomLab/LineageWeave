@@ -185,7 +185,7 @@ def test_rollback_validation_and_drop_share_one_locked_transaction() -> None:
     normalized = " ".join(_ACTIVE_ADMISSION_ROLLBACK.read_text().lower().split())
     begin_position = normalized.find("begin;")
     lock_position = normalized.find(
-        "lock table public.global_ask_job in access exclusive mode;"
+        "lock table public.global_ask_job in access exclusive mode nowait;"
     )
     validation_position = normalized.find("do $$")
     drop_position = normalized.find(
