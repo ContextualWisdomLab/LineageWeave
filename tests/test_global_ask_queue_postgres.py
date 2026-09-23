@@ -68,7 +68,10 @@ async def _connect_admin_or_skip() -> asyncpg.Connection:
     try:
         return await asyncpg.connect(_ADMIN_DSN, timeout=2)
     except (OSError, asyncpg.PostgresError) as exc:
-        pytest.skip(f"no reachable PostgreSQL at {_ADMIN_DSN}: {exc}")
+        message = f"required PostgreSQL is unreachable: {type(exc).__name__}"
+        if os.environ.get("CI") == "true":
+            pytest.fail(message)
+        pytest.skip(message)
 
 
 async def _parallel_admission_scenario() -> None:
@@ -159,3 +162,18 @@ async def _parallel_admission_scenario() -> None:
 def test_parallel_postgresql_admission_never_overshoots_one_active_job() -> None:
     """Two real sessions for one principal admit exactly one active Ask job."""
     asyncio.run(_parallel_admission_scenario())
+
+
+def test_postgresql_connection_failure_is_fatal_in_ci(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CI must not pass by skipping the PostgreSQL concurrency proof."""
+
+    async def refuse_connection(*_args, **_kwargs):
+        raise OSError("synthetic unavailable database")
+
+    monkeypatch.setenv("CI", "true")
+    monkeypatch.setattr(asyncpg, "connect", refuse_connection)
+
+    with pytest.raises(pytest.fail.Exception, match="required PostgreSQL is unreachable"):
+        asyncio.run(_connect_admin_or_skip())
