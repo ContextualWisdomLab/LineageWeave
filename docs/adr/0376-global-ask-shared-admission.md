@@ -34,6 +34,15 @@ token while being unusable for the admission query. A catalog comment/version
 marker is identity evidence, not proof of predicate semantics; a copied marker
 on a malformed index must therefore fail as well.
 
+A preflight followed by `CREATE INDEX CONCURRENTLY IF NOT EXISTS` also has a
+TOCTOU ownership failure. If the name is absent during preflight but another
+session creates a same-named relation before the CREATE, PostgreSQL can skip the
+CREATE and continue to `COMMENT ON INDEX`. The migration would then stamp the
+LineageWeave ownership marker onto a foreign relation it never created. The
+create/no-create decision must therefore be captured before validation and, when
+creation was required, executed as a plain concurrent CREATE that fails on a
+raced duplicate before any ownership marker is written.
+
 Index names share PostgreSQL's schema relation namespace with tables, views,
 sequences, and other relations. A same-named non-index relation can therefore
 occupy `public.global_ask_job_active_account_idx` before migration 0251 runs.
@@ -90,29 +99,36 @@ with another writer's migration identity.
    `public.global_ask_job_active_account_idx` explicitly, so neither path can be
    redirected by `pg_temp` or another `search_path` entry. Migration 0251 stamps
    the repository-owned index with the immutable catalog marker
-   `lineageweave/global-ask-active-admission-index/v1`. Before index-specific
-   replay validation, migration 0251 resolves the existing schema relation and
-   verifies that it is an ordinary index relation. A same-named table, view,
-   sequence, partitioned/otherwise unsupported index relation, or other relation
-   kind fails closed with explicit operator remediation and is never described
-   as safe to remove through the paired index rollback. For an ordinary index,
-   replay then requires the exact canonical table, valid/ready non-unique
-   single-key shape, `requesting_account_id` key, the exact PostgreSQL-decompiled
-   active predicate for queued/running rows, and that version marker. The
-   predicate check is anchored to the whole decompiled expression rather than
-   token presence, so a version-marked `AND false` or otherwise narrowed
-   lookalike cannot pass. The paired rollback performs its own destructive-action
-   preflight: it accepts only the canonical `public.global_ask_job` btree,
-   non-unique, single-key, no-INCLUDE shape and exact queued/running predicate.
-   A valid/ready index must additionally carry the exact repository marker before
-   rollback may delete it. An unmarked index is rollback-eligible only while it
-   is invalid or not ready and otherwise has that exact canonical physical
-   shape, covering a failed concurrent build that stopped before `COMMENT ON
-   INDEX` ran. A valid unmarked index, an unexpected marker, another table,
-   another access method/key/predicate, or a non-index relation fails closed and
-   requires an explicit operator ownership decision. Recovery of an accepted
-   failed-build artifact is paired rollback, migration 0251 replay, and
-   verification of the marker plus `indisvalid=true` / `indisready=true`.
+   `lineageweave/global-ask-active-admission-index/v1`. The production migration
+   runner is `psql -X -v ON_ERROR_STOP=1 -f`; migration 0251 uses that contract
+   to capture whether the canonical name was absent before validation. If
+   creation was required it executes an unconditional concurrent CREATE through
+   psql conditional execution. A relation that races into the namespace after
+   the captured decision therefore causes duplicate-relation failure before the
+   ownership comment instead of turning `IF NOT EXISTS` into a false success.
+   Before index-specific replay validation, migration 0251 resolves the existing
+   schema relation and verifies that it is an ordinary index relation. A
+   same-named table, view, sequence, partitioned/otherwise unsupported index
+   relation, or other relation kind fails closed with explicit operator
+   remediation and is never described as safe to remove through the paired
+   index rollback. For an ordinary index, replay then requires the exact
+   canonical table, valid/ready non-unique single-key shape,
+   `requesting_account_id` key, the exact PostgreSQL-decompiled active predicate
+   for queued/running rows, and that version marker. The predicate check is
+   anchored to the whole decompiled expression rather than token presence, so a
+   version-marked `AND false` or otherwise narrowed lookalike cannot pass. The
+   paired rollback performs its own destructive-action preflight: it accepts
+   only the canonical `public.global_ask_job` btree, non-unique, single-key,
+   no-INCLUDE shape and exact queued/running predicate. A valid/ready index must
+   additionally carry the exact repository marker before rollback may delete it.
+   An unmarked index is rollback-eligible only while it is invalid or not ready
+   and otherwise has that exact canonical physical shape, covering a failed
+   concurrent build that stopped before `COMMENT ON INDEX` ran. A valid unmarked
+   index, an unexpected marker, another table, another access method/key/predicate,
+   or a non-index relation fails closed and requires an explicit operator
+   ownership decision. Recovery of an accepted failed-build artifact is paired
+   rollback, migration 0251 replay, and verification of the marker plus
+   `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -134,6 +150,10 @@ with another writer's migration identity.
   accepted on replay, and neither a same-named index on another relation nor a
   version-marked narrower same-table lookalike can masquerade as the canonical
   access path.
+- The create decision is bound before replay validation. A same-named relation
+  created concurrently after an absent preflight causes the plain CREATE to
+  fail before LineageWeave can attach its ownership marker; foreign ownership is
+  never adopted merely because the raced name exists.
 - Rollback is fail-closed as a destructive operation. It can remove a marked
   repository-owned canonical index or an incomplete unmarked canonical-shaped
   failed-build artifact, but it refuses a valid unmarked/mismarked index or an
@@ -168,6 +188,9 @@ with another writer's migration identity.
 - Silently replaying `CREATE INDEX CONCURRENTLY IF NOT EXISTS` after a failed
   concurrent build was rejected because PostgreSQL can retain a same-named
   invalid relation and turn the replay into a false-success deployment.
+- Re-checking name existence with `IF NOT EXISTS` after preflight was rejected
+  because a relation can be created in that gap and then receive the repository
+  ownership comment despite never being created or validated by LineageWeave.
 - Treating every same-named relation as an invalid index and recommending
   `DROP INDEX` was rejected because PostgreSQL's relation namespace can contain
   a table, view, sequence, partitioned index, or other unsupported relation at
