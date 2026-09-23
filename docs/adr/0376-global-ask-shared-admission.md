@@ -18,14 +18,17 @@ named deployment's PostgreSQL, worker, Valkey, and gateway saturation evidence.
 
 ## Decision
 
-1. The shared application service enforces a UTF-8 question-byte ceiling, an
-   atomic Valkey per-principal submission window, and a per-principal active
-   durable-job ceiling before accepting work.
+1. The shared application service enforces a UTF-8 question-byte ceiling, the
+   existing atomic Valkey per-principal shared request window, and a
+   per-principal active durable-job ceiling before accepting work.
 2. Operators supply all four positive capacity values. Missing values make
    submission unavailable; LineageWeave does not invent defaults.
-3. MCP keeps its transport admission charge and marks that charge when calling
-   the shared service, so one accepted MCP submission is never charged twice.
-   REST consumes the same principal quota inside the service.
+3. MCP keeps its existing transport admission charge and marks that charge when
+   calling the shared service, so one accepted MCP submission is never charged
+   twice. REST consumes the same principal quota inside the service. The
+   existing opaque `lineageweave:mcp-rate-limit:v1:<digest>` key identity is
+   preserved so mixed-version replicas in a rolling deployment cannot split one
+   principal's quota into independent old/new counters.
 4. Active-job admission takes a transaction-scoped PostgreSQL advisory lock
    derived from the normalized account identity, counts only queued/running
    jobs, and inserts within that transaction. No database transaction remains
@@ -36,6 +39,8 @@ named deployment's PostgreSQL, worker, Valkey, and gateway saturation evidence.
 ## Consequences
 
 - REST can no longer bypass the distributed cost boundary.
+- Rolling deployment of this change preserves the already-live distributed
+  counter identity instead of temporarily multiplying effective allowance.
 - Parallel submissions for one account cannot overshoot the configured active
   work ceiling.
 - An unmeasured deployment remains explicitly unavailable until it records
@@ -48,5 +53,8 @@ named deployment's PostgreSQL, worker, Valkey, and gateway saturation evidence.
 - A process-local semaphore was rejected because replicas would disagree.
 - A naked `count(*)` check was rejected because concurrent transactions could
   all pass before inserting.
+- Renaming the existing Valkey quota key in place was rejected because old and
+  new replicas can coexist during rollout and would then enforce different
+  counters for the same principal.
 - Fixed repository defaults were rejected because they would be unsupported
   rules of thumb rather than observed capacity.
