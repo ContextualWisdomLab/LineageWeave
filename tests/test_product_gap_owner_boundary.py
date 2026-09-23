@@ -71,10 +71,10 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T06:45:56Z" in overlay
-    assert "`3d0a1cd4788ab471e4655eaf72118b456bf97883`" in overlay
-    assert "57/57" in overlay
-    assert "Normal squash auto-merge is enabled" in overlay
+    assert "2026-09-23T07:57:56Z" in overlay
+    assert "`63b5f2518cffec6b9b2afb53ddb48709fb2c141d`" in overlay
+    assert "60/60" in overlay
+    assert "normal auto-merge is no longer active" in overlay
     assert "Fresh exact-head checks" in overlay
     assert "qualifying independent approval remain required" in overlay
 

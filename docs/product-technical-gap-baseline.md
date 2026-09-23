@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Exact-head validation overlay: 2026-09-23T06:45:56Z (KST 2026-09-23
-> 15:45:56+09:00). Protected `main` remains
+> Exact-head validation overlay: 2026-09-23T07:57:56Z (KST 2026-09-23
+> 16:57:56+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
 > 165 open PRs and 42 open issues. Remote metadata confirms the canonical
 > repository names `ContextualWisdomLab/LineageWeave`,
@@ -32,21 +32,22 @@
 > `/v1/chat/completions` consumer or its fixed `180.0s` timeout and does not
 > bind to mutable `main`.
 >
-> Ready Global Ask admission candidate #1125 advanced normally to exact
-> `3d0a1cd4788ab471e4655eaf72118b456bf97883`. Exact-head review removed an
-> unsupported `Retry-After` estimate that reused the request-quota window as if
-> it predicted active-job completion. Quota rejection retains its measured
-> remaining window; active-job rejection now gives only the supported next
-> action. The focused admission/service/documentation suite passes 57/57
-> locally. Normal squash auto-merge is enabled. Fresh exact-head checks and a
-> qualifying independent approval remain required; authenticated API and k6
-> acceptance are still unavailable, so no protected-main or runtime claim is
-> made.
+> Global Ask admission candidate #1125 advanced to exact
+> `63b5f2518cffec6b9b2afb53ddb48709fb2c141d`. Exact-head review removed an
+> unsupported `Retry-After` estimate, bounded the active-job lookup with a
+> replay-safe PostgreSQL access path, and moved that migration away from the
+> existing Voice-of-X `0246` identity. The focused
+> admission/service/PostgreSQL/documentation suite passes 60/60 locally.
+> GitHub returned the PR to Draft after its Ready transition, so repository
+> Tests remain skipped and normal auto-merge is no longer active. Fresh
+> exact-head checks and a qualifying independent approval remain required;
+> authenticated API and k6 acceptance are still unavailable, so no
+> protected-main or runtime claim is made.
 >
-> Before this documentation commit, Ready baseline PR #1123 was inspected at
-> exact input head `685532b6397288f0539da6bab17ed4458781d113` with normal squash
-> auto-merge enabled. Its fresh hosted checks and independent approval remain
-> required. Voice-of-X candidate #1121
+> Before this documentation commit, Draft baseline PR #1123 was inspected at
+> exact input head `fb90567ed80f5dd6c547953efcf4809f8d192463`. Its repository
+> Tests are skipped/cancelled and its central workflows remain queued; fresh
+> hosted checks and independent approval remain required. Voice-of-X candidate #1121
 > remains exact `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`; no new receipt promotes its
 > twelve atomic Voices and extensible assignments without authenticated PostgreSQL
 > API and rendered UI evidence. Carrying Post and derivation evidence remain
