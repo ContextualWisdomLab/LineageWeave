@@ -74,6 +74,25 @@ async def _connect_admin_or_skip() -> asyncpg.Connection:
         pytest.skip(message)
 
 
+async def _assert_active_admission_index(connection: asyncpg.Connection) -> None:
+    """The synchronous principal-cap query must not scan terminal job history."""
+    index_definition = await connection.fetchval(
+        """
+        select indexdef
+          from pg_indexes
+         where schemaname = 'public'
+           and tablename = 'global_ask_job'
+           and indexname = 'global_ask_job_active_account_idx'
+        """
+    )
+    assert index_definition is not None
+    normalized = index_definition.lower()
+    assert "requesting_account_id" in normalized
+    assert "where" in normalized
+    assert "queued" in normalized
+    assert "running" in normalized
+
+
 async def _parallel_admission_scenario() -> None:
     database_name = f"lineageweave_ask_admission_{uuid.uuid4().hex[:12]}"
     database_dsn = _database_dsn(database_name)
@@ -85,6 +104,7 @@ async def _parallel_admission_scenario() -> None:
         _apply_migrations(database_dsn)
 
         observer = await asyncpg.connect(database_dsn)
+        await _assert_active_admission_index(observer)
         await observer.execute(
             """
             insert into user_account
