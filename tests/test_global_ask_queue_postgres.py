@@ -27,6 +27,10 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
+_ACTIVE_ADMISSION_MIGRATION = _MIGRATIONS_DIR / "0246_global_ask_active_admission_index.sql"
+_ACTIVE_ADMISSION_ROLLBACK = (
+    _MIGRATIONS_DIR / "rollback" / "0246_global_ask_active_admission_index.sql"
+)
 _ACCOUNT_ID = "00000000-0000-0000-0000-000000000001"
 
 
@@ -35,23 +39,30 @@ def _database_dsn(database_name: str) -> str:
     return urlunsplit(parsed._replace(path=f"/{database_name}"))
 
 
+def _run_sql_file(
+    database_dsn: str, sql_file: Path, *, check: bool = True
+) -> subprocess.CompletedProcess[str]:
+    """Execute one production SQL file through the repository's psql boundary."""
+    return subprocess.run(
+        [
+            "psql",
+            "-X",
+            "-v",
+            "ON_ERROR_STOP=1",
+            database_dsn,
+            "-f",
+            str(sql_file),
+        ],
+        check=check,
+        capture_output=True,
+        text=True,
+    )
+
+
 def _apply_migrations(database_dsn: str) -> None:
     """Replay the production migration stream through psql in filename order."""
     for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
-        subprocess.run(
-            [
-                "psql",
-                "-X",
-                "-v",
-                "ON_ERROR_STOP=1",
-                database_dsn,
-                "-f",
-                str(migration),
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        _run_sql_file(database_dsn, migration)
 
 
 class _RecordingValkey:
@@ -186,9 +197,101 @@ async def _parallel_admission_scenario() -> None:
             await admin.close()
 
 
+async def _invalid_concurrent_index_recovery_scenario() -> None:
+    """A failed concurrent build must fail closed and have an executable recovery."""
+    database_name = f"lineageweave_ask_index_recovery_{uuid.uuid4().hex[:12]}"
+    database_dsn = _database_dsn(database_name)
+    admin = await _connect_admin_or_skip()
+    observer: asyncpg.Connection | None = None
+    try:
+        await admin.execute(f'create database "{database_name}"')
+        for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
+            if migration == _ACTIVE_ADMISSION_MIGRATION:
+                break
+            _run_sql_file(database_dsn, migration)
+
+        observer = await asyncpg.connect(database_dsn)
+        await observer.execute(
+            """
+            insert into user_account
+                (user_account_id, external_subject_id, display_name, email_address)
+            values ($1::uuid, $2, $3, $4)
+            """,
+            _ACCOUNT_ID,
+            "synthetic-index-recovery",
+            "Synthetic Index Recovery",
+            "synthetic-index-recovery@example.test",
+        )
+        await observer.executemany(
+            """
+            insert into global_ask_job
+                (requesting_account_id, question_text, job_status_code)
+            values ($1::uuid, $2, 'queued')
+            """,
+            [
+                (_ACCOUNT_ID, "first duplicate principal"),
+                (_ACCOUNT_ID, "second duplicate principal"),
+            ],
+        )
+
+        failed_build = subprocess.run(
+            [
+                "psql",
+                "-X",
+                "-v",
+                "ON_ERROR_STOP=1",
+                database_dsn,
+                "-c",
+                "create unique index concurrently global_ask_job_active_account_idx "
+                "on global_ask_job (requesting_account_id) "
+                "where job_status_code in ('queued', 'running')",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert failed_build.returncode != 0
+        invalid = await observer.fetchrow(
+            """
+            select index_catalog.indisvalid, index_catalog.indisready
+              from pg_class index_relation
+              join pg_index index_catalog
+                on index_catalog.indexrelid = index_relation.oid
+             where index_relation.relname = 'global_ask_job_active_account_idx'
+            """
+        )
+        assert invalid is not None
+        assert invalid["indisvalid"] is False
+
+        retry = _run_sql_file(database_dsn, _ACTIVE_ADMISSION_MIGRATION, check=False)
+        assert retry.returncode != 0
+        assert "invalid" in (retry.stdout + retry.stderr).lower()
+
+        _run_sql_file(database_dsn, _ACTIVE_ADMISSION_ROLLBACK)
+        _run_sql_file(database_dsn, _ACTIVE_ADMISSION_MIGRATION)
+        await _assert_active_admission_index(observer)
+    finally:
+        if observer is not None:
+            await observer.close()
+        try:
+            await admin.execute(
+                "select pg_terminate_backend(pid) from pg_stat_activity "
+                "where datname = $1 and pid <> pg_backend_pid()",
+                database_name,
+            )
+            await admin.execute(f'drop database if exists "{database_name}"')
+        finally:
+            await admin.close()
+
+
 def test_parallel_postgresql_admission_never_overshoots_one_active_job() -> None:
     """Two real sessions for one principal admit exactly one active Ask job."""
     asyncio.run(_parallel_admission_scenario())
+
+
+def test_failed_concurrent_index_build_has_fail_closed_recovery() -> None:
+    """Migration replay must not silently retain an INVALID capacity index."""
+    asyncio.run(_invalid_concurrent_index_recovery_scenario())
 
 
 def test_postgresql_connection_failure_is_fatal_in_ci(
