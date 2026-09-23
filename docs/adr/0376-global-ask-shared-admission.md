@@ -72,9 +72,12 @@ or catalog re-check immediately before DROP only moves the race window; the
 validation and destructive action need one lock-protected transaction boundary.
 That protective `ACCESS EXCLUSIVE` acquisition must not wait indefinitely on a
 busy production table. Recovery is operator-driven and exceptional, so a busy
-table is a fail-closed condition: acquire the table lock with `NOWAIT`, leave the
-owned index untouched when the lock is unavailable, drain conflicting traffic or
-transactions, and retry explicitly.
+table is a fail-closed condition when a destructive target actually exists:
+acquire the table lock with `NOWAIT`, leave the owned index untouched when the
+lock is unavailable, drain conflicting traffic or transactions, and retry
+explicitly. Conversely, if the canonical index is already absent, rollback is
+complete and must remain an idempotent no-op without acquiring an exclusive lock
+that could fail merely because ordinary production reads are active.
 
 PostgreSQL temporary relations also shadow same-named permanent relations for
 the creating session unless the permanent object is schema-qualified. Because
@@ -130,21 +133,25 @@ with another writer's migration identity.
    for queued/running rows, and that version marker. The predicate check is
    anchored to the whole decompiled expression rather than token presence, so a
    version-marked `AND false` or otherwise narrowed lookalike cannot pass. The
-   paired rollback performs its destructive-action preflight and DROP in one
-   transaction after acquiring `ACCESS EXCLUSIVE ... NOWAIT` on
-   `public.global_ask_job`. It accepts only the canonical
-   `public.global_ask_job` btree, non-unique, single-key, no-INCLUDE shape and
-   exact queued/running predicate. A valid/ready index must additionally carry
-   the exact repository marker before rollback may delete it. An unmarked index
-   is rollback-eligible only while it is invalid or not ready and otherwise has
-   that exact canonical physical shape, covering a failed concurrent build that
-   stopped before `COMMENT ON INDEX` ran. A valid unmarked index, an unexpected
-   marker, another table, another access method/key/predicate, or a non-index
-   relation fails closed and requires an explicit operator ownership decision.
-   Because `DROP INDEX CONCURRENTLY` cannot execute inside that protective
-   transaction, the exceptional rollback uses ordinary schema-qualified
-   `DROP INDEX` while holding the parent-table lock. If the parent table is busy,
-   `NOWAIT` aborts before validation or deletion; operators must drain the
+   paired rollback first resolves the canonical target inside its transaction.
+   If the target is absent, rollback returns without acquiring an exclusive
+   table lock. If a candidate ordinary index belongs to
+   `public.global_ask_job`, rollback acquires `ACCESS EXCLUSIVE ... NOWAIT`,
+   re-resolves the canonical name under that lock, and performs final
+   destructive-action validation and DROP before the transaction ends. The
+   final validation accepts only the canonical `public.global_ask_job` btree,
+   non-unique, single-key, no-INCLUDE shape and exact queued/running predicate.
+   A valid/ready index must additionally carry the exact repository marker before
+   rollback may delete it. An unmarked index is rollback-eligible only while it
+   is invalid or not ready and otherwise has that exact canonical physical
+   shape, covering a failed concurrent build that stopped before `COMMENT ON
+   INDEX` ran. A valid unmarked index, an unexpected marker, another table,
+   another access method/key/predicate, or a non-index relation fails closed and
+   requires an explicit operator ownership decision. Because `DROP INDEX
+   CONCURRENTLY` cannot execute inside that protective transaction, the
+   exceptional rollback uses ordinary schema-qualified `DROP INDEX` while
+   holding the parent-table lock. If the parent table is busy and a destructive
+   target exists, `NOWAIT` aborts before deletion; operators must drain the
    conflicting workload and retry rather than leaving a destructive recovery
    session queued behind production traffic. Recovery of an accepted
    failed-build artifact is paired rollback, migration 0251 replay, and
@@ -184,6 +191,9 @@ with another writer's migration identity.
   traffic causes an immediate rollback failure with the canonical index retained
   instead of an unbounded recovery wait. Operators must drain conflicting work
   and retry the exceptional rollback explicitly.
+- Replaying rollback after the canonical index is already absent is a lock-free
+  idempotent no-op. Ordinary readers therefore cannot turn a completed rollback
+  into a false operational failure merely because the parent table is busy.
 - A table, view, sequence, partitioned index, or other unsupported relation that
   occupies the canonical index name stops rollout without destructive automated
   cleanup. Operators must resolve that ownership collision explicitly before
@@ -237,6 +247,12 @@ with another writer's migration identity.
   destructive recovery session blocked behind ordinary application traffic.
   `NOWAIT` keeps the failure explicit and leaves the index untouched until the
   operator has created a quiescent recovery window.
+- Acquiring `ACCESS EXCLUSIVE` before checking whether the canonical index
+  exists was rejected. It makes an already-complete, idempotent rollback fail on
+  ordinary read traffic even though there is no destructive target. Rollback
+  therefore checks for target absence first, acquires the lock only when a
+  candidate index exists on the canonical table, and re-resolves/revalidates the
+  name after the lock is held before deleting anything.
 - Accepting a same-named index by textual definition tokens or catalog marker
   alone was rejected because another relation can carry a lookalike index and a
   narrower predicate on the canonical table can retain both the expected tokens
