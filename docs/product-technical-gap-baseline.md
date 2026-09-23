@@ -1,5 +1,43 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-23T04:17:32Z (KST 2026-09-23
+> 13:17:32+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub shows
+> 165 open PRs and 42 open issues. Canonical remote names remain
+> `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+> `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
+>
+> The largest user-visible gap remains safe browser sign-in continuity.
+> Stacked Draft #1124 is exact
+> `c49aff397736db601fd1d2cb428c8006d0090d26` on Draft parent #1120.
+> Its authenticated desktop/mobile browser receipts remain candidate evidence;
+> parent-first protected integration, current-head hosted acceptance, and an
+> independent approval are still missing. No later receipt establishes an
+> admitted k6 client, so concurrency, latency, error rate, throughput, and
+> saturation remain unavailable rather than inferred.
+>
+> The next Global Ask gap candidate #1125 is now Draft at exact
+> `55099a49805ccd5141a22ccdfbe50affb2d693b2`. The current-head repair makes a
+> missing workflow PostgreSQL service fail the concurrency proof in CI while
+> retaining local self-skip behavior. Focused admission, service, PostgreSQL,
+> and documentation tests pass 31/31; the isolated PostgreSQL file passes 2/2.
+> Hosted Tests are Draft-skipped, central security/review jobs are queued, no
+> qualifying independent approval exists, and auto-merge is disabled. The
+> authenticated API plus k6 burst, parallelism, quota expiry, completion
+> release, principal isolation, latency, throughput, and saturation acceptance
+> remains unavailable, so this is neither protected-main nor runtime proof.
+>
+> Baseline PR #1123 was inspected at exact input head
+> `5dd0d17b74d57edc7ecbe487ec1e54cc2559abe1`. It remains Draft with no
+> unresolved review thread, but its repository Tests are skipped/cancelled and
+> required central workflows remain nonterminal. Voice-of-X candidate #1121
+> remains Draft: its twelve atomic Voices, extensible additional assignments,
+> carrying-Post/derivation-evidence separation, truth status, cutoff, and
+> PROV-O contract are not promoted without authenticated PostgreSQL/API and
+> rendered UI evidence. Release-number collisions #843/#844 (`v2.62.0`) and
+> #876/#877 (`v2.92.0`) remain unresolved and unavailable for promotion.
+
 > Exact-head validation overlay: 2026-09-23T03:06:04Z (KST 2026-09-23
 > 12:06:04+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
