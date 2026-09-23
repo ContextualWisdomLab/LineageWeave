@@ -1,13 +1,13 @@
--- Destructive rollback must validate and delete the same relation identity. Keep
--- the parent table exclusively locked for the short rollback transaction so a
--- concurrent session cannot replace the validated index before DROP executes.
--- Fail immediately when that lock is unavailable: operators can drain the busy
--- path and retry instead of leaving a destructive recovery session waiting on
--- production traffic. This deliberately favors destructive-action safety over
--- concurrent writes; the normal forward path remains CREATE INDEX CONCURRENTLY.
+-- Destructive rollback must validate and delete the same relation identity. A
+-- missing target is an idempotent no-op and must not require an exclusive lock
+-- on a busy production table. Once a candidate target exists, the rollback
+-- locks the parent table before the final identity validation and DROP so a
+-- concurrent session cannot replace the validated index before deletion.
+-- Fail immediately when that destructive lock is unavailable: operators can
+-- drain the busy path and retry instead of leaving recovery waiting on traffic.
+-- This deliberately favors destructive-action safety over concurrent writes;
+-- the normal forward path remains CREATE INDEX CONCURRENTLY.
 begin;
-
-lock table public.global_ask_job in access exclusive mode nowait;
 
 -- Fail closed before destructive rollback. A valid same-named index without the
 -- repository ownership marker may be operator-owned even when its physical
@@ -29,6 +29,36 @@ declare
     index_is_ready boolean;
     index_is_unique boolean;
 begin
+    existing_index := to_regclass('public.global_ask_job_active_account_idx');
+    if existing_index is null then
+        return;
+    end if;
+
+    select relation_catalog.relkind
+      into existing_relation_kind
+      from pg_class relation_catalog
+     where relation_catalog.oid = existing_index;
+
+    if existing_relation_kind is distinct from 'i'::"char" then
+        raise exception
+            'refusing rollback: public.global_ask_job_active_account_idx is not an ordinary index (relkind=%); resolve the conflicting relation explicitly',
+            existing_relation_kind;
+    end if;
+
+    select index_catalog.indrelid
+      into indexed_table
+      from pg_index index_catalog
+     where index_catalog.indexrelid = existing_index;
+
+    if indexed_table is distinct from 'public.global_ask_job'::regclass then
+        raise exception
+            'refusing rollback: public.global_ask_job_active_account_idx belongs to a different table; resolve ownership explicitly';
+    end if;
+
+    execute 'lock table public.global_ask_job in access exclusive mode nowait';
+
+    -- Re-resolve only after the destructive lock is held. The candidate may
+    -- have disappeared or been replaced while rollback was acquiring the lock.
     existing_index := to_regclass('public.global_ask_job_active_account_idx');
     if existing_index is null then
         return;
@@ -99,9 +129,9 @@ begin
         raise exception
             'refusing rollback: public.global_ask_job_active_account_idx is valid but not repository-owned; resolve ownership explicitly';
     end if;
+
+    execute 'drop index public.global_ask_job_active_account_idx';
 end
 $$;
-
-drop index if exists public.global_ask_job_active_account_idx;
 
 commit;
