@@ -30,7 +30,9 @@ is equally unsafe: relation-name reuse must not satisfy the canonical
 `global_ask_job` access-path contract. Textual token checks alone are also
 insufficient on the canonical table: a narrower predicate such as the intended
 queued/running predicate combined with `AND false` still contains every expected
-token while being unusable for the admission query.
+token while being unusable for the admission query. A catalog comment/version
+marker is identity evidence, not proof of predicate semantics; a copied marker
+on a malformed index must therefore fail as well.
 
 PostgreSQL temporary relations also shadow same-named permanent relations for
 the creating session unless the permanent object is schema-qualified. Because
@@ -71,8 +73,11 @@ with another writer's migration identity.
    `lineageweave/global-ask-active-admission-index/v1`. Before `IF NOT EXISTS` is
    allowed to accept a same-named relation, replay requires the exact canonical
    table, valid/ready non-unique single-key shape, `requesting_account_id` key,
-   expected active-status definition, and that version marker. An invalid,
-   shadow-table, unversioned lookalike, or otherwise incompatible relation fails
+   the exact PostgreSQL-decompiled active predicate for queued/running rows, and
+   that version marker. The predicate check is anchored to the whole decompiled
+   expression rather than token presence, so a version-marked `AND false` or
+   otherwise narrowed lookalike cannot pass. An invalid, shadow-table,
+   unversioned, predicate-incompatible, or otherwise incompatible relation fails
    migration closed. Recovery is explicit: run the schema-qualified paired
    concurrent rollback for 0251, replay migration 0251, and require both the
    marker and `indisvalid=true` / `indisready=true`.
@@ -94,10 +99,10 @@ with another writer's migration identity.
   terminal rows that the admission query never consumes.
 - Concurrent index creation follows the repository migration contract and must
   run outside a transaction. A failed concurrent build cannot be silently
-  accepted on replay, and neither a same-named index on another relation nor an
-  unversioned same-table lookalike can masquerade as the canonical access path;
-  rollout stops until the conflicting relation is removed with the paired
-  rollback and migration 0251 is replayed successfully.
+  accepted on replay, and neither a same-named index on another relation nor a
+  version-marked narrower same-table lookalike can masquerade as the canonical
+  access path; rollout stops until the conflicting relation is removed with the
+  paired rollback and migration 0251 is replayed successfully.
 - Forward migration and rollback are immune to temporary-table/index name
   shadowing because the durable table and index are schema-qualified; a session
   cannot satisfy recovery by mutating only `pg_temp`.
@@ -124,11 +129,12 @@ with another writer's migration identity.
 - Silently replaying `CREATE INDEX CONCURRENTLY IF NOT EXISTS` after a failed
   concurrent build was rejected because PostgreSQL can retain a same-named
   invalid relation and turn the replay into a false-success deployment.
-- Accepting a same-named index by textual definition alone was rejected because
-  another relation can carry a lookalike index and because a narrower predicate
-  on the canonical table can contain the expected tokens while still being
-  unusable. The catalog marker makes the repository-owned definition explicit
-  and replay-verifiable.
+- Accepting a same-named index by textual definition tokens or catalog marker
+  alone was rejected because another relation can carry a lookalike index and a
+  narrower predicate on the canonical table can retain both the expected tokens
+  and copied marker while still being unusable. Replay therefore validates the
+  decompiled predicate as a complete expression in addition to identity and
+  physical-key metadata.
 - Leaving forward or rollback DDL unqualified was rejected because a temporary
   relation can shadow the durable name for the session; successful DDL against
   `pg_temp` is not durable migration or recovery evidence.
