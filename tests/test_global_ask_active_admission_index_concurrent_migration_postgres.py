@@ -23,6 +23,7 @@ _MIGRATIONS_DIR = _ROOT / "migrations"
 _MIGRATION = _MIGRATIONS_DIR / "0251_global_ask_active_admission_index.sql"
 _INDEX_NAME = "global_ask_job_active_account_idx"
 _INDEX_CONTRACT = "lineageweave/global-ask-active-admission-index/v1"
+_BUSY_MESSAGE = "migration 0251 is already running"
 
 
 def _database_dsn(database_name: str) -> str:
@@ -30,10 +31,12 @@ def _database_dsn(database_name: str) -> str:
     return urlunsplit(parsed._replace(path=f"/{database_name}"))
 
 
-def _run_sql_file(database_dsn: str, sql_file: Path) -> None:
-    subprocess.run(
+def _run_sql_file(
+    database_dsn: str, sql_file: Path, *, check: bool = True
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
         ["psql", "-X", "-v", "ON_ERROR_STOP=1", database_dsn, "-f", str(sql_file)],
-        check=True,
+        check=check,
         capture_output=True,
         text=True,
     )
@@ -116,6 +119,7 @@ async def _concurrent_migration_scenario() -> None:
         else:
             raise AssertionError("0251 concurrency barrier was not observed")
 
+        second_started = time.monotonic()
         second = subprocess.Popen(
             [
                 "psql",
@@ -130,11 +134,17 @@ async def _concurrent_migration_scenario() -> None:
             stderr=subprocess.PIPE,
             text=True,
         )
+        second_stdout, second_stderr = second.communicate(timeout=2)
+        second_elapsed = time.monotonic() - second_started
+        assert second.returncode != 0, second_stdout + second_stderr
+        assert second_elapsed < 2
+        assert _BUSY_MESSAGE in (second_stdout + second_stderr).lower()
 
         first_stdout, first_stderr = first.communicate(timeout=12)
-        second_stdout, second_stderr = second.communicate(timeout=12)
         assert first.returncode == 0, first_stdout + first_stderr
-        assert second.returncode == 0, second_stdout + second_stderr
+
+        retry = _run_sql_file(database_dsn, _MIGRATION, check=False)
+        assert retry.returncode == 0, retry.stdout + retry.stderr
 
         index_count = await observer.fetchval(
             "select count(*) from pg_class where oid = to_regclass($1)",
@@ -160,6 +170,6 @@ async def _concurrent_migration_scenario() -> None:
             await admin.close()
 
 
-def test_concurrent_repository_migrations_are_idempotent() -> None:
-    """Two cooperating 0251 runners must serialize instead of racing duplicate DDL."""
+def test_concurrent_repository_migration_fails_fast_then_replays() -> None:
+    """A competing 0251 runner must fail promptly and become replay-safe."""
     asyncio.run(_concurrent_migration_scenario())
