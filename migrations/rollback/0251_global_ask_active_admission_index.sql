@@ -1,3 +1,12 @@
+-- Destructive rollback must validate and delete the same relation identity. Keep
+-- the parent table exclusively locked for the short rollback transaction so a
+-- concurrent session cannot replace the validated index before DROP executes.
+-- This deliberately favors destructive-action safety over concurrent writes;
+-- the normal forward path remains CREATE INDEX CONCURRENTLY.
+begin;
+
+lock table public.global_ask_job in access exclusive mode;
+
 -- Fail closed before destructive rollback. A valid same-named index without the
 -- repository ownership marker may be operator-owned even when its physical
 -- definition happens to match this migration. The only unmarked object this
@@ -91,4 +100,6 @@ begin
 end
 $$;
 
-drop index concurrently if exists public.global_ask_job_active_account_idx;
+drop index if exists public.global_ask_job_active_account_idx;
+
+commit;
