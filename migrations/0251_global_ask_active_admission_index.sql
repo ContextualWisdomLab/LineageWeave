@@ -1,3 +1,10 @@
+-- Capture the create/no-create decision before validation. If the name is absent
+-- here and another session creates it later, the plain CREATE below must fail;
+-- do not re-check existence with IF NOT EXISTS after the preflight.
+select (to_regclass('public.global_ask_job_active_account_idx') is null)
+    as lineageweave_create_active_admission_index
+\gset
+
 -- Fail closed when a previous concurrent build left a same-named INVALID index.
 -- PostgreSQL keeps failed CREATE INDEX CONCURRENTLY relations so an ordinary
 -- replay must not report success while admission still has no valid access path.
@@ -77,16 +84,13 @@ begin
 end
 $$;
 
--- Conditional DDL starts here. Do not use IF NOT EXISTS: if another session
--- creates the name after the preflight, the plain CREATE must fail before the
--- repository ownership marker can be attached to that foreign relation.
-select $ddl$
-create index concurrently global_ask_job_active_account_idx
-    on public.global_ask_job (requesting_account_id)
-    where job_status_code in ('queued', 'running')
-$ddl$
-where to_regclass('public.global_ask_job_active_account_idx') is null
+-- Conditional DDL starts here. The decision was captured before the preflight,
+-- so a relation appearing after that capture cannot turn this into a silent
+-- no-op followed by an ownership COMMENT.
+\if :lineageweave_create_active_admission_index
+select 'create index concurrently global_ask_job_active_account_idx on public.global_ask_job (requesting_account_id) where job_status_code in (''queued'', ''running'')'
 \gexec
+\endif
 
 comment on index public.global_ask_job_active_account_idx is
     'lineageweave/global-ask-active-admission-index/v1';
