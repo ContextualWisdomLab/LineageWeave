@@ -32,19 +32,21 @@
 > `/v1/chat/completions` consumer or its fixed `180.0s` timeout and does not
 > bind to mutable `main`.
 >
-> Global Ask admission candidate #1125 advanced normally to exact
+> Ready Global Ask admission candidate #1125 advanced normally to exact
 > `3d0a1cd4788ab471e4655eaf72118b456bf97883`. Exact-head review removed an
 > unsupported `Retry-After` estimate that reused the request-quota window as if
 > it predicted active-job completion. Quota rejection retains its measured
 > remaining window; active-job rejection now gives only the supported next
 > action. The focused admission/service/documentation suite passes 57/57
-> locally. The PR remains Draft: repository Tests are Draft-skipped, required
-> security/review workflows are queued, no qualifying independent approval is
-> present, and auto-merge is disabled. Authenticated API and k6 acceptance are
-> still unavailable, so no protected-main or runtime claim is made.
+> locally. Normal squash auto-merge is enabled. Fresh exact-head checks and a
+> qualifying independent approval remain required; authenticated API and k6
+> acceptance are still unavailable, so no protected-main or runtime claim is
+> made.
 >
-> This baseline PR #1123 was inspected at exact input head
-> `9562363abae50b12f512fa77e21e11dbf2dc172b`. Voice-of-X candidate #1121
+> Before this documentation commit, Ready baseline PR #1123 was inspected at
+> exact input head `685532b6397288f0539da6bab17ed4458781d113` with normal squash
+> auto-merge enabled. Its fresh hosted checks and independent approval remain
+> required. Voice-of-X candidate #1121
 > remains exact `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`; no new receipt promotes its
 > twelve atomic Voices and extensible assignments without authenticated PostgreSQL
 > API and rendered UI evidence. Carrying Post and derivation evidence remain

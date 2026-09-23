@@ -74,10 +74,9 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     assert "2026-09-23T06:45:56Z" in overlay
     assert "`3d0a1cd4788ab471e4655eaf72118b456bf97883`" in overlay
     assert "57/57" in overlay
-    assert "repository Tests are Draft-skipped" in overlay
-    assert "required security/review workflows are queued" in overlay
-    assert "no qualifying independent approval is present" in overlay
-    assert "auto-merge is disabled" in overlay
+    assert "Normal squash auto-merge is enabled" in overlay
+    assert "Fresh exact-head checks" in overlay
+    assert "qualifying independent approval remain required" in overlay
 
 
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
