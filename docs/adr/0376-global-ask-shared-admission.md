@@ -25,7 +25,9 @@ admission cost grow with a principal's completed-job history.
 PostgreSQL retains a same-named `INVALID` index after some failed
 `CREATE INDEX CONCURRENTLY` attempts. Replaying `CREATE INDEX CONCURRENTLY IF
 NOT EXISTS` against that relation can otherwise return success while leaving the
-capacity access path unusable.
+capacity access path unusable. A valid same-named index on a different relation
+is equally unsafe: relation-name reuse must not satisfy the canonical
+`global_ask_job` access-path contract.
 
 The active-admission migration also needs an unambiguous composition slot across
 live LineageWeave lanes. Open translation-ledger work owns 0246 through 0248 and
@@ -53,10 +55,12 @@ with another writer's migration identity.
    `queued` and `running` Global Ask rows. The index is created concurrently so
    migration does not require a write-blocking index build on accumulated job
    history. Before `IF NOT EXISTS` is allowed to accept a same-named relation,
-   migration 0251 requires that relation to be valid, ready, non-unique, and
-   structurally compatible. An invalid or incompatible relation fails migration
-   closed. Recovery is explicit: run the paired concurrent rollback for 0251,
-   then replay migration 0251 and require `indisvalid=true` and `indisready=true`.
+   migration 0251 requires that relation to be bound exactly to
+   `public.global_ask_job`, valid, ready, non-unique, and structurally
+   compatible. An invalid, shadow-table, or otherwise incompatible relation
+   fails migration closed. Recovery is explicit: run the paired concurrent
+   rollback for 0251, then replay migration 0251 and require `indisvalid=true`
+   and `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -75,8 +79,10 @@ with another writer's migration identity.
   terminal rows that the admission query never consumes.
 - Concurrent index creation follows the repository migration contract and must
   run outside a transaction. A failed concurrent build cannot be silently
-  accepted on replay; rollout stops until the invalid relation is removed with
-  the paired rollback and the migration is replayed successfully.
+  accepted on replay, and a same-named index on another relation cannot
+  masquerade as the canonical access path; rollout stops until the conflicting
+  relation is removed with the paired rollback and the migration is replayed
+  successfully.
 - Live migration identities remain composable with the translation-ledger and
   customer-resolution lanes instead of depending on merge order to resolve a
   duplicate numeric slot.
@@ -100,6 +106,9 @@ with another writer's migration identity.
 - Silently replaying `CREATE INDEX CONCURRENTLY IF NOT EXISTS` after a failed
   concurrent build was rejected because PostgreSQL can retain a same-named
   invalid relation and turn the replay into a false-success deployment.
+- Accepting a same-named index by textual definition alone was rejected because
+  another relation can carry a lookalike index and cause `IF NOT EXISTS` to
+  skip creation on `public.global_ask_job`.
 - Retaining migration number 0246 was rejected because another live owner lane
   already uses 0246 for the UI translation ledger; merge order must not decide
   which semantic migration owns a sequence identity.
