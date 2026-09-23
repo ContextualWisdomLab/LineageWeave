@@ -5,6 +5,7 @@ import re
 
 
 _APP_SOURCE = Path("frontend/src/App.tsx")
+_PANEL_SOURCE = Path("frontend/src/components/SimilarVocPanel.tsx")
 
 
 def test_similar_voc_pagination_scope_includes_authorization_context() -> None:
@@ -29,29 +30,24 @@ def test_similar_voc_pagination_scope_includes_authorization_context() -> None:
     assert "similarVocScopeRef.current === requestScope" in source
 
 
-def test_similar_voc_render_hides_evidence_from_previous_authorization_scope() -> None:
+def test_similar_voc_render_masks_evidence_from_previous_authorization_scope() -> None:
     """A token switch must not paint evidence or pagination controls from the prior account."""
-    source = _APP_SOURCE.read_text(encoding="utf-8")
+    source = _PANEL_SOURCE.read_text(encoding="utf-8")
 
+    assert 'import { AuthContext } from "react-oidc-context";' in source
+    assert "const auth = useContext(AuthContext);" in source
+    assert "const authorizationScope = auth?.user?.access_token ?? null;" in source
     assert re.search(
-        r"const\s+similarVocRenderedScopeRef\s*=\s*useRef\(similarVocScopeRef\.current\);",
+        r"const\s+\[displayedAuthorizationScope,\s*setDisplayedAuthorizationScope\]\s*=\s*"
+        r"useState\(authorizationScope\);",
         source,
-    ), "Similar VOC rendered evidence must remember the scope that owns the current UI state"
+    ), "Rendered evidence must retain the authorization scope that owns it"
     assert re.search(
-        r"const\s+similarVocScopeIsCurrent\s*=\s*"
-        r"similarVocRenderedScopeRef\.current\s*===\s*similarVocScopeRef\.current;",
+        r"if\s*\(items\s*===\s*null\)\s*setDisplayedAuthorizationScope\(authorizationScope\);",
         source,
-    ), "Render must compare evidence ownership with the current post+authorization scope"
-    assert re.search(
-        r"similarVocRenderedScopeRef\.current\s*=\s*requestScope;"
-        r"[\s\S]{0,320}"
-        r"setSimilarVoc\(null\)",
-        source,
-    ), "The fetch effect must claim the new scope before resetting and loading its evidence"
-    assert "items={similarVocScopeIsCurrent ? similarVoc : null}" in source
-    assert "error={similarVocScopeIsCurrent ? similarVocError : null}" in source
-    assert "loadingMore={similarVocScopeIsCurrent && similarVocLoadingMore}" in source
-    assert re.search(
-        r"onLoadMore=\{similarVocScopeIsCurrent\s*&&\s*similarVocNextOffset\s*!==\s*null\s*\?",
-        source,
-    ), "A previous account's continuation must not remain interactive after authorization changes"
+    ), "A new authorization scope may claim the panel only after its loading reset"
+    assert "const authorizationScopeIsCurrent = displayedAuthorizationScope === authorizationScope;" in source
+    assert "const scopedItems = authorizationScopeIsCurrent ? items : null;" in source
+    assert "const scopedError = authorizationScopeIsCurrent ? error : null;" in source
+    assert "const scopedOnLoadMore = authorizationScopeIsCurrent ? onLoadMore : null;" in source
+    assert "const scopedLoadingMore = authorizationScopeIsCurrent && loadingMore;" in source
