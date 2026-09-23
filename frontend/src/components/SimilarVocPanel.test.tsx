@@ -26,16 +26,17 @@ describe("SimilarVocPanel", () => {
   });
 
   it("keeps loaded evidence visible when loading the next page fails", () => {
-    const onRetry = vi.fn();
+    const onLoadMore = vi.fn();
     render(<SimilarVocPanel items={[{
       post_id: "post-2", post_title: "합성 과거 VOC", issue_summary: "동일 고장 유형",
       focal_evidence_text: "현재 고장 근거", candidate_evidence_text: "과거 고장 근거",
       customer_cohort_text: null, action_history: [], occurred_at: "2026-08-20T09:00:00Z",
-    }]} error="이전 VOC를 더 불러오지 못했습니다." loadingMore onOpenPost={() => undefined} onLoadMore={() => undefined} onRetry={onRetry} />);
+    }]} error="이전 VOC를 더 불러오지 못했습니다." onOpenPost={() => undefined} onLoadMore={onLoadMore} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("더 불러오지 못했습니다");
     expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "이전 VOC를 불러오는 중..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "이전 VOC 더 불러오기 다시 시도" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
   });
 
   it("retries a failed next page without discarding loaded evidence", async () => {
