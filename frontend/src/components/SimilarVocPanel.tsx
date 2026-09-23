@@ -14,7 +14,8 @@ type Props = {
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
 export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
-  const retryLoadedPage = Boolean(error && items && items.length > 0 && onLoadMore);
+  const retryLoadedPage = Boolean(error && onLoadMore);
+  const hasRetainedEvidence = Boolean(items && items.length > 0);
   const retryAction = retryLoadedPage ? onLoadMore : onRetry;
 
   return (
@@ -29,7 +30,9 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry,
           message={error}
           nextAction={
             retryLoadedPage
-              ? "불러온 근거는 그대로 유지됩니다. 실패한 다음 페이지를 다시 요청하세요."
+              ? hasRetainedEvidence
+                ? "불러온 근거는 그대로 유지됩니다. 실패한 다음 페이지를 다시 요청하세요."
+                : "실패한 다음 페이지를 다시 요청하세요."
               : "같은 조회를 다시 시도하세요."
           }
           retryLabel={retryLoadedPage ? "이전 VOC 더 불러오기 다시 시도" : "유사 VOC 다시 조회"}
