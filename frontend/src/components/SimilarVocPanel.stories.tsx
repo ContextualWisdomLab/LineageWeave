@@ -13,4 +13,4 @@ export const WithActionHistory: Story = { args: { items: [{
 }], onOpenPost: () => undefined } };
 export const Empty: Story = { args: { items: [], onOpenPost: () => undefined } };
 export const Loading: Story = { args: { items: null, onOpenPost: () => undefined } };
-export const Unavailable: Story = { args: { items: [], error: "유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.", onOpenPost: () => undefined } };
+export const Unavailable: Story = { args: { items: [], error: "유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.", onOpenPost: () => undefined, onRetry: () => undefined } };

@@ -26,14 +26,32 @@ describe("SimilarVocPanel", () => {
   });
 
   it("keeps loaded evidence visible when loading the next page fails", () => {
+    const onRetry = vi.fn();
     render(<SimilarVocPanel items={[{
       post_id: "post-2", post_title: "합성 과거 VOC", issue_summary: "동일 고장 유형",
       focal_evidence_text: "현재 고장 근거", candidate_evidence_text: "과거 고장 근거",
       customer_cohort_text: null, action_history: [], occurred_at: "2026-08-20T09:00:00Z",
-    }]} error="이전 VOC를 더 불러오지 못했습니다." loadingMore onOpenPost={() => undefined} onLoadMore={() => undefined} />);
+    }]} error="이전 VOC를 더 불러오지 못했습니다." loadingMore onOpenPost={() => undefined} onLoadMore={() => undefined} onRetry={onRetry} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("더 불러오지 못했습니다");
     expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이전 VOC를 불러오는 중..." })).toBeDisabled();
+  });
+
+  it("offers the same safe retry without hiding saved evidence", async () => {
+    const onRetry = vi.fn();
+    render(
+      <SimilarVocPanel
+        items={[]}
+        error="유사 VOC 판정을 사용할 수 없습니다."
+        onOpenPost={() => undefined}
+        onRetry={onRetry}
+      />,
+    );
+
+    const notice = screen.getByRole("alert");
+    expect(notice).toHaveTextContent("저장된 근거는 그대로 볼 수 있습니다");
+    await userEvent.click(screen.getByRole("button", { name: "유사 VOC 다시 조회" }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });

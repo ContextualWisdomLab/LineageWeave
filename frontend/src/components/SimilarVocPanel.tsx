@@ -1,24 +1,34 @@
 import "./SimilarVocPanel.css";
 
 import type { SimilarVocItem } from "../api";
+import { StatusNotice } from "./StatusNotice";
 
 type Props = {
   items: SimilarVocItem[] | null;
   error?: string | null;
   onOpenPost: (postId: string) => void;
   onLoadMore?: (() => void) | null;
+  onRetry?: (() => void) | null;
   loadingMore?: boolean;
 };
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
-export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, loadingMore = false }: Props) {
+export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
   return (
     <section className="similar-voc" aria-labelledby="similar-voc-heading">
       <header>
         <h3 id="similar-voc-heading">유사 VOC · 고객군 확인</h3>
         <p>같은 문제 유형으로 판정된 과거 근거와 조치 이력을 확인하세요.</p>
       </header>
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? (
+        <StatusNotice
+          kind="retry"
+          message={error}
+          nextAction="저장된 근거는 그대로 볼 수 있습니다. 같은 조회를 다시 시도하세요."
+          retryLabel="유사 VOC 다시 조회"
+          onRetry={onRetry ?? undefined}
+        />
+      ) : null}
       {items === null && !error ? (
         <p role="status">유사 VOC 근거를 판정하고 있습니다.</p>
       ) : items?.length === 0 && !error ? (
