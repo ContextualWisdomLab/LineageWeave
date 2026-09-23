@@ -2,10 +2,12 @@
 -- PostgreSQL keeps failed CREATE INDEX CONCURRENTLY relations so an ordinary
 -- IF NOT EXISTS replay would otherwise return success while admission still has
 -- no valid access path. Recovery is the paired concurrent rollback followed by
--- this migration again.
+-- this migration again. A same-named non-index relation is a separate operator
+-- conflict and must never be routed through index rollback.
 do $$
 declare
     existing_index regclass;
+    existing_relation_kind "char";
     indexed_table regclass;
     index_definition text;
     index_predicate text;
@@ -18,6 +20,17 @@ declare
 begin
     existing_index := to_regclass('public.global_ask_job_active_account_idx');
     if existing_index is not null then
+        select relation_catalog.relkind
+          into existing_relation_kind
+          from pg_class relation_catalog
+         where relation_catalog.oid = existing_index;
+
+        if existing_relation_kind is distinct from 'i'::"char" then
+            raise exception
+                'global_ask_job_active_account_idx is occupied by a non-index relation or unsupported index relation kind (relkind=%); rename or remove the conflicting relation explicitly before retrying migration 0251',
+                existing_relation_kind;
+        end if;
+
         select index_catalog.indrelid,
                index_catalog.indisvalid,
                index_catalog.indisready,
