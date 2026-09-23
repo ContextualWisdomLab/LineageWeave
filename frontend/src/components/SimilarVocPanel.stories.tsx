@@ -3,17 +3,37 @@ import { useLayoutEffect, useState, type ComponentType } from "react";
 import { getLocale, setLocale } from "../i18n";
 import { SimilarVocPanel } from "./SimilarVocPanel";
 
+const LOCALE_STORAGE_KEY = "lineageweave.locale";
+
 function KoreanStoryBoundary({ Story }: { Story: ComponentType }) {
   const [localeReady, setLocaleReady] = useState(() => getLocale() === "ko");
 
   useLayoutEffect(() => {
     const previousLocale = getLocale();
+    let previousStoredLocale: string | null | undefined;
+    try {
+      previousStoredLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    } catch {
+      previousStoredLocale = undefined;
+    }
+
     if (previousLocale !== "ko") {
       setLocale("ko");
       setLocaleReady(true);
     }
     return () => {
       setLocale(previousLocale);
+      if (previousStoredLocale !== undefined) {
+        try {
+          if (previousStoredLocale === null) {
+            window.localStorage.removeItem(LOCALE_STORAGE_KEY);
+          } else {
+            window.localStorage.setItem(LOCALE_STORAGE_KEY, previousStoredLocale);
+          }
+        } catch {
+          // The product locale remains restored even when browser storage is unavailable.
+        }
+      }
     };
   }, []);
 
