@@ -53,6 +53,19 @@ def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
     assert duplicates == [], f"duplicate ADR numbers: {duplicates}"
 
 
+def test_global_ask_admission_adr_uses_reserved_proposed_identity() -> None:
+    """The Global Ask admission decision must not reuse another live ADR identity."""
+    adr = _ADR_DIRECTORY / "0376-global-ask-shared-admission.md"
+    stale_collision = _ADR_DIRECTORY / "0272-global-ask-shared-admission.md"
+
+    assert adr.exists(), "Global Ask shared admission must use reserved ADR 0376"
+    assert not stale_collision.exists(), "ADR 0272 is already owned by another live lane"
+    content = adr.read_text(encoding="utf-8")
+    assert content.startswith("# ADR 0376: Global Ask admission is shared and capacity-bound")
+    assert "## Status\n\nProposed" in content
+    assert "Accepted (2026-09-23)" not in content
+
+
 def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
     """Buyer-gap evidence stays aggregate and cannot identify private runtime posts."""
     baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
