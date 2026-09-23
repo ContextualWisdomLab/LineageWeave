@@ -175,10 +175,10 @@ async def test_submit_rejects_oversized_question_without_echoing_content(
 
 
 @pytest.mark.anyio
-async def test_submit_maps_atomic_outstanding_rejection_to_bounded_retry(
+async def test_submit_maps_atomic_outstanding_rejection_without_invented_retry(
     monkeypatch,
 ) -> None:
-    """A transactionally rejected active-job admission returns bounded metadata."""
+    """Active-job rejection does not guess completion from the quota window."""
 
     async def reject(*_args, **_kwargs):
         raise GlobalAskOutstandingLimitExceeded
@@ -200,7 +200,7 @@ async def test_submit_maps_atomic_outstanding_rejection_to_bounded_retry(
             quota_already_consumed=True,
         )
     assert caught.value.status_code == 429
-    assert caught.value.headers == {"Retry-After": "60"}
+    assert caught.value.headers is None
 
 
 @pytest.mark.anyio

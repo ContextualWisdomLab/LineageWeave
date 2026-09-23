@@ -120,7 +120,6 @@ async def submit_global_ask(
             raise HTTPException(
                 status.HTTP_429_TOO_MANY_REQUESTS,
                 "Finish or cancel an existing question before submitting another.",
-                headers={"Retry-After": str(quota_window_seconds)},
             ) from exc
     return {"ask_job_id": job_id, "job_status_code": "queued"}
 

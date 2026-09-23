@@ -33,8 +33,11 @@ named deployment's PostgreSQL, worker, Valkey, and gateway saturation evidence.
    derived from the normalized account identity, counts only queued/running
    jobs, and inserts within that transaction. No database transaction remains
    open during Valkey, worker, or contextual-orchestrator work.
-5. Rejections expose bounded retry metadata and customer-actionable copy while
-   never echoing question content or another principal's counts.
+5. Quota-window rejections expose the measured remaining window as bounded
+   retry metadata. Active-job rejections instead tell the customer to finish or
+   cancel existing work; they do not reuse the unrelated quota window as an
+   estimate of job completion time. Neither response echoes question content or
+   another principal's counts.
 
 ## Consequences
 
