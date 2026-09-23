@@ -61,7 +61,8 @@ def test_latest_validation_overlay_does_not_promote_partial_codeql_admission() -
     """A successful CodeQL detector must not be described as successful CodeQL."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "CodeQL language detection succeeded" in overlay
+    assert "CodeQL language detection" in overlay
+    assert "remain queued" in overlay
     assert "CodeQL compatibility/dispatch settlement" in overlay
     assert "primary CodeQL successful" not in overlay
 
@@ -70,13 +71,12 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T04:17:32Z" in overlay
-    assert "`55099a49805ccd5141a22ccdfbe50affb2d693b2`" in overlay
-    assert "31/31" in overlay
-    assert "2/2" in overlay
-    assert "Hosted Tests are Draft-skipped" in overlay
-    assert "central security/review jobs are queued" in overlay
-    assert "no qualifying independent approval exists" in overlay
+    assert "2026-09-23T06:45:56Z" in overlay
+    assert "`3d0a1cd4788ab471e4655eaf72118b456bf97883`" in overlay
+    assert "57/57" in overlay
+    assert "repository Tests are Draft-skipped" in overlay
+    assert "required security/review workflows are queued" in overlay
+    assert "no qualifying independent approval is present" in overlay
     assert "auto-merge is disabled" in overlay
 
 

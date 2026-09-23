@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+> Exact-head validation overlay: 2026-09-23T06:45:56Z (KST 2026-09-23
+> 15:45:56+09:00). Protected `main` remains
+> `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub reports
+> 165 open PRs and 42 open issues. Remote metadata confirms the canonical
+> repository names `ContextualWisdomLab/LineageWeave`,
+> `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`, lowercase
+> `ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`, and
+> `ContextualWisdomLab/contextual-orchestrator`.
+>
+> The largest user-visible gap remains safe browser sign-in continuity.
+> Stacked Draft #1124 remains exact
+> `c49aff397736db601fd1d2cb428c8006d0090d26` on Draft parent #1120. Its prior
+> authenticated desktop/mobile browser receipts remain candidate evidence:
+> all 538 frontend tests passed. Four authenticated Playwright scenarios passed,
+> and `/api/me` returned successfully. These are not protected-main delivery;
+> parent-first protected integration, current-head hosted acceptance, and an
+> independent approval are still missing. There is no admitted
+> `lineageweave-test-automation` client or later load receipt. No
+> concurrency, latency, error-rate, throughput,
+> and PostgreSQL, worker, Valkey, or gateway saturation remain unavailable.
+> Authentication admission therefore is not an observed product bottleneck.
+>
+> Parent #899 remains exact
+> `c10b6545520afb342e68d01ea4bcfce75a6e5bab`. Its canonical owner prerequisite
+> contextual-orchestrator #1209 remains exact
+> `33c14c4b05a6fff6c11800b60184d2bdd3eb01db`; the historical receipt used
+> fast-mlsirm 0.11.3 while that owner head locked 0.11.4. The Releases API
+> remains `[]`, and contextual-orchestrator#1083 still owns publication of a
+> released API/client/schema contract. LineageWeave does not promote the local
+> `/v1/chat/completions` consumer or its fixed `180.0s` timeout and does not
+> bind to mutable `main`.
+>
+> Global Ask admission candidate #1125 advanced normally to exact
+> `3d0a1cd4788ab471e4655eaf72118b456bf97883`. Exact-head review removed an
+> unsupported `Retry-After` estimate that reused the request-quota window as if
+> it predicted active-job completion. Quota rejection retains its measured
+> remaining window; active-job rejection now gives only the supported next
+> action. The focused admission/service/documentation suite passes 57/57
+> locally. The PR remains Draft: repository Tests are Draft-skipped, required
+> security/review workflows are queued, no qualifying independent approval is
+> present, and auto-merge is disabled. Authenticated API and k6 acceptance are
+> still unavailable, so no protected-main or runtime claim is made.
+>
+> This baseline PR #1123 was inspected at exact input head
+> `9562363abae50b12f512fa77e21e11dbf2dc172b`. Voice-of-X candidate #1121
+> remains exact `8f5c2659d2471aee9ab6b9c35c2bed5651f7d97c`; no new receipt promotes its
+> twelve atomic Voices and extensible assignments without authenticated PostgreSQL
+> API and rendered UI evidence. Carrying Post and derivation evidence remain
+> distinct, and truth status, cutoff, and PROV-O derivation remain required.
+> It adds no fixed Voice combination. Current-head CodeQL language detection
+> and CodeQL compatibility/dispatch settlement remain queued; no partial
+> detector state is promoted as successful CodeQL.
+> Release-number collisions #843/#844 (`v2.62.0`) and #876/#877 (`v2.92.0`)
+> remain unresolved and unavailable for promotion.
+
 > Exact-head validation overlay: 2026-09-23T04:17:32Z (KST 2026-09-23
 > 13:17:32+09:00). Protected `main` remains
 > `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`). GitHub shows
