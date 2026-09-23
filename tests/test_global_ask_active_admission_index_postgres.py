@@ -17,6 +17,9 @@ _ADMIN_DSN = os.environ.get(
 )
 _MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 _ACTIVE_ADMISSION_MIGRATION = _MIGRATIONS_DIR / "0251_global_ask_active_admission_index.sql"
+_ACTIVE_ADMISSION_ROLLBACK = (
+    _MIGRATIONS_DIR / "rollback" / "0251_global_ask_active_admission_index.sql"
+)
 _INDEX_CONTRACT = "lineageweave/global-ask-active-admission-index/v1"
 
 
@@ -38,6 +41,25 @@ def _run_sql_file(
             "-f",
             str(sql_file),
         ],
+        check=check,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _run_sql_file_after_commands(
+    database_dsn: str,
+    commands: tuple[str, ...],
+    sql_file: Path,
+    *,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    command = ["psql", "-X", "-v", "ON_ERROR_STOP=1", database_dsn]
+    for sql in commands:
+        command.extend(("-c", sql))
+    command.extend(("-f", str(sql_file)))
+    return subprocess.run(
+        command,
         check=check,
         capture_output=True,
         text=True,
@@ -140,6 +162,76 @@ async def _same_table_narrow_predicate_scenario() -> None:
             await admin.close()
 
 
+async def _temporary_table_shadow_scenario() -> None:
+    database_name = f"lineageweave_ask_index_temp_shadow_{uuid.uuid4().hex[:12]}"
+    database_dsn = _database_dsn(database_name)
+    admin = await _connect_admin_or_skip()
+    observer: asyncpg.Connection | None = None
+    try:
+        await admin.execute(f'create database "{database_name}"')
+        _apply_migrations_before_active_admission(database_dsn)
+
+        attempt = _run_sql_file_after_commands(
+            database_dsn,
+            (
+                "create temporary table global_ask_job (requesting_account_id uuid not null, job_status_code text not null) on commit preserve rows",
+                "set search_path = pg_temp, public",
+            ),
+            _ACTIVE_ADMISSION_MIGRATION,
+            check=False,
+        )
+        assert attempt.returncode == 0, attempt.stdout + attempt.stderr
+
+        observer = await asyncpg.connect(database_dsn)
+        public_index = await observer.fetchval(
+            "select to_regclass('public.global_ask_job_active_account_idx')::text"
+        )
+        assert public_index == "global_ask_job_active_account_idx"
+    finally:
+        if observer is not None:
+            await observer.close()
+        try:
+            await _drop_database(admin, database_name)
+        finally:
+            await admin.close()
+
+
+async def _rollback_temp_index_shadow_scenario() -> None:
+    database_name = f"lineageweave_ask_index_rollback_shadow_{uuid.uuid4().hex[:12]}"
+    database_dsn = _database_dsn(database_name)
+    admin = await _connect_admin_or_skip()
+    observer: asyncpg.Connection | None = None
+    try:
+        await admin.execute(f'create database "{database_name}"')
+        _apply_migrations_before_active_admission(database_dsn)
+        _run_sql_file(database_dsn, _ACTIVE_ADMISSION_MIGRATION)
+
+        rollback = _run_sql_file_after_commands(
+            database_dsn,
+            (
+                "create temporary table global_ask_job (requesting_account_id uuid not null, job_status_code text not null) on commit preserve rows",
+                "create index global_ask_job_active_account_idx on global_ask_job (requesting_account_id)",
+                "set search_path = pg_temp, public",
+            ),
+            _ACTIVE_ADMISSION_ROLLBACK,
+            check=False,
+        )
+        assert rollback.returncode == 0, rollback.stdout + rollback.stderr
+
+        observer = await asyncpg.connect(database_dsn)
+        public_index = await observer.fetchval(
+            "select to_regclass('public.global_ask_job_active_account_idx')::text"
+        )
+        assert public_index is None
+    finally:
+        if observer is not None:
+            await observer.close()
+        try:
+            await _drop_database(admin, database_name)
+        finally:
+            await admin.close()
+
+
 async def _canonical_index_replay_scenario() -> None:
     database_name = f"lineageweave_ask_index_replay_{uuid.uuid4().hex[:12]}"
     database_dsn = _database_dsn(database_name)
@@ -175,6 +267,16 @@ def test_same_named_index_on_shadow_table_fails_closed() -> None:
 def test_same_table_index_with_narrower_predicate_fails_closed() -> None:
     """A lookalike index that cannot serve all active rows must not be accepted."""
     asyncio.run(_same_table_narrow_predicate_scenario())
+
+
+def test_temporary_table_shadow_cannot_capture_forward_migration() -> None:
+    """Search-path shadowing must not divert migration 0251 into pg_temp."""
+    asyncio.run(_temporary_table_shadow_scenario())
+
+
+def test_temporary_index_shadow_cannot_capture_rollback() -> None:
+    """Recovery must drop the public index even when pg_temp shadows its name."""
+    asyncio.run(_rollback_temp_index_shadow_scenario())
 
 
 def test_canonical_index_contract_survives_replay() -> None:
