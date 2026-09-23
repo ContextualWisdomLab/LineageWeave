@@ -1988,8 +1988,13 @@ function PostDetailPopup({
   const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
   const [similarVocRetry, setSimilarVocRetry] = useState(0);
   const similarVocLoadingMoreRef = useRef(false);
-  const similarVocScopeRef = useRef({ postId });
-  if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
+  const similarVocScopeRef = useRef({ postId, accessToken });
+  if (
+    similarVocScopeRef.current.postId !== postId ||
+    similarVocScopeRef.current.accessToken !== accessToken
+  ) {
+    similarVocScopeRef.current = { postId, accessToken };
+  }
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
