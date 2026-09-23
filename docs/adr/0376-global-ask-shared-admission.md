@@ -70,6 +70,11 @@ foreign index before `DROP INDEX CONCURRENTLY` executes. The rollback would then
 delete an object that never passed its destructive-action guard. A second name
 or catalog re-check immediately before DROP only moves the race window; the
 validation and destructive action need one lock-protected transaction boundary.
+That protective `ACCESS EXCLUSIVE` acquisition must not wait indefinitely on a
+busy production table. Recovery is operator-driven and exceptional, so a busy
+table is a fail-closed condition: acquire the table lock with `NOWAIT`, leave the
+owned index untouched when the lock is unavailable, drain conflicting traffic or
+transactions, and retry explicitly.
 
 PostgreSQL temporary relations also shadow same-named permanent relations for
 the creating session unless the permanent object is schema-qualified. Because
@@ -126,7 +131,7 @@ with another writer's migration identity.
    anchored to the whole decompiled expression rather than token presence, so a
    version-marked `AND false` or otherwise narrowed lookalike cannot pass. The
    paired rollback performs its destructive-action preflight and DROP in one
-   transaction after acquiring `ACCESS EXCLUSIVE` on
+   transaction after acquiring `ACCESS EXCLUSIVE ... NOWAIT` on
    `public.global_ask_job`. It accepts only the canonical
    `public.global_ask_job` btree, non-unique, single-key, no-INCLUDE shape and
    exact queued/running predicate. A valid/ready index must additionally carry
@@ -138,7 +143,10 @@ with another writer's migration identity.
    relation fails closed and requires an explicit operator ownership decision.
    Because `DROP INDEX CONCURRENTLY` cannot execute inside that protective
    transaction, the exceptional rollback uses ordinary schema-qualified
-   `DROP INDEX` while holding the parent-table lock. Recovery of an accepted
+   `DROP INDEX` while holding the parent-table lock. If the parent table is busy,
+   `NOWAIT` aborts before validation or deletion; operators must drain the
+   conflicting workload and retry rather than leaving a destructive recovery
+   session queued behind production traffic. Recovery of an accepted
    failed-build artifact is paired rollback, migration 0251 replay, and
    verification of the marker plus `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
@@ -170,11 +178,12 @@ with another writer's migration identity.
   repository-owned canonical index or an incomplete unmarked canonical-shaped
   failed-build artifact, but it refuses a valid unmarked/mismarked index or an
   incompatible relation even when the canonical name matches.
-- Rollback validation and deletion now share one transaction and parent-table
-  lock, so a privileged concurrent session cannot replace the validated index
-  before the destructive statement. The trade-off is a brief `ACCESS EXCLUSIVE`
-  outage on `global_ask_job` during exceptional rollback; operators must schedule
-  that recovery rather than treating rollback as a zero-impact online action.
+- Rollback validation and deletion share one transaction and parent-table lock,
+  so a privileged concurrent session cannot replace the validated index before
+  the destructive statement. The lock acquisition is `NOWAIT`: busy production
+  traffic causes an immediate rollback failure with the canonical index retained
+  instead of an unbounded recovery wait. Operators must drain conflicting work
+  and retry the exceptional rollback explicitly.
 - A table, view, sequence, partitioned index, or other unsupported relation that
   occupies the canonical index name stops rollout without destructive automated
   cleanup. Operators must resolve that ownership collision explicitly before
@@ -223,6 +232,11 @@ with another writer's migration identity.
   the validated relation in that gap. Re-checking immediately before DROP does
   not remove the race. Exceptional rollback therefore uses one lock-protected
   transaction and an ordinary DROP instead of concurrent deletion.
+- Waiting indefinitely for the rollback `ACCESS EXCLUSIVE` lock was rejected.
+  PostgreSQL `LOCK` waits by default, which can leave an operator-started
+  destructive recovery session blocked behind ordinary application traffic.
+  `NOWAIT` keeps the failure explicit and leaves the index untouched until the
+  operator has created a quiescent recovery window.
 - Accepting a same-named index by textual definition tokens or catalog marker
   alone was rejected because another relation can carry a lookalike index and a
   narrower predicate on the canonical table can retain both the expected tokens
