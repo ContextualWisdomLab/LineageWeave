@@ -70,13 +70,14 @@ def test_latest_validation_overlay_pins_current_global_ask_candidate() -> None:
     """Global Ask evidence names its reviewed head without promoting delivery."""
     overlay = _latest_validation_overlay().replace("\n> ", " ")
 
-    assert "2026-09-23T03:06:04Z" in overlay
-    assert "`3000ffda7f47ed02e0e4f8984950893ca4bf887b`" in overlay
-    assert "57/57" in overlay
-    assert "1/1" in overlay
-    assert "Normal squash auto-merge is enabled" in overlay
-    assert "hosted checks are nonterminal" in overlay
-    assert "independent approval is still required" in overlay
+    assert "2026-09-23T04:17:32Z" in overlay
+    assert "`55099a49805ccd5141a22ccdfbe50affb2d693b2`" in overlay
+    assert "31/31" in overlay
+    assert "2/2" in overlay
+    assert "Hosted Tests are Draft-skipped" in overlay
+    assert "central security/review jobs are queued" in overlay
+    assert "no qualifying independent approval exists" in overlay
+    assert "auto-merge is disabled" in overlay
 
 
 def test_translation_ledger_hosted_failure_keeps_runner_provenance() -> None:
