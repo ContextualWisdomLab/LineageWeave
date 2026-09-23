@@ -38,7 +38,7 @@ class ValkeyMcpRateLimiter:
     async def consume(self, user_account_id: str) -> None:
         """Consume one provisioned account request or fail closed."""
         digest = hashlib.sha256(user_account_id.encode("utf-8")).hexdigest()
-        key = f"lineageweave:global-ask-principal-quota:v1:{digest}"
+        key = f"lineageweave:mcp-rate-limit:v1:{digest}"
         try:
             result = await self._client.eval(_SCRIPT, 1, key, self._window_seconds)
             count, ttl = int(result[0]), int(result[1])
