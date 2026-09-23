@@ -1,12 +1,22 @@
--- Serialize cooperating migration 0251 runners across the whole psql session.
--- CREATE INDEX CONCURRENTLY cannot run inside a transaction, so a transaction-
--- scoped advisory lock cannot protect the capture/preflight/create/comment chain.
--- A session lock does: concurrent LineageWeave rollout processes wait here and
--- then replay against the canonical index created by the first runner. External
--- DDL is still handled by the fail-closed duplicate-relation path below.
-select pg_advisory_lock(
+-- Coordinate cooperating migration 0251 runners without parking a transaction
+-- behind an advisory lock. CREATE INDEX CONCURRENTLY waits for old snapshots;
+-- a blocking SELECT pg_advisory_lock(...) can itself own such a snapshot and
+-- form a wait cycle with the index build. Use the non-blocking session lock and
+-- fail fast instead. The rollout operator can retry after the active 0251
+-- session exits; replay then validates the canonical index before succeeding.
+select pg_try_advisory_lock(
     hashtextextended('lineageweave:migration:0251_global_ask_active_admission_index', 0)
-);
+) as lineageweave_migration_lock_acquired
+\gset
+
+\if :lineageweave_migration_lock_acquired
+\else
+    do $$
+    begin
+        raise exception 'migration 0251 is already running; retry after the active migration session exits';
+    end
+    $$;
+\endif
 
 -- Capture the create/no-create decision before validation. If the name is absent
 -- here and another non-cooperating session creates it later, the plain CREATE
