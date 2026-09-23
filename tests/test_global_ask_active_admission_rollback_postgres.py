@@ -125,3 +125,33 @@ async def _rollback_preserves_unowned_valid_index_scenario() -> None:
 def test_rollback_refuses_valid_unowned_same_named_index() -> None:
     """Rollback must not delete a valid index that lacks repository ownership."""
     asyncio.run(_rollback_preserves_unowned_valid_index_scenario())
+
+
+def test_rollback_validation_and_drop_share_one_locked_transaction() -> None:
+    """Ownership validation and destructive DROP must not have a replacement race."""
+    normalized = " ".join(_ACTIVE_ADMISSION_ROLLBACK.read_text().lower().split())
+    begin_position = normalized.find("begin;")
+    lock_position = normalized.find(
+        "lock table public.global_ask_job in access exclusive mode;"
+    )
+    validation_position = normalized.find("do $$")
+    drop_position = normalized.find(
+        "drop index if exists public.global_ask_job_active_account_idx;"
+    )
+    commit_position = normalized.rfind("commit;")
+
+    assert min(
+        begin_position,
+        lock_position,
+        validation_position,
+        drop_position,
+        commit_position,
+    ) >= 0
+    assert (
+        begin_position
+        < lock_position
+        < validation_position
+        < drop_position
+        < commit_position
+    )
+    assert "drop index concurrently" not in normalized
