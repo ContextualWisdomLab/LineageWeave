@@ -40,6 +40,7 @@ declare
     index_predicate text;
     first_index_key text;
     index_contract text;
+    index_access_method text;
     index_key_count integer;
     index_attribute_count integer;
     index_is_valid boolean;
@@ -66,7 +67,8 @@ begin
                pg_get_indexdef(index_catalog.indexrelid),
                pg_get_expr(index_catalog.indpred, index_catalog.indrelid, true),
                pg_get_indexdef(index_catalog.indexrelid, 1, true),
-               obj_description(index_catalog.indexrelid, 'pg_class')
+               obj_description(index_catalog.indexrelid, 'pg_class'),
+               access_method.amname
           into indexed_table,
                index_is_valid,
                index_is_ready,
@@ -75,8 +77,13 @@ begin
                index_definition,
                index_predicate,
                first_index_key,
-               index_contract
+               index_contract,
+               index_access_method
           from pg_index index_catalog
+          join pg_class index_relation
+            on index_relation.oid = index_catalog.indexrelid
+          join pg_am access_method
+            on access_method.oid = index_relation.relam
          where index_catalog.indexrelid = existing_index;
 
         if coalesce(index_is_valid, false) is not true
@@ -86,6 +93,7 @@ begin
         end if;
 
         if indexed_table is distinct from 'public.global_ask_job'::regclass
+           or index_access_method is distinct from 'btree'
            or index_key_count is distinct from 1
            or index_attribute_count is distinct from 1
            or first_index_key is distinct from 'requesting_account_id'
