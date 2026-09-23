@@ -76,17 +76,24 @@ async def _connect_admin_or_skip() -> asyncpg.Connection:
 
 async def _assert_active_admission_index(connection: asyncpg.Connection) -> None:
     """The synchronous principal-cap query must not scan terminal job history."""
-    index_definition = await connection.fetchval(
+    index_row = await connection.fetchrow(
         """
-        select indexdef
-          from pg_indexes
-         where schemaname = 'public'
-           and tablename = 'global_ask_job'
-           and indexname = 'global_ask_job_active_account_idx'
+        select pg_get_indexdef(index_relation.oid) as index_definition,
+               index_catalog.indisvalid,
+               index_catalog.indisready
+          from pg_class index_relation
+          join pg_index index_catalog
+            on index_catalog.indexrelid = index_relation.oid
+          join pg_class table_relation
+            on table_relation.oid = index_catalog.indrelid
+         where table_relation.relname = 'global_ask_job'
+           and index_relation.relname = 'global_ask_job_active_account_idx'
         """
     )
-    assert index_definition is not None
-    normalized = index_definition.lower()
+    assert index_row is not None
+    assert index_row["indisvalid"] is True
+    assert index_row["indisready"] is True
+    normalized = index_row["index_definition"].lower()
     assert "requesting_account_id" in normalized
     assert "where" in normalized
     assert "queued" in normalized
