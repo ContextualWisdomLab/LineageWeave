@@ -23,3 +23,10 @@ export const RetainedEvidenceRetry: Story = { args: {
   onLoadMore: () => undefined,
   onRetry: () => undefined,
 } };
+export const EmptyNextPageRetry: Story = { args: {
+  items: [],
+  error: "이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.",
+  onOpenPost: () => undefined,
+  onLoadMore: () => undefined,
+  onRetry: () => undefined,
+} };
