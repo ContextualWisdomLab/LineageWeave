@@ -20,9 +20,13 @@ def test_mcp_quota_has_no_library_default(monkeypatch) -> None:
     """Generic backend settings never invent deployment capacity."""
     monkeypatch.delenv("MCP_RATE_LIMIT_REQUESTS", raising=False)
     monkeypatch.delenv("MCP_RATE_LIMIT_WINDOW_SECONDS", raising=False)
+    monkeypatch.delenv("GLOBAL_ASK_MAX_QUESTION_BYTES", raising=False)
+    monkeypatch.delenv("GLOBAL_ASK_MAX_OUTSTANDING_JOBS", raising=False)
     settings = load_settings()
     assert settings.mcp_rate_limit_requests is None
     assert settings.mcp_rate_limit_window_seconds is None
+    assert settings.global_ask_max_question_bytes is None
+    assert settings.global_ask_max_outstanding_jobs is None
 
 
 def test_mcp_server_requires_measured_quota_and_exact_origins(monkeypatch) -> None:

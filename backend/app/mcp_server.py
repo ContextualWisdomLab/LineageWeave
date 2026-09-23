@@ -288,6 +288,11 @@ def build_mcp_server(
             verify_external=verify_external,
             knowledge_cutoff=knowledge_cutoff,
             service_available=dependencies.service_available,
+            question_max_bytes=dependencies.settings.global_ask_max_question_bytes,
+            max_outstanding_jobs=dependencies.settings.global_ask_max_outstanding_jobs,
+            quota_request_limit=dependencies.settings.mcp_rate_limit_requests,
+            quota_window_seconds=dependencies.settings.mcp_rate_limit_window_seconds,
+            quota_already_consumed=True,
         )
 
     @server.tool(

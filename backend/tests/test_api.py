@@ -815,6 +815,11 @@ def client(seeded_db):
     os.environ["DATABASE_URL"] = seeded_db["dsn"]
     os.environ["KEYCLOAK_BASE_URL"] = _KEYCLOAK_BASE_URL
     os.environ["KEYCLOAK_ISSUER"] = f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}"
+    # Synthetic integration capacity contract; production values require k6 evidence.
+    os.environ["MCP_RATE_LIMIT_REQUESTS"] = "100"
+    os.environ["MCP_RATE_LIMIT_WINDOW_SECONDS"] = "60"
+    os.environ["GLOBAL_ASK_MAX_QUESTION_BYTES"] = "4096"
+    os.environ["GLOBAL_ASK_MAX_OUTSTANDING_JOBS"] = "8"
 
     from fastapi.testclient import TestClient
 

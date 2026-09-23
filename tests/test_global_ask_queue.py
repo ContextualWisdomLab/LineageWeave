@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from uuid import UUID
+
+import pytest
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
@@ -494,3 +497,56 @@ def test_job_visibility_never_expands_past_queued_scope() -> None:
     assert processes == {"queued-process"}
     assert process_scope_limited is True
     assert has_post_read is True
+
+
+@pytest.mark.anyio
+async def test_enqueue_serializes_and_rejects_at_active_job_capacity() -> None:
+    """One account's count and insert share a transaction-scoped lock."""
+
+    class Transaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            return False
+
+    class Connection:
+        def __init__(self, outstanding: int) -> None:
+            self.outstanding = outstanding
+            self.calls = []
+
+        def transaction(self):
+            return Transaction()
+
+        async def execute(self, query, *args):
+            self.calls.append((query, args))
+
+        async def fetchval(self, query, *args):
+            self.calls.append((query, args))
+            if "count(*)" in query:
+                return self.outstanding
+            return UUID(int=1)
+
+        async def executemany(self, query, args):
+            self.calls.append((query, tuple(args)))
+
+    class Valkey:
+        async def xadd(self, *_args, **_kwargs):
+            raise AssertionError("a rejected job must not publish a wake-up")
+
+    conn = Connection(outstanding=2)
+    with pytest.raises(global_ask_queue.GlobalAskOutstandingLimitExceeded):
+        await global_ask_queue.enqueue_global_ask_job(
+            conn,
+            Valkey(),
+            requesting_account_id="00000000-0000-0000-0000-000000000001",
+            question_text="What changed?",
+            verify_external_requested=False,
+            knowledge_cutoff=None,
+            corporate_entity_ids=frozenset(),
+            process_unit_ids=frozenset(),
+            max_outstanding_jobs=2,
+        )
+    assert "pg_advisory_xact_lock" in conn.calls[0][0]
+    assert "job_status_code in ('queued', 'running')" in conn.calls[1][0]
+    assert all("insert into global_ask_job" not in query for query, _ in conn.calls)

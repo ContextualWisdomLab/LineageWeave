@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from backend.app import global_ask_service
 from backend.app.auth import CurrentAccount
+from backend.app.global_ask_queue import GlobalAskOutstandingLimitExceeded
 
 
 class Acquire:
@@ -70,25 +71,42 @@ def account(*, permitted=True) -> CurrentAccount:
 async def test_submit_normalizes_and_forwards_current_contract(monkeypatch) -> None:
     """Submission passes the exact current scope, cutoff, and opt-in once."""
     calls = []
+    consumed = []
+
+    class Limiter:
+        def __init__(self, client, *, request_limit, window_seconds):
+            assert client is valkey
+            assert (request_limit, window_seconds) == (10, 60)
+
+        async def consume(self, account_id):
+            consumed.append(account_id)
 
     async def enqueue(*args, **kwargs):
         calls.append((args, kwargs))
         return UUID("00000000-0000-0000-0000-000000000123")
 
     monkeypatch.setattr(global_ask_service, "enqueue_global_ask_job", enqueue)
+    monkeypatch.setattr(global_ask_service, "ValkeyMcpRateLimiter", Limiter)
+    valkey = object()
     result = await global_ask_service.submit_global_ask(
         pool=Pool(Connection()),
-        valkey=object(),
+        valkey=valkey,
         account=account(),
         question="  What changed? ",
         verify_external=True,
         knowledge_cutoff="2026-08-25T00:00:00Z",
         service_available=True,
+        question_max_bytes=1024,
+        max_outstanding_jobs=2,
+        quota_request_limit=10,
+        quota_window_seconds=60,
+        quota_already_consumed=False,
     )
     assert result["job_status_code"] == "queued"
     assert calls[0][1]["question_text"] == "What changed?"
     assert calls[0][1]["corporate_entity_ids"] == frozenset({"entity-1"})
     assert calls[0][1]["process_unit_ids"] == frozenset({"unit-1"})
+    assert consumed == ["account-1"]
 
 
 @pytest.mark.anyio
@@ -113,6 +131,11 @@ async def test_submit_fails_before_enqueue(monkeypatch, kwargs, status_code) -> 
         "verify_external": False,
         "knowledge_cutoff": None,
         "service_available": True,
+        "question_max_bytes": 1024,
+        "max_outstanding_jobs": 2,
+        "quota_request_limit": 10,
+        "quota_window_seconds": 60,
+        "quota_already_consumed": True,
     }
     values.update(kwargs)
     with pytest.raises(HTTPException) as caught:
@@ -120,6 +143,64 @@ async def test_submit_fails_before_enqueue(monkeypatch, kwargs, status_code) -> 
             pool=Pool(Connection()), valkey=object(), account=account(), **values
         )
     assert caught.value.status_code == status_code
+
+
+@pytest.mark.anyio
+async def test_submit_rejects_oversized_question_without_echoing_content(
+    monkeypatch,
+) -> None:
+    """UTF-8 byte admission rejects content before durable enqueue."""
+
+    async def forbidden(*_args, **_kwargs):
+        raise AssertionError("enqueue must not run")
+
+    monkeypatch.setattr(global_ask_service, "enqueue_global_ask_job", forbidden)
+    with pytest.raises(HTTPException) as caught:
+        await global_ask_service.submit_global_ask(
+            pool=Pool(Connection()),
+            valkey=object(),
+            account=account(),
+            question="민감" * 3,
+            verify_external=False,
+            knowledge_cutoff=None,
+            service_available=True,
+            question_max_bytes=8,
+            max_outstanding_jobs=2,
+            quota_request_limit=10,
+            quota_window_seconds=60,
+            quota_already_consumed=True,
+        )
+    assert caught.value.status_code == 413
+    assert "민감" not in str(caught.value.detail)
+
+
+@pytest.mark.anyio
+async def test_submit_maps_atomic_outstanding_rejection_to_bounded_retry(
+    monkeypatch,
+) -> None:
+    """A transactionally rejected active-job admission returns bounded metadata."""
+
+    async def reject(*_args, **_kwargs):
+        raise GlobalAskOutstandingLimitExceeded
+
+    monkeypatch.setattr(global_ask_service, "enqueue_global_ask_job", reject)
+    with pytest.raises(HTTPException) as caught:
+        await global_ask_service.submit_global_ask(
+            pool=Pool(Connection()),
+            valkey=object(),
+            account=account(),
+            question="What changed?",
+            verify_external=False,
+            knowledge_cutoff=None,
+            service_available=True,
+            question_max_bytes=1024,
+            max_outstanding_jobs=2,
+            quota_request_limit=10,
+            quota_window_seconds=60,
+            quota_already_consumed=True,
+        )
+    assert caught.value.status_code == 429
+    assert caught.value.headers == {"Retry-After": "60"}
 
 
 @pytest.mark.anyio
@@ -152,6 +233,11 @@ async def test_permission_and_owner_scope_fail_closed() -> None:
             verify_external=False,
             knowledge_cutoff=None,
             service_available=True,
+            question_max_bytes=1024,
+            max_outstanding_jobs=2,
+            quota_request_limit=10,
+            quota_window_seconds=60,
+            quota_already_consumed=True,
         )
     assert submit_denied.value.status_code == 403
 

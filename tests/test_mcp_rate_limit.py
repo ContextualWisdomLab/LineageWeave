@@ -42,7 +42,7 @@ async def test_limiter_uses_opaque_account_key_and_atomic_window() -> None:
     await limiter.consume("customer-account")
     assert client.call[1:] == (
         1,
-        "lineageweave:mcp-rate-limit:v1:"
+        "lineageweave:global-ask-principal-quota:v1:"
         + hashlib.sha256(b"customer-account").hexdigest(),
         60,
     )
