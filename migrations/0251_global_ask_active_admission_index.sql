@@ -147,11 +147,12 @@ select :'lineageweave_preflight_active_admission_index_oid'::oid
 \endif
 
 -- Bind the final ownership decision to the same PostgreSQL object that was
--- validated or created above. SHARE UPDATE EXCLUSIVE still admits ordinary DML
--- (ROW EXCLUSIVE) while excluding index/schema churn on global_ask_job during
--- the short publication transaction. If a privileged non-cooperating session
--- swapped the named index before this lock was acquired, the OID check fails
--- closed before any repository ownership marker can be written.
+-- validated or observed immediately after creation. SHARE UPDATE EXCLUSIVE
+-- admits ordinary DML (ROW EXCLUSIVE) while excluding concurrent index/schema
+-- churn on global_ask_job during the short publication transaction. If a
+-- privileged non-cooperating session swaps the named index before this lock is
+-- acquired, exact-OID continuity (replay) and the repeated physical-contract
+-- validation (both paths) fail closed before a repository marker is written.
 begin;
 lock table public.global_ask_job in share update exclusive mode;
 
@@ -172,7 +173,109 @@ select coalesce(
     $$;
 \endif
 
+-- Re-check the whole physical contract under the table lock. The create path
+-- cannot know its catalog OID until CREATE INDEX CONCURRENTLY has returned, so
+-- this second validation is what prevents a malformed replacement installed in
+-- the narrow post-CREATE/pre-lock gap from receiving the ownership marker.
+do $$
+declare
+    existing_index regclass;
+    existing_relation_kind "char";
+    indexed_table regclass;
+    index_definition text;
+    index_predicate text;
+    first_index_key text;
+    index_contract text;
+    index_access_method text;
+    index_key_count integer;
+    index_attribute_count integer;
+    index_is_valid boolean;
+    index_is_ready boolean;
+begin
+    existing_index := to_regclass('public.global_ask_job_active_account_idx');
+    if existing_index is null then
+        raise exception
+            'global_ask_job_active_account_idx disappeared before migration 0251 ownership publication';
+    end if;
+
+    select relation_catalog.relkind
+      into existing_relation_kind
+      from pg_class relation_catalog
+     where relation_catalog.oid = existing_index;
+
+    if existing_relation_kind is distinct from 'i'::"char" then
+        raise exception
+            'global_ask_job_active_account_idx changed to a non-index relation before migration 0251 ownership publication';
+    end if;
+
+    select index_catalog.indrelid,
+           index_catalog.indisvalid,
+           index_catalog.indisready,
+           index_catalog.indnkeyatts,
+           index_catalog.indnatts,
+           pg_get_indexdef(index_catalog.indexrelid),
+           pg_get_expr(index_catalog.indpred, index_catalog.indrelid, true),
+           pg_get_indexdef(index_catalog.indexrelid, 1, true),
+           obj_description(index_catalog.indexrelid, 'pg_class'),
+           access_method.amname
+      into indexed_table,
+           index_is_valid,
+           index_is_ready,
+           index_key_count,
+           index_attribute_count,
+           index_definition,
+           index_predicate,
+           first_index_key,
+           index_contract,
+           index_access_method
+      from pg_index index_catalog
+      join pg_class index_relation
+        on index_relation.oid = index_catalog.indexrelid
+      join pg_am access_method
+        on access_method.oid = index_relation.relam
+     where index_catalog.indexrelid = existing_index;
+
+    if indexed_table is distinct from 'public.global_ask_job'::regclass
+       or index_access_method is distinct from 'btree'
+       or index_key_count is distinct from 1
+       or index_attribute_count is distinct from 1
+       or first_index_key is distinct from 'requesting_account_id'
+       or index_predicate is null
+       or regexp_replace(lower(index_predicate), '\s+', ' ', 'g') not in (
+           'job_status_code = any (array[''queued''::text, ''running''::text])',
+           '(job_status_code = any (array[''queued''::text, ''running''::text]))'
+       )
+       or lower(index_definition) like 'create unique index%'
+       or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%'
+       or coalesce(index_is_valid, false) is not true
+       or coalesce(index_is_ready, false) is not true
+       or (
+           index_contract is not null
+           and index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1'
+       ) then
+        raise exception
+            'global_ask_job_active_account_idx changed to an incompatible definition before migration 0251 ownership publication';
+    end if;
+end
+$$;
+
 \if :lineageweave_create_active_admission_index
+select (obj_description(
+            'public.global_ask_job_active_account_idx'::regclass,
+            'pg_class'
+        ) is null) as lineageweave_created_active_admission_index_is_unowned
+\gset
+
+\if :lineageweave_created_active_admission_index_is_unowned
+\else
+    do $$
+    begin
+        raise exception
+            'global_ask_job_active_account_idx acquired an ownership marker before migration 0251 publication';
+    end
+    $$;
+\endif
+
 comment on index public.global_ask_job_active_account_idx is
     'lineageweave/global-ask-active-admission-index/v1';
 \else
