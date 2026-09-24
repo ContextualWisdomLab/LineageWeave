@@ -145,14 +145,23 @@ async def _scenario() -> None:
                 == 0
             )
 
-            # A deliberate ownership-boundary rollback may remove a retired
-            # receipt because no product resource remains.
-            await connection.execute(
-                _SEED_OWNERSHIP_ROLLBACK.read_text(encoding="utf-8")
+            # The retirement receipt is the durable no-resurrection fact. An
+            # ownership-boundary rollback must fail closed rather than erase it
+            # and re-authorize historical 0248 bytes on a later reapply.
+            with pytest.raises(asyncpg.PostgresError, match="retired"):
+                await connection.execute(
+                    _SEED_OWNERSHIP_ROLLBACK.read_text(encoding="utf-8")
+                )
+            receipt = await connection.fetchrow(
+                """
+                select ownership_state, resource_id
+                  from ui_translation_seed_ownership
+                 where migration_key = '0248_customer_master_translation_draft'
+                """
             )
-            assert await connection.fetchval(
-                "select to_regclass('ui_translation_seed_ownership')"
-            ) is None
+            assert receipt is not None
+            assert receipt["ownership_state"] == "retired"
+            assert receipt["resource_id"] is None
         finally:
             await connection.close()
     finally:
