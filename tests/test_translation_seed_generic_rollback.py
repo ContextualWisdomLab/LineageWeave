@@ -275,3 +275,107 @@ def test_generic_ownership_rollback_preserves_blocked_operator_resource() -> Non
             await admin_connection.close()
 
     asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
+def test_generic_ownership_rollback_preserves_retirement_across_reapply() -> None:
+    """Rolling back shared wiring must not erase a deliberate no-resurrection receipt."""
+
+    async def scenario() -> None:
+        database_name = f"lineageweave_seed_retired_rb_{uuid.uuid4().hex[:12]}"
+        admin_connection = await asyncpg.connect(_ADMIN_DSN)
+        await admin_connection.execute(f'create database "{database_name}"')
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+        try:
+            connection = await asyncpg.connect(database_dsn)
+            try:
+                for migration in (
+                    _INITIAL_SCHEMA,
+                    _MEMBER_LOCALE_MIGRATION,
+                    _LEDGER_MIGRATION,
+                    _TRUNCATE_GUARD_MIGRATION,
+                    _CUSTOMER_OWNERSHIP,
+                    _GENERIC_OWNERSHIP,
+                    _SIMILAR_SEED,
+                ):
+                    await connection.execute(migration.read_text(encoding="utf-8"))
+
+                resource_id = await connection.fetchval(
+                    """
+                    select resource_id
+                      from ui_translation_resource
+                     where product_key = 'lineageweave'
+                       and screen_key = 'similar-voc'
+                       and resource_version = 1
+                    """
+                )
+                assert resource_id is not None
+
+                await connection.execute(
+                    "delete from ui_translation_resource where resource_id = $1",
+                    resource_id,
+                )
+                receipt = await connection.fetchrow(
+                    """
+                    select ownership_state, resource_id
+                      from ui_translation_seed_ownership
+                     where migration_key = '0249_z_similar_voc_translation_draft'
+                    """
+                )
+                assert receipt is not None
+                assert receipt["ownership_state"] == "retired"
+                assert receipt["resource_id"] is None
+
+                await connection.execute(
+                    _GENERIC_OWNERSHIP_ROLLBACK.read_text(encoding="utf-8")
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select ownership_state
+                          from ui_translation_seed_ownership
+                         where migration_key = '0249_z_similar_voc_translation_draft'
+                        """
+                    )
+                    == "retired"
+                )
+
+                await connection.execute(_GENERIC_OWNERSHIP.read_text(encoding="utf-8"))
+                await connection.execute(_SIMILAR_SEED.read_text(encoding="utf-8"))
+
+                assert (
+                    await connection.fetchval(
+                        """
+                        select count(*)
+                          from ui_translation_resource
+                         where product_key = 'lineageweave'
+                           and screen_key = 'similar-voc'
+                           and resource_version = 1
+                        """
+                    )
+                    == 0
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select ownership_state
+                          from ui_translation_seed_ownership
+                         where migration_key = '0249_z_similar_voc_translation_draft'
+                        """
+                    )
+                    == "retired"
+                )
+            finally:
+                await connection.close()
+        finally:
+            await admin_connection.execute(f'drop database "{database_name}"')
+            await admin_connection.close()
+
+    asyncio.run(scenario())
