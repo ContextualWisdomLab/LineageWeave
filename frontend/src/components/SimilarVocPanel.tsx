@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useId, useState } from "react";
 import { AuthContext } from "react-oidc-context";
 import "./SimilarVocPanel.css";
 
@@ -22,6 +22,7 @@ type DisplayScope = {
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
 export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
+  const headingId = useId();
   const auth = useContext(AuthContext);
   const authorizationScope = auth?.user?.access_token ?? null;
   const [displayedScope, setDisplayedScope] = useState<DisplayScope>(() => ({
@@ -48,9 +49,9 @@ export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoad
   const retryAction = retryLoadedPage ? scopedOnLoadMore : onRetry;
 
   return (
-    <section className="similar-voc" aria-labelledby="similar-voc-heading">
+    <section className="similar-voc" aria-labelledby={headingId}>
       <header>
-        <h3 id="similar-voc-heading">유사 VOC · 고객군 확인</h3>
+        <h3 id={headingId}>유사 VOC · 고객군 확인</h3>
         <p>같은 문제 유형으로 판정된 과거 근거와 조치 이력을 확인하세요.</p>
       </header>
       {scopedError ? (
