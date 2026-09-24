@@ -376,6 +376,9 @@ question phrase.
 - Preserve controls during loading and retry; discard responses from an
   earlier navigation scope.
 - Distinguish pending, unavailable, failed, incomplete, and succeeded states.
+- Bound question bytes, per-principal submission rate, and active durable work
+  at the shared REST/MCP application-service boundary. Capacity values come
+  from deployment load evidence; missing admission policy fails closed.
 
 Acceptance: each state tells the user the next valid action and never displays
 stale evidence from a previously opened post.
@@ -502,6 +505,7 @@ A release claim requires one exact protected-main head that proves:
 
 - Product/data boundary: ADR 0001, ADR 0089.
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
+- Shared Global Ask admission: ADR 0376.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207, ADR 0222, ADR 0246, ADR 0256.
   ADR 0184, ADR 0207, ADR 0222, ADR 0246.
@@ -526,7 +530,7 @@ current boundary until that repository adopts one.
 | `ContextualWisdomLab/keyverse` | `docs/PRD.md` | Production OIDC/JWKS/identity control plane; local demo Keycloak is not Keyverse |
 | `ContextualWisdomLab/RankWeave` | No standalone PRD; `README.md`, `ARCHITECTURE.md` | Store-agnostic ranking/fusion dependency; caller owns channels and authorization |
 | `ContextualWisdomLab/ThreadWeave` | `docs/PRD.md` | Deterministic reference-thread assembly dependency; LineageWeave owns records and persistence |
-| `ContextualWisdomLab/DiskSage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
+| `ContextualWisdomLab/disksage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/wardnet` | No standalone PRD; `README.md`, `docs/architecture.md` | Prospective gateway/network-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/naruon` | Scoped `docs/topic-intelligence/PRD.md` only | Owns observed calendar/email projections; LineageWeave owns commitments and combined display |
 | `ContextualWisdomLab/LineageWeave` | This PRD, with ADRs normative | Evidence BI/orchestration, lineage, semantic projection, API, and UI owner |

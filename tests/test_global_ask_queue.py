@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from uuid import UUID
+
+import pytest
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
@@ -494,3 +497,88 @@ def test_job_visibility_never_expands_past_queued_scope() -> None:
     assert processes == {"queued-process"}
     assert process_scope_limited is True
     assert has_post_read is True
+
+
+@pytest.mark.anyio
+async def test_enqueue_serializes_and_rejects_at_active_job_capacity() -> None:
+    """Concurrent connections cannot admit two jobs through a capacity of one."""
+
+    committed_jobs: list[UUID] = []
+    account_lock = asyncio.Lock()
+
+    class Transaction:
+        def __init__(self, connection) -> None:
+            self.connection = connection
+
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            if self.connection.pending_job is not None:
+                committed_jobs.append(self.connection.pending_job)
+                self.connection.pending_job = None
+            if account_lock.locked():
+                account_lock.release()
+            return False
+
+    class Connection:
+        def __init__(self, job_id: UUID) -> None:
+            self.job_id = job_id
+            self.pending_job: UUID | None = None
+            self.calls = []
+
+        def transaction(self):
+            return Transaction(self)
+
+        async def execute(self, query, *args):
+            self.calls.append((query, args))
+            if "pg_advisory_xact_lock" in query:
+                await account_lock.acquire()
+
+        async def fetchval(self, query, *args):
+            self.calls.append((query, args))
+            if "count(*)" in query:
+                return len(committed_jobs)
+            self.pending_job = self.job_id
+            return self.job_id
+
+        async def executemany(self, query, args):
+            self.calls.append((query, tuple(args)))
+
+    class Valkey:
+        published: list[str] = []
+
+        async def xadd(self, *_args, **_kwargs):
+            self.published.append(_args[1]["global_ask_job_id"])
+
+    connections = (Connection(UUID(int=1)), Connection(UUID(int=2)))
+    valkey = Valkey()
+
+    async def submit(conn: Connection):
+        return await global_ask_queue.enqueue_global_ask_job(
+            conn,
+            valkey,
+            requesting_account_id="00000000-0000-0000-0000-000000000001",
+            question_text="What changed?",
+            verify_external_requested=False,
+            knowledge_cutoff=None,
+            corporate_entity_ids=frozenset(),
+            process_unit_ids=frozenset(),
+            max_outstanding_jobs=1,
+        )
+
+    results = await asyncio.gather(
+        *(submit(conn) for conn in connections), return_exceptions=True
+    )
+    assert sum(isinstance(result, str) for result in results) == 1
+    assert sum(
+        isinstance(result, global_ask_queue.GlobalAskOutstandingLimitExceeded)
+        for result in results
+    ) == 1
+    assert len(committed_jobs) == 1
+    assert valkey.published == [str(committed_jobs[0])]
+    assert all("pg_advisory_xact_lock" in conn.calls[0][0] for conn in connections)
+    assert all(
+        "job_status_code in ('queued', 'running')" in conn.calls[1][0]
+        for conn in connections
+    )

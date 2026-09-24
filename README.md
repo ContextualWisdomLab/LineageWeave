@@ -164,6 +164,8 @@ guessed request/window defaults:
 ```bash
 MCP_RATE_LIMIT_REQUESTS=<measured-count> \
 MCP_RATE_LIMIT_WINDOW_SECONDS=<measured-window> \
+GLOBAL_ASK_MAX_QUESTION_BYTES=<measured-byte-bound> \
+GLOBAL_ASK_MAX_OUTSTANDING_JOBS=<measured-active-bound> \
 docker compose --profile mcp up mcp
 # Streamable HTTP resource: http://localhost:18001/mcp
 ```

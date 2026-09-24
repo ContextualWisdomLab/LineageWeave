@@ -102,6 +102,10 @@ class _SafeJobError(Exception):
     """Failure whose bounded message is safe to persist for the requester."""
 
 
+class GlobalAskOutstandingLimitExceeded(Exception):
+    """The account already owns the deployment's maximum active Ask jobs."""
+
+
 async def enqueue_global_ask_job(
     conn: asyncpg.Connection,
     client: redis.Redis,
@@ -112,6 +116,7 @@ async def enqueue_global_ask_job(
     knowledge_cutoff: datetime | None,
     corporate_entity_ids: frozenset[str],
     process_unit_ids: frozenset[str],
+    max_outstanding_jobs: int,
 ) -> str:
     """Persist one Ask job and wake the worker; return the new job id.
 
@@ -120,6 +125,21 @@ async def enqueue_global_ask_job(
     pointing at nothing.
     """
     async with conn.transaction():
+        await conn.execute(
+            "select pg_advisory_xact_lock(hashtextextended($1, 0))",
+            requesting_account_id,
+        )
+        outstanding = await conn.fetchval(
+            """
+            select count(*)
+              from global_ask_job
+             where requesting_account_id = $1::uuid
+               and job_status_code in ('queued', 'running')
+            """,
+            requesting_account_id,
+        )
+        if int(outstanding) >= max_outstanding_jobs:
+            raise GlobalAskOutstandingLimitExceeded
         job_id = await conn.fetchval(
             """
             insert into global_ask_job
