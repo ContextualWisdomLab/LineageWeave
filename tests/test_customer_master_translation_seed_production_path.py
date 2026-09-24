@@ -44,7 +44,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-async def _run_current_seed_evidence_path() -> asyncpg.Connection:
+async def _run_current_seed_evidence_path() -> tuple[
+    asyncpg.Connection, asyncpg.Connection, str
+]:
     """Reproduce the current completeness fixture's migration path."""
     database_name = f"lineageweave_customer_seed_path_{uuid.uuid4().hex[:12]}"
     admin_connection = await asyncpg.connect(_ADMIN_DSN)
@@ -60,14 +62,14 @@ async def _run_current_seed_evidence_path() -> asyncpg.Connection:
         _CUSTOMER_MASTER_SEED,
     ):
         await connection.execute(migration.read_text(encoding="utf-8"))
-    connection._lineageweave_test_admin = admin_connection  # type: ignore[attr-defined]
-    connection._lineageweave_test_database = database_name  # type: ignore[attr-defined]
-    return connection
+    return connection, admin_connection, database_name
 
 
-async def _close_seed_database(connection: asyncpg.Connection) -> None:
-    admin_connection = connection._lineageweave_test_admin  # type: ignore[attr-defined]
-    database_name = connection._lineageweave_test_database  # type: ignore[attr-defined]
+async def _close_seed_database(
+    connection: asyncpg.Connection,
+    admin_connection: asyncpg.Connection,
+    database_name: str,
+) -> None:
     await connection.close()
     await admin_connection.execute(f'drop database "{database_name}"')
     await admin_connection.close()
@@ -77,7 +79,9 @@ def test_customer_master_seed_evidence_uses_production_ownership_path() -> None:
     """The completeness evidence must traverse the production ownership boundary."""
 
     async def scenario() -> None:
-        connection = await _run_current_seed_evidence_path()
+        connection, admin_connection, database_name = (
+            await _run_current_seed_evidence_path()
+        )
         try:
             receipt = await connection.fetchrow(
                 """
@@ -90,6 +94,6 @@ def test_customer_master_seed_evidence_uses_production_ownership_path() -> None:
             assert receipt["ownership_state"] == "owned"
             assert receipt["resource_id"] is not None
         finally:
-            await _close_seed_database(connection)
+            await _close_seed_database(connection, admin_connection, database_name)
 
     asyncio.run(scenario())
