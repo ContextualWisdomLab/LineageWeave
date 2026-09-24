@@ -28,7 +28,16 @@ _GENERIC_SEED_OWNERSHIP = (
 _GENERIC_CHILD_UPDATE_GUARD = (
     ROOT / "migrations" / "0249_ui_translation_seed_ownership_generic_b.sql"
 )
+_SIMILAR_VOC_SEED = ROOT / "migrations" / "0249_z_similar_voc_translation_draft.sql"
 _ROLLBACK_FILE = "rollback/0249_z_similar_voc_translation_draft.sql"
+
+
+def test_child_update_guard_replays_after_generic_owner_before_similar_voc_seed() -> None:
+    """Sorted migration replay must install the hardened guard before seed writes."""
+    names = sorted(path.name for path in (ROOT / "migrations").glob("*.sql"))
+    assert names.index(_GENERIC_SEED_OWNERSHIP.name) < names.index(
+        _GENERIC_CHILD_UPDATE_GUARD.name
+    ) < names.index(_SIMILAR_VOC_SEED.name)
 
 
 async def _postgres_available_async() -> bool:
