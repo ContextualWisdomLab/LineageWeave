@@ -18,11 +18,15 @@ select pg_try_advisory_lock(
     $$;
 \endif
 
--- Capture the create/no-create decision before validation. If the name is absent
--- here and another non-cooperating session creates it later, the plain CREATE
--- below must fail; do not re-check existence with IF NOT EXISTS after preflight.
-select (to_regclass('public.global_ask_job_active_account_idx') is null)
-    as lineageweave_create_active_admission_index
+-- Capture both the create/no-create decision and the exact object identity seen
+-- before validation. If the name is absent here and another non-cooperating
+-- session creates it later, the plain CREATE below must fail. If replay starts
+-- from an existing canonical index, ownership publication must remain bound to
+-- this exact OID rather than whichever relation happens to own the name later.
+select to_regclass('public.global_ask_job_active_account_idx')::oid
+           as lineageweave_preflight_active_admission_index_oid,
+       (to_regclass('public.global_ask_job_active_account_idx') is null)
+           as lineageweave_create_active_admission_index
 \gset
 
 -- Fail closed when a previous concurrent build left a same-named INVALID index.
@@ -133,10 +137,66 @@ $$;
 \if :lineageweave_create_active_admission_index
 select 'create index concurrently global_ask_job_active_account_idx on public.global_ask_job (requesting_account_id) where job_status_code in (''queued'', ''running'')'
 \gexec
+select 'public.global_ask_job_active_account_idx'::regclass::oid
+    as lineageweave_expected_active_admission_index_oid
+\gset
+\else
+select :'lineageweave_preflight_active_admission_index_oid'::oid
+    as lineageweave_expected_active_admission_index_oid
+\gset
 \endif
 
+-- Bind the final ownership decision to the same PostgreSQL object that was
+-- validated or created above. SHARE UPDATE EXCLUSIVE still admits ordinary DML
+-- (ROW EXCLUSIVE) while excluding index/schema churn on global_ask_job during
+-- the short publication transaction. If a privileged non-cooperating session
+-- swapped the named index before this lock was acquired, the OID check fails
+-- closed before any repository ownership marker can be written.
+begin;
+lock table public.global_ask_job in share update exclusive mode;
+
+select coalesce(
+           to_regclass('public.global_ask_job_active_account_idx')::oid =
+               :'lineageweave_expected_active_admission_index_oid'::oid,
+           false
+       ) as lineageweave_active_admission_index_identity_preserved
+\gset
+
+\if :lineageweave_active_admission_index_identity_preserved
+\else
+    do $$
+    begin
+        raise exception
+            'global_ask_job_active_account_idx changed after migration 0251 preflight; retry after resolving concurrent DDL';
+    end
+    $$;
+\endif
+
+\if :lineageweave_create_active_admission_index
 comment on index public.global_ask_job_active_account_idx is
     'lineageweave/global-ask-active-admission-index/v1';
+\else
+select coalesce(
+           obj_description(
+               'public.global_ask_job_active_account_idx'::regclass,
+               'pg_class'
+           ) = 'lineageweave/global-ask-active-admission-index/v1',
+           false
+       ) as lineageweave_existing_active_admission_contract_preserved
+\gset
+
+\if :lineageweave_existing_active_admission_contract_preserved
+\else
+    do $$
+    begin
+        raise exception
+            'global_ask_job_active_account_idx ownership marker changed after migration 0251 preflight';
+    end
+    $$;
+\endif
+\endif
+
+commit;
 
 select pg_advisory_unlock(
     hashtextextended('lineageweave:migration:0251_global_ask_active_admission_index', 0)
