@@ -81,13 +81,16 @@ begin
         raise exception 'Similar VOC translation seed refuses to adopt an existing unowned resource';
     end if;
 
+    -- The ownership row serializes replay with root lifecycle mutation. A plain
+    -- MVCC read is enough to validate the resource identity while ownership is
+    -- held; row-locking the root here would invert ordinary DELETE's
+    -- root -> ownership order and can deadlock.
     select resource_id
       into target_resource_id
       from public.ui_translation_resource
      where product_key = 'lineageweave'
        and screen_key = 'similar-voc'
-       and resource_version = 1
-     for update;
+       and resource_version = 1;
 
     if owner_state = 'owned' then
         if target_resource_id is distinct from owner_resource_id then
