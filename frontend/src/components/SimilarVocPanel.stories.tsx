@@ -5,36 +5,65 @@ import { SimilarVocPanel } from "./SimilarVocPanel";
 
 const LOCALE_STORAGE_KEY = "lineageweave.locale";
 
+let activeKoreanStoryBoundaries = 0;
+let previousStoryLocale: ReturnType<typeof getLocale> | null = null;
+let previousStoryStoredLocale: string | null | undefined;
+
+function acquireKoreanStoryLocale() {
+  if (activeKoreanStoryBoundaries === 0) {
+    previousStoryLocale = getLocale();
+    try {
+      previousStoryStoredLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    } catch {
+      previousStoryStoredLocale = undefined;
+    }
+    if (previousStoryLocale !== "ko") {
+      setLocale("ko");
+    }
+  }
+  activeKoreanStoryBoundaries += 1;
+}
+
+function releaseKoreanStoryLocale() {
+  if (activeKoreanStoryBoundaries === 0) {
+    return;
+  }
+  activeKoreanStoryBoundaries -= 1;
+  if (activeKoreanStoryBoundaries !== 0) {
+    return;
+  }
+
+  const previousLocale = previousStoryLocale;
+  const previousStoredLocale = previousStoryStoredLocale;
+  previousStoryLocale = null;
+  previousStoryStoredLocale = undefined;
+  if (previousLocale === null) {
+    return;
+  }
+
+  setLocale(previousLocale);
+  if (previousStoredLocale !== undefined) {
+    try {
+      if (previousStoredLocale === null) {
+        window.localStorage.removeItem(LOCALE_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(LOCALE_STORAGE_KEY, previousStoredLocale);
+      }
+    } catch {
+      // The product locale remains restored even when browser storage is unavailable.
+    }
+  }
+}
+
 function KoreanStoryBoundary({ Story }: { Story: ComponentType }) {
   const [localeReady, setLocaleReady] = useState(() => getLocale() === "ko");
 
   useLayoutEffect(() => {
-    const previousLocale = getLocale();
-    let previousStoredLocale: string | null | undefined;
-    try {
-      previousStoredLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    } catch {
-      previousStoredLocale = undefined;
-    }
-
-    if (previousLocale !== "ko") {
-      setLocale("ko");
+    acquireKoreanStoryLocale();
+    if (getLocale() === "ko") {
       setLocaleReady(true);
     }
-    return () => {
-      setLocale(previousLocale);
-      if (previousStoredLocale !== undefined) {
-        try {
-          if (previousStoredLocale === null) {
-            window.localStorage.removeItem(LOCALE_STORAGE_KEY);
-          } else {
-            window.localStorage.setItem(LOCALE_STORAGE_KEY, previousStoredLocale);
-          }
-        } catch {
-          // The product locale remains restored even when browser storage is unavailable.
-        }
-      }
-    };
+    return releaseKoreanStoryLocale;
   }, []);
 
   return localeReady ? <Story /> : null;
