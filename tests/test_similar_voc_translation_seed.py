@@ -24,6 +24,12 @@ _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_
 _EXISTING_SEED_OWNERSHIP = (
     ROOT / "migrations" / "0247_z_customer_master_translation_seed_ownership.sql"
 )
+_OWNERSHIP_TRUNCATE_GUARD_MIGRATION = (
+    ROOT / "migrations" / "0247_za_ui_translation_seed_ownership_truncate_guard.sql"
+)
+_CUSTOMER_MASTER_REPLAY_GUARD_MIGRATION = (
+    ROOT / "migrations" / "0247_zz_customer_master_translation_seed_replay_guard.sql"
+)
 _GENERIC_SEED_OWNERSHIP = (
     ROOT / "migrations" / "0249_ui_translation_seed_ownership_generic.sql"
 )
@@ -92,6 +98,8 @@ async def _apply_base(connection: asyncpg.Connection) -> None:
         _LEDGER_MIGRATION,
         _TRUNCATE_GUARD_MIGRATION,
         _EXISTING_SEED_OWNERSHIP,
+        _OWNERSHIP_TRUNCATE_GUARD_MIGRATION,
+        _CUSTOMER_MASTER_REPLAY_GUARD_MIGRATION,
     ):
         await connection.execute(migration.read_text(encoding="utf-8"))
 
