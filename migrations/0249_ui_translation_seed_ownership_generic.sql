@@ -54,10 +54,16 @@ begin
         return new;
     end if;
 
+    -- Resolve DELETE provenance by product identity, not only resource_id.
+    -- blocked/pending reservations intentionally have resource_id = NULL, but a
+    -- rollback file carrying that migration key still must not gain authority
+    -- to delete the operator-owned resource that caused the block.
     select migration_key, ownership_state, resource_id
       into owner_migration_key, owner_state, owner_resource_id
       from public.ui_translation_seed_ownership
-     where resource_id = old.resource_id
+     where product_key = old.product_key
+       and screen_key = old.screen_key
+       and resource_version = old.resource_version
      for update;
 
     if owner_migration_key is null then
