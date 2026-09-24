@@ -1,26 +1,20 @@
 -- Restore the Customer Master-specific seed boundary after Similar VOC v1 is gone.
 -- This rollback never removes a current product resource or another seed owner's
--- provenance record.
+-- provenance record. A blocked/pending/retired receipt owns no resource, so the
+-- generic layer can be removed while preserving any operator-owned Similar VOC v1.
 begin;
 
 do $generic_seed_ownership_rollback$
 begin
-    if exists (
-        select 1
-          from public.ui_translation_resource
-         where product_key = 'lineageweave'
-           and screen_key = 'similar-voc'
-           and resource_version = 1
-    ) then
-        raise exception
-            'Generic UI translation seed ownership rollback refuses while Similar VOC v1 exists';
-    end if;
-
     delete from public.ui_translation_seed_ownership
      where migration_key = '0249_z_similar_voc_translation_draft'
        and ownership_state in ('pending', 'blocked', 'retired')
        and resource_id is null;
 
+    -- An owned receipt is the destructive-authority boundary. Refuse to remove
+    -- the generic trigger layer until its exact owned resource has first been
+    -- handled by the bounded Similar VOC rollback. Unowned operator copy is not
+    -- a dependency of this migration and must survive rollback untouched.
     if exists (
         select 1
           from public.ui_translation_seed_ownership
