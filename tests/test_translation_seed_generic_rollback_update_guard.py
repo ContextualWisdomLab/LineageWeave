@@ -56,8 +56,8 @@ def _postgres_available() -> bool:
         f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
     ),
 )
-def test_base_ledger_guard_blocks_resource_move_before_seed_provenance() -> None:
-    """A rollback label cannot bypass the ledger's immutable child resource identity."""
+def test_base_ledger_guard_blocks_key_and_text_resource_moves_under_seed_context() -> None:
+    """Rollback provenance cannot bypass the ledger's immutable child resource identity."""
 
     async def scenario() -> None:
         database_name = f"lineageweave_seed_child_move_{uuid.uuid4().hex[:12]}"
@@ -102,6 +102,16 @@ def test_base_ledger_guard_blocks_resource_move_before_seed_provenance() -> None
                     """,
                     blocked_resource_id,
                 )
+                translation_text_id = await connection.fetchval(
+                    """
+                    insert into ui_translation_text(
+                        resource_id, translation_key, locale, translated_text
+                    )
+                    values ($1, 'operator-owned-copy', 'en', 'Operator-owned copy')
+                    returning translation_text_id
+                    """,
+                    blocked_resource_id,
+                )
 
                 await connection.execute(
                     _GENERIC_SEED_OWNERSHIP.read_text(encoding="utf-8")
@@ -136,6 +146,20 @@ def test_base_ledger_guard_blocks_resource_move_before_seed_provenance() -> None
                         blocked_resource_id,
                     )
 
+                with pytest.raises(
+                    asyncpg.PostgresError,
+                    match="UI translation child rows cannot move between resources",
+                ):
+                    await connection.execute(
+                        """
+                        update ui_translation_text
+                           set resource_id = $1
+                         where translation_text_id = $2
+                        """,
+                        target_resource_id,
+                        translation_text_id,
+                    )
+
                 assert (
                     await connection.fetchval(
                         """
@@ -143,6 +167,17 @@ def test_base_ledger_guard_blocks_resource_move_before_seed_provenance() -> None
                           from ui_translation_key
                          where translation_key = 'operator-owned-copy'
                         """
+                    )
+                    == blocked_resource_id
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select resource_id
+                          from ui_translation_text
+                         where translation_text_id = $1
+                        """,
+                        translation_text_id,
                     )
                     == blocked_resource_id
                 )
