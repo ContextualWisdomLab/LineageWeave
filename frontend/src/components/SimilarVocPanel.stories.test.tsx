@@ -54,4 +54,30 @@ describe("SimilarVocPanel Storybook locale boundary", () => {
     expect(getLocale()).toBe("en");
     expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBeNull();
   });
+
+  it("keeps Korean active until the last overlapping story boundary unmounts", () => {
+    setLocale("en");
+    window.localStorage.removeItem(LOCALE_STORAGE_KEY);
+
+    const decorator = meta.decorators?.[0];
+    expect(decorator).toBeTypeOf("function");
+    const renderDecorator = decorator as unknown as (
+      Story: () => ReactElement,
+      context: object,
+    ) => ReactElement;
+
+    const first = render(renderDecorator(() => <div>first story</div>, {}));
+    const second = render(renderDecorator(() => <div>second story</div>, {}));
+    expect(getLocale()).toBe("ko");
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("ko");
+
+    first.unmount();
+    expect(getLocale()).toBe("ko");
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("ko");
+    expect(screen.getByText("second story")).toBeInTheDocument();
+
+    second.unmount();
+    expect(getLocale()).toBe("en");
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBeNull();
+  });
 });
