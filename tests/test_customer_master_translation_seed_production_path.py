@@ -23,6 +23,9 @@ _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_
 _CUSTOMER_MASTER_OWNERSHIP = (
     ROOT / "migrations" / "0247_z_customer_master_translation_seed_ownership.sql"
 )
+_SEED_OWNERSHIP_TRUNCATE_GUARD = (
+    ROOT / "migrations" / "0247_za_ui_translation_seed_ownership_truncate_guard.sql"
+)
 _CUSTOMER_MASTER_REPLAY_GUARD = (
     ROOT / "migrations" / "0247_zz_customer_master_translation_seed_replay_guard.sql"
 )
@@ -36,6 +39,7 @@ _FORWARD_MIGRATIONS = (
     _LEDGER_MIGRATION,
     _TRUNCATE_GUARD_MIGRATION,
     _CUSTOMER_MASTER_OWNERSHIP,
+    _SEED_OWNERSHIP_TRUNCATE_GUARD,
     _CUSTOMER_MASTER_REPLAY_GUARD,
     _CUSTOMER_MASTER_SEED,
 )
