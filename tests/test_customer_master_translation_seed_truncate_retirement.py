@@ -23,6 +23,9 @@ _TRUNCATE_GUARD_MIGRATION = ROOT / "migrations" / "0247_ui_translation_truncate_
 _SEED_OWNERSHIP_MIGRATION = (
     ROOT / "migrations" / "0247_z_customer_master_translation_seed_ownership.sql"
 )
+_SEED_OWNERSHIP_TRUNCATE_GUARD_MIGRATION = (
+    ROOT / "migrations" / "0247_za_ui_translation_seed_ownership_truncate_guard.sql"
+)
 
 
 async def _postgres_available_async() -> bool:
@@ -56,6 +59,7 @@ async def _scenario() -> None:
                 _LEDGER_MIGRATION,
                 _TRUNCATE_GUARD_MIGRATION,
                 _SEED_OWNERSHIP_MIGRATION,
+                _SEED_OWNERSHIP_TRUNCATE_GUARD_MIGRATION,
             ):
                 await connection.execute(migration.read_text(encoding="utf-8"))
 
