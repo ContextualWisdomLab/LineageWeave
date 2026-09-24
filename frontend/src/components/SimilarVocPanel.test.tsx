@@ -139,4 +139,57 @@ describe("SimilarVocPanel", () => {
     );
     expect(screen.getByText("새 권한 범위 VOC")).toBeInTheDocument();
   });
+
+  it("hides prior-post evidence before the same-account source post resets", () => {
+    const ScopedSimilarVocPanel = SimilarVocPanel as unknown as (
+      props: Parameters<typeof SimilarVocPanel>[0] & { sourcePostId: string },
+    ) => ReturnType<typeof SimilarVocPanel>;
+    const onLoadMore = vi.fn();
+    const { rerender } = render(
+      <AuthContext.Provider value={authContext("token-a")}>
+        <ScopedSimilarVocPanel
+          sourcePostId="post-1"
+          items={evidence}
+          onOpenPost={() => undefined}
+          onLoadMore={onLoadMore}
+        />
+      </AuthContext.Provider>,
+    );
+    expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
+
+    rerender(
+      <AuthContext.Provider value={authContext("token-a")}>
+        <ScopedSimilarVocPanel
+          sourcePostId="post-9"
+          items={evidence}
+          onOpenPost={() => undefined}
+          onLoadMore={onLoadMore}
+        />
+      </AuthContext.Provider>,
+    );
+    expect(screen.queryByText("합성 과거 VOC")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이전 VOC 더 보기" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("유사 VOC 근거를 판정하고 있습니다");
+
+    rerender(
+      <AuthContext.Provider value={authContext("token-a")}>
+        <ScopedSimilarVocPanel
+          sourcePostId="post-9"
+          items={null}
+          onOpenPost={() => undefined}
+          onLoadMore={onLoadMore}
+        />
+      </AuthContext.Provider>,
+    );
+    rerender(
+      <AuthContext.Provider value={authContext("token-a")}>
+        <ScopedSimilarVocPanel
+          sourcePostId="post-9"
+          items={[{ ...evidence[0], post_id: "post-3", post_title: "새 게시글 VOC" }]}
+          onOpenPost={() => undefined}
+        />
+      </AuthContext.Provider>,
+    );
+    expect(screen.getByText("새 게시글 VOC")).toBeInTheDocument();
+  });
 });
