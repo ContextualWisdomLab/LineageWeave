@@ -25,6 +25,9 @@ _EXISTING_SEED_OWNERSHIP = (
 _GENERIC_SEED_OWNERSHIP = (
     ROOT / "migrations" / "0249_ui_translation_seed_ownership_generic.sql"
 )
+_GENERIC_CHILD_UPDATE_GUARD = (
+    ROOT / "migrations" / "0249_ui_translation_seed_ownership_generic_b.sql"
+)
 _ROLLBACK_FILE = "rollback/0249_z_similar_voc_translation_draft.sql"
 
 
@@ -97,6 +100,9 @@ def test_rollback_context_cannot_move_blocked_child_to_unowned_resource() -> Non
 
                 await connection.execute(
                     _GENERIC_SEED_OWNERSHIP.read_text(encoding="utf-8")
+                )
+                await connection.execute(
+                    _GENERIC_CHILD_UPDATE_GUARD.read_text(encoding="utf-8")
                 )
                 assert (
                     await connection.fetchval(
