@@ -28,7 +28,10 @@ select (to_regclass('public.global_ask_job_active_account_idx') is null)
 -- Fail closed when a previous concurrent build left a same-named INVALID index.
 -- PostgreSQL keeps failed CREATE INDEX CONCURRENTLY relations so an ordinary
 -- replay must not report success while admission still has no valid access path.
--- Recovery is the paired concurrent rollback followed by this migration again.
+-- Recovery is the paired concurrent rollback followed by this migration again,
+-- but only after the failed relation is proven to be this migration's canonical
+-- physical identity. A foreign invalid index must never inherit repository
+-- rollback guidance merely because it shares the canonical name.
 -- A same-named non-index relation is a separate operator conflict and must never
 -- be routed through index rollback.
 do $$
@@ -86,25 +89,37 @@ begin
             on access_method.oid = index_relation.relam
          where index_catalog.indexrelid = existing_index;
 
-        if coalesce(index_is_valid, false) is not true
-           or coalesce(index_is_ready, false) is not true then
-            raise exception
-                'global_ask_job_active_account_idx is invalid; run rollback/0251_global_ask_active_admission_index.sql and retry migration 0251';
-        end if;
-
+        -- Identity comes before recovery classification. Otherwise any failed
+        -- concurrent index in public with this name -- including one owned by a
+        -- different table or contract -- would be misreported as a repository
+        -- recovery candidate even though the paired rollback correctly refuses it.
         if indexed_table is distinct from 'public.global_ask_job'::regclass
            or index_access_method is distinct from 'btree'
            or index_key_count is distinct from 1
            or index_attribute_count is distinct from 1
            or first_index_key is distinct from 'requesting_account_id'
-           or index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1'
            or index_predicate is null
            or regexp_replace(lower(index_predicate), '\s+', ' ', 'g') not in (
                'job_status_code = any (array[''queued''::text, ''running''::text])',
                '(job_status_code = any (array[''queued''::text, ''running''::text]))'
            )
            or lower(index_definition) like 'create unique index%'
-           or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%' then
+           or index_definition not ilike '% on %global_ask_job% (requesting_account_id)%'
+           or (
+               index_contract is not null
+               and index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1'
+           ) then
+            raise exception
+                'global_ask_job_active_account_idx exists with an incompatible definition';
+        end if;
+
+        if coalesce(index_is_valid, false) is not true
+           or coalesce(index_is_ready, false) is not true then
+            raise exception
+                'global_ask_job_active_account_idx is invalid; run rollback/0251_global_ask_active_admission_index.sql and retry migration 0251';
+        end if;
+
+        if index_contract is distinct from 'lineageweave/global-ask-active-admission-index/v1' then
             raise exception
                 'global_ask_job_active_account_idx exists with an incompatible definition';
         end if;
