@@ -188,16 +188,16 @@ begin
         return;
     end if;
 
-    -- Lock the product resource only after the ownership row. Trigger paths
-    -- also consult ownership before binding a new resource, so this keeps a
-    -- single lock order for replay and seed creation.
+    -- The ownership row is the serialization point for replay and lifecycle
+    -- mutation. Do not row-lock the product resource here: ordinary DELETE
+    -- locks the root before its BEFORE DELETE trigger retires ownership, so an
+    -- ownership -> root lock order would invert that path and can deadlock.
     select resource_id
       into target_resource_id
       from ui_translation_resource
      where product_key = 'lineageweave'
        and screen_key = 'customer-master'
-       and resource_version = 1
-     for update;
+       and resource_version = 1;
 
     if owner_state = 'owned' then
         if target_resource_id is distinct from owner_resource_id then
