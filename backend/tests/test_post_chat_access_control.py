@@ -27,6 +27,7 @@ from backend.app.db import get_pool
 _OWN_ENTITY_ID = "aaaaaaaa-0000-0000-0000-000000000001"
 _OTHER_ENTITY_ID = "bbbbbbbb-0000-0000-0000-000000000002"
 _POST_ID = "cccccccc-0000-0000-0000-000000000003"
+_UNRELATED_POST_ID = "dddddddd-0000-0000-0000-000000000004"
 
 
 def _private_post_row(corporate_entity_id: str) -> dict[str, object]:
@@ -143,6 +144,20 @@ def test_own_corp_private_post_chat_is_readable(analyst_client, chat_store) -> N
         ("fetch_persisted_chats", _POST_ID),
         ("fetch_persisted_chat", _POST_ID),
     ]
+
+
+def test_post_chat_lookup_does_not_authorize_a_different_post(analyst_client, chat_store) -> None:
+    """The pool double must preserve ``WHERE post_id = $1`` identity semantics."""
+    row = _private_post_row(_OWN_ENTITY_ID)
+    row["post_id"] = _UNRELATED_POST_ID
+    pool = _use_pool(row)
+
+    listed = analyst_client.get(f"/api/posts/{_POST_ID}/chat")
+
+    assert listed.status_code == 404
+    assert chat_store.calls == []
+    assert len(pool.connection.queries) == 1
+    assert "from source_post" in pool.connection.queries[0]
 
 
 def test_other_corp_private_post_chat_get_is_forbidden(analyst_client, chat_store) -> None:
