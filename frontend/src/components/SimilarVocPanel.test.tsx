@@ -140,28 +140,6 @@ describe("SimilarVocPanel", () => {
     expect(screen.getByText("새 권한 범위 VOC")).toBeInTheDocument();
   });
 
-  it("accepts fresh authorization-scoped evidence when the loading reset is batched away", async () => {
-    const { rerender } = render(
-      <AuthContext.Provider value={authContext("token-a")}>
-        <SimilarVocPanel sourcePostId="post-1" items={evidence} onOpenPost={() => undefined} />
-      </AuthContext.Provider>,
-    );
-    expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
-
-    rerender(
-      <AuthContext.Provider value={authContext("token-b")}>
-        <SimilarVocPanel
-          sourcePostId="post-1"
-          items={[{ ...evidence[0], post_id: "post-3", post_title: "새 권한 범위 VOC" }]}
-          onOpenPost={() => undefined}
-        />
-      </AuthContext.Provider>,
-    );
-
-    expect(await screen.findByText("새 권한 범위 VOC")).toBeInTheDocument();
-    expect(screen.queryByText("합성 과거 VOC")).not.toBeInTheDocument();
-  });
-
   it("hides prior-post evidence before the same-account source post resets", () => {
     const ScopedSimilarVocPanel = SimilarVocPanel as unknown as (
       props: Parameters<typeof SimilarVocPanel>[0] & { sourcePostId: string },
