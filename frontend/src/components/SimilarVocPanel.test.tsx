@@ -16,6 +16,25 @@ function authContext(accessToken: string): AuthContextProps {
 }
 
 describe("SimilarVocPanel", () => {
+  it("assigns a distinct labelled-by target to each simultaneously rendered panel", () => {
+    render(
+      <>
+        <SimilarVocPanel items={[]} onOpenPost={() => undefined} />
+        <SimilarVocPanel items={[]} onOpenPost={() => undefined} />
+      </>,
+    );
+
+    const headings = screen.getAllByRole("heading", { level: 3, name: "유사 VOC · 고객군 확인" });
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("section.similar-voc"));
+    const headingIds = headings.map((heading) => heading.id);
+
+    expect(headings).toHaveLength(2);
+    expect(sections).toHaveLength(2);
+    expect(headingIds.every(Boolean)).toBe(true);
+    expect(new Set(headingIds).size).toBe(2);
+    expect(sections.map((section) => section.getAttribute("aria-labelledby"))).toEqual(headingIds);
+  });
+
   it("opens a cited prior VOC and shows its action history", async () => {
     const onOpenPost = vi.fn();
     const onLoadMore = vi.fn();
