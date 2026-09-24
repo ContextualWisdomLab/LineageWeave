@@ -1,8 +1,10 @@
--- Remove the seed-ownership TRUNCATE guard before the ownership table rollback.
+-- The ownership-table rollback owns destructive removal of this guard.
+-- Keeping the guard live until that rollback's preconditions succeed prevents a
+-- failed recovery from exposing durable retired seed history to TRUNCATE CASCADE.
 begin;
 
-drop trigger if exists ui_translation_seed_ownership_truncate_guard
-    on public.ui_translation_seed_ownership;
-drop function if exists guard_ui_translation_seed_ownership_truncate();
+-- Intentionally no DDL here. rollback/0247_z_customer_master_translation_seed_ownership.sql
+-- removes the trigger and function in the same transaction that successfully
+-- removes the ownership table. If that rollback fails closed, this guard stays.
 
 commit;
