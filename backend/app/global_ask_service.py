@@ -119,7 +119,7 @@ async def submit_global_ask(
         except GlobalAskOutstandingLimitExceeded as exc:
             raise HTTPException(
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                "Finish or cancel an existing question before submitting another.",
+                "Too many questions are still active. Wait for an existing question to finish before submitting another.",
             ) from exc
     return {"ask_job_id": job_id, "job_status_code": "queued"}
 
