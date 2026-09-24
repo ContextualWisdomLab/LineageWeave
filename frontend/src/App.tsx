@@ -2705,6 +2705,7 @@ function PostDetailPopup({
 
             <SurfaceBoundary>
               <SimilarVocPanel
+                sourcePostId={postId}
                 items={similarVoc}
                 error={similarVocError}
                 onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
