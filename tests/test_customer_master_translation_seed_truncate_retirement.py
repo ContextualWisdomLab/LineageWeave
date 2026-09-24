@@ -26,6 +26,18 @@ _SEED_OWNERSHIP_MIGRATION = (
 _SEED_OWNERSHIP_TRUNCATE_GUARD_MIGRATION = (
     ROOT / "migrations" / "0247_za_ui_translation_seed_ownership_truncate_guard.sql"
 )
+_SEED_OWNERSHIP_TRUNCATE_GUARD_ROLLBACK = (
+    ROOT
+    / "migrations"
+    / "rollback"
+    / "0247_za_ui_translation_seed_ownership_truncate_guard.sql"
+)
+_SEED_OWNERSHIP_ROLLBACK = (
+    ROOT
+    / "migrations"
+    / "rollback"
+    / "0247_z_customer_master_translation_seed_ownership.sql"
+)
 
 
 async def _postgres_available_async() -> bool:
@@ -101,6 +113,36 @@ async def _scenario() -> None:
             assert receipt is not None
             assert receipt["ownership_state"] == "retired"
             assert receipt["resource_id"] is None
+
+            # Rolling back the guard cannot be a separate destructive step from
+            # the ownership-table rollback. The latter must refuse a retired
+            # no-resurrection receipt; if the former removed protection first,
+            # the failed recovery would leave that durable history truncatable.
+            await connection.execute(
+                _SEED_OWNERSHIP_TRUNCATE_GUARD_ROLLBACK.read_text(encoding="utf-8")
+            )
+            with pytest.raises(
+                asyncpg.PostgresError,
+                match="refuses to erase retired no-resurrection history",
+            ):
+                await connection.execute(
+                    _SEED_OWNERSHIP_ROLLBACK.read_text(encoding="utf-8")
+                )
+            await connection.execute("rollback")
+
+            with pytest.raises(asyncpg.PostgresError, match="seed ownership history"):
+                await connection.execute("truncate table ui_translation_resource cascade")
+
+            receipt_after_failed_rollback = await connection.fetchrow(
+                """
+                select ownership_state, resource_id
+                  from ui_translation_seed_ownership
+                 where migration_key = '0248_customer_master_translation_draft'
+                """
+            )
+            assert receipt_after_failed_rollback is not None
+            assert receipt_after_failed_rollback["ownership_state"] == "retired"
+            assert receipt_after_failed_rollback["resource_id"] is None
         finally:
             await connection.close()
     finally:
