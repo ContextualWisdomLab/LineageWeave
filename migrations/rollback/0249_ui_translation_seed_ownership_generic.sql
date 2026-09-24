@@ -1,36 +1,50 @@
 -- Restore the Customer Master-specific seed boundary after Similar VOC v1 is gone.
 -- This rollback never removes a current product resource or another seed owner's
--- provenance record. A blocked/pending/retired receipt owns no resource, so the
--- generic layer can be removed while preserving any operator-owned Similar VOC v1.
+-- provenance record. Pending/blocked reservations may be withdrawn because they
+-- never owned product data; retired receipts remain durable no-resurrection history.
 begin;
 
 do $generic_seed_ownership_rollback$
 begin
     delete from public.ui_translation_seed_ownership
      where migration_key = '0249_z_similar_voc_translation_draft'
-       and ownership_state in ('pending', 'blocked', 'retired')
+       and ownership_state in ('pending', 'blocked')
        and resource_id is null;
 
-    -- An owned receipt is the destructive-authority boundary. Refuse to remove
-    -- the generic trigger layer until its exact owned resource has first been
-    -- handled by the bounded Similar VOC rollback. Unowned operator copy is not
-    -- a dependency of this migration and must survive rollback untouched.
+    -- An owned receipt is the destructive-authority boundary. A valid retired
+    -- receipt is deliberately retained even while the generic trigger wiring is
+    -- removed: dropping that receipt would let a later migration reapply seed
+    -- historical copy that product lifecycle explicitly retired.
     if exists (
         select 1
           from public.ui_translation_seed_ownership
          where migration_key = '0249_z_similar_voc_translation_draft'
+           and (
+               ownership_state <> 'retired'
+               or resource_id is not null
+           )
     ) then
         raise exception
-            'Generic UI translation seed ownership rollback refuses while Similar VOC ownership remains';
+            'Generic UI translation seed ownership rollback refuses while active Similar VOC ownership remains';
     end if;
 
+    -- Other generic owners still require this shared trigger layer unless their
+    -- lifecycle is already retired. Retired NULL-resource receipts are historical
+    -- no-resurrection markers, not active trigger dependencies, and must survive.
     if exists (
         select 1
           from public.ui_translation_seed_ownership
-         where migration_key <> '0248_customer_master_translation_draft'
+         where migration_key not in (
+                   '0248_customer_master_translation_draft',
+                   '0249_z_similar_voc_translation_draft'
+               )
+           and (
+               ownership_state <> 'retired'
+               or resource_id is not null
+           )
     ) then
         raise exception
-            'Generic UI translation seed ownership rollback refuses while another generic seed owner remains';
+            'Generic UI translation seed ownership rollback refuses while another active generic seed owner remains';
     end if;
 end;
 $generic_seed_ownership_rollback$;
