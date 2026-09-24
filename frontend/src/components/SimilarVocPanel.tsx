@@ -6,6 +6,7 @@ import type { SimilarVocItem } from "../api";
 import { StatusNotice } from "./StatusNotice";
 
 type Props = {
+  sourcePostId?: string;
   items: SimilarVocItem[] | null;
   error?: string | null;
   onOpenPost: (postId: string) => void;
@@ -14,21 +15,34 @@ type Props = {
   loadingMore?: boolean;
 };
 
+type DisplayScope = {
+  sourcePostId?: string;
+  authorizationScope: string | null;
+};
+
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
-export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
+export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
   const auth = useContext(AuthContext);
   const authorizationScope = auth?.user?.access_token ?? null;
-  const [displayedAuthorizationScope, setDisplayedAuthorizationScope] = useState(authorizationScope);
+  const [displayedScope, setDisplayedScope] = useState<DisplayScope>(() => ({
+    sourcePostId,
+    authorizationScope,
+  }));
+
+  const displayScopeIsCurrent =
+    displayedScope.sourcePostId === sourcePostId &&
+    displayedScope.authorizationScope === authorizationScope;
 
   useEffect(() => {
-    if (items === null) setDisplayedAuthorizationScope(authorizationScope);
-  }, [authorizationScope, items]);
+    if (items === null && !displayScopeIsCurrent) {
+      setDisplayedScope({ sourcePostId, authorizationScope });
+    }
+  }, [authorizationScope, displayScopeIsCurrent, items, sourcePostId]);
 
-  const authorizationScopeIsCurrent = displayedAuthorizationScope === authorizationScope;
-  const scopedItems = authorizationScopeIsCurrent ? items : null;
-  const scopedError = authorizationScopeIsCurrent ? error : null;
-  const scopedOnLoadMore = authorizationScopeIsCurrent ? onLoadMore : null;
-  const scopedLoadingMore = authorizationScopeIsCurrent && loadingMore;
+  const scopedItems = displayScopeIsCurrent ? items : null;
+  const scopedError = displayScopeIsCurrent ? error : null;
+  const scopedOnLoadMore = displayScopeIsCurrent ? onLoadMore : null;
+  const scopedLoadingMore = displayScopeIsCurrent && loadingMore;
   const retryLoadedPage = Boolean(scopedError && scopedOnLoadMore);
   const hasRetainedEvidence = Boolean(scopedItems && scopedItems.length > 0);
   const retryAction = retryLoadedPage ? scopedOnLoadMore : onRetry;
