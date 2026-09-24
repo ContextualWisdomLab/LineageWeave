@@ -150,3 +150,128 @@ def test_generic_ownership_rollback_restores_customer_master_owner_lane() -> Non
             await admin_connection.close()
 
     asyncio.run(scenario())
+
+
+@pytest.mark.skipif(
+    not _postgres_available(),
+    reason=(
+        "no reachable PostgreSQL server at "
+        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
+    ),
+)
+def test_generic_ownership_rollback_preserves_blocked_operator_resource() -> None:
+    """A blocked seed can roll back generic wiring without deleting operator copy."""
+
+    async def scenario() -> None:
+        database_name = f"lineageweave_seed_blocked_rb_{uuid.uuid4().hex[:12]}"
+        admin_connection = await asyncpg.connect(_ADMIN_DSN)
+        await admin_connection.execute(f'create database "{database_name}"')
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+        try:
+            connection = await asyncpg.connect(database_dsn)
+            try:
+                for migration in (
+                    _INITIAL_SCHEMA,
+                    _MEMBER_LOCALE_MIGRATION,
+                    _LEDGER_MIGRATION,
+                    _TRUNCATE_GUARD_MIGRATION,
+                    _CUSTOMER_OWNERSHIP,
+                ):
+                    await connection.execute(migration.read_text(encoding="utf-8"))
+
+                resource_id = await connection.fetchval(
+                    """
+                    insert into ui_translation_resource(
+                        product_key, screen_key, resource_version
+                    )
+                    values ('lineageweave', 'similar-voc', 1)
+                    returning resource_id
+                    """
+                )
+                await connection.execute(
+                    """
+                    insert into ui_translation_key(resource_id, translation_key)
+                    values ($1, 'operator-owned-copy')
+                    """,
+                    resource_id,
+                )
+                await connection.execute(_GENERIC_OWNERSHIP.read_text(encoding="utf-8"))
+                assert (
+                    await connection.fetchval(
+                        """
+                        select ownership_state
+                          from ui_translation_seed_ownership
+                         where migration_key = '0249_z_similar_voc_translation_draft'
+                        """
+                    )
+                    == "blocked"
+                )
+
+                await connection.execute(
+                    _GENERIC_OWNERSHIP_ROLLBACK.read_text(encoding="utf-8")
+                )
+
+                assert (
+                    await connection.fetchval(
+                        "select count(*) from ui_translation_resource where resource_id = $1",
+                        resource_id,
+                    )
+                    == 1
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select count(*)
+                          from ui_translation_key
+                         where resource_id = $1
+                           and translation_key = 'operator-owned-copy'
+                        """,
+                        resource_id,
+                    )
+                    == 1
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select count(*)
+                          from ui_translation_seed_ownership
+                         where migration_key = '0249_z_similar_voc_translation_draft'
+                        """
+                    )
+                    == 0
+                )
+                assert (
+                    await connection.fetchval(
+                        """
+                        select count(*)
+                          from pg_trigger
+                         where tgname like 'ui_translation_seed_%_ownership_%'
+                           and not tgisinternal
+                        """
+                    )
+                    == 0
+                )
+                expected_customer_triggers = {
+                    "customer_master_seed_resource_ownership_guard",
+                    "customer_master_seed_resource_ownership_bind",
+                    "customer_master_seed_key_ownership_guard",
+                    "customer_master_seed_text_ownership_guard",
+                }
+                trigger_rows = await connection.fetch(
+                    """
+                    select tgname
+                      from pg_trigger
+                     where tgname = any($1::text[])
+                       and not tgisinternal
+                    """,
+                    list(expected_customer_triggers),
+                )
+                assert {row["tgname"] for row in trigger_rows} == expected_customer_triggers
+            finally:
+                await connection.close()
+        finally:
+            await admin_connection.execute(f'drop database "{database_name}"')
+            await admin_connection.close()
+
+    asyncio.run(scenario())
