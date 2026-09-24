@@ -40,6 +40,12 @@ begin
 end;
 $customer_master_seed_ownership_rollback$;
 
+-- Destructive guard removal is deliberately coupled to the successful table
+-- rollback. Any exception above aborts this transaction and leaves the guard
+-- protecting retirement history instead of exposing it between rollback steps.
+drop trigger if exists ui_translation_seed_ownership_truncate_guard
+    on public.ui_translation_seed_ownership;
+
 drop trigger if exists customer_master_seed_text_ownership_guard
     on ui_translation_text;
 drop trigger if exists customer_master_seed_key_ownership_guard
@@ -53,5 +59,6 @@ drop function if exists guard_customer_master_seed_child_ownership();
 drop function if exists bind_customer_master_seed_resource_ownership();
 drop function if exists guard_customer_master_seed_resource_ownership();
 drop table if exists ui_translation_seed_ownership;
+drop function if exists guard_ui_translation_seed_ownership_truncate();
 
 commit;
