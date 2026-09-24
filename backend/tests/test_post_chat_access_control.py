@@ -7,9 +7,11 @@ provides only PostgreSQL. This module drives the real FastAPI routes for
 ``GET``/``POST /api/posts/{post_id}/chat`` through ``TestClient`` with an
 in-memory pool and an overridden account dependency, so it runs in CI.
 
-Boundary: the fake pool returns the post row for any query, so this checks
-the handler-level ABAC gate (``_load_visible_post`` -> ``_can_see_post``), not
-the SQL eligibility fragment or token verification.
+Boundary: the fake pool preserves the source-post identity constraint from
+``WHERE post_id = $1`` while leaving SQL eligibility and token verification to
+the end-to-end suite. These tests exercise the handler-level ABAC gate
+(``_load_visible_post`` -> ``_can_see_post``) and prove the authorized identity
+is the same post whose chat store is read.
 """
 
 from __future__ import annotations
@@ -54,20 +56,26 @@ def _private_post_row(corporate_entity_id: str) -> dict[str, object]:
 
 class _Connection:
     def __init__(self, row: dict[str, object]) -> None:
+        """Retain one keyed source-post row and record every attempted lookup."""
         self.row = row
         self.queries: list[str] = []
 
-    async def fetchrow(self, query: str, *_args: object) -> dict[str, object]:
+    async def fetchrow(self, query: str, *args: object) -> dict[str, object] | None:
+        """Return the row only when the bind identity matches its ``post_id``."""
         self.queries.append(query)
+        if not args or args[0] != self.row["post_id"]:
+            return None
         return self.row
 
 
 class _Pool:
     def __init__(self, row: dict[str, object]) -> None:
+        """Expose one identity-preserving in-memory connection."""
         self.connection = _Connection(row)
 
     @asynccontextmanager
     async def acquire(self):
+        """Yield the deterministic connection used by the route under test."""
         yield self.connection
 
 
@@ -75,19 +83,23 @@ class _ChatStoreSpy:
     """Records every chat-store read the handlers make."""
 
     def __init__(self) -> None:
+        """Start with an empty ordered call ledger."""
         self.calls: list[tuple[str, str]] = []
 
     async def fetch_persisted_chats(self, _conn, post_id: str) -> list[dict[str, str]]:
+        """Record a history read and return one deterministic exchange."""
         self.calls.append(("fetch_persisted_chats", post_id))
         return [{"question_text": "stored question", "answer_text": "stored answer"}]
 
     async def fetch_persisted_chat(self, _conn, post_id: str, _question: str) -> dict[str, object]:
+        """Record a single-chat replay and return deterministic stored evidence."""
         self.calls.append(("fetch_persisted_chat", post_id))
         return {"answer_text": "stored answer", "cited_post_ids": [post_id], "cited_posts": []}
 
 
 @pytest.fixture
 def chat_store(monkeypatch) -> _ChatStoreSpy:
+    """Replace persisted-chat reads with a per-test call ledger."""
     spy = _ChatStoreSpy()
     monkeypatch.setattr(main, "fetch_persisted_chats", spy.fetch_persisted_chats)
     monkeypatch.setattr(main, "fetch_persisted_chat", spy.fetch_persisted_chat)
@@ -121,6 +133,7 @@ def analyst_client():
 
 
 def _use_pool(row: dict[str, object]) -> _Pool:
+    """Install one identity-preserving source-post pool for the current test."""
     pool = _Pool(row)
     main.app.dependency_overrides[get_pool] = lambda: pool
     return pool
@@ -147,7 +160,7 @@ def test_own_corp_private_post_chat_is_readable(analyst_client, chat_store) -> N
 
 
 def test_post_chat_lookup_does_not_authorize_a_different_post(analyst_client, chat_store) -> None:
-    """The pool double must preserve ``WHERE post_id = $1`` identity semantics."""
+    """A row for another identity cannot authorize the requested post's chat."""
     row = _private_post_row(_OWN_ENTITY_ID)
     row["post_id"] = _UNRELATED_POST_ID
     pool = _use_pool(row)
