@@ -218,10 +218,12 @@ with another writer's migration identity.
    failed-build artifact is paired rollback, migration 0251 replay, and
    verification of the marker plus `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
-   retry metadata. Active-job rejections instead tell the customer to finish or
-   cancel existing work; they do not reuse the unrelated quota window as an
-   estimate of job completion time. Neither response echoes question content or
-   another principal's counts.
+   retry metadata. Active-job rejections instead tell the customer to wait for
+   an existing question to finish; they do not reuse the unrelated quota window
+   as an estimate of job completion time. The product does not currently expose
+   a Global Ask cancellation command, so rejection copy must not advertise
+   cancellation as a recovery action. Neither response echoes question content
+   or another principal's counts.
 
 ## Consequences
 
