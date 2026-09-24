@@ -3,6 +3,17 @@ begin;
 
 do $customer_master_seed_ownership_rollback$
 begin
+    -- Descendant generic ownership wiring depends on this table even when its
+    -- current seed receipts have already been removed. Rolling back the base
+    -- ownership table first would strand live generic triggers whose functions
+    -- query a relation that no longer exists. Require reverse-order rollback.
+    if to_regprocedure('public.guard_ui_translation_seed_resource_ownership()') is not null
+       or to_regprocedure('public.bind_ui_translation_seed_resource_ownership()') is not null
+       or to_regprocedure('public.guard_ui_translation_seed_child_ownership()') is not null then
+        raise exception
+            'Customer Master seed ownership rollback refuses while generic UI translation seed layer remains; roll back migration 0249 first';
+    end if;
+
     if exists (
         select 1
           from ui_translation_resource
