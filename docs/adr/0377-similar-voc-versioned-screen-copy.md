@@ -24,6 +24,7 @@ This ADR does not move ontology labels, VOC semantic truth, similarity adjudicat
 - Explicit rollback may delete only the exact owned unpublished draft. Published versions remain immutable under ADR 0362.
 - Rollback provenance must resolve the ownership record by product/screen/version identity as well as resource id. `blocked` and `pending` reservations intentionally have `resource_id = NULL`; that must never let a rollback-labelled session delete the operator resource that caused the block.
 - Rollback-labelled child mutation is narrower still: only `DELETE` against the exact `owned` resource is admissible. A blocked/pending operator draft must not become mutable merely because the session carries the seed rollback migration key, and rollback must not gain insert/update authority over reviewed child copy.
+- Child `UPDATE` provenance must consider the source resource before the target resource. Changing `resource_id` must not make the governing ownership row disappear from the trigger lookup and thereby turn a rollback-labelled update into an ungoverned move.
 - The generic ownership migration itself has a bounded rollback: it may be removed only after Similar VOC v1 and every non-Customer-Master generic owner are gone, and it must restore the pre-existing Customer Master trigger lane rather than dropping that owner boundary.
 - Seed ownership must be reusable for future LineageWeave screen-copy candidates rather than adding another Customer-Master-specific trigger family.
 - Similar VOC consumer cutover remains in its existing source-owner lane; this owner PR must not become a second writer for `SimilarVocPanel`.
@@ -58,6 +59,10 @@ Rejected. That works for `owned` rows but fails exactly where destructive author
 
 Rejected. The rollback file exists to remove an exact owned draft, not to edit review data or touch a blocked operator resource. Child writes therefore remain provenance-bound: forward seed writes require exact owned resource binding, while rollback provenance permits only delete operations on that same exact owned resource.
 
+### Validate only the target `resource_id` on child UPDATE
+
+Rejected. `UPDATE` has both a source and target identity. Looking up only `NEW.resource_id` lets a rollback-labelled statement move a child out of a blocked or owned resource into an unrelated resource with no seed-ownership row; the trigger then sees no owner and returns early. The source identity must be checked before any target lookup whenever the resource changes.
+
 ## Decision
 
 Migration `0249_ui_translation_seed_ownership_generic.sql` replaces the active Customer-Master-specific ownership trigger wiring with generic trigger functions over `ui_translation_seed_ownership`. The lifecycle is selected by the ownership row's `(migration_key, product_key, screen_key, resource_version)` identity and the trusted `lineageweave.migration_file` execution context.
@@ -65,6 +70,8 @@ Migration `0249_ui_translation_seed_ownership_generic.sql` replaces the active C
 A `pending` ownership row reserves an otherwise-empty screen identity for its seed. The forward seed may create that root and an `AFTER INSERT` binder records the exact `resource_id` as `owned`. Child writes performed by the seed are accepted only after that binding. A pre-existing resource causes `blocked` state and the forward seed fails closed without touching it.
 
 Ordinary deletion of an exact `owned` candidate first changes the receipt to `retired` and clears `resource_id`; the root can then be deleted without `ON DELETE CASCADE` erasing the one-time completion evidence. Forward replay in `owned` or `retired` state does not restore seed text. Explicit rollback is distinguished by `rollback/<migration_key>.sql`; the generic root guard first resolves the ownership row by the root's immutable product/screen/version identity, then allows deletion only for exact `owned` state with the same `resource_id`. The child guard applies the same exact ownership check and additionally rejects rollback-labelled `INSERT` or `UPDATE`, so rollback provenance cannot mutate blocked operator child rows or rewrite reviewed copy. Cascading child deletes from the exact owned root remain admissible. The exact owned draft can therefore be removed without retiring it, allowing the ownership row to cascade away so a later intentional forward migration can seed a fresh review candidate.
+
+Migration `0249_ui_translation_seed_ownership_generic_b.sql` hardens the child guard before any Similar VOC seed write can run. Sorted migration replay installs the generic owner first, then this companion hardening, then `0249_z_similar_voc_translation_draft.sql`. For `UPDATE` statements that change `resource_id`, the guard resolves the source resource first. If the current migration context is the matching forward or rollback seed, moving the child out of that governed resource is rejected before a target-resource lookup can erase the provenance signal. The ordinary product lifecycle remains outside migration provenance when no matching seed context is active. The existing generic rollback remains sufficient recovery because it drops the active generic child-guard function after all dependent generic owners are gone.
 
 Migration `0249_z_similar_voc_translation_draft.sql` reserves no semantic authority. It creates 23 presentation keys × 8 locales only when ownership is `pending`, verifies the exact 184-row matrix, and then stops. Publication remains a separate one-way ADR-0362 transition after independent language/product review and unchanged-head consumer acceptance.
 
@@ -78,14 +85,14 @@ Migration `0249_z_similar_voc_translation_draft.sql` reserves no semantic author
 - Value identities: translation key and locale-tagged presentation copy.
 - Repository: PostgreSQL translation ledger; Valkey remains an optional read cache under ADR 0362.
 - Domain service: one-time candidate-seed ownership lifecycle.
-- Invariants: no implicit adoption, no reviewed-copy replay overwrite, no post-retirement resurrection, rollback limited to exact owned draft, blocked/pending roots and child rows outside rollback authority, rollback child mutation limited to exact-owned deletion, eight-locale completeness before any publication, ontology labels excluded.
+- Invariants: no implicit adoption, no reviewed-copy replay overwrite, no post-retirement resurrection, rollback limited to exact owned draft, blocked/pending roots and child rows outside rollback authority, rollback child mutation limited to exact-owned deletion, child resource moves cannot escape provenance by changing identity first, eight-locale completeness before any publication, ontology labels excluded.
 - ACL: #1126 consumes only a released/published screen-copy contract; similarity adjudication and authorization continue to come from their existing owners.
 
 ## Recovery and rollout
 
 If the Similar VOC draft is wrong before publication, reviewers may edit it in place or explicitly run `rollback/0249_z_similar_voc_translation_draft.sql` and re-run the forward candidate. Ordinary product deletion means retirement, not authorization for historical reseeding. If a conflicting pre-existing `lineageweave/similar-voc/v1` resource exists, the migration stays blocked until an operator resolves that product decision; it never deletes or adopts the conflicting resource.
 
-To remove the generic ownership layer itself, first remove the exact Similar VOC draft through its owned rollback (or otherwise resolve the product resource) and ensure no other generic seed owner remains. Then run `rollback/0249_ui_translation_seed_ownership_generic.sql`; Customer Master ownership remains active through its original 0247 functions/triggers.
+To remove the generic ownership layer itself, first remove the exact Similar VOC draft through its owned rollback (or otherwise resolve the product resource) and ensure no other generic seed owner remains. Then run `rollback/0249_ui_translation_seed_ownership_generic.sql`; Customer Master ownership remains active through its original 0247 functions/triggers. The companion child-update hardening needs no separate destructive rollback because the generic rollback drops the function it replaces as part of the same bounded owner-layer removal.
 
 A published bad version is not down-migrated. ADR 0362 requires a new immutable resource version and consumer routing to that reviewed version.
 
@@ -101,5 +108,7 @@ A published bad version is not down-migrated. ADR 0362 requires a new immutable 
 - Generic-migration rollback `057eb6ed65cb80fdee40a391bc0727a0a4b925d4` refuses while dependent generic owners remain, restores the Customer Master trigger wiring, and removes only the generic trigger/functions.
 - Child rollback-provenance RED `73c7397ecd7e49439662b07516d087505a769d16` proves that a blocked operator draft's child key was still directly deletable when the session carried the Similar VOC rollback migration key.
 - Causal child-rollback repair `dde6ea349cdf244e1c2dd754d600c041db2f8b6f` restricts rollback-labelled child mutation to `DELETE` on the exact `owned` resource while preserving the normal exact-owned cascading rollback path.
+- Child resource-move RED `eaf25d0630faa81c9e6509fe80d48c57b394395d` proves that `UPDATE ... SET resource_id = ...` could otherwise move a blocked operator child to an unrelated unowned resource because the predecessor guard looked up only `NEW.resource_id`.
+- Causal source-provenance repair `cf14dc8197bc820204784e423418b76362d4d7e3` installs a source-first child-update guard before the Similar VOC seed; test wiring `6137835740da198984f6e32d2cb49712d0bf9269` exercises that hardened migration and ordering contract `86c6863da2a3609b8c5a73ce7f5b263867e15772` pins sorted replay between the generic owner and Similar VOC seed.
 
 These commits are source-level evidence only until exact-head PostgreSQL and hosted validation run. No publication, translation approval, consumer acceptance, merge, or release is implied by this ADR.
