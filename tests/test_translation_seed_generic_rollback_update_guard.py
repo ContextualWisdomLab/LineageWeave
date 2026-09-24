@@ -1,4 +1,4 @@
-"""Rollback provenance must not move translation children out of a governed resource."""
+"""Translation child resource identity remains owned by the base ledger boundary."""
 
 from __future__ import annotations
 
@@ -25,19 +25,15 @@ _EXISTING_SEED_OWNERSHIP = (
 _GENERIC_SEED_OWNERSHIP = (
     ROOT / "migrations" / "0249_ui_translation_seed_ownership_generic.sql"
 )
-_GENERIC_CHILD_UPDATE_GUARD = (
+_DUPLICATE_CHILD_MOVE_GUARD = (
     ROOT / "migrations" / "0249_ui_translation_seed_ownership_generic_b.sql"
 )
-_SIMILAR_VOC_SEED = ROOT / "migrations" / "0249_z_similar_voc_translation_draft.sql"
 _ROLLBACK_FILE = "rollback/0249_z_similar_voc_translation_draft.sql"
 
 
-def test_child_update_guard_replays_after_generic_owner_before_similar_voc_seed() -> None:
-    """Sorted migration replay must install the hardened guard before seed writes."""
-    names = sorted(path.name for path in (ROOT / "migrations").glob("*.sql"))
-    assert names.index(_GENERIC_SEED_OWNERSHIP.name) < names.index(
-        _GENERIC_CHILD_UPDATE_GUARD.name
-    ) < names.index(_SIMILAR_VOC_SEED.name)
+def test_seed_owner_does_not_duplicate_base_child_move_boundary() -> None:
+    """ADR 0362, not a seed-specific migration, owns cross-resource child moves."""
+    assert not _DUPLICATE_CHILD_MOVE_GUARD.exists()
 
 
 async def _postgres_available_async() -> bool:
@@ -60,8 +56,8 @@ def _postgres_available() -> bool:
         f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
     ),
 )
-def test_rollback_context_cannot_move_blocked_child_to_unowned_resource() -> None:
-    """UPDATE must not escape rollback provenance by changing resource_id first."""
+def test_base_ledger_guard_blocks_resource_move_before_seed_provenance() -> None:
+    """A rollback label cannot bypass the ledger's immutable child resource identity."""
 
     async def scenario() -> None:
         database_name = f"lineageweave_seed_child_move_{uuid.uuid4().hex[:12]}"
@@ -110,9 +106,6 @@ def test_rollback_context_cannot_move_blocked_child_to_unowned_resource() -> Non
                 await connection.execute(
                     _GENERIC_SEED_OWNERSHIP.read_text(encoding="utf-8")
                 )
-                await connection.execute(
-                    _GENERIC_CHILD_UPDATE_GUARD.read_text(encoding="utf-8")
-                )
                 assert (
                     await connection.fetchval(
                         """
@@ -130,7 +123,7 @@ def test_rollback_context_cannot_move_blocked_child_to_unowned_resource() -> Non
                 )
                 with pytest.raises(
                     asyncpg.PostgresError,
-                    match="refuses child mutation outside exact seed ownership",
+                    match="UI translation child rows cannot move between resources",
                 ):
                     await connection.execute(
                         """
