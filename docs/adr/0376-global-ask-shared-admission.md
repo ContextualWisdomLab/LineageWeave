@@ -52,11 +52,15 @@ pass table/access-method/key/predicate/version validation and then be dropped
 and replaced by a privileged non-cooperating session before the ownership step.
 An unconditional `COMMENT ON INDEX` would bind repository ownership to whichever
 relation owns the name at that later instant, not necessarily to the object that
-was validated. The newly-created path has the analogous gap between successful
-`CREATE INDEX CONCURRENTLY` and ownership publication. Name equality is
-therefore insufficient across the publication boundary: migration 0251 must
-bind the decision to the exact catalog OID validated or created and re-check that
-identity while parent-table index/schema churn is excluded.
+was validated. Replay therefore carries the exact preflight OID across the
+publication boundary. A newly-created index has a related but different gap:
+PostgreSQL does not return the new catalog OID as part of `CREATE INDEX
+CONCURRENTLY`, so migration 0251 can only observe the name after that statement
+returns. The create path therefore combines immediate OID observation with a
+second full table/access-method/key/predicate/validity/marker-absence validation
+under a parent-table lock before ownership publication. This prevents a
+malformed or differently-owned replacement from receiving the LineageWeave
+marker while keeping replay bound to the exact object it validated.
 
 That fail-closed external-race rule still leaves two cooperating LineageWeave
 0251 runners able to observe the name as absent and race the same unconditional
@@ -72,8 +76,9 @@ explicit retry diagnostic; after the active migration session exits, ordinary
 replay validates the completed canonical index and succeeds. The session lock is
 explicitly released on successful completion and is also released when the psql
 session ends after an error or disconnect. Non-cooperating external DDL remains
-outside this coordination and continues to fail closed through the
-duplicate-relation or exact-object-identity path rather than being adopted.
+outside this coordination and continues to fail closed through duplicate-name,
+exact-object-continuity, or repeated physical-contract validation rather than
+being adopted by name alone.
 
 Index names share PostgreSQL's schema relation namespace with tables, views,
 sequences, and other relations. A same-named non-index relation can therefore
@@ -154,18 +159,17 @@ with another writer's migration identity.
    cooperating 0251 runner owns that lock, the contender raises an immediate
    retryable migration error rather than waiting with an old snapshot. The lock
    holder keeps its session-level lock across create-decision capture, replay
-   validation, concurrent CREATE, exact-object publication validation, and
-   ownership publication, then releases it on success; an error releases it when
-   the psql session exits. Under that lock, migration 0251 captures whether the
-   canonical name was absent before validation and, when the relation already
-   exists, captures that relation's exact PostgreSQL OID. If creation was
-   required it executes an unconditional concurrent CREATE through psql
-   conditional execution and captures the created index OID. A non-cooperating
-   relation that races into the namespace after an absent captured decision
-   therefore causes duplicate-relation failure instead of turning `IF NOT
-   EXISTS` into a false success. Before index-specific replay validation,
-   migration 0251 resolves the existing schema relation and verifies that it is
-   an ordinary index relation. A same-named table, view, sequence,
+   validation, concurrent CREATE, publication validation, and ownership
+   publication, then releases it on success; an error releases it when the psql
+   session exits. Under that lock, migration 0251 captures whether the canonical
+   name was absent before validation and, when the relation already exists,
+   captures that relation's exact PostgreSQL OID. If creation was required it
+   executes an unconditional concurrent CREATE through psql conditional
+   execution. A non-cooperating relation that races into the namespace after an
+   absent captured decision therefore causes duplicate-relation failure instead
+   of turning `IF NOT EXISTS` into a false success. Before index-specific replay
+   validation, migration 0251 resolves the existing schema relation and verifies
+   that it is an ordinary index relation. A same-named table, view, sequence,
    partitioned/otherwise unsupported index relation, or other relation kind
    fails closed with explicit operator remediation and is never described as
    safe to remove through the paired index rollback. For an ordinary index,
@@ -176,38 +180,43 @@ with another writer's migration identity.
    expression rather than token presence, so a version-marked `AND false` or
    otherwise narrowed lookalike cannot pass. After concurrent creation or replay
    validation, migration 0251 starts a short transaction and acquires `SHARE
-   UPDATE EXCLUSIVE` on `public.global_ask_job`. Under that lock it re-resolves
-   the canonical index name and requires the OID to equal the exact object that
-   was created or validated before any ownership decision can complete. This
-   table lock admits ordinary DML while excluding concurrent index/schema churn
-   during the short publication window. The create path writes the repository
-   marker only after the OID check. The replay path does not rewrite ownership;
-   it verifies that the already-validated exact object still carries the marker.
-   If a privileged non-cooperating session completed a name swap before the lock
-   was acquired, the OID mismatch fails closed and the replacement remains
-   unowned. The paired rollback first resolves the canonical target inside its
-   transaction. If the target is absent, rollback returns without acquiring an
-   exclusive table lock. If a candidate ordinary index belongs to
-   `public.global_ask_job`, rollback acquires `ACCESS EXCLUSIVE ... NOWAIT`,
-   re-resolves the canonical name under that lock, and performs final
-   destructive-action validation and DROP before the transaction ends. The
-   final validation accepts only the canonical `public.global_ask_job` btree,
-   non-unique, single-key, no-INCLUDE shape and exact queued/running predicate.
-   A valid/ready index must additionally carry the exact repository marker before
-   rollback may delete it. An unmarked index is rollback-eligible only while it
-   is invalid or not ready and otherwise has that exact canonical physical
-   shape, covering a failed concurrent build that stopped before `COMMENT ON
-   INDEX` ran. A valid unmarked index, an unexpected marker, another table,
-   another access method/key/predicate, or a non-index relation fails closed and
-   requires an explicit operator ownership decision. Because `DROP INDEX
-   CONCURRENTLY` cannot execute inside that protective transaction, the
-   exceptional rollback uses ordinary schema-qualified `DROP INDEX` while
-   holding the parent-table lock. If the parent table is busy and a destructive
-   target exists, `NOWAIT` aborts before deletion; operators must drain the
-   conflicting workload and retry rather than leaving a destructive recovery
-   session queued behind production traffic. Recovery of an accepted failed-build
-   artifact is paired rollback, migration 0251 replay, and verification of the
-   marker plus `indisvalid=true` / `indisready=true`.
+   UPDATE EXCLUSIVE` on `public.global_ask_job`. PostgreSQL 18 defines this lock
+   as conflicting with other `SHARE UPDATE EXCLUSIVE` and stronger schema/index
+   modes while remaining compatible with ordinary `ROW EXCLUSIVE` DML. For a
+   replay, the canonical name must still resolve to the exact preflight OID. For
+   a create, the migration observes the post-CREATE OID immediately, then under
+   the table lock requires that OID to remain stable and repeats the whole
+   canonical physical contract: parent table, B-tree method, non-unique
+   single-key/no-INCLUDE shape, key, exact queued/running predicate,
+   `indisvalid=true`, `indisready=true`, and no conflicting ownership marker.
+   The newly-created path additionally requires the marker to still be absent
+   before writing `lineageweave/global-ask-active-admission-index/v1`. The replay
+   path never rewrites ownership; it re-verifies the exact marker on the exact
+   preflight object. A malformed replacement installed before the publication
+   lock therefore fails closed, and index/schema churn cannot change the object
+   while the publication transaction is active. The paired rollback first
+   resolves the canonical target inside its transaction. If the target is
+   absent, rollback returns without acquiring an exclusive table lock. If a
+   candidate ordinary index belongs to `public.global_ask_job`, rollback
+   acquires `ACCESS EXCLUSIVE ... NOWAIT`, re-resolves the canonical name under
+   that lock, and performs final destructive-action validation and DROP before
+   the transaction ends. The final validation accepts only the canonical
+   `public.global_ask_job` btree, non-unique, single-key, no-INCLUDE shape and
+   exact queued/running predicate. A valid/ready index must additionally carry
+   the exact repository marker before rollback may delete it. An unmarked index
+   is rollback-eligible only while it is invalid or not ready and otherwise has
+   that exact canonical physical shape, covering a failed concurrent build that
+   stopped before `COMMENT ON INDEX` ran. A valid unmarked index, an unexpected
+   marker, another table, another access method/key/predicate, or a non-index
+   relation fails closed and requires an explicit operator ownership decision.
+   Because `DROP INDEX CONCURRENTLY` cannot execute inside that protective
+   transaction, the exceptional rollback uses ordinary schema-qualified `DROP
+   INDEX` while holding the parent-table lock. If the parent table is busy and a
+   destructive target exists, `NOWAIT` aborts before deletion; operators must
+   drain the conflicting workload and retry rather than leaving a destructive
+   recovery session queued behind production traffic. Recovery of an accepted
+   failed-build artifact is paired rollback, migration 0251 replay, and
+   verification of the marker plus `indisvalid=true` / `indisready=true`.
 6. Quota-window rejections expose the measured remaining window as bounded
    retry metadata. Active-job rejections instead tell the customer to finish or
    cancel existing work; they do not reuse the unrelated quota window as an
@@ -238,11 +247,13 @@ with another writer's migration identity.
   created concurrently after an absent preflight causes the plain CREATE to
   fail before LineageWeave can attach its ownership marker; foreign ownership is
   never adopted merely because the raced name exists.
-- Forward ownership publication is additionally bound to the exact PostgreSQL
-  OID that passed replay validation or was returned after concurrent creation.
-  A same-name swap before the short publication lock is detected before a marker
-  can be transferred, while ordinary DML remains admitted during the `SHARE
-  UPDATE EXCLUSIVE` publication transaction.
+- Replay ownership publication is bound to the exact PostgreSQL OID that passed
+  preflight. The create path, whose OID becomes observable only after
+  `CREATE INDEX CONCURRENTLY` returns, repeats the full physical/validity and
+  marker-absence contract under `SHARE UPDATE EXCLUSIVE` before publication.
+  Thus malformed post-CREATE replacement cannot inherit the repository marker,
+  while ordinary application DML remains admitted during the short publication
+  transaction.
 - Rollback is fail-closed as a destructive operation. It can remove a marked
   repository-owned canonical index or an incomplete unmarked canonical-shaped
   failed-build artifact, but it refuses a valid unmarked/mismarked index or an
@@ -291,13 +302,14 @@ with another writer's migration identity.
 - Re-checking name existence with `IF NOT EXISTS` after preflight was rejected
   because a relation can be created in that gap and then receive the repository
   ownership comment despite never being created or validated by LineageWeave.
-- Leaving an unconditional `COMMENT ON INDEX` after replay validation or after
-  concurrent creation was rejected because a privileged session can replace the
-  named index between those steps. Re-checking only the name or textual shape
-  does not prove object continuity. Migration 0251 therefore carries the exact
-  expected OID into a short `SHARE UPDATE EXCLUSIVE` publication transaction and
-  refuses to publish or reaffirm ownership if the canonical name no longer
-  resolves to that same object.
+- Leaving an unconditional `COMMENT ON INDEX` after replay validation was
+  rejected because a privileged session can replace the named index between
+  validation and publication. Replay therefore carries the exact preflight OID
+  into the publication transaction. For a fresh concurrent build, relying on a
+  single post-CREATE name/OID observation was also rejected: a malformed
+  replacement could appear before that observation. The create path therefore
+  repeats the complete physical/validity contract and requires marker absence
+  under the parent-table publication lock before it writes ownership.
 - Leaving cooperating rollout processes completely uncoordinated was rejected
   because two correct 0251 invocations can both capture an absent name and race
   the same CREATE. A transaction-level advisory lock cannot span `CREATE INDEX
