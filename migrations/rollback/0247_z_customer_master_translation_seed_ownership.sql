@@ -14,14 +14,24 @@ begin
             'Customer Master seed ownership rollback refuses while v1 resource exists';
     end if;
 
-    -- A reservation that never created a resource and a retired one-time seed
-    -- receipt own no current product data, so explicit boundary rollback may
-    -- release them. Never erase a still-owned resource record or another
-    -- migration's ownership evidence.
+    -- A reservation that never created or adopted product data can be released.
+    -- A retired receipt is different: it is the durable no-resurrection fact
+    -- that historical 0248 bytes have already completed their lifecycle.
     delete from ui_translation_seed_ownership
      where migration_key = '0248_customer_master_translation_draft'
-       and ownership_state in ('pending', 'blocked', 'retired')
+       and ownership_state in ('pending', 'blocked')
        and resource_id is null;
+
+    if exists (
+        select 1
+          from ui_translation_seed_ownership
+         where migration_key = '0248_customer_master_translation_draft'
+           and ownership_state = 'retired'
+           and resource_id is null
+    ) then
+        raise exception
+            'Customer Master seed ownership rollback refuses to erase retired no-resurrection history';
+    end if;
 
     if exists (select 1 from ui_translation_seed_ownership) then
         raise exception
