@@ -175,7 +175,15 @@ begin
     end if;
 
     migration_file := current_setting('lineageweave.migration_file', true);
-    if migration_file = owner_migration_key || '.sql'
+    if migration_file = 'rollback/' || owner_migration_key || '.sql' then
+        if tg_op <> 'DELETE'
+           or owner_state <> 'owned'
+           or owner_resource_id <> target_resource_id then
+            raise exception
+                'UI translation seed % refuses child mutation outside exact seed ownership',
+                owner_migration_key;
+        end if;
+    elsif migration_file = owner_migration_key || '.sql'
        and (owner_state <> 'owned' or owner_resource_id <> target_resource_id) then
         raise exception
             'UI translation seed % refuses child mutation outside exact seed ownership',
