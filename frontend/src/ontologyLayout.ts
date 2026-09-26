@@ -29,6 +29,7 @@ const ROW_GAP = 128;
 const LEFT = ONTOLOGY_NODE_LABEL_WIDTH / 2 + 20;
 const TOP = 48;
 const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
+const HAS_VOICE_ASSIGNMENT = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
 
 function nodeKey(nodeTypeCode: string, nodeId: string): string {
   return `${nodeTypeCode}:${nodeId}`;
@@ -202,13 +203,19 @@ export function filterNeighborhood(
     if (nodeMatch(node)) keep.add(nodeKey(node.node_type_code, node.node_id));
   }
   const nodes = payload.nodes.filter((node) => keep.has(nodeKey(node.node_type_code, node.node_id)));
+  const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
+    keep.has(nodeKey("node_post", assignment.post_id)) &&
+    (assignment.is_primary ||
+      (assignment.evidence_post_id !== null &&
+        assignment.evidence_post_id !== undefined &&
+        keep.has(nodeKey("node_post", assignment.evidence_post_id)))),
+  );
+  const visibleVoiceRowIds = new Set(visibleVoiceAssignments.map(
+    (assignment) => `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}`,
+  ));
   const exact_value_rows = payload.exact_value_rows.filter((row) =>
     edges.some((edge) => edge.edge_id === row.edge_id) ||
-    (payload.voice_assignments ?? []).some(
-      (assignment) =>
-        row.edge_id === `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}` &&
-        keep.has(nodeKey("node_post", assignment.post_id)),
-    ),
+    visibleVoiceRowIds.has(row.edge_id),
   );
   const visibleIds = new Set([
     ...nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
@@ -217,9 +224,6 @@ export function filterNeighborhood(
   const visibleNodeIds = new Set(nodes.map(
     (node) => ontologyNodeId(node.node_type_code, node.node_id),
   ));
-  const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
-    keep.has(nodeKey("node_post", assignment.post_id)),
-  );
   const visibleVoiceIds = new Set(
     visibleVoiceAssignments.flatMap((assignment) => [
       assignment.voice_type_iri,
@@ -237,7 +241,16 @@ export function filterNeighborhood(
             (visibleIds.has(item["@id"]) ||
               visibleNodeIds.has(item["@id"]) ||
               visibleVoiceIds.has(item["@id"])),
-        ),
+        ).map((item) => {
+          if (!Array.isArray(item[HAS_VOICE_ASSIGNMENT])) return item;
+          const relations = (item[HAS_VOICE_ASSIGNMENT] as unknown[]).filter(
+            (relation) => typeof relation === "object" && relation !== null &&
+              "@id" in relation && typeof relation["@id"] === "string" &&
+              visibleVoiceIds.has(relation["@id"]),
+          );
+          const { [HAS_VOICE_ASSIGNMENT]: _omitted, ...other } = item;
+          return relations.length ? { ...other, [HAS_VOICE_ASSIGNMENT]: relations } : other;
+        }),
       }
     : payload.jsonld;
   return {
