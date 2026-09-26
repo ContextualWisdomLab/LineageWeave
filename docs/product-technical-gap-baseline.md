@@ -2,9 +2,13 @@
 
 > Current authority overlay, 2026-09-27 KST. Remote protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
-> `git ls-remote`). The live open queue contains 168 PRs, all Draft, and
-> 42 open issues. None of those PRs is a protected-main product claim or
-> eligible for normal merge while Draft. For example, #1128 is at
+> `git ls-remote`). The live open queue contains 169 PRs and 42 open
+> issues. #1129 is ready for review with normal squash auto-merge armed;
+> its exact head is `794deddf21bcd27a3dff2cd3b54a5fac4d35e741` before
+> this documentation correction. Its required checks are queued and it lacks
+> independent approval, so no protected-main delivery is claimed. The other
+> 168 PRs are Draft and ineligible for normal merge while Draft. For
+> example, #1128 is at
 > `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
 > `90766d739b980d03d1f552356bcd3905846fc6b1`, and #1123 at
 > `fb3dba7e6b8145603389d211a19dbe70280bdea6`; their current-head
