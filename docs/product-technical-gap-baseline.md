@@ -3,10 +3,12 @@
 > Current authority overlay, 2026-09-27 KST. Remote protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
 > `git ls-remote`). The live open queue contains 169 PRs and 42 open
-> issues. #1129 is ready for review with normal squash auto-merge armed.
-> Its current-head required checks are queued and it lacks independent
-> approval, so no protected-main delivery is claimed. The other
-> 168 PRs are Draft and ineligible for normal merge while Draft. For
+> issues. #1129 exact `0eea5f5fe40481ec0555058880087de2fa8a64b8`
+> is Draft/Proposed after current-head review found that the Storybook fixture
+> had an empty JSON-LD graph. The fixture now carries primary and derived Voice
+> relationships plus separate evidence identity, but required checks are queued,
+> the Tests workflow is skipped, and independent approval is absent. All 169
+> open PRs are therefore Draft and ineligible for normal merge while Draft. For
 > example, #1128 is at
 > `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
 > `90766d739b980d03d1f552356bcd3905846fc6b1`, and #1123 at
@@ -26,10 +28,11 @@
 > candidate removes that assignment from the searched view and export and
 > preserves it when the evidence Post remains visible. The synthetic frontend
 > regression is local candidate evidence only. The `SeparateVoiceEvidence`
-> Storybook scene was rendered at 1440×900 and 390×844 CSS pixels on
-> 2026-09-27: filtering out its separate evidence Post retained the primary
-> row and removed the derived row. At 390 pixels, the document fit the
-> viewport and the named exact-values region remained horizontally scrollable.
+> fixture now includes exportable JSON-LD for the primary and derived Voice
+> relationships and binds the derived relation to its distinct evidence Post.
+> The prior 1440×900 and 390×844 screenshot statement is not current-head
+> executable evidence: no browser artifact, interaction trace, Firefox/WebKit,
+> assistive-technology, or eight-locale result is bound to this exact head.
 > Authenticated PostgreSQL API and protected-main acceptance remain unverified.
 > This slice changes no ADR, API, schema, migration ordinal, or release number.
 > Its baseline path overlaps draft #1123, and its Storybook inventory path
