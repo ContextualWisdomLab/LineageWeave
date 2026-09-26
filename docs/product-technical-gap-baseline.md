@@ -3,10 +3,9 @@
 > Current authority overlay, 2026-09-27 KST. Remote protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
 > `git ls-remote`). The live open queue contains 169 PRs and 42 open
-> issues. #1129 is ready for review with normal squash auto-merge armed;
-> its exact head is `794deddf21bcd27a3dff2cd3b54a5fac4d35e741` before
-> this documentation correction. Its required checks are queued and it lacks
-> independent approval, so no protected-main delivery is claimed. The other
+> issues. #1129 is ready for review with normal squash auto-merge armed.
+> Its current-head required checks are queued and it lacks independent
+> approval, so no protected-main delivery is claimed. The other
 > 168 PRs are Draft and ineligible for normal merge while Draft. For
 > example, #1128 is at
 > `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
@@ -26,8 +25,12 @@
 > relationship when that search removed its separate evidence Post. This
 > candidate removes that assignment from the searched view and export and
 > preserves it when the evidence Post remains visible. The synthetic frontend
-> regression is local candidate evidence only. Authenticated PostgreSQL API,
-> desktop/mobile render, and protected-main acceptance remain unverified.
+> regression is local candidate evidence only. The `SeparateVoiceEvidence`
+> Storybook scene was rendered at 1440×900 and 390×844 CSS pixels on
+> 2026-09-27: filtering out its separate evidence Post retained the primary
+> row and removed the derived row. At 390 pixels, the document fit the
+> viewport and the named exact-values region remained horizontally scrollable.
+> Authenticated PostgreSQL API and protected-main acceptance remain unverified.
 > This slice changes no ADR, API, schema, migration ordinal, or release number.
 > Its baseline path overlaps draft #1123, and its Storybook inventory path
 > overlaps draft #1126; reconcile those exact paths before either later merge.
