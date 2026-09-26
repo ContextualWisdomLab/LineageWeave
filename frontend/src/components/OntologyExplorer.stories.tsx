@@ -3,6 +3,7 @@ import type { OntologyNeighborhoodPayload } from "../api";
 import { OntologyExplorer } from "./OntologyExplorer";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
+const VOICE_EVIDENCE_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
 const PROJECT_ID = `${POST_ID}/demo-project`;
@@ -328,6 +329,32 @@ export const CombinedVoiceEvidence: Story = {
     );
     if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
     evidence.focus();
+  },
+};
+
+export const SeparateVoiceEvidence: Story = {
+  args: {
+    neighborhood: {
+      ...combinedVoiceNeighborhood,
+      nodes: [
+        ...combinedVoiceNeighborhood.nodes,
+        {
+          ...combinedVoiceNeighborhood.nodes[0],
+          node_id: VOICE_EVIDENCE_POST_ID,
+          display_label: "Synthetic evidence post",
+        },
+      ],
+      voice_assignments: combinedVoiceNeighborhood.voice_assignments?.map((assignment) =>
+        assignment.is_primary
+          ? assignment
+          : { ...assignment, evidence_post_id: VOICE_EVIDENCE_POST_ID },
+      ),
+      exact_value_rows: combinedVoiceNeighborhood.exact_value_rows.map((row) =>
+        row.edge_id.endsWith(":vops")
+          ? { ...row, evidence_post_id: VOICE_EVIDENCE_POST_ID }
+          : row,
+      ),
+    },
   },
 };
 

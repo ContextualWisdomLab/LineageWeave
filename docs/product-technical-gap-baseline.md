@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+> Current authority overlay, 2026-09-27 KST. Remote protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
+> `git ls-remote`). The live open queue contains 168 PRs, all Draft, and
+> 42 open issues. None of those PRs is a protected-main product claim or
+> eligible for normal merge while Draft. For example, #1128 is at
+> `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
+> `90766d739b980d03d1f552356bcd3905846fc6b1`, and #1123 at
+> `fb3dba7e6b8145603389d211a19dbe70280bdea6`; their current-head
+> checks include failed CodeQL compatibility jobs and they lack independent
+> approval. A successful bot review or an older head's checks do not close
+> either gate. Parent PRs must reach protected `main` before stacked children
+> are retargeted and rechecked. Older overlays below are dated history.
+>
+> Authority and gap selected for this slice: the current PRD requires
+> authorized evidence for every additional Voice and parity across the graph,
+> exact-value CSV, and JSON-LD. ADR 0246 governs the twelve extensible atomic
+> Voices; ADR 0256 governs evidence-bearing composition and forbids replacing
+> missing evidence with the carrying Post. Current `main` filters graph nodes
+> during in-page search but retained a derived Voice's CSV row and JSON-LD
+> relationship when that search removed its separate evidence Post. This
+> candidate removes that assignment from the searched view and export and
+> preserves it when the evidence Post remains visible. The synthetic frontend
+> regression is local candidate evidence only. Authenticated PostgreSQL API,
+> desktop/mobile render, and protected-main acceptance remain unverified.
+> This slice changes no ADR, API, schema, migration ordinal, or release number.
+> Its baseline path overlaps draft #1123, and its Storybook inventory path
+> overlaps draft #1126; reconcile those exact paths before either later merge.
+> Draft #1121 changes the Voice-history ADR and documentation tests, while
+> #997 changes the occupational ADR and PRD. Their policy/requirement changes
+> are not inherited by this frontend candidate or treated as protected-main
+> authority. Each stack still needs a fresh conflict and exact-head audit.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
