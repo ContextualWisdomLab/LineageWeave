@@ -2,13 +2,15 @@
 
 > Current authority overlay, 2026-09-27 KST. Remote protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
-> `git ls-remote`). The live open queue contains 169 PRs and 42 open
-> issues. #1129 exact `0eea5f5fe40481ec0555058880087de2fa8a64b8`
+> `git ls-remote`). The earlier queue snapshot counted 169 PRs and 42 open
+> issues; a fresh total is unavailable after GitHub returned HTTP 403 rate
+> limit on paginated reads. #1129 was inspected at exact head
+> `e79324be411a39a3cfaa8cbfd8501ed8a9215418`, which
 > is Draft/Proposed after current-head review found that the Storybook fixture
 > had an empty JSON-LD graph. The fixture now carries primary and derived Voice
 > relationships plus separate evidence identity, but required checks are queued,
-> the Tests workflow is skipped, and independent approval is absent. All 169
-> open PRs are therefore Draft and ineligible for normal merge while Draft. For
+> the Tests workflow is skipped, and independent approval is absent. This PR
+> remains ineligible for normal merge while Draft. For
 > example, #1128 is at
 > `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
 > `90766d739b980d03d1f552356bcd3905846fc6b1`, and #1123 at
@@ -30,8 +32,9 @@
 > regression is local candidate evidence only. The `SeparateVoiceEvidence`
 > fixture now includes exportable JSON-LD for the primary and derived Voice
 > relationships and binds the derived relation to its distinct evidence Post.
-> The prior 1440×900 and 390×844 screenshot statement is not current-head
-> executable evidence: no browser artifact, interaction trace, Firefox/WebKit,
+> A local Storybook build at this head rendered the separate-evidence scene at
+> 1440×900 and 390×844; screenshots were visually checked in the isolated
+> worktree. No authenticated browser interaction, Firefox/WebKit,
 > assistive-technology, or eight-locale result is bound to this exact head.
 > Authenticated PostgreSQL API and protected-main acceptance remain unverified.
 > This slice changes no ADR, API, schema, migration ordinal, or release number.
