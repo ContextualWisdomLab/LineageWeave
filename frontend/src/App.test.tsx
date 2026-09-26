@@ -10,9 +10,13 @@ const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
 let mockAuth: Record<string, unknown>;
 
-vi.mock("react-oidc-context", () => ({
-  useAuth: () => mockAuth,
-}));
+vi.mock("react-oidc-context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-oidc-context")>();
+  return {
+    ...actual,
+    useAuth: () => mockAuth,
+  };
+});
 
 beforeEach(() => {
   setLocale("en");
