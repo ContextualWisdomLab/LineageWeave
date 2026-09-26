@@ -2,21 +2,20 @@
 
 > Current authority overlay, 2026-09-27 KST. Remote protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
-> `git ls-remote`). The earlier queue snapshot counted 169 PRs and 42 open
-> issues; a fresh total is unavailable after GitHub returned HTTP 403 rate
-> limit on paginated reads. #1129 was inspected at exact head
-> `e79324be411a39a3cfaa8cbfd8501ed8a9215418`, which
-> is Draft/Proposed after current-head review found that the Storybook fixture
-> had an empty JSON-LD graph. The fixture now carries primary and derived Voice
-> relationships plus separate evidence identity, but required checks are queued,
-> the Tests workflow is skipped, and independent approval is absent. This PR
-> remains ineligible for normal merge while Draft. For
-> example, #1128 is at
+> `git ls-remote`). REST pagination returned 169 open PRs and 28 open issues.
+> #1129 was reviewed at exact head
+> `4bcbc9195c81e68fcf15173ffe6975b872b974a4`. It is Ready with normal
+> squash auto-merge enabled; current-head checks remain queued and no
+> independent APPROVE exists. Its Storybook fixture now carries primary and
+> derived Voice relationships plus separate evidence identity. The exact head
+> of this document update must be re-fetched from the PR before a merge
+> decision; this observation names the reviewed parent commit. #1128 is at
 > `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
-> `90766d739b980d03d1f552356bcd3905846fc6b1`, and #1123 at
-> `fb3dba7e6b8145603389d211a19dbe70280bdea6`; their current-head
-> checks include failed CodeQL compatibility jobs and they lack independent
-> approval. A successful bot review or an older head's checks do not close
+> `c0c5204b702d2d4d24928389db7d04ebe5cb9739`, and #1123 at
+> `fb3dba7e6b8145603389d211a19dbe70280bdea6`. #1128 and #1126 are
+> Ready with squash auto-merge enabled; #1123 remains Draft. None has a
+> current-head independent APPROVE. A successful bot review or an older
+> head's checks do not close
 > either gate. Parent PRs must reach protected `main` before stacked children
 > are retargeted and rechecked. Older overlays below are dated history.
 >
