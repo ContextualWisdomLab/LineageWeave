@@ -8,6 +8,39 @@ const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
 const PROJECT_ID = `${POST_ID}/demo-project`;
 const CONSTRUCT_ID = "99999999-9999-9999-9999-999999999999";
+const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
+const HAS_VOICE_ASSIGNMENT = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+const PRIMARY_VOICE_IRI = `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/voc`;
+const DERIVED_VOICE_IRI = `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/vops`;
+
+function voiceJsonLd(evidencePostId: string): OntologyNeighborhoodPayload["jsonld"] {
+  const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+  const evidenceIri = `${ONTOLOGY_NAMESPACE}node/node_post/${evidencePostId}`;
+
+  return {
+    "@context": demoNeighborhood.jsonld["@context"],
+    "@graph": [
+      {
+        "@id": postIri,
+        [HAS_VOICE_ASSIGNMENT]: [
+          { "@id": PRIMARY_VOICE_IRI },
+          { "@id": DERIVED_VOICE_IRI },
+        ],
+      },
+      ...(evidencePostId === POST_ID ? [] : [{ "@id": evidenceIri }]),
+      {
+        "@id": PRIMARY_VOICE_IRI,
+        "prov:wasDerivedFrom": { "@id": postIri },
+      },
+      {
+        "@id": DERIVED_VOICE_IRI,
+        "prov:wasDerivedFrom": { "@id": evidenceIri },
+      },
+      { "@id": `${ONTOLOGY_NAMESPACE}voiceOfCustomerType` },
+      { "@id": `${ONTOLOGY_NAMESPACE}voiceOfProcessType` },
+    ],
+  };
+}
 
 const demoNeighborhood: OntologyNeighborhoodPayload = {
   focus_node_id: POST_ID,
@@ -303,6 +336,7 @@ const combinedVoiceNeighborhood: OntologyNeighborhoodPayload = {
       evidence_post_id: POST_ID,
     })),
   ],
+  jsonld: voiceJsonLd(POST_ID),
 };
 
 const meta = {
@@ -354,6 +388,7 @@ export const SeparateVoiceEvidence: Story = {
           ? { ...row, evidence_post_id: VOICE_EVIDENCE_POST_ID }
           : row,
       ),
+      jsonld: voiceJsonLd(VOICE_EVIDENCE_POST_ID),
     },
   },
 };
