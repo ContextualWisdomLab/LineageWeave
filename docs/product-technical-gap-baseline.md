@@ -1,5 +1,50 @@
 # Product & Technical Gap Baseline
 
+> Current authority overlay, 2026-09-27 KST. Remote protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
+> `git ls-remote`). The earlier queue snapshot counted 169 PRs and 42 open
+> issues; a fresh total is unavailable after GitHub returned HTTP 403 rate
+> limit on paginated reads. #1129 was inspected at exact head
+> `e79324be411a39a3cfaa8cbfd8501ed8a9215418`, which
+> is Draft/Proposed after current-head review found that the Storybook fixture
+> had an empty JSON-LD graph. The fixture now carries primary and derived Voice
+> relationships plus separate evidence identity, but required checks are queued,
+> the Tests workflow is skipped, and independent approval is absent. This PR
+> remains ineligible for normal merge while Draft. For
+> example, #1128 is at
+> `91143146623948dbd26bbfc1c69de3cd77d2ae06`, #1126 at
+> `90766d739b980d03d1f552356bcd3905846fc6b1`, and #1123 at
+> `fb3dba7e6b8145603389d211a19dbe70280bdea6`; their current-head
+> checks include failed CodeQL compatibility jobs and they lack independent
+> approval. A successful bot review or an older head's checks do not close
+> either gate. Parent PRs must reach protected `main` before stacked children
+> are retargeted and rechecked. Older overlays below are dated history.
+>
+> Authority and gap selected for this slice: the current PRD requires
+> authorized evidence for every additional Voice and parity across the graph,
+> exact-value CSV, and JSON-LD. ADR 0246 governs the twelve extensible atomic
+> Voices; ADR 0256 governs evidence-bearing composition and forbids replacing
+> missing evidence with the carrying Post. Current `main` filters graph nodes
+> during in-page search but retained a derived Voice's CSV row and JSON-LD
+> relationship when that search removed its separate evidence Post. This
+> candidate removes that assignment from the searched view and export and
+> preserves it when the evidence Post remains visible. The synthetic frontend
+> regression is local candidate evidence only. The `SeparateVoiceEvidence`
+> fixture now includes exportable JSON-LD for the primary and derived Voice
+> relationships and binds the derived relation to its distinct evidence Post.
+> A local Storybook build at this head rendered the separate-evidence scene at
+> 1440×900 and 390×844; screenshots were visually checked in the isolated
+> worktree. No authenticated browser interaction, Firefox/WebKit,
+> assistive-technology, or eight-locale result is bound to this exact head.
+> Authenticated PostgreSQL API and protected-main acceptance remain unverified.
+> This slice changes no ADR, API, schema, migration ordinal, or release number.
+> Its baseline path overlaps draft #1123, and its Storybook inventory path
+> overlaps draft #1126; reconcile those exact paths before either later merge.
+> Draft #1121 changes the Voice-history ADR and documentation tests, while
+> #997 changes the occupational ADR and PRD. Their policy/requirement changes
+> are not inherited by this frontend candidate or treated as protected-main
+> authority. Each stack still needs a fresh conflict and exact-head audit.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

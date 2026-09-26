@@ -159,6 +159,79 @@ describe("ontologyLayout", () => {
     expect(accumulateNeighborhoodPages(source, withVoice).voice_assignments).toEqual([assignment]);
   });
 
+  it("omits derived voices when a search hides their evidence post", () => {
+    const source = payload();
+    const evidenceId = "dddddddd-dddd-dddd-dddd-ddddddddddd1";
+    const assignmentIri = `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/vops`;
+    const primaryIri = `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/voc`;
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const evidenceIri = `${ONTOLOGY_NAMESPACE}node/node_post/${evidenceId}`;
+    const relation = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+    const assignment = {
+      post_id: POST_ID,
+      voice_type_code: "vops",
+      voice_type_iri: `${ONTOLOGY_NAMESPACE}voiceOfProcessType`,
+      voice_type_label: "Voice of Process",
+      is_primary: false,
+      truth_status_code: "truth_observed",
+      recorded_at: "2026-01-10T12:00:00+00:00",
+      provenance_reference: "Evidence-backed additional voice",
+      evidence_post_id: evidenceId,
+    };
+    const primary = {
+      ...assignment,
+      voice_type_code: "voc",
+      voice_type_iri: `${ONTOLOGY_NAMESPACE}voiceOfCustomerType`,
+      voice_type_label: "Voice of Customer",
+      is_primary: true,
+      evidence_post_id: null,
+    };
+    const row = {
+      ...source.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:vops`,
+      property_code: "hasVoiceAssignment",
+      evidence_post_id: evidenceId,
+    };
+    const withVoice = {
+      ...source,
+      nodes: [source.nodes[0], { ...source.nodes[0], node_id: evidenceId, display_label: "Evidence source" }],
+      edges: [],
+      exact_value_rows: [row, { ...row, edge_id: `voice-assignment:${POST_ID}:voc`, evidence_post_id: POST_ID }],
+      voice_assignments: [assignment, primary],
+      jsonld: { "@graph": [
+        { "@id": postIri, "rdfs:label": "Carrying post", [relation]: [
+          { "@id": assignmentIri }, { "@id": primaryIri },
+        ] },
+        { "@id": evidenceIri },
+        { "@id": assignmentIri, "prov:wasDerivedFrom": { "@id": evidenceIri } },
+        { "@id": primaryIri, "prov:wasDerivedFrom": { "@id": postIri } },
+        { "@id": assignment.voice_type_iri },
+        { "@id": primary.voice_type_iri },
+      ] },
+    } satisfies OntologyNeighborhoodPayload;
+
+    const hidden = filterNeighborhood(withVoice, "no match")!;
+    expect(hidden.voice_assignments).toEqual([primary]);
+    expect(hidden.exact_value_rows.map((value) => value.edge_id)).toEqual([
+      `voice-assignment:${POST_ID}:voc`,
+    ]);
+    expect(hidden.jsonld["@graph"]).toEqual([
+      { "@id": postIri, "rdfs:label": "Carrying post", [relation]: [{ "@id": primaryIri }] },
+      { "@id": primaryIri, "prov:wasDerivedFrom": { "@id": postIri } },
+      { "@id": primary.voice_type_iri },
+    ]);
+
+    const shown = filterNeighborhood(withVoice, "Evidence source")!;
+    expect(shown.voice_assignments).toEqual([assignment, primary]);
+    expect(shown.exact_value_rows.map((value) => value.edge_id)).toEqual([
+      row.edge_id, `voice-assignment:${POST_ID}:voc`,
+    ]);
+    expect((shown.jsonld["@graph"] as Array<Record<string, unknown>>)[0][relation]).toEqual([
+      { "@id": assignmentIri },
+      { "@id": primaryIri },
+    ]);
+  });
+
   it("merges JSON-LD properties and multi-value relations for one paged subject", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
