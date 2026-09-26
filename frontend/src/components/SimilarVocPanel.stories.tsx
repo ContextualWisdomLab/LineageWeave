@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useLayoutEffect, useState, type ComponentType } from "react";
 import { getLocale, setLocale } from "../i18n";
 import { SimilarVocPanel } from "./SimilarVocPanel";

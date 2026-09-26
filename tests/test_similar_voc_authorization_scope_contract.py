@@ -1,11 +1,13 @@
-"""Guard Similar VOC pagination and rendering against stale authorization context."""
+"""Guard the parent pagination scope against stale authorization context.
+
+React rendering and scope reset are exercised by SimilarVocPanel.test.tsx.
+"""
 
 from pathlib import Path
 import re
 
 
 _APP_SOURCE = Path("frontend/src/App.tsx")
-_PANEL_SOURCE = Path("frontend/src/components/SimilarVocPanel.tsx")
 
 
 def test_similar_voc_pagination_scope_includes_authorization_context() -> None:
@@ -43,26 +45,3 @@ def test_similar_voc_scope_ref_rotates_only_after_commit() -> None:
         r"\},\s*\[postId,\s*accessToken\]\);",
         source,
     ), "Similar VOC request scope must rotate in commit phase, never as a render side effect"
-
-
-def test_similar_voc_render_masks_evidence_from_previous_authorization_scope() -> None:
-    """A token switch must not paint evidence or pagination controls from the prior account."""
-    source = _PANEL_SOURCE.read_text(encoding="utf-8")
-
-    assert 'import { AuthContext } from "react-oidc-context";' in source
-    assert "const auth = useContext(AuthContext);" in source
-    assert "const authorizationScope = auth?.user?.access_token ?? null;" in source
-    assert re.search(
-        r"const\s+\[displayedAuthorizationScope,\s*setDisplayedAuthorizationScope\]\s*=\s*"
-        r"useState\(authorizationScope\);",
-        source,
-    ), "Rendered evidence must retain the authorization scope that owns it"
-    assert re.search(
-        r"if\s*\(items\s*===\s*null\)\s*setDisplayedAuthorizationScope\(authorizationScope\);",
-        source,
-    ), "A new authorization scope may claim the panel only after its loading reset"
-    assert "const authorizationScopeIsCurrent = displayedAuthorizationScope === authorizationScope;" in source
-    assert "const scopedItems = authorizationScopeIsCurrent ? items : null;" in source
-    assert "const scopedError = authorizationScopeIsCurrent ? error : null;" in source
-    assert "const scopedOnLoadMore = authorizationScopeIsCurrent ? onLoadMore : null;" in source
-    assert "const scopedLoadingMore = authorizationScopeIsCurrent && loadingMore;" in source
