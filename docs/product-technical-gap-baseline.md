@@ -20,8 +20,9 @@
 > focused 10 frontend regression tests, lint, production build, and Storybook
 > build passed locally. The `SeparateVoiceEvidence` Storybook scene was
 > rendered and visually inspected at 1440×900 and 390×844. A broad Vitest
-> invocation accidentally ran the full suite under concurrent load, showed
-> unrelated timeouts, and was stopped; it is not a passing full-suite receipt.
+> invocation accidentally ran the full suite alongside lint, showed test
+> timeouts in other files, and was stopped. Their cause is unverified; this is
+> not a passing full-suite receipt.
 > Exact-head hosted Tests, Security, SAST, and CodeQL runs remain queued, and
 > no independent APPROVE is present. The PR is `BLOCKED` /
 > `REVIEW_REQUIRED`, with normal squash auto-merge enabled. Authenticated
