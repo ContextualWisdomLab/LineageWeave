@@ -1,5 +1,57 @@
 # Product & Technical Gap Baseline
 
+## Current authority and delivery overlay — 2026-09-28
+
+Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
+At 2026-09-27 18:02 UTC, the remote reports 171 open PRs and 42 open issues.
+This section
+supersedes the dated queue counts, proposed merge order, and next-increment
+claims below; those paragraphs remain historical evidence only. ADRs govern
+policy, the current PRD describes product acceptance, and an open PR is a
+candidate until its exact head passes protected delivery.
+
+| Customer-visible gap | Current evidence | Next acceptance boundary |
+| --- | --- | --- |
+| An analysis run can expose service vocabulary and offer an action that cannot restart a terminal run. | PR #1130 at `383c392bc6713e55bed31b4d4053d93cfd1885d0` supplies customer actions in the UI and start-error response. Its localization and stale-test review findings were corrected; their threads are resolved. Thirty-five focused start tests, five outbox tests, two frontend error tests, lint, and TypeScript build passed across its current changes. The PostgreSQL API test stopped in OIDC setup with HTTP 400, before testing this change. Synthetic desktop/mobile Storybook screenshots on predecessor `976f65d` showed the failed-run action without overflow or page errors; the new start-error path was tested in React but not captured in an authenticated app. Required checks are pending, and no independent approval or merge is recorded. | Terminal required checks on this head, independent approval, protected merge SHA, and authenticated PostgreSQL/rendered acceptance after the sign-in path is repaired. |
+| A searched Voice can retain a derived relation after its separate evidence Post leaves the visible neighborhood. | PR #1129 at `6e624d6178eefbad8c0f3ab1bf5b273138dbee18` carries a synthetic regression and UI scene; 10 focused layout tests passed. Desktop/mobile Storybook screenshots show separate carrying-Post and derivation-evidence actions, including the horizontally scrolled mobile evidence column. It remains open with queued exact-head checks. | Verify the authorized PostgreSQL API and authenticated rendered UI before marking the Voice acceptance complete. A hidden evidence Post is never replaced with the carrying Post; paged JSON-LD must preserve all properties and multi-Voice relations on a shared subject. |
+| Authenticated web load and capacity cannot be claimed from a synthetic run that stops at login. | At 2026-09-27 22:04 KST, the fixed `lineageweave` Compose project had its nine named services running, but a one-VU synthetic k6 admission probe stopped in setup: the single OIDC request returned HTTP 400 (1/1 failed) before Ask submission. A repeat request on 2026-09-27 returned `unauthorized_client` for the harness's password grant; it did not establish the runtime client configuration or exercise authorization-code sign-in. Issue #1119 and its parent-first PR stack own the sign-in acceptance path. This probe measures no authenticated concurrency, Ask latency, throughput, or PostgreSQL, worker, Valkey, and gateway saturation. | Complete authorization-code sign-in, then run authenticated synthetic k6 against the fixed `lineageweave` Compose project and report observed PostgreSQL, worker, Valkey, and gateway limits. |
+
+The current main-targeted ready PRs #1126, #1129, #1130, and #1131 have
+normal squash auto-merge enabled. The central ruleset requires one independent
+approval, resolved review threads, and its required workflows; queued checks
+are work in progress, not passing evidence. Draft and stacked PRs retain their
+own parent order and require fresh head/base evidence after retargeting.
+Open PRs #1123, #1129, and #1130 overlap this document, so their text must be
+reconciled against the protected main that actually merges. No current
+authenticated PostgreSQL Voice API or rendered acceptance is inferred from
+synthetic unit tests or Storybook alone.
+The current PRD repeats occupational requirement identifiers and carries an
+inconsistent ADR traceability line. Draft #997 proposes a reconciliation;
+its text is not protected-main authority until that PR passes its own gates.
+For Voice-of-X, protected-main ADR 0246 owns the twelve atomic categories and
+ADR 0256 owns evidence-bearing combinations and cutoff behavior. ADR 0251
+governs the separate FJA/I/O psychology layer; it is not a Voice-combination
+contract. The literature cited by ADR 0246 supports stakeholder distinctions,
+not the exact twelve-code product vocabulary. This numbering distinction must
+survive stacked PR retargeting and PRD reconciliation.
+
+Across ready PRs #1126, #1129, and #1130, the observed overlapping paths are
+the Storybook inventory (#1126/#1129/#1130), `App.tsx` and its tests
+(#1126/#1130), and this baseline (#1129/#1130). #1130 alone amends ADR 0014;
+none of the three changes an API route, payload schema, database schema,
+migration ordinal, or release number. #1130 changes customer-facing API error
+detail without changing status codes. The shared paths require post-merge
+reconciliation; no ADR, schema, or release-number collision is established by
+these deltas.
+
+The remote canonical repository names checked for this overlay are
+`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/TEPP`, and
+`ContextualWisdomLab/disksage`. The last name is lowercase at the remote.
+DiskSage's protected-main product/architecture authority is its `README.md`
+and `docs/architecture/adr/README.md`; a `docs/PRD.md` found in a local
+unmerged branch is not a protected-main PRD.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
