@@ -3,7 +3,8 @@
 ## Current authority and delivery overlay — 2026-09-27
 
 Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
-The remote currently reports 170 open PRs and 42 open issues. This section
+At 2026-09-27 11:15 UTC, the remote reports 171 open PRs and 42 open issues.
+This section
 supersedes the dated queue counts, proposed merge order, and next-increment
 claims below; those paragraphs remain historical evidence only. ADRs govern
 policy, the current PRD describes product acceptance, and an open PR is a
@@ -24,6 +25,9 @@ Open PRs #1123, #1129, and #1130 overlap this document, so their text must be
 reconciled against the protected main that actually merges. No current
 authenticated PostgreSQL Voice API or rendered acceptance is inferred from
 synthetic unit tests or Storybook alone.
+The current PRD repeats occupational requirement identifiers and carries an
+inconsistent ADR traceability line. Draft #997 proposes a reconciliation;
+its text is not protected-main authority until that PR passes its own gates.
 
 Across ready PRs #1126, #1129, and #1130, the observed overlapping paths are
 the Storybook inventory (#1126/#1129/#1130), `App.tsx` and its tests
