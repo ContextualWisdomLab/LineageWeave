@@ -3,9 +3,14 @@
 ## Current authority and delivery overlay — 2026-09-28
 
 Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
-At 2026-09-27 18:02 UTC, the remote reports 171 open PRs and 42 open issues.
-This section
-supersedes the dated queue counts, proposed merge order, and next-increment
+At 2026-09-27 20:49 UTC, the public remote PR listing reports 172 open PRs.
+The 42-open-issue count was last verified at 18:02 UTC and has not been
+rechecked in this update. Draft #1132 (`8bb057866abb7706a54f2801aafd6d6b56e8e243`)
+adds a denied-access next action; it is a candidate, not protected-main
+behavior. GitHub's authenticated PR API returned HTTP 403 during this audit,
+so approval, ruleset, and current-head Checks cannot be inferred from the
+public listing. This section supersedes the dated queue counts, proposed merge
+order, and next-increment
 claims below; those paragraphs remain historical evidence only. ADRs govern
 policy, the current PRD describes product acceptance, and an open PR is a
 candidate until its exact head passes protected delivery.
