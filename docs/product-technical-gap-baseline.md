@@ -1,5 +1,42 @@
 # Product & Technical Gap Baseline
 
+## Current authority and acceptance — 2026-09-27 15:00 KST
+
+This section supersedes the dated loop snapshots below. Remote protected
+`main` is `83eba56149eb802cd63642c507c324c9976ec78e`; the local primary
+checkout has unrelated in-progress edits, so this slice uses an isolated
+worktree at that exact base. The current product contract is
+`docs/product-requirements.md`; accepted ADRs, including 0014, 0123, 0246,
+0251, and 0256, govern the underlying decisions. Research cited by those ADRs
+supports the stated boundaries, but does not itself prove a deployed result.
+
+| Evidence class | Current observation | Limit |
+| --- | --- | --- |
+| Protected implementation | `main` still shows internal measurement-service and transport terms on the Analysis runs screen. | A running container or a passing local test does not prove a buyer-ready screen. |
+| Non-identifying current runtime aggregate | The official `lineageweave` PostgreSQL service reported 43,189 source-post rows by a read-only count at this snapshot. | This is an operational inventory, not a probability sample or population estimate. No titles, identifiers, or records were retrieved. |
+| Open PRs | 169 open PRs were listed. #1129 (`6e624d6178eefbad8c0f3ab1bf5b273138dbee18`) and #1128 (`91143146623948dbd26bbfc1c69de3cd77d2ae06`) are ready with squash auto-merge enabled but still need independent approval; #1129 Checks are queued. #1126 (`c0c5204b702d2d4d24928389db7d04ebe5cb9739`) is likewise ready/auto-merge with checks still queued. | Bot comments and older-head checks do not satisfy current-head protected approval. No merge SHA is claimed. |
+| Open issues | 42 open issues were listed. #1119 tracks rendered sign-in acceptance; #1056 release authority; #1048 migration ordinals; #963 historical gap-baseline separation. | An issue or candidate PR is not a deployed customer outcome. |
+
+The largest isolated buyer-facing gap available without colliding with an
+existing product writer is the Analysis runs screen's internal failure and
+measurement wording. This slice maps governed run kinds to customer-readable
+names, gives pending/running/failed readers an accurate next action, and keeps
+machine failure codes in the authorized API. It changes presentation only;
+calibrated results remain unavailable without an accepted, persisted owner
+result. The synthetic `Analysis/RunCopy` scene was rendered and visually
+audited at 1280×720 and 390×844: its action text remained legible without
+overflow or internal service terms. This is component-render evidence, not an
+authenticated PostgreSQL API or deployed-screen acceptance claim.
+
+The open stack #899 → #1118 → #1120 → #1124 must be protected-merged in parent
+order; each child then needs a new `main` base and new exact-head checks and
+approval. #1121 changes an ADR link, #997 reconciles duplicated PRD entries,
+#1049 owns migration ordinals, and #961 owns runtime release identity. These
+authorities must be reconciled against each other before any dependent merge;
+this copy-only slice adds no API, schema, migration, model policy, or release
+number. The many versioned leftover-map PRs remain a separate serialized stack,
+and repeated v2.92.0 labels in open titles require release-owner reconciliation.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
