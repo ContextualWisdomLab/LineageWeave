@@ -1,9 +1,9 @@
 # Product & Technical Gap Baseline
 
-## Current authority and delivery overlay — 2026-09-27
+## Current authority and delivery overlay — 2026-09-28
 
 Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
-At 2026-09-27 11:15 UTC, the remote reports 171 open PRs and 42 open issues.
+At 2026-09-27 18:02 UTC, the remote reports 171 open PRs and 42 open issues.
 This section
 supersedes the dated queue counts, proposed merge order, and next-increment
 claims below; those paragraphs remain historical evidence only. ADRs govern
@@ -12,11 +12,11 @@ candidate until its exact head passes protected delivery.
 
 | Customer-visible gap | Current evidence | Next acceptance boundary |
 | --- | --- | --- |
-| An analysis run can expose service vocabulary and offer an action that cannot restart a terminal run. | PR #1130 at `f0cb3fd6b73c9b686c8886579b7652a85069761f` supplies customer actions and focused regression/Storybook scenes. Its review localization finding and stale copy assertions were repaired on that head; the three affected local tests passed. Current-head checks remain queued; no independent approval or merge is recorded. | Terminal required checks, resolved threads, independent approval, protected merge SHA, and authenticated rendered acceptance. |
+| An analysis run can expose service vocabulary and offer an action that cannot restart a terminal run. | PR #1130 at `976f65ddef24644b37c05e54e3a462c4c2dded28` supplies customer actions in the UI and start-error response. Its earlier localization review finding was repaired before this head; 35 focused backend tests passed on this head. Synthetic desktop/mobile Storybook screenshots showed the failed-run action without horizontal overflow or page errors. Required checks are pending, and no independent approval or merge is recorded. | Terminal required checks on this head, resolved threads, independent approval, protected merge SHA, and authenticated rendered acceptance. |
 | A searched Voice can retain a derived relation after its separate evidence Post leaves the visible neighborhood. | PR #1129 at `6e624d6178eefbad8c0f3ab1bf5b273138dbee18` carries a synthetic regression and UI scene. It remains open with queued exact-head checks. | Verify authorized PostgreSQL API and rendered desktop/mobile behavior before marking the Voice acceptance complete. Carrying Post and derivation evidence remain separate actions; a hidden evidence Post is never replaced with the carrying Post. |
 | Authenticated web load and capacity cannot be claimed from a synthetic run that stops at login. | At 2026-09-27 22:04 KST, the fixed `lineageweave` Compose project had its nine named services running, but a one-VU synthetic k6 admission probe stopped in setup: the single OIDC request returned HTTP 400 (1/1 failed) before Ask submission. A repeat request on 2026-09-27 returned `unauthorized_client` for the harness's password grant; it did not establish the runtime client configuration or exercise authorization-code sign-in. Issue #1119 and its parent-first PR stack own the sign-in acceptance path. This probe measures no authenticated concurrency, Ask latency, throughput, or PostgreSQL, worker, Valkey, and gateway saturation. | Complete authorization-code sign-in, then run authenticated synthetic k6 against the fixed `lineageweave` Compose project and report observed PostgreSQL, worker, Valkey, and gateway limits. |
 
-The current main-targeted ready PRs #1126, #1129, and #1130 already have
+The current main-targeted ready PRs #1126, #1129, #1130, and #1131 have
 normal squash auto-merge enabled. The central ruleset requires one independent
 approval, resolved review threads, and its required workflows; queued checks
 are work in progress, not passing evidence. Draft and stacked PRs retain their
@@ -32,9 +32,11 @@ its text is not protected-main authority until that PR passes its own gates.
 Across ready PRs #1126, #1129, and #1130, the observed overlapping paths are
 the Storybook inventory (#1126/#1129/#1130), `App.tsx` and its tests
 (#1126/#1130), and this baseline (#1129/#1130). #1130 alone amends ADR 0014;
-none of the three changes an API contract, database schema, migration ordinal,
-or release number. The shared paths require post-merge reconciliation; no
-ADR, API, schema, or release-number collision is established by these deltas.
+none of the three changes an API route, payload schema, database schema,
+migration ordinal, or release number. #1130 changes customer-facing API error
+detail without changing status codes. The shared paths require post-merge
+reconciliation; no ADR, schema, or release-number collision is established by
+these deltas.
 
 The remote canonical repository names checked for this overlay are
 `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
