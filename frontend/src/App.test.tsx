@@ -3568,22 +3568,22 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
-  it("tells a running lineage run to refresh the durable outbox", async () => {
+  it("tells a running lineage run to refresh its status without another start", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App showLabPanels />);
 
     const lineageButton = await screen.findByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
+      name: "Open analysis run: Record connections · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run to see whether the analysis has finished.",
     );
     await userEvent.click(lineageButton);
     expect(
       screen.queryByRole("button", { name: "Start reconstruction" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run to see whether the analysis has finished."),
     ).not.toHaveLength(0);
   });
 
@@ -3593,7 +3593,7 @@ describe("App, authenticated", () => {
 
     await screen.findByRole("list", { name: "Analysis runs" });
     const lineageButton = screen.getByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
+      name: "Open analysis run: Record connections · Failed · Demo Corp",
     });
     const teppButton = screen.getByRole("button", {
       name: "Open analysis run: Record measurement · Failed · Demo Corp",
@@ -3603,7 +3603,7 @@ describe("App, authenticated", () => {
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then retry with the latest available records.",
+      "Open this run to review its status. Ask an administrator to restore analysis before requesting another run.",
     );
     expect(teppButton).not.toHaveTextContent("measurement service");
     expect(teppButton).not.toHaveTextContent("reconstruction");
@@ -3989,11 +3989,11 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
     );
     expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Record connections · Pending · Demo Corp" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp",
+        name: "Open analysis run: Record connections · Pending · Demo Corp",
       }),
     ).toBeInTheDocument();
     expect(
