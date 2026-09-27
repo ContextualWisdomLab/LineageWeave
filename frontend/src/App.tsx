@@ -2858,9 +2858,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_lineage":
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
-          return "Open this run to review the selected posts, then start measurement. No result is available yet.";
+          return t("Open this run to review the selected posts, then start measurement. No result is available yet.");
         case "analysis_run_topic_lineage":
-          return "Open this run to review the selected posts, then start topic history. No result is available yet.";
+          return t("Open this run to review the selected posts, then start topic history. No result is available yet.");
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2871,9 +2871,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to review its status. Ask an administrator to restore analysis before requesting another run.";
+          return t("Open this run to review its status. Ask an administrator to restore analysis before requesting another run.");
         case "analysis_run_topic_lineage":
-          return "Open this run to review its status. Ask an administrator to restore analysis before requesting another run.";
+          return t("Open this run to review its status. Ask an administrator to restore analysis before requesting another run.");
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2884,7 +2884,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
-      return "Refresh this run to see whether the analysis has finished.";
+      return t("Refresh this run to see whether the analysis has finished.");
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -2902,12 +2902,12 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
   switch (run.run_kind_code) {
     case "analysis_run_tepp":
-      return (
+      return t(
         "No posts were available at this cutoff for measurement. " +
         "Ask an administrator to prepare a newer run."
       );
     case "analysis_run_topic_lineage":
-      return (
+      return t(
         "No posts were available at this cutoff for topic history. " +
         "Ask an administrator to prepare a newer run."
       );
@@ -3045,10 +3045,10 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 
 function analysisRunStartLabel(run: AnalysisRun): string {
   if (run.run_kind_code === "analysis_run_tepp") {
-    return "Start measurement";
+    return t("Start measurement");
   }
   if (run.run_kind_code === "analysis_run_topic_lineage") {
-    return "Start topic history";
+    return t("Start topic history");
   }
   return "Start reconstruction";
 }
@@ -3340,16 +3340,16 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Starting measurement..."
+                  ? t("Starting measurement...")
                   : selected.run_kind_code === "analysis_run_topic_lineage"
-                    ? "Starting topic history..."
+                    ? t("Starting topic history...")
                     : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
-              Ask an administrator to restore analysis before requesting another run.
+              {t("Ask an administrator to restore analysis before requesting another run.")}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
@@ -3420,7 +3420,7 @@ function AnalysisRunsPanel({
               {selected.status_history.map((event) => (
                 <li key={event.status_ordinal}>
                   {event.status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
-                  {event.failure_code ? " · Analysis unavailable" : ""}
+                  {event.failure_code ? ` · ${t("Analysis unavailable")}` : ""}
                 </li>
               ))}
             </ol>
