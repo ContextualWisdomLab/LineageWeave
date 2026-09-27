@@ -28,6 +28,14 @@ audited at 1280×720 and 390×844: its action text remained legible without
 overflow or internal service terms. This is component-render evidence, not an
 authenticated PostgreSQL API or deployed-screen acceptance claim.
 
+The existing synthetic HTTP k6 harness could not enter its authenticated run:
+the demonstration identity flow returned HTTP 400 before Ask submission. Its
+single failed authentication request is not a latency, throughput, or saturation
+measurement for the product. A read-only container sample and PostgreSQL
+activity count showed no attributable bottleneck; no performance change is
+made. The authorization-code stack tracked by #1119 must provide a supported
+synthetic load identity path before a concurrent k6 acceptance run can resume.
+
 The open stack #899 → #1118 → #1120 → #1124 must be protected-merged in parent
 order; each child then needs a new `main` base and new exact-head checks and
 approval. #1121 changes an ADR link, #997 reconciles duplicated PRD entries,
