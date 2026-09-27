@@ -3231,7 +3231,11 @@ function AnalysisRunsPanel({
       setRuns(listed.analysis_runs);
       setSelected(started);
     } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
+      setError(t(
+        err instanceof BackendError && err.status === 409
+          ? "Refresh this run to see whether the analysis has finished."
+          : "Ask an administrator to restore analysis before requesting another run.",
+      ));
     } finally {
       setStarting(false);
     }

@@ -162,6 +162,7 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    startFailure?: { status: number; detail: string };
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -646,6 +647,11 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-tepp/start") && method === "POST") {
+        if (options?.startFailure) {
+          return Promise.resolve(new Response(JSON.stringify({ detail: options.startFailure.detail }), {
+            status: options.startFailure.status,
+          }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-tepp",
@@ -3937,6 +3943,23 @@ describe("App, authenticated", () => {
       String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp/start"),
     );
     expect(startCall?.[1]?.method).toBe("POST");
+  });
+
+  it.each([
+    [409, "Refresh this run to see whether the analysis has finished."],
+    [503, "Ask an administrator to restore analysis before requesting another run."],
+  ])("keeps failed start details out of the customer view (%i)", async (status, action) => {
+    stubBackend({
+      pendingTeppRun: true,
+      startFailure: { status, detail: "synthetic provider and worker diagnostics" },
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Record measurement · Pending · Demo Corp",
+    }));
+    await userEvent.click(screen.getByRole("button", { name: "Start measurement" }));
+    expect(await screen.findByText(action)).toBeInTheDocument();
+    expect(screen.queryByText(/synthetic provider and worker diagnostics/i)).not.toBeInTheDocument();
   });
 
   it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
