@@ -23,8 +23,9 @@
 > invocation accidentally ran the full suite under concurrent load, showed
 > unrelated timeouts, and was stopped; it is not a passing full-suite receipt.
 > Exact-head hosted Tests, Security, SAST, and CodeQL runs remain queued, and
-> no independent APPROVE is present. Authenticated PostgreSQL API and
-> protected-main rendered acceptance are still unverified.
+> no independent APPROVE is present. The PR is `BLOCKED` /
+> `REVIEW_REQUIRED`, with normal squash auto-merge enabled. Authenticated
+> PostgreSQL API and protected-main rendered acceptance are still unverified.
 >
 > #1129 changes no ADR, API, schema, migration ordinal, or release number.
 > Its baseline path overlaps this Draft documentation owner #1123, and its
