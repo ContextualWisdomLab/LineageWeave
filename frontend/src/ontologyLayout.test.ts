@@ -230,6 +230,28 @@ describe("ontologyLayout", () => {
       { "@id": assignmentIri },
       { "@id": primaryIri },
     ]);
+
+    const dangling = filterNeighborhood({
+      ...withVoice,
+      nodes: [source.nodes[0]],
+      edges: [{
+        ...source.edges[0],
+        edge_id: "dangling-evidence-reference",
+        source_node_type_code: "node_post",
+        source_node_id: POST_ID,
+        target_node_type_code: "node_post",
+        target_node_id: evidenceId,
+        property_label: "related evidence",
+      }],
+    }, "related evidence")!;
+    expect(dangling.edges).toEqual([]);
+    expect(dangling.voice_assignments).toEqual([primary]);
+    expect(dangling.exact_value_rows.map((value) => value.edge_id)).toEqual([
+      `voice-assignment:${POST_ID}:voc`,
+    ]);
+    expect((dangling.jsonld["@graph"] as Array<Record<string, unknown>>)[0][relation]).toEqual([
+      { "@id": primaryIri },
+    ]);
   });
 
   it("merges JSON-LD properties and multi-value relations for one paged subject", () => {

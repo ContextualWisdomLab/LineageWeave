@@ -192,7 +192,8 @@ export function filterNeighborhood(
   const edges = payload.edges.filter((edge) => {
     const source = nodesByKey.get(nodeKey(edge.source_node_type_code, edge.source_node_id));
     const target = nodesByKey.get(nodeKey(edge.target_node_type_code, edge.target_node_id));
-    return edgeMatch(edge) || Boolean(source && nodeMatch(source)) || Boolean(target && nodeMatch(target));
+    if (!source || !target) return false;
+    return edgeMatch(edge) || nodeMatch(source) || nodeMatch(target);
   });
   const keep = new Set<string>([nodeKey(payload.focus_node_type_code, payload.focus_node_id)]);
   for (const edge of edges) {

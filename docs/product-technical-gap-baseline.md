@@ -28,7 +28,10 @@
 > relationship when that search removed its separate evidence Post. This
 > candidate removes that assignment from the searched view and export and
 > preserves it when the evidence Post remains visible. The synthetic frontend
-> regression is local candidate evidence only. The `SeparateVoiceEvidence`
+> regression is local candidate evidence only. A second regression found that
+> a matching graph edge could retain an evidence Post identifier absent from
+> the authorized node set; the searched view now drops that dangling edge
+> before deriving Voice visibility or exports. The `SeparateVoiceEvidence`
 > fixture now includes exportable JSON-LD for the primary and derived Voice
 > relationships and binds the derived relation to its distinct evidence Post.
 > A local Storybook build at this head rendered the separate-evidence scene at
