@@ -1,5 +1,42 @@
 # Product & Technical Gap Baseline
 
+> Exact-head review overlay, 2026-09-27 KST. Protected `main` is
+> `83eba56149eb802cd63642c507c324c9976ec78e`, verified against the
+> remote ref. The current LineageWeave PRD and the linked product or
+> architecture authorities were read first. Remote repository names confirm
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+> lowercase `ContextualWisdomLab/disksage`. GitHub's REST rate limit prevented
+> a fresh complete open PR and issue count; the counts in older overlays
+> remain dated observations, not current totals.
+>
+> The buyer-visible Voice evidence gap has a minimal candidate in #1129 at
+> exact head `6e624d6178eefbad8c0f3ab1bf5b273138dbee18`. It keeps a
+> derived Voice in the searched graph, exact-value export, and JSON-LD only
+> while its distinct authorized evidence Post remains visible. It keeps the
+> imported primary Voice and does not replace hidden evidence with the
+> carrying Post. The prior Storybook JSON-LD review finding is addressed in
+> this head; the current-head bot review reports no remaining concrete
+> finding, but it is not an independent approval. On this exact head, the
+> focused 10 frontend regression tests, lint, production build, and Storybook
+> build passed locally. The `SeparateVoiceEvidence` Storybook scene was
+> rendered and visually inspected at 1440×900 and 390×844. A broad Vitest
+> invocation accidentally ran the full suite under concurrent load, showed
+> unrelated timeouts, and was stopped; it is not a passing full-suite receipt.
+> Exact-head hosted Tests, Security, SAST, and CodeQL runs remain queued, and
+> no independent APPROVE is present. Authenticated PostgreSQL API and
+> protected-main rendered acceptance are still unverified.
+>
+> #1129 changes no ADR, API, schema, migration ordinal, or release number.
+> Its baseline path overlaps this Draft documentation owner #1123, and its
+> Storybook inventory overlaps Draft #1126; reconcile those paths before
+> later merges. Draft #1121 remains the separate Voice-history ADR owner,
+> while #997 owns occupational PRD/ADR reconciliation. Existing release-number
+> collisions #843/#844 and #876/#877 remain unresolved. None of these
+> candidate heads, local checks, or screenshots establish a protected-main
+> release. The remaining Voice acceptance gap is an authorized PostgreSQL API
+> and rendered browser proof that carrying Post, derivation evidence, truth
+> status, and cutoff agree across views and paged exports.
+
 > Exact-head validation overlay: 2026-09-24T05:20:00+09:00. Protected `main`
 > remains `83eba56149eb802cd63642c507c324c9976ec78e` (`2.28.0`), with 166 open
 > PRs and 42 open non-PR issues. GitHub's repository metadata resolves the
