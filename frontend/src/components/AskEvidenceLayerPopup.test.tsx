@@ -82,6 +82,23 @@ describe("AskEvidenceLayerPopup", () => {
     expect(screen.getByText("Untitled image")).toBeInTheDocument();
   });
 
+  it("keeps repeated image unit indexes as distinct evidence rows", () => {
+    render(
+      <AskEvidenceLayerPopup
+        {...baseProps}
+        facts={[]}
+        images={[
+          { unit_index: 1, caption: "First image", extracted_text: null, tags: [] },
+          { unit_index: 1, caption: "Second image", extracted_text: null, tags: [] },
+        ]}
+        onClose={vi.fn()}
+        onOpenPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("First image")).toBeInTheDocument();
+    expect(screen.getByText("Second image")).toBeInTheDocument();
+  });
+
   it("closes on backdrop click, close button click, and Escape, but not on panel click", async () => {
     const onClose = vi.fn();
     const { container } = render(

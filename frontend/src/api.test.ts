@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
+  UserFacingError,
+  askAgent,
   fetchMe,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
   fetchOperationsDashboard,
+  fetchPostLineage,
+  fetchWorkerFunctionProfile,
   fetchRatingSourceOccupations,
   updateTenantConfig,
 } from "./api";
@@ -59,6 +63,36 @@ describe("backendFetch provider-error boundary", () => {
     expect(fetchMock.mock.calls[0][0]).toContain("/api/occupation-rating-sources");
   });
 
+  it("keeps special characters inside a post path segment", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ post_id: "post/with?reserved#characters" }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchPostLineage("access-token", "post/with?reserved#characters");
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/api/posts/post%2Fwith%3Freserved%23characters/lineage",
+    );
+  });
+
+  it("keeps a worker-function domain inside one path segment", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ constructs: {}, relations: [] }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchWorkerFunctionProfile("access-token", "cognitive/unsafe", 1);
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/api/ontology/worker-functions/cognitive%2Funsafe/1",
+    );
+  });
+
   it("reads occupations for one exact imported source", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ occupations: [] }), {
@@ -101,6 +135,20 @@ describe("backendFetch provider-error boundary", () => {
     });
   });
 
+  it("normalizes malformed successful responses into a safe backend error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("not-json", { status: 200, headers: { "Content-Type": "application/json" } }),
+      ),
+    );
+
+    await expect(fetchMe("access-token")).rejects.toMatchObject({
+      status: 502,
+      message: "The service could not complete this request. Try again later.",
+    });
+  });
+
   it("keeps tenant settings on the shared error boundary", async () => {
     vi.stubGlobal(
       "fetch",
@@ -116,5 +164,35 @@ describe("backendFetch provider-error boundary", () => {
       status: 500,
       message: "The service could not complete this request. Try again later.",
     });
+  });
+
+  it("surfaces a queued Ask job's bounded failure detail as a user-facing error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ ask_job_id: "ask-job-1", job_status_code: "queued" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              ask_job_id: "ask-job-1",
+              job_status_code: "failed",
+              failure_detail: "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+    );
+
+    const failure = await askAgent("access-token", "Which project?").catch((caught: unknown) => caught);
+    expect(failure).toBeInstanceOf(UserFacingError);
+    expect((failure as UserFacingError).message).toBe(
+      "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+    );
   });
 });

@@ -61,6 +61,47 @@ export const InteractiveEvidenceReady: Story = {
   },
 };
 
+export const Paginated: Story = {
+  render: () => <OccupationRatingProfile accessToken="synthetic-token" />,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    let page = 0;
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("occupation-rating-sources")) {
+        return new Response(JSON.stringify({ sources: [{
+          data_release_code: "onet-31.0", release_version: "31.0",
+          source_publisher_name: "Synthetic publisher", source_license_url: "https://example.test/license",
+          source_table_code: "abilities", source_table_name: "Abilities",
+          source_artifact_url: "https://example.test/abilities.csv", source_artifact_sha256: "a".repeat(64),
+          source_row_count: 2,
+        }] }), { headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("occupation-rating-occupations")) {
+        return new Response(JSON.stringify({
+          data_release_code: "onet-31.0", source_table_code: "abilities", source_available: true,
+          occupations: [{ onetsoc_code: "15-1252.00", occupation_title: "Software Developers" }],
+        }), { headers: { "Content-Type": "application/json" } });
+      }
+      page += 1;
+      return new Response(JSON.stringify({
+        ...ready,
+        items: [{ ...ready.items[0], element_id: `1.A.1.a.${page}`, data_value: page === 1 ? "4.10" : "3.20" }],
+        next_offset: page === 1 ? 100 : null,
+      }), { headers: { "Content-Type": "application/json" } });
+    };
+    return () => { globalThis.fetch = previousFetch; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(await canvas.findByLabelText("직업"), "15-1252.00");
+    await userEvent.click(canvas.getByRole("button", { name: "직업 근거 열기" }));
+    await expect(canvas.findByText("4.10")).resolves.toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "다음 관측값 불러오기" }));
+    await expect(canvas.findByText("3.20")).resolves.toBeVisible();
+  },
+};
+
 export const NarrowViewport: Story = {
   ...InteractiveEvidenceReady,
   parameters: { viewport: { defaultViewport: "mobile1" } },

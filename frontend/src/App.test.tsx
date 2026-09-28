@@ -92,10 +92,23 @@ describe("App, unauthenticated", () => {
     expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
 
+  it("renders the login support copy from the translation catalog", () => {
+    render(<App showLabPanels />);
+    expect(screen.getByText("Marketing & Operational Lineage Intelligence")).toBeInTheDocument();
+    expect(screen.getByText("Enterprise SSO Authentication")).toBeInTheDocument();
+  });
+
   it("announces the app-root auth loading gate as a live region", () => {
     mockAuth = { ...mockAuth, isLoading: true };
     render(<App showLabPanels />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
+  });
+
+  it("replaces the raw OIDC error with bounded, localized copy", () => {
+    mockAuth = { ...mockAuth, error: new Error("No matching state found in storage") };
+    render(<App showLabPanels />);
+    expect(screen.getByText("Sign-in could not be completed. Try again later.")).toBeInTheDocument();
+    expect(screen.queryByText("No matching state found in storage")).toBeNull();
   });
 });
 
@@ -161,6 +174,9 @@ describe("App, authenticated", () => {
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
+    askJobFailure?: string;
+    postsFailed?: boolean;
+    similarVocFailed?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1194,6 +1210,14 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
+        if (options?.postsFailed) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "posts relation unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
@@ -1256,6 +1280,7 @@ describe("App, authenticated", () => {
       }
       const postOneUrl = new URL(url, "https://backend.test");
       if (postOneUrl.pathname === "/api/posts/post-1/similar-voc") {
+        if (options?.similarVocFailed) return Promise.reject(new Error("synthetic similar-voc failure"));
         return Promise.resolve(jsonResponse({ items: [] }));
       }
       if (postOneUrl.pathname === "/api/posts/post-1") {
@@ -1823,6 +1848,16 @@ describe("App, authenticated", () => {
         );
       }
       if (url.includes("/api/ask/jobs/") && method === "GET") {
+        if (options?.askJobFailure) {
+          return Promise.resolve(
+            jsonResponse({
+              ask_job_id: "ask-job-1",
+              job_status_code: "failed",
+              failure_detail: options.askJobFailure,
+              answer: null,
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             ask_job_id: "ask-job-1",
@@ -2089,6 +2124,27 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a failed Ask job's bounded detail without a raw exception prefix", async () => {
+    stubBackend({
+      askJobFailure:
+        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+    });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+        ),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Error:/)).not.toBeInTheDocument();
   });
 
   it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
@@ -2419,7 +2475,7 @@ describe("App, authenticated", () => {
 
     await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));
-    expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
+    expect(within(board).getByText("No posts match the current filters.")).toBeInTheDocument();
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
@@ -2433,6 +2489,20 @@ describe("App, authenticated", () => {
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
     expect(screen.getByRole("dialog", { name: "Linked post" })).toHaveFocus();
+  });
+
+  it("names a failed board load with localized copy instead of raw exception text", async () => {
+    stubBackend({ postsFailed: true });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await waitFor(() =>
+      expect(within(board).getByRole("alert")).toHaveTextContent(
+        "The service could not complete this request. Try again later.",
+      ),
+    );
+    expect(within(board).getByRole("alert")).not.toHaveTextContent("BackendError");
+    expect(within(board).queryByText("Loading posts...")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -3224,6 +3294,102 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: /derive commitment/i })).not.toBeInTheDocument();
   });
 
+  it("keeps ticket mutation failures on the localized error copy", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/tickets" && args[1]?.method === "POST") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ detail: "issue_ticket insert violated fk constraint" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm delivery window");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("The service could not complete this request. Try again later."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/issue_ticket insert violated fk constraint/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/BackendError/)).not.toBeInTheDocument();
+  });
+
+  it("names a failed ticket load instead of showing an empty list", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/tickets" && (args[1]?.method ?? "GET") === "GET") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ detail: "tickets unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("The service could not complete this request. Try again later."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("No tickets yet.")).not.toBeInTheDocument();
+  });
+
+  it("names a failed activity load instead of stalling on the loading state", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/posts/post-1/activity") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ detail: "activity unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("The service could not complete this request. Try again later."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Loading activity...")).not.toBeInTheDocument();
+    expect(screen.queryByText("No activity yet.")).not.toBeInTheDocument();
+  });
+
   it("derives a customer commitment and shows its due date on the ticket list", async () => {
     stubBackend({ admin: true });
     render(<App showLabPanels />);
@@ -3287,7 +3453,7 @@ describe("App, authenticated", () => {
     });
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
-    await userEvent.click(await screen.findByRole("button", { name: "이전 VOC 더 보기" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Show more prior VOC" }));
     await userEvent.click((await screen.findAllByLabelText("Open post: Linked post"))[0]);
     await screen.findByText("The evidence panel should show exactly this text.");
     releasePage(jsonResponse({
@@ -3300,6 +3466,16 @@ describe("App, authenticated", () => {
     }));
     await waitFor(() => expect(screen.queryByText("Stale prior VOC")).not.toBeInTheDocument());
   }, 15_000);
+
+  it("renders the similar-VOC failure from the translation catalog without raw Korean", async () => {
+    stubBackend({ similarVocFailed: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
+    expect(
+      await screen.findByText("Similar VOC adjudication is unavailable. Try again shortly."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/유사 VOC 판정을 사용할 수 없습니다/)).not.toBeInTheDocument();
+  });
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
     stubBackend({
@@ -4070,6 +4246,34 @@ describe("App, authenticated", () => {
         (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
       ),
     ).toBe(false);
+  });
+
+  it("names an analysis-run load failure instead of claiming the list is empty", async () => {
+    const backend = stubBackend();
+    const original = backend.getMockImplementation() as (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    backend.mockImplementation((...args) => {
+      const requestUrl = new URL(String(args[0]), "https://backend.test");
+      if (requestUrl.pathname === "/api/analysis-runs" && (args[1]?.method ?? "GET") === "GET") {
+        return Promise.resolve(
+          new Response(JSON.stringify({ detail: "analysis_runs relation unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return original(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
+    });
+    render(<App showLabPanels />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("The service could not complete this request. Try again later."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/No analysis runs are visible/)).not.toBeInTheDocument();
   });
 
   it("starts reconstruction and shows the designed A-100 fork", async () => {

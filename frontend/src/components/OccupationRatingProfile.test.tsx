@@ -91,6 +91,31 @@ describe("OccupationRatingProfile", () => {
     expect(screen.getByText(/표를 가로로 밀어/)).toBeInTheDocument();
   });
 
+  it("accumulates the next page and stops when the server has no continuation", async () => {
+    const secondPage = {
+      ...ready,
+      items: [{ ...ready.items[0], element_id: "1.A.1.a.2", element_name: "Written Comprehension", data_value: "3.20" }],
+      next_offset: null,
+    };
+    vi.mocked(fetchOccupationRatings)
+      .mockResolvedValueOnce({ ...ready, next_offset: 100 })
+      .mockResolvedValueOnce(secondPage);
+    render(<OccupationRatingProfile accessToken="synthetic-token" />);
+    await screen.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(await screen.findByLabelText("직업"), "15-1252.00");
+    await userEvent.click(screen.getByRole("button", { name: "직업 근거 열기" }));
+    await screen.findByText("4.10");
+
+    await userEvent.click(screen.getByRole("button", { name: "다음 관측값 불러오기" }));
+
+    expect(await screen.findByText("3.20")).toBeInTheDocument();
+    expect(screen.getByText("4.10")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다음 관측값 불러오기" })).not.toBeInTheDocument();
+    expect(fetchOccupationRatings).toHaveBeenLastCalledWith("synthetic-token", {
+      onetsocCode: "15-1252.00", dataReleaseCode: "onet-31.0", sourceTableCode: "abilities", offset: 100,
+    });
+  });
+
   it("fails closed when no imported rating source exists", async () => {
     vi.mocked(fetchOccupationRatingSources).mockResolvedValue({ sources: [] });
     render(<OccupationRatingProfile accessToken="synthetic-token" />);

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { VoiceAssignmentForm } from "../App";
+import { BackendError } from "../api";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "../voicePerspective";
 
 describe("VoiceAssignmentForm", () => {
@@ -60,7 +61,11 @@ describe("VoiceAssignmentForm", () => {
       <VoiceAssignmentForm
         voices={[]}
         options={[{ code: "vor", label: "Voice of Regulator" }]}
-        onSave={vi.fn().mockRejectedValue(new Error("Evidence is no longer visible."))}
+        onSave={vi
+          .fn()
+          .mockRejectedValue(
+            new BackendError("/api/posts/post-1/voice-assignments", 409, "Evidence is no longer visible."),
+          )}
       />,
     );
 
@@ -73,5 +78,25 @@ describe("VoiceAssignmentForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Evidence is no longer visible.");
     expect(screen.getByLabelText("Perspective")).toHaveValue("vor");
     expect(screen.getByLabelText("Evidence status")).toHaveValue("truth_proposed");
+  });
+
+  it("hides an arbitrary exception behind bounded copy", async () => {
+    render(
+      <VoiceAssignmentForm
+        voices={[]}
+        options={[{ code: "vor", label: "Voice of Regulator" }]}
+        onSave={vi.fn().mockRejectedValue(new TypeError("cannot read properties of undefined"))}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vor" } });
+    fireEvent.change(screen.getByLabelText("Evidence status"), {
+      target: { value: "truth_proposed" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Connect perspective" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Perspective could not be connected.");
+    expect(alert).not.toHaveTextContent("cannot read properties of undefined");
   });
 });
