@@ -178,10 +178,9 @@ async def fetch_relationship_network(
               join source_post post on post.post_id = counterparty.post_id
               join common_lookup_value lookup
                 on lookup.lookup_code = counterparty.relationship_type_code
-             where ($3::boolean or post.visibility_code = 'public')
-               and {scope_sql}
-               and {eligibility_sql}
-        ), grouped as (
+              where {scope_sql}
+                and {eligibility_sql}
+         ), grouped as (
             select counterparty_entity_name,
                    relationship_type_code,
                    relationship_label,
