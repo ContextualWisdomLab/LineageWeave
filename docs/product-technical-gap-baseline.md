@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+## Exact-head delivery snapshot — 2026-09-30 01:22 UTC
+
+Protected `main` remains `83eba56149eb802cd63642c507c324c9976ec78e`.
+The authenticated REST listing returned 174 open PRs and 43 open issues
+(excluding PRs) across all pages. These are queue counts, not released
+capabilities. This snapshot supersedes the older counts and PR status below.
+
+| Evidence class | Current finding | Acceptance still needed |
+| --- | --- | --- |
+| Normative policy and research | ADR 0246 defines twelve atomic Voice categories; ADR 0256 governs evidence-bearing combinations and cutoff. ADR 0251 governs the separate FJA/I/O psychology layer. The cited stakeholder literature supports distinctions, not a measured twelve-code taxonomy. | Keep the ADR boundaries and do not infer weights, population prevalence, or a fixed set of combinations. |
+| Protected implementation | `main` has the existing product and API contracts at the SHA above. Its PRD still duplicates occupational requirement identifiers and contains a repeated ADR traceability line; draft #997 proposes a repair. | Count only a protected merge and its exact-head evidence as delivery. |
+| Current candidate UX | Ready PR #1135 is at `15c06e5917cd4d2a1a07cfdfd97a1ecdc97f7f67`. It bounds buyer errors and links, and its review repair waits for the asynchronous occupation option and translates the calendar failure into four supported languages. Focused frontend tests (119), lint, build, nine server tests, and desktop/mobile synthetic Storybook screenshots passed locally. Its new GitHub checks were queued and it had no independent approval at this snapshot. | Terminal required checks, resolved review threads, independent approval, protected merge SHA, and authenticated rendered acceptance where applicable. |
+| Voice-of-X candidate | #1129 is at `6e624d6178eefbad8c0f3ab1bf5b273138dbee18`; its synthetic tests and Storybook evidence do not prove authorized PostgreSQL reads or a signed-in rendered UI. | Verify carrying Post and derivation evidence as separate actions, hidden-evidence omission, truth/cutoff, and paged JSON-LD preservation of one subject's attributes and multi-Voice relations. |
+| Non-identifying runtime sample | The recorded one-VU synthetic k6 attempt stopped at OIDC HTTP 400 before Ask admission. It is a diagnostic failed setup, not a probability sample or load measurement. | After authorized sign-in works, measure authenticated concurrency, latency, errors, throughput, and PostgreSQL/worker/Valkey/gateway saturation; make only observed bottleneck repairs. |
+
+The largest independently testable customer failure in the current ready
+frontend PR was unsafe or untranslated failure handling. #1135 covers that
+increment; its localized calendar recovery and deterministic occupation story
+remain candidate behavior until protected delivery. The broader sign-in and
+long-running Ask acceptance remains open; no authenticated k6 capacity or
+customer KPI improvement is inferred. #1130 (`383c392bc6713e55bed31b4d4053d93cfd1885d0`)
+owns analysis-run next actions. #1131 (`aa459251b5c9353eea8531ea321b5766df837844`)
+owns this document and the supporting PRD, so its new head must be rechecked
+after this update.
+
+The inspected ready deltas #1129, #1130, #1131, #1133, and #1135 share
+frontend and documentation paths. #1130 alone changes ADR 0014 and its
+customer-facing error detail; #1131 edits the PRD and gap baseline. No
+conflicting API route, database migration ordinal, or release number was
+established by these deltas. Reconcile shared files against the actual
+protected merge order. The remote names are `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage`.
+
 ## Current authority and delivery overlay — 2026-09-28
 
 Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
