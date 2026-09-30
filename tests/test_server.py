@@ -9,7 +9,6 @@ import urllib.request
 from pathlib import Path
 
 import lineageweave.server as server_module
-from lineageweave.server import build_server
 
 # Synthetic unit-test fusion weights injected so this smoke test runs
 # without fast-mlsirm (org policy allows synthetic data in unit tests);
@@ -19,7 +18,7 @@ _SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
 
 
 def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -39,7 +38,7 @@ def test_lineage_endpoint_serves_the_reconstructed_graph_with_a_branch_point() -
 
 
 def test_health_endpoint_returns_liveness_json() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -57,7 +56,7 @@ def test_health_endpoint_returns_liveness_json() -> None:
 
 
 def test_health_and_lineage_routes_ignore_query_parameters() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -76,7 +75,7 @@ def test_health_and_lineage_routes_ignore_query_parameters() -> None:
 
 
 def test_unknown_api_endpoint_returns_not_found() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -95,7 +94,7 @@ def test_unknown_api_endpoint_returns_not_found() -> None:
 
 
 def test_root_serves_the_static_viewer() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -113,7 +112,7 @@ def test_root_serves_the_static_viewer() -> None:
 
 
 def test_root_route_ignores_query_parameters() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -131,7 +130,7 @@ def test_root_route_ignores_query_parameters() -> None:
 
 
 def test_path_traversal_is_rejected() -> None:
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
@@ -158,7 +157,7 @@ def test_sibling_prefix_path_is_not_inside_web_root(tmp_path, monkeypatch) -> No
     (sibling_root / "index.html").write_text("not public", encoding="utf-8")
     monkeypatch.setattr(server_module, "_WEB_DIR", str(web_root))
 
-    server = build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]

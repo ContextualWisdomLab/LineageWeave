@@ -94,7 +94,9 @@ export const Paginated: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.selectOptions(await canvas.findByLabelText("직업"), "15-1252.00");
+    const occupation = await canvas.findByLabelText("직업");
+    await canvas.findByRole("option", { name: "Software Developers · 15-1252.00" });
+    await userEvent.selectOptions(occupation, "15-1252.00");
     await userEvent.click(canvas.getByRole("button", { name: "직업 근거 열기" }));
     await expect(canvas.findByText("4.10")).resolves.toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "다음 관측값 불러오기" }));
