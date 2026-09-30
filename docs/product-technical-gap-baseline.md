@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+### Exact-head and Voice acceptance audit — 2026-10-01 03:39 KST
+
+This overlay records the evidence refreshed in this audit. It supersedes
+older present-tense statements only where it names a newer exact head; older
+inventory counts and check summaries remain dated snapshots, not live state.
+
+- Local `fix/buyer-error-boundary-safe-links-20260928` and
+  `origin/fix/buyer-error-boundary-safe-links-20260928` both resolve to
+  `e8f82a8b55858d63f1f041cc1ba8c5108859a0a9` (PR #1135 head observed by
+  `gh pr view`). It remains Draft / `REVIEW_REQUIRED` in that response. The
+  current source includes both previously posted CodeRabbit suggestions:
+  the occupation option is awaited before selection, and the Calendar error
+  key is present in all four non-English dictionaries. Those comments were
+  attached to older review commit `9a90187bba9d36d1692e02ba4fc0140f5cc489bc`;
+  they are already addressed in the current checkout. On this head, frontend
+  lint, 60 files / 565 tests, and production build passed; `tests/test_server.py`
+  passed (9 tests). Current hosted Checks, approvals, rulesets, and merge state
+  could not be re-fetched: GitHub API
+  endpoints returned HTTP 403 rate-limit responses during this audit. No
+  hosted pass, approval, or merge is inferred from local evidence.
+- The Voice evidence-filter candidate branch for PR #1129 still resolves at
+  `6e624d6178eefbad8c0f3ab1bf5b273138dbee18` on both the local remote-tracking
+  ref and `git ls-remote`. ADR 0246's twelve atomic codes remain extensible;
+  ADR 0251's occupational construct taxonomy remains separate; ADR 0256
+  governs evidence-bearing combinations. The candidate filters an additional
+  Voice when its derivation Post is outside the authorized neighborhood,
+  preserves the imported Voice, keeps carrying Post and derivation evidence
+  distinct in exact-value exports, and merges paged JSON-LD properties and
+  multi-Voice relations. Candidate checks rerun locally: 69 backend ontology
+  and shape tests passed, 13 frontend layout/form tests passed, and Storybook
+  built. `SeparateVoiceEvidence` rendered at 1440×900 and 390×844; the table
+  shows separate carrying-Post and evidence actions, with its mobile horizontal
+  scroll available for the evidence column. These are synthetic candidate
+  results only. Authenticated PostgreSQL/API behavior, runtime truth/cutoff
+  behavior, and protected delivery remain **unverified**; Voice acceptance is
+  not complete.
+- The canonical remote default-branch heads were re-read with Git transport:
+  LineageWeave `83eba56149eb802cd63642c507c324c9976ec78e`, RankWeave
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, `ContextualWisdomLab/disksage`
+  `05899ffb01ce91a9ea3d782630b28a398de59ddc`, and TEPP
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`. The Voice candidate changes no
+  ecosystem API, release, or schema contract. DiskSage's canonical repository
+  spelling is lowercase `disksage`, confirmed by its GitHub repository page.
+- This audit introduces no ADR, API, schema, migration ordinal, or release
+  number. GitHub's current PR/Issue inventory and the remaining PR exact-head
+  review/check/ruleset evidence remain unavailable until API access recovers.
+
 ### Exact-head retry update — 2026-10-01 02:12 KST
 
 This read supersedes the 02:04 candidate statuses below. The paged inventory
