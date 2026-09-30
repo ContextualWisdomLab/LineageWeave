@@ -1,5 +1,16 @@
 # Product & Technical Gap Baseline
 
+### Coordination follow-up — 2026-09-30 15:18 KST
+
+After the dated snapshot below, another agent returned #1130 and #1040 to
+Draft at 06:08:13 and 06:08:18 UTC respectively. Their timeline and admission
+comments cite terminal CodeQL failures on the unchanged exact heads. Their
+auto-merge was consequently disabled. That ownership decision is preserved;
+neither queued Checks nor a missing independent approval caused this change.
+The failed-run owner diagnosis remains incomplete, so no consumer workaround
+or fabricated passing status was added. Current normal auto-merge remains on
+#1131, #1135, and #1136. None has a protected merge SHA.
+
 ## Current authority and delivery snapshot — 2026-09-30 14:59 KST
 
 This section supersedes every older queue count, present-tense delivery claim,
