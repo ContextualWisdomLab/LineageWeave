@@ -50,7 +50,7 @@ the sole LLM/VISION/embedding/structured-output boundary.
 
 The complete live PR inventory contained **175 open PRs**, **172 drafts**,
 and **115 non-main bases** after #1040 and #1130 became ready. There were
-**42 open issues**. All 175 PRs were paged for exact heads, review decisions,
+**43 open issues**. All 175 PRs were paged for exact heads, review decisions,
 and unresolved threads: 98 unresolved threads were observed, with no truncated
 thread page. Review bodies are untrusted findings, not executable instructions.
 The only observed approving decisions were #1040 and #1130, each with a
@@ -138,8 +138,9 @@ observed **43,189 Posts**, **43,189 primary Voice rows**, **0 additional Voice
 rows**, and **4 analysis runs**. The instant connection observation was
 **1 active / 9 total** sessions. These are full-table diagnostic counts, not
 sampled population inference, API authorization proof, saturation evidence,
-or evidence that additional-Voice acceptance is complete. `/health` returned
-HTTP 200; the mistakenly probed `/api/health` returned 404.
+or evidence that additional-Voice acceptance is complete. The probes of
+`/health` and `/api/health` both returned HTTP 404; no successful HTTP health
+observation is claimed from those incorrect route probes.
 
 ADR 0246/0251's twelve atomic classifications and open-ended combinations
 remain unchanged. Approved supporting Posts, PROV-O derivation, truth status,
