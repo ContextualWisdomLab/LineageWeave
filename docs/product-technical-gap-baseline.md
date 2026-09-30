@@ -44,6 +44,29 @@ its current `ARCHITECTURE.md` is the product/release authority, and the canonica
 commit named by the lock. No stack was retargeted or merged while current
 GitHub protection state was unavailable.
 
+### Hosted state refresh — 2026-10-01 07:16 KST
+
+A later targeted REST read succeeded and confirmed **176 open PRs**, **169
+drafts**, **115 non-main bases**, and **43 open issues**. PR #1129 is open,
+ready for review, based on `main` at `83eba56149eb802cd63642c507c324c9976ec78e`,
+and at exact head `0181f49993832fcc3ff0578e40abe7cb4b7e0864`. It is blocked,
+has no current-head approval or review comments, has no unresolved review
+threads, and had no auto-merge request when read. Its exact-head check runs
+were **29 success, 7 failure, 3 skipped, 1 in progress** (40 total). The
+failures are the three CodeQL compatibility verdict gates, OpenCode review,
+Noema review, Noema transport continuation, and Dependency Review support;
+none is evidence of an application test failure. The local baseline refresh
+commit is a fast-forward candidate based on this head, so these results do not
+transfer to it.
+
+The active `CWL Central required workflows` ruleset requires one approving
+review, resolved review threads, and seven central workflows (`opencode-review`,
+`pr-review-merge-scheduler`, `security-scan`, `strix`, `sast-semgrep`,
+`noema-review`, and `codeql-pr`). The separate active `LineageWeave: no force
+pushes` rule remains in force. Because exact-head required checks had failures
+and one was still running, protected merge was not eligible at this snapshot.
+The baseline candidate must collect fresh Checks after its fast-forward.
+
 ## Current exact-head loop — 2026-10-01 05:45 KST
 
 This section supersedes older present-tense queue and acceptance statements.
