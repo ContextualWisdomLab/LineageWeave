@@ -75,7 +75,8 @@ describe("VoiceAssignmentForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Connect perspective" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Evidence is no longer visible.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Perspective could not be connected.");
+    expect(screen.queryByText("Evidence is no longer visible.")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Perspective")).toHaveValue("vor");
     expect(screen.getByLabelText("Evidence status")).toHaveValue("truth_proposed");
   });

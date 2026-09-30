@@ -91,6 +91,7 @@ import {
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
+import { StatusNotice } from "./components/StatusNotice";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
@@ -1606,7 +1607,7 @@ function ticketStatusLabel(code: string, ticket: IssueTicket): string {
 }
 
 function safeErrorMessage(err: unknown, fallbackKey: string): string {
-  return userFacingMessage(err) ?? t(fallbackKey);
+  return t(userFacingMessage(err) ?? fallbackKey);
 }
 
 function IssueTicketPanel({
@@ -5105,7 +5106,9 @@ export function AskAgentPanel({
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
       <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <StatusNotice kind="retry" message={error} onRetry={() => void handleAsk()} />
+      ) : null}
       <div className="ask-agent-form">
         <label className="ask-agent-field">
           <span>{t("Ask a question")}</span>

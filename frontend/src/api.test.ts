@@ -11,6 +11,7 @@ import {
   fetchWorkerFunctionProfile,
   fetchRatingSourceOccupations,
   updateTenantConfig,
+  userFacingMessage,
 } from "./api";
 
 afterEach(() => {
@@ -18,6 +19,14 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([400, 401, 403, 404, 409, 422, 429])(
+    "does not certify raw HTTP %i details or routes as buyer copy",
+    (status) => {
+      expect(userFacingMessage(new BackendError("/api/synthetic-private-route", status,
+        "provider diagnostic, synthetic credential and hidden evidence"))).toBeNull();
+      expect(userFacingMessage(new BackendError("/api/synthetic-private-route", status))).toBeNull();
+    },
+  );
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),
@@ -166,7 +175,7 @@ describe("backendFetch provider-error boundary", () => {
     });
   });
 
-  it("surfaces a queued Ask job's bounded failure detail as a user-facing error", async () => {
+  it("replaces a queued Ask job's untrusted failure detail with a fixed retry action", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -192,7 +201,7 @@ describe("backendFetch provider-error boundary", () => {
     const failure = await askAgent("access-token", "Which project?").catch((caught: unknown) => caught);
     expect(failure).toBeInstanceOf(UserFacingError);
     expect((failure as UserFacingError).message).toBe(
-      "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+      "The request could not be completed. Try again later.",
     );
   });
 });

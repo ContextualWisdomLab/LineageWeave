@@ -2126,7 +2126,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
-  it("shows a failed Ask job's bounded detail without a raw exception prefix", async () => {
+  it("shows a retry action instead of a failed Ask job's diagnostic detail", async () => {
     stubBackend({
       askJobFailure:
         "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2137,13 +2137,11 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() =>
-      expect(
-        screen.getByText(
-          "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
-        ),
-      ).toBeInTheDocument(),
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The request could not be completed. Try again later.",
     );
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+    expect(screen.queryByText(/contextual-orchestrator returned/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Error:/)).not.toBeInTheDocument();
   });
 

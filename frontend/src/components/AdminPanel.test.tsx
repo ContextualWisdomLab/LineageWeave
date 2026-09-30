@@ -69,7 +69,7 @@ describe("AdminPanel", () => {
     expect(screen.getByRole("button", { name: "Save settings" })).not.toBeDisabled();
   });
 
-  it("renders the backend's safe message when the service rejects the save", async () => {
+  it("uses the local next action when the service rejects the save", async () => {
     vi.spyOn(api, "updateTenantConfig").mockRejectedValue(
       new api.BackendError("/api/tenant/config", 403, "You cannot change these settings."),
     );
@@ -82,7 +82,8 @@ describe("AdminPanel", () => {
     await userEvent.type(input, "Renamed Corp");
     await userEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("You cannot change these settings.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Settings could not be saved. Try again.");
+    expect(screen.queryByText("You cannot change these settings.")).not.toBeInTheDocument();
   });
 
   it("uses the actionable fallback when a failure has no message", async () => {

@@ -546,7 +546,8 @@ export class UserFacingError extends Error {
 /** The safe, user-presentable message for an error, or null when the error is
  * an arbitrary exception whose text must be replaced by a call-site fallback. */
 export function userFacingMessage(err: unknown): string | null {
-  if (err instanceof BackendError || err instanceof UserFacingError) {
+  if (err instanceof UserFacingError ||
+      (err instanceof BackendError && (err.status === 0 || err.status >= 500))) {
     return err.message;
   }
   return null;
@@ -1426,7 +1427,7 @@ export async function askAgent(
       return job.answer;
     }
     if (job.job_status_code === "failed") {
-      throw new UserFacingError(job.failure_detail || "Ask Agent could not answer this question.");
+      throw new UserFacingError("The request could not be completed. Try again later.");
     }
     if (Date.now() > deadline) {
       throw new UserFacingError("Ask Agent timed out waiting for an answer. Try again.");
