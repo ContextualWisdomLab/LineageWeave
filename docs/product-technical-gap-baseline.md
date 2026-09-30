@@ -1,5 +1,49 @@
 # Product & Technical Gap Baseline
 
+## Git-transport refresh — 2026-10-01 07:13 KST
+
+This entry supersedes the lifecycle, inventory, and exact-head statements in
+the 05:45 KST overlay below wherever they differ. Protected `main` remains
+`83eba56149eb802cd63642c507c324c9976ec78e`. Git transport fetched these pull
+refs: #1129 `0181f49993832fcc3ff0578e40abe7cb4b7e0864`, #1131
+`ee3d8890ce3b7829f668e05732ef55d24e2e688e`, #1132
+`8bb057866abb7706a54f2801aafd6d6b56e8e243`, #1133
+`1420a733eb30cea5198dffc2ae08734c9cfe521e`, #1135
+`30392ee9ef7f5ff3a234e30711bef58ccb9e7b11`, #1136
+`55f6992637c53cfb51a74f55987a40b359152bd5`, and #1137
+`abb9de9ff17ee343a37a353cefa199b127d65630`. A pull ref can outlive its PR;
+these hashes do not prove that any PR remains open. GitHub REST returned a
+rate-limit HTTP 403 and GraphQL returned HTTP 502. Current PR/Issue inventory,
+base metadata, formal reviews, approvals, unresolved threads, required-check
+results, rulesets, and auto-merge state are therefore **unavailable**. Keep
+all earlier counts and lifecycle statements as dated history only.
+
+The #1129 pull-ref head is the exact tree reviewed locally in this refresh.
+Frontend lint passed, all **58 files / 537 tests** passed, and Storybook built.
+Chromium rendered `SeparateVoiceEvidence` at **1440×900** and **390×844**;
+the desktop full-page table shows separate carrying-Post and derivation-evidence
+actions, and the narrow view preserves access to the Evidence column by
+horizontal scrolling. The screenshots are synthetic Storybook evidence saved
+outside the repository at `/tmp/lineageweave-voice-desktop-full.png` and
+`/tmp/lineageweave-voice-mobile-full.png`. Authenticated PostgreSQL/API and
+truth/cutoff runtime acceptance remain **unverified**; the route that writes an
+additional Voice still lacks direct API-test coverage. Voice acceptance is
+incomplete.
+
+Merge-tree comparison across the fetched refs found only documentation
+conflicts: #1129 with #1131, #1135, and #1136 conflicts in this baseline;
+#1129 with #1136 also conflicts in `docs/storybook-inventory.md`; #1131 with
+#1135 conflicts in this baseline. #1131 with #1132, #1129 with #1137, and
+#1133 with #1137 merge cleanly. The compared file sets contain no migration or
+database-schema changes, no API payload-shape changes, and no package-release
+number changes. Overlapping `pyproject.toml` / `uv.lock` edits among #1129,
+#1133, #1135, and #1137 preserve the RankWeave tag pin and distinct
+PyJWT/urllib3 security floors. RankWeave has no PRD in its current checkout;
+its current `ARCHITECTURE.md` is the product/release authority, and the canonical
+`v0.18.0` tag resolves to `61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6`, the
+commit named by the lock. No stack was retargeted or merged while current
+GitHub protection state was unavailable.
+
 ## Current exact-head loop — 2026-10-01 05:45 KST
 
 This section supersedes older present-tense queue and acceptance statements.
