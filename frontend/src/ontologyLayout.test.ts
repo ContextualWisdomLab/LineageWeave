@@ -287,6 +287,41 @@ describe("ontologyLayout", () => {
     expect(JSON.stringify([first, second])).toBe(original);
   });
 
+  it("preserves RDF types and derivation evidence without duplicating a replayed page", () => {
+    const source = payload();
+    const assignmentIri = `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/voc`;
+    const derivedFromIri = "http://www.w3.org/ns/prov#wasDerivedFrom";
+    const first = {
+      ...source,
+      jsonld: { "@graph": [{
+        "@id": assignmentIri,
+        "@type": `${ONTOLOGY_NAMESPACE}VoiceAssignment`,
+        [derivedFromIri]: { "@id": "evidence:one" },
+        "rdfs:label": "Customer perspective",
+      }] },
+    };
+    const next = {
+      ...source,
+      jsonld: { "@graph": [{
+        "@id": assignmentIri,
+        "@type": ["http://www.w3.org/ns/prov#Entity"],
+        [derivedFromIri]: [{ "@id": "evidence:one" }, { "@id": "evidence:two" }],
+        "rdfs:label": "Customer perspective",
+      }] },
+    };
+    const original = JSON.stringify([first, next]);
+    const accumulated = accumulateNeighborhoodPages(first, next);
+
+    expect(accumulated.jsonld["@graph"]).toEqual([{
+      "@id": assignmentIri,
+      "@type": [`${ONTOLOGY_NAMESPACE}VoiceAssignment`, "http://www.w3.org/ns/prov#Entity"],
+      [derivedFromIri]: [{ "@id": "evidence:one" }, { "@id": "evidence:two" }],
+      "rdfs:label": "Customer perspective",
+    }]);
+    expect(accumulateNeighborhoodPages(accumulated, next).jsonld).toEqual(accumulated.jsonld);
+    expect(JSON.stringify([first, next])).toBe(original);
+  });
+
   it("keeps only exact canonical JSON-LD node ids when filtering", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
