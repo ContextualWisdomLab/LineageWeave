@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { OntologyNeighborhoodPayload } from "../api";
+import { accumulateNeighborhoodPages } from "../ontologyLayout";
 import { OntologyExplorer } from "./OntologyExplorer";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
@@ -328,6 +329,36 @@ export const CombinedVoiceEvidence: Story = {
     );
     if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
     evidence.focus();
+  },
+};
+
+export const PagedVoiceExport: Story = {
+  args: {
+    neighborhood: accumulateNeighborhoodPages(
+      {
+        ...combinedVoiceNeighborhood,
+        jsonld: {
+          ...combinedVoiceNeighborhood.jsonld,
+          "@graph": [{
+            "@id": `https://contextualwisdomlab.github.io/LineageWeave/ontology#node/node_post/${POST_ID}`,
+            "@type": "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
+            "http://www.w3.org/2000/01/rdf-schema#label": "Demo public post",
+            "lw:hasVoiceAssignment": { "@id": `lw:voice-assignment/${POST_ID}/voc` },
+          }],
+        },
+      },
+      {
+        ...combinedVoiceNeighborhood,
+        jsonld: {
+          ...combinedVoiceNeighborhood.jsonld,
+          "@graph": [{
+            "@id": `https://contextualwisdomlab.github.io/LineageWeave/ontology#node/node_post/${POST_ID}`,
+            "@type": ["http://www.w3.org/ns/prov#Entity"],
+            "lw:hasVoiceAssignment": [{ "@id": `lw:voice-assignment/${POST_ID}/vops` }],
+          }],
+        },
+      },
+    ),
   },
 };
 

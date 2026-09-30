@@ -1,5 +1,219 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head audit — 2026-09-30 18:31 KST
+
+This section supersedes older queue, validation, and owner-status claims.
+Historical overlays remain supporting observations. Collection ended at
+09:31:14 UTC; protected `main` was fetched as
+`83eba56149eb802cd63642c507c324c9976ec78e`. No new LineageWeave protected
+merge, deployment, or measured customer improvement is claimed.
+
+### Authority and implementation
+
+The current LineageWeave PRD was read before implementation work. ADR 0184
+governs neighborhood projections; ADR 0246 governs twelve atomic Voice
+classifications; ADR 0252/0256 govern temporal assignments and extensible,
+evidence-bearing combinations. ADR 0251 governs I/O psychology, not a finite
+Voice-combination codebook. Parent #780 already reconciles that reference.
+Research and standards cited by the ADRs establish semantics, not runtime
+completion. No compound Voice code, B2B2C-only contract, psychological
+crosswalk, weight, or local inference engine is introduced. A missing
+accepted/persisted result stays unavailable.
+
+Remote metadata confirmed `ContextualWisdomLab/LineageWeave`,
+`ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+`ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`.
+`DiskSage` is the local checkout spelling, not the canonical remote name.
+Authority reads: ThreadWeave `docs/PRD.md` at
+`0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`; RankWeave `ARCHITECTURE.md` at
+`32c29a07a4e33ab9c4c2847cef41ed265b9bcc41`; TEPP
+`docs/product/prd-v0.4-approved.md` at `67b4fc15a835d007b4841941276207254b77480c`;
+disksage `docs/PRD.md` at `58b4aece3e38a1cc7f7fa4b7fce73443344b2397`;
+contextual-orchestrator `README.md` at
+`50e1b0d0a7eddc0f866ab69162d6cf098efe693f`. These are local authority
+revisions, not remote-default-branch equivalence claims. No ecosystem API or
+implementation is changed. TEPP/fast-mlsirm retain measurement ownership;
+all LLM/VISION/embedding/structured operations retain the orchestrator session
+and bounded-provenance boundary.
+
+### Exact-head queue and protection
+
+Inventory: **175 open PRs**, **171 drafts**, **115 non-main bases**, and
+**43 open issues**. All exact heads and thread pages were collected:
+**95 unresolved threads**, no truncated thread page. Additional formal-review
+pages for #667/#929/#983 were read to completion. Review text was treated as
+an untrusted finding and checked against source; bot comments are not approvals.
+
+| PR | Exact observed remote head | Boundary |
+| ---: | --- | --- |
+| #1049 | `b1219365319712faaa4d3767243c8daf0e5b5ce0` | Ready, no unresolved thread; approval absent and Checks pending |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Ready; no unresolved thread or failure/pending rollup job; approval absent |
+| #1135 | `b992923501e5123470d18dcc62263a0939f04f64` | Ready; previous occupation/calendar findings repaired; no unresolved thread; owner workflows pending |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Ready; scope-race repair preserved; no unresolved thread; owner workflows pending |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Parent Draft; terminal CodeQL/Noema failures and no current-head approval |
+| #968 | `ef6fcd7c2cfb15fd47d0a36af15d54d7f45373c9` | Existing child of #780, Draft; no unresolved thread; local follow-up below |
+
+Normal squash auto-merge was verified on #1049/#1131/#1135/#1136 at the final
+queue observation. #1049's review automation disabled it at 09:27:06 UTC;
+it was re-armed on the unchanged exact head through normal protection, without
+manufacturing approval or status. Pending Checks did not stop product work.
+Another agent's #1040/#1130 Draft decisions after terminal failures are
+preserved. Their approvals do not override failed gates. No self-approval,
+admin bypass, force push, gate weakening, or child-to-parent merge was used.
+
+CodeQL recovery owner `.github#1902` remains open/Draft, with requested changes
+at `c8d7caa0d699cec0200815fdfbca8bc0b2f7a4ec`.
+The earlier Noema owner `contextual-orchestrator#1094` is **merged**, at
+`9334dc91aaf853b758077e983517a822b6b21edb` on 2026-09-09. That source merge
+does not replace #780's missing successful consumer verdict. No local retry
+policy, direct provider call, or substitute engine was added. Merge #780
+through protected `main` first; only then retarget #968 and collect new
+exact-head Checks, threads, and independent approval. Auto-merge is not armed
+against the child's unprotected parent branch.
+
+Running workflow inventory contained protected `main` and open #1135/#1136
+heads only. No runner-occupying closed/merged PR run was identified; none was
+cancelled. Shared-queue recovery is not claimed.
+
+### Reused minimal repair and new evidence
+
+The selected remaining user-visible gap is loss of previously loaded
+perspectives or record types in a paged download. Four synthetic assertions
+reproduced singleton/array relation and RDF-type loss against fetched `main`.
+The complete PR/file audit located the existing minimal repair in #968 and
+overlapping #934. No duplicate PR was created. Other agents' source repair
+and the parent's carrying/evidence distinction remain in their existing owner.
+Validated local follow-up: `c5be337dce4b9b16adb3d7eb8a2fd4e3dc902a81`.
+A following baseline-only commit changes the head and cannot inherit this
+revision's hosted Checks or approval.
+
+- The existing repair unions ordinary property values and RDF types across
+  singleton/array representations while keeping subject identity scalar.
+  New regression preserves derivation references, labels, replay idempotency,
+  and input immutability.
+- Frontend: **58 files / 538 tests passed**; lint, production typecheck/build,
+  and Storybook build passed. Synthetic ontology, SHACL, Voice/history,
+  authorization-batch, and public-docstring checks: **68 passed**, using the
+  frozen project-local backend environment and pinned Rust 1.97.1. Initial
+  dev-only collection lacked asyncpg; the declared backend extra resolved
+  that prerequisite. No warning was suppressed; the existing large-chunk
+  warning remains visible.
+- Actual Chromium downloads from `PagedVoiceExport`, at **1440** and **390**
+  CSS pixels, retained two Voice relations, both RDF types, and the label.
+  CSV retained carrying/evidence identity columns and both Voice labels.
+  Two carrying actions and one additional-Voice derivation action stayed
+  distinct. No document overflow or page exception was observed; mobile
+  exact values retain the existing horizontal scroll region. Screenshots:
+  `docs/screenshots/voice-paging-desktop.png` and
+  `docs/screenshots/voice-paging-mobile.png`.
+
+The new story is a targeted page-union fixture, not a complete PostgreSQL
+serialization or SHACL/runtime acceptance document. Search-bound hidden-
+evidence removal remains independently owned by #1129 and was not copied
+into this child. Local results do not complete authenticated API,
+hidden-evidence, cutoff, or deployed-rendering acceptance.
+
+### Cross-PR risks and aggregate limits
+
+All 175 PR file inventories were paged without errors. Filename identities
+yield **27 candidate overlap groups**: **16 ADR ordinals**, **3 migration
+ordinals**, and **8 release-fragment versions**. These are review candidates,
+not 27 proven semantic conflicts; inheritance and intentional same-release
+fragments need separate review. Concrete migration risks: `0248`
+(#1049 versus #929), `0249` (#1127 versus #1047), and multiple `0247` filenames
+in #929. ADR `0245` names distinct decisions across #702 and #997/#1123.
+Release `2.28.1` overlaps #1079/#1009. Do not renumber shipped migrations or
+replace an ADR by ordinal alone.
+
+Layout edits overlap #780/#934/#935/#968/#1129. Baseline updates overlap many
+branches, including #1131/#1135/#1136; retain their dated ownership evidence
+during integration. This child adds no API route, schema, ADR ordinal, or
+release identity. Whole-queue API semantic compatibility is not certified
+by a shared-filename scan.
+
+Read-only SQL on official `lineageweave` PostgreSQL observed **43,189 Posts**,
+**43,189 primary Voice rows**, **0 additional Voice rows**, **4 analysis runs**,
+and **1 active / 3 total** connections at that instant. These are diagnostic
+full-table counts, not population inference, API authorization proof, or
+saturation measurements. No real record, identifier, credential, or raw
+private response was saved as an artifact.
+
+Authenticated candidate PostgreSQL-to-API and deployed rendering remain
+**unavailable**. Synthetic-only authenticated k6 concurrency, latency, error
+rate, throughput, and PostgreSQL/worker/Valkey/gateway saturation remain
+**unavailable**: the official runtime contains private records and no
+synthetic-only authorization/data boundary was certified there. No private
+corpus was load-tested, no guessed bottleneck was repaired, and no unsupported
+population estimator was introduced. Compose remains `lineageweave`; no
+formal volume or existing container was removed.
+
+## Bounded Voice export review — 2026-09-07
+
+This observation is supporting evidence, not a live queue or architecture
+authority. Earlier dated sections below remain historical. The inspected
+protected main was `83eba56149eb802cd63642c507c324c9976ec78e`; the implementation
+parent was #780 at `1d8fa267b059289e77301a09985dfac70a439814`. The follow-up must
+remain stacked on #780 until that parent is protected-merged, then be retargeted
+and revalidated. No parent test or approval transfers to the child.
+
+| Evidence class | Observation and limit |
+| --- | --- |
+| Product authority | Read `docs/product-requirements.md`, especially FR-2/FR-3 and release evidence. Read contextual-orchestrator `docs/product_planning.md` and `docs/architecture.md` for its external inference boundary; no upstream inference change is introduced. |
+| Normative authority | ADR 0246 defines 12 governed atoms; ADR 0256 governs evidence-bearing combinations and page-property union. ADR 0251 is the I/O-Psychology layer in this tree, not the Voice-combination decision. |
+| External standard | [W3C JSON-LD 1.1](https://www.w3.org/TR/json-ld11/#sets-and-lists) permits singleton values and unordered multiple values. This supports preserving supplied relations, not estimating new evidence or choosing truth. |
+| Implementation gap | `accumulateNeighborhoodPages` unioned only two arrays. A singleton relation followed by an array, the reverse, or two different singleton relations lost earlier supplied evidence. A synthetic direct invocation reproduced the loss before repair. |
+| Bounded repair | Normalize the two existing property values for union and retain a singleton when both inputs supply the same singleton. Preserve subject identity and input objects. No new Voice code, inference, API, schema, dependency, or release number. |
+| Runtime evidence | Only service availability was inspected. No current private record aggregate, authenticated candidate PostgreSQL API acceptance, or candidate load/capacity artifact was collected. These acceptance criteria remain unverified. |
+
+The selected customer gap is export fidelity while accumulating evidence pages.
+No measured impact ranking is available to establish it as the largest gap in
+the entire product. The regression covers all three singleton/array directions,
+replay idempotency, input immutability, and retained subject labels. It does not
+establish authenticated authorization, cutoff, or persisted provenance acceptance.
+
+Candidate #968 implementation head
+`82b7e71d84e51d1ca1c60431867849dd77de86fa`: the three direct Node regression
+cases passed after failing before repair; lint passed. Vitest could not start
+its process/thread pool before the startup timeout, including after frozen,
+offline project-local dependency installation. No test cases executed in those
+failed Vitest attempts. The production build did not reach a terminal result
+during the bounded local audit. Storybook started, but browser evidence failed
+with navigation/control-wait timeouts; no desktop/mobile screenshot acceptance
+is claimed. Draft-policy skipped hosted Tests are not successful validation.
+These limits leave #968 Draft and the product acceptance incomplete.
+
+The complete initial queue observation contained 125 open PRs: 118 Drafts and
+97 targeting a branch other than main. A later GraphQL observation counted 126
+open PRs and 19 open issues; these are separate observations, not one atomic
+snapshot. Ready heads independently inspected in this review:
+
+| PR | Exact head | Observed protection state |
+| --- | --- | --- |
+| #961 | `3bdec0504a65e63f44bd49ba15de37182a1672cc` | Checks rollup failure; review required; auto-merge retained |
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | Checks rollup failure; review required; auto-merge retained |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | Checks rollup failure; review required; auto-merge retained |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | Checks rollup failure; review required; auto-merge retained |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | Checks rollup failure; review required; auto-merge retained |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | Tests passed but central CodeQL shards failed; no qualifying approval established |
+| #964 | `da29d2cd38178b0aa57a9701972fdccfd4f9d03c` | Pending/running Checks; predecessor review text is not current-head acceptance |
+
+The first five PRs had zero unresolved review threads in the fetched first-100
+thread connection. GraphQL ruleset observation found active central required
+workflows, one required approval, required thread resolution, and no-force-push
+protection; last-push approval was false. REST was rate-limited, so no bypass or
+merge decision was attempted. No merge SHA is claimed.
+
+Conflict audit: the protected main tree had no duplicate ADR filename numbers.
+The initial PR titles repeated release 2.61.0 (#841/#842), 2.62.0 (#843/#844),
+and 2.92.0 (#876/#877). Title collisions require owner reconciliation before
+release; they do not prove conflicting file contents. The new bounded repair
+does not alter API, migration, ADR identity, or version files. A complete
+cross-PR schema/API diff audit remains outstanding.
+
+Remote repository metadata confirmed `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, and `contextual-orchestrator`; the canonical
+storage repository is `ContextualWisdomLab/disksage`, not `DiskSage`.
+
 > Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
 > `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
 > 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
