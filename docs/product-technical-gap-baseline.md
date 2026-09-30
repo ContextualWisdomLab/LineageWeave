@@ -1,5 +1,161 @@
 # Product & Technical Gap Baseline
 
+## Current authority and delivery snapshot — 2026-09-30
+
+This section supersedes the dated loop overlays below for current-state
+decisions. Those overlays are historical evidence, not present delivery or
+runtime acceptance. Collection completed at 2026-09-30 04:23 UTC (13:23 KST).
+The verified remote `main` anchor is
+`83eba56149eb802cd63642c507c324c9976ec78e`. The scope-isolation implementation
+anchor is `679fd3c4b92b46366d4286635a47f948b4ad15e0`; this baseline update is a
+subsequent documentation-only change, not a protected merge or deployment.
+
+### Authority, implementation, and observations are distinct
+
+- **Normative policy:** ADR 0184 governs visible, cutoff-bound neighborhoods
+  and consistent exact-value/CSV/JSON-LD output. ADR 0246 governs the twelve
+  atomic Voice classifications; ADR 0251 and the existing Voice-combination
+  contract remain unchanged. Additional Voice assignments still require
+  authorized Post evidence, normalized PROV-O derivation, truth status, and
+  retained cutoff history. No fixed combination enumeration is introduced.
+- **Product authority:** `docs/product-requirements.md` was read before this
+  implementation, including PRD-FR-2, PRD-FR-3, and PRD-FR-5. Duplicated
+  occupational requirement identifiers remain an open authority-reconciliation
+  problem (#807); supporting prose cannot settle an ADR conflict.
+- **Ecosystem authority:** the read documents match their fetched remote
+  `main` blobs: RankWeave `ARCHITECTURE.md` at
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave `docs/PRD.md` at
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, TEPP
+  `docs/product/prd-v0.4-approved.md` at
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`, and contextual-orchestrator
+  `docs/product_planning.md` at
+  `8e1f1a8bf3e96e56dc8fcc90ec777883a1d56ce6`.
+  Remote organization inventory confirms `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`, and
+  `contextual-orchestrator`. The storage repository's canonical name is
+  `ContextualWisdomLab/disksage`, not `ContextualWisdomLab/DiskSage`;
+  its remote HEAD was `1f2d89ffc1c36a6cbaf003f21ad6c8248caa3230`.
+  Storage integration is not implemented by this slice.
+- **Research:** the W3C RDF, JSON-LD, PROV-O, SHACL, and WCAG authorities
+  registered in ADR 0184 ground representation and accessibility requirements.
+  They provide no measured customer benefit, calibrated channel weights,
+  population inference, or permission to combine occupational constructs.
+- **Private runtime observation:** a read-only count from the PostgreSQL
+  service in Compose project `lineageweave` returned 43,189 stored Posts.
+  Only that aggregate was retained; no record, organization, source key,
+  credential, or content was exported. This is a privileged diagnostic count,
+  not an authorized user's eligible population, probability sample, or
+  estimator artifact. Nine formal services were running; PostgreSQL, Valkey,
+  contextual-orchestrator, and SearXNG reported healthy. Container status
+  establishes neither authenticated API acceptance nor product correctness.
+
+### Exact-head protected PR queue
+
+The pre-increment inventory contains 174 open PRs: seven ready, 167 drafts,
+and 115 non-`main` stacks; 43 open issues are tracked separately. All seven
+ready PRs had zero unresolved review threads at their recorded heads. A
+resolved discussion is not a formal approval, and predecessor reviews or
+checks are not transferred to a newer head.
+
+| PR | Exact head | Formal review state | Normal auto-merge |
+|---|---|---|---|
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` | Required | Enabled |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | Required | Enabled |
+| #1129 | `6e624d6178eefbad8c0f3ab1bf5b273138dbee18` | Required | Enabled |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Approved on this head | Enabled |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Required | Enabled this cycle |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | Required | Enabled |
+| #1135 | `15c06e5917cd4d2a1a07cfdfd97a1ecdc97f7f67` | Required | Enabled |
+
+The active default-branch ruleset requires one independent approval,
+dismisses stale approvals, requires resolved threads, and requires seven
+central workflows. Last-push approval is not a separate requirement in the
+current ruleset. Deletion and non-fast-forward protections remain intact.
+No self-approval, Admin bypass, forced update, gate weakening, or stack-base
+merge was performed. No merge SHA is claimed for these still-open PRs.
+
+#1130's current-head approval does not make its failed/queued checks pass.
+The exact-head CodeQL compatibility job reported a failed dispatch verdict;
+#1135's OpenCode job reported no authenticated current-head decision. Raw
+job endpoints established these failures. `gh run view` also encountered
+missing workflow IDs, tracked separately by fleet incident #1134; that client
+failure alone does not establish the reason a scan failed. The central
+workflow owner is `ContextualWisdomLab/.github`, not this UI component.
+Earlier REST quota exhaustion recovered during the cycle. Pending work was
+not treated as a reason to stop product work. Running non-`main` stale-PR
+candidates were absent from the collected execution inventory; no current
+`main` or open-PR execution was cancelled.
+
+### Prioritized user gap and bounded repair
+
+The reproduced gap is that changing reader identity, Post focus, or knowledge
+cutoff can leave the preceding neighborhood, selection, and export actions
+visible while a new request is pending. Its continuation cursor can also
+cross the scope boundary. A continuation denied with HTTP 401/403/404 could
+leave the earlier drawer and export payload accessible. The nested work-
+evidence search also retained its old query and could complete an old page
+after the cutoff changed. This is prioritized for evidence confidentiality
+and historical accuracy; no numerical claim ranks it above all other gaps.
+
+The candidate resets neighborhood data, selection, filter, focus, pagination,
+and retry state before the new scope renders. It remounts the nested search
+with a credential-free generation key and retains asynchronous effect cleanup
+for out-of-order responses. Denied continuation clears its evidence and
+exports; a same-scope transport failure still retains the authorized page and
+retry cursor. Existing loading text, tokens, graph/table components, and
+Storybook scenes are reused. No API, schema, release number, numerical model,
+new weight, dependency, provider route, or inference policy changes.
+
+Validation of implementation anchor `679fd3c4b92b46366d4286635a47f948b4ad15e0`:
+
+- Eight new regressions cover scope changes, denial, nested search, and logout;
+  seven failed before their corresponding repair, and all now pass. The final frontend suite passed 538
+  tests in 58 files; the focused neighborhood/search/export suite passed 38.
+- Sixty-five Python synthetic Voice, neighborhood, cutoff, authorized-evidence,
+  and k6-harness contract tests passed. Existing paged JSON-LD regression
+  retains properties and unions multi-Voice relations for the same subject;
+  no export merger was replaced in this slice.
+- Frontend lint, production build, and Storybook build passed. The existing
+  production entry chunk warning remains visible at 551.27 kB; no warning
+  threshold or deprecation suppression was introduced.
+- `CutoffLoading` and `CombinedVoiceEvidence` rendered in Chromium and were
+  screenshot-inspected at 1440 and 390 CSS pixels. Both widths had no document
+  overflow. Loading exposed no graph nodes and disabled CSV/JSON-LD; the
+  populated scene retained the named scrollable exact-value table and separate
+  carrying-Post/evidence controls. These are synthetic Storybook observations,
+  not an authenticated PostgreSQL-to-browser acceptance proof.
+
+### Remaining acceptance and conflict checks
+
+- Authenticated PostgreSQL API plus rendered application proof for this
+  candidate remains **unavailable**. Synthetic component/API-contract results
+  do not complete that acceptance criterion or prove protected delivery.
+- No k6 load was sent to the 43,189-Post private corpus. The existing harness
+  authenticates a demo account but reads the shared Posts and Lineage routes;
+  account naming alone cannot certify synthetic-only data isolation. Concurrent
+  latency, error rate, throughput, and PostgreSQL/worker/Valkey/gateway
+  saturation remain **unavailable** for a certified synthetic end-to-end run.
+  No speculative capacity, deadline, queue, or numerical tuning was made.
+- Complete changed-path inventories for all 174 PRs exposed 22 ADR/API/schema/
+  version-sensitive paths touched by multiple `main`-based PRs. This is overlap
+  evidence, not a claim that all 22 are semantic conflicts. Baseline edits in
+  #1129/#1130/#1131 and this slice must all be preserved when merged.
+- Release-title collisions remain between #876/#877 (`v2.92.0`) and
+  #843/#844 (`v2.62.0`); they are not proof that either version was released.
+  Protected `main` still contains two migration files with ordinal `0233`
+  (#1048). Package/runtime release authority remains an open issue (#1056).
+  This candidate creates no new ADR, migration ordinal, route, or version.
+- All 115 stacked PRs still require a protected parent merge before retargeting
+  the child to `main`, followed by fresh head/base, review, and check evidence.
+  No draft was marked ready merely because it contained source changes.
+- TEPP/fast-mlsirm repairs and mathematical/statistical terminal artifacts
+  remain owner work. All LLM/VISION/embedding/structured-output work remains
+  contextual-orchestrator-owned; no such traffic or substitute arithmetic was
+  introduced. Unsupported estimates and population conclusions remain
+  unavailable.
+
+## Historical snapshots — not current delivery authority
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
