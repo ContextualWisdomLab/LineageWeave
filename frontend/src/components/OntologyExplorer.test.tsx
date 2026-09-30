@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOccupationalConstructSearch, fetchOntologyNeighborhood } from "../api";
 import type { OccupationalConstructSearchPage, OntologyNeighborhoodPayload } from "../api";
@@ -138,6 +139,39 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it.each(["success", "denied"] as const)(
+    "ignores a previous reader's %s completion before passive cleanup",
+    async (completion) => {
+      let completeOld!: (payload: OntologyNeighborhoodPayload) => void;
+      let failOld!: (error: BackendError) => void;
+      const oldRequest = {
+        then: (complete: typeof completeOld) => {
+          completeOld = complete;
+          return { catch: (fail: typeof failOld) => { failOld = fail; } };
+        },
+      } as unknown as Promise<OntologyNeighborhoodPayload>;
+      vi.mocked(fetchOntologyNeighborhood).mockReset()
+        .mockReturnValueOnce(oldRequest)
+        .mockReturnValueOnce(new Promise(() => {}));
+      function ScopeCommit({ reader, onCommit }: { reader: string; onCommit?: () => void }) {
+        useLayoutEffect(() => { onCommit?.(); }, [onCommit]);
+        return <OntologyExplorer accessToken={reader} focusNodeType="node_post" focusNodeId={POST_ID} />;
+      }
+      const { rerender } = render(<ScopeCommit reader="synthetic-first-reader" />);
+      await waitFor(() => expect(fetchOntologyNeighborhood).toHaveBeenCalledTimes(1));
+
+      rerender(<ScopeCommit reader="synthetic-second-reader" onCommit={() => {
+        if (completion === "success") completeOld(neighborhood());
+        else failOld(new BackendError("/api/ontology/neighborhood", 403));
+      }} />);
+
+      expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+      expect(screen.getByText("Loading related information...")).toBeInTheDocument();
+    },
+  );
+
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
     const projectNode = {
@@ -162,7 +196,7 @@ describe("OntologyExplorer", () => {
   });
 
   it("keeps loaded pages visible when a continuation page fails", async () => {
-    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
     let rejectContinuation!: (error: BackendError) => void;
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
