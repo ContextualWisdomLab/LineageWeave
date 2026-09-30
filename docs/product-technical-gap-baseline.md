@@ -1,5 +1,35 @@
 # Product & Technical Gap Baseline
 
+### Cross-PR integration audit — 2026-10-01 03:49 KST
+
+Git transport confirmed these remote heads before this note: #1131
+`ee3d8890ce3b7829f668e05732ef55d24e2e688e`, #1132
+`8bb057866abb7706a54f2801aafd6d6b56e8e243` (based on #1131's branch), #1133
+`1420a733eb30cea5198dffc2ae08734c9cfe521e`, #1135
+`0b0e5a6123859e53a4924b300c4279ac5d923f77`, and #1137
+`abb9de9ff17ee343a37a353cefa199b127d65630`. All five currently descend from
+protected `main` `83eba56149eb802cd63642c507c324c9976ec78e`, except #1132,
+which is explicitly stacked on #1131.
+
+- A read-only merge-tree check of #1131 with #1135 finds a content conflict in
+  `docs/product-technical-gap-baseline.md`. Keep both evidence deltas; resolve
+  only after the parent is protected, then collect fresh exact-head evidence
+  for the child/successor. #1132 must likewise wait for #1131 protection before
+  retargeting to `main`.
+- A merge-tree check of #1133 and #1137 is clean. They both touch
+  `pyproject.toml` and `uv.lock`, but their RankWeave tag pin and PyJWT version
+  floor changes combine without a textual conflict. RankWeave's current
+  `ARCHITECTURE.md` describes its package boundary and versioned release
+  contract; neither candidate changes an API, schema, release number, or ADR.
+  The protected order still needs fresh Checks and approvals. The previously
+  observed #1137 dependency-review support failure belongs to its central
+  workflow owner; its current terminal state could not be re-fetched.
+- At #1135 head `0b0e5a6123859e53a4924b300c4279ac5d923f77`, the GitHub Checks
+  page showed four jobs in progress, five queued, and twelve skipped. No
+  terminal pass or failure was visible yet. This reflects the baseline-only
+  commit's new exact head; approval, ruleset, and terminal-check proof remain
+  unverified.
+
 ### Hosted check snapshot before this baseline-only update — 2026-10-01 03:46 KST
 
 - Immediately before this documentation-only refresh, PR #1135 and its remote
