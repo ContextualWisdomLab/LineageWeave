@@ -1,5 +1,135 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head loop — 2026-10-01 05:34 KST
+
+This section supersedes older present-tense queue and acceptance statements.
+The paged remote inventory is **176 open PRs**, **169 drafts**, **115 stacked
+or other non-main bases**, and **43 open issues**. Protected `main` remains
+`83eba56149eb802cd63642c507c324c9976ec78e`; no protected merge was observed.
+
+### Authority and ownership
+
+The current LineageWeave PRD was read before mutation, together with
+ThreadWeave `docs/PRD.md`, RankWeave `ARCHITECTURE.md`, TEPP
+`docs/product/prd-v0.4-approved.md`, disksage `docs/PRD.md`, and
+contextual-orchestrator `docs/product_planning.md` / `docs/architecture.md`.
+These checkout authorities define boundaries; they do not prove deployed
+behavior. GitHub REST confirmed canonical names `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, `fast-mlsirm`,
+and lowercase `disksage` under the same organization.
+
+ADR 0246 defines the twelve atomic Voice classifications; ADR 0256 governs
+evidence-bearing, extensible combinations; ADR 0252 governs primary-Voice
+history. The current ADR 0251 is the FJA cognitive/affective/behavioral
+ontology, a separate taxonomy. Older references assigning Voice history to
+0251 do not override these current files. Their cited ISO/AA1000 stakeholder
+guidance and W3C PROV-O/JSON-LD standards ground semantics, not calibrated
+weights, a fixed combination list, customer outcomes, or population inference.
+
+No measurement, matrix/vector arithmetic, token estimation, provider routing,
+or model-selection policy changed. TEPP/fast-mlsirm retain measurement
+ownership; contextual-orchestrator remains the sole inference boundary.
+Context7 returned quota exhaustion and DeepWiki reported an unindexed
+repository. Sequential Thinking and Memory MCP tools were not exposed in this
+session. No missing tool response is treated as research or implementation
+evidence, and no user memory was persisted.
+
+### Selected customer gap and candidate proof
+
+The selected gap is loss or disclosure of Voice evidence in exact exports:
+loading another page could overwrite a singleton relation, searching could
+retain a singleton reference to omitted evidence, and CSV omitted the
+carrying identity and recorded validity bounds. This is a reproduced
+evidence-integrity gap, not a numerical ranking of customer impact.
+
+PR #1129 implementation head
+`f8e8101c26e16c2267d9b95d8c8cbf2b9b1557c8` repairs these cases. The existing
+singleton/property union implementation from owner candidate #968 at
+`25abd361581fd5be450bc64cc44a441608486c3e` was reused in #1129's newer
+evidence-filter contract; #968/#934 histories and valid deltas were preserved.
+Filtering accepts singleton or array representations and omits hidden
+assignment references. CSV appends stored source/target identities and
+validity bounds while keeping `evidence_post_id` separate. ADR 0256 was
+clarified before implementation. No atomic Voice, schema, migration ordinal,
+API response, release number, or inferred evidence was added.
+
+Five regressions failed before repair. The focused final layout suite passed
+16 tests; ontology/SHACL/Voice/cutoff/ingestion suites passed 86 tests.
+Frontend lint, production build, and Storybook build passed. The final full
+frontend suite passed **58 files / 537 tests**; documentation hygiene and
+public-docstring gates passed **7 tests**.
+The pre-existing production chunk warning remains visible and was not
+suppressed or labeled a measured bottleneck.
+
+Actual Chromium renders of the existing `SeparateVoiceEvidence` scene were
+inspected at 1440×1000 and 390×844. Both exported the primary and derived
+Voice, then retained only the primary after the evidence Post was filtered
+out. Downloaded CSV retained separate identities and intervals. The mobile
+table's horizontal scroll exposed the distinct derivation-evidence action;
+neither viewport had document overflow. These are synthetic Storybook and
+download observations, not authenticated application acceptance.
+
+### Protection and next PRs
+
+| PR | Exact observed head | Current protection evidence |
+| ---: | --- | --- |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Independent current-head approval; no unresolved thread; ready, normal squash auto-merge retained. Failed owner Checks still gate delivery; no merge SHA. |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Independent current-head approval; both threads resolved; ready with normal auto-merge. Fresh Tests running; no merge SHA. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Existing normal auto-merge retained; independent approval remains required. |
+| #1135 | `45304b0d7f3eaa92dc265428ef8c04e200c3665d` | Existing findings resolved; ready with normal auto-merge. Inherited dependency/security failure remains distinct from buyer-copy repair. |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Generation-fencing finding already fixed and thread resolved; other agent's implementation was preserved. Ready with normal auto-merge; independent approval remains required. |
+| #1137 | `abb9de9ff17ee343a37a353cefa199b127d65630` | Patched dependency floor/JWKS checks: 18 local passes and lock check passed. Ready with normal auto-merge; independent approval and failed/pending owner Checks remain. |
+| #1129 | `f8e8101c26e16c2267d9b95d8c8cbf2b9b1557c8` | New implementation invalidates predecessor Checks/approval. Ready with normal auto-merge; exact-head hosted verification is pending. |
+
+The live main rules require one independent approval, dismissal of stale
+approvals after a push, resolved threads, and seven central required workflows;
+organization/repository non-force-push rules remain active. No self-approval,
+admin bypass, force push, or skipped-check promotion was used. The exact-head
+Dependency Review log on #1137 reports HTTP 403 from GitHub's dependency-graph
+compare endpoint; central owner `.github` #1725 remains an unmerged draft at
+`f27c5cfa4a61679e6ebb109d9e5972bd8a4f650d`. No consumer bypass was added.
+
+#1132 stays based on #1131 until its parent merges through protection. The
+175 locally available PR deltas were compared with their remote bases;
+#1042's delta was unavailable locally. Overlap includes 61 ADR paths,
+`CHANGELOG.d/2.56.0-leftover-map-compare-axis-singular.md` in #830/#980,
+and the 0247 rollback migration in #929/#1127. Protected main still contains
+two distinct 0233 migration files (issue #1048 / candidate #1049); this change
+does not rename shipped history. Issue #1056 remains the release-authority
+gate. #1129's ADR 0256 clarification must preserve the deltas in
+#780/#934/#936/#937 when integrated; file overlap alone is not policy conflict.
+Only runs linked to open current PRs, or lacking a proven closed-PR mapping,
+were observed active. None was cancelled.
+
+### Current runtime observations and unavailable acceptance
+
+Authenticated API integration could not establish acceptance: the configured
+synthetic OIDC test login returned HTTP 400. Six isolated PostgreSQL Voice
+history tests then failed before fixture creation with `DiskFull`, not with a
+Voice assertion failure. The official PostgreSQL container subsequently
+rejected connections in recovery mode. Its backing filesystem reported 100%
+use and zero available blocks. No fresh record count or population inference
+is claimed from this failed read window.
+
+The four exact temporary containers `cwl945-actions-python-probe-20260928`,
+`cwl945-native-probe-complete-20260928`, `naruon-pr1365-signal-check`, and
+`rankweave-foundation-20260905-3sqsw6` were verified exited, not running,
+without mounts or an official Compose project, then removed by exact name
+without force or volume deletion. Their reported writable bytes totaled
+953,470,976; afterward the backing filesystem still reported zero available
+blocks and PostgreSQL still rejected connections. Logical removed bytes are
+not physical reclaim or recovery proof. Official services and data volumes
+were retained.
+
+Synthetic-only authenticated k6 end-to-end acceptance remains unavailable
+while authentication/storage admission cannot be established. No load was
+sent to the private corpus. Concurrency, latency, error rate, throughput,
+PostgreSQL/worker/Valkey/gateway saturation, and bottleneck remediation are
+therefore unverified. Voice acceptance stays incomplete until authenticated
+PostgreSQL/API behavior and rendered application evidence agree at one
+protected head. This documentation commit creates a new PR head; re-fetch
+its Checks and approvals before a lifecycle claim.
+
 > Current authority overlay, 2026-09-27 KST. Remote protected `main` is
 > `83eba56149eb802cd63642c507c324c9976ec78e` (verified with
 > `git ls-remote`). REST pagination returned 169 open PRs and 28 open issues.
