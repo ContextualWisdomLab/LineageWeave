@@ -103,6 +103,7 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const [requestScope, setRequestScope] = useState({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff, generation: 0 });
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -110,14 +111,22 @@ export function OntologyExplorer({
     setQuery("");
   }
 
-  useEffect(() => {
+  if (
+    requestScope.accessToken !== accessToken ||
+    requestScope.focusNodeType !== focusNodeType ||
+    requestScope.focusNodeId !== focusNodeId ||
+    requestScope.knowledgeCutoff !== knowledgeCutoff
+  ) {
+    setRequestScope({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff, generation: requestScope.generation + 1 });
+    setLoaded(provided ?? null);
+    setStatus(providedStatus ?? (provided ? statusFromPayload(provided, knowledgeCutoff) : accessToken ? "loading" : "empty"));
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
     setPageRetry(0);
     setLiveFocus(false);
     clearSelection();
-  }, [focusNodeType, focusNodeId]);
+  }
 
   useEffect(() => {
     const useProvided = Boolean(provided) && !liveFocus;
@@ -151,7 +160,9 @@ export function OntologyExplorer({
       .catch((error: unknown) => {
         if (cancelled) return;
         if (!cursor) setLoaded(null);
-        if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+        if (error instanceof BackendError && (error.status === 401 || error.status === 403 || error.status === 404)) {
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -231,6 +242,7 @@ export function OntologyExplorer({
         </div>
       </header>
       <OccupationalConstructCatalogSearch
+        key={requestScope.generation}
         accessToken={accessToken}
         knowledgeCutoff={knowledgeCutoff}
         onSelectPost={onSelectPost ?? onOpenEvidence}
