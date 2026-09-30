@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 from types import SimpleNamespace
@@ -262,3 +263,43 @@ def test_jwks_hides_raw_identity_provider_error(monkeypatch: pytest.MonkeyPatch)
         auth._jwks(settings)
     assert error.value.detail == "could not fetch OIDC JWKS: identity provider unavailable"
     assert "identity provider secret" not in str(error.value.detail)
+
+
+@pytest.mark.parametrize("claim_binding_required", [False, True])
+def test_verified_identity_without_authorized_account_gets_one_safe_next_action(
+    claim_binding_required: bool,
+) -> None:
+    class MissingAccountConnection:
+        async def fetchrow(self, query: str, *args: object) -> None:
+            assert "external_subject_id" in query
+            assert args[0] == "synthetic-subject"
+            return None
+
+    class MissingAccountLease:
+        async def __aenter__(self) -> MissingAccountConnection:
+            return MissingAccountConnection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class MissingAccountPool:
+        def acquire(self) -> MissingAccountLease:
+            return MissingAccountLease()
+
+    claims = {
+        "sub": "synthetic-subject",
+        "org": "SYNTHETIC",
+        "workspace": "DEMO",
+        "role": ["viewer"],
+    }
+    settings = SimpleNamespace(keyverse_claim_binding_required=claim_binding_required)
+
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(auth.resolve_current_account(MissingAccountPool(), claims, settings))
+
+    assert error.value.status_code == 403
+    assert error.value.detail == (
+        "You do not have access to this workspace. "
+        "Contact your administrator to request access."
+    )
+    assert "synthetic-subject" not in error.value.detail

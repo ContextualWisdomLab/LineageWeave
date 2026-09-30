@@ -227,8 +227,7 @@ async def resolve_current_account(
         if account_row is None:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
-                "token is valid but no user_account is provisioned for this subject "
-                "(run scripts/seed_demo_data.py, or provision the account, first)",
+                "You do not have access to this workspace. Contact your administrator to request access.",
             )
 
         if keyverse_scope:
