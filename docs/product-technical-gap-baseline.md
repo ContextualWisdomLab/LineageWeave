@@ -1,37 +1,48 @@
 # Product & Technical Gap Baseline
 
-### Design Assurance security-owner refresh — 2026-10-01 01:56 KST
+### Current owner and exact-head status — 2026-10-01 02:04 KST
 
-This note supersedes the earlier #1135 PyJWT candidate note where current
-owner and workflow status differ.
+This refresh supersedes earlier October queue counts and #1135/#1137 status
+notes below. REST pagination returned **176 open PRs** (175 drafts, 115 with
+non-`main` bases) and **43 open issues**.
 
-- #1135 exact head `df29728969be82a7712873960f41db4b9a4c57ae`
-  did not change `pyproject.toml` or `uv.lock`. Security run
-  `36746625295`, Trivy job `109994397143`, reproduced ten inherited
-  PyJWT 2.13.0 findings in protected-main `uv.lock`: CVE-2026-102268,
-  CVE-2026-102266, CVE-2026-102267, CVE-2026-102271, CVE-2026-102272,
-  CVE-2026-102273, CVE-2026-101917, CVE-2026-102265,
-  CVE-2026-102269, and CVE-2026-102274.
-- Canonical dependency owner #1137 exact head
-  `abb9de9ff17ee343a37a353cefa199b127d65630` changes only
-  `pyproject.toml`, `uv.lock`, and its focused advisory contract. Its
-  exact-head Trivy and OSV jobs are GREEN with PyJWT 2.15.1. #1135 must
-  inherit that accepted owner delta through ordinary integration rather than
-  copying dependency files.
-- #1137 Security run `36746737330` remains RED only because
-  dependency-review support job `109994762971` received HTTP 403 from the
-  exact authenticated compare of base `83eba56149eb802cd63642c507c324c9976ec78e`
-  to head `abb9de9ff17ee343a37a353cefa199b127d65630`. The pinned Dependency
-  Review action never executed. This fail-closed admission boundary is owned by
-  ContextualWisdomLab/.github #1725, not by a LineageWeave scanner suppression
-  or leaf workaround.
-- Merge order remains: repair and protect the central admission owner; obtain
-  terminal exact-head #1137 Checks and independent review; normally merge
-  #1137; non-force reconcile #1135; rerun every #1135 code, security, browser,
-  accessibility, locale, and performance gate.
+- Protected LineageWeave `main` remains
+  `83eba56149eb802cd63642c507c324c9976ec78e`.
+- #1137 is Draft / `REVIEW_REQUIRED` at exact head
+  `abb9de9ff17ee343a37a353cefa199b127d65630`, based on `main`. It has no
+  independent approval, auto-merge request, or protected merge SHA. All 39
+  exact-head check runs were verified: 26 success, five failure, five skipped,
+  and three in progress. The failures are three CodeQL compatibility jobs,
+  OpenCode, and Dependency Review. Full suite and frontend checks are skipped
+  while Draft; Noema and Strix remain in progress. Trivy, OSV, Semgrep, and
+  registry/PostgreSQL checks pass on this candidate head.
+- Dependency Review's exact-head support probe (`Security Scan` run
+  `36746737330`, job `109994762971`) received HTTP 403 from GitHub's
+  `dependency-graph/compare` endpoint. The same authenticated read returned
+  403 outside Actions. The central owner candidate `.github` #1725 is at
+  `f27c5cfa4a61679e6ebb109d9e5972bd8a4f650d`, based on `main` SHA
+  `fb17ef556f94f673234aa557254ae52779e9a7b0`; it remains Draft / BEHIND with
+  no approval or auto-merge. No workflow gate was bypassed or weakened.
+- The CodeQL compatibility and OpenCode jobs fail closed without exact-head
+  verdicts. Their dispatcher labels do not replace the required verdicts.
+- #1135 is Draft / `REVIEW_REQUIRED` at exact head
+  `11789b6fb0a3d499cafa7b48684334f7ddf713de`, with no auto-merge. Its
+  `trivy-fs` check still finds the inherited PyJWT 2.13.0 lock. The exact
+  scan reported ten findings: CVE-2026-102268, 102266, 102267, 102271, 102272,
+  102273, 101917, 102265, 102269, and 102274. Its Noema check passes, while
+  Full suite and frontend checks are skipped in Draft.
+- The #1137 candidate changes only `pyproject.toml`, `uv.lock`, and its
+  advisory contract. Its Trivy and OSV checks pass with PyJWT 2.15.1. The
+  targeted local dependency-floor and JWKS tests passed (**18 tests**), and
+  `uv lock --check` passed. Candidate results are not protected delivery.
 
-#1135, #1137, and .github #1725 remain unmerged. No prior-head result, skipped
-CodeQL, or local test is acceptance.
+Merge order is to resolve the central admission owner and obtain terminal
+exact-head #1137 Checks plus independent approval, merge #1137 through normal
+protection, then reconcile #1135 and collect fresh security, code, browser,
+accessibility, locale, and performance evidence. #1118 remains a valid
+smoke-test delta stacked on #899; preserve it and keep its PyJWT floor at least
+2.14.0 when its parent is protected and it is retargeted. No predecessor
+approval or Check transfers.
 
 ### Follow-up security finding — 2026-10-01 01:45 KST
 
