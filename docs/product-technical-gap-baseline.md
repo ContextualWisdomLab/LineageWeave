@@ -1,5 +1,143 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head loop snapshot — 2026-09-30 13:45 UTC
+
+This overlay supersedes older present-tense queue, delivery, and validation
+claims below. It is supporting evidence; ADRs remain normative.
+
+### Authority and scope
+
+The current `docs/product-requirements.md` was read before this increment.
+PRD-FR-5 and the asynchronous, authorization, cutoff, and rendered acceptance
+requirements govern Ask. ADR 0039's client-observation amendment remains
+**Proposed**; its accepted source-authorization contract remains unchanged.
+ADR 0123 governs safe failure presentation, ADR 0216 historical evidence,
+and ADR 0220 the shared notice. OWL-Time and PROV-O sources cited in the
+cutoff register support retained time/provenance semantics, not customer
+performance, causal claims, weights, or job-success estimates.
+
+The linked ecosystem authority was read at these local revisions:
+ThreadWeave `docs/PRD.md` (`0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`),
+RankWeave `ARCHITECTURE.md` (`32c29a07a4e33ab9c4c2847cef41ed265b9bcc41`),
+TEPP `docs/product/prd-v0.4-approved.md`
+(`67b4fc15a835d007b4841941276207254b77480c`), disksage `docs/PRD.md`
+(`58b4aece3e38a1cc7f7fa4b7fce73443344b2397`), and contextual-orchestrator
+`README.md` (`50e1b0d0a7eddc0f866ab69162d6cf098efe693f`). These are local
+observations, not remote-default-branch equality claims. Remote GraphQL
+confirmed `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+`TEPP`, and **`ContextualWisdomLab/disksage`** as canonical repository case.
+
+No ecosystem API, model selection, mathematical operation, schema, migration,
+or release number changes in this increment. TEPP/fast-mlsirm keep arithmetic
+ownership; contextual-orchestrator keeps all LLM/VISION/embedding/structured
+output ownership. The repair validates a browser receipt without invoking
+or reimplementing an inference engine.
+
+### Current queue, reviews, and protected implementation
+
+Remote `main` remains `83eba56149eb802cd63642c507c324c9976ec78e`.
+Two complete GraphQL pages observed **175 open PRs**, **171 drafts**,
+**115 non-main bases**, and **43 open issues**. The queue membership digest
+for compact JSON tuples `[number, headRefOid, baseRefName]` in numeric order
+is `98ab3ba6bf2a82414d24cc9629e88e01811ad630affd8cf75c731192de4c21a0`.
+This is a queue snapshot, never a probability-sample artifact.
+All 175 exact heads were checked for review threads: **95 unresolved**,
+with no truncated thread page. The independent approving decisions belong
+to #1040 and #1130, both Draft; their owner admission decisions are preserved.
+
+| PR | Observed head | Boundary |
+| ---: | --- | --- |
+| #1049 | `b1219365319712faaa4d3767243c8daf0e5b5ce0` | Ready; normal auto-merge enabled; both review threads resolved; full backend/frontend Checks successful, Trivy and compatibility/OpenCode Checks failed, Noema/Strix in progress, independent approval absent. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Ready; existing normal auto-merge retained; no unresolved thread; independent approval absent. |
+| #1135 | `b992923501e5123470d18dcc62263a0939f04f64` | Ready; existing normal auto-merge retained; no unresolved thread; full backend/frontend Checks successful, compatibility/OpenCode Checks failed, Noema in progress, independent approval absent. |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Ready; existing normal auto-merge retained; the generation-admission finding is now resolved on the owner repair; independent approval absent. |
+| #972 | `e436d9a61e78fc63d5927ce0c9aba825033cb50a` | Reviewed predecessor; no unresolved thread; Draft with terminal failed required Checks. The receipt repair below creates a new exact head; predecessor checks/approvals cannot certify it. |
+
+Inherited active rules require one independent approval, dismiss stale
+approvals on push, resolve review threads, and run seven central required
+workflows. The last-push-approval flag is false in this observation. Both
+inherited and repository rules prohibit force push. No protected merge SHA
+was observed; no stacked child was retargeted before its parent merged.
+
+Direct REST job logs for #1135's exact head resolved the earlier missing-
+workflow diagnostic: CodeQL job `109803551112` failed explicitly because its
+scan was dispatched and its terminal verdict callback must rerun the gate;
+OpenCode job `109832968372` failed because no authenticated current-head
+APPROVED/CHANGES_REQUESTED verdict was present. Those fail-closed promotion
+contracts belong to the central workflow owner. They are not evidence of a
+LineageWeave source defect; no leaf-side passing status or weakened gate was
+added. Current-main/open-PR runs were not cancelled.
+
+### Customer gap, minimal repair, and candidate verification
+
+The selected unresolved workflow gap is a question that was accepted but
+cannot be observed. On #972's predecessor, six synthetic receipt cases
+reproduced a raw null-property error or ongoing polling of an invented job
+identifier. This can hold the question controls indefinitely and makes an
+accepted request appear to be ongoing work. This selection follows the
+reproduced blocking customer action, not an invented numerical impact rank.
+
+Implementation commit `e1ab44371` rejects missing, null, nonstring, empty,
+and whitespace-only receipt identifiers before observation. It preserves an
+opaque supplied identifier as one encoded URL path segment. It emits the
+existing localized recovery guidance, retains the question, restores controls,
+and neither resubmits an accepted request nor changes the durable job.
+Valid queued/running observations and credential-generation cancellation from
+#972 remain intact. The ADR 0039 proposed amendment records this boundary.
+
+- Six new receipt regressions failed before repair; seven receipt/path tests
+  and one panel recovery regression now pass. Focused API/panel verification:
+  **36 passed**. Full frontend verification: **58 files / 558 tests passed**.
+- Lint, TypeScript/production build, and Storybook build passed using the
+  identical checked-in frontend lock and installed project dependencies.
+  The existing large-chunk build warning remains visible. No warning was
+  suppressed. The prior integrated panel failure did not recur in this run;
+  this observation does not explain or erase the older failed evidence.
+- Actual Chromium Storybook renders at **1440 × 1000** and **390 × 844**
+  show the retained synthetic question, visible next action, enabled Ask
+  control, no diagnostic detail, and no horizontal overflow. Screenshots:
+  `docs/evidence/ask-receipt-20260930/desktop.png` and `mobile.png`.
+  This reuses the existing form, copy, and tokens; #1135 owns the separate
+  shared retry-notice migration and must be preserved at integration.
+- Authenticated candidate PostgreSQL-to-API and application-render acceptance
+  remain **unavailable**. Storybook/component tests do not certify delivery.
+
+### Collision audit and remaining acceptance
+
+Exact deltas were compared with actual bases for 174/175 PRs; #1042 lacked
+a usable local comparison ref. Shared paths: baseline **107**, API client
+**13**, App **50**, Python package **80**, frontend package **75**; **61**
+ADR paths overlap. These are coordination risks, not automatic conflicts.
+This repair adds no ADR ordinal, migration ordinal, or release allocation.
+Preserve #1135's safe presentation and retry semantics when integrating
+#972's asynchronous observation. The Voice export stack #780 → #968 and
+#1129 retain separate ownership and parent-first protected integration.
+Existing release/ordinal authority issues #1056/#1048 stay unresolved;
+#980/#830 ADR 0370/release 2.56.0, #928/#927 ADR 0358, and
+#1127/#929 rollback 0247 overlaps need content-level reconciliation.
+The stale Voice-authority link that labels combinations as ADR 0251 remains
+separate #1121 work: the current combination contract is ADR 0256;
+ADR 0251 governs the I/O psychology ontology. Neither was renumbered here.
+
+Read-only counts from the official `lineageweave` PostgreSQL service are
+**43,189 Posts**, **43,189 primary Voice rows**, **0 additional Voice rows**,
+and **4 analysis runs**. These are non-identifying diagnostic aggregates,
+not API authorization proof, customer outcomes, or population inference.
+The twelve atomic Voice classifications, extensible association rows,
+authorized evidence, PROV-O derivation, truth/cutoff, separate carrying and
+evidence actions, and same-subject multi-Voice paged JSON-LD remain distinct
+acceptance obligations. They are not marked complete by this Ask repair.
+
+The official stack contains private records, so no load was sent with a merely
+synthetic question against that source. A certified synthetic-only authenticated
+corpus boundary and current saturation instrumentation were unavailable.
+Concurrency, latency, error rate, throughput, and PostgreSQL/worker/Valkey/
+gateway saturation remain **unavailable**; no bottleneck was guessed or
+repaired. No formal volume or container was removed. External docs tools also
+reported unavailable repository indexing/quota; local authority and current
+source contracts were used without inventing documentation receipts.
+
+
 ## Current development audit — 2026-09-08
 
 This snapshot supersedes earlier queue and completion claims below. ADRs are
