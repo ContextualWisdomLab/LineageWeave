@@ -1,5 +1,80 @@
 # Product & Technical Gap Baseline
 
+### Exact-head loop refresh — 2026-10-01 01:16 KST
+
+This refresh supersedes the 2026-09-30 overlays below wherever present-tense
+status differs. It is a dated observation, not a deployment or release claim.
+
+- Protected `main` remains `83eba56149eb802cd63642c507c324c9976ec78e`.
+  REST pagination returned **175 open PRs** (172 drafts, 115 with non-`main`
+  bases) and **43 open issues**. Only aggregate counts and PR numbers are
+  recorded; no production record identifiers or source content were read.
+- Canonical remote names and current default-branch heads were rechecked:
+  `ContextualWisdomLab/LineageWeave`
+  (`83eba56149eb802cd63642c507c324c9976ec78e`),
+  `ContextualWisdomLab/RankWeave`
+  (`92323cb8b55baf5d840cb97fa8534a0e75ef234c`),
+  `ContextualWisdomLab/ThreadWeave`
+  (`0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`),
+  `ContextualWisdomLab/disksage`
+  (`05899ffb01ce91a9ea3d782630b28a398de59ddc`), and
+  `ContextualWisdomLab/TEPP`
+  (`a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`). ThreadWeave `docs/PRD.md`,
+  RankWeave `ARCHITECTURE.md`, and TEPP's approved `docs/product/prd-v0.4-approved.md`
+  were read from those current remote heads. DiskSage has no current `docs/PRD.md`
+  (404); its current `README.md` is the available product authority. The local
+  directory spelling `DiskSage` is not the canonical remote name.
+- LineageWeave `docs/product-requirements.md` is the supporting product
+  contract; ADRs remain normative. ADR 0246's twelve atomic Voice codes remain
+  open to evidence-backed extension, and ADR 0256 governs normalized,
+  provenance-bearing combinations. Its cited stakeholder standards support
+  contextual categories, not a closed combination list. ADR 0251 governs the
+  separate I/O-Psychology taxonomy and supplies no Voice classifier or score.
+- Active rulesets were read directly: `CWL Central required workflows`
+  (18156473) requires one approval, current required workflows, resolved
+  threads, and the allowed merge methods `merge`/`squash`; `LineageWeave: no
+  force pushes` (21065108) forbids non-fast-forward updates. No bypass,
+  self-approval, or force push was used.
+
+| PR | Current exact head / base | Current boundary |
+| ---: | --- | --- |
+| #1135 | `b992923501e5123470d18dcc62263a0939f04f64` / `main` | Draft; `REVIEW_REQUIRED`; no auto-merge and no protected merge SHA. Exact-head CodeQL compatibility (Python, Actions, JavaScript/TypeScript) and OpenCode checks fail because no current-head verdict was available. Noema was not counted from a different head. The remaining `github-code-quality` import-style comment is stale: this head uses only `import lineageweave.server as server_module`; the previously valid async-story and locale findings are already fixed. |
+| #1129 | `6e624d6178eefbad8c0f3ab1bf5b273138dbee18` / `main` | Draft; `REVIEW_REQUIRED`; exact-head CodeQL compatibility, OpenCode, Noema, and Strix checks fail; no independent approval or protected merge SHA. The older Storybook nitpick is already addressed at this head: its fixture carries both Voice relations and separate evidence in JSON-LD. |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` / `main` | Agent-owned draft; `REVIEW_REQUIRED`; exact-head CodeQL compatibility, Noema, OpenCode, and Trivy checks fail, with one check pending. The newer source includes generation fencing and late-response regression cases; leave this PR's files and ownership with its author. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` / `main` | Ready; normal auto-merge remains armed; independent approval is still required. No protected merge SHA. |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` / `main` | Draft despite an exact-head approval; four exact-head checks fail. Auto-merge is off and no protected merge SHA exists. |
+
+The selected user-facing gap remains evidence-safe Voice filtering and export.
+At #1129's exact head, search removes an additional Voice when its distinct
+evidence Post is hidden, keeps the imported primary Voice, and filters the
+matching exact-value CSV and JSON-LD projections. Page accumulation preserves
+same-subject properties and unions multi-Voice relations. Synthetic exact-head
+tests passed (**2 files / 26 tests**); Storybook built successfully, and the
+`SeparateVoiceEvidence` scene was rendered and inspected at **1440×900** and
+**390×844**. The mobile exact-value table stays within the viewport and its
+scroll container exposes the separate Evidence column. These are candidate
+and rendered-fixture results only: authenticated PostgreSQL-to-API behavior,
+truth/cutoff behavior against the authorized runtime, and protected-main
+delivery remain **unavailable**. Do not mark Voice acceptance complete until
+those runtime gates are evidenced.
+
+The current #1135 checkout passed frontend lint, **60 files / 565 tests**, and
+production build; `tests/test_server.py` passed (**9 tests**). Its failed-Ask
+retry scene was rendered at the same desktop/mobile viewports; the question
+remained in the form, the retry action was visible, and the synthetic raw
+diagnostic stayed hidden. Its exact-head failing CodeQL compatibility jobs
+report that no current-head CodeQL dispatch verdict was available, while the
+OpenCode job failed closed without a current-head verdict. This points to the
+central review/scan workflow boundary; it is not evidence of a consumer-code
+defect or a reason to fabricate a pass. No authenticated k6 load or private
+corpus query was run, so saturation, authenticated API acceptance, and
+population-level performance remain **unavailable**.
+
+This refresh allocates no ADR, API, schema, migration ordinal, or release
+number. Shared edits to `docs/product-technical-gap-baseline.md` remain a
+coordination point across #1129, #1131, #1135, and #1136; merge parents through
+normal protection and refresh every descendant's head evidence afterward.
+
 ### Coordination follow-up — 2026-09-30 15:18 KST
 
 After the dated snapshot below, another agent returned #1130 and #1040 to
