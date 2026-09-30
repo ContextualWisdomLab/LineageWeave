@@ -1,5 +1,15 @@
 # Product & Technical Gap Baseline
 
+### Coordination follow-up — 2026-09-30 15:18 KST
+
+The final timeline audit found that another agent returned #1130 and #1040
+to Draft at 06:08:13 and 06:08:18 UTC, citing terminal CodeQL failures on
+their unchanged exact heads. Their auto-merge was consequently disabled;
+that ownership/admission decision is preserved rather than repeatedly
+re-arming the same failed head. Queued Checks are not an additional blocker.
+Current normal auto-merge is retained on #1131, #1135, and this repaired #1136.
+All remain unmerged and require exact-head protection evidence.
+
 ## Review repair follow-up — 2026-09-30 15:14 KST
 
 This follow-up supersedes the queue and unresolved-review statements in the
