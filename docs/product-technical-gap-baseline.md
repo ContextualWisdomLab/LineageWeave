@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+### Hosted check snapshot before this baseline-only update — 2026-10-01 03:46 KST
+
+- Immediately before this documentation-only refresh, PR #1135 and its remote
+  branch were at `47e54f99f84c6c585809a9d063d33b5d9bfb0032`. The GitHub PR
+  Checks page showed `dependency-review` failed; `CodeQL - Code Quality` on
+  `dynamic`, `SAST Semgrep`, and `cancel-closed-pr-runs` were in progress;
+  ten jobs succeeded and 17 were skipped. GitHub showed that one approving
+  review is required. The currently visible terminal failure is a merge gate;
+  in-progress checks remain pending evidence, not a reason to stop independent
+  work. This baseline update creates a new head and invalidates that head's
+  hosted evidence; re-fetch the new exact-head statuses before any PR lifecycle
+  claim. GitHub REST requests returned HTTP 403 during the same window, so the
+  page view supplied only visible check state, not review identities or ruleset
+  details.
+
 ### Exact-head and Voice acceptance audit — 2026-10-01 03:39 KST
 
 This overlay records the evidence refreshed in this audit. It supersedes
