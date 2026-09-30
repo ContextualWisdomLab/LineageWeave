@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+### Exact-head retry update — 2026-10-01 02:12 KST
+
+This read supersedes the 02:04 candidate statuses below. The paged inventory
+remains **176 open PRs**, **175 drafts**, **115 non-`main` bases**, and **43
+open issues**.
+
+- #1137 remains Draft / `REVIEW_REQUIRED` at
+  `abb9de9ff17ee343a37a353cefa199b127d65630`, based on protected `main`
+  `83eba56149eb802cd63642c507c324c9976ec78e`. Its current exact-head set has
+  six failures (CodeQL compatibility ×3, Dependency Review, Noema, OpenCode),
+  two in progress (Noema transport continuation and Strix), five skipped, and
+  26 successful checks. Full-suite and frontend checks are skipped while the
+  PR is Draft. Trivy and OSV pass on this fixed-lock candidate; no independent
+  approval, auto-merge request, or protected merge SHA exists.
+- The Noema review failure reports provider capacity unavailable after
+  gateway failover (`HTTP 502`); one bounded continuation remains pending.
+  This belongs to the contextual-orchestrator/review service boundary and is
+  not a LineageWeave fallback or fabricated-verdict opportunity.
+- Dependency Review's support probe continues to receive HTTP 403 from the
+  exact `dependency-graph/compare` endpoint. Central owner PR `.github` #1725
+  remains Draft / BEHIND at `f27c5cfa4a61679e6ebb109d9e5972bd8a4f650d`, base
+  `main` `fb17ef556f94f673234aa557254ae52779e9a7b0`, with no approval or
+  auto-merge. It is not yet a protected fix.
+- #1135 is now exact head
+  `2889ab2d0afb646bc108167c4ecbb02acc020b20`, still Draft /
+  `REVIEW_REQUIRED` with no auto-merge. Its `trivy-fs` scan still fails on
+  the inherited PyJWT 2.13.0 lock; Noema passes and application/test suites
+  are skipped while Draft. The preceding exact-head scan on `11789b6fb0a3d499cafa7b48684334f7ddf713de`
+  reported ten findings: CVE-2026-102268, 102266, 102267, 102271, 102272,
+  102273, 101917, 102265, 102269, and 102274.
+
+No force-push, bypass, check transfer, or data-bearing runtime probe was used.
+The PyJWT change is a candidate only; the buyer-visible Voice and authorized
+PostgreSQL/API acceptance gates remain distinct and incomplete.
+
 ### Current owner and exact-head status — 2026-10-01 02:04 KST
 
 This refresh supersedes earlier October queue counts and #1135/#1137 status
