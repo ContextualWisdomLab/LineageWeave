@@ -276,6 +276,82 @@ describe("ontologyLayout", () => {
     ]);
   });
 
+  it.each([
+    [{ "@id": "voice:one" }, { "@id": "voice:two" }],
+    [[{ "@id": "voice:one" }], { "@id": "voice:two" }],
+    [{ "@id": "voice:one" }, [{ "@id": "voice:two" }]],
+  ])("preserves singleton and array relations across pages (%j, %j)", (previous, added) => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const propertyIri = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+    const first = { ...source, jsonld: { "@graph": [{ "@id": postIri, [propertyIri]: previous }] } };
+    const second = { ...source, jsonld: { "@graph": [{ "@id": postIri, [propertyIri]: added }] } };
+    const combined = accumulateNeighborhoodPages(first, second);
+    expect(combined.jsonld["@graph"]).toEqual([
+      { "@id": postIri, [propertyIri]: [{ "@id": "voice:one" }, { "@id": "voice:two" }] },
+    ]);
+    expect(accumulateNeighborhoodPages(combined, second).jsonld).toEqual(combined.jsonld);
+    expect(first.jsonld["@graph"][0][propertyIri]).toEqual(previous);
+  });
+
+  it("removes a hidden singleton Voice reference without replacing its evidence", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const propertyIri = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
+    const hiddenIri = `${ONTOLOGY_NAMESPACE}voice-assignment/${POST_ID}/vops`;
+    const filtered = filterNeighborhood({
+      ...source,
+      voice_assignments: [],
+      jsonld: { "@graph": [{ "@id": postIri, [propertyIri]: { "@id": hiddenIri } }] },
+    }, "missing")!;
+    expect(filtered.jsonld["@graph"]).toEqual([{ "@id": postIri }]);
+    expect(JSON.stringify(filtered)).not.toContain(hiddenIri);
+  });
+
+  it("unions repeated subject types and literal properties without mutating either page", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const first = { ...source, jsonld: { "@graph": [{
+      "@id": postIri,
+      "@type": `${ONTOLOGY_NAMESPACE}Post`,
+      "rdfs:label": { "@value": "Synthetic record", "@language": "en" },
+    }] } };
+    const second = { ...source, jsonld: { "@graph": [{
+      "@id": postIri,
+      "@type": [`${ONTOLOGY_NAMESPACE}Post`, "http://www.w3.org/ns/prov#Entity"],
+      "rdfs:label": { "@value": "합성 기록", "@language": "ko" },
+    }] } };
+    expect(accumulateNeighborhoodPages(first, second).jsonld["@graph"]).toEqual([{
+      "@id": postIri,
+      "@type": [`${ONTOLOGY_NAMESPACE}Post`, "http://www.w3.org/ns/prov#Entity"],
+      "rdfs:label": [first.jsonld["@graph"][0]["rdfs:label"], second.jsonld["@graph"][0]["rdfs:label"]],
+    }]);
+    expect(first.jsonld["@graph"][0]["@type"]).toBe(`${ONTOLOGY_NAMESPACE}Post`);
+  });
+
+  it("exports distinct carrying and derivation identities with the recorded interval", () => {
+    const source = payload();
+    const evidenceId = "dddddddd-dddd-dddd-dddd-ddddddddddd1";
+    const csv = neighborhoodCsv({
+      ...source,
+      exact_value_rows: [{
+        ...source.exact_value_rows[0],
+        source_node_id: POST_ID,
+        evidence_post_id: evidenceId,
+        valid_from: "2026-01-10T12:00:00+00:00",
+        valid_to: "2026-01-11T12:00:00+00:00",
+      }],
+    });
+    const [header, row] = csv.trim().split("\n").map((line) => line.split(","));
+    const values = Object.fromEntries(header.map((key, index) => [key, row[index]]));
+    expect(values).toMatchObject({
+      source_node_id: POST_ID,
+      evidence_post_id: evidenceId,
+      valid_from: "2026-01-10T12:00:00+00:00",
+      valid_to: "2026-01-11T12:00:00+00:00",
+    });
+  });
+
   it("keeps only exact canonical JSON-LD node ids when filtering", () => {
     const source = payload();
     const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
