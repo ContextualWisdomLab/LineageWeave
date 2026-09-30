@@ -6,6 +6,7 @@ import os
 import subprocess
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlsplit, urlunsplit
 
 import pytest
@@ -101,24 +102,44 @@ def _migrate_script_environment(connection) -> dict[str, str]:
             "POSTGRES_HOST": params.get("host") or "localhost",
             "POSTGRES_PORT": params.get("port") or "5432",
             "POSTGRES_USER": params.get("user") or parsed_admin_dsn.username or "postgres",
-            "POSTGRES_PASSWORD": (
-                parsed_admin_dsn.password or os.environ.get("PGPASSWORD") or "unused"
-            ),
             "POSTGRES_DB": params["dbname"],
         }
     )
+    password = parsed_admin_dsn.password or os.environ.get("PGPASSWORD")
+    if password:
+        environment["POSTGRES_PASSWORD"] = password
+    else:
+        environment.pop("POSTGRES_PASSWORD", None)
     return environment
 
 
-pytestmark = pytest.mark.skipif(
-    not _postgres_available(),
-    reason=f"no reachable PostgreSQL server at {_ADMIN_DSN}",
-)
+@pytest.mark.parametrize("password", [None, "synthetic-rehearsal-password"])
+def test_replay_environment_preserves_password_file_authentication(
+    monkeypatch, password
+) -> None:
+    """Recovery authentication does not replace a password file with a placeholder."""
+    monkeypatch.delenv("POSTGRES_PASSWORD", raising=False)
+    monkeypatch.delenv("PGPASSWORD", raising=False)
+    monkeypatch.setenv("PGPASSFILE", "/synthetic/rehearsal.pgpass")
+    if password:
+        monkeypatch.setenv("PGPASSWORD", password)
+    monkeypatch.setattr(
+        f"{__name__}._ADMIN_DSN",
+        "postgresql://synthetic@localhost/synthetic",
+    )
+    connection = SimpleNamespace(get_dsn_parameters=lambda: {"dbname": "synthetic"})
+
+    environment = _migrate_script_environment(connection)
+
+    assert environment["PGPASSFILE"] == "/synthetic/rehearsal.pgpass"
+    assert environment.get("POSTGRES_PASSWORD") == password
 
 
 @pytest.fixture
 def pre_0233_database():
     """Yield a database with both affected tables but neither collided 0233 delta."""
+    if not _postgres_available():
+        pytest.skip("no reachable PostgreSQL admin endpoint")
     database_name = f"lineageweave_source_evidence_{uuid.uuid4().hex[:12]}"
     admin_connection = psycopg2.connect(_ADMIN_DSN)
     admin_connection.autocommit = True

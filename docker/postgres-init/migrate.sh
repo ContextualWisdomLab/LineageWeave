@@ -4,9 +4,10 @@ set -eu
 : "${POSTGRES_HOST:=postgres}"
 : "${POSTGRES_PORT:=5432}"
 : "${POSTGRES_USER:?POSTGRES_USER is required}"
-: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 : "${POSTGRES_DB:?POSTGRES_DB is required}"
-export PGPASSWORD="$POSTGRES_PASSWORD"
+if [ -n "${POSTGRES_PASSWORD:-}" ]; then
+    export PGPASSWORD="$POSTGRES_PASSWORD"
+fi
 
 # Production uses the image-baked migration directory. An explicit directory
 # argument exists for recovery rehearsal and repository integration tests so

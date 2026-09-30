@@ -48,6 +48,12 @@ Chosen. The historical `0233_source_conversation_turn_evidence.sql` remains exec
 4. Both the historical and canonical rollback paths remain available; automated contract tests require equivalent rollback effects.
 5. CI treats alias-declared files as compatibility paths rather than canonical forward identities, verifies alias targets are real non-alias migrations with different ordinals, and rejects duplicate ordinals among canonical migrations.
 6. Alias chains and alias-specific schema divergence are forbidden.
+7. An empty alias target is invalid, not a canonical migration. The CI contract
+   rejects it before replay can skip its SQL.
+8. Recovery rehearsal preserves libpq authentication: a nonempty
+   `POSTGRES_PASSWORD` supplies `PGPASSWORD`; when absent, replay preserves an
+   existing `PGPASSWORD` or `PGPASSFILE` instead of requiring or inventing a
+   password. Tests never inject a placeholder password or print a credential.
 
 ## Consequences and risks
 

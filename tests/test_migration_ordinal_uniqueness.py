@@ -2,6 +2,8 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 
+import pytest
+
 
 _ROOT = Path(__file__).resolve().parents[1]
 _MIGRATIONS = _ROOT / "migrations"
@@ -28,7 +30,9 @@ def test_canonical_forward_migration_ordinals_are_unique() -> None:
     by_ordinal: dict[str, list[str]] = defaultdict(list)
     aliases: dict[str, str] = {}
     for migration in sorted(_MIGRATIONS.glob("[0-9][0-9][0-9][0-9]_*.sql")):
-        if target := _alias_target(migration):
+        target = _alias_target(migration)
+        if target is not None:
+            assert target, f"migration alias target is empty: {migration.name}"
             aliases[migration.name] = target
             continue
         by_ordinal[migration.name[:4]].append(migration.name)
@@ -46,7 +50,7 @@ def test_canonical_forward_migration_ordinals_are_unique() -> None:
     for alias_name, target_name in aliases.items():
         alias = _MIGRATIONS / alias_name
         target = _MIGRATIONS / target_name
-        assert target.exists(), f"migration alias target is missing: {alias_name} -> {target_name}"
+        assert target.is_file(), f"migration alias target is missing: {alias_name} -> {target_name}"
         assert _alias_target(target) is None, f"migration alias chain is forbidden: {target_name}"
         assert alias_name[:4] != target_name[:4], (
             f"migration alias must move to a distinct canonical ordinal: {alias_name}"
@@ -73,3 +77,14 @@ def test_migration_replay_skips_declared_compatibility_aliases() -> None:
     assert "-- lineageweave-compatibility-alias-of: " in script
     assert "Skipping compatibility alias %s" in script
     subprocess.run(["sh", "-n", str(script_path)], check=True)
+
+
+def test_empty_compatibility_alias_target_is_rejected(tmp_path, monkeypatch) -> None:
+    """A malformed alias cannot pass CI while replay silently skips its SQL."""
+    (tmp_path / "0248_synthetic.sql").write_text(
+        f"{_ALIAS_PREFIX}\nSELECT 1;\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(f"{__name__}._MIGRATIONS", tmp_path)
+
+    with pytest.raises(AssertionError, match="migration alias target is empty"):
+        test_canonical_forward_migration_ordinals_are_unique()
