@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Current exact-head loop — 2026-10-01 05:34 KST
+## Current exact-head loop — 2026-10-01 05:40 KST
 
 This section supersedes older present-tense queue and acceptance statements.
 The paged remote inventory is **176 open PRs**, **169 drafts**, **115 stacked
@@ -58,6 +58,15 @@ Five regressions failed before repair. The focused final layout suite passed
 Frontend lint, production build, and Storybook build passed. The final full
 frontend suite passed **58 files / 537 tests**; documentation hygiene and
 public-docstring gates passed **7 tests**.
+The inherited PyJWT scan failure on the documentation head was then repaired
+by reusing owner PR #1137's complete dependency-floor/lock/regression commit,
+without a suppression. #1129 source head is now
+`ec183bde2610d7b47a43cfcaa1feadca7b611d09`; the same owner delta was applied
+to #1135 at `ee32a0e477b863ce06f778e76ca4368569f5acfe`. Each candidate passed
+18 dependency-floor/JWKS tests and `uv lock --check`. The Voice/frontend source
+is unchanged from its tested implementation head. Both new heads require
+fresh hosted security evidence and independent approval; #1137 remains open
+and its earlier Checks are not transferred to either candidate.
 The pre-existing production chunk warning remains visible and was not
 suppressed or labeled a measured bottleneck.
 
@@ -76,10 +85,10 @@ download observations, not authenticated application acceptance.
 | #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Independent current-head approval; no unresolved thread; ready, normal squash auto-merge retained. Failed owner Checks still gate delivery; no merge SHA. |
 | #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Independent current-head approval; both threads resolved; ready with normal auto-merge. Fresh Tests running; no merge SHA. |
 | #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Existing normal auto-merge retained; independent approval remains required. |
-| #1135 | `45304b0d7f3eaa92dc265428ef8c04e200c3665d` | Existing findings resolved; ready with normal auto-merge. Inherited dependency/security failure remains distinct from buyer-copy repair. |
+| #1135 | `ee32a0e477b863ce06f778e76ca4368569f5acfe` | Existing findings resolved; inherited dependency floor/lock repaired using #1137's owner delta. New exact-head Checks and independent approval remain required; normal auto-merge retained. |
 | #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Generation-fencing finding already fixed and thread resolved; other agent's implementation was preserved. Ready with normal auto-merge; independent approval remains required. |
 | #1137 | `abb9de9ff17ee343a37a353cefa199b127d65630` | Patched dependency floor/JWKS checks: 18 local passes and lock check passed. Ready with normal auto-merge; independent approval and failed/pending owner Checks remain. |
-| #1129 | `f8e8101c26e16c2267d9b95d8c8cbf2b9b1557c8` | New implementation invalidates predecessor Checks/approval. Ready with normal auto-merge; exact-head hosted verification is pending. |
+| #1129 | `ec183bde2610d7b47a43cfcaa1feadca7b611d09` | Voice export repair plus the reused security floor; every push invalidates predecessor Checks/approval. Ready; normal auto-merge is restored after the final documentation push, with fresh hosted evidence still required. |
 
 The live main rules require one independent approval, dismissal of stale
 approvals after a push, resolved threads, and seven central required workflows;
