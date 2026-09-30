@@ -1,5 +1,35 @@
 # Product & Technical Gap Baseline
 
+### Follow-up security finding — 2026-10-01 01:45 KST
+
+This note supersedes the #1135 check summary in the 01:16 snapshot below.
+At that later observation, #1135's exact head was
+`8073f2aa76aef3e24e64418dcf940f1a1efca125` on `main`; its `trivy-fs` check
+failed after scanning the protected-main dependency lock. Trivy reported ten
+PyJWT 2.13.0 findings from `uv.lock`: one Critical, six High, and three
+Medium. GitHub's reviewed advisories mark 2.13.0 affected for CVE-2026-102268,
+102266, 102267, 102271, 102272, and 102273; their first patched version is
+2.14.0. Upstream `jpadilla/pyjwt` released 2.15.1 on 2026-09-28. This is a
+dependency finding on protected `main`, not evidence that the candidate's docs
+change introduced it, and no application exploitability claim is made.
+
+A separate local candidate, `fix/pyjwt-2.14-security-floor-20261001`, is based
+on the verified `main` SHA above. It raises both `dev` and `backend` floors to
+2.14.0, resolves `uv.lock` to 2.15.1, and adds a regression contract for both
+install surfaces and the locked version. The targeted contract and JWKS auth
+tests passed (**18 tests**), and `uv lock --check` passed. This is local
+candidate evidence; no remote Checks, approval, merge, or protected delivery
+are claimed yet.
+
+PR #1118 remains a separate valid smoke-test/dependency-contract delta at
+`0dd0fd9a74165a63a081d1435123a79be6feefca`, stacked on #899 head
+`c10b6545520afb342e68d01ea4bcfce75a6e5bab`. Its current 2.13.0 floor is
+insufficient for these later advisories. Preserve its smoke-test work and
+reconcile its floor, contract test, and changelog only after parent #899 is
+protected and #1118 is retargeted to `main`; predecessor approvals and Checks
+do not transfer. #899 is Draft / CHANGES_REQUESTED, so neither PR is currently
+eligible for protected merge.
+
 ### Exact-head loop refresh — 2026-10-01 01:16 KST
 
 This refresh supersedes the 2026-09-30 overlays below wherever present-tense
