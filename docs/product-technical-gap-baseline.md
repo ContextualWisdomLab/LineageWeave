@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+### Design Assurance security-owner refresh — 2026-10-01 01:56 KST
+
+This note supersedes the earlier #1135 PyJWT candidate note where current
+owner and workflow status differ.
+
+- #1135 exact head `df29728969be82a7712873960f41db4b9a4c57ae`
+  did not change `pyproject.toml` or `uv.lock`. Security run
+  `36746625295`, Trivy job `109994397143`, reproduced ten inherited
+  PyJWT 2.13.0 findings in protected-main `uv.lock`: CVE-2026-102268,
+  CVE-2026-102266, CVE-2026-102267, CVE-2026-102271, CVE-2026-102272,
+  CVE-2026-102273, CVE-2026-101917, CVE-2026-102265,
+  CVE-2026-102269, and CVE-2026-102274.
+- Canonical dependency owner #1137 exact head
+  `abb9de9ff17ee343a37a353cefa199b127d65630` changes only
+  `pyproject.toml`, `uv.lock`, and its focused advisory contract. Its
+  exact-head Trivy and OSV jobs are GREEN with PyJWT 2.15.1. #1135 must
+  inherit that accepted owner delta through ordinary integration rather than
+  copying dependency files.
+- #1137 Security run `36746737330` remains RED only because
+  dependency-review support job `109994762971` received HTTP 403 from the
+  exact authenticated compare of base `83eba56149eb802cd63642c507c324c9976ec78e`
+  to head `abb9de9ff17ee343a37a353cefa199b127d65630`. The pinned Dependency
+  Review action never executed. This fail-closed admission boundary is owned by
+  ContextualWisdomLab/.github #1725, not by a LineageWeave scanner suppression
+  or leaf workaround.
+- Merge order remains: repair and protect the central admission owner; obtain
+  terminal exact-head #1137 Checks and independent review; normally merge
+  #1137; non-force reconcile #1135; rerun every #1135 code, security, browser,
+  accessibility, locale, and performance gate.
+
+#1135, #1137, and .github #1725 remain unmerged. No prior-head result, skipped
+CodeQL, or local test is acceptance.
+
 ### Follow-up security finding — 2026-10-01 01:45 KST
 
 This note supersedes the #1135 check summary in the 01:16 snapshot below.
