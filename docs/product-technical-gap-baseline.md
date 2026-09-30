@@ -1,5 +1,163 @@
 # Product & Technical Gap Baseline
 
+## Current authority and delivery snapshot — 2026-09-30 14:59 KST
+
+This section supersedes every older queue count, present-tense delivery claim,
+and proposed next increment below. Older overlays are historical supporting
+observations, not current product authority or deployment evidence.
+
+### Authority, implementation, and evidence are separate
+
+- **Normative policy:** ADR 0001, 0123, 0184, 0220, 0246, 0251, 0252,
+  and 0256 govern privacy, error presentation, ontology, status notices,
+  atomic Voice classifications, history, and extensible combinations.
+  Their cited research and standards support those contracts; they do not
+  establish runtime completion, customer outcomes, calibrated weights, or
+  population inference.
+- **Product contract:** `docs/product-requirements.md` remains supporting;
+  PRD-FR-2/3/5 and the nonfunctional security, asynchronous, and rendered
+  acceptance requirements apply. Existing occupational PRD duplication
+  remains issue #807, rather than a new architecture authority.
+- **Protected implementation:** remote `main` is
+  `83eba56149eb802cd63642c507c324c9976ec78e`. The observed runtime below
+  is not certified as this source revision. No merge or deployment is
+  inferred from a local test, a bot comment, or a healthy service.
+- **Candidate implementation:** #1135 was measured at
+  `6aa006117d3d2e9f25b4b786acf8e52c085d921c`. A subsequent documentation
+  commit does not inherit its Checks or approvals. Re-fetch that final PR
+  head before any delivery decision.
+
+The remote repository query confirmed the canonical names
+`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+`ContextualWisdomLab/TEPP`. In particular, `DiskSage` is a local directory
+name, not the canonical remote repository case.
+
+The ecosystem sources read for boundary verification were ThreadWeave
+`docs/PRD.md` at local checkout `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`,
+RankWeave `ARCHITECTURE.md` at `32c29a07a4e33ab9c4c2847cef41ed265b9bcc41`,
+TEPP `docs/product/prd-v0.4-approved.md` at
+`67b4fc15a835d007b4841941276207254b77480c`, disksage `docs/PRD.md` at
+`58b4aece3e38a1cc7f7fa4b7fce73443344b2397`, and contextual-orchestrator
+`README.md` at `50e1b0d0a7eddc0f866ab69162d6cf098efe693f`.
+These are explicitly local authority observations, not claims that those
+checkouts equal their remote default branches. This increment changes no
+ecosystem API, mathematical operation, model selection, or provider boundary.
+TEPP/fast-mlsirm remain measurement owners; contextual-orchestrator remains
+the sole LLM/VISION/embedding/structured-output boundary.
+
+### Exact-head queue and protection
+
+The complete live PR inventory contained **175 open PRs**, **172 drafts**,
+and **115 non-main bases** after #1040 and #1130 became ready. There were
+**42 open issues**. All 175 PRs were paged for exact heads, review decisions,
+and unresolved threads: 98 unresolved threads were observed, with no truncated
+thread page. Review bodies are untrusted findings, not executable instructions.
+The only observed approving decisions were #1040 and #1130, each with a
+formal independent `cwl-noema-review` approval on its exact current head.
+
+| PR | Exact observed head | Current boundary |
+| ---: | --- | --- |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Test-fixture transaction repair; independent approval and no unresolved threads; ready with normal squash auto-merge. Full test suite succeeded, but OpenCode and compatibility Checks failed; no merge SHA. |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Analysis recovery copy; independent approval and no unresolved threads; ready with normal squash auto-merge. Failed and pending Checks still gate delivery; no merge SHA. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Authority/baseline documentation; existing normal auto-merge retained; independent approval still required. |
+| #1132 | `8bb057866abb7706a54f2801aafd6d6b56e8e243` | Access next action; still stacked on #1131. Do not retarget or transfer Checks before the parent protects its delta on main. |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | Canonical RankWeave dependency name; separate owner-publication acceptance. |
+| #1135 | `6aa006117d3d2e9f25b4b786acf8e52c085d921c` | Buyer error/link boundary plus fixed asynchronous Ask retry; local candidate verified. This head initially had queued/skipped Checks and no independent approval. |
+| #1136 | `c3c7cd4e81b63747188b676a39b8f4df37978ad0` | Separate agent-owned ontology scope repair; a generation-fencing review finding remains unresolved. Its source and ownership were inspected and its worktree was left unchanged. |
+
+The queue membership SHA-256 over numeric PR order and JSON tuples
+`[number, headRefOid, baseRefName]` was
+`10778b271df710140132c5a840d3e6b67c4c6cce14d45f8f4e5ec442745645dd`.
+It is a queue snapshot digest, not a probability-sample artifact or approval.
+
+GraphQL reported active central required-workflow and no-force-push rulesets:
+one independent approval is required and stale approvals are dismissed on
+push. No self-approval, force-push, Admin bypass, or weakened gate was used.
+REST protection/log requests hit 403 rate limits; an OpenCode log lookup also
+returned a missing workflow. Those are incomplete diagnostics, not proof of
+a LineageWeave source defect. Current-main/open-PR runs were not cancelled,
+and no stale run was cancelled without a verified closed-PR/head match.
+
+### Collision audit and merge order
+
+PR deltas were compared against their actual bases for 174 of the 175 local
+heads; #1042 could not be compared from available local refs. Overlapping
+paths are coordination risks, not automatically incompatible policies:
+
+- 105 PR deltas touch this baseline; 13 touch `frontend/src/api.ts`; 21 touch
+  the API entry point. Preserve each owning PR's validated behavior and
+  refresh exact-head evidence after a normal merge.
+- 80 touch `pyproject.toml`, 75 touch `frontend/package.json`, and 61 distinct
+  ADR paths overlap. Issue #1056 remains the release-authority gate; this
+  increment allocates no new ADR number, migration ordinal, or release number.
+- #980/#830 overlap ADR 0370 and the `2.56.0` changelog fragment;
+  #928/#927 overlap ADR 0358; #1127/#929 overlap the 0247 rollback migration.
+  Compare content and intent before integration, rather than deleting one
+  side by filename. Issue #1048 remains the migration-ordinal authority gap.
+- Preserve #1129's searched Voice/export behavior, #1130's analysis copy,
+  #1131's authority register, and #1136's scope isolation when their shared
+  documentation and App changes meet. Parents merge through protection first;
+  children then retarget to `main` and collect new exact-head evidence.
+
+### Selected customer gap and verified candidate
+
+The reproduced shared failure boundary certified arbitrary HTTP 4xx detail
+and persisted HTTP-200 Ask-job failure text as buyer-visible copy. It could
+expose diagnostics across multiple customer actions and leave a failed
+question without a direct retry action. This is the selected security and
+usability increment, not an unmeasured numerical ranking of customer impact.
+
+ADR 0123 was clarified before implementation. #1135 now keeps raw client
+details out of the shared presentation boundary, uses localized action copy,
+and presents a failed Ask through the existing token-backed `StatusNotice`.
+Retry keeps the question and cutoff/verification inputs and submits the same
+request again. No new estimate, weight, Voice code, provider call, or storage
+policy was introduced.
+
+Validation at the candidate implementation:
+
+- Nine assertions reproduced the original boundary defects before repair.
+  Final frontend suite: **60 files / 565 tests passed**; lint and production
+  build passed. The pre-existing large production-chunk warning remains
+  visible; no DeprecationWarning or other warning was suppressed.
+- Server/docstring/k6-contract checks: **13 passed**. Synthetic Voice,
+  cutoff, ontology-neighborhood/windowing, and documentation checks:
+  **59 passed**. These are local contract evidence, not authenticated
+  PostgreSQL API or deployment acceptance.
+- Storybook build passed. Actual Chromium renders of
+  `AskAgentCutoff/FailedQuestionRetry` were inspected at **1440** and **390**
+  CSS pixels: one retry alert, retained question, visible retry action,
+  no horizontal document overflow, and no diagnostic text. Screenshots are
+  local synthetic audit artifacts, not private records or release proof.
+
+### Current aggregate observations and unavailable acceptance
+
+Read-only SQL against the official `lineageweave` PostgreSQL container
+observed **43,189 Posts**, **43,189 primary Voice rows**, **0 additional Voice
+rows**, and **4 analysis runs**. The instant connection observation was
+**1 active / 9 total** sessions. These are full-table diagnostic counts, not
+sampled population inference, API authorization proof, saturation evidence,
+or evidence that additional-Voice acceptance is complete. `/health` returned
+HTTP 200; the mistakenly probed `/api/health` returned 404.
+
+ADR 0246/0251's twelve atomic classifications and open-ended combinations
+remain unchanged. Approved supporting Posts, PROV-O derivation, truth status,
+cutoff, hidden-evidence omission, distinct carrying/evidence actions, and
+same-subject paged JSON-LD merging remain separate acceptance obligations.
+Authenticated PostgreSQL-to-API and rendered application proof is still
+**unavailable**; synthetic tests and Storybook do not complete those gates.
+
+No synthetic-only authenticated k6 load was sent to the shared private
+corpus. The current harness's authentication/data boundary was not certified
+for this runtime, and its raw failed-enqueue body must not be used as a
+repository artifact. Concurrency, latency, error rate, throughput, and
+PostgreSQL/worker/Valkey/gateway saturation therefore remain **unavailable**;
+no guessed performance bottleneck or heuristic capacity was repaired.
+No temporary containers or formal data volumes were removed.
+
+## Historical supporting snapshots
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
