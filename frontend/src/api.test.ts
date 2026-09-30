@@ -228,3 +228,40 @@ it.each([
   await vi.advanceTimersByTimeAsync(4000);
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
+
+
+it.each([null, {}, { ask_job_id: null }, { ask_job_id: 7 }, { ask_job_id: "" }, { ask_job_id: "   " }])(
+  "does not poll or resubmit an accepted question without a usable receipt: %j", async (receipt) => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(receipt), { status: 202 }))
+      .mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ job_status_code: "running" }))));
+    vi.stubGlobal("fetch", fetchMock);
+    let settled = false;
+    const result = askAgent("synthetic-token", "Synthetic question", false, undefined, controller.signal)
+      .catch((error: unknown) => error)
+      .finally(() => { settled = true; });
+    await vi.advanceTimersByTimeAsync(0);
+    const settledBeforeCancellation = settled;
+    const pendingTimers = vi.getTimerCount();
+    controller.abort();
+    expect(await result).toMatchObject({ message: "Ask Agent could not answer this question." });
+    expect(settledBeforeCancellation).toBe(true);
+    expect(pendingTimers).toBe(0);
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  },
+);
+
+
+it("keeps the accepted receipt inside one observation path segment", async () => {
+  const answer = { answer_text: "Synthetic answer", cited_post_ids: [], source_post_ids: [] };
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic/receipt?other#part" }), { status: 202 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ job_status_code: "succeeded", answer })));
+  vi.stubGlobal("fetch", fetchMock);
+  expect(await askAgent("synthetic-token", "Synthetic question")).toEqual(answer);
+  expect(fetchMock.mock.calls[1][0]).toContain("/api/ask/jobs/synthetic%2Freceipt%3Fother%23part");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});

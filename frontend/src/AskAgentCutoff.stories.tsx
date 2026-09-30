@@ -86,3 +86,18 @@ export const CompletedAnswerUnavailableNarrow: Story = {
   ...CompletedAnswerUnavailable,
   globals: { viewport: { value: "mobile1", isRotated: false } },
 };
+
+
+export const AcceptedReceiptUnavailable: Story = {
+  ...CompletedAnswerUnavailable,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({}), { status: 202 });
+    return () => { globalThis.fetch = previousFetch; };
+  },
+};
+
+export const AcceptedReceiptUnavailableNarrow: Story = {
+  ...AcceptedReceiptUnavailable,
+  globals: { viewport: { value: "mobile1", isRotated: false } },
+};

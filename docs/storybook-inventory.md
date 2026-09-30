@@ -49,3 +49,7 @@ actions are executable component-test states governed by ADR 0243. The
 1440×1000 and 390×844 audits are retained in
 `docs/screenshots/project-history-time-source-{desktop,mobile}.png`; both show
 the customer-readable time source without exposing the stored basis code.
+
+- `Ask Agent/Knowledge cutoff`: `AcceptedReceiptUnavailable` and
+  `AcceptedReceiptUnavailableNarrow` retain the synthetic question and restore
+  its controls when an accepted request has no observable job receipt.

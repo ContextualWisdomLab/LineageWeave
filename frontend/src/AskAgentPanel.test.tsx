@@ -8,6 +8,18 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
+  it("restores controls without polling or replaying a question with no receipt", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({}), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AskAgentPanel accessToken="synthetic-token" onOpenPost={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Ask a question"), { target: { value: "Synthetic question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByText("This view is unavailable. Refresh once; if it fails again, contact your administrator.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Ask" })).toBeEnabled();
+    expect(screen.getByLabelText("Ask a question")).toHaveValue("Synthetic question");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("restores question controls when a completed job has no answer", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 }))

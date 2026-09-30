@@ -1389,10 +1389,13 @@ export async function askAgent(
     method: "POST",
     body: JSON.stringify(requestBody),
   });
+  if (typeof submitted?.ask_job_id !== "string" || !submitted.ask_job_id.trim()) {
+    throw new Error("Ask Agent could not answer this question.");
+  }
   for (;;) {
     signal?.throwIfAborted();
     const job = await backendFetch<AskJobStatus>(
-      `/api/ask/jobs/${submitted.ask_job_id}`,
+      `/api/ask/jobs/${encodeURIComponent(submitted.ask_job_id)}`,
       accessToken,
       { signal },
     );

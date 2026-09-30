@@ -86,3 +86,10 @@ worker-liveness and claim-fencing decision so recovery cannot duplicate a live
 computation. Preserve ADR 0213's rule against holding pooled database connections
 during provider work. No model administrator contract or end-to-end unlimited
 execution is established by this amendment.
+
+An accepted submission also needs a nonblank string job receipt before the
+browser can observe it. Missing, null, or nonstring receipt identifiers stop
+observation with the existing recovery guidance, without polling an invented
+identifier or automatically replaying a potentially persisted question. The
+receipt stays opaque and is encoded as one URL path segment; the browser does
+not infer job existence or repair a malformed receipt.
