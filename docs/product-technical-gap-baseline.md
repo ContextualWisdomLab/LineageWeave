@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Current exact-head loop — 2026-10-01 05:40 KST
+## Current exact-head loop — 2026-10-01 05:45 KST
 
 This section supersedes older present-tense queue and acceptance statements.
 The paged remote inventory is **176 open PRs**, **169 drafts**, **115 stacked
@@ -70,6 +70,21 @@ and its earlier Checks are not transferred to either candidate.
 The pre-existing production chunk warning remains visible and was not
 suppressed or labeled a measured bottleneck.
 
+Fresh security Checks on documentation head
+`188c9a84fa012b47807ef63e80dabe905537ca15` then found urllib3 2.7.0 in the
+inherited lock: CVE-2026-97687, CVE-2026-97689, and CVE-2026-97688.
+Upstream's released 2.8.0 security notes identify the proxy TLS, unbounded
+chunk-line buffering, and deflate-loop repairs (GHSA-8988-9cw3-xx77,
+GHSA-vxq7-64xx-v4gw, GHSA-gh4c-6fx4-qh6g). The existing dependency was
+updated through its released package, with a lock-floor regression, rather
+than reimplementing HTTP or suppressing the scan. #1129 source repair
+`de4a67261` and #1135 repair `30392ee9e` passed 39 lock/JWKS/HTTP-client
+tests each and a lock check. These use the existing local test environment;
+they prove application/lock contracts, not upstream's full test suite or a
+new deployed dependency. This final documentation push requires a new
+exact-head scan; the previous PyJWT/urllib3 findings remain historical until
+that scan terminates successfully.
+
 Actual Chromium renders of the existing `SeparateVoiceEvidence` scene were
 inspected at 1440×1000 and 390×844. Both exported the primary and derived
 Voice, then retained only the primary after the evidence Post was filtered
@@ -85,10 +100,10 @@ download observations, not authenticated application acceptance.
 | #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Independent current-head approval; no unresolved thread; ready, normal squash auto-merge retained. Failed owner Checks still gate delivery; no merge SHA. |
 | #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Independent current-head approval; both threads resolved; ready with normal auto-merge. Fresh Tests running; no merge SHA. |
 | #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Existing normal auto-merge retained; independent approval remains required. |
-| #1135 | `ee32a0e477b863ce06f778e76ca4368569f5acfe` | Existing findings resolved; inherited dependency floor/lock repaired using #1137's owner delta. New exact-head Checks and independent approval remain required; normal auto-merge retained. |
+| #1135 | `30392ee9e` (Git commit prefix) | Existing findings resolved; PyJWT owner delta and upstream urllib3 repair retained. New exact-head Checks and independent approval remain required; normal auto-merge restored after push. |
 | #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Generation-fencing finding already fixed and thread resolved; other agent's implementation was preserved. Ready with normal auto-merge; independent approval remains required. |
 | #1137 | `abb9de9ff17ee343a37a353cefa199b127d65630` | Patched dependency floor/JWKS checks: 18 local passes and lock check passed. Ready with normal auto-merge; independent approval and failed/pending owner Checks remain. |
-| #1129 | `ec183bde2610d7b47a43cfcaa1feadca7b611d09` | Voice export repair plus the reused security floor; every push invalidates predecessor Checks/approval. Ready; normal auto-merge is restored after the final documentation push, with fresh hosted evidence still required. |
+| #1129 | `de4a67261` (source commit prefix; this documentation adds a new head) | Voice export repair plus released PyJWT/urllib3 repairs; every push invalidates predecessor Checks/approval. Ready; normal auto-merge is restored after the final documentation push, with fresh hosted evidence still required. |
 
 The live main rules require one independent approval, dismissal of stale
 approvals after a push, resolved threads, and seven central required workflows;
