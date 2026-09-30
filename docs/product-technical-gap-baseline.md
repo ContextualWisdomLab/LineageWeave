@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Review repair follow-up — 2026-09-30 15:14 KST
+
+This follow-up supersedes the queue and unresolved-review statements in the
+13:23 snapshot below; its research and architecture boundaries remain intact.
+The remote protected `main` anchor remains
+`83eba56149eb802cd63642c507c324c9976ec78e`. No protected merge or deployment
+is claimed.
+
+The complete later inventory contained 175 open PRs, including 115 non-main
+bases. Exact-head review metadata and every unresolved thread page were
+collected for all 175 PRs without truncated thread pages. #1040 and #1130
+had independent approving reviews on their exact heads; both became ready
+with normal squash auto-merge. #1131's auto-merge was preserved. #1135 also
+became ready with auto-merge at final documentation head
+`166bfcf253762a7412bd99301c760c30ef80376b`; its repaired shared error boundary
+passed 565 frontend tests but still requires current-head Checks and approval.
+Failed, queued, skipped, or predecessor-head Checks are not delivery evidence.
+
+The valid #1136 review found a smaller remaining authorization race:
+a preceding response could arrive after the new reader scope committed but
+before passive-effect cleanup. The original change's intent and owning PR
+were verified before editing its clean worktree. The implementation repair is
+`63f9204858f7f7c2a8dd661176f247c528e5f947`; this documentation update follows
+it and requires a new exact-head review/Checks collection.
+
+The request now captures its generation and both success and failure handlers
+compare it with the generation of the committed scope, in addition to the
+existing cancellation check. A layout-effect update fences the commit-to-
+passive-cleanup interval without mutating the ref during speculative render.
+This preserves the existing scope reset, nested search key, same-scope retry,
+Voice derivation/evidence, truth-status, cutoff, and export contracts.
+No new ADR number, API, schema, release number, weight, or owner computation
+was introduced.
+
+Two regression cases deliver old success/denial callbacks during that interval;
+the success case reproduced visible stale evidence before the repair.
+The existing continuation test was made independent of preceding mock calls.
+Focused neighborhood/stabilization/JSON-LD-layout validation passed 43 tests;
+the full frontend passed 58 files / 540 tests. Lint, production build,
+Storybook build, and whitespace validation passed. The existing large-chunk
+warning remains visible; no warning was suppressed.
+
+Chromium screenshots of `CutoffLoading` and `CombinedVoiceEvidence` were
+audited at 1440 and 390 CSS pixels. No document overflow occurred; loading
+contained no graph nodes and disabled CSV/JSON-LD export. The existing narrow
+exact-value scroll region and separate carrying/evidence actions remain.
+These synthetic frames do not complete authenticated PostgreSQL-to-API or
+rendered-application acceptance. Synthetic-only authenticated k6 capacity
+and service-saturation evidence remains unavailable; no private corpus was
+used for load testing and no guessed bottleneck was repaired.
+
+Respect the parallel #1135/#1136 baseline and Storybook edits during normal
+integration. Stack parents still merge through protection before children
+retarget to `main`; every changed head invalidates prior review/Checks.
+
 ## Current authority and delivery snapshot — 2026-09-30
 
 This section supersedes the dated loop overlays below for current-state
