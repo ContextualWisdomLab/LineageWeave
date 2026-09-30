@@ -148,6 +148,12 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
     "recorded_at",
     "ontology_property_iri",
     "evidence_post_id",
+    "source_node_id",
+    "source_type_code",
+    "target_node_id",
+    "target_type_code",
+    "valid_from",
+    "valid_to",
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {
@@ -243,8 +249,9 @@ export function filterNeighborhood(
               visibleNodeIds.has(item["@id"]) ||
               visibleVoiceIds.has(item["@id"])),
         ).map((item) => {
-          if (!Array.isArray(item[HAS_VOICE_ASSIGNMENT])) return item;
-          const relations = (item[HAS_VOICE_ASSIGNMENT] as unknown[]).filter(
+          if (!Object.hasOwn(item, HAS_VOICE_ASSIGNMENT)) return item;
+          const value = item[HAS_VOICE_ASSIGNMENT];
+          const relations = (Array.isArray(value) ? value : [value]).filter(
             (relation) => typeof relation === "object" && relation !== null &&
               "@id" in relation && typeof relation["@id"] === "string" &&
               visibleVoiceIds.has(relation["@id"]),
@@ -308,15 +315,23 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
-            const values = [...existing[key], ...incoming[key]];
+          if (Object.hasOwn(existing, key) && (!key.startsWith("@") || key === "@type")) {
+            const previous = existing[key];
+            const added = incoming[key];
+            const values = [
+              ...(Array.isArray(previous) ? previous : [previous]),
+              ...(Array.isArray(added) ? added : [added]),
+            ];
             const seen = new Set<string>();
-            merged[key] = values.filter((value) => {
+            const unique = values.filter((value) => {
               const serialized = JSON.stringify(value);
               if (seen.has(serialized)) return false;
               seen.add(serialized);
               return true;
             });
+            merged[key] = unique.length === 1 && !Array.isArray(previous) && !Array.isArray(added)
+              ? unique[0]
+              : unique;
           }
         }
         graphItems.set(item["@id"], merged);
