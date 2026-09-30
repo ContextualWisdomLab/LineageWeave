@@ -36,6 +36,12 @@ inventory counts and check summaries remain dated snapshots, not live state.
   results only. Authenticated PostgreSQL/API behavior, runtime truth/cutoff
   behavior, and protected delivery remain **unverified**; Voice acceptance is
   not complete.
+- PR #1137's candidate remains at exact remote head
+  `abb9de9ff17ee343a37a353cefa199b127d65630`. A fresh local run at that head
+  passed its dependency-floor and JWKS tests (18 passed), and `uv lock --check`
+  passed. These results do not clear the separately owned dependency-review
+  support failure. Current hosted Checks, review, approval, and ruleset state
+  could not be re-fetched during the GitHub API 403 window.
 - The canonical remote default-branch heads were re-read with Git transport:
   LineageWeave `83eba56149eb802cd63642c507c324c9976ec78e`, RankWeave
   `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave
