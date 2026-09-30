@@ -99,6 +99,8 @@ Valid queued/running observations and credential-generation cancellation from
   `docs/evidence/ask-receipt-20260930/desktop.png` and `mobile.png`.
   This reuses the existing form, copy, and tokens; #1135 owns the separate
   shared retry-notice migration and must be preserved at integration.
+- Synthetic time-axis, Voice schema/ingestion, ontology-neighborhood,
+  documentation, and public-docstring verification: **45 passed**.
 - Authenticated candidate PostgreSQL-to-API and application-render acceptance
   remain **unavailable**. Storybook/component tests do not certify delivery.
 
