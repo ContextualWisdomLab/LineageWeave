@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+### Cross-PR exact-head audit — 2026-10-02 08:26 KST
+
+The targeted PR detail reads covered these exact heads; they do not establish
+the unpaged organization-wide inventory. Every ready PR below still lacks the
+required independent approval, and no protected merge SHA was observed.
+
+- #1129 `f6eb6d909a4dc54932774264a4a23aa6aebc6a61` → `main`
+  `83eba56149eb802cd63642c507c324c9976ec78e`: seven failed checks and Strix
+  pending; `REVIEW_REQUIRED` / `BLOCKED`. Its old Storybook JSON-LD review
+  finding is fixed by `0eea5f5fe`; the carrying/evidence CSV labels now have a
+  regression test. Auto-merge was re-enabled after the status read.
+- #1131 `ee3d8890ce3b7829f668e05732ef55d24e2e688e` → the same `main`: 37
+  checks, no failure or pending result; `REVIEW_REQUIRED` / `BLOCKED`,
+  auto-merge on, no review submitted.
+- #1132 `8bb057866abb7706a54f2801aafd6d6b56e8e243` targets parent #1131 at
+  base `8c3063e9f1aa9d3321da8d8ab4cc0e48c9c101cd`, which is three commits
+  behind #1131's current head. It is Draft, has no checks/reviews/auto-merge,
+  and must remain on its stack until #1131 is protected; only then retarget and
+  recollect exact-head evidence.
+- #1133 `1420a733eb30cea5198dffc2ae08734c9cfe521e` → `main`: CodeQL
+  compatibility (JavaScript/TypeScript and Python), Dependency Review, and
+  OpenCode review failed; `REVIEW_REQUIRED` / `BLOCKED`, auto-merge on. Its
+  current CodeRabbit review had no actionable comment. RankWeave has no PRD;
+  current `ARCHITECTURE.md` is its authority and its public-release policy
+  requires synchronized package metadata, version tests, docs, and changelog.
+- #1135 `73ba540789d2f2210a17e7eb5396270dafa66589` → `main`: three CodeQL
+  compatibility jobs, Noema, Dependency Review, Strix, and OpenCode failed;
+  `REVIEW_REQUIRED` / `BLOCKED`, auto-merge on. The two actionable CodeRabbit
+  comments are already satisfied at that head.
+- #1136 `55f6992637c53cfb51a74f55987a40b359152bd5` → `main`: CodeQL
+  compatibility (JavaScript/TypeScript and Python), Noema, Trivy, and OpenCode
+  failed; `REVIEW_REQUIRED` / `BLOCKED`, auto-merge on. Its stale-response
+  finding was fixed at `63f920485` with both success/error generation guards;
+  the focused ontology explorer suites passed 34 tests on this head. Keep its
+  dependency scan at the owning dependency PR boundary.
+- #1137 `4344d4dcb80fa08971c33f2f7df912d389dc7c61` → `main`: CodeQL
+  compatibility (three jobs), Dependency Review, and OpenCode failed; the full
+  suite and Noema review were still running. Its valid CodeRabbit documentation
+  finding is corrected in `4344d4dcb`; local PyJWT advisory tests passed (4).
+  Auto-merge was re-enabled after the status read; approval remains required.
+
+Merge-tree comparisons against this `main` found these competing deltas:
+#1129/#1135 conflict in the baseline and Storybook inventory; #1129/#1136
+conflict in those two files plus `OntologyExplorer.stories.tsx`; #1129/#1133
+conflict in `pyproject.toml` and `uv.lock`; #1129/#1137, #1133/#1137, and
+#1135/#1137 conflict in those dependency files (the latter two also conflict
+in the baseline); #1136/#1137 conflict in the baseline. #1129/#1131 and
+#1131/#1135 also overlap in the baseline. Resolve documentation conflicts by
+preserving both dated evidence entries. #1137 is the dependency-floor owner;
+the other branches must consume its protected ordinary-merge lineage rather
+than keep competing floors. No conflicting path in these comparisons changes
+an API payload, database schema/migration, or package release number. The
+baseline update itself changes #1129's head, so refresh its Checks and approval
+state after pushing this entry.
+
 ### Exact-head follow-up — 2026-10-02 08:03 KST
 
 The CSV clarification and its contract/test update were pushed non-force to
