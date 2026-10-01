@@ -33,23 +33,24 @@ migration, or release was introduced by this loop.
   dated observations, not a claim of the complete live queue. Current ruleset
   bodies and later check transitions likewise became unavailable after
   rate limiting.
-- The mainline buyer-facing Calendar gap was that an unavailable observed-event
-  notice asked for administrator setup but did not mention an available
-  commitment action shown immediately below it. PR #1140 adds that localized
-  next step only when a commitment exists, reusing `StatusNotice` and the
-  existing Storybook story. Its exact pushed head is
-  `d3672e508ffba053eb8c94a054e0de5a1db50b02`; it is open against `main`,
-  review-required, with no independent approval or auto-merge. At initial
-  hosted observation, Full tests, frontend checks, Noema, and Strix were still
-  running; inherited exact-head CodeQL compatibility jobs and OpenCode failed
-  closed. Subsequent check state could not be refreshed after API rate limiting.
-- Local frontend lint, TypeScript, focused Calendar/i18n tests (102 tests),
-  production build, Storybook build, and `git diff --check` passed for #1140.
-  No authenticated PostgreSQL/API or private data was used. The changed buyer
-  behavior is copy within an existing notice; Storybook's interaction
-  assertion passed in build. Desktop/mobile screenshots are not claimed for
-  this copy-only change. Authenticated runtime and k6 capacity evidence remain
-  unavailable.
+- A Calendar copy candidate (#1140, head
+  `d3672e508ffba053eb8c94a054e0de5a1db50b02`) was closed after desktop
+  Storybook inspection showed the authorized `naruon_next_action` already
+  instructed the user to open a commitment below and review its source Post.
+  The proposed extra sentence duplicated that live behavior, so it was not a
+  valid product gap. Its focused frontend checks passed, but no code from the
+  candidate is retained or treated as a shipped change. This audit prevented
+  an unnecessary customer-facing copy change.
+- The largest verified outstanding Voice gap remains authenticated runtime
+  acceptance of ADR 0256 combinations at truth/evidence revisions and cutoff
+  reads. PR #1139 implements interval-preserving replacement with synthetic
+  PostgreSQL regressions; this loop reran its Voice ingestion/history tests
+  (**13 passed**). The PR's exact hosted head still lacks an independent
+  approval and is blocked by owner-bound workflow/provider failures.
+  Authenticated customer PostgreSQL/API proof, authorized hidden-evidence
+  exclusion, rendered exact-value/CSV behavior, paged JSON-LD union, and
+  synthetic authenticated k6 capacity evidence remain unavailable. Do not
+  mark the Voice acceptance complete until those proof points exist.
 - Exact-head integration check found #1139 intentionally incorporates
   dependency owner #1137 as an ordinary parent. #1133/#1137 dependency deltas
   were previously merge-tree clean; #1131/#1135 baseline edits conflict and
@@ -57,11 +58,12 @@ migration, or release was introduced by this loop.
   checks. No ADR, public API, schema, migration ordinal, or release-number
   collision was introduced by #1140.
 
-No protected merge SHA is established in this refresh. Keep #1140 and the
-existing normal auto-merge requests blocked until exact-head hosted gates,
-independent approvals, thread resolution, and applicable rulesets are
-verifiable. Do not mark Voice acceptance complete without authenticated
-PostgreSQL/API and runtime truth/cutoff proof.
+No protected merge SHA is established in this refresh. The temporary #1140
+candidate was closed as duplicate guidance. PR #1141 and the existing normal
+auto-merge requests remain blocked until exact-head hosted gates, independent
+approvals, thread resolution, and applicable rulesets are verifiable. Do not
+mark Voice acceptance complete without authenticated PostgreSQL/API and
+runtime truth/cutoff proof.
 
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
