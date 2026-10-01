@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-### Exact-head continuation — 2026-10-02 04:45 KST (2026-10-01 19:45 UTC)
+## Exact-head continuation — 2026-10-02 04:45 KST (2026-10-01 19:45 UTC)
 
 This overlay supersedes earlier present-tense PR/queue statements only for the
 exact heads below. GitHub reported 181 open PRs (169 drafts, 116 not targeting
