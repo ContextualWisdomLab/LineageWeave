@@ -1002,3 +1002,52 @@ This slice adds no ADR number, route, migration ordinal, schema or release
 version. Baseline edits overlap other audits and must preserve all evidence
 when merged. Parent-first protected merge and fresh child evidence remain
 mandatory; no stale run was cancelled without current PR/head verification.
+
+
+### Protected queue re-read — 2026-10-02 00:08 KST (2026-10-01 15:08 UTC)
+
+This later GraphQL read supersedes the API-unavailable portions of the prior
+Voice export audit. REST remains rate-limited; bounded GraphQL pagination and
+single-PR reads recovered. The two queue pages returned **181 open PRs**,
+**169 drafts**, **116 non-main bases**, **9 auto-merge requests** at observation,
+and **43 open issues**. No private source records were read. These counts are
+repository workflow metadata, not runtime or population evidence.
+
+- #1129 at `afff1ef480a4d4eee5ae55c466ff6364df6e804e` has no review threads,
+  no current-head formal approval, five failed Checks and one in progress;
+  squash auto-merge is armed. Its only formal comment belongs to an older head.
+  #1131 at `ee3d8890ce3b7829f668e05732ef55d24e2e688e` has 24 successful
+  Checks, 11 skipped Checks and two successful status contexts, no formal
+  review and squash auto-merge armed. Skipped workflows are not counted as
+  passing application acceptance.
+- #1040 (`4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af`), #1130
+  (`383c392bc6713e55bed31b4d4053d93cfd1885d0`) and #1142
+  (`5c83031cc2366f487cf75c585f15464148999ea9`) each have a current-head
+  Noema approval, but four, four and six failed Checks respectively; #1130
+  also has three failed status contexts. They remain open with auto-merge,
+  without a protected merge SHA. CodeQL compatibility/OpenCode failures do
+  not justify a local gate bypass or manufactured review verdict; logs and
+  owned service evidence must establish the root cause before an owner repair.
+- The oldest open candidate, #667, is Draft / REVIEW_REQUIRED at
+  `0c0f4af572a94e63cc8ea4545e48f5eda32a389c`. Its historical review comments
+  belong to other commits and do not establish current-head approval. No
+  draft authoring work or stacked child was retargeted or deleted.
+- GraphQL freshly confirmed active rulesets **18156473** (central required
+  workflows, pull-request review, deletion and non-fast-forward protection)
+  and **21065108** (LineageWeave non-fast-forward protection). The final
+  merge decision still needs applicable conditions, exact required workflows,
+  qualifying approval and resolved threads, not merely a green rollup.
+- New #1143 at pre-documentation-update head
+  `3dd2077229663586e40a9d8055cfd66d4fd145c5` is Ready / REVIEW_REQUIRED.
+  Squash auto-merge was enabled and re-read as armed. That observed head has
+  five failed Checks, four in progress and a pending status; it is not merged.
+  This baseline update creates a new head and invalidates those Check counts.
+  Local implementation evidence remains the 82-test pass and five failures
+  against unpatched code recorded above; the final head must gather new
+  GitHub evidence.
+- Read-only merge-tree checks of the export implementation against #1129,
+  #1138, #1139 and #1142 became clean after relocating the ADR clarification
+  away from the other owner's paragraph. No competing ADR/API/schema or
+  release number was introduced; the baseline was appended to preserve the
+  existing audits. Authentication, PostgreSQL acceptance, screenshot audit,
+  and k6 saturation evidence remain unverified.
