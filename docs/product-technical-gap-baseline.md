@@ -1,5 +1,72 @@
 # Product & Technical Gap Baseline
 
+### Exact-head continuation — 2026-10-02 04:45 KST (2026-10-01 19:45 UTC)
+
+This overlay supersedes earlier present-tense PR/queue statements only for the
+exact heads below. GitHub reported 181 open PRs (169 drafts, 116 not targeting
+`main`) and 43 open issues. These are repository workflow counts, not product
+usage or population evidence. LineageWeave `main` remains
+`83eba56149eb802cd63642c507c324c9976ec78e`. The current product authority is
+[`docs/product-requirements.md`](product-requirements.md); ADRs remain
+normative.
+
+**Authority and research.** ADR 0246 keeps the twelve atomic Voice classes
+extensible; ADR 0256 governs separately evidenced Voice composition and
+cutoff; ADR 0251 is a distinct I/O-Psychology taxonomy. The cited stakeholder
+literature does not ground a finite Voice-combination list, classifier, or
+score. RankWeave has no `docs/PRD.md` at protected `main`; its current
+`ARCHITECTURE.md` is the product authority. Remote tag `v0.18.0` resolves to
+the previously locked RankWeave commit
+`61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6`. Contextual-orchestrator has no
+published PRD at its current main; its README is the current owner authority.
+The current owner has no Git tag in the remote tag listing, so LineageWeave
+still lacks an immutable client/schema release. The exact owner-boundary
+parent PR #899 remains Draft / `CHANGES_REQUESTED`; children #1118, #1120,
+#1117, and #1124 must remain stacked behind it. The remote's canonical names
+are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`contextual-orchestrator`, and lowercase `disksage`.
+
+| PR | Exact head / base observed | Current gate snapshot |
+| ---: | --- | --- |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` / `main` | Auto-merge armed; review required. Full suite and frontend passed. CodeQL compatibility ×3, OpenCode, and Trivy failed; Noema was pending. Focused synthetic export tests passed 82. |
+| #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299` / `main` | Auto-merge is off; review required. Full suite, frontend, registry, and publication passed; Dependency Review failed. The earlier Noema approval was dismissed after the push. Its date-time story and no-wrap repair were rendered at 1440×900 and 390×844. |
+| #1141 | `7295304a17b22bc1908a290d78356adb3a5985a1` / `main` | Squash auto-merge armed; independent approval is still required. Full suite, frontend, CodeQL compatibility, Noema, OpenCode, and Semgrep passed on this exact head. This documentation update creates a new head and invalidates those checks; re-fetch the new head before claiming delivery. |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` / `main` | Review required; auto-merge off. Six checks failed (CodeQL compatibility ×3, Dependency Review, Noema, OpenCode). Its history contains #1137's dependency commit, so #1137 must reach protected `main` before #1139 is restacked or merged. |
+| #1137 | `db96ff11c977a92180b5480884bc361a4be5cf75` / `main` | Review required; auto-merge armed. Dependency Review failed; full suite, frontend, Noema, and the observed security checks passed. Dependency floors belong here, not in consumer workarounds. |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` / `main` | Review required; auto-merge armed. Full suite, frontend, and Semgrep passed; CodeQL compatibility ×3, Noema, OpenCode, and Strix failed. Preserve its owner-authored source absent a verified defect. |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` / `main` | Review required; squash auto-merge armed. Full suite, frontend, registry/inference, and ontology publication passed. CodeQL compatibility ×3, Dependency Review, Noema, OpenCode, and Strix failed. Local focused tests passed 136, lint/build/Storybook passed, and the safe-URL regression rejects user-info. This remains candidate behavior, not protected delivery. |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` / `main` | Review required; auto-merge armed. Local dependency-pin tests passed (2) and `uv lock --check` passed. CodeQL compatibility (JavaScript/TypeScript, Python), Dependency Review, OpenCode, and Noema failed. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` / `main` | Review required; auto-merge armed. Its full-suite, frontend, CodeQL compatibility, Noema, OpenCode, and Semgrep checks passed. A separate exact-head worktree contains an uncommitted baseline edit; preserve it with PR #1131. |
+| #1132 | `8bb057866abb7706a54f2801aafd6d6b56e8e243` / `codex/gap-authority-20260927` | Draft child of #1131. Recorded base `8c3063e9f1aa9d3321da8d8ab4cc0e48c9c101cd` is an ancestor of, but differs from, live parent head `ee3d8890ce3b7829f668e05732ef55d24e2e688e`; the child does not contain that current parent. Preserve its delta and wait for parent protection. |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` / `main` | Auto-merge armed; CodeQL compatibility ×3 and OpenCode failed. No human independent approval is present; the recorded approval is from Noema. Full suite/frontend passed, and failed/pending-run Storybook states were visually checked at desktop and mobile. |
+| #1129 | `afff1ef480a4d4eee5ae55c466ff6364df6e804e` / `main` | Auto-merge armed; review required. Full suite, frontend, registry/PostgreSQL suite, and ontology publication passed. CodeQL compatibility ×3, Dependency Review, OpenCode, and Strix failed; Noema was pending. Local focused tests passed 51 backend and 32 frontend. The mobile exact-value area scrolls horizontally without document overflow. Authenticated Voice API acceptance is unavailable. |
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` / `main` | Draft; no auto-merge. CodeQL dispatch reports unsuppressed Medium+ findings in JavaScript/TypeScript and Python. The exact report could not be retrieved under GitHub API rate limiting and unavailable browser authentication; no guessed fix or suppression was added. Focused local tests passed 114 frontend tests and 2 authorization-scope contract tests. |
+| #1125 | `f08c225a16915a3234914bda70ef0e4adb8e1f5f` / `main` | Draft; no auto-merge or independent approval. Six exact-head Code Quality threads were fixed with explicit pytest exceptions and resolved. Local queue/service tests passed 24; 20 PostgreSQL tests collected. The exact Trivy-fs check failed; new hosted tests were pending or skipped while Draft. |
+| #1123 | `2394a148c92ace63c69de1cae5484324ede7e5fd` / `main` | Draft; review required; no auto-merge. CodeQL dispatch reports unsuppressed Medium+ findings; additional old jobs failed at their execution-time limit. |
+| #899 | `c10b6545520afb342e68d01ea4bcfce75a6e5bab` / `main` | Draft; `CHANGES_REQUESTED`; no auto-merge. The parent removes the embedded orchestrator runtime and provider credentials but cannot finish the consumer boundary without an immutable upstream client/schema release. No local protocol clone or mutable-main dependency is acceptable. |
+
+**Cross-PR integration and product acceptance.** Read-only merge-tree checks
+show #1125 conflicts with #1131 in `docs/product-requirements.md`; #1142
+conflicts with #1135 in the baseline, Storybook inventory, `pyproject.toml`,
+and `uv.lock`; #1135 and #1137 also conflict in dependency floors and locks.
+#1142/#1137 merge cleanly, but #1137 remains the canonical dependency owner.
+#1139 contains #1137 in its history and stays parent-first. #1125's new
+migration 0251 is unique in this selected set. No API-schema or release-number
+collision was found beyond the listed dependency and PRD conflicts.
+
+The largest remaining Voice acceptance gate is an authenticated PostgreSQL/API
+run plus signed-in rendered evidence that preserves carrying Post, derivation
+Post, truth, cutoff, and paged JSON-LD subject properties. No private or real
+source data was queried. An isolated PostgreSQL test container for #1125 failed
+at `initdb` with Docker-storage `No space left on device`; its exact test
+container and volume were removed. Existing `lineageweave` containers use
+multiple worktree Compose files, so none was restarted or queried. The current
+k6 HTTP harness requests a password grant, and the authorization-code parent
+stack #899→#1118→#1120 remains Draft; no authenticated k6 run or performance
+claim is valid yet. No capacity threshold, throughput, latency, error-rate,
+saturation, population estimate, or bottleneck repair is asserted. No real
+credential or record was read, printed, or committed.
+
 ### Exact-head continuation — 2026-10-02 02:51 KST (2026-10-01 17:51 UTC)
 
 This overlay supersedes earlier present-tense queue and PR statements only for
