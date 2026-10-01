@@ -1,5 +1,88 @@
 # Product & Technical Gap Baseline
 
+### Exact-head protected-loop refresh — 2026-10-01 20:33 KST
+
+This is a bounded refresh from live Git refs and individual GitHub PR/Checks
+pages. The complete paged PR/Issue inventory and ruleset bodies remain
+unavailable because GitHub REST requests return HTTP 403 rate limits. The last
+complete aggregate remains a dated snapshot (178 open PRs, 32 open Issues); it
+is not a current count. Protected `main` is still
+`83eba56149eb802cd63642c507c324c9976ec78e`.
+
+- Canonical remotes were rechecked over Git transport: `LineageWeave`
+  `83eba56149eb802cd63642c507c324c9976ec78e`, `RankWeave`
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, `ThreadWeave`
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, lowercase `disksage`
+  `05899ffb01ce91a9ea3d782630b28a398de59ddc`, and `TEPP`
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`. Naruon's canonical repository
+  uses default branch `develop` at `042b0c70531b229af3acbd0421a2f23098d848b3`;
+  its current calendar product authority is
+  [`docs/architecture/naruon-product-spec.md`](https://github.com/ContextualWisdomLab/Naruon/blob/develop/docs/architecture/naruon-product-spec.md),
+  which keeps customer calendars source-owned.
+- Current selected PR heads and hosted Checks were re-read individually:
+  #1129 `afff1ef480a4d4eee5ae55c466ff6364df6e804e` (24 succeeded, 5 skipped,
+  5 failed, 1 in progress, 1 cancelled, 5 passed); #1135
+  `30392ee9ef7f5ff3a234e30711bef58ccb9e7b11` (24 succeeded, 8 failed,
+  5 skipped, 5 passed); #1137
+  `db96ff11c977a92180b5480884bc361a4be5cf75` (22 succeeded, 1 failed,
+  26 skipped, 1 cancelled, 5 passed); #1139
+  `421324c1b29d315d1987f69c3c16ce18a4330924` (25 succeeded, 6 failed,
+  6 skipped, 5 passed); and #1141 `2cc36993a5de15085d5b91646aaf1bdc1c2f57d0`
+  (20 succeeded, 7 failed, 7 skipped, 4 passed). These are check-page
+  observations for those exact SHAs, not protected delivery. No merge SHA was
+  found. The failing names are owner-bound CodeQL compatibility shards and
+  required review/security workflows; no consumer fallback or status
+  substitution is justified.
+- #1137 has the single failing `dependency-review` check. #1139 contains
+  #1137's dependency change and merge-tree combines those two heads cleanly;
+  however, #1137 has not reached protected `main`. Do not merge or retarget
+  #1139 ahead of its parent. After the parent is protected, preserve the Voice
+  delta on a non-force successor from live `main` and collect fresh checks and
+  review evidence. #1139's exact current page has no formal reviewer approval.
+- Cross-PR merge-tree checks found content conflicts in
+  `docs/product-technical-gap-baseline.md` across #1129, #1135, #1139, and
+  #1141. #1135/#1137 and #1129/#1137 also conflict in `pyproject.toml`,
+  `uv.lock`, and the add/add `tests/test_pyjwt_advisory_floor.py`; #1139 has
+  the same dependency-file collisions with #1135/#1129. Keep the owned deltas
+  separate until #1137's protected merge, then construct verified successors.
+  The Voice branches' ADR 0256 edits merge cleanly. No migration ordinal, API
+  schema, or release-number collision was found in these selected changes.
+- PR #1139's additional-Voice history candidate preserves immutable prior
+  truth/evidence intervals, returns repeated identical assignments
+  idempotently, and uses the database clock after the carrying-Post lock. Its
+  focused exact-head backend run passed **78 tests**, including its
+  synthetic PostgreSQL history tests against a disposable database. Its six
+  current hosted failures are `noema-review`, `opencode-review`, the three
+  CodeQL compatibility shards, and `dependency-review`; there is no
+  independent approval or protected merge SHA. Authenticated HTTP/API
+  behavior remains unproven.
+- The Voice candidate #1129 covers hidden-evidence filtering, exact-value CSV
+  identities, and singleton/array JSON-LD page unions. Its focused backend
+  run passed **68 tests**, its frontend layout regression passed **16 tests**,
+  and its Storybook built. Synthetic desktop 1440×900 and mobile 390×844
+  renders showed carrying Posts separate from derivation evidence. This is
+  rendered fixture evidence only. The canonical Compose project's PostgreSQL
+  reported unhealthy and its containers point at multiple temporary worktree
+  configurations; I left that shared stack untouched. Authenticated
+  PostgreSQL/API, runtime truth/cutoff, exact CSV/JSON-LD download, and
+  authenticated capacity acceptance remain **unverified**.
+- PR #1140 (`d3672e508ffba053eb8c94a054e0de5a1db50b02`) is closed unmerged.
+  Its extra Calendar action duplicated the authorized `naruon_next_action`.
+  Although the baseline on #1141 said no code from #1140 remained, #1141's
+  exact `2cc3699` tree still carried that commit. I verified the duplicate in
+  the desktop/mobile render and added a normal revert (`4d6a39ab1`), removing
+  the extra sentence and its fixture assertions/translations. On the reverted
+  tree, focused Calendar/i18n tests passed (**102 tests**), lint, production
+  build, and Storybook build passed; 1440×900 and 390×844 renders show one
+  commitment action and the existing open-Post control. Those screenshots
+  are local synthetic audits, not authenticated product evidence. The revert
+  changes #1141's head and invalidates its prior hosted Checks; that new head
+  must be re-fetched after the branch update before any PR status claim.
+
+No PR was approved, merged, or given bypass. Do not mark Voice acceptance
+complete without authenticated PostgreSQL/API evidence plus the existing
+cutoff, provenance, exact-value, paged JSON-LD, and rendered acceptance gates.
+
 ### Exact-head loop refresh — 2026-10-01 18:31 KST
 
 The product authority remains [`docs/product-requirements.md`](product-requirements.md);
