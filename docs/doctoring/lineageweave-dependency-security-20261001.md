@@ -21,9 +21,9 @@ transitive dependency.
 
 ## RED → GREEN repair
 
-The owner contract first failed three assertions: both PyJWT extras still
-declared `>=2.14.0`, no direct urllib3 floor existed, and the lock selected
-urllib3 2.7.0. The repair requires PyJWT 2.15.1 on both install surfaces,
+The pre-repair source allowed PyJWT `>=2.8.0` on both install surfaces, had no
+direct urllib3 floor, and the lock selected urllib3 2.7.0. The repair requires
+PyJWT 2.15.1 on both install surfaces,
 declares urllib3 2.8.0 once in core dependencies, and regenerates `uv.lock`
 with the repository's `uv` resolver. Only urllib3 moves in the resolved package
 set; PyJWT was already resolved to 2.15.1.
