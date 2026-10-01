@@ -43,8 +43,8 @@ async def _connect_admin_or_skip() -> asyncpg.Connection:
     except (OSError, asyncpg.PostgresError) as exc:
         message = f"required PostgreSQL is unreachable: {type(exc).__name__}"
         if os.environ.get("CI") == "true":
-            pytest.fail(message)
-        pytest.skip(message)
+            raise pytest.fail.Exception(message)
+        raise pytest.skip.Exception(message)
 
 
 def _apply_migrations_before_0251(database_dsn: str) -> None:

@@ -81,8 +81,8 @@ async def _connect_admin_or_skip() -> asyncpg.Connection:
     except (OSError, asyncpg.PostgresError) as exc:
         message = f"required PostgreSQL is unreachable: {type(exc).__name__}"
         if os.environ.get("CI") == "true":
-            pytest.fail(message)
-        pytest.skip(message)
+            raise pytest.fail.Exception(message)
+        raise pytest.skip.Exception(message)
 
 
 async def _assert_active_admission_index(connection: asyncpg.Connection) -> None:
@@ -242,9 +242,11 @@ async def _invalid_concurrent_index_recovery_scenario() -> None:
                 "ON_ERROR_STOP=1",
                 database_dsn,
                 "-c",
-                "create unique index concurrently global_ask_job_active_account_idx "
-                "on global_ask_job (requesting_account_id) "
-                "where job_status_code in ('queued', 'running')",
+                (
+                    "create unique index concurrently global_ask_job_active_account_idx "
+                    + "on global_ask_job (requesting_account_id) "
+                    + "where job_status_code in ('queued', 'running')"
+                ),
             ],
             check=False,
             capture_output=True,
