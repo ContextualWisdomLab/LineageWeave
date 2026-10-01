@@ -33,6 +33,22 @@ contract plus authentication and documentation checks passed 25 tests, and
 This follow-up creates a new exact head: preceding Checks and approvals do
 not transfer, and the new hosted scan remains required.
 
+**Parent-first delivery checkpoint.** #1137 at
+`db96ff11c977a92180b5480884bc361a4be5cf75` was verified separately in a clean
+detached checkout (25 warning-as-error tests and lock verification), marked
+ready, and returned to normal squash auto-merge. #1138 at
+`4aade9b3b7e0184e0f17f5c734ffc5af893fb1cd` was based on the #1137 branch and
+kept unmerged; retarget to `main` only after the parent's protected merge,
+then collect fresh base/head, Checks, reviews, and ruleset evidence. The parent
+full suite remains in progress in this checkpoint; Dependency Review fails
+on both selected heads. A direct authenticated comparison returns HTTP 403
+`Forbidden` even though the repository is public, is not a fork, and its
+vulnerability-alert/dependency-graph capability probe returns HTTP 204.
+No feature toggle, waiver, alternate verdict, or fabricated passing status
+was used. The GitHub capability failure remains separate from source/security
+correction and local validation. Ruleset 18156473 still requires one approval,
+resolved threads, and seven workflows. No protected merge SHA is established.
+
 This dated overlay supersedes older inventory statements only where it names
 fresh evidence. Local success, comments, and auto-merge are not delivery.
 
