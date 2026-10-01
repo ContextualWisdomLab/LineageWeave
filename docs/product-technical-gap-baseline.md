@@ -926,6 +926,30 @@ of leverage; open connector PRs there when the defect is upstream:
 - Until the protected deployment and exact URL checks succeed, the public
   ontology endpoint remains unavailable and must not be represented as live.
 
+## 2026-10-01 dependency advisory floor
+
+**Status:** Proposed on `ContextualWisdomLab/LineageWeave#1137`; merge and
+release remain HOLD pending exact-current-head hosted evidence and independent
+approval.
+
+**Context Map / owner.** LineageWeave owns its application dependency source
+and generated `uv.lock`. PyPI artifacts and the vulnerability database are
+upstream evidence; feature branches consume the owner through ordinary Git
+history instead of carrying private lock-file workarounds.
+
+**Gap / RCA.** Exact consumer head
+`ContextualWisdomLab/LineageWeave#1138@e98a68ed99566f6c145b84c3ec816216dd720ebb`
+failed Security Scan `36811272599`, job `110206798976`: PyJWT 2.13.0 carried
+twelve reported CVEs and urllib3 2.7.0 carried CVE-2026-97687,
+CVE-2026-97688, and CVE-2026-97689. Existing owner #1137 selected PyJWT
+2.15.1 but its source floor remained 2.14.0 and urllib3 was only transitive.
+
+**RED → GREEN / acceptance.** The owner test failed on both stale source
+contracts and the urllib3 lock. The repair requires PyJWT 2.15.1, adds a direct
+urllib3 2.8.0 floor, and regenerates the lock without moving an unrelated
+resolved package. Accept only after owner and consumer exact heads complete
+Security, tests, SAST, non-skipped CodeQL, and qualifying independent review.
+
 ## 9. Evidence boundaries
 
 - Never add a real record, title, name, identifier, screenshot, log, benchmark
