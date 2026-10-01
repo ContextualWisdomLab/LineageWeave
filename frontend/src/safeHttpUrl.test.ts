@@ -7,6 +7,8 @@ describe("safeHttpUrl", () => {
     expect(safeHttpUrl("http://example.test/evidence")).toBe("http://example.test/evidence");
     expect(safeHttpUrl("javascript:alert(1)")).toBeNull();
     expect(safeHttpUrl("/relative/evidence")).toBeNull();
+    expect(safeHttpUrl("https://synthetic-user@example.test/evidence")).toBeNull();
+    expect(safeHttpUrl("https://synthetic-user:synthetic-password@example.test/evidence")).toBeNull();
     expect(safeHttpUrl(null)).toBeNull();
   });
 });
