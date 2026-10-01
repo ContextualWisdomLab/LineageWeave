@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+## Exact-head follow-up — 2026-10-02 08:55 KST
+
+PR #1141's current exact head before this documentation fix is
+`f03f45621050ebe9d6682aecb1753dedbc0359aa`, based on protected `main`
+`83eba56149eb802cd63642c507c324c9976ec78e`. It has 24 successful checks, 11
+skipped checks, and two successful status contexts (CodeRabbit and Devin); no
+check failed or remained pending. GitHub reports `REVIEW_REQUIRED` and
+`BLOCKED`, with auto-merge currently off and no qualifying independent
+approval or merge SHA. The outdated 05f715 row below and the earlier 2cc369
+pre-revert observation are now historical; this table names the current
+pre-edit head. The heading-level comment was already fixed by commit
+`05f715a23`. This update changes the PR head and invalidates f03's checks; read
+the new exact-head status after pushing, and keep auto-merge enabled while
+approval or checks remain outstanding.
+
 ## Exact-head loop refresh — 2026-10-02 06:25 KST (2026-10-01 21:25 UTC)
 
 This is a dated snapshot. The paginated inventory and check evidence below were
@@ -59,7 +74,7 @@ force push was used.
 | --- | --- | --- | --- |
 | #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` | 25 success; 5 failed; 1 cancelled; 7 skipped | No exact-head approval; auto-merge waiting |
 | #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299` | 24 success; Dependency Review failed; 20 skipped | Only review was dismissed on older head `5c83031…`; auto-merge waiting |
-| #1141 | `05f715a2362b7a0d032db858c998924101bb305c` | 12 success; 10 skipped; 6 queued/in progress; no failure | No exact-head approval; heading-level comment fixed; auto-merge re-enabled |
+| #1141 | `f03f45621050ebe9d6682aecb1753dedbc0359aa` | 24 success; 11 skipped; 2 successful status contexts; no failure or pending check | `REVIEW_REQUIRED` / `BLOCKED`; no independent approval or merge SHA; auto-merge must remain enabled |
 | #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` | 30 success; 6 failed; 6 skipped | No exact-head approval; auto-merge waiting |
 | #1137 | `db96ff11c977a92180b5480884bc361a4be5cf75` | 27 success; Dependency Review failed; Full test suite cancelled; 26 skipped | No exact-head approval; auto-merge waiting |
 | #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | 26 success; 6 failed; 1 cancelled; 9 skipped | No exact-head approval; auto-merge waiting |
