@@ -2,6 +2,27 @@
 
 ### Current authority and exact-head audit — 2026-10-01 12:30 KST
 
+**Candidate follow-up (#1138).** The new main-based Voice correction was
+published at `e98a68ed99566f6c145b84c3ec816216dd720ebb` with normal squash
+auto-merge. Its exact-head security job reported twelve PyJWT advisories and
+three urllib3 advisories from the inherited lock. The application suite was
+cancelled in the captured set; cancellation and skipped attempts are not
+passing evidence. Rather than suppress findings, this candidate reuses #1137's
+locally validated dependency-floor/lock regression delta (its ownership remains
+explicit) and refreshes only transitive urllib3 to 2.8.0. The GitHub Reviewed
+records for GHSA-8988-9cw3-xx77, GHSA-gh4c-6fx4-qh6g, and GHSA-vxq7-64xx-v4gw
+each name 2.8.0 as the first patched version. PyPI confirms PyJWT 2.15.1 is a
+published artifact. A fresh PyJWT advisory read also shows CVE-2026-101918
+affects versions through 2.14.0 and first patches at 2.15.0, so both install
+surfaces now require 2.15.0 instead of carrying #1137's older 2.14.0 floor.
+No JWT verifier or HTTP implementation is reimplemented. The fresh project-local
+locked environment passed 121 focused projection/HTTP/authentication/security/
+documentation tests; the strengthened install floor then passed its 24-test
+security/authentication/documentation recheck. Both used warning-as-error
+validation. Temporary PostgreSQL instances were stopped and removed afterward.
+This follow-up creates a new exact head: preceding Checks and approvals do
+not transfer, and the new hosted scan remains required.
+
 This dated overlay supersedes older inventory statements only where it names
 fresh evidence. Local success, comments, and auto-merge are not delivery.
 
