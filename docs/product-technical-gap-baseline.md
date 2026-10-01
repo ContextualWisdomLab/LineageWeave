@@ -147,7 +147,9 @@ is not a current count. Protected `main` is still
   its current calendar product authority is
   [`docs/architecture/naruon-product-spec.md`](https://github.com/ContextualWisdomLab/Naruon/blob/develop/docs/architecture/naruon-product-spec.md),
   which keeps customer calendars source-owned.
-- Current selected PR heads and hosted Checks were re-read individually:
+- Selected PR heads and hosted Checks were re-read individually at this
+  snapshot. The #1141 row below is a pre-revert observation; its post-revert
+  head and Checks were not yet verified here:
   #1129 `afff1ef480a4d4eee5ae55c466ff6364df6e804e` (24 succeeded, 5 skipped,
   5 failed, 1 in progress, 1 cancelled, 5 passed); #1135
   `30392ee9ef7f5ff3a234e30711bef58ccb9e7b11` (24 succeeded, 8 failed,
@@ -155,12 +157,12 @@ is not a current count. Protected `main` is still
   `db96ff11c977a92180b5480884bc361a4be5cf75` (22 succeeded, 1 failed,
   26 skipped, 1 cancelled, 5 passed); #1139
   `421324c1b29d315d1987f69c3c16ce18a4330924` (25 succeeded, 6 failed,
-  6 skipped, 5 passed); and #1141 `2cc36993a5de15085d5b91646aaf1bdc1c2f57d0`
-  (20 succeeded, 7 failed, 7 skipped, 4 passed). These are check-page
-  observations for those exact SHAs, not protected delivery. No merge SHA was
-  found. The failing names are owner-bound CodeQL compatibility shards and
-  required review/security workflows; no consumer fallback or status
-  substitution is justified.
+  6 skipped, 5 passed); and #1141 pre-revert SHA
+  `2cc36993a5de15085d5b91646aaf1bdc1c2f57d0` (20 succeeded, 7 failed,
+  7 skipped, 4 passed). These are check-page observations for those exact
+  SHAs, not protected delivery. No merge SHA was found. The failing names are
+  owner-bound CodeQL compatibility shards and required review/security
+  workflows; no consumer fallback or status substitution is justified.
 - #1137 has the single failing `dependency-review` check. #1139 contains
   #1137's dependency change and merge-tree combines those two heads cleanly;
   however, #1137 has not reached protected `main`. Do not merge or retarget
