@@ -37,14 +37,7 @@ export function WorkspaceCalendar({
           <StatusNotice
             kind="unavailable"
             message={failClosedCopy}
-            nextAction={[
-              naruonNextAction,
-              commitments.length > 0
-                ? t("Open an upcoming commitment below to review its source post.")
-                : null,
-            ]
-              .filter((action): action is string => Boolean(action))
-              .join(" ") || undefined}
+            nextAction={naruonNextAction ?? undefined}
           />
         ) : events.length === 0 ? (
           <p className="popup-placeholder">
