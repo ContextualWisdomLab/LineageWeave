@@ -1,5 +1,23 @@
 # Product & Technical Gap Baseline
 
+### Exact-head follow-up — 2026-10-02 08:03 KST
+
+The CSV clarification and its contract/test update were pushed non-force to
+#1129 as `b02d3d13cd0d04800da9fe94d2d662787118d921`; Git transport and the PR
+detail view agreed on that exact head and protected `main`
+`83eba56149eb802cd63642c507c324c9976ec78e`. Local verification passed: 16
+focused `ontologyLayout` tests, frontend lint, production build, three Voice
+route-boundary tests, and the synthetic desktop/mobile Storybook render
+recorded below. At this head, Dependency Review had failed; Python analysis,
+Semgrep, the full test suite, frontend lint/test/build, and Noema review were
+running. Three CodeQL compatibility, two coverage, and OpenCode jobs were
+queued. `REVIEW_REQUIRED` and `BLOCKED`
+remained; auto-merge was re-enabled after the push. No independent approval or
+protected merge SHA was present. The ruleset detail read still returned HTTP
+403, so the actual rule document remains unavailable. This baseline update
+will itself create a new PR head and invalidate the `b02d3d13` hosted results;
+its replacement checks and merge state must be read from that new exact head.
+
 ### Exact-head loop refresh — 2026-10-02 07:52 KST
 
 Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. GitHub PR
