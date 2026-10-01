@@ -1,5 +1,101 @@
 # Product & Technical Gap Baseline
 
+### Protected-loop and exact-time evidence — 2026-10-01 22:25 KST
+
+This dated overlay separates policy, candidate implementation, and runtime
+acceptance. Protected `main` was re-read through Git and GraphQL at
+`83eba56149eb802cd63642c507c324c9976ec78e`. A complete GraphQL PR inventory
+returned **179 open PRs**, **169 drafts**, and **116 non-main bases** before
+this candidate; the issue inventory returned **43 open issues**. These are
+repository-management counts, not customer-data or population estimates.
+
+**Authority and ownership.** The current LineageWeave PRD and the ecosystem
+authorities in its register were read: RankWeave architecture, ThreadWeave
+PRD, TEPP approved v0.4 PRD, and DiskSage design specification. GitHub
+`nameWithOwner` confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, `fast-mlsirm`, `contextual-orchestrator`, and lowercase
+`ContextualWisdomLab/disksage`. Product branding does not change a machine
+repository reference. ADR 0184 governs exact-value parity and temporal
+projection; ADR 0246 governs the twelve atomic Voices; ADR 0256 governs
+evidence-bearing combinations. ADR 0251's occupational constructs stay
+separate. The cited stakeholder research supports contextual composition,
+not an exhaustive combination list, classifier, coefficient, or weight.
+
+**Exact-head review and protection.** Both active rulesets were re-read.
+The central pull-request rule requires one independent approval, dismisses
+stale approvals on push, and requires resolved review threads. Workflow,
+deletion, and non-fast-forward rules remain active. Checks below were read
+from the last commit and its `oid` matched the recorded PR head.
+
+| PR | Exact head | Observed gate |
+|---:|---|---|
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Approved; normal auto-merge retained; three CodeQL compatibility failures and OpenCode failure remain |
+| #1129 | `afff1ef480a4d4eee5ae55c466ff6364df6e804e` | Independent approval required; normal auto-merge retained; compatibility, Dependency Review, and OpenCode failures; Noema in progress |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Exact-head independent Noema approval; both review threads resolved; normal auto-merge retained; compatibility and OpenCode failures remain |
+| #1135 | `30392ee9ef7f5ff3a234e30711bef58ccb9e7b11` | Approval required; normal auto-merge retained; eight terminal review/security failures remain |
+| #1137 | `db96ff11c977a92180b5480884bc361a4be5cf75` | Approval required; normal auto-merge retained; Dependency Review remains failed |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` | Approval required; six terminal review/security failures; no auto-merge observed |
+| #1141 | `809bb6c86c8fdcf57578c3a4550c04086161bbe4` | No approval or auto-merge observed; an empty failing-check list alone proves no required gate |
+
+Every listed PR remains open with no merge SHA. Dependency Review's existing
+central-owner candidate `.github` #1725 remains Draft at
+`f27c5cfa4a61679e6ebb109d9e5972bd8a4f650d`, without approval or auto-merge.
+Its existence is not protected delivery. No consumer fallback, fabricated
+verdict, self-approval, force push, or bypass was used.
+
+Ascending review inspection covered #667, #672, #679, #702, #770, #771,
+#772, and #774: all remain Draft without unresolved threads. #667's exact
+`0c0f4af572a94e63cc8ea4545e48f5eda32a389c` has nine merge-tree conflicts
+against live main, including ADR 0237, App, API tests, architecture, and
+release/documentation files. #672/#679/#702 are also dirty. Do not discard
+either owned delta to manufacture a merge. Parent protection still precedes
+retargeting children and recollecting exact-head evidence.
+
+**Selected user-visible increment.** The exact-value table reduced every
+validity and recorded timestamp to ten characters. Same-day Voice changes
+therefore displayed identical boundaries and lost fractional seconds and
+timezone. The regression first failed on the expected full timestamp versus
+the rendered date. Implementation
+`5150d5387d718b16be2ec6ff9977530601b757a7` preserves the three supplied
+timestamps verbatim and shows Unknown for a missing time. It reuses existing
+table, scroll, focus, and color tokens; it adds no policy, API, schema,
+migration ordinal, release number, Voice code, estimate, or provider call.
+This is a reproduced gap in the selected Voice/evidence review workflow,
+not a measured ranking of all customer problems.
+
+Related frontend tests passed **32 tests**; ontology/SHACL/docstring/document
+checks passed **55 tests**. Lint, production build, and Storybook build passed.
+Earlier frontend attempts failed with test timeouts or test-process startup
+timeouts; a subsequent single-worker run passed without changing test limits.
+The existing bundle-size warning remains visible and was not suppressed.
+`SameDayVoiceInterval` was rendered and visually inspected at **1440×900**
+and **390×844**, including a mobile scrolled-table screenshot. All three
+timestamps retain six fractional digits and their supplied offsets; document
+widths were exactly 1440 and 390 pixels. The mobile table scrolls within its
+317-pixel keyboard-focusable region. These are synthetic candidate artifacts.
+
+Merge-tree combines this code increment cleanly with #1129, #1136, and #1139.
+The timestamp test was moved away from #1136's reader-scope edits to remove
+an observed textual conflict while preserving both tests. Baseline overlays
+still require deliberate integration; no predecessor approval or Check is
+transferred. Older ADR/migration/release collisions recorded below remain
+unresolved inventory items, not superseded by this narrow increment.
+
+**Current runtime and remaining acceptance.** The official `lineageweave`
+PostgreSQL container reports unhealthy. A fresh aggregate-only SQL request
+failed because the database is in recovery mode; it returned no record or
+count. Earlier private-corpus counts remain historical observations. No k6
+traffic was sent to that shared private source: a reachable, authenticated,
+synthetic-only application boundary was not established. Concurrency, latency,
+error rate, throughput, and PostgreSQL/worker/Valkey/gateway saturation remain
+unavailable. No product performance repair is justified from this observation.
+The formal Compose project, services, and data volumes were left unchanged.
+
+Authenticated PostgreSQL/API evidence, cutoff/truth behavior, PROV-O derivation,
+hidden-evidence omission, distinct carrying/evidence navigation, paged JSON-LD
+parity, and protected-main delivery remain separate gates. This focused
+rendering repair does not complete Voice acceptance or a release.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
