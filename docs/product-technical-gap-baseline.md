@@ -1,5 +1,201 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head audit — 2026-10-01
+
+This audit supersedes older present-tense queue and delivery statements below.
+It separates normative decisions, research/design authority, code candidates,
+hosted protection, and observed runtime state. It is not a release claim.
+
+### Authority and canonical repository identity
+
+Before changing code, this loop read LineageWeave's current
+`docs/product-requirements.md`, ADR 0246, ADR 0251, ADR 0256, and the existing
+primary-history contract. Twelve atomic Voices remain an open composition
+vocabulary; no compound-code enumeration or B2B2C restriction is introduced.
+ADR 0251 governs the I/O-psychology semantic layer, while ADR 0256 governs
+evidence-bearing Voice combinations. Their meanings are not interchanged.
+
+GraphQL repository identities and Git default heads agreed on these canonical
+names. The ecosystem sources were read before implementation; an approved
+design or local document is not promoted to deployed behavior.
+
+| Canonical repository | Default head observed | Product/architecture authority read |
+|---|---|---|
+| `ContextualWisdomLab/LineageWeave` | `83eba56149eb802cd63642c507c324c9976ec78e` | Current PRD and governing ADRs |
+| `ContextualWisdomLab/RankWeave` | `92323cb8b55baf5d840cb97fa8534a0e75ef234c` | `ARCHITECTURE.md` |
+| `ContextualWisdomLab/ThreadWeave` | `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0` | `docs/PRD.md` |
+| `ContextualWisdomLab/disksage` | `05899ffb01ce91a9ea3d782630b28a398de59ddc` | Local `docs/PRD.md`; protected-head `README.md` and `docs/architecture/adr/README.md` |
+| `ContextualWisdomLab/TEPP` | `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0` | `docs/product/prd-v0.4-approved.md` |
+| `ContextualWisdomLab/contextual-orchestrator` | Not refreshed in this snapshot | `docs/product_planning.md`, `docs/architecture.md` |
+
+DiskSage's remote repository spelling is lowercase `disksage`. PR #1131
+owns the protected-main authority-register correction; its unmerged document
+change is not silently treated as integrated here. No new ecosystem API,
+provider policy, estimation, or mathematical implementation is introduced.
+
+### Queue and protection observed
+
+The paginated 06:17 UTC REST observation covered **177 open PRs**, **169
+drafts**, and **116 non-main bases**, with **43 open issues** in the preceding
+GraphQL observation. PR #1139 was created afterward for the cutoff repair
+below; these counts are explicitly the pre-creation inventory, not a live
+counter. Every head/base object in that 177-PR inventory was available for a
+read-only changed-file and contract-identity audit.
+The later GraphQL refresh counted **178 open PRs** and **43 open issues**,
+confirmed unchanged protected main, and confirmed #1137/#1139 were still open
+with normal auto-merge and no merge commit.
+
+The active central ruleset `18156473` requires one approval, stale-review
+dismissal, resolved review threads, and seven central workflows: OpenCode,
+merge scheduler, Security Scan, Strix, Semgrep, Noema, and CodeQL.
+`require_last_push_approval` was false on this read; the separate no-force-push
+ruleset `21065108` remains active. No policy was changed. Exact-head approvals
+and terminal required checks remain separate from local tests and dispatches.
+
+| PR | Exact head observed | Review | Normal squash auto-merge |
+|---:|---|---|---|
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Approved | Enabled |
+| #1129 | `afff1ef480a4d4eee5ae55c466ff6364df6e804e` | Required | Enabled |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Approved | Enabled |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Required | Enabled |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | Required | Enabled |
+| #1135 | `30392ee9ef7f5ff3a234e30711bef58ccb9e7b11` | Required | Enabled |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Required | Enabled |
+| #1137 | `db96ff11c977a92180b5480884bc361a4be5cf75` | Required | Enabled |
+
+The exact-head protection refresh found zero unresolved threads on these
+eight ready PRs, with no truncated thread page; all remained BLOCKED.
+Later REST check-run refreshes returned HTTP 403 rate-limit responses despite
+the quota endpoint reporting remaining capacity. Earlier check results below
+remain dated observations; that API inconsistency is not passing evidence.
+#1040 and #1130 retain exact-head independent Noema approvals, but their
+OpenCode/CodeQL failures still prevent protected delivery. #1137's patched
+dependency/JWKS tests passed 20 local tests and `uv lock --check`; its Trivy
+and OSV findings are cleared, while exact-head `dependency-review` still
+fails its support probe with HTTP 403. Central owner `.github` #1725 remains
+open/Draft at `f27c5cfa4a61679e6ebb109d9e5972bd8a4f650d`, not a delivered fix.
+#1137 was made ready and normal auto-merge enabled after current-head local
+verification; the failing permission/configuration gate remains intact.
+
+No protected merge SHA was produced by this loop. Protected `main` stayed
+`83eba56149eb802cd63642c507c324c9976ec78e`. The in-progress/queued run inventory
+showed only an open #1129 exact-head Noema run and no queued runs on that
+bounded read, so no stale run was cancelled and no workflow gate was weakened.
+
+### Selected user gap and candidate proof
+
+The selected gap is loss of historical evidence when an additional perspective
+is revised. Protected-main persistence overwrote the current truth state,
+derivation assertion, and recording time, allowing a cutoff view to lose an
+earlier claim or acquire later evidence.
+
+PR #1139 code head `abf66f896992e1199829aa30a3e16406e779d272` closes the prior
+interval and inserts a replacement after locking the carrying Post. The old
+truth, derivation, and clocks stay intact; an identical retry is idempotent.
+The database clock is sampled after the lock, so an earlier-started waiting
+writer cannot backdate its replacement. Post-detail and ontology projections
+omit additional rows recorded after the cutoff, including legacy overwrites
+whose earlier evidence cannot be recovered. ADR 0256 was amended before code;
+the imported primary and atomic vocabulary remain unchanged.
+
+At that code head, **89 related tests passed with DeprecationWarning treated
+as an error**, including synthetic PostgreSQL migration replay, truth-only
+and evidence-only changes, unchanged retry, failed-replacement rollback,
+waiting writers, historical production read projections, and primary-Voice
+preservation. Ruff on persistence/regression files and `git diff --check`
+passed. Five documentation-hygiene
+tests also passed before this baseline refresh. Temporary test databases are
+dropped by fixture teardown; no formal data volume was removed.
+
+This baseline-only follow-up advances the PR head without changing the tested
+code. Its hosted checks and independent approval must be collected again;
+the code-head tests above are not transferred approval or protected delivery.
+On the pre-baseline code head, GitHub's frontend job and Semgrep passed;
+Full suite, Noema, and Strix remained in progress. CodeQL compatibility,
+OpenCode, and Trivy remained failed. The inherited vulnerable dependency lock
+is owned by #1137, not repaired through a duplicate consumer dependency change.
+Normal squash auto-merge was enabled for #1139; required review remained
+unmet, with no unresolved threads and no merge SHA.
+
+### Cross-PR contract and integration audit
+
+The 177-PR audit used each observed base/head pair, excluded deleted files and
+rollback companions, and compared changed contract identities. It found these
+unresolved integration risks rather than silently renumbering another owner's
+work:
+
+- Migration ordinal 0248: #1049's source-conversation evidence and #929's
+  Customer Master translation draft. Ordinal 0249: #1047's chat authorization
+  and #1127's translation ownership/draft files. #929 additionally retains
+  multiple distinct 0247 files. Issue #1048/#1049 remain the ordinal-owner lane.
+- ADR identity reuse includes 0245 (#702 versus #997/#1123), 0272
+  (#1009 versus #888 versus #802/#850), 0300 (#899 versus #837/#857),
+  0301 (#902 versus #838), and 0355 (#915 versus #920), plus the overlapping
+  leftover-map 0289-0305 family. Matching ordinals do not establish equivalent
+  decisions; accepted authority and parent-first delivery must reconcile them.
+- Repeated release changes occur at 2.54.0 (#828/#832/#833), 2.55.0
+  (#829/#835), 2.56.0 (#830/#836/#980), 2.61.0 (#841/#842), and 2.62.0
+  (#843/#844). These are candidate identities, not simultaneous releases.
+- No duplicate newly added method/path identity was found among the changed
+  `backend/app/main.py` handlers. That bounded check does not prove request,
+  response, authorization, schema, or migration compatibility.
+
+The #1139 code tree merged cleanly in read-only merge-tree checks with exact
+#1129, #1138, #1131, and #1135 heads above. #1129 owns searched Voice exports
+and paged JSON-LD union; #1138 owns derivation admission and is stacked on
+#1137. Preserve both derivation admission and cutoff predicates when composing
+their shared ingestion file. Baseline overlays remain a shared-file conflict
+risk. #1132 still waits on #1131; #1138 still waits on #1137. Merge parents
+through protection first, then retarget children to main and recollect evidence.
+This PR introduces no new ADR ordinal, migration, API shape, or release number.
+
+### Runtime and acceptance remain distinct
+
+The formal Compose project is `lineageweave`. A fresh bounded inspection
+observed PostgreSQL running/unhealthy, the backend running, the Ask worker
+exited/unhealthy, and Valkey running/healthy. Redacted worker diagnostics
+contained OSError, asyncpg InterfaceError, and Valkey timeout classes; they
+do not establish a saturation cause or justify an unmeasured tuning policy.
+No raw logs, provider responses, source records, credentials, or rendered
+Compose configuration were printed or committed.
+
+Authenticated synthetic k6 concurrency, latency, error-rate, throughput, and
+PostgreSQL/worker/Valkey/gateway saturation evidence are **unavailable** in this
+run. An authenticated synthetic workload and healthy formal services must be
+established before measuring or claiming capacity; only an observed bottleneck
+may authorize a performance fix. No population inference is drawn from a
+runtime convenience sample or service-health observation.
+
+The PostgreSQL tests above exercise production projections but do not prove
+authenticated HTTP admission or rendered runtime UI. Voice acceptance therefore
+remains **incomplete**. Carrying Post versus derivation evidence, hidden-evidence
+omission, paged JSON-LD property/multi-Voice preservation, truth/cutoff behavior,
+and desktop/mobile rendering must converge on one protected head before a
+release claim. No estimation, model selection, provider passthrough, fabricated
+weight, fallback evidence, or unsupported completion is added.
+
+The separate #1129 UI candidate was rebuilt from exact head
+`afff1ef480a4d4eee5ae55c466ff6364df6e804e` with an isolated Corepack/pnpm install.
+All **537 frontend tests** passed in a single-worker run, including the 19
+focused Voice/export tests; Storybook built. An initial unrestricted local
+invocation failed 21 tests, which did not reproduce on the identical head with
+one worker. No timeout, assertion, or source code was changed to obtain that
+result, and the failed run is not counted as passing.
+
+Fresh `SeparateVoiceEvidence` screenshots were inspected at 1440×900 and
+390×844, including the mobile evidence-action scroll position. Page width
+stayed within each viewport; the mobile exact-values region retained its
+317-pixel viewport and 638-pixel scrollable table. The carrying Post and
+different derivation Post have separate actions. Browser checks confirmed that
+excluding the evidence Post removes the additional Voice from the view, CSV,
+and JSON-LD instead of substituting the carrying Post. Paged subject/property
+and multi-Voice union remains covered by the focused tests. These synthetic
+render/export results belong to #1129, not authenticated runtime or #1139's
+protected delivery; the screenshots/exports are local review artifacts under
+`/tmp/lw-root-visual-audit/` and contain synthetic fixture records only.
+
+## Historical supporting snapshots
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
