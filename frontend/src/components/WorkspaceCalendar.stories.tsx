@@ -71,6 +71,7 @@ export const NaruonUnavailable: Story = {
     const notice = canvas.getByRole("region", { name: /^Unavailable:/ });
     await expect(notice).toHaveTextContent("이 범위의 일정을 아직 받을 수 없습니다");
     await expect(notice).toHaveTextContent("enable calendar access");
+    await expect(notice).toHaveTextContent("Open an upcoming commitment below");
     await expect(notice).not.toHaveTextContent(/Naruon|provider|model|transport|environment/i);
     await expect(
       canvas.getByRole("button", { name: /open commitment for: public post/i }),

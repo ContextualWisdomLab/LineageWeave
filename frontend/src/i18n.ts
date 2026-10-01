@@ -76,6 +76,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "예정된 약속이 없습니다. 글에서 약속을 찾거나 기한이 있는 티켓을 만드세요.",
     "Open commitment for:": "약속 열기:",
+    "Open an upcoming commitment below to review its source post.":
+      "아래 예정된 약속을 열어 근거가 된 글을 확인하세요.",
     Ready: "준비됨",
     Unavailable: "사용할 수 없음",
     "Retry needed": "다시 시도 필요",
@@ -665,6 +667,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "没有即将到来的承诺。请从文章中查找承诺，或创建带截止日期的工单。",
     "Open commitment for:": "打开承诺：",
+    "Open an upcoming commitment below to review its source post.":
+      "打开下方的待处理承诺以查看其来源文章。",
     Ready: "已就绪",
     Unavailable: "不可用",
     "Retry needed": "需要重试",
@@ -1269,6 +1273,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "今後のコミットメントはありません。投稿から検索するか、期限付きのチケットを作成してください。",
     "Open commitment for:": "コミットメントを開く：",
+    "Open an upcoming commitment below to review its source post.":
+      "下の予定された約束を開いて、根拠となる投稿を確認してください。",
     Ready: "利用可能",
     Unavailable: "利用できません",
     "Retry needed": "再試行が必要",
@@ -1853,6 +1859,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "Không có cam kết sắp tới. Hãy tìm cam kết từ bài viết hoặc tạo phiếu có hạn hoàn thành.",
     "Open commitment for:": "Mở cam kết:",
+    "Open an upcoming commitment below to review its source post.":
+      "Mở cam kết sắp tới bên dưới để xem bài viết nguồn.",
     Ready: "Sẵn sàng",
     Unavailable: "Không khả dụng",
     "Retry needed": "Cần thử lại",

@@ -46,6 +46,7 @@ describe("WorkspaceCalendar", () => {
     const notice = screen.getByRole("region", { name: /^Unavailable:/ });
     expect(notice).toHaveTextContent(CALENDAR_CONSUME_UNAVAILABLE);
     expect(notice).toHaveTextContent("enable calendar access");
+    expect(notice).toHaveTextContent("Open an upcoming commitment below");
     expect(notice).not.toHaveTextContent(/Naruon|provider|model|transport|environment/i);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByText(/CalDAV/i)).not.toBeInTheDocument();
