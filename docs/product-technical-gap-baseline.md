@@ -51,12 +51,16 @@ migration, or release was introduced by this loop.
   exclusion, rendered exact-value/CSV behavior, paged JSON-LD union, and
   synthetic authenticated k6 capacity evidence remain unavailable. Do not
   mark the Voice acceptance complete until those proof points exist.
-- Exact-head integration check found #1139 intentionally incorporates
-  dependency owner #1137 as an ordinary parent. #1133/#1137 dependency deltas
-  were previously merge-tree clean; #1131/#1135 baseline edits conflict and
-  must be reconciled only after parent protection, followed by fresh child
-  checks. No ADR, public API, schema, migration ordinal, or release-number
-  collision was introduced by #1140.
+- Exact-head integration checks found #1139 includes dependency-owner #1137 as
+  an ordinary parent; #1137 must reach protected `main` before #1139 can be
+  restacked, rechecked, and considered for merge. #1133/#1137 merge cleanly.
+  #1131/#1135 conflict in `docs/product-technical-gap-baseline.md`, as do
+  #1131/#1141. #1129/#1139 conflict in the baseline, `pyproject.toml`,
+  `tests/test_pyjwt_advisory_floor.py` (add/add), and `uv.lock`. Preserve both
+  deltas; resolve only after their required parents are protected, then
+  collect fresh exact-head checks and reviews. No API, schema, migration
+  ordinal, or release-number collision was introduced by the temporary #1140
+  candidate.
 
 No protected merge SHA is established in this refresh. The temporary #1140
 candidate was closed as duplicate guidance. PR #1141 and the existing normal
