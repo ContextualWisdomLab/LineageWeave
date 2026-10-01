@@ -1,5 +1,68 @@
 # Product & Technical Gap Baseline
 
+### Exact-head loop refresh — 2026-10-01 18:31 KST
+
+The product authority remains [`docs/product-requirements.md`](product-requirements.md);
+ADRs remain normative. Voice acceptance is governed by ADRs 0246, 0251, 0252,
+and 0256. The 12 atomic Voice codes and open, evidence-bearing composition
+contract remain unchanged; no combination code, weight, heuristic, schema,
+migration, or release was introduced by this loop.
+
+- Canonical remote spelling was confirmed as `ContextualWisdomLab/LineageWeave`;
+  `RankWeave` and `ThreadWeave` retain their canonical case, while DiskSage's
+  repository is lowercase `ContextualWisdomLab/disksage`. Current `main` from
+  Git transport is `83eba56149eb802cd63642c507c324c9976ec78e`.
+- PR #1139 exact head `421324c1b29d315d1987f69c3c16ce18a4330924` remains open,
+  based on `main`, review-required and blocked. No independent review or
+  auto-merge request is present. Full tests, frontend checks, PROV-O and
+  ontology publication passed on this head; Security Dependency Review failed
+  on an exact dependency-graph HTTP 403; CodeQL compatibility shards and
+  OpenCode failed closed without current-head verdicts. Noema failed after the
+  orchestrator gateway returned HTTP 400. These are hosted evidence and
+  central/provider owner blockers, not evidence of a code defect or grounds
+  for a consumer workaround. The PR diff had no review-thread findings.
+- PR #1137 at `db96ff11c977a92180b5480884bc361a4be5cf75` and PR #1129 at
+  `afff1ef480a4d4eee5ae55c466ff6364df6e804e` remain blocked with normal
+  auto-merge armed; neither has independent approval. #1137 has the
+  dependency-review support failure; #1129 has three CodeQL compatibility
+  failures, dependency-review support failure, and OpenCode verdict failure.
+  No PR was merged or check transferred.
+- The last complete inventory recorded 178 open PRs and 32 open Issues. This
+  loop confirmed at least nine non-draft PRs targeting `main`; a fresh paged
+  inventory then hit GitHub API HTTP 403 rate limiting. These counts remain
+  dated observations, not a claim of the complete live queue. Current ruleset
+  bodies and later check transitions likewise became unavailable after
+  rate limiting.
+- The mainline buyer-facing Calendar gap was that an unavailable observed-event
+  notice asked for administrator setup but did not mention an available
+  commitment action shown immediately below it. PR #1140 adds that localized
+  next step only when a commitment exists, reusing `StatusNotice` and the
+  existing Storybook story. Its exact pushed head is
+  `d3672e508ffba053eb8c94a054e0de5a1db50b02`; it is open against `main`,
+  review-required, with no independent approval or auto-merge. At initial
+  hosted observation, Full tests, frontend checks, Noema, and Strix were still
+  running; inherited exact-head CodeQL compatibility jobs and OpenCode failed
+  closed. Subsequent check state could not be refreshed after API rate limiting.
+- Local frontend lint, TypeScript, focused Calendar/i18n tests (102 tests),
+  production build, Storybook build, and `git diff --check` passed for #1140.
+  No authenticated PostgreSQL/API or private data was used. The changed buyer
+  behavior is copy within an existing notice; Storybook's interaction
+  assertion passed in build. Desktop/mobile screenshots are not claimed for
+  this copy-only change. Authenticated runtime and k6 capacity evidence remain
+  unavailable.
+- Exact-head integration check found #1139 intentionally incorporates
+  dependency owner #1137 as an ordinary parent. #1133/#1137 dependency deltas
+  were previously merge-tree clean; #1131/#1135 baseline edits conflict and
+  must be reconciled only after parent protection, followed by fresh child
+  checks. No ADR, public API, schema, migration ordinal, or release-number
+  collision was introduced by #1140.
+
+No protected merge SHA is established in this refresh. Keep #1140 and the
+existing normal auto-merge requests blocked until exact-head hosted gates,
+independent approvals, thread resolution, and applicable rulesets are
+verifiable. Do not mark Voice acceptance complete without authenticated
+PostgreSQL/API and runtime truth/cutoff proof.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
