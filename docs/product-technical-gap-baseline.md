@@ -13,13 +13,23 @@ explicit) and refreshes only transitive urllib3 to 2.8.0. The GitHub Reviewed
 records for GHSA-8988-9cw3-xx77, GHSA-gh4c-6fx4-qh6g, and GHSA-vxq7-64xx-v4gw
 each name 2.8.0 as the first patched version. PyPI confirms PyJWT 2.15.1 is a
 published artifact. A fresh PyJWT advisory read also shows CVE-2026-101918
-affects versions through 2.14.0 and first patches at 2.15.0, so both install
-surfaces now require 2.15.0 instead of carrying #1137's older 2.14.0 floor.
+affects versions through 2.14.0 and first patches at 2.15.0. Concurrent owner
+work moved #1137 to `db96ff11c977a92180b5480884bc361a4be5cf75`, requiring
+the tested PyJWT 2.15.1 release on both surfaces and explicit urllib3 2.8.0.
+The ordinary owner merge on #1138 at
+`3559b0f80344449bdfdfb8a3e60d32a9f99a72e6` was preserved. Local follow-up
+changes were reconciled with that lineage without force-pushing; the owner's
+unified dependency regressions replace the unpublished duplicate urllib3 test.
+The new #1137 head was Draft with auto-merge disabled in the refreshed read;
+its older approval/check/auto-merge statements below are dated history only.
 No JWT verifier or HTTP implementation is reimplemented. The fresh project-local
 locked environment passed 121 focused projection/HTTP/authentication/security/
 documentation tests; the strengthened install floor then passed its 24-test
 security/authentication/documentation recheck. Both used warning-as-error
 validation. Temporary PostgreSQL instances were stopped and removed afterward.
+After reconciling the concurrent canonical-owner merge, its unified dependency
+contract plus authentication and documentation checks passed 25 tests, and
+`uv lock --check` passed with PyJWT 2.15.1 and urllib3 2.8.0.
 This follow-up creates a new exact head: preceding Checks and approvals do
 not transfer, and the new hosted scan remains required.
 
@@ -946,6 +956,30 @@ of leverage; open connector PRs there when the defect is upstream:
   and compatibility decision; this publication PR rewrites neither identity.
 - Until the protected deployment and exact URL checks succeed, the public
   ontology endpoint remains unavailable and must not be represented as live.
+
+## 2026-10-01 dependency advisory floor
+
+**Status:** Proposed on `ContextualWisdomLab/LineageWeave#1137`; merge and
+release remain HOLD pending exact-current-head hosted evidence and independent
+approval.
+
+**Context Map / owner.** LineageWeave owns its application dependency source
+and generated `uv.lock`. PyPI artifacts and the vulnerability database are
+upstream evidence; feature branches consume the owner through ordinary Git
+history instead of carrying private lock-file workarounds.
+
+**Gap / RCA.** Exact consumer head
+`ContextualWisdomLab/LineageWeave#1138@e98a68ed99566f6c145b84c3ec816216dd720ebb`
+failed Security Scan `36811272599`, job `110206798976`: PyJWT 2.13.0 carried
+twelve reported CVEs and urllib3 2.7.0 carried CVE-2026-97687,
+CVE-2026-97688, and CVE-2026-97689. Existing owner #1137 selected PyJWT
+2.15.1 but its source floor remained 2.14.0 and urllib3 was only transitive.
+
+**RED → GREEN / acceptance.** The owner test failed on both stale source
+contracts and the urllib3 lock. The repair requires PyJWT 2.15.1, adds a direct
+urllib3 2.8.0 floor, and regenerates the lock without moving an unrelated
+resolved package. Accept only after owner and consumer exact heads complete
+Security, tests, SAST, non-skipped CodeQL, and qualifying independent review.
 
 ## 9. Evidence boundaries
 
