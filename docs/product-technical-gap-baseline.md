@@ -1034,9 +1034,15 @@ repository workflow metadata, not runtime or population evidence.
   draft authoring work or stacked child was retargeted or deleted.
 - GraphQL freshly confirmed active rulesets **18156473** (central required
   workflows, pull-request review, deletion and non-fast-forward protection)
-  and **21065108** (LineageWeave non-fast-forward protection). The final
-  merge decision still needs applicable conditions, exact required workflows,
-  qualifying approval and resolved threads, not merely a green rollup.
+  and **21065108** (LineageWeave non-fast-forward protection). Both target
+  `~DEFAULT_BRANCH` with no excluded ref; no classic branch-protection rule
+  was returned. The active central pull-request contract requires one
+  approval, resolved review threads and dismissal of stale approvals;
+  `requireLastPushApproval` is false. Seven central workflows are required:
+  OpenCode, review/merge scheduler, security scan, Strix, Semgrep, Noema and
+  CodeQL. These are live policy observations, not a policy mutation. The final
+  merge decision still needs exact required workflow success and qualifying
+  independent approval, not merely a green rollup.
 - New #1143 at pre-documentation-update head
   `3dd2077229663586e40a9d8055cfd66d4fd145c5` is Ready / REVIEW_REQUIRED.
   Squash auto-merge was enabled and re-read as armed. That observed head has
