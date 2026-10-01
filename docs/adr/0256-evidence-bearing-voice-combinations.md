@@ -88,8 +88,11 @@ compound lookup codes.
   page accumulation unions both forms, and search filtering removes hidden
   assignment references in either form. CSV retains the carrying Post's
   `source_node_id` separately from `evidence_post_id`, along with the
-  persisted validity bounds; it never derives either identity or interval
-  from a label or an encoded row identifier.
+  persisted validity bounds. It also names those roles explicitly as
+  `carrying_post_id` and `derivation_evidence_post_id` columns so spreadsheet
+  readers can distinguish the Post that carries a Voice from its derivation
+  evidence. It never derives either identity or interval from a label or an
+  encoded row identifier.
 
 ## Data model
 

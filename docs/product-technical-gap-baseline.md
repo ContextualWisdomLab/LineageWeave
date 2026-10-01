@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+### Exact-head loop refresh — 2026-10-02 07:52 KST
+
+Protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`. GitHub PR
+detail views returned exact state for the two slices reviewed in this loop:
+
+- #1129 `codex/voice-filter-evidence-20260927` was at
+  `a8be137b427e872d5c2ab9ca272a6239e5477856`, based on that `main`, with
+  auto-merge enabled, `REVIEW_REQUIRED`, and `BLOCKED`. Exact-head checks had
+  three CodeQL compatibility failures, `noema-review`, `dependency-review`,
+  `continue-noema-transport`, and `opencode-review` failed; Strix was still
+  running. The CodeRabbit Storybook JSON-LD finding from an older review head
+  is covered by commit `0eea5f5fe` and its visible Voice-relationship fixture.
+  The newly added Voice route-boundary test passes locally (3 tests); it does
+  not establish authenticated PostgreSQL API behavior or rendered customer
+  runtime acceptance. A local CSV follow-up adds explicit carrying-Post and
+  derivation-evidence columns; its focused frontend test (16 tests), lint,
+  production build, and route-boundary test passed, but those results are for
+  the unpushed candidate and do not replace checks on a GitHub head. Storybook
+  built and `SeparateVoiceEvidence` rendered at 1440×900 and 390×844; the
+  mobile table scrolls horizontally to the labeled Evidence action. Synthetic
+  screenshots are `/tmp/lineageweave-pr1129-desktop-20261002.png` and
+  `/tmp/lineageweave-pr1129-mobile-evidence-20261002.png`.
+- #1135 `fix/buyer-error-boundary-safe-links-20260928` was at
+  `73ba540789d2f2210a17e7eb5396270dafa66589`, also based on protected `main`,
+  with auto-merge enabled, `REVIEW_REQUIRED`, and `BLOCKED`. Seven exact-head
+  checks failed: three CodeQL compatibility jobs, Noema review, Dependency
+  Review, Strix, and OpenCode review. The two actionable CodeRabbit comments
+  checked against this head are resolved: the Storybook interaction waits for
+  the occupation option, and the Calendar error is translated in Korean,
+  Chinese, Japanese, and Vietnamese. Frontend lint and all 565 tests passed
+  locally on this head. No independent approval or protected merge SHA was
+  present.
+- The PR list query returned GraphQL HTTP 502 and REST list/ruleset calls were
+  rate-limited (HTTP 403). Open PR/Issue counts and exact state for uninspected
+  PRs could not be refreshed; earlier inventory figures below are dated
+  snapshots only. Both reviewed PR detail views report blocked state and
+  required approval. Do not infer ruleset contents or merge eligibility from
+  the unavailable ruleset endpoint.
+- Git transport reconfirmed canonical remotes and default heads: LineageWeave
+  `83eba56149eb802cd63642c507c324c9976ec78e`, RankWeave
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, DiskSage (canonical repo
+  `disksage`) `05899ffb01ce91a9ea3d782630b28a398de59ddc`, TEPP
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`, and
+  contextual-orchestrator `8e1f1a8bf3e96e56dc8fcc90ec777883a1d56ce6`.
+  The CSV clarification changes no API, database schema, migration, or release
+  number. #1129 and #1135 both edit this baseline and the Storybook inventory;
+  reconcile those documentation paths when their branches are integrated.
+
 ## Git-transport refresh — 2026-10-01 07:13 KST
 
 This entry supersedes the lifecycle, inventory, and exact-head statements in

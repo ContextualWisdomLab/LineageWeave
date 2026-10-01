@@ -154,12 +154,21 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
     "target_type_code",
     "valid_from",
     "valid_to",
+    "carrying_post_id",
+    "derivation_evidence_post_id",
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {
     lines.push(
       header
-        .map((key) => csvCell(String(row[key as keyof typeof row] ?? "")))
+        .map((key) => {
+          const value = key === "carrying_post_id"
+            ? row.source_node_id
+            : key === "derivation_evidence_post_id"
+              ? row.evidence_post_id
+              : row[key as keyof typeof row];
+          return csvCell(String(value ?? ""));
+        })
         .join(","),
     );
   }
