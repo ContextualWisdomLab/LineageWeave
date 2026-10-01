@@ -1,5 +1,66 @@
 # Product & Technical Gap Baseline
 
+### Exact-head continuation — 2026-10-02 02:51 KST (2026-10-01 17:51 UTC)
+
+This overlay supersedes earlier present-tense queue and PR statements only for
+the exact heads named below. ADRs are normative; the current LineageWeave
+product contract is [`docs/product-requirements.md`](product-requirements.md).
+ADR 0246 keeps the twelve atomic Voice categories extensible, ADR 0256 governs
+evidence-bearing combinations, and ADR 0251 remains a separate I/O-Psychology
+taxonomy. The cited stakeholder sources do not establish a closed combination
+list, classifier, or score. No heuristic, weight, or new inference was added.
+
+**Non-identifying repository snapshot.** GitHub reported 181 open PRs (169
+drafts, 116 not targeting `main`) and 43 open issues during this read. These
+are repository workflow counts, not product usage or population evidence.
+Protected `main` still resolves over Git transport to
+`83eba56149eb802cd63642c507c324c9976ec78e`. The last successful exact ruleset
+read in this loop found central ruleset `18156473` requiring one review and
+resolved threads, and repository ruleset `21065108` prohibiting non-fast-
+forward updates. A later REST re-read returned HTTP 403, so no policy change
+or current approval is inferred from that failed request.
+
+| PR | Exact head / base observed | Review, merge, and exact-head Checks |
+| ---: | --- | --- |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` / `main` | Ready; blocked; squash auto-merge armed; review required. Five checks failed (three CodeQL compatibility shards, OpenCode, and Trivy) and Noema was in progress. CodeQL/OpenCode failures report that their exact-head verdict dispatch is pending; Trivy's terminal failure is not relabeled as a pass. Focused local ontology/export suite passed 82 tests. |
+| #1142 | `5a64d093d02c1bbd478b02d1b6b52b5080374170` / `main` | Ready; blocked; squash auto-merge remains armed; exact-head review required. The previous `cwl-noema-review` approval was dismissed after the new push. New-hosted checks were still pending at the last read. Local `OntologyExplorer` tests passed (17), Storybook built, and synthetic desktop/mobile screenshots were inspected. |
+| #1141 | `809bb6c86c8fdcf57578c3a4550c04086161bbe4` / `main` before this overlay commit | Full suite, frontend, CodeQL compatibility, Noema, OpenCode, and Semgrep passed on that head; scoped security jobs were skipped. No qualifying review or auto-merge was present. This documentation update creates a new head and invalidates those results; re-fetch its exact-head Checks before any merge claim. |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` / `main` | Blocked; six failed checks (three CodeQL compatibility shards, Dependency Review, Noema, OpenCode); full suite and frontend passed; no qualifying approval or auto-merge. Though the PR base label is `main`, its history contains #1137's exact dependency commit `db96ff11c977a92180b5480884bc361a4be5cf75`. Keep the parent-first gate: #1137 must reach protected `main` before this delta is considered for merge/restack. |
+| #1137 | `db96ff11c977a92180b5480884bc361a4be5cf75` / `main` | Blocked; Dependency Review failed; full suite, frontend, Noema, and remaining observed security checks passed. Review is required; squash auto-merge is armed. The dependency-graph support failure belongs to its workflow owner. |
+| #1135 | `30392ee9ef7f5ff3a234e30711bef58ccb9e7b11` / `main` | Blocked; full suite, frontend, registry/inference, and ontology publication passed. Three CodeQL compatibility jobs, Dependency Review, Noema and its continuation, OpenCode, and Strix failed. Review is required; squash auto-merge is armed. Do not work around these shared workflow/provider boundaries in product code. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` / `main` | Full suite, frontend, CodeQL compatibility, Noema, OpenCode, and Semgrep passed; no qualifying approval. Squash auto-merge is armed, and the parent remains blocked on review. |
+| #1132 | `8bb057866abb7706a54f2801aafd6d6b56e8e243` / `codex/gap-authority-20260927` | Draft child for denied-user next-step guidance. GitHub reported base SHA `8c3063e9f1aa9d3321da8d8ab4cc0e48c9c101cd`, while that live base branch now resolves to #1131 head `ee3d8890ce3b7829f668e05732ef55d24e2e688e`; preserve the child delta and do not retarget before the parent is protected. |
+
+**Candidate behavior and rendered review.** #1143 adds one shared export
+qualification rule: an additional Voice without an admitted derivation Post
+is omitted as a whole from CSV and JSON-LD, while an absent carrying Post
+fails closed. It does not replace hidden evidence with the assigned Post.
+The 82 focused local tests use synthetic records only. #1142 fixes date-only
+Voice validity display. Its first screenshot exposed timestamps wrapping at
+punctuation on desktop, so the review added `white-space: nowrap` to the three
+temporal value columns. On the final 1440×900 render the full fractional-second
+timestamps remain on one line. At 390×844 the exact-values region scrolls
+horizontally (317-pixel viewport, 1,168-pixel table) while the document stays
+390 pixels wide. These are Storybook fixtures, not authenticated product
+evidence.
+
+**Cross-PR integration.** Read-only merge-tree checks are clean for #1143 with
+#1142, #1141, #1139, and #1135. `docs/product-technical-gap-baseline.md`
+conflicts between #1142 and #1141, #1141 and #1139, #1141 and #1135, and
+#1141 and #1131; preserve each audit delta when resolving. #1135 and #1137
+conflict in `pyproject.toml`, `uv.lock`, and the PyJWT advisory-floor test.
+#1139 descends from #1137 and merges cleanly with its parent. The selected
+changes introduce no competing route, API schema, migration ordinal, or
+release number. No stale run was cancelled, and no bypass or force push was
+used.
+
+**Remaining product acceptance.** The authorized evidence and cutoff contract
+is implemented in candidate PRs, but there is no authenticated PostgreSQL/API
+proof for these exact heads. Do not mark Voice acceptance complete without
+that proof plus the existing truth/cutoff, hidden-evidence, CSV, paged
+JSON-LD, and rendered-UI acceptance. The review screenshots use synthetic
+fixtures only. No runtime source data or credential was read or committed.
+
 ### Exact-head protected-loop refresh — 2026-10-01 20:33 KST
 
 This is a bounded refresh from live Git refs and individual GitHub PR/Checks
