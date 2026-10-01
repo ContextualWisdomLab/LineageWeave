@@ -13,8 +13,9 @@ migration, or release was introduced by this loop.
   repository is lowercase `ContextualWisdomLab/disksage`. Current `main` from
   Git transport is `83eba56149eb802cd63642c507c324c9976ec78e`.
 - PR #1139 exact head `421324c1b29d315d1987f69c3c16ce18a4330924` remains open,
-  based on `main`, review-required and blocked. No independent review or
-  auto-merge request is present. Full tests, frontend checks, PROV-O and
+  based on `main`, review-required and blocked. No independent review is
+  present; auto-merge is disabled until dependency owner #1137 reaches
+  protected `main`, preserving parent-first sequencing. Full tests, frontend checks, PROV-O and
   ontology publication passed on this head; Security Dependency Review failed
   on an exact dependency-graph HTTP 403; CodeQL compatibility shards and
   OpenCode failed closed without current-head verdicts. Noema failed after the
