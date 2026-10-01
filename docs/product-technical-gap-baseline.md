@@ -1,5 +1,97 @@
 # Product & Technical Gap Baseline
 
+### Current authority and exact-head audit — 2026-10-01 12:30 KST
+
+This dated overlay supersedes older inventory statements only where it names
+fresh evidence. Local success, comments, and auto-merge are not delivery.
+
+**Authority and research.** The LineageWeave PRD, ThreadWeave `docs/PRD.md`,
+RankWeave `ARCHITECTURE.md`, DiskSage `docs/PRD.md`, and TEPP
+`docs/product/prd-v0.4-approved.md` were read before this slice. The remote
+repository API confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `ContextualWisdomLab/disksage`.
+ADRs 0184, 0246, 0252, and 0256 govern this Voice projection. ADR 0251 actually
+describes the FJA psychological construct layer; its stale reference in ADR
+0252 is separately owned by #1121. The twelve atomic Voices and extensible
+row-composition contract remain unchanged. PROV-O supplies the derivation
+semantics; no research source licenses an invented Voice, weight, or score.
+
+**Repository census and implementation.** Paginated REST returned 176 existing
+open PRs (168 drafts, 115 non-`main` bases) and 43 open issues. Changed-file
+and formal-review pagination completed for all 176 PRs. These are repository
+counts, not private-record samples. Git transport and the local candidate base
+agree on `main` `83eba56149eb802cd63642c507c324c9976ec78e`.
+The oldest candidates #667/#672/#679/#702 are still drafts, report merge
+conflicts, and have no current-head approval. Their old application checks
+do not settle current-main integration or their ADR/schema conflicts.
+
+| PR | Exact head re-read | Delivery qualification |
+| ---: | --- | --- |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Independent current-head Noema approval; zero unresolved threads; auto-merge retained; OpenCode and three CodeQL compatibility failures remain |
+| #1129 | `afff1ef480a4d4eee5ae55c466ff6364df6e804e` | Auto-merge retained; application/frontend/ontology checks pass; five failed checks and two in progress in the captured set; authenticated Voice acceptance unverified |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Independent current-head Noema approval; zero unresolved threads; auto-merge retained; OpenCode and three CodeQL compatibility failures remain |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Auto-merge retained; no approval in the captured formal-review inventory |
+| #1132 | `8bb057866abb7706a54f2801aafd6d6b56e8e243` | Draft child of #1131; no parent merge, retarget, or transferred evidence |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | Auto-merge retained; no approval; required owner checks unsatisfied |
+| #1135 | `30392ee9ef7f5ff3a234e30711bef58ccb9e7b11` | Auto-merge retained; no approval; eight failures in the captured exact-head set |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Auto-merge retained; prior correction acknowledged by reviewer; no approval |
+| #1137 | `abb9de9ff17ee343a37a353cefa199b127d65630` | Auto-merge retained; application success does not clear failed central checks or missing approval |
+
+Ruleset 18156473 was re-read: one approving review, stale-review dismissal,
+resolved threads, and seven central required workflows. Classic protection
+returning 404 does not remove that ruleset. No bypass actor was used and no
+new merge SHA was established. Failed central workflows remain owned by
+`.github` and their service/provider boundaries; no local verdict substitutes
+for them. Repeated check names and old attempts do not establish acceptance.
+
+**Cross-PR conflicts.** The all-PR changed-file census identifies 66 shared
+ADR/schema/API/release paths and 19 distinct candidate ordinal conflicts:
+16 ADR numbers and three forward-migration numbers. Rollbacks and deleted
+files were excluded. This is candidate integration risk, not 19 new collisions
+on protected `main`.
+
+- ADR 0245 names different decisions in #702 and #997/#1123.
+- ADR 0272 names reports in #802/#850, MCP in #1009, and an unaccepted latency
+  policy in #888. No arbitrary SLO is adopted.
+- Forward migration 0248 differs between #929 and ordinal-repair #1049;
+  0249 differs between #1047 and #1127; #929 contains multiple forward 0247
+  files. Preserve shipped history and resolve at the canonical migration owner.
+- `backend/app/main.py`, package/runtime versions, and `CHANGELOG.md` overlap
+  across older stacks. Shared paths are not API compatibility proof.
+  Parent-first protected merge and fresh child-head evidence remain required.
+  This slice introduces no ADR, API, schema, or release identity.
+
+**Focused product gap.** Current-main ontology loading accepted any PROV
+relation pointing to a visible Post as an additional Voice derivation. A
+synthetic PostgreSQL regression reproduced an unrelated influence relation
+appearing as an extra Voice. The minimum correction constrains the existing
+assertion join to `prov_was_derived_from`; unrelated provenance stays stored
+but supplies no Voice claim. The regression also verifies a valid derivation's
+distinct carrying/evidence Posts and inferred truth, omission with hidden
+evidence, an earlier cutoff, and the unchanged imported primary.
+This enforces ADR 0256 without adding an inference rule or replacing #937.
+
+The regression failed before correction and passed afterward on temporary,
+loopback-only PostgreSQL with session-local synthetic tables. Related
+projection, SHACL, Voice, and public-docstring suites passed **77 tests** with
+`DeprecationWarning` treated as an error. This is real SQL projection evidence,
+not full-schema authenticated API or rendered application acceptance. #1129
+owns searched exports and paged JSON-LD, #936 correction history, and #937
+read/write reauthorization; their delivery evidence is not borrowed.
+
+**Runtime and remaining acceptance.** Formal Compose project `lineageweave`
+retains its volumes. PostgreSQL readiness rejects connections; bounded log
+classification found recovery errors and disk-space exhaustion. Valkey and
+OIDC discovery respond. Docker reports only 8.192 kB of reclaimable exited
+container storage, so container deletion is not claimed as a repair. Storage
+reclamation requires DiskSage's measured ownership/authority contract; no
+volume or unknown agent-owned artifact was removed. Authenticated PostgreSQL
+API, rendered Voice truth/cutoff acceptance, and synthetic authenticated k6
+concurrency/latency/error/throughput/saturation measurements remain
+**unavailable** in this audit. No capacity envelope, bottleneck threshold,
+population inference, or release completion is fabricated. This backend-only
+slice changes no customer-facing UI and carries no new screenshot acceptance.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

@@ -903,6 +903,7 @@ async def _load_voice_assignments(
            and lookup.lookup_code = voice.voice_type_code
           left join provenance_assertion assertion
             on assertion.assertion_id = voice.provenance_assertion_id
+           and assertion.relation_code = 'prov_was_derived_from'
           left join provenance_resource_binding evidence
             on evidence.resource_id = assertion.object_resource_id
            and evidence.node_type_code = 'node_post'
