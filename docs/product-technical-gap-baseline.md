@@ -78,18 +78,18 @@ this baseline edit; this edit necessarily creates a new PR head and requires
 fresh hosted Checks. PR #1129's new backend test commit likewise created the
 head recorded above, and its active hosted checks must finish on that exact SHA.
 
-**Cross-PR integration.** Read-only merge-tree comparisons found documentation
-conflicts between #1129 and #1143 in ADR 0256 and this baseline, and between
-#1129 and #1141 in this baseline. #1133 and #1137 both edit `pyproject.toml`
-and `uv.lock`; their current exact refs produce textual conflicts, so reconcile
-the dependency floors and regenerate/verify the lock after the parent is
-protected. #1139 contains #1137 in its commit ancestry and also conflicts with
-it in the baseline; keep #1137 parent-first, then refresh #1139's base/head
-checks. PR #1138 remains Draft on #1137's branch. These inspected changes add
-no API payload, database schema, migration ordinal, or release-number conflict.
-Preserve both documentation deltas during any required resolution. Do not
-retarget stacked PRs or transfer predecessor checks/reviews before parent merge.
-PR #1132 remains Draft on #1131; preserve that parent-first dependency as well.
+**Cross-PR integration.** Read-only `git merge-tree` comparisons of current
+non-Draft heads covered the shared ADR 0256, product-gap baseline, Storybook
+inventory, ontology UI, `pyproject.toml`, and `uv.lock` paths. Each compared
+pair merged without a content conflict, including #1129/#1143's Voice contract
+and #1133/#1137's dependency metadata. These overlaps still need rechecking
+when either PR changes or one is protected; they are not merge authorization.
+#1139 contains #1137 in its commit ancestry, so keep #1137 parent-first and
+collect new exact-head evidence for #1139 after the protected parent lands.
+PR #1138 remains Draft on #1137's branch. PR #1132 remains Draft on #1131.
+No API payload, schema, migration ordinal, or release-number collision was
+found in the inspected changes. Do not retarget stacked PRs or transfer
+predecessor checks/reviews before parent merge.
 
 GitHub REST subsequently returned HTTP 403 rate-limit responses. Until access
 recovers, do not infer updated review-thread resolution, approvals, check
