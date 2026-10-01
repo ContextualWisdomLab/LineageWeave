@@ -84,6 +84,11 @@ compound lookup codes.
   bounded pages are accumulated, properties for the same JSON-LD subject are
   merged and multi-value Voice relations are unioned instead of one page
   replacing another.
+  Both reusable CSV and JSON-LD projectors enforce that same admitted-Post
+  evidence boundary, including callers outside the database loader. A missing
+  carrying Post fails closed; absent additional evidence omits the assignment
+  and never falls back to the carrying Post. The imported primary may cite
+  its own source Post.
 
 ## Data model
 

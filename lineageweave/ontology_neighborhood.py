@@ -287,6 +287,24 @@ class OntologyNeighborhood:
     limitation_code: str | None
     voice_assignments: tuple[OntologyVoiceAssignment, ...] = ()
 
+    def _exportable_voice_assignments(self) -> tuple[OntologyVoiceAssignment, ...]:
+        """Admit qualified Voices only with their visible carrying and evidence Posts."""
+        post_ids = {
+            node.node_id for node in self.nodes if node.node_type_code == NODE_POST
+        }
+        assignments = []
+        for assignment in self.voice_assignments:
+            if assignment.post_id not in post_ids:
+                raise OntologyNeighborhoodError(
+                    "dangling_endpoint", "voice assignment references a missing post"
+                )
+            evidence_post_id = assignment.evidence_post_id
+            if evidence_post_id is None and assignment.is_primary:
+                evidence_post_id = assignment.post_id
+            if evidence_post_id in post_ids:
+                assignments.append(assignment)
+        return tuple(assignments)
+
     def exact_value_rows(self) -> tuple[dict[str, str], ...]:
         """Keyboard/print/CSV rows for the same visible graph."""
         rows: list[dict[str, str]] = []
@@ -316,12 +334,8 @@ class OntologyNeighborhood:
             for node in self.nodes
             if node.node_type_code == NODE_POST
         }
-        for assignment in self.voice_assignments:
-            source_label = post_labels.get(assignment.post_id)
-            if source_label is None:
-                raise OntologyNeighborhoodError(
-                    "dangling_endpoint", "voice assignment references a missing post"
-                )
+        for assignment in self._exportable_voice_assignments():
+            source_label = post_labels[assignment.post_id]
             rows.append(
                 {
                     "edge_id": _voice_assignment_id(assignment),
@@ -398,8 +412,9 @@ class OntologyNeighborhood:
             }
             _add_jsonld_times(item, edge.recorded_at, edge.valid_from, edge.valid_to)
             graph.append(item)
+        voice_assignments = self._exportable_voice_assignments()
         assignments_by_post: dict[str, list[OntologyVoiceAssignment]] = {}
-        for assignment in self.voice_assignments:
+        for assignment in voice_assignments:
             assignments_by_post.setdefault(assignment.post_id, []).append(assignment)
         for post_id, assignments in assignments_by_post.items():
             graph.append(
@@ -411,7 +426,7 @@ class OntologyNeighborhood:
                     ],
                 }
             )
-        for assignment in self.voice_assignments:
+        for assignment in voice_assignments:
             post_iri = ontology_node_iri(NODE_POST, assignment.post_id)
             assignment_iri = _voice_assignment_iri(assignment)
             evidence_post_id = assignment.evidence_post_id
