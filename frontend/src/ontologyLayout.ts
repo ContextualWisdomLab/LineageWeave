@@ -294,7 +294,8 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          if (Object.hasOwn(existing, key) && key !== "@id") {
+          // Live display labels follow the node map; relations retain all pages.
+          if (Object.hasOwn(existing, key) && key !== "@id" && key !== "rdfs:label") {
             const values = [existing[key], incoming[key]].flatMap((value) =>
               Array.isArray(value) ? value : [value],
             );

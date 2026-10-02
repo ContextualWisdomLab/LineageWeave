@@ -361,6 +361,34 @@ describe("ontologyLayout", () => {
     }]);
   });
 
+  it("keeps the latest node label without discarding earlier relations", () => {
+    const first = payload();
+    const subject = `${ONTOLOGY_NAMESPACE}post/${POST_ID}`;
+    const person = { "@id": `${ONTOLOGY_NAMESPACE}person/${PERSON_ID}` };
+    const organization = { "@id": `${ONTOLOGY_NAMESPACE}organization/${CORP_ID}` };
+    first.jsonld = { "@graph": [{
+      "@id": subject, "rdfs:label": "Synthetic draft", "lw:mentions": person,
+    }] };
+    const next = {
+      ...payload(),
+      nodes: [{ ...first.nodes[0], display_label: "Synthetic approved" }],
+      jsonld: { "@graph": [{
+        "@id": subject, "rdfs:label": "Synthetic approved", "lw:mentions": organization,
+      }] },
+    };
+    const merged = accumulateNeighborhoodPages(first, next);
+    expect(merged.nodes[0].display_label).toBe("Synthetic approved");
+    expect(merged.jsonld["@graph"]).toEqual([{
+      "@id": subject, "rdfs:label": "Synthetic approved", "lw:mentions": [person, organization],
+    }]);
+    expect(accumulateNeighborhoodPages(merged, {
+      ...next, jsonld: { "@graph": [{ "@id": subject, "lw:mentions": person }] },
+    }).jsonld).toEqual(merged.jsonld);
+    expect(first.jsonld["@graph"]).toEqual([{
+      "@id": subject, "rdfs:label": "Synthetic draft", "lw:mentions": person,
+    }]);
+  });
+
   it("retains both targets when the server emits repeated scalar relations for one subject", () => {
     const first = payload();
     const subject = `${ONTOLOGY_NAMESPACE}post/${POST_ID}`;

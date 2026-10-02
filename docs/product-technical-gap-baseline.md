@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+### Exact-head review repair and current acceptance boundary — 2026-10-02 23:12 KST
+
+This overlay records the latest read before the JSON-LD label repair was pushed.
+GraphQL counted **182 open PRs**, **168 drafts**, **117 with non-`main`
+bases**, and **42 open issues**. These are repository lifecycle counts, not
+product prevalence or population estimates. Protected `main` was
+`da4e5d45420fdd6b2b9c1dc51eb613a706387da4`.
+
+PR #1145 was at exact head
+`baa6ba2b17571e03f9084dcb9055193955b2578b`, based on that protected `main`,
+with normal squash auto-merge enabled. The current-head Check rollup had 25
+successes, five failures (the three CodeQL compatibility lanes, filesystem
+Trivy, and OpenCode review), four skipped jobs, and two in progress. The
+review read found no formal independent approval and one unresolved thread.
+The Devin thread on `frontend/src/ontologyLayout.ts` is valid: merging the
+single-valued `rdfs:label` with set-valued predicates can export two labels for
+one subject when a post title changes between pages. Existing node rendering
+already replaces the displayed label with the later page. The minimal repair
+keeps that latest label while continuing to union relation properties,
+`@type`, Voice assignments, and derivation evidence. A regression covers the
+label change, retained relations, repeated-page idempotence, input immutability,
+and the actual JSON-LD download path. It adds no ADR, API, schema, release, or
+inference decision. New-head GitHub checks and independent approval are
+pending; predecessor checks and reviews do not transfer. Existing auto-merge
+remains the only merge path.
+
+ADR 0246 remains the extensible twelve-atomic-Voice vocabulary; ADR 0256 owns
+evidence-bearing combinations, normalized PROV-O derivation, truth status,
+effective-time cutoffs, and the visibility rule that omits an assignment when
+its evidence Post is hidden. The current frontend repair preserves property
+values only; it cannot establish authorized PostgreSQL persistence, hidden-
+evidence omission, or cutoff semantics. The populated Voice Storybook scene
+renders UI structure but its static fixture has an empty JSON-LD graph, so it
+does not prove a populated product export. The component regression exercises
+the real browser download path with synthetic paged payloads. PostgreSQL/API
+acceptance and a populated authenticated runtime JSON-LD export remain
+**unverified**.
+
+Desktop and mobile screenshots were captured and inspected against the
+existing CombinedVoiceEvidence Storybook scene at **1440×900** and **390×844**.
+The page stayed within each viewport; the mobile exact-value table remains
+keyboard-focusable and scrolls horizontally inside its region. Because the
+fixture returns zero JSON-LD graph items, the screenshot is layout evidence
+only. The download-content assertion comes from the synthetic component test.
+
+Cross-PR constraints remain material: the current protected base and open PR
+heads must be re-read before any stacked retarget or merge; no evidence is
+transferred from another head. The latest Voice and auth/security candidates
+must compose without weakening visibility, cutoff, or evidence requirements.
+No current authenticated synthetic-only deployment was established for this
+review, so no k6 concurrency, latency, error-rate, throughput, PostgreSQL,
+worker, Valkey, or gateway saturation result is claimed. Existing long-lived
+Compose services may contain authorized runtime records; they were not load
+tested. No Voice acceptance or release gate is marked complete from screenshots
+or local tests.
+
 ### Current protected delivery and evidence-preserving export — 2026-10-02 20:39 KST
 
 This dated overlay supersedes conflicting present-tense queue statements below.
