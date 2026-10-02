@@ -1,5 +1,102 @@
 # Product & Technical Gap Baseline
 
+## Bounded audit snapshot — 2026-09-06T13:14:00Z
+
+Protected base: `83eba56149eb802cd63642c507c324c9976ec78e`. Tested implementation: `4f86ccc1a7885c55340adecff99bd273bbfe8bed`.
+The previously reviewed documentation head `149af3c2208a4041773fb88a708cfb7087e56c2c`
+is the direct child of tested implementation `3487b635f23166a964ac3ee69d5d19d12ddba055`,
+which is the direct child of the protected base. The new tested implementation
+is the direct child of that documentation head. This document commit follows
+the tested implementation; it does not transfer hosted Checks between heads.
+Queue rechecked on 2026-09-06 at 13:14 UTC: 122 open PRs (116 Draft, 6 Ready), 16 open issues. A second complete head inventory found no moved heads. This is time-scoped evidence only: live GitHub PR/check/runtime state supersedes it. It supersedes only older dated snapshots below, not later live state.
+
+### Authority and evidence boundaries
+
+- Read the current LineageWeave PRD, ADR 0123 (error disclosure), and ADR 0220 (existing status notice). The connected contextual-orchestrator authority is `docs/product_planning.md` and `docs/architecture.md`; there is no `docs/product-requirements.md` at that owner. No orchestration or mathematical policy changes in this slice.
+- GitHub metadata confirms canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase `ContextualWisdomLab/disksage`. The differently cased DiskSage PRD register entry remains a documentation discrepancy, not a second repository.
+- Normative architecture remains in ADRs. Research references in ADR 0123 justify non-disclosure; the Fetch response contract explains separate body-read/JSON failures. Neither source establishes capacity, model quality, weights, population inference, or release completion.
+- DeepWiki could not find this repository. Context7 returned quota exhaustion. No inferred documentation or research result substitutes for either unavailable source.
+
+### Exact-head Ready queue
+
+Counts below are REST check runs filtered by `head_sha` equality, including optional checks; they are not a claim that the required workflow set passed. All six heads were rechecked unchanged, have zero unresolved threads (complete thread pagination), zero current-head APPROVED reviews, and retain normal squash auto-merge. No merge was performed.
+
+| PR | Exact head | Success / failure / skipped / cancelled |
+|---|---|---|
+| #929 | `2a8ed5d02f4a3082b346d923d754c1ff37ebff52` | 29 / 6 / 4 / 0 |
+| #914 | `61ed3a3712d252e3c179a71d297c52f05e1bac20` | 25 / 5 / 7 / 0 |
+| #911 | `5d40eed35a0b6e0d182397f8d02b29c38e9bdd17` | 28 / 7 / 5 / 0 |
+| #907 | `847a15e73e69bfc768d517a83fa8706aecfafe7e` | 22 / 5 / 7 / 2 |
+| #802 | `32f1cda10a2a1a6cabd64a3ae6f59bd6f0b20fd6` | 28 / 7 / 4 / 0 |
+| #780 | `1d8fa267b059289e77301a09985dfac70a439814` | 8 / 0 / 8 / 11 |
+
+Ruleset 18156473 requires an independent approval, resolved threads, and seven central workflows; ruleset 21065108 prohibits force pushes. Main deletion/non-fast-forward protections also apply. Existing failure triage identifies central dispatcher and Dependency Review ownership, not a replacement leaf implementation. `.github#1927`, `#1902`, and `#810` remain open; `.github#1932` is independently confirmed merged at `6f8c51d7389c22ebaf294fe8fe9ef495257883c0`. This owner merge is not LineageWeave release evidence. The fresh status-filtered inventory again returned no in-progress LineageWeave Actions runs; no current-main or open-PR run was cancelled. In the earlier inventory, no in-progress LineageWeave Actions runs were returned by the status-filtered inventory, so no stale run was cancelled.
+
+### Cross-PR collision audit
+
+All 122 PR file inventories were fetched again and all 122 heads were rechecked unchanged. Complete review-thread pagination found 103 unresolved threads on 50 PRs, including informational observations and execution requests; this count is not 103 confirmed defects. The six Ready lanes and the Voice repair stack have no unresolved threads. #960 has one valid documentation-lineage clarification, addressed above. Distinct changes must be verified in the owning stack before resolving other threads. #811 was subsequently rechecked at `e0fad9af9d8fe446769474bd5fc8300c902a052f`: commit `66bccfbc670188ce46e22b0f0ec345942a5e50b6` already contains the caption-bounds repair. Follow-up `4dcd789385f67c76a4e479194f566f35bb5d2d76` preserves that implementation and strengthens the full-caption regression to assert the final rank baseline for both plot edges. Layout, rank, and short-canvas suites pass: 55 tests. The clipping thread is resolved; execution/informational threads are distinct from new confirmed defects. The parent is still #802, so #811 remains Draft on its existing base.
+
+ Distinct ADR filenames share these identifiers:
+
+- 0233: `docs/adr/0233-global-ask-semantic-candidate-nomination.md`; `docs/adr/0233-leftover-map-unexplained-share.md`
+- 0245: `docs/adr/0245-io-occupational-taxonomy-in-the-published-ontology.md`; `docs/adr/0245-lineage-scoring-and-entity-resolution-owner-contract.md`
+- 0272: `docs/adr/0272-leftover-map-segment-reconstruction.md`; `docs/adr/0272-twenty-millisecond-read-slo.md`
+- 0279: `docs/adr/0279-global-ask-exact-semantic-index.md`; `docs/adr/0279-leftover-map-segment-expected.md`
+- 0289: `docs/adr/0289-leftover-map-compare-coverage.md`; `docs/adr/0289-leftover-map-plot-singular.md`
+- 0290: `docs/adr/0290-leftover-map-axis-singular.md`; `docs/adr/0290-leftover-map-compare-item-coverage.md`
+- 0300: `docs/adr/0300-contextual-orchestrator-owner-boundary.md`; `docs/adr/0300-leftover-map-compare-expected.md`
+- 0301: `docs/adr/0301-dichotomous-measurement-policy.md`; `docs/adr/0301-leftover-map-compare-rank.md`
+- 0305: `docs/adr/0305-leftover-map-compare-plot-axis-share.md`; `docs/adr/0305-leftover-map-compare-rank-payload.md`
+- 0335: `docs/adr/0335-leftover-map-compare-plot-tick-origin-badge.md`; `docs/adr/0335-leftover-map-plot-criterion-coordinates.md`
+- 0355: `docs/adr/0355-dynamic-evaluation-lineage.md`; `docs/adr/0355-leftover-map-plot-origin-badge.md`
+
+Release labels also collide in PR titles (supporting metadata, not verified manifest versions): v2.92.0: #877/#876; v2.62.0: #844/#843; v2.61.0: #842/#841; v2.50.0: #828/#826; v2.47.0: #823/#822; v2.46.0: #821/#820. Six PR inventories touch migrations. Semantic migration compatibility and the actual release manifest values remain to be checked before each protected merge; filename/title collision detection is not sufficient clearance.
+
+Ten open PRs touch `frontend/src/api.ts`, including this candidate. Eight retain the uncontained successful-body decoder. #909 moves that decoder into `apiTransport.ts` and still rethrows parser exceptions, while adding an abort/deadline boundary. When integrating #909, carry this sanitization into the moved decoder and preserve its abort behavior; do not overwrite its request gate or hierarchy repair. This slice changes no route, response schema, migration, release number, or new ADR identifier.
+
+Keep #780 → #934/#936/#937, #934 → #935, #929 → #932, and the report/owner stacks parent-first. #959 owns ontology authorization-denial recovery; its concurrent repair is not duplicated here. No child was retargeted before a protected parent merge.
+
+### Highest-priority uncovered repair in this sweep
+
+The shared browser client allowed successful HTTP response parsing errors to escape into customer error handlers. A malformed body can place source content inside a native SyntaxError; a failed response stream can expose its exception message. This affects both read paths and settings writes. It is a directly reproduced privacy/error-recovery gap, selected ahead of adding new product surface while the existing Voice, localization, and authorization lanes remain in review. No numerical priority model or population claim is used.
+
+The initial repair contains body-read/JSON failures at the shared client boundary, retains the observed HTTP status, and returns the existing safe next-action message. It neither supplies replacement evidence nor retries a write. Regression evidence: three new cases failed before the repair; all 10 API tests pass after it, covering HTTP 200/201 reads and writes and an errored native response stream. Six existing StatusNotice tests pass. TypeScript, oxlint, and the production build pass with the installed project toolchain; the build retains its existing large-chunk warning. Frozen-lock hosted checks are separate and not claimed here.
+
+The follow-up closes another reproduced path in the same boundary: unreadable
+4xx responses used to include the request URL and its identifiers in the visible
+error. The fallback now uses the existing safe message. HTTP status still reaches
+authorization handlers, and actionable validation details remain unchanged.
+The installed Node 24.19.0 toolchain passed all 16 API tests (five request-identity
+cases and one validation-detail case added), TypeScript, oxlint, the production
+build, and five documentation-hygiene tests. The build retains its existing
+large-chunk warning. Initial Vitest worker starts timed out; the successful API
+run used one thread. The unchanged StatusNotice suite hit the same worker-start
+timeout on this follow-up and is not counted as a fresh pass. pnpm's automatic
+install refused the pre-existing shared node_modules symlink; no shared dependencies
+were deleted or changed. Frozen-lock hosted verification remains outstanding.
+
+Existing `Chrome/StatusNotice/UnreadableResponse` renders the safe copy with existing semantic tokens and alert semantics. Desktop 1440×900 and mobile 390×844 screenshots were recaptured and inspected on this follow-up: the message is visible with no document overflow. These are synthetic presentation evidence, not authenticated deployed UI acceptance:
+
+- [Desktop](screenshots/unreadable-response-desktop-20260906.png)
+- [Mobile](screenshots/unreadable-response-mobile-20260906.png)
+
+### Dated delivery-state observation
+
+At 13:19 UTC #960 was Ready with auto-merge enabled; at 13:21:20 UTC it was Draft and auto-merge was disabled. These are historical state observations, not actor-intent or current-queue authority. The current PR body records unresolved no-retry and documentation-authority findings and keeps the candidate Draft until their repair plus required evidence is complete. Live GitHub PR/check state supersedes these timestamps. No merge SHA exists and no protected merge is claimed.
+
+### Current runtime and remaining acceptance
+
+- Official Compose project `lineageweave` is running. Read-only PostgreSQL aggregate rechecked during this follow-up: 43,189 source posts; the Voice-association table exists. No source name, record key, body, title, or credential was emitted. This is a descriptive whole-store count, not population inference or a claim that a diagnostic sample is representative.
+- In the earlier 11:50 UTC observation, the seeded synthetic account authenticated and `/api/posts` returned a JSON collection on the running PostgreSQL-backed API. This proves only that read path; the runtime is not the candidate commit. No current authenticated Voice truth/cutoff/PROV-O/write/export acceptance or candidate rendered-product acceptance is marked complete.
+- The shared running store is not certified synthetic-only. The existing k6 harness queries unrestricted posts/lineage and submits Ask, so it was not launched against this store. Synthetic-only authenticated end-to-end concurrency, latency, error rate, throughput, and PostgreSQL/worker/Valkey/gateway saturation remain unavailable. No speculative bottleneck repair, saturation claim, SLO, or population estimator was added.
+- Twelve atomic Voices and evidence-bearing extensible associations remain the contract. Preserve carrying Post versus derivation evidence, hidden-evidence omission, truth status, PROV-O, cutoff, and paged multi-Voice union in the respective owner PRs. Historical screenshots or a present table do not satisfy those acceptance conditions.
+- No temporary containers were created and no data volume was removed. Protected integration, independent approval, full required checks, and merge SHA remain outstanding for this candidate.
+
+## Historical supporting snapshots
+
+Everything below is dated supporting evidence. It is not a current queue inventory, current runtime confirmation, or release acceptance for the implementation above.
+
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

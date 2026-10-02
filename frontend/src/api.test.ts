@@ -14,6 +14,79 @@ afterEach(() => {
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it.each([400, 401, 403, 404, 422])("keeps request identifiers out of an unreadable HTTP %s error", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not JSON", { status })));
+
+    const error = await fetchOccupationRatings("synthetic-token", {
+      onetsocCode: "synthetic-private-occupation",
+      dataReleaseCode: "synthetic-private-release",
+      sourceTableCode: "synthetic-private-source",
+    }).catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(BackendError);
+    expect(error).toMatchObject({
+      status,
+      message: "The service could not complete this request. Try again later.",
+    });
+    expect(String(error)).not.toContain("synthetic-private");
+    expect(String(error)).not.toContain("/api/");
+  });
+
+  it("preserves actionable validation details", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ detail: "Choose an available source and try again." }),
+      { status: 422 },
+    )));
+    await expect(fetchMe("synthetic-token")).rejects.toMatchObject({
+      status: 422,
+      message: "Choose an available source and try again.",
+    });
+  });
+
+  it.each([200, 201])("hides malformed successful response bodies at HTTP %s", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(
+      'synthetic-private-body {"unfinished":',
+      { status, headers: { "Content-Type": "application/json" } },
+    )));
+
+    const error = await fetchMe("synthetic-token").catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(BackendError);
+    expect(error).toMatchObject({
+      status,
+      message: "The service could not complete this request. Try again later.",
+    });
+    expect(String(error)).not.toContain("synthetic-private-body");
+  });
+
+  it("does not retry an unreadable successful write response", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(
+      'synthetic-private-body {"unfinished":',
+      { status: 201, headers: { "Content-Type": "application/json" } },
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await updateTenantConfig("synthetic-token", "Example tenant")
+      .catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(BackendError);
+    expect(error).toMatchObject({ status: 201, message: "The service could not complete this request. Try again later." });
+    expect(String(error)).not.toContain("synthetic-private-body");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides body-stream failures after successful response headers", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      new ReadableStream({
+        start(controller) { controller.error(new Error("synthetic-private-stream")); },
+      }),
+      { status: 200 },
+    )));
+    await expect(fetchMe("synthetic-token")).rejects.toMatchObject({
+      name: "BackendError",
+      status: 200,
+      message: "The service could not complete this request. Try again later.",
+    });
+  });
+
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),
