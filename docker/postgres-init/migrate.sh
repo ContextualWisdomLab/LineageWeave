@@ -27,8 +27,37 @@ for migration in /opt/lineageweave/migrations/*.sql; do
         [0-9][0-9][0-9][0-9]_*) ;;
         *) continue ;;
     esac
+
+    # 0248 is a one-time candidate seed whose rows become editable review data
+    # after creation. Once its ownership record is committed, replaying the
+    # historical seed would no longer be idempotent: it could overwrite reviewed
+    # draft copy or reject a reviewed immutable publication. An ordinary product
+    # delete retires the seed receipt rather than restoring historical seed
+    # authority, so both owned and retired states are purpose-complete. Pending
+    # or blocked ownership must still execute 0248 so incomplete first-run state
+    # and unowned collisions fail closed.
+    if [ "$migration_name" = "0248_customer_master_translation_draft.sql" ]; then
+        customer_master_seed_state=$(
+            psql -X -v ON_ERROR_STOP=1 -At \
+                -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
+                -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+                -c "select ownership_state from public.ui_translation_seed_ownership where migration_key = '0248_customer_master_translation_draft' and product_key = 'lineageweave' and screen_key = 'customer-master' and resource_version = 1"
+        )
+        case "$customer_master_seed_state" in
+            owned|retired)
+                printf 'Skipping %s: one-time candidate seed is %s; preserve review lifecycle\n' "$migration_name" "$customer_master_seed_state"
+                continue
+                ;;
+        esac
+    fi
+
     printf 'Applying %s\n' "$migration_name"
-    psql -X -v ON_ERROR_STOP=1 \
+    migration_pgoptions="-c lineageweave.migration_file=$migration_name"
+    if [ -n "${PGOPTIONS:-}" ]; then
+        migration_pgoptions="$PGOPTIONS $migration_pgoptions"
+    fi
+    PGOPTIONS="$migration_pgoptions" \
+        psql -X -v ON_ERROR_STOP=1 \
         -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
         -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
         -f "$migration"
