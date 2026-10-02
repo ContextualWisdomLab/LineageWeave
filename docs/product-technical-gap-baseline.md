@@ -1332,3 +1332,79 @@ The ONET rows stacked into base branches (#743/#745/#746/#740/#732) reached
 `main` together through the #759 promotion; their per-base merge records are
 historical evidence only. The job-architecture artifact ship originally via
 #749 is now re-verified on `main` from the promotion.
+
+### Exact-head PR and product-gap audit — 2026-10-02 11:09 KST
+
+This dated overlay separates normative authority, protected implementation,
+open candidates, and currently observed delivery evidence. It supersedes prior
+present-tense queue and PR state statements only where it names a newer exact
+head. No real records or credentials were queried or recorded.
+
+- **Authority:** `docs/product-requirements.md` was read for this loop; it
+  remains a supporting contract and ADRs remain normative. PRD-FR-2 requires
+  twelve extensible atomic Voice classes, PROV-O derivation, truth and time,
+  authorized evidence, and separate carrying-Post/evidence actions in exports.
+  ADR 0246, ADR 0251, and ADR 0256 govern the Voice code set, distinct I/O-
+  Psychology taxonomy, and evidence-bearing combinations respectively. No
+  fixed combination enumeration, B2B2C assumption, or unsupported score is
+  introduced.
+- **Ecosystem authority and canonical remotes:** GitHub returned the names
+  `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+  `ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+  `ContextualWisdomLab/TEPP`. Current default-branch source heads observed
+  were LineageWeave `83eba56149eb802cd63642c507c324c9976ec78e`, RankWeave
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, DiskSage
+  `05899ffb01ce91a9ea3d782630b28a398de59ddc`, and TEPP
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`. RankWeave `ARCHITECTURE.md`,
+  ThreadWeave `docs/PRD.md`, DiskSage `README.md` (its current product
+  authority), and TEPP `docs/product/prd-v0.4-approved.md` were read. The
+  audit did not propose or implement changes in those owner repositories.
+- **Baseline PR #1141 before this update:** exact head
+  `24cc4137158152d6544f85a43871a2ed45d9f7d9`, based on `main`, with normal
+  auto-merge enabled and `REVIEW_REQUIRED`; no independent approval or
+  merge SHA. Its Full suite, frontend, CodeQL compatibility, Noema,
+  OpenCode, Strix, and Semgrep checks were terminal-success on that head.
+  CodeRabbit reported rate limiting and Devin skipped full review; these
+  are not approvals. This baseline commit changes the head and requires
+  fresh hosted evidence while preserving normal auto-merge.
+- **Current aggregate queue:** the GitHub CLI returned 181 open PRs and 43
+  open issues. Only counts and PR numbers are retained. Protected `main` was
+  independently re-read with Git transport at
+  `83eba56149eb802cd63642c507c324c9976ec78e`.
+- **Open candidate #1143:** exact head
+  `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67`, base `main`, ready for review,
+  with normal squash auto-merge enabled. Formal review list is empty and
+  `reviewDecision` is `REVIEW_REQUIRED`; automated review comments are not
+  independent approval. The candidate changes ADR 0256, the reusable ontology
+  CSV/JSON-LD projection, and synthetic regression tests. It filters an
+  additional Voice unless its distinct evidence Post is in the authorized
+  neighborhood, fails closed on a missing carrying Post, and preserves truth,
+  time, and multi-Voice projection. Its exact-head checks include failures in
+  the three CodeQL compatibility jobs, OpenCode review, Noema review, and
+  filesystem Trivy scan. The full test suite, frontend checks, Strix,
+  Semgrep, and coverage checks are reported passing; skipped checks are not
+  counted as passes. No merge SHA exists. Keep normal auto-merge armed while
+  independent safe work continues; no self-approval or bypass was used.
+- **Highest evidenced user-facing gap:** an authorized Voice export could
+  otherwise expose an additional Voice whose derivation Post is absent from
+  the visible neighborhood. The smallest implementation and synthetic
+  regression coverage are already present in #1143, so this loop did not
+  duplicate or overwrite its owner work. This is still an open candidate, not
+  protected-main behavior. Authenticated PostgreSQL/API acceptance, cutoff
+  behavior against the authorized runtime, and desktop/mobile rendered UI
+  evidence remain **unavailable**; Voice acceptance is not complete. #1143
+  changes no frontend, so no new UI screenshot claim is made.
+- **Cross-PR constraints:** #1142 is independently based on `main` at exact
+  head `921f2df9629b8fbdef707b04469b45b2a1ed6299`; it has no current approval
+  (`REVIEW_REQUIRED`) and normal auto-merge remains enabled. Its timestamp-preservation change and #1143's evidence filter both touch
+  the ontology neighborhood. Read-only merge-tree checks were clean for
+  #1142 + #1143, #1139 + #1143, and #1141 + #1143 at the recorded heads;
+  rerun after either head changes. This baseline refresh changes no ADR, API,
+  database schema, migration ordinal, or release number. Other PR state and
+  check results are not inferred from earlier snapshots.
+- **Runtime and performance:** no authenticated PostgreSQL API, rendered
+  customer UI, or synthetic authenticated k6 saturation run was performed in
+  this documentation audit. Concurrency, latency, errors, throughput, and
+  PostgreSQL/worker/Valkey/gateway saturation therefore remain **unavailable**.
+  No population inference or runtime completion is claimed.
