@@ -7,10 +7,12 @@ Git transport confirmed canonical protected `main` at
 were checked against GitHub: `ContextualWisdomLab/LineageWeave`,
 `ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
 `ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`. Product
-authority remains `docs/product-requirements.md`; ADRs are normative. No
-authoritative aggregate open-PR/open-issue inventory was available because
-GitHub REST requests were rate-limited and GraphQL returned HTTP 502. Older
-inventory counts below remain dated snapshots.
+authority remains `docs/product-requirements.md`; ADRs are normative. The
+current GitHub inventory query returned **182 open PRs** and **42 open
+issues**; these are aggregate counts only. Related product authorities read
+for this pass were ThreadWeave `docs/PRD.md`, TEPP's approved v0.4 PRDs, and
+contextual-orchestrator `docs/architecture.md`. No corresponding RankWeave or
+DiskSage PRD/product authority was present in the available local checkouts.
 
 This snapshot records exact heads and hosted evidence observed during the
 loop; every PR row remains an open candidate unless a later protected merge
@@ -18,18 +20,24 @@ SHA is recorded. No earlier Check or review transfers to a new head.
 
 | PR | Exact head / base | Current observed state |
 | ---: | --- | --- |
-| #1141 | `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731` / `main` `da4e5d45420fdd6b2b9c1dc51eb613a706387da4` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; full suite, frontend, CodeQL compatibility, Noema, OpenCode, coverage, and admission checks passed; no independent approval or merge SHA. |
-| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` / same `main` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; CodeQL compatibility ×2, Trivy, and OpenCode failed; formal review list empty. Voice export acceptance remains incomplete without authenticated PostgreSQL/API and cutoff evidence. |
-| #1145 | `9bd758499a75a6f63a7ea5b118f2466e96968429` / same `main` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; Full suite, Noema, Strix, and CodeRabbit were pending; CodeQL compatibility ×3, OpenCode, and Trivy failed; frontend and Semgrep passed. No independent approval. |
+| #1141 | `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731` / `main` `83eba56149eb802cd63642c507c324c9976ec78e` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; its base is behind protected `main` `da4e5d45420fdd6b2b9c1dc51eb613a706387da4`; prior check snapshot is on its listed head only. No merge SHA. |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` / `main` `83eba56149eb802cd63642c507c324c9976ec78e` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; its base is behind protected `main` `da4e5d45420fdd6b2b9c1dc51eb613a706387da4`; CodeQL compatibility ×2, Trivy, and OpenCode failed on its exact head. Formal review list empty. Voice export acceptance remains incomplete without authenticated PostgreSQL/API and cutoff evidence. |
+| #1145 | `98df7ce8e8ecf4180a79a1c63cfa23e496581d4b` / `main` `da4e5d45420fdd6b2b9c1dc51eb613a706387da4` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; 24 checks passed, 4 skipped, Strix in progress, and 7 failed (CodeQL compatibility ×3, Noema review/continuation, OpenCode, and Trivy). Three bot review submissions are comments, zero formal approvals, and zero unresolved review threads. No merge SHA. |
 | #1144 | `18a8ee76d3edcbd79c92a5e845f51d1ce996f840` / parent #1137 | Draft, no Checks or auto-merge. Parent #1137 remains based on `main`, auto-merge enabled, `REVIEW_REQUIRED` / `BLOCKED`, with CodeQL compatibility ×3, Noema, dependency review, Noema continuation, and OpenCode failures. Process the parent first and recollect child evidence after retargeting. |
 
 PR #1145's one-line heading repair addressed the valid review comment that a
-top-level dated overlay began at `###` beneath the document H1. The current
-frontend tests (32), lint, TypeScript build, and production build passed
-locally. Its exact new head started hosted verification; the pending and failed
-results above are not release evidence. The CodeQL compatibility, OpenCode,
-and filesystem Trivy logs could not be retrieved through GitHub's current
-workflow endpoints, so their owners and root causes remain unresolved.
+top-level dated overlay began at `###` beneath the document H1. On exact head
+`98df7ce8e8ecf4180a79a1c63cfa23e496581d4b`, frontend lint and production
+build passed, all 537 frontend tests passed, and the documentation hygiene
+tests passed (5). The current-host check rollup had 24 successes, four skipped
+jobs, Strix in progress, and seven failures: three CodeQL compatibility jobs,
+Noema review and its transport continuation, OpenCode review, and filesystem
+Trivy. The review list contains three bot `COMMENTED` submissions, no formal
+approval; all review threads are resolved. Normal squash auto-merge remains
+enabled, but `REVIEW_REQUIRED` and `BLOCKED` remain. The workflow run endpoints
+returned 404, so these failures' log-level causes cannot be verified here and
+are not attributed to LineageWeave code. The active central-workflow and
+non-fast-forward rulesets remain in force.
 
 The user-facing candidate gap remains preservation of paged JSON-LD values for
 one subject: retain its single-valued latest label while unioning distinct
