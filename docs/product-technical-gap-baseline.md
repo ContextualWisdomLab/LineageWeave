@@ -1539,3 +1539,32 @@ included.
   authenticated PostgreSQL/API test, real-rendered authenticated UI, or
   authenticated k6 run was performed. These product acceptance gates remain
   unavailable, and no release or customer runtime completion is claimed.
+
+### Analysis-run customer-copy exact-head audit — 2026-10-02 12:34 KST
+
+- PR #1130 is at exact head
+  `383c392bc6713e55bed31b4d4053d93cfd1885d0`, base `main`, with
+  `reviewDecision: APPROVED`, `mergeStateStatus: BLOCKED`, and normal squash
+  auto-merge on. The current-head Noema review is `APPROVED`. Two CodeRabbit
+  comments on predecessor commits are resolved in the current source: analysis
+  copy uses translation lookups for every supported locale, dynamic values use
+  substitutions, and the backend/outbox tests expect the current report action.
+  No self-approval was used. A merge SHA is not present.
+- On that exact tree, the full suite, frontend lint/test/build, Noema, Strix,
+  SAST and coverage checks pass. The three CodeQL compatibility shards and
+  OpenCode review fail closed without a settled current-head verdict. Keep
+  auto-merge armed; these are central owner gates. Recollect after every head
+  change.
+- `analysisRunCopy.test.ts` passed locally (**3 tests**), and the exact-head
+  Storybook build passed. `FailedMeasurement` was visually inspected at desktop
+  **2636×2211** and mobile **414×896**. Both show the task, current status, and
+  a customer action; no internal service, transport, model, or worker names
+  appear. Dynamic locale coverage and pending/running/succeeded/failed/cancelled
+  copy are covered by the focused test. No screenshot or real data was added
+  to repository artifacts. Authenticated customer-runtime behavior remains
+  **unverified**.
+- This snapshot adds no API, schema, migration, ADR, or release-number change.
+  The current #1141 baseline head before this append is
+  `c112918ca5a0a362404ea9124d86baf2885ec254`; its new hosted suite was pending
+  at capture time. This append advances #1141 again, so its checks must be
+  refreshed while preserving auto-merge.
