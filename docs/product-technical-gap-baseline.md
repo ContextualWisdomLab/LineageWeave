@@ -1,10 +1,131 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-02 16:58 KST (2026-10-02 07:58 UTC)
+
+This snapshot supersedes earlier present-tense queue claims for the exact
+heads in its table. A paginated read returned **181 open PRs**, **167 Drafts**,
+**116 targeting a branch other than `main`**, and **43 open issues**. These
+are GitHub workflow counts, not product-use or population evidence. `main` was
+`83eba56149eb802cd63642c507c324c9976ec78e`. Each PR check summary below was
+read from the check-runs for that exact head; skipped jobs are not successful
+evidence. All 14 ready PRs targeting `main` had squash auto-merge armed after
+the latest lifecycle read. Every one remained `BLOCKED`; no protected merge
+SHA was observed.
+
+| PR | Exact head on `main` | Exact-head checks | Review and merge state |
+| ---: | --- | --- | --- |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` | 25 passed; 5 failed; 1 cancelled; 7 skipped | No head approval; blocked, auto-merge armed |
+| #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299` | 24 passed; Dependency Review failed; 20 skipped | No head approval; blocked, auto-merge armed |
+| #1141 | `03bae18852a8426f5bab42a8af6d7cefae8b31bf` | 24 passed; 11 skipped; no pending or failed check | No independent approval; blocked, auto-merge armed |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` | 30 passed; 6 failed; 6 skipped | No head approval; blocked, auto-merge armed |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | 30 passed; 7 failed; 5 skipped | No head approval; blocked, auto-merge armed |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | 27 passed; 5 failed; 1 cancelled; 9 skipped | No head approval; blocked, auto-merge armed |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | 29 passed; 7 failed; 6 skipped | No head approval; blocked, auto-merge armed |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | 33 passed; 4 failed; 1 cancelled; 14 skipped | No head approval; blocked, auto-merge armed |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 24 passed; 11 skipped; no pending or failed check | No independent approval; blocked, auto-merge armed |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | 31 passed; 4 failed; 11 skipped | `cwl-noema-review[bot]` approved this head; independent human approval is unverified; blocked, auto-merge armed |
+| #1129 | `24d3b9cb1bc31f951da3879774013c97b415ecdf` | 30 passed; 6 failed; Full test, Noema, and Strix were in progress; 6 skipped | No review on the new head; `REVIEW_REQUIRED` / `BLOCKED`, auto-merge re-enabled |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 30 passed; 3 CodeQL compatibility jobs failed; 5 skipped | No head approval; blocked, auto-merge armed |
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` | 25 passed; 8 cancelled; 9 skipped | No head approval; blocked, auto-merge armed |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | 29 passed; 4 failed; 13 skipped | `cwl-noema-review[bot]` approved this head; independent human approval is unverified; blocked, auto-merge armed |
+
+The queue's main shared failures remain the three CodeQL compatibility jobs,
+OpenCode/Noema/Strix review workflows, and Dependency Review. These are not
+application pass evidence. #1131 is the clearest green-check candidate, but
+its independent approval remains unmet; its ordinary auto-merge stays armed.
+The organization ruleset requires one approval, resolved review threads, and
+seven central workflows. The separate repository ruleset prohibits
+non-fast-forward updates. REST rate limiting began during the final refresh,
+and the review-thread query did not cover these 14 PRs. Do not infer their
+thread-resolution state or subsequent lifecycle changes from this snapshot.
+
+### Voice export defect fixed on PR #1129
+
+PR #1129's exact-value CSV already separated a Voice-carrying Post from its
+derivation evidence. A focused regression test exposed that the two
+Voice-specific columns were also populated for ordinary ontology relations,
+where a Person or Organization endpoint could be mislabeled as the Post that
+carries a Voice. Commit `24d3b9cb1bc31f951da3879774013c97b415ecdf` now fills
+those fields only for a typed `hasVoiceAssignment` row; malformed typed rows
+and all unrelated relations leave both fields blank. ADR 0256 records the
+contract. The target worktree passed all 22 `ontologyLayout` tests, the full
+frontend suite (543 tests across 58 files), frontend lint, production build,
+and `git diff --check`. Existing bundle-size output still warns that one
+production chunk exceeds 500 kB; issue #994 tracks that broader gap. These are
+candidate-local checks, not protected-main evidence.
+
+Hosted checks on the new #1129 head had six failures: the three CodeQL
+compatibility jobs, OpenCode review, Noema review, and Dependency Review. Full
+tests, Noema, and Strix were still running at the last exact-head read. Normal
+squash auto-merge was explicitly re-enabled and re-read on this head. GitHub
+then returned HTTP 403 rate limits, so later terminal check, review-thread,
+independent-approval, and merge-state transitions remain unverified. The PR
+remains blocked; its preceding head's evidence does not transfer.
+
+### Authority, research, and cross-PR boundaries
+
+The current LineageWeave PRD remains the supporting product contract and ADRs
+remain normative. ADR 0246 preserves twelve atomic Voice classifications and
+an open composition contract. ADR 0251's I/O-Psychology taxonomy remains a
+separate domain; its references do not establish a finite Voice cross-product,
+name classifier, person trait, or weight. ADR 0256's AA1000SES, ISO 26000,
+ISO stakeholder guidance, and Mitchell, Agle, and Wood sources support
+evidence-bearing, context-sensitive combinations, not a fixed exhaustive
+enumeration. No such heuristic was added.
+
+Canonical remote names were checked against GitHub: `ContextualWisdomLab/LineageWeave`,
+`ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+`ContextualWisdomLab/TEPP`, and lowercase `ContextualWisdomLab/disksage`;
+the related owner repositories default to `main`. For #1133's RankWeave
+release change, its current `ARCHITECTURE.md` and `README.md` were read because
+RankWeave has no standalone PRD. The product-authority register also points
+to ThreadWeave `docs/PRD.md`, TEPP's approved v0.4 PRD, and
+contextual-orchestrator's product-planning and architecture documents.
+
+The ready PRs are all based on `main`, but dependency ownership still matters
+when their deltas combine. #1133 and #1137 overlap in `pyproject.toml` and
+`uv.lock`; #1129 also changes those paths. Keep published dependency floors at
+PR #1137, then restack consumers on protected owner delivery. PR #1139 contains
+PR #1137's commit ancestry and must follow its parent. PR #1138 stays Draft on
+PR #1137, and PR #1132 stays Draft on PR #1131. The #1129/#1143 Voice-code overlap in
+ADR 0256 merges cleanly from the recorded `main` snapshot; the #1129 follow-up
+adds no API payload, schema, migration ordinal, or package version. Merge-tree
+comparisons report content conflicts in the shared gap baseline for #1129/#1141
+and #1131/#1141. Reconcile both dated snapshots after either branch advances;
+these are not parent relationships or merge authorization. No release-number
+collision was found in the selected open heads. Recheck merge-tree results
+after any parent lands or any head changes.
+
+### Runtime and performance evidence
+
+The official Compose project remains `lineageweave`. During this loop,
+PostgreSQL first rejected connections while its container was `unhealthy`,
+then `pg_isready` accepted connections and the container reported `healthy`
+without a restart. No database rows were queried and no volume or container
+was removed. This does not establish Voice persistence, cutoff behavior, or
+authenticated PostgreSQL/API acceptance.
+
+The current HTTP k6 harness obtains credentials through the password-grant
+flow, enqueues an Ask job, then reads Posts, Lineage, and job status. The
+configured five-VU, 30-second attempt exited during setup without usable
+latency, error, throughput, or service-saturation summaries. No load result
+is claimed. Open issue #1119 tracks the move to the supported Authorization
+Code path. This run used neither an admin bypass nor a locally minted token.
+No bottleneck was measured, so PostgreSQL, the worker, Valkey, and the gateway
+were not tuned. A signed-in UI and matching desktop/mobile
+screenshots were not collected for this exact head. Voice acceptance remains
+**incomplete**.
+
+This baseline commit updates PR #1141 and consequently creates a new PR #1141
+head. Its former exact-head Checks will not transfer; re-fetch the new head,
+required checks, approval, review threads, and auto-merge state from GitHub.
+This entry is evidence, not a protected-main delivery claim.
+
 ## Exact-head loop refresh — 2026-10-02 06:25 KST (2026-10-01 21:25 UTC)
 
 This is a dated snapshot. The paginated inventory and check evidence below were
 read before the API rate limit began at 21:25:53 UTC. After a targeted retry,
-#1141 auto-merge was re-enabled at 21:28:32 UTC; later lifecycle claims remain
+PR #1141 auto-merge was re-enabled at 21:28:32 UTC; later lifecycle claims remain
 unavailable until the API recovers. Protected `main` was
 `83eba56149eb802cd63642c507c324c9976ec78e`. The product contract is
 [`product-requirements.md`](product-requirements.md), with ADRs normative.
