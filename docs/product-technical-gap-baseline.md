@@ -66,7 +66,8 @@ RankWeave `ARCHITECTURE.md`, ThreadWeave `docs/PRD.md`, TEPP's approved v0.4
 PRD, and DiskSage's current `docs/PRD.md`. Remote repository identity reads
 confirm `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
 and **`ContextualWisdomLab/disksage`**. The PRD register's uppercase DiskSage
-machine reference and older claim of a missing standalone PRD are stale.
+machine reference and older claim of a missing standalone PRD were corrected
+to the verified lowercase repository identity and current PRD.
 
 Main has no duplicate four-digit ADR filenames, but the supporting PRD repeats
 FR-2A/FR-2B/FR-2C identifiers and contains differing occupational traceability
@@ -109,7 +110,8 @@ proof that all pending Voice changes compose correctly.
 
 **Current runtime aggregates and remaining acceptance.** A read-only count on
 the canonical `lineageweave` PostgreSQL container returned **43,189 source
-posts**. No titles, names, keys, record IDs, or credentials were output or added
+posts**. No real record titles, names, keys, record IDs, or runtime credentials
+were output or added
 to artifacts. The synthetic direct-grant API probe returned HTTP 400 before an
 authorized product response, so authenticated PostgreSQL API/Voice acceptance
 remains **unverified**. The existing stack cannot be assumed synthetic-only;
