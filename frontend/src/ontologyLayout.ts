@@ -259,8 +259,9 @@ export function filterNeighborhood(
               visibleNodeIds.has(item["@id"]) ||
               visibleVoiceIds.has(item["@id"])),
         ).map((item) => {
-          if (!Array.isArray(item[HAS_VOICE_ASSIGNMENT])) return item;
-          const relations = (item[HAS_VOICE_ASSIGNMENT] as unknown[]).filter(
+          const rawRelations = item[HAS_VOICE_ASSIGNMENT];
+          if (rawRelations === undefined) return item;
+          const relations = (Array.isArray(rawRelations) ? rawRelations : [rawRelations]).filter(
             (relation) => typeof relation === "object" && relation !== null &&
               "@id" in relation && typeof relation["@id"] === "string" &&
               visibleVoiceIds.has(relation["@id"]),
@@ -324,8 +325,9 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          // Live display labels follow the node map; relations retain all pages.
-          if (Object.hasOwn(existing, key) && key !== "@id" && key !== "rdfs:label") {
+          // JSON-LD describes one RDF subject across pages, so retain every
+          // distinct property value while keeping its identity singular.
+          if (Object.hasOwn(existing, key) && key !== "@id") {
             const values = [existing[key], incoming[key]].flatMap((value) =>
               Array.isArray(value) ? value : [value],
             );

@@ -577,7 +577,7 @@ describe("ontologyLayout", () => {
     }]);
   });
 
-  it("keeps the latest node label without discarding earlier relations", () => {
+  it("keeps the latest node label and all JSON-LD values across pages", () => {
     const first = payload();
     const subject = `${ONTOLOGY_NAMESPACE}post/${POST_ID}`;
     const person = { "@id": `${ONTOLOGY_NAMESPACE}person/${PERSON_ID}` };
@@ -595,7 +595,9 @@ describe("ontologyLayout", () => {
     const merged = accumulateNeighborhoodPages(first, next);
     expect(merged.nodes[0].display_label).toBe("Synthetic approved");
     expect(merged.jsonld["@graph"]).toEqual([{
-      "@id": subject, "rdfs:label": "Synthetic approved", "lw:mentions": [person, organization],
+      "@id": subject,
+      "rdfs:label": ["Synthetic draft", "Synthetic approved"],
+      "lw:mentions": [person, organization],
     }]);
     expect(accumulateNeighborhoodPages(merged, {
       ...next, jsonld: { "@graph": [{ "@id": subject, "lw:mentions": person }] },
