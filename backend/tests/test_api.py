@@ -23,10 +23,10 @@ from types import SimpleNamespace
 
 import asyncpg
 import jwt
-import psycopg2
 import pytest
 import redis
 
+from lineageweave import postgres_sync as psycopg2
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
@@ -217,6 +217,40 @@ _GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION = (
     / "migrations"
     / "0218_global_ask_public_verification.sql"
 )
+_TEPP_RECEIPT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0217_analysis_run_tepp_receipt.sql"
+)
+_PROV_O_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0017_prov_o_standard_relations.sql"
+)
+_VOICE_TAXONOMY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0235_voice_of_x_post_taxonomy.sql"
+)
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0175_ontology_truth_status.sql"
+)
+_CONVERSATION_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0233_source_conversation_turn_evidence.sql"
+)
+_SOURCE_POST_VOICE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0237_source_post_voice_combination.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0238_occupational_construct_assertion.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0240_occupational_construct_extraction_run.sql"
+)
 _GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -332,6 +366,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_PROV_O_MIGRATION.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
@@ -415,16 +450,23 @@ def seeded_db(demo_analyst_token):
             )
             conn.autocommit = False
             cur.execute(_GLOBAL_ASK_KNOWLEDGE_CUTOFF_MIGRATION.read_text())
+            cur.execute(_TEPP_RECEIPT_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_PUBLIC_VERIFICATION_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
+            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
+            cur.execute(_CONVERSATION_EVIDENCE_MIGRATION.read_text())
+            cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
+            cur.execute(_SOURCE_POST_VOICE_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

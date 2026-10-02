@@ -14,8 +14,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 
-psycopg2 = pytest.importorskip("psycopg2")
-sql = pytest.importorskip("psycopg2.sql")
+from lineageweave import postgres_sync as sync_postgres
+from lineageweave.postgres_sync import sql
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -30,10 +30,10 @@ _MIGRATION_PATHS = (
 def _postgres_available() -> bool:
     """Return whether the configured PostgreSQL admin database is reachable."""
     try:
-        connection = psycopg2.connect(_ADMIN_DSN, connect_timeout=2)
+        connection = sync_postgres.connect(_ADMIN_DSN, connect_timeout=2)
         connection.close()
         return True
-    except psycopg2.OperationalError:
+    except sync_postgres.OperationalError:
         return False
 
 
@@ -53,7 +53,7 @@ pytestmark = pytest.mark.skipif(
 def prov_schema_db():
     """Yield a freshly migrated database and drop it after the test."""
     database_name = f"lineageweave_prov_{uuid.uuid4().hex[:12]}"
-    admin_connection = psycopg2.connect(_ADMIN_DSN)
+    admin_connection = sync_postgres.connect(_ADMIN_DSN)
     admin_connection.autocommit = True
     with admin_connection.cursor() as cursor:
         cursor.execute(
@@ -61,7 +61,7 @@ def prov_schema_db():
         )
     try:
         database_dsn = _dsn_for_database(_ADMIN_DSN, database_name)
-        connection = psycopg2.connect(database_dsn)
+        connection = sync_postgres.connect(database_dsn)
         try:
             with connection.cursor() as cursor:
                 for migration_path in _MIGRATION_PATHS:
@@ -117,7 +117,7 @@ def test_database_accepts_valid_generation_and_rejects_wrong_domain(prov_schema_
             "values (%s, 'prov_was_generated_by', %s)",
             (entity_id, activity_id),
         )
-        with pytest.raises(psycopg2.errors.RaiseException, match="violates PROV-O domain"):
+        with pytest.raises(sync_postgres.errors.RaiseException, match="violates PROV-O domain"):
             cursor.execute(
                 "insert into provenance_assertion "
                 "(subject_resource_id, relation_code, object_resource_id) "
@@ -135,7 +135,7 @@ def test_database_rejects_literal_for_object_property(prov_schema_db) -> None:
             "insert into provenance_literal_value (lexical_value) values ('bad') returning literal_id"
         )
         literal_id = cursor.fetchone()[0]
-        with pytest.raises(psycopg2.errors.RaiseException, match="requires object_resource_id"):
+        with pytest.raises(sync_postgres.errors.RaiseException, match="requires object_resource_id"):
             cursor.execute(
                 "insert into provenance_assertion "
                 "(subject_resource_id, relation_code, object_literal_id) "
@@ -154,7 +154,7 @@ def test_database_requires_xsd_datetime_for_event_time(prov_schema_db) -> None:
             "values ('2026-08-14T04:00:00Z') returning literal_id"
         )
         literal_id = cursor.fetchone()[0]
-        with pytest.raises(psycopg2.errors.RaiseException, match="violates datatype"):
+        with pytest.raises(sync_postgres.errors.RaiseException, match="violates datatype"):
             cursor.execute(
                 "insert into provenance_assertion "
                 "(subject_resource_id, relation_code, object_literal_id) "
@@ -192,7 +192,7 @@ def test_database_rejects_invalid_xsd_datetime(prov_schema_db, lexical_value: st
             lexical_value,
             "http://www.w3.org/2001/XMLSchema#dateTime",
         )
-        with pytest.raises(psycopg2.errors.RaiseException, match="lexical xsd:dateTime"):
+        with pytest.raises(sync_postgres.errors.RaiseException, match="lexical xsd:dateTime"):
             cursor.execute(
                 "insert into provenance_assertion "
                 "(subject_resource_id, relation_code, object_literal_id) "
@@ -231,7 +231,7 @@ def test_referenced_contract_rows_are_immutable(prov_schema_db) -> None:
             "values (%s, 'prov_was_generated_by', %s)",
             (entity_id, activity_id),
         )
-        with pytest.raises(psycopg2.errors.RaiseException, match="types are immutable"):
+        with pytest.raises(sync_postgres.errors.RaiseException, match="types are immutable"):
             cursor.execute(
                 "delete from provenance_resource_type "
                 "where resource_id = %s and class_code = 'prov_activity'",
@@ -252,7 +252,7 @@ def test_referenced_contract_rows_are_immutable(prov_schema_db) -> None:
             "values (%s, 'prov_started_at_time', %s)",
             (activity_id, literal_id),
         )
-        with pytest.raises(psycopg2.errors.RaiseException, match="literal values are immutable"):
+        with pytest.raises(sync_postgres.errors.RaiseException, match="literal values are immutable"):
             cursor.execute(
                 "update provenance_literal_value set datatype_iri = null "
                 "where literal_id = %s",

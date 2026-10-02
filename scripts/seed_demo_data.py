@@ -29,8 +29,7 @@ from urllib.parse import urlencode
 # Allow `python3 scripts/seed_demo_data.py` from a checkout without install.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import psycopg2
-
+from lineageweave import postgres_sync as psycopg2
 from lineageweave.http_client import get_json, get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
