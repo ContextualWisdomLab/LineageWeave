@@ -1621,3 +1621,30 @@ included.
   the separate I/O-Psychology taxonomy, source history, and evidence-bearing
   combinations. Authenticated PostgreSQL/API, customer-runtime UI, and k6
   saturation evidence remain **unavailable**; no release acceptance is claimed.
+
+### Ready-PR exact-head refresh — 2026-10-02 13:52 KST
+
+- PR #1126 moved from Draft to ready at exact head
+  `c0c5204b702d2d4d24928389db7d04ebe5cb9739`; normal auto-merge is enabled,
+  `REVIEW_REQUIRED`, and blocked. Focused Similar VOC tests, Storybook tests,
+  frontend lint and Storybook build passed locally (12 focused tests). The
+  `RetainedEvidenceRetry` and `EmptyNextPageRetry` stories were rendered at
+  desktop **2636×2211** and mobile **414×896**. The retained-page state keeps
+  displayed evidence and retries only the next page; the empty-page state
+  does not claim that evidence was retained. The exact-head CodeQL dispatch
+  status reports unsuppressed Medium+ findings, and Full suite/frontend checks
+  started after ready and are pending. No suppression or synthetic green was
+  added. No independent approval or merge SHA exists.
+- PR #1128 moved from Draft to ready at exact head
+  `91143146623948dbd26bbfc1c69de3cd77d2ae06`; normal auto-merge is enabled,
+  `REVIEW_REQUIRED`, and blocked. The corrected fixture matches the fetched
+  row's `post_id` to the requested post before chat-store access. The focused
+  route test passed locally (**4 tests**); current-head Full suite and frontend
+  checks are pending. CodeQL compatibility checks fail on this head. The
+  current review list has comments but no approval; no merge SHA exists.
+- Immediately before this refresh, baseline PR #1141 remained at
+  `cde145ea63315271457dad961bf7e19406188e53`, with normal auto-merge enabled,
+  `BLOCKED`, all active hosted checks successful, and no independent approval.
+  This update advances #1141; revalidate its new exact head and preserve
+  auto-merge. Current aggregate count remains 181 open PRs and 43 open issues;
+  protected `main` is `83eba56149eb802cd63642c507c324c9976ec78e`.
