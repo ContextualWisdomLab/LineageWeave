@@ -1369,13 +1369,17 @@
 .ontology-exact-values {
   margin-top: 1rem;
   max-width: 100%;
+}
+
+.ontology-exact-values-scroll {
+  max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
 }
 
-.ontology-exact-values:focus-visible {
+.ontology-exact-values-scroll:focus-visible {
   outline: 2px solid var(--color-focus-border);
   outline-offset: 2px;
   border-radius: var(--radius-control);
@@ -1391,6 +1395,19 @@
   border-bottom: 1px solid var(--color-table-border);
   padding: 0.4rem 0.6rem;
   text-align: left;
+}
+
+.ontology-exact-values th:first-child,
+.ontology-exact-values td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface, #fff);
+}
+
+.ontology-exact-values th:first-child {
+  z-index: 2;
+  background: var(--color-table-th-bg);
 }
 
 .ontology-exact-values .is-selected {

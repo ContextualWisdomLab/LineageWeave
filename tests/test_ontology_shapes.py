@@ -77,7 +77,8 @@ def _representative_projection() -> Graph:
     data.add((voice_assignment, RDF.type, LWn.VoiceAssignment))
     data.add((voice_assignment, LWn.assignedVoiceType, LWn.voiceOfCustomerType))
     data.add((voice_assignment, LWn.primaryVoiceAssignment, Literal(True)))
-    data.add((voice_assignment, LWn.voiceAssignmentEvidence, post))
+    data.add((voice_assignment, LWn.voiceAssignmentCarryingPost, post))
+    data.add((post, LWn.hasVoiceAssignment, voice_assignment))
     person = URIRef(LW + "person-okonkwo")
     data.add((person, RDF.type, LWn.Person))
     data.add((person, LWn.personName, Literal("Sam Okonkwo")))
@@ -109,17 +110,60 @@ def _representative_projection() -> Graph:
     return data
 
 
-def test_voice_assignment_requires_source_evidence() -> None:
-    """A projected Voice assignment without its authorized source post fails closed."""
+def test_voice_assignment_requires_carrying_post() -> None:
+    """A projected Voice assignment without its authorized carrying Post fails closed."""
     data = _representative_projection()
     LWn = Namespace(LW)
     assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
-    data.remove((assignment, LWn.voiceAssignmentEvidence, None))
+    data.remove((assignment, LWn.voiceAssignmentCarryingPost, None))
 
     conforms, report = _conforms(data)
 
     assert conforms is False
-    assert "voice assignment evidence" in report.lower()
+    assert "voice assignment carrying post" in report.lower()
+
+
+def test_voice_assignment_rejects_mismatched_carrying_post() -> None:
+    """The carrying Post and inverse assignment link must identify one pair."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    other_post = URIRef(LW + "post-beta")
+    data.add((other_post, RDF.type, LWn.Post))
+    data.set((assignment, LWn.voiceAssignmentCarryingPost, other_post))
+
+    conforms, report = _conforms(data)
+
+    assert conforms is False
+    assert "carrying post must link" in report.lower()
+
+
+def test_voice_assignment_rejects_an_extra_inverse_post_link() -> None:
+    """No second Post may claim an assignment carried by another Post."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    other_post = URIRef(LW + "post-beta")
+    data.add((other_post, RDF.type, LWn.Post))
+    data.add((other_post, LWn.hasVoiceAssignment, assignment))
+
+    conforms, report = _conforms(data)
+
+    assert conforms is False
+    assert "carrying post must link" in report.lower()
+
+
+def test_additional_voice_assignment_requires_derivation_evidence() -> None:
+    """Only an additional Voice must retain a distinct derivation relation."""
+    data = _representative_projection()
+    LWn = Namespace(LW)
+    assignment = URIRef(LW + "voice-assignment/post-alpha/voc")
+    data.set((assignment, LWn.primaryVoiceAssignment, Literal(False)))
+
+    conforms, report = _conforms(data)
+
+    assert conforms is False
+    assert "require derivation evidence" in report.lower()
 
 
 def test_shipped_shapes_conform_to_shacl_specification() -> None:

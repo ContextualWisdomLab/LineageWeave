@@ -1,5 +1,787 @@
 # Product & Technical Gap Baseline
 
+> Exact-head development-loop snapshot: 2026-09-02 KST. Protected `main` is
+> `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; the fresh inventory contains
+> 107 open PRs and 15 open non-PR issues. PR #780's remotely observed evidence
+> parent is `9928fd65e75d8d5e53d9a25f33df8d05acddf4c1`, based directly on that
+> `main`, non-draft, mechanically mergeable, and policy-blocked. The active
+> organization ruleset still requires one independent approval, resolved
+> review threads, and the central required workflows. No qualifying
+> independent approval exists. Exact-parent product and frontend checks pass;
+> dependency review and Noema fail closed in their central workflows, while
+> Strix is cancelled. Those hosted states are not converted into product
+> acceptance, and no protected merge or merge SHA is claimed.
+>
+> Fresh local verification on that evidence parent passes 53 Voice-authority,
+> ontology-neighborhood, and SHACL tests plus all 534 frontend tests, lint,
+> type checking, and the production build. The synthetic desktop and mobile
+> Storybook screenshots were visually audited: the exact-value view keeps the
+> carrying Post in Source and shows an evidence action only for genuine
+> derivation evidence; the narrow view retains the horizontally scrollable
+> exact-value table. Paged JSON-LD regressions continue to union properties and
+> multi-Voice relations for one subject. ADR 0246's twelve atomic Voices stay
+> extensible assignments rather than fixed combination codes, and every
+> additional Voice retains its authorized evidence Post, PROV-O derivation,
+> truth status, and cutoff. Authenticated deployed PostgreSQL/API evidence was
+> not rerun in this snapshot, so that acceptance remains unavailable rather
+> than inherited from an older revision.
+>
+> Exact-head development-loop snapshot: 2026-09-01 21:36 KST. Protected
+> `main` is `3f61c8242b9c02dec307a7396e83e28f7cdd9f3d`; 98 PRs and 10
+> non-PR issues were open in the fresh inventory collected before GitHub's API
+> rate limit closed the review-thread query. PR #780 is based directly on that
+> `main` at exact head `1c3b48fa465bb602a5fdacec57d32ef23c5997a9`, is non-draft,
+> and has normal squash auto-merge armed. Its review decision remains
+> `REVIEW_REQUIRED`; review-thread state is unavailable in this snapshot and is
+> not inferred from older evidence. Fourteen exact-head checks are queued, the
+> Strix job is cancelled, and the remaining reported jobs are successful or
+> skipped. Pending work is not acceptance evidence and does not block safe
+> review of another PR. No protected merge or merge SHA is claimed.
+>
+> Fresh local verification on this exact product head passes 184 focused
+> Voice-authority, ontology, SHACL, and API tests with five live-stack skips,
+> plus all 534 frontend tests, lint, type checking, and the production build.
+> The candidate remains the largest buyer-visible gap implementation: exact-
+> value UI and CSV distinguish the carrying Post from derivation evidence;
+> authorized additional Voices retain their evidence Post, truth status,
+> cutoff, and server-created PROV-O derivation; hidden evidence is omitted
+> without substituting the carrying Post; and paged JSON-LD unions properties
+> and multi-Voice relations for the same subject. ADR 0246's twelve atomic
+> Voice codes remain extensible assignments rather than enumerated
+> combinations. Authenticated deployed PostgreSQL/API and rendered-UI
+> acceptance remain unavailable at this revision.
+
+> Exact-head development-loop snapshot: 2026-09-01 13:23 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
+> non-PR issues are open. PR #780's exact evidence parent is
+> `39ee1ee39b3667cc1adc8337f5c8a183f22aaeb1`, based directly on that
+> `main`. Normal squash auto-merge remains armed. Fresh GraphQL evidence shows
+> all 24 review threads resolved, but no independent `APPROVED` review exists.
+> Two exact-parent checks succeed, seven are skipped, and thirteen are queued;
+> queued work is not acceptance evidence and did not block safe local review.
+> The active ruleset still requires an independent approval, resolved threads,
+> central required workflows, and non-fast-forward protection. No protected
+> merge, merge SHA, or deployed acceptance is claimed.
+>
+> Fresh focused verification passes 54 Voice-authority, ontology, SHACL, and
+> authenticated synthetic PostgreSQL/API tests. The wider selected API file
+> also exposed three schema-drift failures outside this Voice slice: its fresh
+> test databases lack `analysis_run_tepp_receipt` and
+> `semantic_unit.source_evidence_reference`. Those failures remain explicit
+> unavailable integration evidence and are not hidden by narrowing the accepted
+> regression claim. Direct inspection of the committed desktop and mobile
+> renders confirms separate carrying-Post and derivation-evidence actions; the
+> narrow table preserves them through horizontal scrolling. The candidate keeps
+> ADR 0246's twelve atomic Voices extensible, preserves authorized additional-
+> Voice evidence, server-created PROV-O derivation, truth status, and cutoff,
+> omits hidden evidence instead of substituting the carrying Post, and unions
+> same-subject multi-Voice relations in paged JSON-LD. Voice composition remains
+> governed by ADR 0256, not this repository's unrelated ADR 0251. Protected-main
+> and authenticated deployed UI acceptance remain unavailable.
+
+> Exact-head development-loop snapshot: 2026-09-01 12:08 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; 98 PRs and 10
+> non-PR issues are open. PR #780's exact evidence parent is
+> `44fb7863eb60cfd4c2ae4b85674346f6cc9be5b6`, based directly on that
+> `main`. Normal squash auto-merge is armed. No independent `APPROVED` review
+> exists, and the active ruleset requires one approval, fresh review after a
+> push, resolved threads, central required workflows, and non-fast-forward
+> protection. Seven exact-parent checks are skipped and thirteen are queued;
+> queued work is not acceptance evidence and did not block safe local review.
+> GitHub GraphQL review-thread evidence is rate-limited in this snapshot, so
+> thread resolution is explicitly unverified rather than inferred from REST
+> comments. No protected merge, merge SHA, or deployed acceptance is claimed.
+>
+> The largest buyer-visible gap remains implemented only on PR #780: the
+> exact-value UI and CSV distinguish the carrying Post from genuine derivation
+> evidence; additional Voices retain authorized Post evidence, server-created
+> PROV-O derivation, truth status, and cutoff; hidden evidence is omitted rather
+> than replaced; and paged JSON-LD unions same-subject multi-Voice properties.
+> The twelve ADR 0246 atomic classifications remain extensible assignments,
+> never enumerated combinations. In this repository ADR 0251 governs the I/O
+> psychology semantic layer; Voice composition is governed by ADR 0256 and
+> temporal imported-primary history by ADR 0252. Issue #807 keeps the duplicated
+> occupational PRD/ADR identities explicitly unresolved. Package metadata is
+> 2.28.0 while `lineageweave.__version__` remains 2.20.0; the v2.29.0 analysis
+> candidate in PR #897 must not be promoted ahead of an owner-approved release
+> identity reconciliation. These conflicts remain unavailable, not repaired by
+> a local guess.
+
+> Exact-head development-loop overlay: 2026-09-01 11:03 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs
+> and ten non-PR issues are open. PR #780's exact product and rendered-evidence
+> parent for this documentation update is
+> `10ca7c1a02d58bbb12436889d4256fedfb2da7dd`, based directly on that
+> `main`; the current exact head is
+> `c9db49da74e71b94d721ee40a6ee7becec676aa1` and differs from that parent
+> only in this baseline. Normal squash auto-merge remains armed and no
+> independent `APPROVED` review exists. GitHub's review-thread GraphQL query is
+> rate-limited in this snapshot, so the earlier resolved-thread evidence is not
+> promoted to a fresh claim; the REST review and inline-comment feeds expose no
+> newer actionable finding. Thirteen exact-head checks are queued and seven are
+> skipped. No protected merge or merge SHA is claimed.
+>
+> The owner-bound documentation-image workflow repair advanced without a force
+> push in `ContextualWisdomLab/.github#1466` to exact head
+> `3efa7ded68826301a6fbf56237c436740b0b4c1b` on central `main`. Its latest
+> published review is `COMMENTED`, no independent approval or auto-merge is
+> present, fourteen checks are queued, fourteen are skipped, and two are
+> cancelled. Until that parent reaches protected central `main`, PR #780's PNG
+> bootstrap failure remains unavailable workflow evidence. The separate
+> governed review timeout and GitHub dependency-comparison HTTP 403 also remain
+> unavailable rather than product acceptance. One queued Strix run for PR #640
+> was cancelled only after the PR's live head was verified as
+> `5c430d4d91b22bd99a6d74b288c9356a62a50a5d` and the run was verified against
+> stale head `f40e4ed8020a7db4099730d558da942a0f331614`; current `main` and open-PR
+> exact-head runs were left intact.
+>
+> The largest buyer-visible candidate remains the Voice exact-value/export
+> repair: carrying Post and derivation evidence stay distinct in UI and CSV;
+> additional Voices retain authorized Post evidence, server-created PROV-O
+> derivation, truth status, and cutoff; hidden evidence is not replaced; and
+> paged JSON-LD unions same-subject multi-Voice relations. ADR 0246's twelve
+> atomic classifications remain extensible rows rather than enumerated
+> combinations. Fresh local verification passes 54 focused Voice, ontology,
+> SHACL, and API selections plus 29 affected frontend tests, frontend lint, and
+> the production build. Direct inspection of the committed desktop and mobile
+> renders keeps the carrying-Post action separate from the additional Voice's
+> derivation-evidence action, including the narrow table's horizontal scroll.
+> The earlier authenticated synthetic PostgreSQL/API evidence is
+> revision-scoped; deployed acceptance remains unavailable.
+
+> Exact-head development-loop overlay: 2026-09-01 07:31 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-seven PRs
+> and ten non-PR issues are open. PR #780's exact implementation and rendered-
+> evidence parent for this documentation-only update is
+> `948d6e1524d4f203296f5c409dc60f5bd289d9ca`, based directly on that
+> `main`. All 24 review threads are resolved and normal squash auto-merge is
+> armed, but no independent `APPROVED` review exists. Sixteen current-parent
+> checks succeed, ten are skipped, and three fail. The failures remain explicit
+> unavailable evidence: the central Pingora policy decodes a committed PNG as
+> UTF-8, the governed Noema request times out, and GitHub denies the exact
+> dependency comparison with HTTP 403. None is relabeled as product acceptance.
+>
+> Fresh local verification passes 37 focused Voice/ontology/SHACL/API tests and
+> all 534 frontend tests. Direct desktop/mobile render inspection confirms that
+> the carrying-Post action remains distinct from derivation evidence in the
+> exact-value surface, including the horizontally scrolled narrow table. The
+> candidate preserves ADR 0246's twelve extensible atomic Voice rows and ADR
+> 0256's evidence-bearing composition: additional Voices retain authorized Post
+> evidence, server-created PROV-O derivation, truth status, and cutoff; hidden
+> evidence is never replaced with the carrying Post; and paged JSON-LD unions
+> same-subject multi-Voice relations. Earlier authenticated PostgreSQL/API
+> evidence remains revision-scoped. Protected-main delivery, merge SHA, and
+> deployed acceptance remain unavailable.
+>
+> The owner-bound PNG repair remains candidate-only in
+> `ContextualWisdomLab/.github#1466` at
+> `c17841917764960208e89b204c50e527d644db70`; its current OpenCode verdict is
+> changes-requested from failed or cancelled peer checks, Noema/OpenCode reruns
+> are queued, and no independent approval exists. Canonical remote names remain
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, and `TEPP`. No self-approval, admin bypass, force push, invented
+> weight, heuristic classification, or hidden-evidence substitution was used.
+
+> Exact-head development-loop overlay: 2026-09-01 05:14 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-eight PRs and
+> ten non-PR issues are open. PR #780's exact product and rendered-evidence
+> parent for this documentation update is
+> `734bbcc312041ec50b117112caa2fda71320190d`, based directly on that
+> `main`. All review threads are resolved and normal squash auto-merge is
+> freshly armed, but no independent `APPROVED` review exists. Fourteen parent-head
+> checks succeed, ten are skipped, and three fail. The failed evidence remains
+> unavailable rather than being promoted to acceptance: GitHub denies the
+> exact dependency comparison with HTTP 403, the governed Noema request times
+> out, and the central Pingora gate treats a committed documentation PNG as a
+> UTF-8 runtime candidate.
+>
+> The PNG failure is reproduced independently on the next direct-`main` PR,
+> #774 at `5949e243673e7068743340a97ce33168a9d01969`; its product, frontend,
+> CodeQL, Noema, Semgrep, OSV, Trivy, and ontology-independent checks succeed,
+> all review threads are resolved, and normal auto-merge remains armed. Its
+> Strix run exhausted the governed virtual provider route without a finding,
+> and dependency review received the same HTTP 403. These external failures
+> are not repaired by weakening LineageWeave tests or workflows.
+>
+> The central owner-bound repair is still candidate-only. In
+> `ContextualWisdomLab/.github#1420`, another Agent's active ownership and
+> unresolved bounded-PNG validation review are preserved; the branch is behind
+> central `main` and has no independent approval or auto-merge. The newer
+> `ContextualWisdomLab/.github#1466` is also open at
+> `c17841917764960208e89b204c50e527d644db70`; its 67 focused owner-repository
+> regression tests pass, all review threads are resolved, and normal squash
+> auto-merge is armed, while current-head OpenCode/Noema verdicts and independent
+> approval remain unavailable. Neither candidate is protected-
+> main evidence, so affected LineageWeave required workflows are not rerun as
+> though the root fix had landed.
+>
+> The largest implemented buyer-visible candidate remains #780: exact-value
+> UI/CSV distinguishes the carrying Post from derivation evidence, additional
+> Voices preserve authorized Post evidence, server-created PROV-O derivation,
+> truth status, and cutoff, and paged JSON-LD unions multi-Voice properties for
+> one subject. ADR 0246's twelve atomic classifications remain extensible rows,
+> not enumerated combinations; hidden evidence is never replaced with the
+> carrying Post. The committed desktop/mobile renders and authenticated
+> PostgreSQL/API evidence remain revision-scoped. Fresh local verification on
+> the product parent passes 37 focused Voice/ontology/SHACL/API tests and 29
+> affected frontend tests plus frontend lint. The broader frontend run passed
+> 532 of 534 tests but two unrelated App tests exceeded their existing five-second
+> local timeout; the exact-head hosted frontend gate remains successful, so the
+> local timeout is not promoted to acceptance or hidden. Protected-main delivery,
+> merge SHA, and deployed acceptance remain unavailable. Fresh remote checks
+> preserve canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+> `ThreadWeave`, lowercase `disksage`, and `TEPP`. No self-approval, admin
+> bypass, force push, invented weight, or heuristic classification was used.
+
+> Exact-head development-loop overlay: 2026-09-01 01:41 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's exact pre-overlay evidence parent is
+> `29c21916de99fbe26b67ef4fe45aa72f26fc0020`, based directly on that
+> `main`; the documentation-only overlay does not inherit its hosted results.
+> All review threads were resolved and normal squash auto-merge was
+> armed, but no independent `APPROVED` review exists. Fourteen exact-head
+> checks succeed, eleven are skipped, three fail, and Strix remains in
+> progress. The failures remain explicit unavailable evidence: the central
+> bootstrap does not yet admit the committed PNG evidence, the governed
+> review call timed out, and GitHub returned HTTP 403 for the exact-base/head
+> dependency comparison. None is relabeled as product acceptance.
+>
+> The current candidate is still the largest completed buyer-visible gap in
+> this loop: exact-value UI/CSV distinguishes the carrying Post from
+> derivation evidence, additional Voices retain authorized Post evidence,
+> server-created PROV-O derivation, truth status, and cutoff, and paged
+> JSON-LD unions multi-Voice properties for one subject. Regression coverage
+> and the committed 1440-by-1400 desktop and 390-by-1688 mobile Storybook
+> renders remain revision-scoped evidence; protected-main delivery, a merge
+> SHA, and deployed authenticated PostgreSQL/UI acceptance remain unavailable.
+> ADR 0246 owns the twelve extensible atomic classifications and ADR 0256 owns
+> evidence-bearing composition; the supporting PRD's conflicting ADR 0251
+> identity and duplicate occupational requirement identifiers remain
+> candidate-only under #847, not silently reinterpreted here.
+>
+> Pending checks did not stop safe queue work. Exact-head review found no
+> unresolved threads on direct-`main` PRs #771, #772, #774, #802, and #847;
+> normal squash auto-merge is now armed on each, while required independent
+> approval and failed or pending current-head checks remain unsatisfied. PR
+> #640 moved concurrently to a new head during this audit, so its existing
+> auto-merge was preserved and its new evidence was not inherited from the
+> earlier snapshot. Fresh remote-name verification preserves canonical
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, and `TEPP`. No self-approval, admin bypass, force push, invented
+> weight, or heuristic classification was used.
+
+> Exact-head development-loop overlay: 2026-09-01 00:34 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's exact implementation and rendered-
+> evidence parent for this documentation-only update is
+> `81b425f1253e15f615e3395c2c5ff9cce5456a75`, based on `main`. All review
+> threads are resolved and normal squash auto-merge is armed, but the required
+> independent `APPROVED` review is unavailable. Fourteen checks succeed, nine
+> are skipped, and four exact-head reruns are queued or running; pending checks
+> are not promoted to acceptance and did not stop review of the next direct
+> `main` PR. PR #847 at `a87c6ec96c546c214461727efedeb8e7549d0fdd`
+> also has all review threads resolved and normal squash auto-merge re-armed;
+> it likewise remains blocked on independent approval and fresh failed-check
+> reruns.
+>
+> Fresh local verification on #780's parent passes 38 focused Voice,
+> ontology, SHACL, and authenticated-API selections plus 29 affected frontend
+> tests. Frontend lint, type checking, and production build pass. Direct
+> inspection of the committed 1440-by-1400 desktop and 390-by-1688 mobile
+> Storybook renders confirms that carrying-Post navigation remains distinct
+> from derivation evidence, including the horizontally scrolled narrow table.
+> The candidate preserves ADR 0246's twelve extensible atomic Voice rows,
+> authorized evidence, server-created PROV-O derivation, truth status, cutoff,
+> and same-subject multi-Voice JSON-LD unions without enumerating combinations
+> or substituting hidden evidence. Protected-main delivery, merge SHA, and a
+> deployed authenticated runtime claim remain unavailable. Fresh remote
+> verification preserves canonical `ContextualWisdomLab/LineageWeave`,
+> `RankWeave`, `ThreadWeave`, lowercase `disksage`, and `TEPP`. No
+> self-approval, admin bypass, force push, invented weight, or heuristic
+> classification was used.
+
+> Exact-head development-loop overlay: 2026-08-31 23:16 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's exact product and rendered-evidence
+> parent for this documentation-only update is
+> `72c9636a4a03deec9b6115e2ec41503ff52bd11e`, based on `main`; the later
+> documentation revision does not inherit that parent's hosted evidence. All
+> 24 review threads are resolved, but no independent `APPROVED` review exists.
+> Fourteen checks succeed, three fail, fourteen are skipped, and none is
+> pending. The failures remain fail-closed owner/platform evidence gaps: the
+> required review bootstrap rejects the committed PNG before the central
+> binary-evidence repair lands, Noema times out after the governed
+> contextual-orchestrator sidecar is ready, and GitHub denies exact-base/head
+> dependency-graph comparison with HTTP 403. They are not relabeled as product
+> success.
+>
+> Fresh exact-head local verification passes 53 focused Voice, ontology, and
+> SHACL tests, one authenticated PostgreSQL/API Voice projection test, and all
+> 534 frontend tests. Frontend lint, type checking, and the production build
+> also succeed. A broader local API-file run exposed three unrelated stale
+> shared-stack schema failures, so those paths are not counted as acceptance.
+> Direct
+> inspection of the committed 1440-by-1400 desktop and 390-by-1688 mobile
+> Storybook renders confirms that the exact-value view keeps its carrying Post
+> action distinct from derivation evidence, including the horizontally
+> scrolled narrow table. The candidate keeps ADR 0246's twelve atomic Voice
+> classifications extensible; it does not enumerate combinations. Additional
+> assignments retain an authorized evidence Post, PROV-O derivation, truth
+> status, and cutoff, while an imported primary Voice acquires no invented
+> derivation. Paged JSON-LD unions same-subject multi-Voice relations. Earlier
+> authenticated PostgreSQL/runtime evidence remains revision-scoped;
+> protected-main delivery and merge SHA remain unavailable.
+>
+> The central root repair is now `ContextualWisdomLab/.github#1466` at
+> `c17841917764960208e89b204c50e527d644db70`: its focused policy contract
+> validates complete bounded PNG evidence and rejects malformed or appended
+> payloads. Normal squash auto-merge is armed, but Noema and OpenCode reruns are
+> queued and no independent approval exists; it remains candidate-only. PR
+> #847 remains a candidate-only PRD identity repair at
+> `a87c6ec96c546c214461727efedeb8e7549d0fdd`; every review thread is resolved
+> and auto-merge is armed, but dependency review and the current-head review
+> verdict fail closed and no independent approval exists. PR #640's current
+> head `d56efa3a7358cc8e6f8498894782e079b9ec0114` likewise has all 139 review
+> threads resolved and normal auto-merge armed, but remains unapproved and is
+> not protected-main evidence. Fresh remote verification preserves canonical
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, `TEPP`, `fast-mlsirm`, and `contextual-orchestrator`. No
+> self-approval, admin bypass, force push, heuristic classification, invented
+> weight, or hidden-evidence substitution was used.
+
+> Exact-head development-loop overlay: 2026-08-31 20:49 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-five PRs and
+> ten non-PR issues are open. PR #780's exact implementation and rendered-
+> evidence parent for this documentation-only update is
+> `8ad7f13a82e75cfc5adf485f455f719dc208201e`, based on `main`. All 24
+> review threads are resolved, no independent `APPROVED` review exists, and
+> normal squash auto-merge was freshly re-armed without bypass. Every check is
+> terminal on that parent. Product tests, frontend lint/tests/build, ontology
+> publication, CodeQL, Semgrep, OSV, Trivy, Scorecard, the queue scan, Strix,
+> CodeRabbit, and Devin succeed. Required-workflow bootstrap, Noema, and
+> dependency review fail closed; they are not relabeled as product success.
+>
+> Fresh local verification passes 37 focused Voice-authority, ontology,
+> SHACL, and authenticated-API tests plus 29 affected frontend tests, frontend
+> lint, type checking, and the production build. Direct inspection of the
+> committed 1440-by-1400 desktop and 390-by-1688 mobile Storybook renders
+> confirms that the exact-value table keeps the carrying Post action distinct
+> from derivation evidence, including the horizontally scrolled narrow view.
+> The candidate preserves ADR 0246's twelve atomic Voice classifications as
+> extensible rows, additional assignments retain an authorized evidence Post,
+> server-created PROV-O derivation, truth status, and cutoff behavior, imported
+> primary Voices acquire no invented derivation, and paged JSON-LD unions
+> same-subject multi-Voice relations. Earlier authenticated PostgreSQL/runtime
+> evidence remains revision-scoped; protected-main delivery and merge SHA are
+> unavailable.
+>
+> The supporting PRD identity repair remains candidate-only in #847 at
+> `a87c6ec96c546c214461727efedeb8e7549d0fdd`, with auto-merge armed, all
+> product checks successful, and dependency review plus OpenCode failing
+> closed; it still lacks an independent approval. The central binary-evidence
+> repair remains candidate-only in `ContextualWisdomLab/.github#1420` at
+> `b4dfa6163eb58ac9f9b1a240bcfbb5bfda957332`; it is behind central `main`,
+> exact-head path policy and OpenCode fail, Noema is cancelled, and auto-merge
+> is currently not armed. Accepted ADRs therefore remain authoritative. Fresh
+> remote verification confirms canonical `ContextualWisdomLab/LineageWeave`,
+> `RankWeave`, `ThreadWeave`, lowercase `disksage`, `TEPP`, `fast-mlsirm`, and
+> `contextual-orchestrator`. No self-approval, admin bypass, force push,
+> heuristic classification, invented weight, or hidden-evidence substitution
+> was used.
+
+> Exact-head development-loop overlay: 2026-08-31 19:39 KST. Protected
+> `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; ninety-one PRs and
+> nine non-PR issues are open. PR #780's exact parent for this evidence-only
+> update is `79dbedf3d8ea86bb17fda2484e22a5b21566a916`, based on `main`.
+> All review threads are resolved and normal squash auto-merge remains armed,
+> but no independent `APPROVED` review exists. Fourteen checks succeed, four
+> fail, and eleven are skipped; none is pending. Product tests, frontend lint,
+> frontend tests/build, ontology publication, CodeQL, Semgrep, OSV, Trivy,
+> Scorecard, the queue scan, CodeRabbit, and Devin succeed on that exact head.
+> The four failures remain fail-closed external or owner-bound evidence gaps:
+> the protected central Pingora policy reads the committed PNG render as
+> UTF-8, Noema times out after the governed contextual-orchestrator sidecar is
+> ready, Strix exhausts the virtual provider route after bounded retries, and
+> GitHub denies dependency-graph comparison with HTTP 403. None is relabeled
+> as product success.
+>
+> The central binary-evidence root repair remains candidate-only in
+> `ContextualWisdomLab/.github#1420` at
+> `b4dfa6163eb58ac9f9b1a240bcfbb5bfda957332`. It is currently behind central
+> `main`, lacks an independent approval, and its hosted OpenCode verdict fails;
+> normal squash auto-merge was re-armed without bypass. PR #847's PRD identity
+> repair remains candidate-only at
+> `a87c6ec96c546c214461727efedeb8e7549d0fdd`, with auto-merge armed and no
+> independent approval. Accepted ADRs therefore remain authoritative.
+>
+> The largest directly actionable buyer gap remains the PR #780 Voice export
+> implementation: exact-value UI and CSV distinguish the carrying Post from
+> genuine derivation evidence; additional Voices preserve an authorized Post,
+> PROV-O derivation, truth status, and cutoff; primary Voices do not acquire an
+> invented derivation; and paged JSON-LD unions same-subject multi-Voice
+> relations. ADR 0246's twelve atomic classifications remain extensible rows,
+> not enumerated combinations. Earlier authenticated synthetic PostgreSQL/API
+> and desktop/mobile rendered evidence remains revision-scoped; protected-main
+> delivery and merge SHA are unavailable. Canonical remotes were freshly
+> verified as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, `TEPP`, `fast-mlsirm`, and
+> `contextual-orchestrator`. No self-approval, admin bypass, force push,
+> heuristic classification, invented weight, or hidden-evidence substitution
+> was used.
+
+> Development-loop evidence snapshot: 2026-08-31 17:13 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighty-two PRs and
+> ten non-PR issues are open. PR #780's exact product parent for this
+> documentation snapshot is `e71895c06282692570ca683a726e7c8de3ec8c08`,
+> based on `main`, with no
+> independent `APPROVED` review. Fourteen checks succeed, three fail, one is
+> still running, and eleven are skipped. The product tests are green; the
+> failures are fail-closed owner gates: dependency-graph comparison is denied
+> with HTTP 403, the required central policy attempts to decode a PNG as
+> UTF-8, and the review identity cannot be verified after the governed
+> review service starts. This evidence-only update does not transfer those
+> results to itself, and pending work is not promoted to completion.
+>
+> The reusable central-policy root repair remains candidate-only in
+> `ContextualWisdomLab/.github#1420`. Its exact head is now
+> `b4dfa616aa09eec3169547fef8d03b17e1cc3437` after normal merges of current
+> central `main`; the sole CHANGELOG conflict retained both independently
+> owned entries; the later synchronization cleanly adopts the protected-main
+> Noema module-entrypoint repair. The focused policy and queue-contract
+> selection passed 166 tests on the preceding synchronized head; fresh hosted
+> evidence is required for the moved head. It still
+> lacks an independent approval. GitHub's GraphQL quota prevented enabling
+> normal auto-merge on both PRs in this snapshot; `auto_merge` is therefore
+> honestly recorded as unavailable rather than armed. No bypass or
+> self-approval was attempted.
+>
+> The largest directly actionable buyer gap remains implemented on PR #780:
+> exact-value UI and CSV distinguish the carrying Post from genuine
+> derivation evidence, additional Voices preserve authorized Post evidence,
+> PROV-O derivation, truth status, and cutoff, and paged JSON-LD unions
+> same-subject multi-Voice relations. The candidate keeps ADR 0246's twelve
+> atomic Voices extensible and does not enumerate combinations. Fresh local
+> verification passes 37 focused Python tests and 29 frontend tests plus
+> frontend lint, type checking, and production build. Direct inspection of
+> the committed desktop and mobile Storybook renders confirms the narrow
+> exact-value view keeps carrying and evidence actions distinct. Earlier
+> authenticated synthetic PostgreSQL/API evidence is revision-scoped;
+> protected-main delivery and merge SHA remain unavailable.
+>
+> Development-loop evidence snapshot: 2026-08-31 14:58 KST. Protected
+> `main` is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; seventy-eight PRs and
+> ten issues are open. PR #780's exact product parent is
+> `3da03c8fcde4ae437f2eabb490f1fe01789e3fdb`; this documentation update
+> records that parent rather than transferring evidence to itself. All review
+> threads are resolved and normal squash auto-merge is armed, but no
+> independent `APPROVED` review exists. Exact-parent product, frontend,
+> ontology-publication, and security checks succeeded except two owner-side
+> fail-closed gates: dependency-graph comparison returned HTTP 403 and the
+> central OpenCode bootstrap rejected PNG evidence as text. The central owner
+> repair is now `.github#1420` at
+> `d84d65cc1a5b32cda3f5a723a61bab82be0c3d1e`: its valid review finding is
+> repaired with bounded PNG ancillary-chunk ordering, cardinality,
+> mutual-exclusion, payload, and decompression validation. The owner suite
+> passes (2,128 tests, 1 skipped, 21 subtests), review threads are resolved,
+> and fresh hosted checks are running; it remains candidate-only and still
+> lacks an independent approval.
+>
+> Fresh LineageWeave validation passes 36 focused Python tests (one live-stack
+> test skipped), 29 serial affected frontend tests, lint, type checking, and
+> production build. A concurrent whole-frontend run produced eight timeout
+> failures while 526 tests passed; the affected selection passes when run
+> serially, so this is recorded as non-terminal local load evidence rather
+> than hidden or promoted to a product failure. Direct desktop and mobile
+> screenshot inspection confirms that the carrying Post and derivation
+> evidence remain distinct, including the narrow horizontally scrollable
+> exact-value table. The accepted Voice contract remains twelve extensible
+> atomic classifications with no enumerated combinations; additional Voices
+> retain authorized Post evidence, PROV-O derivation, truth status, and
+> cutoff. Protected merge and merge SHA remain unavailable. Canonical remote
+> names are `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, and `TEPP`. No self-approval, bypass, force push,
+> heuristic classification, invented weight, or hidden-evidence substitution
+> is used.
+>
+> Exact-head development-loop overlay: 2026-08-31 13:28 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> seventy-four open PRs and ten open issues were enumerated in a fresh
+> snapshot. PR #780's current implementation and rendered-evidence parent is
+> `d7df80e04939bb7d953dbd623c739356fb8c61fd`; this documentation-only overlay
+> records that parent rather than transferring its hosted evidence to the
+> later documentation revision. All review threads are resolved and normal
+> squash auto-merge remains armed, but there is no independent `APPROVED`
+> review. Exact-parent Tests, ontology publication, CodeQL, Semgrep, OSV,
+> Trivy, Scorecard, Strix, Noema, CodeRabbit, and Devin checks are successful.
+> Dependency review fails closed because GitHub denies dependency-graph
+> evidence with HTTP 403. The required OpenCode bootstrap fails before review
+> because its protected central policy still attempts to decode the committed
+> PNG render as UTF-8. The owner repair is
+> `ContextualWisdomLab/.github#1420` at
+> `a3c79864a656b6e7ed1640d905d2335206109927`: the branch was normally merged
+> with the concurrently advanced central `main`, resolving the sole CHANGELOG
+> conflict by retaining both products' entries. All 92 focused policy tests
+> pass locally; fresh exact-head hosted checks are running, and the
+> authenticated OpenCode verdict and independent approval remain absent.
+> Normal squash auto-merge is armed there. The repair remains candidate-only
+> owner evidence.
+>
+> Fresh local verification on PR #780's parent passes 37 focused ontology,
+> SHACL, Voice-authority, and API tests plus 29 affected frontend tests,
+> frontend lint, type checking, and the production build. Direct inspection of
+> the committed 1440-by-1400 desktop and 390-by-1688 mobile Storybook renders
+> confirms that the carrying Post remains visible and derivation evidence is a
+> separate action even in the horizontally scrolled narrow table. This closes
+> the largest directly actionable Voice export gap only on the candidate:
+> twelve atomic ADR 0246 Voices remain extensible rows rather than enumerated
+> combinations; additional assignments retain an authorized evidence Post,
+> PROV-O derivation, governed truth status, and cutoff; imported primary Voices
+> retain their carrying Post without invented derivation; and paged JSON-LD
+> unions same-subject multi-Voice relations. Earlier authenticated synthetic
+> Keycloak/PostgreSQL/API acceptance remains revision-scoped. Current-head
+> hosted integration, protected merge, and merge SHA remain unavailable. The
+> supporting PRD identity conflict stays tracked by issue #807 and candidate
+> PR #847; accepted ADRs remain authoritative. Canonical remotes were freshly
+> verified as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, and `TEPP`. No self-approval, admin bypass, force push,
+> hidden-evidence substitution, heuristic classification, or invented weight
+> is used.
+>
+> Exact-head development-loop overlay: 2026-08-31 09:00 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> sixty open PRs and ten open issues were enumerated in a fresh snapshot.
+> PR #780's latest product implementation revision is
+> `4b45377bbadf6fdff023daeb34f82a46661e44de`; this later evidence-only
+> overlay does not transfer hosted evidence from that revision.
+> Every review thread is resolved
+> and normal squash auto-merge remains armed. The focused ontology regression
+> selection passes (37 tests); the affected frontend selection passes (29
+> tests), lint succeeds, and the production frontend build succeeds. Fresh
+> inspection of the committed desktop and mobile Storybook renders keeps the
+> carrying Post visible while the horizontally scrolled evidence action is
+> focused. Current-head GitHub checks are terminal but not successful. The
+> required workflow bootstrap and dependency review fail closed: the first
+> still depends on the candidate-only central workflow repair in
+> `ContextualWisdomLab/.github#1420` at
+> `212ade1d1750e66851bc8ef57defa2c02a899e12`, where 92 focused policy tests
+> pass with 100% statement and branch coverage and normal squash auto-merge is
+> armed; the latter is a fail-closed
+> dependency-graph 403 rather than a product-test failure. Strix is successful
+> on this exact head. The central repair still awaits its current-head OpenCode
+> verdict and independent approval and is not protected-main workflow evidence.
+> Independent approval is still absent, so protected merge and merge SHA are
+> unavailable. The largest directly actionable Voice acceptance gap in this
+> PR remains implemented only on this candidate head: exact-value UI and CSV
+> distinguish the carrying Post from genuine derivation evidence, additional
+> Voices retain authorized Post evidence, PROV-O derivation, truth status, and
+> cutoff behavior, and primary Voices do not acquire an invented derivation.
+> Authenticated PostgreSQL/API evidence exists on the unchanged implementation
+> ancestor; the current exact head has fresh desktop/mobile rendered evidence
+> but awaits current-head hosted integration checks. Neither is relabeled as
+> protected-main delivery.
+> The supporting PRD's duplicate occupational requirement identifiers and
+> stale ADR references remain an authority-document gap tracked by issue #807;
+> PR #847 is a green candidate repair with normal auto-merge, but it still lacks
+> independent approval and therefore is not promoted over accepted ADRs. No
+> self-approval, bypass, force
+> push, invented weight, heuristic classification, or hidden-evidence
+> substitution is used.
+>
+> Exact-head authenticated-render overlay: 2026-08-31 00:42 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> thirty-nine open PRs and ten open issues were enumerated in one fresh
+> snapshot. PR #780's current implementation revision is
+> `a26af45cab561965035e5647f5f15626165479cf`. Rebuilding the official
+> `lineageweave` Compose backend and frontend against that revision exposed a
+> buyer-blocking Post-detail 500: the governed occupational-construct evidence
+> status loader was called but not imported. The minimal root repair restores
+> that owned loader import and updates the authenticated API fixture to replay
+> its existing extraction-run migration instead of relying on test order.
+> Both focused authenticated PostgreSQL/API regressions pass. Genuine Keycloak
+> login and the rebuilt frontend/backend then render the Voice exact-value
+> table at 1440-by-1000 desktop and 390-by-844 mobile viewports; inspected
+> runtime-only screenshots keep the carrying-Post property distinct from the
+> evidence column and were not added to git because the authorized runtime is
+> not synthetic repository material. At this exact head sixteen hosted checks
+> pass, two remain pending, and two fail outside this repository's product
+> implementation: the central PNG workflow bootstrap awaits protected delivery
+> of `ContextualWisdomLab/.github#1420`, while dependency review receives the
+> repository dependency-graph denial. Normal squash auto-merge is armed on
+> both PRs. Independent approval, protected merge, and merge SHA remain
+> unavailable; no self-approval, bypass, workflow weakening, or force push is
+> used.
+>
+> Exact-head authenticated-acceptance overlay: 2026-08-30 23:59 KST.
+> Protected `main` remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`;
+> thirty-three open PRs and ten open issues were enumerated in one fresh
+> snapshot. PR #780's authenticated PostgreSQL/API acceptance revision is
+> `dd674eb9b90734e8ae5f900c4a3fc82bd213bafd`; this later documentation-only
+> overlay does not relabel itself as that implementation revision. The live
+> synthetic Keycloak/PostgreSQL test exposed a stale test oracle that expected
+> a private `post/{id}` IRI even though the canonical neighborhood projection
+> uses the governed `node/node_post/{id}` identity for every Post node. The
+> minimal repair changes only that assertion, and the genuine authenticated
+> API test now passes. Carrying-Post and derivation-evidence relations remain
+> distinct, and no hidden Post is substituted. Rendered authenticated UI,
+> terminal hosted Checks, independent approval, protected merge, and merge SHA
+> remain unavailable on this moved head. The central binary-evidence root fix
+> is still candidate-only in `ContextualWisdomLab/.github#1420`; no local
+> workflow weakening, self-approval, bypass, or force push is used.
+>
+> Exact-head review-repair overlay: 2026-08-30 22:31 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty-five open PRs and
+> ten open issues were enumerated in one fresh snapshot. PR #780's current
+> implementation-evidence revision is
+> `047b73010bff5c29847cb4b35a1308c77d14939b`; this later documentation-only
+> overlay records that point-in-time evidence without presenting itself as the
+> implementation revision. Exact-head review found that the first inverse-link
+> SHACL repair still allowed an unrelated second Post to claim the same Voice
+> assignment. The minimal root repair validates both directions, so one
+> assignment cannot belong to multiple Posts, and adds a negative regression.
+> All 52 focused ontology, SHACL, neighborhood, and Voice-authority tests pass.
+> Current-head hosted checks were restarted and normal squash auto-merge remains
+> enabled, but independent approval, terminal required review/security verdicts,
+> protected merge, merge SHA, and authenticated rendered-stack acceptance are
+> still unavailable. No stale evidence, self-approval, bypass, or force push is
+> used. The carrying Post and derivation-evidence Post remain separate across
+> exact-value UI/CSV and JSON-LD; imported primary Voices do not acquire an
+> invented derivation.
+>
+> Exact-head review-repair overlay: 2026-08-30 21:23 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty open PRs and ten
+> open issues were freshly enumerated. PR #780's current implementation
+> revision is `4fa63302282dc6446cf224794ed8833d5c853d97`. Exact-head review found
+> that SHACL required a carrying Post but did not prove that the same Post's
+> `hasVoiceAssignment` relation referenced the assignment, so contradictory
+> carrying and inverse links could validate. The minimal root repair adds the
+> inverse-link constraint and positive/mismatched regression coverage. All 75
+> focused ontology, SHACL, and neighborhood tests pass. Hosted Checks,
+> independent approval, authenticated rendered-stack acceptance, protected
+> merge, and merge SHA remain unavailable on this moved head; older evidence
+> is not transferred. Normal governance remains in force with no self-approval,
+> admin bypass, or force push.
+>
+> Exact-head review-repair overlay: 2026-08-30 20:18 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; twenty-one PRs and ten
+> issues are open. PR #780's current implementation revision is
+> `d56e86048cfe62a92d0e6cfa0e5085eb1bc78c34`. Exact-head review exposed a
+> real ontology/SHACL conflict: removing invented derivation from imported
+> primary Voices also removed the source-Post relation that the published
+> `VoiceAssignmentShape` required. The minimal root repair adds the distinct
+> `voiceAssignmentCarryingPost` relation for every assignment, keeps
+> `voiceAssignmentEvidence` as a `prov:wasDerivedFrom` subproperty only for
+> genuine additional assignments, and aligns ADR 0256, the ontology, SHACL,
+> JSON-LD projection, authenticated API assertion, and regression tests.
+> Seventy-five focused Python tests and all 533 frontend tests pass on that
+> implementation revision. Hosted Checks, independent approval, protected
+> merge, and a rendered authenticated-stack recheck remain unavailable on the
+> moved head; older check/review evidence is not transferred. Normal merge
+> governance remains in force with no self-approval, bypass, or force push.
+>
+> Exact-head development-loop overlay: 2026-08-30 19:20 KST. Protected `main`
+> remains `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten
+> issues are open. PR #780's exact implementation-evidence revision is
+> `43dfcca20667e79e2c461b38b8fc15a0e2927e4d`; later commits in this candidate
+> update only this point-in-time evidence overlay. That revision adds the
+> missing authenticated
+> PostgreSQL API acceptance and the minimal root repair it exposed. The real
+> query failed before returning any neighborhood because PostgreSQL rejected
+> an ungrouped `knowledge_graph_edge.created_at`; the candidate now groups the
+> edge timestamp, migrates the throwaway integration database through the
+> accepted Voice/PROV-O contracts, and proves a genuine Keycloak token can read
+> a synthetic primary Voice. Imported primary carrying evidence remains in the
+> compatibility exact-value row but no longer becomes invented
+> `prov:wasDerivedFrom` or `voiceAssignmentEvidence`. Eighty focused tests,
+> including the authenticated PostgreSQL path, pass. Earlier hosted full
+> backend/frontend tests, 533 frontend tests, lint, type checking, production
+> build, and inspected 1440-pixel desktop/390-pixel mobile synthetic renders
+> remain revision-scoped supporting evidence and must be rerun after publish.
+> Rendered authenticated-stack acceptance is still unavailable, so this is not
+> a protected-main or completed UI acceptance claim. Normal squash auto-merge
+> remains enabled; no self-approval or bypass is used.
+> The required Pingora policy currently fails before review because it tries to
+> UTF-8 decode the candidate PNG screenshots. The owner-repository repair is
+> `ContextualWisdomLab/.github#1427` at
+> `ef689f9fe4c0b55aece1e394a29475c96e32c06d`; 49 focused policy tests pass,
+> but that PR is also candidate-only with normal auto-merge awaiting its own
+> exact-head gates. No LineageWeave workaround weakens the central policy.
+> Noema's 413, Strix provider/protocol failure, and dependency-review 403 remain
+> fail-closed external gate evidence, not successful review or vulnerability
+> clearance. Canonical remote identities were freshly checked as
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, lowercase
+> `disksage`, `TEPP`, `fast-mlsirm`, and `contextual-orchestrator`.
+>
+> Exact-head merge overlay: 2026-08-30 13:40 KST. Protected `main` is now
+> `cb187cadee5fb6c46d8a944815ccc154a1e028d1`, the squash merge of PR #782.
+> GitHub records no independent `APPROVED` review on that PR, so PR #808 is the
+> active fail-closed governance repair and protected-main runtime acceptance for
+> the leftover-map coordinate slice remains unverified. PR #780 is being merged
+> with this current `main` without transferring its earlier checks or review
+> evidence; its Voice export remains candidate-only until fresh exact-head
+> checks, independent approval, authenticated PostgreSQL API evidence, and
+> desktop/mobile rendered evidence succeed. There are currently fifteen open
+> PRs and ten open issues. Stacked PRs #802 through #806 and #809 must not merge
+> before the parent governance repair and fresh retargeting evidence.
+> The exact-head UI audit found one remaining authority leak in that candidate:
+> an imported primary Voice could still render its carrying Post a second time
+> as derivation evidence because the table read the compatibility field. The
+> minimal repair now uses the authorized non-primary assignment projection as
+> the derivation authority, keeps the primary row as a non-navigation evidence
+> count, and retains the distinct carrying-Post action. Twenty-eight focused
+> frontend tests, lint, type checking, and a production Storybook build passed.
+> Fresh 1440 × 1000 and 390 × 844 renders show one derivation action only on the
+> additional Voice row; these synthetic screenshots are candidate evidence,
+> not authenticated PostgreSQL acceptance or protected-main proof.
+>
+> Exact-head Voice export and authority audit: 2026-08-30 08:05 KST. Protected
+> `main` was `fc13acaa20adca11968238e398d4aafcf62b6cee`; sixteen PRs and ten
+> issues were open. The largest directly actionable Voice acceptance gap on
+> this head was export ambiguity: the rendered exact-value table already
+> offered separate actions for the carrying Post and derivation-evidence Post,
+> while CSV exposed only `evidence_post_id`. The current candidate adds explicit
+> `carrying_post_id` and `derivation_evidence_post_id` columns without replacing
+> the compatibility field. It also repairs an ADR-number collision: Voice
+> combinations are governed by ADR 0256, while ADR 0251 governs the distinct
+> FJA/I-O-Psychology layer. Protected delivery and authenticated PostgreSQL/UI
+> acceptance remain unavailable until this candidate passes its exact-head
+> gate and the runtime evidence is collected. Canonical remote names were
+> rechecked as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+> lowercase `disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`.
+> The supporting PRD still duplicates PRD-FR-2A, PRD-FR-2B, and PRD-FR-2C,
+> cites absent ADR 0264, and also assigns occupational linkage to ADR 0256.
+> Accepted ADR 0256 instead governs Voice composition. Issue #807 tracks the
+> authority reconciliation and unique-reference regression. Until that work
+> lands, those later duplicate occupational claims are unverified supporting
+> text, not accepted ADR or protected-main product evidence.
+> The 17:59 KST queue audit also found PR #782 proposing ADR 0267 / migration
+> 0245 / v2.24.0 on the same protected-main base. Its buyer-visible coordinates
+> are backed by additional projection from the frozen local NumPy residual-map
+> debt, while ADR 0208 assigns residual interaction maps and their coordinates
+> to fast-mlsirm's Rust result contract. fast-mlsirm PR #1417 publishes the
+> versioned Rust result envelope for person/item coordinates and retained-cell
+> interpretation; its exact head has passed the Rust, Python, package, GPU,
+> fuzz, dependency, and static-analysis gates, but protected delivery remains
+> unavailable pending the current required security verdict and independent
+> approval. Normal squash auto-merge is enabled. LineageWeave #782 does not
+> consume and persist that owner artifact. It therefore remains a conflicting
+> candidate, not a protected-main capability or a permissible continuation of
+> the product Gap slice; no local reimplementation or heuristic substitute is
+> authorized. Its
+> open stacked children #802 through #806 continue the same leftover-map
+> segment series. None can be treated as protected-main evidence: #782 must
+> resolve the ADR 0208 ownership conflict and protected-merge first, after which
+> each surviving child must be retargeted to `main` in parent order and collect
+> fresh exact-head checks, independent approval, API/runtime evidence, and
+> release/ADR/schema compatibility evidence.
+> PR #782 also currently carries 2.24.0, 2.25.0, and 2.26.0 changelog and ADR
+> material in one head; those later slices do not cure the ADR 0208 ownership
+> conflict and cannot be treated as separately delivered releases.
+> The refreshed inventory has sixteen open PRs and ten open issues. PR #780's
+> exact-value export repair remains candidate-only: all review threads are
+> resolved and the focused frontend suite passes, but independent approval and
+> required current-head review/security verdicts remain unsatisfied. Normal
+> squash auto-merge stays enabled; no self-approval or policy bypass is used.
+>
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -103,7 +885,6 @@
 > share `e = R̂² / R²` (ADR 0266 / migration 0244 / v2.23.0) so
 > `e + s + x = 1` is buyer-auditable. Do not persist leftover-map
 > coordinates in this slice.
-
 > Exact-head loop overlay: 2026-08-28 KST. Protected `main` was
 > `bbb191924e9881a5201f1ecf63c854d92992cc1c`; seven PRs and nine issues were
 > open. PR #763 was `b51d3bd8872b` and PR #762 was `e6ca33dba1b5`; both were
