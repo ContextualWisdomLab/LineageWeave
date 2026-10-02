@@ -1568,3 +1568,56 @@ included.
   `c112918ca5a0a362404ea9124d86baf2885ec254`; its new hosted suite was pending
   at capture time. This append advances #1141 again, so its checks must be
   refreshed while preserving auto-merge.
+
+### Voice export and current owner-head audit — 2026-10-02 12:57 KST
+
+- Baseline PR #1141 had exact head
+  `6c303b009901476bba5938a735409beaa1ca6391`, normal squash auto-merge on,
+  and `mergeStateStatus: BLOCKED`. Its active Full suite, frontend,
+  CodeQL-compatible and analysis, Semgrep, coverage, Noema, and OpenCode checks
+  passed on that head. The formal review list still has no approval, and no
+  merge SHA exists. This additional baseline commit advances the head again;
+  retain auto-merge and refresh its checks.
+- **PR #1129 exact head** is
+  `950a6b78c9b9d78e1aa7d520e9999f9dfa544a03` on `main`, ready, with normal
+  auto-merge enabled and `REVIEW_REQUIRED`. The only formal review is an older
+  CodeRabbit comment asking for JSON-LD fixtures. It is addressed on this head:
+  `SeparateVoiceEvidence` carries primary and derived Voice relations in the
+  fixture, and the exact-value CSV names `carrying_post_id` separately from
+  `derivation_evidence_post_id`. Hosted Full suite, frontend, Registry /
+  PostgreSQL, SAST, ontology publication, Strix, and vulnerability scans pass;
+  the three CodeQL compatibility jobs, dependency-review, Noema, and OpenCode
+  fail. No independent approval or merge SHA exists.
+- Exact-head local checks on #1129 passed: `ontologyLayout.test.ts` plus
+  `OntologyExplorer.test.tsx` (**32 tests**), synthetic Voice assignment API
+  authorization tests (**3 tests**), and Storybook build. `Separate Voice
+  Evidence` was inspected at **2636×2211** desktop and **414×896** mobile.
+  CSV/UI distinguish the carrying Post and evidence Post; mobile retains the
+  horizontal scroll region and exposes the separate Evidence column. Synthetic
+  JSON-LD pagination tests cover singleton/array relations and same-subject
+  property union. No authenticated PostgreSQL/API evidence is claimed.
+- Cross-PR source boundaries remain intact: #1143 adds a reusable export
+  admission guard; #1129 filters the visible neighborhood and unions paged
+  JSON-LD; #1139 preserves additional-assignment history at cutoffs; #1142
+  preserves timestamp precision in the UI. A read-only merge-tree of #1129
+  with #1143 is clean. Pairing #1129 with dependency-floor candidates #1137,
+  #1139, or #1142 conflicts in shared baseline/dependency files. #1137 is at
+  `4344d4dcb80fa08971c33f2f7df912d389dc7c61` and is not an ancestor of
+  #1129/#1139's current heads. Preserve each feature delta; after the
+  dependency owner passes ordinary protection, restack affected descendants
+  and recollect all current-head checks and approvals.
+- The central `.github` dependency support probe remains the canonical owner
+  boundary. Its exact compare step accepts only HTTP 200. An authenticated
+  read-only compare for #1139's exact base/head returned 403, and the same
+  support step failed closed in hosted Checks. `.github#810` is open and its
+  owner repair #1725 remains Draft / BEHIND; `.github#2555` remains Draft with
+  CodeQL/SARIF checks blocked. No skip, status synthesis, permission bypass,
+  or consumer-side workaround was added. Dependency-review and CodeQL remain
+  unavailable on affected candidates until their owner gates produce fresh
+  terminal evidence.
+- No new Voice code, closed combination catalogue, B2B2C restriction,
+  API/schema migration, or release number was added by this audit. ADRs 0246,
+  0251, 0252, and 0256 continue to govern the twelve extensible atomic Voices,
+  the separate I/O-Psychology taxonomy, source history, and evidence-bearing
+  combinations. Authenticated PostgreSQL/API, customer-runtime UI, and k6
+  saturation evidence remain **unavailable**; no release acceptance is claimed.
