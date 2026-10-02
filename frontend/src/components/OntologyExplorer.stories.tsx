@@ -320,6 +320,24 @@ type Story = StoryObj<typeof meta>;
 
 export const DesktopNeighborhood: Story = {};
 
+export const SameDayVoiceInterval: Story = {
+  args: {
+    neighborhood: {
+      ...combinedVoiceNeighborhood,
+      exact_value_rows: combinedVoiceNeighborhood.exact_value_rows.map((row) =>
+        row.property_code === "hasVoiceAssignment"
+          ? {
+              ...row,
+              valid_from: "2026-01-10T09:00:00.123456+09:00",
+              valid_to: "2026-01-10T09:30:00.654321+09:00",
+              recorded_at: "2026-01-10T00:05:00.123456+00:00",
+            }
+          : row,
+      ),
+    },
+  },
+};
+
 export const CombinedVoiceEvidence: Story = {
   args: { neighborhood: combinedVoiceNeighborhood },
   play: ({ canvasElement }) => {

@@ -623,4 +623,41 @@ describe("OntologyExplorer", () => {
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Find matching records" })).toBeVisible();
   });
+  it("preserves same-day Voice interval boundaries and missing times in exact values", () => {
+    const payload = neighborhood();
+    const row = {
+      ...payload.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:voe`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      target_node_id: "voe",
+      target_label: "Voice of Employee",
+      target_type_code: "node_voice_type",
+      valid_from: "2026-01-10T09:00:00.123456+09:00",
+      valid_to: "2026-01-10T09:30:00.654321+09:00",
+      recorded_at: "2026-01-10T00:05:00.123456+00:00",
+    };
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{
+          ...payload,
+          exact_value_rows: [row, {
+            ...payload.exact_value_rows[1],
+            valid_from: "",
+            valid_to: "",
+            recorded_at: "",
+          }],
+        }}
+      />,
+    );
+    const rows = screen.getByRole("table", { name: "Exact values" }).querySelectorAll("tbody tr");
+    const cells = rows[0].querySelectorAll("td");
+    expect(cells[4]).toHaveTextContent(row.valid_from);
+    expect(cells[5]).toHaveTextContent(row.valid_to);
+    expect(cells[7]).toHaveTextContent(row.recorded_at);
+    const missing = rows[1].querySelectorAll("td");
+    for (const index of [4, 5, 7]) expect(missing[index]).toHaveTextContent("Unknown");
+  });
 });
