@@ -1,5 +1,17 @@
 # Product & Technical Gap Baseline
 
+## Post-merge exact-head refresh — 2026-10-03 04:53 KST
+
+GitHub reports protected `main` at `03d4e2f7f1da3acc2aff3563045127ec5c4bd300`, the squash merge SHA for PR #1145. Its merged head was `3f8332db3c1166488b5fd7f443fa622a5eb04bf7`. GitHub's timeline records auto-squash enabled before the merged event. The retained review list contains three `COMMENTED` bot reviews and no `APPROVED` review. Current exact-head Checks for `3f8332d` show `Analyze (actions)` and `Analyze (python)` failed, frontend and full-suite jobs skipped, and CodeRabbit passed. The merge SHA is verifiable; the required approval and ruleset path are not. The repository ruleset list exposes only the active no-force-push rule; the main branch protection endpoint returned 404, and organization-ruleset reads returned 403 because the feature requires GitHub Team. Do not treat the merge alone as verified protected acceptance. No manual merge or bypass was invoked in this loop.
+
+PR #1145's product change is on `main`: paged JSON-LD keeps the latest single-valued label and unions repeated relations for the same subject. Synthetic regressions cover repeated scalar/array properties, multi-Voice links, idempotence, immutability, and the download path. This closes the implementation gap on the observed head, but an authenticated PostgreSQL/API read and populated authenticated JSON-LD/UI evidence are still **unverified**. No authorized database records were read, and no authenticated k6 saturation result is claimed.
+
+After #1145 reached `main`, the open Voice evidence filter PR #1143 was updated with a normal merge commit, without force-push, from base `03d4e2f` to exact head `6903d05e5a94eea53e242e9bc94e2686d9724a46`. Local `tests/test_ontology_neighborhood.py` and `tests/test_documentation_hygiene.py` passed (**35 tests**). Its latest exact-head hosted read showed `Analyze (actions)` and `Analyze (python)` failing, frontend and full-suite jobs skipped, and CodeRabbit pending. The exact review decision was empty and the approval list was empty; auto-merge remains enabled. These are pending or failed gates, not approval or release evidence.
+
+The separate Similar VOC retry candidate #1126 was locally checked at head `c0c5204b702d2d4d24928389db7d04ebe5cb9739`: frontend lint passed, all 59 files / 539 tests passed, production build passed, and Storybook built. I rendered both retry states at 1440×900 and 390×844. The mobile notice, action, retained evidence, and card fit without horizontal page overflow; the empty-next-page state makes no retained-evidence claim. These synthetic UI captures do not establish authenticated Voice persistence or API acceptance.
+
+This overlay records checks before the baseline-only successor commit below. That commit changes #1143's head again, so head `6903d05` checks and review evidence do not transfer; fetch the new exact head and require its own terminal checks and independent approval. Preserve the merged `#1145` SHA as history; no ADR, API, schema, migration ordinal, or release number was changed here.
+
 ## Exact-head queue refresh — 2026-10-03 04:12 KST
 
 The canonical protected `main` remained `da4e5d45420fdd6b2b9c1dc51eb613a706387da4`. GitHub reported **182 open PRs** (168 drafts, 117 with non-`main` bases) and **42 open issues**. These are repository inventory counts only. This table covers all 14 currently open non-draft PRs; each check rollup was queried by its exact head SHA. Draft PRs do not inherit these results.
