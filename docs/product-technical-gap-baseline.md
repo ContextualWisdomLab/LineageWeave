@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-### Exact-head review repair and current acceptance boundary — 2026-10-02 23:12 KST
+## Exact-head review repair and current acceptance boundary — 2026-10-02 23:12 KST
 
 This overlay records the latest read before the JSON-LD label repair was pushed.
 GraphQL counted **182 open PRs**, **168 drafts**, **117 with non-`main`
