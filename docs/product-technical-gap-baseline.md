@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+## Protected-main and exact-head recheck — 2026-10-03 05:00 KST
+
+The remote default `main` now resolves to `8541b7c8a8e0cda4550046c4b39510cee58a9845`. PR #1143 merged at head `6903d05e5a94eea53e242e9bc94e2686d9724a46` with merge SHA `8541b7c8a8e0cda4550046c4b39510cee58a9845`; PR #1145 merged at head `3f8332db3c1166488b5fd7f443fa622a5eb04bf7` with merge SHA `03d4e2f7f1da3acc2aff3563045127ec5c4bd300`. Both SHAs appear in the observed `main` history. The auto-merge request was enabled for each. The retained formal review lists contain no `APPROVED` submissions for either head.
+
+| PR | Exact merged head | Exact-head Checks observed after merge | Formal approval | Merge SHA |
+| ---: | --- | --- | --- | --- |
+| #1145 | `3f8332db3c1166488b5fd7f443fa622a5eb04bf7` | `Analyze (actions)` and `Analyze (python)` failed; frontend and full-suite checks skipped; CodeRabbit passed with “Review paused” | none | `03d4e2f7f1da3acc2aff3563045127ec5c4bd300` |
+| #1143 | `6903d05e5a94eea53e242e9bc94e2686d9724a46` | `Analyze (actions)` and `Analyze (python)` failed; frontend and full-suite checks skipped; CodeRabbit remained pending | none | `8541b7c8a8e0cda4550046c4b39510cee58a9845` |
+
+The merge SHAs are confirmed, but approval and effective ruleset compliance are not. The repository ruleset list exposes only the active no-force-push rule; the `main` branch protection endpoint returned 404, and organization-ruleset reads returned 403 because the feature requires GitHub Team. No manual merge or bypass command was used by this agent; GitHub merged the existing auto-merge requests. Do not describe these merges as verified protected delivery until the effective independent-approval and required-check controls can be read and reconciled with the exact-head failures/skips.
+
+PR #1145's paged JSON-LD label and relation union and PR #1143's omission of additional Voices without visible derivation evidence are present on `main`. Synthetic regressions cover these code paths; 35 focused neighborhood and documentation tests passed locally on #1143 head `6903d05`. Authenticated PostgreSQL/API reads and populated authenticated JSON-LD/UI evidence remain **unverified**. No real records or credentials were read, and no authenticated k6 capacity result is claimed.
+
+A lifecycle read at 2026-10-02 19:53 UTC found **180 open PRs** (168 drafts, 117 with non-`main` bases) and **42 open issues**. Those counts are historical aggregate observations. The earlier exact-head table remains a dated snapshot; only the #1145/#1143 lifecycle rows are superseded here. This successor is based on live `main` `8541b7c8`; its own checks, approval, and merge must be collected independently. This section supersedes the 04:53 KST overlay below where lifecycle statements differ.
+
 ## Post-merge exact-head refresh — 2026-10-03 04:53 KST
 
 GitHub reports protected `main` at `03d4e2f7f1da3acc2aff3563045127ec5c4bd300`, the squash merge SHA for PR #1145. Its merged head was `3f8332db3c1166488b5fd7f443fa622a5eb04bf7`. GitHub's timeline records auto-squash enabled before the merged event. The retained review list contains three `COMMENTED` bot reviews and no `APPROVED` review. Current exact-head Checks for `3f8332d` show `Analyze (actions)` and `Analyze (python)` failed, frontend and full-suite jobs skipped, and CodeRabbit passed. The merge SHA is verifiable; the required approval and ruleset path are not. The repository ruleset list exposes only the active no-force-push rule; the main branch protection endpoint returned 404, and organization-ruleset reads returned 403 because the feature requires GitHub Team. Do not treat the merge alone as verified protected acceptance. No manual merge or bypass was invoked in this loop.
