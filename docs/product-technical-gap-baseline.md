@@ -1,5 +1,171 @@
 # Product & Technical Gap Baseline
 
+## Exact-head development audit — 2026-10-02 18:55 KST
+
+This dated snapshot supersedes earlier present-tense claims for the named
+heads. GraphQL pagination covered all **181 open PRs** before this loop's
+new candidate: **167 drafts**, **116 non-main bases**, and **46 PRs with at
+least one unresolved review thread**. File lists were complete for all 181;
+review lists were bounded metadata, not a full code review of every draft.
+The open-issue inventory contained **43 issues**. Creating #1144 adds one
+draft and one non-main base; a fresh inventory is required before using those
+counts as current. Protected `main` was independently checked through Git
+and GraphQL at `83eba56149eb802cd63642c507c324c9976ec78e`.
+
+All 14 ready PRs remained BLOCKED with normal squash auto-merge armed. The
+following rollups include check runs and legacy status contexts; every check
+run's commit matched its PR head, and each context list was complete. No
+pending context was visible in this read. Skips and cancellations are not
+passes; dispatcher status contexts do not replace required review verdicts.
+
+| PR | Audited exact head | Hosted contexts | Review / delivery |
+| ---: | --- | --- | --- |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` | 28 success; 7 failure; 1 cancelled; 7 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299` | 26 success; 1 failure; 0 cancelled; 20 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1141 (pre-update) | `6fded5035e473121f63862507c0825fb89bdc88a` | 25 success; 0 failure; 0 cancelled; 11 skipped | unverified; BLOCKED; auto-merge armed |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` | 33 success; 8 failure; 0 cancelled; 6 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | 32 success; 7 failure; 0 cancelled; 5 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | 30 success; 7 failure; 1 cancelled; 9 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | 31 success; 7 failure; 0 cancelled; 6 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | 36 success; 6 failure; 1 cancelled; 14 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 26 success; 0 failure; 0 cancelled; 11 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | 33 success; 7 failure; 0 cancelled; 11 skipped | APPROVED; BLOCKED; auto-merge armed |
+| #1129 | `24d3b9cb1bc31f951da3879774013c97b415ecdf` | 32 success; 7 failure; 0 cancelled; 5 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 32 success; 3 failure; 0 cancelled; 9 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` | 28 success; 2 failure; 8 cancelled; 9 skipped | REVIEW_REQUIRED; BLOCKED; auto-merge armed |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | 31 success; 4 failure; 0 cancelled; 13 skipped | APPROVED; BLOCKED; auto-merge armed |
+
+GitHub reports APPROVED on #1130 and #1040, whose exact-head approvals came
+from the independent review bot; both remain blocked by other gates. #1131
+has no failed context but still reports REVIEW_REQUIRED. No protected merge
+SHA was observed. The live central ruleset read requires one approval,
+resolved threads, and seven central workflows. The classic branch-protection
+endpoint returned 404; that does not remove the active ruleset. Its final
+re-read and the repository no-force ruleset detail became unavailable through
+REST rate limiting, so no merge decision relies on an inferred policy change.
+
+The #1141 row is explicitly the **pre-update** head. This documentation repair
+changes its head; its old Checks and review evidence do not transfer. The
+remaining valid review asks for ordinary text beginning `PR #1139`, rather
+than a malformed heading beginning `#1139`; the current occurrences are fixed
+in this update. The #1136 generation-fencing review and #1135 source/import
+reviews were already addressed in their fetched code, so no duplicate repair
+was applied. Draft changes-requested reviews were examined separately from
+current-head verdicts; an administrative coverage verdict without a concrete
+source finding was not treated as an application defect.
+
+### Selected customer gap and candidate proof
+
+PR #1144, exact implementation head
+`18a8ee76d3edcbd79c92a5e845f51d1ce996f840`, verified against its remote
+branch, repairs
+work-evidence search results that could be replaced by an earlier success,
+denial, or continuation. It also clears earlier evidence when the reader or
+knowledge cutoff changes. This gap was selected because a result from the
+wrong search or reader can mislead the evidence-review job in PRD-FR-2/5;
+no numeric prioritization weight or population claim was constructed.
+
+Eleven new behavioral regressions fail on the preceding implementation;
+all **16 component tests** pass with the repair. The full frontend suite
+passes **541 tests in 58 files**. Lint, production build, and Storybook build
+pass; the existing >500 kB application chunk warning remains visible, with
+issue #994 owning the broader bundle gap. Related search, ontology, SHACL,
+and documentation checks pass **61 tests**. Six synthetic PostgreSQL tests
+prove primary-Voice A → B → A cutoff and concurrent history behavior; they
+are not authenticated additional-Voice API acceptance.
+
+The existing Storybook and tokens were reused. The superseded-search story
+completed the earlier search last at **1440×900** and **390×844**. Both rendered
+only the later result, with no horizontal overflow or page error. Visual
+inspection initially found compressed, colliding mobile evidence text; the
+candidate now separates the label, family, next action, and verbatim evidence
+into wrapping lines with existing spacing and touch-target tokens. The final
+desktop and phone screenshots were visually inspected. These are synthetic
+candidate renderings, not a deployed authenticated customer screen.
+
+The child stays Draft on #1137's patched dependency-floor branch. Protect and
+merge #1137 first, retarget #1144 to `main`, then collect fresh exact-head
+checks and review. The new candidate changes no API payload, database schema,
+migration ordinal, package version, mathematical kernel, or provider route.
+
+### Authority and cross-PR reconciliation
+
+The LineageWeave PRD was read before the loop. Current ecosystem authorities
+were retrieved from the remote: RankWeave `ARCHITECTURE.md`, ThreadWeave
+`docs/PRD.md`, TEPP's approved v0.4 PRD, fast-mlsirm `docs/PRD.md`,
+contextual-orchestrator `docs/product_planning.md`, and DiskSage's approved
+design specification. These documents describe owned product boundaries;
+open PRs and local tests do not promote design or research into delivery.
+GitHub confirmed canonical names `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`, `contextual-orchestrator`, and
+lowercase `disksage`. The candidate corrects the latter in the PRD register.
+
+ADR 0246's twelve atomic Voices and extensible combinations remain separate
+from ADR 0251's I/O-Psychology constructs. ADR 0256 governs additional-Voice
+PROV-O derivation, truth, and evidence; ADR 0265 actually governs occupational
+construct search. The PRD's older ADR-number references remain a known
+reconciliation task (#807), not replacement authority. No fixed combination
+code, B2B2C restriction, inferred weighting, local numerical model, or hidden
+Post substitution was introduced. The AA1000/ISO/stakeholder and W3C sources
+remain normative/supporting evidence only within their cited contracts.
+
+Complete PR file inventories exposed **16 ADR ordinal/name reuse candidates**
+and **three forward-migration ordinal/name reuse groups**, excluding rollback
+files. Examples requiring substantive reconciliation before integration:
+
+- ADR 0272 differs across #1009, #888, and #850/#802; ADR 0300 differs across
+  #899 and #857/#837; ADR 0301 differs across #902 and #838.
+- Migration 0248 differs between #1049 and #929. Migration 0249 differs
+  between #1127 and #1047. #929 also proposes several 0247 files.
+- Protected `main` already ships two forward 0233 files. Preserve shipped
+  history and follow issue #1048's successor/ledger boundary; do not rename
+  deployed files or discard either feature during a merge.
+- Eight release-fragment version reuse groups include 2.28.1 (#1079/#1009)
+  and 2.29.0 (#899/#897/#802). Shared fragment versions alone are not proof
+  of incompatible release identity; inspect package/runtime versions and
+  each release contract before deciding. No release number was allocated
+  by this candidate.
+
+The ready-head integration overlaps remain #1133/#1137 dependency files,
+#1129/#1143 Voice export/ADR 0256, and multiple gap-baseline writers.
+#1139 contains #1137 in its ancestry; #1138 remains its explicit child.
+#1132 remains on #1131. Parents must land through protection before children
+are retargeted; no predecessor approval or Check transfers. Other agents'
+owned deltas and all existing features were preserved.
+
+### Non-identifying runtime and load evidence
+
+A read-only aggregate query of the official `lineageweave` PostgreSQL runtime
+returned **43,189 source rows**, **43,189 Voice rows**, and **zero additional
+Voice rows**. These are local diagnostic counts, not a probability sample,
+customer-wide inference, or proof of multi-Voice delivery. No source title,
+organization name, production key, or credential was returned or persisted.
+
+The existing authenticated API fixture reaches PostgreSQL, Keycloak, and
+Valkey but its password-grant token request fails with **HTTP 400** before
+five selected API tests can run. The five-VU, 30-second k6 configuration fails
+at the same authentication setup; it completes **zero workload iterations**
+and enqueues no Ask job. Its single failed login duration is not application
+latency, concurrency, error-rate, throughput, or capacity evidence. Issue
+#1119 owns migration to the supported authorization-code flow; no local token,
+identity-policy weakening, or model/provider fallback was introduced.
+
+An idle resource snapshot saw no demonstrated bottleneck and provided no
+worker saturation measurement; it is not an end-to-end load result. No
+PostgreSQL, worker, Valkey, or gateway tuning was made without such a result.
+Authenticated additional-Voice persistence/API, cutoff/truth authorization,
+carrying-Post versus derivation-evidence UI/CSV, and paged JSON-LD multi-Voice
+acceptance remain **unverified**. Earlier synthetic export tests do not satisfy
+that runtime gate. No Voice acceptance criterion is marked complete.
+
+REST rate limiting and a transient GraphQL 502 were handled with bounded
+GraphQL reads and independent local work. No stale-run cancellation was made
+without an exact PR/head/run comparison. No temporary container was created;
+the exited database-migration container belongs to the official project and
+was retained. No formal data volume was removed. Sequential Thinking and
+Memory MCP tools were not exposed; Context7 transport and DeepWiki indexing
+were unavailable, so they supplied no additional authority or validation.
+
 ## Exact-head continuation — 2026-10-02 16:58 KST (2026-10-02 07:58 UTC)
 
 This snapshot supersedes earlier present-tense queue claims for the exact
@@ -223,7 +389,7 @@ inventory, ontology UI, `pyproject.toml`, and `uv.lock` paths. Each compared
 pair merged without a content conflict, including #1129/#1143's Voice contract
 and #1133/#1137's dependency metadata. These overlaps still need rechecking
 when either PR changes or one is protected; they are not merge authorization.
-#1139 contains #1137 in its commit ancestry, so keep #1137 parent-first and
+PR #1139 contains #1137 in its commit ancestry, so keep #1137 parent-first and
 collect new exact-head evidence for #1139 after the protected parent lands.
 PR #1138 remains Draft on #1137's branch. PR #1132 remains Draft on #1131.
 No API payload, schema, migration ordinal, or release-number collision was
@@ -285,7 +451,7 @@ show #1125 conflicts with #1131 in `docs/product-requirements.md`; #1142
 conflicts with #1135 in the baseline, Storybook inventory, `pyproject.toml`,
 and `uv.lock`; #1135 and #1137 also conflict in dependency floors and locks.
 #1142/#1137 merge cleanly, but #1137 remains the canonical dependency owner.
-#1139 contains #1137 in its history and stays parent-first. #1125's new
+PR #1139 contains #1137 in its history and stays parent-first. #1125's new
 migration 0251 is unique in this selected set. No API-schema or release-number
 collision was found beyond the listed dependency and PRD conflicts.
 
@@ -351,7 +517,7 @@ evidence.
 conflicts between #1142 and #1141, #1141 and #1139, #1141 and #1135, and
 #1141 and #1131; preserve each audit delta when resolving. #1135 and #1137
 conflict in `pyproject.toml`, `uv.lock`, and the PyJWT advisory-floor test.
-#1139 descends from #1137 and merges cleanly with its parent. The selected
+PR #1139 descends from #1137 and merges cleanly with its parent. The selected
 changes introduce no competing route, API schema, migration ordinal, or
 release number. No stale run was cancelled, and no bypass or force push was
 used.
