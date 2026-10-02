@@ -317,4 +317,67 @@ describe("ontologyLayout", () => {
     expect(merged.nodes).toHaveLength(3);
     expect(merged.next_cursor).toBeNull();
   });
+
+  it.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])("preserves Voice and derivation values across compact page forms (%s, %s)", (firstArray, nextArray) => {
+    const first = payload();
+    const post = `${ONTOLOGY_NAMESPACE}post/${POST_ID}`;
+    const customer = { "@id": `${ONTOLOGY_NAMESPACE}voice-assignment/customer` };
+    const employee = { "@id": `${ONTOLOGY_NAMESPACE}voice-assignment/employee` };
+    const evidence = { "@id": `${ONTOLOGY_NAMESPACE}post/${PERSON_ID}` };
+    const shape = (value: unknown, array: boolean) => array ? [value] : value;
+    first.jsonld = { "@graph": [{
+      "@id": post,
+      "@type": "lw:Post",
+      "lw:hasVoiceAssignment": shape(customer, firstArray),
+      "prov:wasDerivedFrom": shape(evidence, firstArray),
+      "rdfs:label": "Synthetic carrying post",
+    }] };
+    const next = { ...payload(), jsonld: { "@graph": [{
+      "@id": post,
+      "@type": ["lw:Post", "prov:Entity"],
+      "lw:hasVoiceAssignment": shape(employee, nextArray),
+      "prov:wasDerivedFrom": shape(evidence, nextArray),
+    }] } };
+    const merged = accumulateNeighborhoodPages(first, next);
+    expect(merged.jsonld["@graph"]).toEqual([{
+      "@id": post,
+      "@type": ["lw:Post", "prov:Entity"],
+      "lw:hasVoiceAssignment": [customer, employee],
+      "prov:wasDerivedFrom": firstArray || nextArray ? [evidence] : evidence,
+      "rdfs:label": "Synthetic carrying post",
+    }]);
+    expect(accumulateNeighborhoodPages(merged, next).jsonld).toEqual(merged.jsonld);
+    expect(first.jsonld["@graph"]).toEqual([{
+      "@id": post,
+      "@type": "lw:Post",
+      "lw:hasVoiceAssignment": shape(customer, firstArray),
+      "prov:wasDerivedFrom": shape(evidence, firstArray),
+      "rdfs:label": "Synthetic carrying post",
+    }]);
+  });
+
+  it("retains both targets when the server emits repeated scalar relations for one subject", () => {
+    const first = payload();
+    const subject = `${ONTOLOGY_NAMESPACE}post/${POST_ID}`;
+    const property = `${ONTOLOGY_NAMESPACE}mentions`;
+    const person = { "@id": `${ONTOLOGY_NAMESPACE}person/${PERSON_ID}` };
+    const organization = { "@id": `${ONTOLOGY_NAMESPACE}organization/${CORP_ID}` };
+    first.jsonld = { "@graph": [
+      { "@id": subject, "@type": "lw:Post", "rdfs:label": "Synthetic post" },
+      { "@id": subject, [property]: person },
+      { "@id": subject, [property]: organization },
+    ] };
+    const next = { ...payload(), jsonld: { "@graph": [{ "@id": subject, [property]: person }] } };
+    expect(accumulateNeighborhoodPages(first, next).jsonld["@graph"]).toEqual([{
+      "@id": subject,
+      "@type": "lw:Post",
+      "rdfs:label": "Synthetic post",
+      [property]: [person, organization],
+    }]);
+  });
 });

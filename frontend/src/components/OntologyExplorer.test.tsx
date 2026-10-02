@@ -196,6 +196,48 @@ describe("OntologyExplorer", () => {
     );
   });
 
+  it("downloads every scalar relation after loading another authorized page", async () => {
+    const subject = `lw:node/node_post/${POST_ID}`;
+    const person = { "@id": `lw:node/node_person/${PERSON_ID}` };
+    const organization = { "@id": `lw:node/node_corporate_entity/${CORP_ID}` };
+    vi.mocked(fetchOntologyNeighborhood)
+      .mockResolvedValueOnce(neighborhood({
+        truncated: true,
+        next_cursor: "page-2",
+        jsonld: { "@graph": [{ "@id": subject, "lw:mentions": person }] },
+      }))
+      .mockResolvedValueOnce(neighborhood({
+        jsonld: { "@graph": [{ "@id": subject, "lw:mentions": organization }] },
+      }));
+    const createObjectURL = vi.fn<(blob: Blob) => string>(() => "blob:synthetic-export");
+    vi.stubGlobal("URL", class extends URL {
+      static createObjectURL = createObjectURL;
+      static revokeObjectURL = vi.fn();
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      render(<OntologyExplorer accessToken="synthetic-access-token" focusNodeType="node_post" focusNodeId={POST_ID} />);
+      await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+      await waitFor(() => expect(screen.queryByText("Loading related information...")).not.toBeInTheDocument());
+      await userEvent.click(screen.getByRole("button", { name: "Export JSON-LD" }));
+      const blob = createObjectURL.mock.calls[0][0];
+      const body = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(blob);
+      });
+      expect(JSON.parse(body)["@graph"]).toEqual([
+        { "@id": subject, "lw:mentions": [person, organization] },
+      ]);
+      expect(blob.type).toBe("application/ld+json");
+      expect(click).toHaveBeenCalledOnce();
+    } finally {
+      click.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("retries a failed continuation page with the same cursor", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
     fetchNeighborhood.mockClear();
