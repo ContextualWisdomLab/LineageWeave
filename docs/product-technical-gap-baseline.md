@@ -1,5 +1,18 @@
 # Product & Technical Gap Baseline
 
+> Dashboard partial-result UX overlay: 2026-08-30 17:56 KST. Protected `main`
+> is `cb187cadee5fb6c46d8a944815ccc154a1e028d1`; eighteen PRs and ten issues
+> are open. PR #774's exact implementation-and-render revision is `7751fa050`:
+> when some governed analyses fail but authorized cases remain, the Dashboard
+> states that only some results are unavailable, keeps successful evidence
+> actions visible, and offers the bounded next action to refresh the same
+> period. A focused six-test component suite and production Storybook build
+> pass. Synthetic 1440-pixel desktop and 390-pixel mobile full-page renders are
+> retained and inspected. This is candidate evidence, not authenticated
+> PostgreSQL API acceptance or protected-main delivery. Normal squash
+> auto-merge awaits current-head required verdicts and independent approval;
+> no self-approval or bypass is used.
+>
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
