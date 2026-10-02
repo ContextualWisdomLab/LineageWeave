@@ -24,10 +24,26 @@ describe("OIDC return URL handling", () => {
     // one-time code/state; a return URL built from it must not.
     const cleaned = returnUrlFromLocation({
       pathname: "/",
-      search: "?post=abc&code=xyz&state=s&session_state=t&iss=i",
+      search: "?post=abc&code=xyz&state=s&session_state=t&iss=i&error=access_denied&error_description=private&error_uri=https://example.test/error",
       hash: "",
     });
     expect(cleaned).toBe("/?post=abc");
+  });
+
+  it("sanitizes callback artifacts in returned state and stored fallbacks", () => {
+    const callbackPath = "/?post=abc&error=access_denied&error_description=private&code=one-time#evidence";
+    expect(restoreOidcReturnUrl({ returnUrl: callbackPath })).toBe("/?post=abc#evidence");
+    window.localStorage.setItem("lineageweave.oidc.returnUrl", callbackPath);
+    expect(restoreOidcReturnUrl(undefined)).toBe("/?post=abc#evidence");
+    rememberOidcReturnUrl(callbackPath);
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe("/?post=abc#evidence");
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBe("/?post=abc#evidence");
+  });
+
+  it.each(["/\\evil.example", "/\t/evil.example", "/\\["])("rejects paths that URL parsing would turn into another authority (%j)", (unsafePath) => {
+    rememberOidcReturnUrl(unsafePath);
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
+    expect(restoreOidcReturnUrl({ returnUrl: unsafePath })).toBe("/");
   });
 
   it("restores an object or serialized OIDC state before storage fallback", () => {
@@ -83,7 +99,7 @@ describe("OIDC return URL handling", () => {
 describe("stripOidcCallbackParams", () => {
   it("removes the Keycloak auth-exchange params but keeps app deep-link params", () => {
     const url = new URL(
-      "http://localhost:15173/?state=abc&session_state=def&iss=http%3A%2F%2Fidp&code=xyz&post=post-1&workspace=board",
+      "http://localhost:15173/?state=abc&session_state=def&iss=http%3A%2F%2Fidp&code=xyz&error=access_denied&error_description=private&error_uri=https://example.test/error&post=post-1&workspace=board",
     );
 
     stripOidcCallbackParams(url);
@@ -92,6 +108,9 @@ describe("stripOidcCallbackParams", () => {
     expect(url.searchParams.get("session_state")).toBeNull();
     expect(url.searchParams.get("iss")).toBeNull();
     expect(url.searchParams.get("code")).toBeNull();
+    expect(url.searchParams.get("error")).toBeNull();
+    expect(url.searchParams.get("error_description")).toBeNull();
+    expect(url.searchParams.get("error_uri")).toBeNull();
     expect(url.searchParams.get("post")).toBe("post-1");
     expect(url.searchParams.get("workspace")).toBe("board");
   });

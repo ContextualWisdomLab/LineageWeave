@@ -23,6 +23,14 @@ when the member's OIDC session is otherwise valid.
   recovery fallback, not an authentication or authorization store.
 - On callback, remove the key from both stores and use session storage before
   local storage. Reject external and protocol-relative URLs.
+- Validate the browser-parsed origin as well as the leading slash: backslashes
+  and embedded whitespace must not turn a path into another authority. Invalid
+  URL syntax fails closed. Strip authorization success and error response
+  parameters before storing, restoring, or sharing a path (RFC 6749 sections
+  4.1.2 and 4.1.2.1); retain application parameters and fragments.
+- A failed sign-in keeps an explicit retry action (ADR 0220). Before retrying,
+  consume the existing return-path fallback and remember its sanitized value
+  again so a failed callback does not replace the intended post destination.
 - Keep member language preference account-scoped in
   `user_account.preferred_locale`; this ADR does not move locale state into the
   post URL, browser storage, or a `user_account + post_id` key.
@@ -33,3 +41,10 @@ Opening a shared post link survives a missing OIDC state payload or a changed
 storage context without losing the post. A stale internal return path is
 removed at callback, and authorization still comes only from the authenticated
 OIDC token and backend ABAC checks.
+
+## References — APA 7th
+
+Hardt, D. (Ed.). (2012). *The OAuth 2.0 authorization framework* (RFC 6749).
+Internet Engineering Task Force. https://www.rfc-editor.org/rfc/rfc6749.html
+
+WHATWG. (n.d.). *URL standard*. https://url.spec.whatwg.org/

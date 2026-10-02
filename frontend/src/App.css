@@ -22,6 +22,7 @@
 }
 
 .login-card {
+  box-sizing: border-box;
   width: 100%;
   max-width: 420px;
   padding: 2.5rem 2rem;

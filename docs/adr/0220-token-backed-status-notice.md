@@ -37,6 +37,31 @@ The first migrated product flow is the Calendar Naruon fail-closed path.
 Do not copy closed-branch exception classes or Storybook inventories from
 PR #490. Later unavailable flows migrate one at a time.
 
+### Sign-in recovery
+
+A failed sign-in or an incomplete authenticated session keeps the existing
+login card, with product heading, a bounded retry notice, and one **Log in**
+action. Never display the authentication library's error message or credential
+details. Reuse the existing translated failure message and button label; add
+no translation catalog or identity transport. The action retries the existing
+OIDC flow with the sanitized destination from ADR 0109. Loading retains the
+existing live region and offers no duplicate submission action; successful
+authentication continues into the authorized workspace.
+
+Reuse the login layout and `StatusNotice` tokens, semantic alert, native
+button, keyboard behavior, and minimum control size. Storybook records the
+sign-in retry variant, and browser checks cover desktop and narrow layouts.
+The login card includes padding and borders in its declared width, so the
+page's overflow rule cannot hide clipped card edges on narrow screens.
+The existing Figma file `1Su3lDRmiZdcUs47t1QwIX`, page `0:1`, was inspected on
+2026-09-07: its Event Lineage and Ask Agent frames do not define a sign-in
+screen. This repair therefore makes no sign-in Figma parity claim.
+
+This migration supplies a recovery action for the existing login journey.
+Product-owned login, enrollment, and account recovery forms still require the
+released Keyverse contracts specified by the product goal; a retry button
+does not establish those contracts.
+
 ## Consequences
 
 - Calendar names the missing Naruon projection and the next action in one
