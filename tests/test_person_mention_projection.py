@@ -149,6 +149,7 @@ def projection_database() -> str:
     try:
         database_dsn = _database_dsn(database_name)
         connection = psycopg2.connect(database_dsn)
+        connection.autocommit = True
         try:
             with connection.cursor() as cursor:
                 cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
@@ -165,6 +166,7 @@ def projection_database() -> str:
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
+                connection.autocommit = False
                 cursor.execute(
                     """
                     insert into common_lookup_value
