@@ -1,5 +1,18 @@
 # Product & Technical Gap Baseline
 
+### Post-refresh exact-head check — 2026-10-02 09:37 KST
+
+After the 09:13 queue refresh, PR #1129 advanced to
+`84a6fc7a79fa7640d8b770c1bb1411f63e6715e`, based on protected `main`
+`83eba56149eb802cd63642c507c324c9976ec78e`. Its detail view reports
+`REVIEW_REQUIRED` / `BLOCKED`, auto-merge enabled, Dependency Review failed,
+and CodeQL, full-suite, frontend, Noema, Strix, coverage, and OpenCode work
+pending. No independent approval or protected merge SHA exists. PR #1141 is at
+`24cc4137158152d6544f85a43871a2ed45d9f7d9`; its full test suite is the only
+pending check and auto-merge is enabled, but `REVIEW_REQUIRED` remains. This
+baseline update creates another #1129 head; hosted results for `84a6fc7a` do
+not transfer and must be refreshed after the push.
+
 ### Exact queue refresh — 2026-10-02 09:13 KST
 
 The paginated GitHub CLI reads returned **181 open PRs** and **43 open issues**.
