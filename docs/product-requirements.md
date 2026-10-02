@@ -58,6 +58,8 @@ edge exposes the same authorized endpoints and evidence through API and UI.
   authorized Post as evidence and hide the write action on cutoff views.
 - Validate DB-to-RDF projections with SHACL, including complete reified
   ProjectMention subject/predicate/object chains.
+- Preserve an additional perspective's earlier truth state and evidence when
+  it is revised; an unchanged retry retains its original availability time.
 - Keep SKOS broader/narrower distinct from OWL subclass semantics.
 
 Acceptance: Turtle, JSON-LD, N-Triples, SHACL, API payloads, persisted IRIs,

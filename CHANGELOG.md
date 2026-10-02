@@ -268,6 +268,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Security dependency floors now require PyJWT 2.15.1 and urllib3 2.8.0,
+  regenerate the exact `uv.lock`, and test both source declarations and lock
+  selections against the CVEs reported on LineageWeave#1138.
+
 - Full-corpus Event Lineage rebuilds now count candidate pairs before provider
   work and omit the optional LLM channel above the 5,000-pair ADR budget,
   preventing millions of synchronous orchestrator calls while retaining one

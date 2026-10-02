@@ -88,9 +88,17 @@ async def persist_additional_voice_assignment(
     truth_status_code: str,
     evidence_post_id: str,
 ) -> None:
-    """Atomically bind one additional Voice to an authorized evidence post."""
+    """Bind an additional Voice without rewriting earlier cutoff evidence."""
     assignment_iri = str(LW[f"voice-assignment/{post_id}/{voice_type_code}"])
     async with conn.transaction():
+        primary_code = await conn.fetchval(
+            "select voc_type_code from source_post where post_id = $1::uuid for update",
+            post_id,
+        )
+        if primary_code == voice_type_code:
+            raise PrimaryVoiceAssignmentError(
+                "the imported primary Voice cannot be changed through the additional-voice path"
+            )
         evidence_resource_id = await _post_resource_id(conn, evidence_post_id)
         assignment_resource_id = await conn.fetchval(
             """
@@ -139,28 +147,50 @@ async def persist_additional_voice_assignment(
             )
         if assertion_id is None:
             raise RuntimeError("Voice evidence derivation was not persisted")
-        stored = await conn.fetchrow(
+        current = await conn.fetchrow(
+            """
+            select voice_assignment_id, is_primary, truth_status_code,
+                   provenance_assertion_id
+              from source_post_voice
+             where post_id = $1::uuid and voice_type_code = $2
+               and effective_to is null
+            """,
+            post_id,
+            voice_type_code,
+        )
+        if current is not None:
+            if current["is_primary"]:
+                raise PrimaryVoiceAssignmentError(
+                    "the imported primary Voice cannot be changed through the additional-voice path"
+                )
+            if (
+                current["truth_status_code"] == truth_status_code
+                and current["provenance_assertion_id"] == assertion_id
+            ):
+                return
+        change_at = await conn.fetchval("select clock_timestamp()")
+        if current is not None:
+            await conn.execute(
+                """
+                update source_post_voice set effective_to = $2
+                 where voice_assignment_id = $1::uuid and effective_to is null
+                """,
+                current["voice_assignment_id"],
+                change_at,
+            )
+        await conn.execute(
             """
             insert into source_post_voice
                 (post_id, voice_type_code, is_primary, truth_status_code,
                  provenance_assertion_id, effective_from, recorded_at)
-            values ($1::uuid, $2, false, $3, $4::uuid, now(), now())
-            on conflict (post_id, voice_type_code) where effective_to is null do update
-            set truth_status_code = excluded.truth_status_code,
-                provenance_assertion_id = excluded.provenance_assertion_id,
-                recorded_at = now()
-            where not source_post_voice.is_primary
-            returning voice_type_code
+            values ($1::uuid, $2, false, $3, $4::uuid, $5, $5)
             """,
             post_id,
             voice_type_code,
             truth_status_code,
             assertion_id,
+            change_at,
         )
-        if stored is None:
-            raise PrimaryVoiceAssignmentError(
-                "the imported primary Voice cannot be changed through the additional-voice path"
-            )
 
 
 __all__ = ["PrimaryVoiceAssignmentError", "persist_additional_voice_assignment"]
