@@ -47,3 +47,25 @@ The runtime contract is:
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
   bypass upstream review.
+
+## Proposed amendment: post-chat transport timeout (2026-09-07)
+
+Status: Proposed; the Accepted runtime pin decision above is unchanged.
+
+The post-chat client silently supplies 180 seconds when a caller omits a limit.
+The factory also drops an explicit null, restoring that limit. This contradicts
+the requested default-null model lifetime even when the upstream owner has no
+implicit limit. Increasing the constant merely postpones the same failure; a
+second per-model policy store would duplicate contextual-orchestrator.
+
+Use null as the post-chat transport default and pass it unchanged through the
+factory and shared HTTP transport. Preserve explicit caller limits while their
+separate migration is pending. This avoids client abandonment by default but can
+leave a synchronous chat waiting until transport/provider termination. Do not
+claim cancellation of a blocking socket merely because an async task is cancelled.
+
+Confirm omitted/null/explicit values at the client and factory boundaries. The
+Ask worker's explicit 570-second setting, 600-second execution deadline, and
+age-based recovery remain unresolved. Other model clients and upstream model
+administration require separate owner-aligned verification. No runtime pin is
+changed and no open upstream PR becomes a released contract.
