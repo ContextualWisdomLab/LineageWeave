@@ -1393,6 +1393,12 @@
   text-align: left;
 }
 
+.ontology-exact-values td:nth-child(5),
+.ontology-exact-values td:nth-child(6),
+.ontology-exact-values td:nth-child(8) {
+  white-space: nowrap;
+}
+
 .ontology-exact-values .is-selected {
   background: var(--color-table-row-hover);
 }

@@ -574,8 +574,8 @@ function OntologyExactValueTable({
                 <td>{row.property_label}</td>
                 <td>{row.target_label}</td>
                 <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
-                <td>{row.valid_from.slice(0, 10) || t("Unknown")}</td>
-                <td>{row.valid_to.slice(0, 10) || t("Unknown")}</td>
+                <td>{row.valid_from || t("Unknown")}</td>
+                <td>{row.valid_to || t("Unknown")}</td>
                 <td>
                   {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
                     <button
@@ -589,7 +589,7 @@ function OntologyExactValueTable({
                     </button>
                   ) : row.evidence_count}
                 </td>
-                <td>{row.recorded_at.slice(0, 10)}</td>
+                <td>{row.recorded_at || t("Unknown")}</td>
               </tr>
             ))}
           </tbody>

@@ -196,6 +196,63 @@ describe("OntologyExplorer", () => {
     );
   });
 
+  it("downloads every scalar relation after loading another authorized page", async () => {
+    const subject = `lw:node/node_post/${POST_ID}`;
+    const person = { "@id": `lw:node/node_person/${PERSON_ID}` };
+    const organization = { "@id": `lw:node/node_corporate_entity/${CORP_ID}` };
+    vi.mocked(fetchOntologyNeighborhood)
+      .mockResolvedValueOnce(neighborhood({
+        truncated: true,
+        next_cursor: "page-2",
+        jsonld: {
+          "@graph": [{
+            "@id": subject,
+            "rdfs:label": "Synthetic draft",
+            "lw:mentions": person,
+          }],
+        },
+      }))
+      .mockResolvedValueOnce(neighborhood({
+        nodes: neighborhood().nodes.map((node) => node.node_id === POST_ID
+          ? { ...node, display_label: "Synthetic approved" } : node),
+        jsonld: {
+          "@graph": [{
+            "@id": subject,
+            "rdfs:label": "Synthetic approved",
+            "lw:mentions": organization,
+          }],
+        },
+      }));
+    const createObjectURL = vi.fn<(blob: Blob) => string>(() => "blob:synthetic-export");
+    vi.stubGlobal("URL", class extends URL {
+      static createObjectURL = createObjectURL;
+      static revokeObjectURL = vi.fn();
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      render(<OntologyExplorer accessToken="synthetic-access-token" focusNodeType="node_post" focusNodeId={POST_ID} />);
+      await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+      await waitFor(() => expect(screen.queryByText("Loading related information...")).not.toBeInTheDocument());
+      expect(screen.getByRole("button", { name: "Select node: Post Synthetic approved" })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Export JSON-LD" }));
+      const blob = createObjectURL.mock.calls[0][0];
+      const body = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(blob);
+      });
+      expect(JSON.parse(body)["@graph"]).toEqual([
+        { "@id": subject, "rdfs:label": "Synthetic approved", "lw:mentions": [person, organization] },
+      ]);
+      expect(blob.type).toBe("application/ld+json");
+      expect(click).toHaveBeenCalledOnce();
+    } finally {
+      click.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("retries a failed continuation page with the same cursor", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
     fetchNeighborhood.mockClear();
@@ -565,5 +622,42 @@ describe("OntologyExplorer", () => {
       ),
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Find matching records" })).toBeVisible();
+  });
+  it("preserves same-day Voice interval boundaries and missing times in exact values", () => {
+    const payload = neighborhood();
+    const row = {
+      ...payload.exact_value_rows[0],
+      edge_id: `voice-assignment:${POST_ID}:voe`,
+      property_code: "hasVoiceAssignment",
+      property_label: "Voice carried by this post",
+      target_node_id: "voe",
+      target_label: "Voice of Employee",
+      target_type_code: "node_voice_type",
+      valid_from: "2026-01-10T09:00:00.123456+09:00",
+      valid_to: "2026-01-10T09:30:00.654321+09:00",
+      recorded_at: "2026-01-10T00:05:00.123456+00:00",
+    };
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={{
+          ...payload,
+          exact_value_rows: [row, {
+            ...payload.exact_value_rows[1],
+            valid_from: "",
+            valid_to: "",
+            recorded_at: "",
+          }],
+        }}
+      />,
+    );
+    const rows = screen.getByRole("table", { name: "Exact values" }).querySelectorAll("tbody tr");
+    const cells = rows[0].querySelectorAll("td");
+    expect(cells[4]).toHaveTextContent(row.valid_from);
+    expect(cells[5]).toHaveTextContent(row.valid_to);
+    expect(cells[7]).toHaveTextContent(row.recorded_at);
+    const missing = rows[1].querySelectorAll("td");
+    for (const index of [4, 5, 7]) expect(missing[index]).toHaveTextContent("Unknown");
   });
 });
