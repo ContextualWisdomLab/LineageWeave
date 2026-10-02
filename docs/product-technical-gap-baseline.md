@@ -31,7 +31,7 @@ SHA was observed.
 
 The queue's main shared failures remain the three CodeQL compatibility jobs,
 OpenCode/Noema/Strix review workflows, and Dependency Review. These are not
-application pass evidence. #1131 is the clearest green-check candidate, but
+application pass evidence. PR #1131 is the clearest green-check candidate, but
 its independent approval remains unmet; its ordinary auto-merge stays armed.
 The organization ruleset requires one approval, resolved review threads, and
 seven central workflows. The separate repository ruleset prohibits
@@ -101,8 +101,8 @@ after any parent lands or any head changes.
 The official Compose project remains `lineageweave`. During this loop,
 PostgreSQL first rejected connections while its container was `unhealthy`,
 then `pg_isready` accepted connections and the container reported `healthy`
-without a restart. No database rows were queried and no volume or container
-was removed. This does not establish Voice persistence, cutoff behavior, or
+without a restart. We did not run manual database queries or remove any volume
+or container. This does not establish Voice persistence, cutoff behavior, or
 authenticated PostgreSQL/API acceptance.
 
 The current HTTP k6 harness obtains credentials through the password-grant
