@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BackendError,
   fetchOntologyNeighborhood,
@@ -103,6 +103,12 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const [requestScope, setRequestScope] = useState({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff, generation: 0 });
+  const committedGeneration = useRef(requestScope.generation);
+
+  useLayoutEffect(() => {
+    committedGeneration.current = requestScope.generation;
+  }, [requestScope.generation]);
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -110,14 +116,22 @@ export function OntologyExplorer({
     setQuery("");
   }
 
-  useEffect(() => {
+  if (
+    requestScope.accessToken !== accessToken ||
+    requestScope.focusNodeType !== focusNodeType ||
+    requestScope.focusNodeId !== focusNodeId ||
+    requestScope.knowledgeCutoff !== knowledgeCutoff
+  ) {
+    setRequestScope({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff, generation: requestScope.generation + 1 });
+    setLoaded(provided ?? null);
+    setStatus(providedStatus ?? (provided ? statusFromPayload(provided, knowledgeCutoff) : accessToken ? "loading" : "empty"));
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
     setPageRetry(0);
     setLiveFocus(false);
     clearSelection();
-  }, [focusNodeType, focusNodeId]);
+  }
 
   useEffect(() => {
     const useProvided = Boolean(provided) && !liveFocus;
@@ -134,6 +148,7 @@ export function OntologyExplorer({
       return;
     }
     let cancelled = false;
+    const requestGeneration = requestScope.generation;
     setStatus("loading");
     fetchOntologyNeighborhood(accessToken, {
       focusNodeType: focusType,
@@ -142,16 +157,18 @@ export function OntologyExplorer({
       cursor,
     })
       .then((payload) => {
-        if (cancelled) return;
+        if (cancelled || requestGeneration !== committedGeneration.current) return;
         setLoaded((current) =>
           cursor && current ? accumulateNeighborhoodPages(current, payload) : payload,
         );
         setStatus(statusFromPayload(payload, knowledgeCutoff));
       })
       .catch((error: unknown) => {
-        if (cancelled) return;
+        if (cancelled || requestGeneration !== committedGeneration.current) return;
         if (!cursor) setLoaded(null);
-        if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+        if (error instanceof BackendError && (error.status === 401 || error.status === 403 || error.status === 404)) {
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -160,7 +177,7 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus, requestScope.generation]);
 
   const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
@@ -231,6 +248,7 @@ export function OntologyExplorer({
         </div>
       </header>
       <OccupationalConstructCatalogSearch
+        key={requestScope.generation}
         accessToken={accessToken}
         knowledgeCutoff={knowledgeCutoff}
         onSelectPost={onSelectPost ?? onOpenEvidence}

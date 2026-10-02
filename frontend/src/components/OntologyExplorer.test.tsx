@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { BackendError, fetchOntologyNeighborhood } from "../api";
-import type { OntologyNeighborhoodPayload } from "../api";
+import { BackendError, fetchOccupationalConstructSearch, fetchOntologyNeighborhood } from "../api";
+import type { OccupationalConstructSearchPage, OntologyNeighborhoodPayload } from "../api";
 import { OntologyExplorer } from "./OntologyExplorer";
 import { filterNeighborhood } from "../ontologyLayout";
 
@@ -138,6 +139,39 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it.each(["success", "denied"] as const)(
+    "ignores a previous reader's %s completion before passive cleanup",
+    async (completion) => {
+      let completeOld!: (payload: OntologyNeighborhoodPayload) => void;
+      let failOld!: (error: BackendError) => void;
+      const oldRequest = {
+        then: (complete: typeof completeOld) => {
+          completeOld = complete;
+          return { catch: (fail: typeof failOld) => { failOld = fail; } };
+        },
+      } as unknown as Promise<OntologyNeighborhoodPayload>;
+      vi.mocked(fetchOntologyNeighborhood).mockReset()
+        .mockReturnValueOnce(oldRequest)
+        .mockReturnValueOnce(new Promise(() => {}));
+      function ScopeCommit({ reader, onCommit }: { reader: string; onCommit?: () => void }) {
+        useLayoutEffect(() => { onCommit?.(); }, [onCommit]);
+        return <OntologyExplorer accessToken={reader} focusNodeType="node_post" focusNodeId={POST_ID} />;
+      }
+      const { rerender } = render(<ScopeCommit reader="synthetic-first-reader" />);
+      await waitFor(() => expect(fetchOntologyNeighborhood).toHaveBeenCalledTimes(1));
+
+      rerender(<ScopeCommit reader="synthetic-second-reader" onCommit={() => {
+        if (completion === "success") completeOld(neighborhood());
+        else failOld(new BackendError("/api/ontology/neighborhood", 403));
+      }} />);
+
+      expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+      expect(screen.getByText("Loading related information...")).toBeInTheDocument();
+    },
+  );
+
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
     const projectNode = {
@@ -162,7 +196,7 @@ describe("OntologyExplorer", () => {
   });
 
   it("keeps loaded pages visible when a continuation page fails", async () => {
-    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood).mockReset();
     let rejectContinuation!: (error: BackendError) => void;
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
@@ -194,6 +228,122 @@ describe("OntologyExplorer", () => {
       "synthetic-access-token",
       expect.objectContaining({ cursor: "page-2" }),
     );
+  });
+
+  it.each(["cutoff", "account", "focus"] as const)(
+    "discards prior evidence and continuation immediately when the %s changes",
+    async (changedScope) => {
+      const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+      fetchNeighborhood.mockReset();
+      let completeOldPage!: (payload: OntologyNeighborhoodPayload) => void;
+      let completeNewScope!: (payload: OntologyNeighborhoodPayload) => void;
+      fetchNeighborhood
+        .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "old-page-2" }))
+        .mockImplementationOnce(() => new Promise((resolve) => { completeOldPage = resolve; }))
+        .mockImplementationOnce(() => new Promise((resolve) => { completeNewScope = resolve; }));
+      const initialProps = {
+        accessToken: "synthetic-access-token",
+        focusNodeType: "node_post",
+        focusNodeId: POST_ID,
+      };
+      const { rerender } = render(<OntologyExplorer {...initialProps} />);
+      await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+      await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+      const nextProps = {
+        ...initialProps,
+        ...(changedScope === "cutoff" ? { knowledgeCutoff: "2026-01-01T00:00:00Z" } : {}),
+        ...(changedScope === "account" ? { accessToken: "synthetic-second-account-token" } : {}),
+        ...(changedScope === "focus" ? { focusNodeId: EVIDENCE_POST_ID } : {}),
+      };
+
+      rerender(<OntologyExplorer {...nextProps} />);
+
+      expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+      expect(screen.getByText("Loading related information...")).toBeInTheDocument();
+      expect(fetchNeighborhood).toHaveBeenCalledTimes(3);
+      expect(fetchNeighborhood).toHaveBeenLastCalledWith(nextProps.accessToken, {
+        focusNodeType: nextProps.focusNodeType,
+        focusNodeId: nextProps.focusNodeId,
+        knowledgeCutoff: nextProps.knowledgeCutoff,
+        cursor: undefined,
+      });
+
+      await act(async () => { completeOldPage(neighborhood()); });
+      expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+      await act(async () => { completeNewScope(neighborhood({ nodes: [], edges: [], exact_value_rows: [] })); });
+      expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading related information...")).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([401, 403, 404])("drops all prior evidence when continuation access is denied (%s)", async (status) => {
+    vi.mocked(fetchOntologyNeighborhood).mockReset()
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status));
+    render(<OntologyExplorer accessToken="synthetic-access-token" focusNodeType="node_post" focusNodeId={POST_ID} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+
+    expect(await screen.findByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+  });
+
+  it("discards nested work-evidence search and its pending page when the cutoff changes", async () => {
+    vi.mocked(fetchOntologyNeighborhood).mockReset().mockResolvedValue(neighborhood());
+    let completeOldSearch!: (payload: OccupationalConstructSearchPage) => void;
+    const searchPage: OccupationalConstructSearchPage = {
+      query: "Oral",
+      family_code: null,
+      next_cursor: "old-search-page-2",
+      hits: [{
+        construct_id: CONSTRUCT_ID,
+        construct_iri: "https://data.onetcenter.org/element/1.A.1.a.1",
+        construct_family_code: "cognitive_ability",
+        preferred_label: "Oral Comprehension",
+        vocabulary_version: "31.0",
+        supporting_post_id: POST_ID,
+        supporting_post_title: "Synthetic briefing",
+        evidence_text: "reviewed the written procedure",
+        truth_status_code: "truth_inferred",
+      }],
+    };
+    vi.mocked(fetchOccupationalConstructSearch).mockReset()
+      .mockResolvedValueOnce(searchPage)
+      .mockImplementationOnce(() => new Promise((resolve) => { completeOldSearch = resolve; }));
+    const props = { accessToken: "synthetic-access-token", focusNodeType: "node_post", focusNodeId: POST_ID };
+    const { rerender } = render(<OntologyExplorer {...props} />);
+    await userEvent.type(screen.getByLabelText("Catalog label"), "Oral");
+    await userEvent.click(screen.getByRole("button", { name: "Find matching records" }));
+    await screen.findByRole("button", { name: "Open supporting record: Oral Comprehension · Synthetic briefing" });
+    await userEvent.click(screen.getByRole("button", { name: "Show more matching records" }));
+
+    rerender(<OntologyExplorer {...props} knowledgeCutoff="2026-01-01T00:00:00Z" />);
+
+    expect(screen.getByLabelText("Catalog label")).toHaveValue("");
+    expect(screen.queryByText("Synthetic briefing")).not.toBeInTheDocument();
+    await act(async () => { completeOldSearch(searchPage); });
+    expect(screen.queryByRole("button", { name: "Open supporting record: Oral Comprehension · Synthetic briefing" })).not.toBeInTheDocument();
+  });
+
+  it("clears prior evidence when authentication is removed", async () => {
+    vi.mocked(fetchOntologyNeighborhood).mockReset().mockResolvedValueOnce(neighborhood());
+    const { rerender } = render(
+      <OntologyExplorer accessToken="synthetic-access-token" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    await screen.findByRole("button", { name: "Select node: Post Demo public post" });
+
+    rerender(<OntologyExplorer focusNodeType="node_post" focusNodeId={POST_ID} />);
+
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
   });
 
   it("retries a failed continuation page with the same cursor", async () => {
