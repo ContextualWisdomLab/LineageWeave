@@ -294,15 +294,20 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
-            const values = [...existing[key], ...incoming[key]];
+          // Live display labels follow the node map; relations retain all pages.
+          if (Object.hasOwn(existing, key) && key !== "@id" && key !== "rdfs:label") {
+            const values = [existing[key], incoming[key]].flatMap((value) =>
+              Array.isArray(value) ? value : [value],
+            );
             const seen = new Set<string>();
-            merged[key] = values.filter((value) => {
+            const unique = values.filter((value) => {
               const serialized = JSON.stringify(value);
               if (seen.has(serialized)) return false;
               seen.add(serialized);
               return true;
             });
+            merged[key] = Array.isArray(existing[key]) || Array.isArray(incoming[key])
+              || unique.length > 1 ? unique : unique[0];
           }
         }
         graphItems.set(item["@id"], merged);
