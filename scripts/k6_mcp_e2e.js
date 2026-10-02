@@ -14,6 +14,8 @@ const requestTimeout = __ENV.REQUEST_TIMEOUT;
 const keycloakHost = __ENV.KEYCLOAK_HOST;
 const protocolVersion = "2025-11-25";
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
+// Persisted Global Ask states: migrations/0165_global_ask_job.sql.
+const jobStates = new Set(["queued", "running", "succeeded", "failed"]);
 
 const initializeDuration = new Trend("lineageweave_mcp_initialize_duration", true);
 const submitDuration = new Trend("lineageweave_mcp_submit_duration", true);
@@ -31,14 +33,44 @@ function authenticate() {
     { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
   );
   if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
-  return response.json("access_token");
+  let token;
+  try {
+    token = response.json("access_token");
+  } catch {
+    // Parser errors can include response content; validation below stays bounded.
+  }
+  if (typeof token !== "string" || !token.trim()) {
+    fail("synthetic OIDC login returned an invalid token response");
+  }
+  return token;
 }
 
-function result(response) {
-  const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
+function result(response, expectedId) {
+  const line = typeof response.body === "string"
+    ? response.body.split("\n").find((entry) => entry.startsWith("data: "))
+    : undefined;
   if (!line) fail(`MCP response omitted a data event: HTTP ${response.status}`);
-  const envelope = JSON.parse(line.slice(6));
-  if (envelope.error) fail(`MCP returned ${JSON.stringify(envelope.error)}`);
+  let envelope;
+  try {
+    envelope = JSON.parse(line.slice(6));
+  } catch {
+    fail(`MCP response was unreadable: HTTP ${response.status}`);
+  }
+  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
+    fail(`MCP response envelope was invalid: HTTP ${response.status}`);
+  }
+  if (envelope.jsonrpc !== "2.0") {
+    fail(`MCP response protocol was invalid: HTTP ${response.status}`);
+  }
+  if (!Object.prototype.hasOwnProperty.call(envelope, "id") || envelope.id !== expectedId) {
+    fail(`MCP response id mismatch: HTTP ${response.status}`);
+  }
+  const hasResult = Object.prototype.hasOwnProperty.call(envelope, "result");
+  const hasError = Object.prototype.hasOwnProperty.call(envelope, "error");
+  if (hasResult === hasError) {
+    fail(`MCP response result/error shape was invalid: HTTP ${response.status}`);
+  }
+  if (hasError) fail(`MCP request failed: HTTP ${response.status}`);
   return envelope.result;
 }
 
@@ -68,7 +100,7 @@ function initialize(token) {
   });
   initializeDuration.add(response.timings.duration);
   if (response.status !== 200) fail(`MCP initialize failed with HTTP ${response.status}`);
-  result(response);
+  result(response, 1);
   const session = response.headers["Mcp-Session-Id"];
   if (!session) fail("MCP initialize omitted Mcp-Session-Id");
   const initialized = request(token, session, null, "notifications/initialized", undefined);
@@ -80,10 +112,17 @@ function callTool(token, session, id, name, args) {
   return request(token, session, id, "tools/call", { name, arguments: args });
 }
 
-function structured(response) {
-  const toolResult = result(response);
-  if (toolResult.isError) fail(`MCP tool failed: ${response.body}`);
-  return toolResult.structuredContent;
+function structured(response, expectedId) {
+  const toolResult = result(response, expectedId);
+  if (!toolResult || typeof toolResult !== "object" || Array.isArray(toolResult)) {
+    fail(`MCP tool result was invalid: HTTP ${response.status}`);
+  }
+  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);
+  const content = toolResult.structuredContent;
+  if (!content || typeof content !== "object" || Array.isArray(content)) {
+    fail(`MCP structured content was invalid: HTTP ${response.status}`);
+  }
+  return content;
 }
 
 export function setup() {
@@ -96,7 +135,11 @@ export function setup() {
   });
   submitDuration.add(response.timings.duration);
   if (response.status !== 200) fail(`MCP Ask submit failed with HTTP ${response.status}`);
-  return { token, askJobId: structured(response).ask_job_id };
+  const askJobId = structured(response, 2).ask_job_id;
+  if (typeof askJobId !== "string" || !askJobId.trim()) {
+    fail("MCP Ask submit returned an invalid job identifier");
+  }
+  return { token, askJobId };
 }
 
 export default function (data) {
@@ -111,7 +154,8 @@ export default function (data) {
   readDuration.add(response.timings.duration);
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });
   if (ok) {
-    const payload = structured(response);
-    jobStateObservations.add(1, { job_status: String(payload.job_status_code || "unknown") });
+    const payload = structured(response, 3);
+    check(payload.job_status_code, { "MCP Ask state is declared": (value) => jobStates.has(value) });
+    jobStateObservations.add(1, { job_status: jobStates.has(payload.job_status_code) ? payload.job_status_code : "unknown" });
   }
 }
