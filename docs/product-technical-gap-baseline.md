@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+## Exact-head queue refresh — 2026-10-03 04:12 KST
+
+The canonical protected `main` remained `da4e5d45420fdd6b2b9c1dc51eb613a706387da4`. GitHub reported **182 open PRs** (168 drafts, 117 with non-`main` bases) and **42 open issues**. These are repository inventory counts only. This table covers all 14 currently open non-draft PRs; each check rollup was queried by its exact head SHA. Draft PRs do not inherit these results.
+
+| PR | Exact head / base | Checks on exact head | Independent approval | Auto-merge |
+| ---: | --- | --- | --- | --- |
+| #1145 | `03ce31c3b9775e6fcf0230dff0092c0e60b10e0b` / `da4e5d45420fdd6b2b9c1dc51eb613a706387da4` | 24 success, 7 failure, 4 skipped, 1 in progress | none; 2 review threads resolved | enabled; `REVIEW_REQUIRED` / `BLOCKED` |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` / `83eba56149eb802cd63642c507c324c9976ec78e` | 26 success, 4 failure, 7 skipped, 1 cancelled | none | enabled; base behind current `main` |
+| #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299` / `83eba56149eb802cd63642c507c324c9976ec78e` | 24 success, 1 failure, 20 skipped | none | enabled; base behind current `main` |
+| #1141 | `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731` / `83eba56149eb802cd63642c507c324c9976ec78e` | 24 success, 11 skipped | none | enabled; base behind current `main` |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` / `83eba56149eb802cd63642c507c324c9976ec78e` | 31 success, 5 failure, 6 skipped | none | enabled; base behind current `main` |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` / `83eba56149eb802cd63642c507c324c9976ec78e` | 30 success, 7 failure, 5 skipped | none | enabled; base behind current `main` |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` / `83eba56149eb802cd63642c507c324c9976ec78e` | 27 success, 5 failure, 9 skipped, 1 cancelled | none | enabled; base behind current `main` |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` / `83eba56149eb802cd63642c507c324c9976ec78e` | 29 success, 7 failure, 6 skipped | none | enabled; base behind current `main` |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` / `83eba56149eb802cd63642c507c324c9976ec78e` | 33 success, 4 failure, 14 skipped, 1 cancelled | none | enabled; base behind current `main` |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` / `83eba56149eb802cd63642c507c324c9976ec78e` | 24 success, 11 skipped | none | enabled; base behind current `main` |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` / `83eba56149eb802cd63642c507c324c9976ec78e` | 31 success, 4 failure, 11 skipped | `cwl-noema-review` on this exact head | enabled; base behind current `main` |
+| #1129 | `24d3b9cb1bc31f951da3879774013c97b415ecdf` / `83eba56149eb802cd63642c507c324c9976ec78e` | 30 success, 7 failure, 5 skipped | none | enabled; base behind current `main` |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` / `83eba56149eb802cd63642c507c324c9976ec78e` | 30 success, 3 failure, 9 skipped | none | enabled; base behind current `main` |
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` / `83eba56149eb802cd63642c507c324c9976ec78e` | 25 success, 8 cancelled, 9 skipped | none | enabled; base behind current `main` |
+
+On #1145, the current-head review threads concern JSON-LD label union and baseline heading level. The label now follows the latest page while retaining multi-valued relations, and the dated overlay begins at H2. Both threads are resolved, but bot comments are not independent approval. Its current failures are CodeQL compatibility (3), Noema and its transport continuation, OpenCode, and filesystem Trivy. The exact run-log endpoint returned 404, so Trivy's cause is not attributed here. The full suite and frontend checks passed on the listed head. Keep auto-merge armed pending independent approval and terminal required checks.
+
+The PyJWT-floor documentation comment on #1137 correctly identified the pre-change floor as `>=2.8.0`; exact head `4344d4d` records that repair. The PR remains blocked by seven exact-head failures (CodeQL compatibility, Noema and continuation, Dependency Review, and OpenCode). Its focused dependency tests and Trivy pass do not replace those gates.
+
+## Cross-PR contract check — same observation
+
+The buyer-visible paged JSON-LD value-union repair in #1145 has synthetic regression coverage and a passing full-suite result on its exact head. It keeps the latest label while unioning repeated subject properties, including Voice relations. Related #1129 filters Voice assignments by visible derivation evidence and exports carrying Post and derivation evidence separately. A read-only merge-tree check finds conflicts between these branches in `frontend/src/ontologyLayout.ts`, its test, and the gap baseline. Preserve both behaviors; after a protected parent merge, retarget the child to `main`, reconcile the code and tests together, and collect fresh exact-head evidence. No approval or Check transfers.
+
+Other read-only merge-tree checks find gap-baseline conflicts between #1145 and #1135, #1139, #1142, #1136, and #1131. The checks also find product-requirements conflicts with #1139/#1131 and `OntologyExplorer.test.tsx` conflicts with #1142/#1136. #1143 combines cleanly with #1145. Security owner #1137 and RankWeave pin #1133 both touch `pyproject.toml` and `uv.lock` but combine cleanly in that tree check; neither changes a schema or public API, and their changelog additions combine cleanly. #1137 remains the dependency owner; reconcile consumer #1135/#1139/#1129 lockfile deltas only after the owner is protected.
+
+Voice PRs #1143, #1139, and #1129 all touch ADR 0256. Their read-only pair checks combine #1143 with either PR cleanly, while #1139 and #1129 conflict in ADR 0256, `pyproject.toml`, `uv.lock`, and the gap baseline. #1139 and #1137 conflict only in the gap baseline; their changelog and dependency edits combine. No open non-draft candidate changes a migration or database schema. Release-number updates were not present in these reviewed diffs. #1145 changes no ADR, API, schema, migration, or release contract.
+
+All non-draft bases except #1145 still point at `83eba56149eb802cd63642c507c324c9976ec78e`, behind current `main`. Parent security PR #1137 must protect first before draft consumers #1138/#1144 are retargeted. Active rulesets remain in force. No ruleset, API, schema, or release-number mutation was made; no bypass, self-approval, or force push was used.
+
 ## Exact-head continuation — 2026-10-03 01:46 KST
 
 Git transport confirmed canonical protected `main` at
