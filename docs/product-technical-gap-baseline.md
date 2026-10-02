@@ -1,5 +1,83 @@
 # Product & Technical Gap Baseline
 
+## Exact-head development audit — 2026-10-03
+
+The canonical remote is ContextualWisdomLab/LineageWeave. Git transport
+confirmed protected main at
+da4e5d45420fdd6b2b9c1dc51eb613a706387da4. The product authority read for
+this loop is docs/product-requirements.md; ADRs remain normative. Applicable
+Voice contracts are ADR 0246 (twelve extensible atomic classes), ADR 0251
+(distinct occupational construct taxonomy), and ADR 0256 (evidence-bearing
+combinations), with ADR 0207 governing canonical ontology IRIs and ADR 0084
+governing research grounding.
+
+Canonical ecosystem authorities were checked against the current remote
+repositories before work: ContextualWisdomLab/RankWeave at
+92323cb8b55baf5d840cb97fa8534a0e75ef234c (ARCHITECTURE.md);
+ContextualWisdomLab/ThreadWeave at
+0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0 (docs/PRD.md);
+ContextualWisdomLab/disksage at
+05899ffb01ce91a9ea3d782630b28a398de59ddc (README.md, its available product
+authority); and ContextualWisdomLab/TEPP at
+a243f18da4a4ca8a8d068c39922537f1f8ed6ad0
+(docs/product/prd-v0.4-approved.md). DiskSage's canonical remote spelling is
+lowercase.
+
+GitHub REST pagination returned 182 open PRs (168 drafts, 117 with a non-main
+base) and 31 open issues. These are repository inventory counts only. The 14
+ready PRs were checked using each current head's own Check-Runs endpoint; a
+green run from another SHA was not counted. All target main; current exact
+heads and outstanding failed or pending checks are:
+
+| PR | Exact head | Exact-head blockers |
+| ---: | --- | --- |
+| #1126 | c0c5204b702d2d4d24928389db7d04ebe5cb9739 | Noema, Strix, OpenCode, CodeQL ×3, coverage-source-tree, coverage-evidence |
+| #1128 | 91143146623948dbd26bbfc1c69de3cd77d2ae06 | CodeQL ×3 |
+| #1129 | 24d3b9cb1bc31f951da3879774013c97b415ecdf | Noema, Noema transport continuation, dependency review, OpenCode, CodeQL ×3 |
+| #1130 | 383c392bc6713e55bed31b4d4053d93cfd1885d0 | OpenCode, CodeQL ×3; GitHub review decision reports Approved |
+| #1131 | ee3d8890ce3b7829f668e05732ef55d24e2e688e | No failed or pending exact-head checks; independent approval still required |
+| #1133 | 1420a733eb30cea5198dffc2ae08734c9cfe521e | OpenCode, dependency review, Noema, CodeQL ×2 |
+| #1135 | 73ba540789d2f2210a17e7eb5396270dafa66589 | OpenCode, Noema, Strix, dependency review, CodeQL ×3 |
+| #1136 | 55f6992637c53cfb51a74f55987a40b359152bd5 | OpenCode, Noema, Strix, Trivy, CodeQL ×2 |
+| #1137 | 4344d4dcb80fa08971c33f2f7df912d389dc7c61 | OpenCode, Noema, Noema transport continuation, dependency review, CodeQL ×3 |
+| #1139 | 421324c1b29d315d1987f69c3c16ce18a4330924 | OpenCode, Noema, dependency review, CodeQL ×2 |
+| #1141 | 56af953933499813ade0d1466754d7c04c447e14 | No failed or pending exact-head checks; independent approval still required |
+| #1142 | 921f2df9629b8fbdef707b04469b45b2a1ed6299 | Dependency review |
+| #1143 | ad7c7a154daad51d0125e81bfcdbd6b2f4498b67 | OpenCode, Noema, Trivy, CodeQL ×2 |
+| #1145 | 40fd7ab14faef8494bcc344226e7c9400790cad7 | Full suite, Noema, Strix pending; OpenCode, Trivy, CodeQL ×3 failed |
+
+Normal squash auto-merge is enabled for these ready PRs; #1145's auto-merge
+was re-enabled after the review-fix push. No independent approval was present
+on the current heads except the GitHub review-decision signal on #1130; no PR
+was merged in this audit. Ruleset 18156473 requires one approval and resolved
+review threads, and repository ruleset 21065108 forbids non-fast-forward
+updates. No self-approval, bypass, or force push was used.
+
+The largest evidence-backed customer-facing integrity gap remains Voice
+relations whose derivation Post is hidden or absent. PR #1143 carries a
+minimal fail-closed export change and regression cases: both CSV and JSON-LD
+require an authorized carrying Post and omit an additional Voice unless its
+distinct derivation evidence is visible; they retain truth state and
+provenance and do not substitute the carrying Post for hidden evidence.
+Focused synthetic backend verification at its exact head passed 36 tests.
+This is candidate evidence only. Authenticated PostgreSQL/API behavior,
+cutoff/truth behavior against the authorized runtime, and rendered desktop and
+mobile UI acceptance remain unavailable; Voice acceptance is therefore not
+complete.
+
+The PR cross-diff audit found no competing migration ordinals or explicit
+schema/API version changes among these 14 ready candidates. PR #1130 changes
+analysis-run start behavior and PR #1143 changes ontology projection
+semantics; their reviewed API behavior remains covered by their own tests.
+PR #1137, #1139, and #1135 touch
+the shared Python dependency floor/lock contract; process the dependency-floor
+owner first and revalidate the current #1139/#1135 ancestry before restacking.
+Changelog edits in #1137 and #1139 both remain under Unreleased; no release
+number is allocated by this audit. PR #1143 updates normative ADR 0256 and the
+supporting baseline; later Voice-history work must preserve that contract.
+Older base/head evidence below remains a dated snapshot and does not replace
+the exact heads recorded here.
+
 ## Exact-head development audit — 2026-10-02 18:55 KST
 
 This dated snapshot supersedes earlier present-tense claims for the named
