@@ -159,13 +159,14 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {
+    const isVoiceAssignment = row.property_code === "hasVoiceAssignment" && row.source_type_code === "node_post";
     lines.push(
       header
         .map((key) => {
           const value = key === "carrying_post_id"
-            ? row.source_node_id
+            ? isVoiceAssignment ? row.source_node_id : ""
             : key === "derivation_evidence_post_id"
-              ? row.evidence_post_id
+              ? isVoiceAssignment ? row.evidence_post_id : ""
               : row[key as keyof typeof row];
           return csvCell(String(value ?? ""));
         })
