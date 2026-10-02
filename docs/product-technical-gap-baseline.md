@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## PR recheck and CSV export contract — 2026-10-03 08:47 KST
+
+The repository still reports 179 open PRs (168 drafts, 117 with a non-`main`
+base, 11 ready); the prior 42-issue count was not refreshed in this read.
+Protected `main` remains `28f0c51b8341fa40218aab1b6368eeb185558a22`.
+
+PR #1139 is now at exact head
+`bda1f9feffad1263924224254f8bd0a03d1721b0`, based on that current `main`.
+Its head includes a normal merge from live `main`; no force push was used.
+The read showed no formal reviews and a blank review decision; the existing
+auto-merge request remains enabled. Exact-head Checks showed `Analyze
+(actions)`, `Analyze (python)`, `Frontend lint, test, build`, and `Validate
+ontology publication` failed to start; `Full test suite` and `Registry,
+inference, coverage, PostgreSQL` were pending. A failure annotation says the
+job was not started because the account is locked due to a billing issue.
+Local validation on this head passed 39 backend tests, including eight
+isolated synthetic PostgreSQL cases, 58 frontend test files / 538 tests,
+frontend lint and production build, Storybook build, and `uv lock --check`.
+The working branch's product-requirements projection now uses the verified
+remote spelling `ContextualWisdomLab/disksage`.
+
+PR #1148 had exact head
+`b4ddd09751aa8ecf7ed94ef1a52cbadb1463b940` on base
+`28f0c51b8341fa40218aab1b6368eeb185558a22` at the read. Its four test/analysis
+checks failed to start for the same billing lock. Devin's review was
+`COMMENTED`, not an approval, and identified the additive CSV header as an
+undocumented export-contract change. The current in-repository consumers are
+the browser download and its tests; no external consumer registry or importer
+exists in this repository, so compatibility outside it remains unknown. The
+PRD and ADR 0256 now describe the two separate Voice identity columns as part
+of the downloadable CSV contract. Adding eight columns changes the file
+shape; no server API or database schema changes. This note records pre-update
+head `b4ddd…`; changes to PR #1148 create a new head and invalidate those
+hosted results and review.
+
+A read-only merge-tree comparison of #1139 with #1148 found one conflict in
+`docs/product-technical-gap-baseline.md`; ADR 0256, product requirements, and
+`pyproject.toml` auto-merged. The two PRs introduce no overlapping migration,
+database-schema change, or package/release-number bump. Their Voice history
+and evidence-export changes are separate extensions of ADR 0256. Resolve the
+shared baseline against the latest exact-head observations before either
+claim is treated as delivered.
+
 ## Exact-head continuation — 2026-10-03 08:12 KST
 
 This dated overlay supersedes older present-tense inventory only where stated.
