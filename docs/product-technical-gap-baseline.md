@@ -1,5 +1,22 @@
 # Product & Technical Gap Baseline
 
+### Exact-head review follow-up — 2026-10-02 08:10 KST
+
+PR #1137 `fix/pyjwt-2.14-security-floor-20261001` was at exact head
+`db96ff11c977a92180b5480884bc361a4be5cf75`, based on protected `main`
+`83eba56149eb802cd63642c507c324c9976ec78e`. CodeRabbit's current-head
+documentation finding was valid: the pre-change PyJWT source floor was
+`>=2.8.0`, not `>=2.14.0`. Both affected statements are corrected from the
+protected base source. This documentation-only repair does not change the
+dependency floor, API, database schema, migration, or release number. On
+`db96ff11`, Dependency Review was the only failing hosted check; review was
+required, `BLOCKED` remained, and auto-merge was enabled. No qualifying
+independent approval or protected merge SHA existed. The ruleset endpoint
+remains unavailable under the current GitHub API rate limit. The new commit
+will invalidate those exact-head checks; refresh the replacement state before
+making a merge claim. The baseline file also changes in #1129, so preserve both
+dated evidence deltas when resolving that integration overlap.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
@@ -833,6 +850,31 @@ of leverage; open connector PRs there when the defect is upstream:
   and compatibility decision; this publication PR rewrites neither identity.
 - Until the protected deployment and exact URL checks succeed, the public
   ontology endpoint remains unavailable and must not be represented as live.
+
+## 2026-10-01 dependency advisory floor
+
+**Status:** Proposed on `ContextualWisdomLab/LineageWeave#1137`; merge and
+release remain HOLD pending exact-current-head hosted evidence and independent
+approval.
+
+**Context Map / owner.** LineageWeave owns its application dependency source
+and generated `uv.lock`. PyPI artifacts and the vulnerability database are
+upstream evidence; feature branches consume the owner through ordinary Git
+history instead of carrying private lock-file workarounds.
+
+**Gap / RCA.** Exact consumer head
+`ContextualWisdomLab/LineageWeave#1138@e98a68ed99566f6c145b84c3ec816216dd720ebb`
+failed Security Scan `36811272599`, job `110206798976`: PyJWT 2.13.0 carried
+twelve reported CVEs and urllib3 2.7.0 carried CVE-2026-97687,
+CVE-2026-97688, and CVE-2026-97689. Existing owner #1137 selected PyJWT
+2.15.1 but its source floor remained `>=2.8.0` and urllib3 was only
+transitive.
+
+**RED → GREEN / acceptance.** The owner test failed on both stale source
+contracts and the urllib3 lock. The repair requires PyJWT 2.15.1, adds a direct
+urllib3 2.8.0 floor, and regenerates the lock without moving an unrelated
+resolved package. Accept only after owner and consumer exact heads complete
+Security, tests, SAST, non-skipped CodeQL, and qualifying independent review.
 
 ## 9. Evidence boundaries
 
