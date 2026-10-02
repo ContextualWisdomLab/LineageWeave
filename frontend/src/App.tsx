@@ -3368,7 +3368,8 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
-          {selected.tepp_accepted_receipt && (
+          {selected.tepp_accepted_receipt &&
+            selected.status_code === "analysis_status_running" && (
             <TeppAcceptedReceipt />
           )}
           <AnalysisRunReproducibilityDigests

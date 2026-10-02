@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import time
 import sys
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -46,6 +48,8 @@ DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
 DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
 DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY = "demo-tepp-accepted-seed-2026-w09"
+DEMO_TEPP_ACCEPTED_REMOTE_RUN_ID = "tepp-demo-accepted-run-1"
 DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY = "demo-topic-lineage-seed-2026-w02"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
@@ -478,6 +482,11 @@ def seed(
                 corporate_entity_id,
             )
             _seed_demo_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_tepp_accepted_run(
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
@@ -1850,16 +1859,60 @@ def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None
     """Ask TEPP through the published client. A missing transport is Failed.
 
     Never invents a psychometric score. ``tepp_not_available`` means the
-    channel was dropped, not a calibrated negative result. A live
-    envelope is also not a persistable measurement in this seed, so the
-    run is not stamped Succeeded.
+    channel was dropped, not a calibrated negative result. A strict
+    accepted v1 envelope is transport evidence (ADR 0219), not a
+    measurement. An invalid or unpublished envelope stays
+    ``tepp_result_not_persisted`` and is not Succeeded.
     """
-    request = tepp_seed_request()
-    try:
-        (client or TeppClient()).submit_analysis_run(request)
-    except TeppNotAvailable:
-        return "analysis_status_failed", "tepp_not_available"
-    return "analysis_status_failed", "tepp_result_not_persisted"
+    from backend.app.analysis_run_start import _tepp_submission
+
+    status, failure, _envelope = _tepp_submission(
+        client or TeppClient(), tepp_seed_request()
+    )
+    return status, failure or None
+
+
+def tepp_accepted_seed_request(
+    corporate_entity_id: str = "demo-workspace",
+) -> AnalysisRunRequest:
+    """Build the Demo Corp TEPP request whose seed transport accepts v1."""
+    from backend.app.analysis_run_start import tepp_run_request
+
+    return tepp_run_request(
+        idempotency_key=DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY,
+        snapshot_sha256=demo_source_snapshot_sha256(),
+        knowledge_cutoff=datetime.fromisoformat("2026-01-12T12:00:00+00:00"),
+        corporate_entity_id=corporate_entity_id,
+    )
+
+
+def tepp_accepted_seed_client() -> TeppClient:
+    """Return a fixture transport that yields TEPP's strict accepted v1 shape."""
+
+    def _transport(payload: dict) -> dict:
+        return {
+            "contract_version": 1,
+            "run_id": DEMO_TEPP_ACCEPTED_REMOTE_RUN_ID,
+            "run_state": "accepted",
+            "idempotency_key": payload["idempotency_key"],
+        }
+
+    return TeppClient(transport=_transport)
+
+
+def tepp_accepted_seed_outcome(
+    client: TeppClient | None = None,
+    *,
+    corporate_entity_id: str = "demo-workspace",
+) -> tuple[str, str | None, dict | None]:
+    """Classify the accepted-fixture envelope without inventing a theta."""
+    from backend.app.analysis_run_start import _tepp_submission
+
+    status, failure, envelope = _tepp_submission(
+        client or tepp_accepted_seed_client(),
+        tepp_accepted_seed_request(corporate_entity_id),
+    )
+    return status, failure or None, envelope
 
 
 def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
@@ -1935,6 +1988,158 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
                 (run_id, ordinal, status, occurred, fail),
             )
     _seed_demo_run_outbox(cur, run_id)
+
+
+def _seed_tepp_accepted_receipt(cur, analysis_run_id, request, envelope) -> bool:
+    """Persist TEPP acceptance as transport evidence, never a measurement."""
+    remote_run_id = envelope.get("run_id")
+    if envelope.get("run_state") != "accepted" or not isinstance(remote_run_id, str):
+        return False
+    request_json = json.dumps(request.to_json(), separators=(",", ":"), sort_keys=True)
+    receipt_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    receipt_values = (
+        remote_run_id,
+        hashlib.sha256(request_json.encode()).hexdigest(),
+        hashlib.sha256(receipt_json.encode()).hexdigest(),
+    )
+    cur.execute(
+        """
+        select remote_run_id, request_sha256, receipt_sha256
+        from analysis_run_tepp_receipt
+        where analysis_run_id = %s
+        """,
+        (analysis_run_id,),
+    )
+    existing = cur.fetchone()
+    if existing is not None:
+        return tuple(existing) == receipt_values
+    cur.execute(
+        """
+        insert into analysis_run_tepp_receipt
+            (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
+             accepted_status_code, received_at)
+        values (%s, %s, %s, %s, 'accepted', '2026-01-12T12:36:00Z')
+        on conflict do nothing
+        returning analysis_run_id
+        """,
+        (
+            analysis_run_id,
+            *receipt_values,
+        ),
+    )
+    return cur.fetchone() is not None
+
+
+def _seed_demo_tepp_accepted_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp TEPP run that stays Running after accepted v1.
+
+    Uses :func:`tepp_accepted_seed_client` so ``make seed`` can show the
+    buyer receipt copy. Missing-transport Failed remains the other TEPP
+    fixture. Never invents a theta or a completed result.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_tepp', %s,
+                    %s, '2026-01-12T12:00:00Z', 'tepp-run-v1', %s, %s,
+                    '2026-01-12T12:34:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TEPP_ACCEPTED_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "d" * 64,
+                "e" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    request = tepp_accepted_seed_request(str(corporate_entity_id))
+    status, failure, envelope = tepp_accepted_seed_outcome(
+        corporate_entity_id=str(corporate_entity_id)
+    )
+    persist_receipt = (
+        status == "analysis_status_running"
+        and envelope is not None
+        and envelope.get("run_state") == "accepted"
+    )
+    if persist_receipt:
+        persist_receipt = _seed_tepp_accepted_receipt(cur, run_id, request, envelope)
+    if persist_receipt:
+        events = [
+            (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+            (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+        ]
+    else:
+        if status == "analysis_status_running":
+            status = "analysis_status_failed"
+            failure = "tepp_result_not_persisted"
+        events = [
+            (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+            (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+            (3, status, "2026-01-12T12:37:00Z", failure),
+        ]
+    cur.execute(
+        """
+        select coalesce(max(status_ordinal), 0),
+               coalesce(bool_or(status_code in
+                   ('analysis_status_succeeded', 'analysis_status_failed',
+                    'analysis_status_cancelled')), false)
+        from analysis_run_status_event
+        where analysis_run_id = %s
+        """,
+        (run_id,),
+    )
+    status_row = cur.fetchone()
+    max_ordinal, has_terminal = status_row or (0, False)
+    if max_ordinal == 0:
+        for ordinal, event_status, occurred, fail in events:
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+                values (%s, %s, %s, %s, %s)
+                """,
+                (run_id, ordinal, event_status, occurred, fail),
+            )
+    elif not persist_receipt and not has_terminal:
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
+            """,
+            (run_id, max_ordinal + 1, status, "2026-01-12T12:37:00Z", failure),
+        )
+    _seed_demo_run_outbox(cur, run_id, delivered=not persist_receipt)
 
 
 def topic_lineage_seed_request() -> AnalysisRunRequest:
@@ -2120,11 +2325,12 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
             )
 
 
-def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
-    """Record a delivered start-work item for the seeded run.
+def _seed_demo_run_outbox(cur, analysis_run_id, *, delivered: bool = True) -> None:
+    """Record the start-work outbox path used by live start.
 
-    Seed already stamped the terminal status. The outbox row proves the
-    same durable path start uses. No theta is stored.
+    A terminal seed run is claimed then delivered. A Running TEPP
+    accepted-receipt seed stays claimed so a later status read can
+    resume without resubmitting (ADR 0219). No theta is stored.
     """
     from datetime import datetime, timezone
 
@@ -2135,6 +2341,34 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         (analysis_run_id,),
     )
     if cur.fetchone() is not None:
+        if delivered:
+            cur.execute(
+                """
+                select coalesce(max(delivery_ordinal), 0),
+                       coalesce(bool_or(delivery_status_code =
+                           'analysis_outbox_delivered'), false)
+                from analysis_run_outbox_delivery
+                where analysis_run_id = %s
+                """,
+                (analysis_run_id,),
+            )
+            delivery_row = cur.fetchone()
+            max_ordinal, already_delivered = delivery_row or (0, False)
+            if not already_delivered:
+                cur.execute(
+                    """
+                    insert into analysis_run_outbox_delivery
+                        (analysis_run_id, delivery_ordinal,
+                         delivery_status_code, occurred_at)
+                    values (%s, %s, 'analysis_outbox_delivered', %s)
+                    on conflict do nothing
+                    """,
+                    (
+                        analysis_run_id,
+                        max_ordinal + 1,
+                        datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc),
+                    ),
+                )
         return
     cur.execute(
         """
@@ -2158,10 +2392,10 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
     )
     if work_kind_code in ("analysis_run_tepp", "analysis_run_topic_lineage"):
         claimed = datetime(2026, 1, 12, 12, 36, tzinfo=timezone.utc)
-        delivered = datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc)
+        delivered_at = datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc)
     else:
         claimed = datetime(2026, 1, 12, 12, 32, tzinfo=timezone.utc)
-        delivered = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
+        delivered_at = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
     cur.execute(
         """
         insert into analysis_run_outbox
@@ -2171,10 +2405,10 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         """,
         (analysis_run_id, work_kind_code, digest, claimed),
     )
-    for ordinal, status, occurred in (
-        (1, "analysis_outbox_claimed", claimed),
-        (2, "analysis_outbox_delivered", delivered),
-    ):
+    deliveries = [(1, "analysis_outbox_claimed", claimed)]
+    if delivered:
+        deliveries.append((2, "analysis_outbox_delivered", delivered_at))
+    for ordinal, status, occurred in deliveries:
         cur.execute(
             """
             insert into analysis_run_outbox_delivery

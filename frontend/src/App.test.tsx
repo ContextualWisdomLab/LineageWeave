@@ -145,6 +145,7 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    runningTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOne?: boolean;
@@ -408,12 +409,16 @@ describe("App, authenticated", () => {
           ? "analysis_status_succeeded"
           : options?.pendingTeppRun
             ? "analysis_status_pending"
-            : "analysis_status_failed";
+            : options?.runningTeppRun
+              ? "analysis_status_running"
+              : "analysis_status_failed";
         const teppLabel = options?.succeededTeppRun
           ? "Succeeded"
           : options?.pendingTeppRun
             ? "Pending"
-            : "Failed";
+            : options?.runningTeppRun
+              ? "Running"
+              : "Failed";
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-tepp",
@@ -426,7 +431,7 @@ describe("App, authenticated", () => {
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
-            ...(options?.succeededTeppRun
+            ...(options?.runningTeppRun
               ? {
                   tepp_accepted_receipt: {
                     remote_run_id: "tepp-remote-run-1",
@@ -452,6 +457,21 @@ describe("App, authenticated", () => {
                     occurred_at: "2026-01-12T12:35:00Z",
                   },
                 ]
+              : options?.runningTeppRun
+                ? [
+                    {
+                      status_ordinal: 1,
+                      status_code: "analysis_status_pending",
+                      status_label: "Pending",
+                      occurred_at: "2026-01-12T12:35:00Z",
+                    },
+                    {
+                      status_ordinal: 2,
+                      status_code: "analysis_status_running",
+                      status_label: "Running",
+                      occurred_at: "2026-01-12T12:36:00Z",
+                    },
+                  ]
               : [
                   {
                     status_ordinal: 1,
@@ -779,12 +799,16 @@ describe("App, authenticated", () => {
                   ? "analysis_status_succeeded"
                   : options?.pendingTeppRun
                     ? "analysis_status_pending"
-                    : "analysis_status_failed",
+                    : options?.runningTeppRun
+                      ? "analysis_status_running"
+                      : "analysis_status_failed",
                 status_label: options?.succeededTeppRun
                   ? "Succeeded"
                   : options?.pendingTeppRun
                     ? "Pending"
-                    : "Failed",
+                    : options?.runningTeppRun
+                      ? "Running"
+                      : "Failed",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:34:00Z",
                 source_counts: [
@@ -3971,11 +3995,31 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Measurement request accepted")).not.toBeInTheDocument();
+    expect(screen.queryByText("tepp-remote-run-1")).not.toBeInTheDocument();
+    expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+  });
+
+  it("names a running TEPP accepted receipt as transport evidence, not a result", async () => {
+    stubBackend({ runningTeppRun: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Running · Demo Corp",
+      }),
+    );
     expect(screen.getByLabelText("Measurement request accepted")).toHaveTextContent(
       "Refresh this run to check whether results are ready.",
     );
+    expect(
+      screen.getAllByText(
+        "Refresh this run. Start already queued the work on the durable outbox.",
+      ).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText("tepp-remote-run-1")).not.toBeInTheDocument();
-    expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start TEPP measurement" })).not.toBeInTheDocument();
   });
 
   it("records a pending lineage run and opens the authorized detail", async () => {

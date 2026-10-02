@@ -198,9 +198,13 @@ confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way
 adjudication does -- never a raw LLM API. Demo TEPP seed goes through
-`tepp_client` the same way: a missing transport or an unused accepted
-envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
-never a fabricated theta or a local psychometric substitute.
+`tepp_client` the same way: a missing transport is Failed
+(`tepp_not_available`). A strict accepted v1 envelope persists to
+`analysis_run_tepp_receipt` and the local run stays Running (ADR 0219);
+an invalid or unpublished envelope is Failed
+(`tepp_result_not_persisted`). Never a fabricated theta or a local
+psychometric substitute. Automatic polling stays unavailable until TEPP
+publishes its status route.
 
 The lineage `text` channel follows [ADR 0190](docs/adr/0190-lineage-text-channel-embedding-swap.md):
 when an embedding provider is configured, `reconstruct()` precomputes

@@ -1,6 +1,6 @@
 # ADR 0219 — Persist TEPP acceptance and consume terminal results
 
-**Decision status:** Accepted on this active PR; not protected-main truth until merge  
+**Decision status:** Accepted; seed visibility on this PR; polling remains blocked on TEPP #249
 **Date:** 2026-08-26  
 **Depends on:** ADR 0022, ADR 0023, ADR 0204; TEPP PR #157  
 **Refs:** LineageWeave issue #277; TEPP issues #156 and #249
@@ -66,6 +66,10 @@ sequenceDiagram
 LineageWeave owns transport and provenance persistence only. TEPP retains all
 statistical, psychometric, CPU, and GPU arithmetic. Automatic polling remains
 unavailable until the owning service publishes its route and retry policy.
+`make seed` writes one Demo Corp TEPP run that stays Failed /
+`tepp_not_available` (missing transport) and one that stays Running with a
+persisted accepted receipt so the buyer copy is visible without inventing a
+theta.
 
 ## References — APA 7th
 

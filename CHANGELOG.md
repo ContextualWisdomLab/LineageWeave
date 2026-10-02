@@ -8,6 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- After `make seed`, Demo Corp now includes a Running TEPP measurement
+  whose strict accepted v1 receipt is transport evidence (ADR 0219 /
+  v2.29.0). Open that run: measurement request accepted — refresh to
+  check whether results are ready. The missing-transport TEPP row stays
+  Failed / `tepp_not_available`. Acceptance is not a calibrated result
+  and the UI does not expose the receipt's transport `run_id`. Never
+  invent a theta. No polling until TEPP publishes its status route.
+  Issue #277 stays open.
+
 - Period leftover pairs now caption leftover-map graphic-display pair
   segments with persisted leftover-map distance `d` (ADR 0271 /
   v2.28.0). After `make seed`, closest and farthest leftover pairs sit
