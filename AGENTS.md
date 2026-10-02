@@ -386,6 +386,11 @@ exist on the post.
 
 ## CI gates
 
+Record hosted results with their exact commit and run URL, including skipped
+tests and warnings. Counts from independent PRs are not evidence that their
+changes were integrated. Preserve local failures alongside later hosted success;
+an evidence-only commit still needs its own current-head required checks.
+
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
@@ -422,3 +427,27 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Authorization-sensitive asynchronous UI
+
+Bind imperative result, error, and loading completion to the originating
+component authorization lifecycle. Token equality alone cannot distinguish
+retired A from current A after A → B → A. Clear prior questions, answers, and
+evidence selection when credentials change, and verify that a retired success
+or failure cannot end the current request's loading state. Keep behavioral
+regressions synthetic; UI retirement does not itself cancel a server-side job.
+
+Pass a native AbortSignal through client polling and fetch when retiring an
+authenticated screen. Preserve the abort reason instead of reporting a network
+failure, and clear delay timers/listeners. Result-admission guards remain necessary
+for already-resolved work. Verify both transport cancellation and A → B → A
+state admission; neither establishes server-job cancellation.
+
+Do not infer Ask job failure from browser observation age. Queue wait and model
+execution are distinct; follow durable terminal status or native cancellation.
+Before removing a worker execution deadline, inspect orphan recovery: an
+age-only requeue rule can duplicate a still-live computation without claim fencing.
+
+Keep transport exceptions at the diagnostic boundary. Buyer-facing error copy
+must not use String(error) or provider detail; reuse existing localized recovery
+guidance and preserve explicitly supported status-specific behavior.

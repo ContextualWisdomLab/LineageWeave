@@ -23,7 +23,7 @@ operator-facing control you can click before changing product CSS.
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 | `Ask Agent/Public claim verification` | Compare supported, refuted, and not-enough-information states; open only the external evidence link, then review the separate internal citation before changing governed graph state. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `PublicClaimVerification` |
-| `Ask Agent/Knowledge cutoff` | Exercise partial historical grounding, retained-revision provenance, later-live-change disclosure, and the narrow viewport before relying on a historical answer. | Native `datetime-local`, `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min` |
+| `Ask Agent/Knowledge cutoff` | Exercise partial historical grounding, retained-revision provenance, later-live-change disclosure, and the narrow viewport before relying on a historical answer. `CompletedAnswerUnavailable` and `CompletedAnswerUnavailableNarrow` restore question controls and show existing recovery guidance when completion has no answer. | Native `datetime-local`, `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
@@ -49,3 +49,7 @@ actions are executable component-test states governed by ADR 0243. The
 1440×1000 and 390×844 audits are retained in
 `docs/screenshots/project-history-time-source-{desktop,mobile}.png`; both show
 the customer-readable time source without exposing the stored basis code.
+
+- `Ask Agent/Knowledge cutoff`: `AcceptedReceiptUnavailable` and
+  `AcceptedReceiptUnavailableNarrow` retain the synthetic question and restore
+  its controls when an accepted request has no observable job receipt.
