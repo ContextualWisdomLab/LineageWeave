@@ -1,7 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
 Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
-ADR 0182, ADR 0185, ADR 0201, ADR 0233, ADR 0266, and ADR 0267.
+ADR 0182, ADR 0185, ADR 0201, ADR 0233, and ADR 0266.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -65,31 +65,6 @@ def _assert_persists_explained_share(pair) -> None:
     assert hasattr(pair, "leftover_map_unexplained_share")
 
 
-def _assert_persists_coordinates(pair) -> None:
-    """Leftover-map coordinates stay together and reconcile to R̂ and d."""
-    axes = (
-        pair.leftover_map_person_axis_1,
-        pair.leftover_map_person_axis_2,
-        pair.leftover_map_item_axis_1,
-        pair.leftover_map_item_axis_2,
-    )
-    if any(axis is None for axis in axes):
-        assert axes == (None, None, None, None)
-        return
-    person_axis_1, person_axis_2, item_axis_1, item_axis_2 = axes
-    assert np.isfinite(person_axis_1)
-    assert np.isfinite(person_axis_2)
-    assert np.isfinite(item_axis_1)
-    assert np.isfinite(item_axis_2)
-    reconstruction = person_axis_1 * item_axis_1 + person_axis_2 * item_axis_2
-    distance = float(
-        np.hypot(person_axis_1 - item_axis_1, person_axis_2 - item_axis_2)
-    )
-    if pair.leftover_map_reconstruction is not None:
-        assert pair.leftover_map_reconstruction == pytest.approx(reconstruction)
-    assert pair.leftover_distance == pytest.approx(distance)
-
-
 def _gabriel_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Independent Gabriel coordinates used to prove leftover_distance axes."""
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
@@ -147,7 +122,6 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         _assert_persists_explained_share(pair)
-        _assert_persists_coordinates(pair)
         assert pair.leftover_map_rank == 1
     coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
     assert coverage.map_post_count == 3
@@ -185,12 +159,7 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[1].leftover_map_reconstruction == pytest.approx(0.0)
     for pair in pairs:
         _assert_residual_reconciles(pair)
-        _assert_persists_coordinates(pair)
         assert pair.leftover_map_rank == 0
-        assert pair.leftover_map_person_axis_1 == pytest.approx(0.0)
-        assert pair.leftover_map_person_axis_2 == pytest.approx(0.0)
-        assert pair.leftover_map_item_axis_1 == pytest.approx(0.0)
-        assert pair.leftover_map_item_axis_2 == pytest.approx(0.0)
     coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
     assert coverage.map_post_count == 2
     assert coverage.scored_post_count == 2
@@ -218,11 +187,6 @@ def test_rank_zero_nonzero_constant_residual_keeps_raw_identity() -> None:
         assert pair.leftover_map_unexplained + pair.leftover_map_reconstruction == pytest.approx(
             pair.leftover_residual
         )
-        _assert_persists_coordinates(pair)
-        assert pair.leftover_map_person_axis_1 == pytest.approx(0.0)
-        assert pair.leftover_map_person_axis_2 == pytest.approx(0.0)
-        assert pair.leftover_map_item_axis_1 == pytest.approx(0.0)
-        assert pair.leftover_map_item_axis_2 == pytest.approx(0.0)
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -256,7 +220,6 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
         assert pair.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
         assert pair.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
         assert pair.leftover_map_explained_share == pytest.approx(1.0, abs=1e-6)
-        _assert_persists_coordinates(pair)
     coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
     assert coverage.map_post_count == 2
     assert coverage.scored_post_count == 3
@@ -313,7 +276,6 @@ def test_leftover_residual_equals_observed_minus_expected() -> None:
     assert farthest_cell.leftover_residual == pytest.approx(-1.1)
     for pair in pairs:
         _assert_residual_reconciles(pair)
-        _assert_persists_coordinates(pair)
 
 
 def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
@@ -328,10 +290,6 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
             0,
             0,
             0.0,
-            None,
-            None,
-            None,
-            None,
             None,
             None,
             None,
@@ -390,7 +348,6 @@ def test_rank_one_nonzero_center_is_disclosed_by_raw_residual_cross_share() -> N
     for pair in pairs:
         _assert_residual_reconciles(pair)
         _assert_persists_explained_share(pair)
-        _assert_persists_coordinates(pair)
 
 
 def test_rank_one_leftover_map_puts_all_inertia_on_axis_one() -> None:
@@ -414,8 +371,6 @@ def test_rank_one_leftover_map_puts_all_inertia_on_axis_one() -> None:
     assert axes[0].leftover_singular_value > 0.0
     assert axes[1].leftover_singular_value == pytest.approx(0.0)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == pairs
-    for pair in pairs:
-        _assert_persists_coordinates(pair)
 
 
 def test_zero_residual_emits_two_zero_share_leftover_map_axes() -> None:
@@ -430,12 +385,6 @@ def test_zero_residual_emits_two_zero_share_leftover_map_axes() -> None:
     assert axes[1].leftover_share == pytest.approx(0.0)
     assert axes[0].leftover_singular_value == pytest.approx(0.0)
     assert axes[1].leftover_singular_value == pytest.approx(0.0)
-    for pair in pairs:
-        _assert_persists_coordinates(pair)
-        assert pair.leftover_map_person_axis_1 == pytest.approx(0.0)
-        assert pair.leftover_map_person_axis_2 == pytest.approx(0.0)
-        assert pair.leftover_map_item_axis_1 == pytest.approx(0.0)
-        assert pair.leftover_map_item_axis_2 == pytest.approx(0.0)
 
 
 def test_leftover_map_axes_from_singular_use_gabriel_inertia() -> None:
@@ -492,7 +441,6 @@ def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None
         assert pair.leftover_distance != pytest.approx(
             float(full_distances[person, item]), abs=1e-9
         )
-        _assert_persists_coordinates(pair)
 
     farthest_map = np.unravel_index(int(np.argmax(map_distances)), map_distances.shape)
     farthest = pairs[1]
@@ -569,7 +517,6 @@ def test_unexplained_and_cross_share_are_identity_remainder_terms() -> None:
         assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
         assert pair.leftover_map_rank == rank
         _assert_persists_explained_share(pair)
-        _assert_persists_coordinates(pair)
     assert saw_nonzero_cross
 
 
@@ -581,30 +528,6 @@ def test_explained_share_stores_square_share_of_raw_residual() -> None:
     assert leftover._leftover_map_explained_share(0.0, 0.0) == pytest.approx(0.0)
     assert leftover._leftover_map_explained_share(float("nan"), 1.0) is None
     assert leftover._leftover_map_explained_share(1.0, float("inf")) is None
-
-
-def test_leftover_map_coordinates_omit_nonfinite() -> None:
-    """A non-finite leftover-map axis omits all four coordinates."""
-    assert leftover._leftover_map_coordinates(
-        np.array([1.0, 2.0], dtype=np.float64),
-        np.array([3.0, 4.0], dtype=np.float64),
-    ) == pytest.approx((1.0, 2.0, 3.0, 4.0))
-    assert leftover._leftover_map_coordinates(
-        np.array([0.0, 0.0], dtype=np.float64),
-        np.array([0.0, 0.0], dtype=np.float64),
-    ) == pytest.approx((0.0, 0.0, 0.0, 0.0))
-    assert leftover._leftover_map_coordinates(
-        np.array([np.nan, 0.0], dtype=np.float64),
-        np.array([0.0, 0.0], dtype=np.float64),
-    ) is None
-    assert leftover._leftover_map_coordinates(
-        np.array([1.0, np.inf], dtype=np.float64),
-        np.array([0.0, 0.0], dtype=np.float64),
-    ) is None
-    assert leftover._leftover_map_coordinates(
-        np.array([1.0], dtype=np.float64),
-        np.array([0.0, 0.0], dtype=np.float64),
-    ) is None
 
 
 def test_unexplained_share_stores_square_share_of_raw_residual() -> None:
@@ -695,7 +618,7 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
     with pytest.raises(ValueError, match="non-negative integer"):
         leftover._pair_from_candidate(
             PAIR_KIND_CLOSEST,
-            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None, None, None, None, None, None, None, None, None),
+            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None, None, None, None, None),
             -1,
         )
 

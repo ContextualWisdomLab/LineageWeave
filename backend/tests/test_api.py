@@ -182,21 +182,6 @@ _LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
     / "migrations"
     / "0206_report_leftover_map_reconstruction.sql"
 )
-_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0233_report_leftover_map_unexplained_share.sql"
-)
-_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0244_report_leftover_map_explained_share.sql"
-)
-_LEFTOVER_MAP_COORDINATES_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0245_report_leftover_map_coordinates.sql"
-)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -422,9 +407,6 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
-            cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
-            cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
-            cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -5749,26 +5731,6 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
             assert unexplained_share >= 0.0
         if explained_share is not None:
             assert explained_share >= 0.0
-        person_axis_1 = pair.get("leftover_map_person_axis_1")
-        person_axis_2 = pair.get("leftover_map_person_axis_2")
-        item_axis_1 = pair.get("leftover_map_item_axis_1")
-        item_axis_2 = pair.get("leftover_map_item_axis_2")
-        axes = (person_axis_1, person_axis_2, item_axis_1, item_axis_2)
-        if any(axis is None for axis in axes):
-            assert axes == (None, None, None, None)
-        else:
-            for axis in axes:
-                assert isinstance(axis, (int, float))
-                assert not math.isnan(axis)
-                assert not math.isinf(axis)
-            reconstruction = pair.get("leftover_map_reconstruction")
-            if reconstruction is not None:
-                assert reconstruction == pytest.approx(
-                    person_axis_1 * item_axis_1 + person_axis_2 * item_axis_2
-                )
-            assert pair["leftover_distance"] == pytest.approx(
-                math.hypot(person_axis_1 - item_axis_1, person_axis_2 - item_axis_2)
-            )
         if (
             explained_share is not None
             and unexplained_share is not None

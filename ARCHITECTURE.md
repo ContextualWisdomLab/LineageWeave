@@ -637,19 +637,12 @@ information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
 ADR 0017 / 0048 / 0049 / 0119 / 0148 / 0158 / 0162 / 0163 / 0164 / 0168 /
-0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271) persist to `report_leftover_pair` with signed residual `R`,
+0182 / 0185 / 0201 / 0233 / 0266) persist to `report_leftover_pair` with signed residual `R`,
 observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, unexplained
 leftover, ADR 0201 reconstruction evidence, ADR 0185 cross-share evidence,
-ADR 0233 unexplained leftover share `s`, ADR 0266 explained leftover
-share `e`, and ADR 0267 leftover-map coordinates `ξ_{1:2}` / `ζ_{1:2}`.
-ADR 0268 draws those persisted coordinates as the leftover-map graphic
-display above the pair buttons. ADR 0269 captions leftover-map axes 1
-and 2 with persisted leftover-map axis share. ADR 0270 ticks those
-leftover-map axes at persisted `ξ` / `ζ` coordinates so the pair-row
-badge matches the plot. ADR 0271 captions leftover-map pair segments
-with persisted leftover-map distance `d`. Click a post marker or a pair button
-opens that post. Those ADRs are the normative mathematical, storage, and
-display contracts. Leftover-map axis share
+ADR 0233 unexplained leftover share `s`, and ADR 0266 explained leftover
+share `e`.
+Those ADRs are the normative mathematical and storage contracts. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
 0168) persists to `report_leftover_map_coverage` so readers see how
@@ -667,8 +660,7 @@ through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs (signed residual `R`, observed `Y`, expected
-`E`, full rank, two-axis leftover-map distance `d`, and leftover-map
-coordinates `ξ` / `ζ` after IRT main
+`E`, full rank, and two-axis leftover-map distance `d` after IRT main
 effects) above the member list, leftover-map axis share for residual
 SVD axes 1 and 2, and complete-case coverage captions (map used N of M
 scored posts), plus the
