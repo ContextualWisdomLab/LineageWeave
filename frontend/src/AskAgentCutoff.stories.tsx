@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { AskAgentPanel } from "./App";
 import "./App.css";
 
 const meta = {
   title: "Ask Agent/Knowledge cutoff",
   component: AskAgentPanel,
-  args: { accessToken: "synthetic-token", onOpenPost: () => undefined },
+  args: { accessToken: "synthetic-token", onOpenPost: fn() },
   parameters: { layout: "fullscreen" },
   beforeEach: () => {
     const previousFetch = globalThis.fetch;
@@ -54,7 +54,9 @@ export const PartialHistoricalEvidence: Story = {
     );
     await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
     await expect(canvas.findByText(/Partially cutoff-grounded/)).resolves.toBeVisible();
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Current-only semantic channels were excluded");
+    await expect(canvas.getByRole("alert")).toHaveTextContent(
+      "Some historical bodies or channels are unavailable. Review the cited limitations.",
+    );
     await expect(canvas.getByText(/Retained revision/)).toHaveTextContent("Live source changed later");
   },
 };

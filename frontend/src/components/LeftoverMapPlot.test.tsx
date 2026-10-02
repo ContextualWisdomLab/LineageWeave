@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { LeftoverPair } from "../api";
@@ -68,6 +68,17 @@ describe("LeftoverMapPlot", () => {
         post_id: "post-demo-public",
         criterion_code: "sales_lead_quality",
       }),
+    );
+
+    onSelectPost.mockClear();
+    fireEvent.keyDown(postMarker, { key: "Enter" });
+    expect(onSelectPost).toHaveBeenCalledWith(
+      expect.objectContaining({ post_id: "post-demo-public" }),
+    );
+    onSelectPost.mockClear();
+    fireEvent.keyDown(postMarker, { key: " " });
+    expect(onSelectPost).toHaveBeenCalledWith(
+      expect.objectContaining({ post_id: "post-demo-public" }),
     );
   });
 

@@ -131,10 +131,8 @@ function toSvg(
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
   const byLabel = new Map<string, number>();
   for (const value of values) {
-    const label = formatSignedLeftoverValue(value);
-    if (label === null) {
-      continue;
-    }
+    // Callers pass only finite persisted coordinates admitted by the plot plus literal origin.
+    const label = formatSignedLeftoverValue(value)!;
     if (!byLabel.has(label)) {
       byLabel.set(label, value);
     }

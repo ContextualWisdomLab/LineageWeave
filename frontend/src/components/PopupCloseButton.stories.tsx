@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { PopupCloseButton } from "./PopupCloseButton";
 
 const meta = {
@@ -6,7 +7,7 @@ const meta = {
   component: PopupCloseButton,
   args: {
     label: "Close evidence panel",
-    onClose: () => undefined,
+    onClose: fn(),
   },
 } satisfies Meta<typeof PopupCloseButton>;
 

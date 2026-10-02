@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { OperationsDashboard, OperationsDashboardView } from "./OperationsDashboard";
 import "../App.css";
 
@@ -20,7 +20,7 @@ export const EvidenceReady: Story = {
         { post_id: "synthetic-post-4", case_kind_code: "repeat_issue", case_kind_label: "반복 이슈 반영", project_name: "Synthetic Transformer Renewal", summary_text: "동일 유형 이슈를 설계 개선으로 환류", evidence_text: "The same enclosure issue recurred after Revision B.", evidence_post_id: "synthetic-post-4", occurred_at: "2026-08-18T00:00:00Z", facts: [{ fact_type_code: "improvement_action", fact_type_label: "개선 과제", value_text: "표준 사양 개정", evidence_text: "Update the standard enclosure specification.", evidence_post_id: "synthetic-post-4" }] },
       ],
     },
-    onOpenPost: () => undefined,
+    onOpenPost: fn(),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -34,7 +34,7 @@ export const NarrowViewport: Story = { ...EvidenceReady, parameters: { viewport:
 export const AnalysisPendingAndMissingEvidence: Story = {
   args: {
     data: { ...EvidenceReady.args!.data!, total_event_count: 0, pending_analysis_count: 3, cases: [] },
-    onOpenPost: () => undefined,
+    onOpenPost: fn(),
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
@@ -44,7 +44,7 @@ export const AnalysisPendingAndMissingEvidence: Story = {
 export const AnalysisFailed: Story = {
   args: {
     data: { ...EvidenceReady.args!.data!, pending_analysis_count: 0, failed_analysis_count: 2, cases: [] },
-    onOpenPost: () => undefined,
+    onOpenPost: fn(),
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("재처리한 뒤 근거 누락 여부를 다시 확인하세요");
@@ -53,7 +53,7 @@ export const AnalysisFailed: Story = {
 
 export const LoadError: Story = {
   args: EvidenceReady.args,
-  render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={() => undefined} />,
+  render: () => <OperationsDashboard accessToken="synthetic-token" onOpenPost={fn()} />,
   beforeEach: () => {
     const fetchBeforeStory = globalThis.fetch;
     globalThis.fetch = async () => { throw new Error("synthetic transport failure"); };
@@ -63,5 +63,22 @@ export const LoadError: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("불러오지 못했습니다");
     await expect(canvas.getByRole("button", { name: "다시 시도" })).toBeVisible();
+  },
+};
+
+export const EvidenceWithoutProject: Story = {
+  args: {
+    data: {
+      ...EvidenceReady.args!.data!,
+      cases: EvidenceReady.args!.data!.cases.slice(0, 1).map((item) => ({ ...item, project_name: null })),
+    },
+    onOpenPost: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("프로젝트 연결 분석 중")).toBeVisible();
+    await expect(canvas.queryByRole("heading", { name: "프로젝트 여정" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "분류 근거 글 열기" }));
+    await expect(args.onOpenPost).toHaveBeenCalledWith("synthetic-post-1");
   },
 };

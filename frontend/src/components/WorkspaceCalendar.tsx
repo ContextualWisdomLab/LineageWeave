@@ -23,10 +23,10 @@ export function WorkspaceCalendar({
   heading,
   failClosedCopy = CALENDAR_CONSUME_UNAVAILABLE,
 }: WorkspaceCalendarProps) {
-  const events = calendar.events ?? [];
-  const commitments = calendar.commitments ?? [];
-  const naruonAvailable = calendar.calendar_sources?.naruon_available ?? false;
-  const naruonNextAction = calendar.calendar_sources?.naruon_next_action;
+  const events = calendar.events;
+  const commitments = calendar.commitments;
+  const naruonAvailable = calendar.calendar_sources.naruon_available;
+  const naruonNextAction = calendar.calendar_sources.naruon_next_action;
 
   return (
     <section className="popup-section lineage-home" aria-labelledby={headingId}>

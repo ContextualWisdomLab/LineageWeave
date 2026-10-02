@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { WorkspaceCalendar } from "./WorkspaceCalendar";
 import type { CalendarResponse } from "../api";
 import "../App.css";
@@ -55,7 +55,7 @@ const meta = {
   component: WorkspaceCalendar,
   args: {
     calendar: unavailable,
-    onSelectPost: () => undefined,
+    onSelectPost: fn(),
     headingId: "calendar-heading",
     heading: "달력",
   },

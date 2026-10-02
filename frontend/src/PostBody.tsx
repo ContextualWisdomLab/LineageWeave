@@ -31,14 +31,13 @@ function parsePipeDelimitedTable(text: string, requireSeparator = true): string[
       return cells;
     });
   const separatorIndex = rawRows.findIndex(
-    (row) => row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
+    (row) => row.length > 0 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
   );
   if (requireSeparator && separatorIndex !== 1) return null;
   const rows = rawRows
     .filter((_row, rowIndex) => rowIndex !== separatorIndex)
-    .filter((row) => row.length > 1 && row.some(Boolean));
+    .filter((row) => row.length > 0 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
-  if (rows[0].length < 2) return null;
   return rows;
 }
 
@@ -50,14 +49,26 @@ function renderPipeTable(
 ): ReactNode | null {
   const rows = parsePipeDelimitedTable(text, requireSeparator);
   if (!rows) return null;
+  const bodyRows = requireSeparator ? rows.slice(1) : rows;
   return (
     <table
       key={`${keyPrefix}-table`}
       className={className}
       data-content-kind="table"
     >
+      {requireSeparator ? (
+        <thead>
+          <tr>
+            {rows[0].map((cell, cellIndex) => (
+              <th key={`${keyPrefix}-header-${cellIndex}`} scope="col">
+                {renderStyledText(cell)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+      ) : null}
       <tbody>
-        {rows.map((row, rowIndex) => (
+        {bodyRows.map((row, rowIndex) => (
           <tr key={`${keyPrefix}-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <td key={`${keyPrefix}-cell-${rowIndex}-${cellIndex}`}>{renderStyledText(cell)}</td>
@@ -157,30 +168,24 @@ function renderImageEvidence(
 }
 
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
-  switch (segment.kind) {
-    case "text":
-      return (
-        <p
-          key={`post-body-text-${index}`}
-          className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
-          data-content-kind={segment.role ?? "text"}
-          data-indent-level={segment.indentLevel ?? 0}
-          style={
-            segment.indentLevel
-              ? { paddingInlineStart: `${segment.indentLevel}em` }
-              : undefined
-          }
-        >
-          {renderStyledText(segment.text)}
-        </p>
-      );
-    case "image":
-      return renderImageEvidence(index, imageContent, segment);
-    default: {
-      const _exhaustive: never = segment;
-      throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
-    }
+  if (segment.kind === "image") {
+    return renderImageEvidence(index, imageContent, segment);
   }
+  return (
+    <p
+      key={`post-body-text-${index}`}
+      className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
+      data-content-kind={segment.role ?? "text"}
+      data-indent-level={segment.indentLevel ?? 0}
+      style={
+        segment.indentLevel
+          ? { paddingInlineStart: `${segment.indentLevel}em` }
+          : undefined
+      }
+    >
+      {renderStyledText(segment.text)}
+    </p>
+  );
 }
 
 function renderTextSegment(segment: Extract<PostBodySegment, { kind: "text" }>, index: number) {
@@ -213,12 +218,14 @@ function normalizedUnitText(value: string): string {
 }
 
 /**
- * Return direct row counts for each source table in document order.
+ * Return parsed row counts for each source table in document order.
  *
  * Persisted rows do not currently carry a table identifier. The source body
  * is therefore the smallest trustworthy boundary for adjacent tables; when
  * its row count disagrees with persisted rows, the renderer falls back to the
- * old consecutive-row grouping instead of guessing.
+ * old consecutive-row grouping instead of guessing. DOMParser's `text/html`
+ * tree builder inserts an implied `tbody` around bare `tr` tokens, so only
+ * table-section children are row-bearing at this boundary.
  */
 function sourceTableRowGroupSizes(body: string): number[] {
   const document = new DOMParser().parseFromString(body, "text/html");
@@ -226,7 +233,6 @@ function sourceTableRowGroupSizes(body: string): number[] {
     .map((table) =>
       Array.from(table.children).reduce((count, child) => {
         const tagName = child.tagName.toLowerCase();
-        if (tagName === "tr") return count + 1;
         if (tagName !== "thead" && tagName !== "tbody" && tagName !== "tfoot") return count;
         return count + Array.from(child.children).filter(
           (row) => row.tagName.toLowerCase() === "tr",

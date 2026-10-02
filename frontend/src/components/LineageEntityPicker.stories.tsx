@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { fn } from "storybook/test";
 import { LineageEntityPicker } from "./LineageEntityPicker";
 
 const demoEntities = [
@@ -13,7 +14,7 @@ const meta = {
   args: {
     entities: demoEntities,
     selectedEntityId: "corp-demo",
-    onSelectEntityId: () => undefined,
+    onSelectEntityId: fn(),
   },
 } satisfies Meta<typeof LineageEntityPicker>;
 
