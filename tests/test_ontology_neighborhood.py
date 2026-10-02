@@ -942,19 +942,11 @@ def test_voice_assignments_join_exact_csv_rows_and_jsonld() -> None:
     }
 
     hidden_evidence = replace(assignment, evidence_post_id=None)
-    hidden_row = replace(
-        neighborhood, voice_assignments=(hidden_evidence,)
-    ).exact_value_rows()[0]
-    assert hidden_row["evidence_post_id"] == ""
-    assert hidden_row["evidence_count"] == "0"
-    hidden_projection = next(
-        item
-        for item in replace(neighborhood, voice_assignments=(hidden_evidence,))
-        .jsonld_document()["@graph"]
-        if item.get("@id") == assignment_iri
-    )
-    assert str(LW.voiceAssignmentEvidence) not in hidden_projection
-    assert "prov:wasDerivedFrom" not in hidden_projection
+    hidden_neighborhood = replace(neighborhood, voice_assignments=(hidden_evidence,))
+    assert hidden_neighborhood.exact_value_rows() == ()
+    hidden_graph = hidden_neighborhood.jsonld_document()["@graph"]
+    assert all(item.get("@id") != assignment_iri for item in hidden_graph)
+    assert all(str(LW.hasVoiceAssignment) not in item for item in hidden_graph)
 
     with pytest.raises(OntologyNeighborhoodError, match="offset-aware"):
         replace(assignment, recorded_at=T0.replace(tzinfo=None))
@@ -1074,3 +1066,103 @@ def test_unlabeled_source_is_skipped_and_unknown_fact_node_type_fails_closed() -
             labels=_labels(),
         )
     assert node_type.value.code == "unknown_node_type"
+
+
+@pytest.mark.parametrize("evidence_post_id", [None, PERSON_ID, "hidden-synthetic-post"])
+def test_voice_exports_omit_unavailable_evidence_without_substituting_carrier(
+    evidence_post_id: str | None,
+) -> None:
+    """Both exports omit an unsupported additional Voice and preserve the primary."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=_mention_affiliation(),
+        labels=_labels(),
+    )
+    primary = OntologyVoiceAssignment(
+        post_id=POST_ID,
+        voice_type_code="voc",
+        voice_type_iri=str(LW.voiceOfCustomerType),
+        voice_type_label="Voice of Customer",
+        is_primary=True,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        effective_from=T0,
+        provenance_reference="Imported primary voice",
+    )
+    additional = replace(
+        primary,
+        voice_type_code="vops",
+        voice_type_iri=str(LW.voiceOfProcessType),
+        voice_type_label="Voice of Process",
+        is_primary=False,
+        evidence_post_id=evidence_post_id,
+    )
+    neighborhood = replace(neighborhood, voice_assignments=(primary, additional))
+    voice_rows = [
+        row for row in neighborhood.exact_value_rows()
+        if row["property_code"] == "hasVoiceAssignment"
+    ]
+    assert len(voice_rows) == 1
+    assert voice_rows[0]["target_node_id"] == "voc"
+    assert voice_rows[0]["evidence_post_id"] == POST_ID
+    graph = neighborhood.jsonld_document()["@graph"]
+    assert all(item.get("@id") != additional.voice_type_iri for item in graph)
+    assignment_links = [
+        item[str(LW.hasVoiceAssignment)]
+        for item in graph if str(LW.hasVoiceAssignment) in item
+    ]
+    assert assignment_links == [[{
+        "@id": str(LW[f"voice-assignment/{POST_ID}/voc"]),
+    }]]
+
+
+def test_voice_exports_preserve_separate_visible_evidence_and_temporal_truth() -> None:
+    """CSV and RDF keep the carrying Post, exact evidence, and time/truth distinct."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST, focus_node_id=POST_ID, facts=[], labels=_labels(),
+    )
+    evidence_id = "synthetic-evidence-post"
+    evidence_node = replace(neighborhood.nodes[0], node_id=evidence_id)
+    assignment = OntologyVoiceAssignment(
+        post_id=POST_ID, voice_type_code="vops",
+        voice_type_iri=str(LW.voiceOfProcessType), voice_type_label="Voice of Process",
+        is_primary=False, truth_status_code=TRUTH_PROPOSED,
+        recorded_at=T0, effective_from=T0, effective_to=T_LATE,
+        provenance_reference="Synthetic authorized derivation", evidence_post_id=evidence_id,
+    )
+    neighborhood = replace(
+        neighborhood, nodes=(*neighborhood.nodes, evidence_node), voice_assignments=(assignment,),
+    )
+    row = neighborhood.exact_value_rows()[0]
+    assert row["source_node_id"] == POST_ID
+    assert row["evidence_post_id"] == evidence_id
+    assert row["truth_status_code"] == TRUTH_PROPOSED
+    assert (row["valid_from"], row["valid_to"]) == (T0.isoformat(), T_LATE.isoformat())
+    projected = next(
+        item for item in neighborhood.jsonld_document()["@graph"]
+        if item.get("@type") == str(LW.VoiceAssignment)
+    )
+    assert projected["prov:wasDerivedFrom"] == {
+        "@id": ontology_node_iri(NODE_POST, evidence_id),
+    }
+    assert projected["lw:truthStatus"] == TRUTH_PROPOSED
+    assert projected["time:hasEnd"]["time:inXSDDateTimeStamp"]["@value"] == T_LATE.isoformat()
+
+
+@pytest.mark.parametrize("export_method", ["exact_value_rows", "jsonld_document"])
+def test_voice_exports_reject_missing_carrying_post(export_method: str) -> None:
+    """A qualified assignment cannot create an otherwise absent carrying Post."""
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST, focus_node_id=POST_ID, facts=[], labels=_labels(),
+    )
+    assignment = OntologyVoiceAssignment(
+        post_id="missing-synthetic-post", voice_type_code="voc",
+        voice_type_iri=str(LW.voiceOfCustomerType), voice_type_label="Voice of Customer",
+        is_primary=True, truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0, effective_from=T0, provenance_reference="Imported primary voice",
+    )
+    neighborhood = replace(neighborhood, voice_assignments=(assignment,))
+    with pytest.raises(OntologyNeighborhoodError) as raised:
+        getattr(neighborhood, export_method)()
+    assert raised.value.code == "dangling_endpoint"
