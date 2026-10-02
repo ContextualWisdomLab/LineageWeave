@@ -8,6 +8,7 @@ import {
   askAgent,
   optionalKnowledgeCutoffIso,
   BackendError,
+  userFacingMessage,
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
@@ -90,6 +91,7 @@ import {
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
+import { StatusNotice } from "./components/StatusNotice";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
@@ -105,6 +107,7 @@ import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { isFocusableVisible } from "./focusVisibility";
 import { subgraphForPost } from "./lineageLayout";
+import { safeHttpUrl } from "./safeHttpUrl";
 import {
   rememberOidcReturnUrl,
   returnUrlFromLocation,
@@ -160,7 +163,7 @@ function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
     return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
   }
-  return String(err);
+  return safeErrorMessage(err, "The request could not be completed. Try again later.");
 }
 
 function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
@@ -192,7 +195,7 @@ function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
     return t("Verification is unavailable because public search is not configured yet. Ask an administrator to enable it, then retry.");
   }
-  return String(err);
+  return safeErrorMessage(err, "The request could not be completed. Try again later.");
 }
 
 const CRITERION_SHORT_LABEL: Record<string, string> = {
@@ -559,7 +562,7 @@ function EventLineageSection({
 }
 
 function summaryFetchError(err: unknown): string {
-  return err instanceof BackendError ? err.message : String(err);
+  return safeErrorMessage(err, "The request could not be completed. Try again later.");
 }
 
 function RelatedPostsSection({
@@ -853,19 +856,6 @@ const VERIFICATION_BADGE: Record<string, string> = {
   verify_corroborated: "Corroborated",
   verify_uncorroborated: "No evidence found",
 };
-
-function safeHttpUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return parsed.href;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
 
 function VerificationBadge({
   statusCode,
@@ -1616,6 +1606,10 @@ function ticketStatusLabel(code: string, ticket: IssueTicket): string {
   return t(TICKET_STATUS_OPTIONS.find((row) => row.code === code)?.fallback ?? code);
 }
 
+function safeErrorMessage(err: unknown, fallbackKey: string): string {
+  return t(userFacingMessage(err) ?? fallbackKey);
+}
+
 function IssueTicketPanel({
   postId,
   accessToken,
@@ -1634,9 +1628,10 @@ function IssueTicketPanel({
   const [orchestratorOff, setOrchestratorOff] = useState(false);
 
   function reload() {
+    setError(null);
     fetchPostTickets(accessToken, postId)
       .then((r) => setTickets(r.tickets))
-      .catch(() => setTickets([]));
+      .catch((err) => setError(safeErrorMessage(err, "Tickets could not be loaded.")));
   }
 
   useEffect(() => {
@@ -1645,7 +1640,10 @@ function IssueTicketPanel({
     setError(null);
     fetchPostTickets(accessToken, postId)
       .then((r) => setTickets(r.tickets))
-      .catch(() => setTickets([]));
+      .catch((err) => {
+        setTickets([]);
+        setError(safeErrorMessage(err, "Tickets could not be loaded."));
+      });
   }, [postId, accessToken]);
 
   async function handleCreate() {
@@ -1658,7 +1656,7 @@ function IssueTicketPanel({
       setNewDueDate("");
       reload();
     } catch (err) {
-      setError(String(err));
+      setError(safeErrorMessage(err, "The ticket could not be created. Try again."));
     } finally {
       setCreating(false);
     }
@@ -1669,7 +1667,7 @@ function IssueTicketPanel({
       await updateTicketStatus(accessToken, ticket.issue_ticket_id, nextStatus);
       reload();
     } catch (err) {
-      setError(String(err));
+      setError(safeErrorMessage(err, "The ticket status could not be updated. Try again."));
     }
   }
 
@@ -1710,7 +1708,7 @@ function IssueTicketPanel({
       {tickets === null ? (
         <p role="status">{t("Loading tickets...")}</p>
       ) : tickets.length === 0 ? (
-        <p className="popup-placeholder">{t("No tickets yet.")}</p>
+        !error ? <p className="popup-placeholder">{t("No tickets yet.")}</p> : null
       ) : (
         <ul className="ticket-list">
           {tickets.map((ticket) => (
@@ -1793,9 +1791,10 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   const [error, setError] = useState<string | null>(null);
 
   function reload() {
+    setError(null);
     fetchPostActivity(accessToken, postId)
       .then((r) => setEvents(r.events))
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(safeErrorMessage(err, "Activity could not be loaded. Try again.")));
   }
 
   useEffect(() => {
@@ -1803,7 +1802,10 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
     setError(null);
     fetchPostActivity(accessToken, postId)
       .then((r) => setEvents(r.events))
-      .catch((err) => setError(String(err)));
+      .catch((err) => {
+        setEvents([]);
+        setError(safeErrorMessage(err, "Activity could not be loaded. Try again."));
+      });
   }, [postId, accessToken]);
 
   return (
@@ -1816,7 +1818,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
       {events === null ? (
         <p role="status">{t("Loading activity...")}</p>
       ) : events.length === 0 ? (
-        <p className="popup-placeholder">{t("No activity yet.")}</p>
+        !error ? <p className="popup-placeholder">{t("No activity yet.")}</p> : null
       ) : (
         <ul className="ticket-list">
           {events.map((event) => (
@@ -1887,7 +1889,7 @@ export function VoiceAssignmentForm({
       setTruthStatusCode("");
       setSaved(true);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("Perspective could not be connected."));
+      setError(userFacingMessage(caught) ?? t("Perspective could not be connected."));
     } finally {
       setSaving(false);
     }
@@ -2099,7 +2101,9 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPost(accessToken, postId, asOf)
+      .then(setPost)
+      .catch((err) => setError(safeErrorMessage(err, "The post could not be loaded. Try again later.")));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -2157,7 +2161,7 @@ function PostDetailPopup({
       .catch(() => {
         if (disposed) return;
         setSimilarVoc([]);
-        setSimilarVocError("유사 VOC 판정을 사용할 수 없습니다. 잠시 후 다시 확인하세요.");
+        setSimilarVocError(t("Similar VOC adjudication is unavailable. Try again shortly."));
       });
     return () => {
       disposed = true;
@@ -2708,7 +2712,7 @@ function PostDetailPopup({
                                 })
                                 .catch(() => {
                                   if (similarVocScopeRef.current === requestScope) {
-                                    setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
+                                    setSimilarVocError(t("More similar VOC evidence could not be loaded. Try again."));
                                   }
                                 })
                                 .finally(() => {
@@ -3213,9 +3217,13 @@ function AnalysisRunsPanel({
         : "Request a lineage reconstruction";
 
   useEffect(() => {
+    setError(null);
     fetchAnalysisRuns(accessToken)
       .then((payload) => setRuns(payload.analysis_runs))
-      .catch((err) => setError(String(err)));
+      .catch((err) => {
+        setRuns([]);
+        setError(safeErrorMessage(err, "Analysis runs could not be loaded."));
+      });
   }, [accessToken]);
 
   useEffect(() => {
@@ -3259,7 +3267,9 @@ function AnalysisRunsPanel({
           "This request key already names a different reconstruction. Request again to start a new run.",
         );
       } else {
-        setError(err instanceof BackendError ? err.message : String(err));
+        setError(
+          safeErrorMessage(err, "The reconstruction could not be requested. Try again later."),
+        );
       }
     } finally {
       setRequesting(false);
@@ -3276,7 +3286,7 @@ function AnalysisRunsPanel({
       setRuns(listed.analysis_runs);
       setSelected(started);
     } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
+      setError(safeErrorMessage(err, "The reconstruction could not be started. Try again later."));
     } finally {
       setStarting(false);
     }
@@ -3292,7 +3302,7 @@ function AnalysisRunsPanel({
         setError("This analysis run is not visible.");
         return;
       }
-      setError(String(err));
+      setError(safeErrorMessage(err, "The analysis run could not be opened. Try again later."));
     }
   }
 
@@ -3327,10 +3337,12 @@ function AnalysisRunsPanel({
       </div>
       {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
-        <p className="popup-placeholder">
-          No analysis runs are visible to this account yet. Add source records,
-          then request a new analysis run.
-        </p>
+        !error && (
+          <p className="popup-placeholder">
+            No analysis runs are visible to this account yet. Add source records,
+            then request a new analysis run.
+          </p>
+        )
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">
           {runs.map((run) => {
@@ -3544,7 +3556,7 @@ function RankingsPanel({
     setError(null);
     fetchRankings(accessToken)
       .then(setRanking)
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(safeErrorMessage(err, "Rankings could not be loaded. Try again later.")));
   }, [accessToken]);
 
   return (
@@ -3630,7 +3642,7 @@ function CalendarPanel({
   useEffect(() => {
     fetchCalendar(accessToken)
       .then(setCalendar)
-      .catch((err) => setError(String(err)));
+      .catch(() => setError(t("Calendar could not be loaded. Try again later.")));
   }, [accessToken]);
 
   if (error) return <p className="error">{error}</p>;
@@ -3751,7 +3763,9 @@ function ReportsPanel({
         setIndex(periods);
         setComparison(compared);
       })
-      .catch((err) => setError(String(err)));
+      .catch((err) =>
+        setError(safeErrorMessage(err, "Period reports could not be loaded. Try again later.")),
+      );
   }, [accessToken, grouping, period]);
 
   useEffect(() => {
@@ -3780,7 +3794,7 @@ function ReportsPanel({
       setIndex(periods);
       setComparison(compared);
     } catch (err) {
-      setError(String(err));
+      setError(safeErrorMessage(err, "The reports could not be rebuilt. Try again later."));
     } finally {
       setRebuilding(false);
     }
@@ -4212,7 +4226,7 @@ function PostList({
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
-      setError(String(err));
+      setError(safeErrorMessage(err, "Posts could not be loaded. Try again later."));
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
@@ -4261,7 +4275,7 @@ function PostList({
     try {
       await rebuildLineage(accessToken);
     } catch (err) {
-      setRebuildError(String(err));
+      setRebuildError(safeErrorMessage(err, "The lineage could not be rebuilt. Try again later."));
     } finally {
       setRebuilding(false);
     }
@@ -5092,7 +5106,9 @@ export function AskAgentPanel({
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
       <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <StatusNotice kind="retry" message={error} onRetry={() => void handleAsk()} />
+      ) : null}
       <div className="ask-agent-form">
         <label className="ask-agent-field">
           <span>{t("Ask a question")}</span>
@@ -5302,7 +5318,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">{t(auth.error.message)}</p>;
+    return <p className="error">{t("Sign-in could not be completed. Try again later.")}</p>;
   }
 
   if (!auth.isAuthenticated) {
@@ -5312,7 +5328,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <div className="login-card">
             <div className="login-header">
               <h1>{brandName}</h1>
-              <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
+              <p className="login-subtitle">{t("Marketing & Operational Lineage Intelligence")}</p>
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
@@ -5324,7 +5340,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               </button>
             </div>
             <div className="login-help">
-              <small>Enterprise SSO Authentication</small>
+              <small>{t("Enterprise SSO Authentication")}</small>
             </div>
           </div>
       </main>

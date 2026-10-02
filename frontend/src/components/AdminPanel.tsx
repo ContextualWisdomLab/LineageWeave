@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { t } from "../i18n";
-import { updateTenantConfig } from "../api";
+import { updateTenantConfig, userFacingMessage } from "../api";
 
 export type AdminPanelProps = {
   currentBrandName: string;
@@ -25,8 +25,8 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }:
       onBrandNameChange(config.brandName);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      setError(err.message || "Failed to update settings");
+    } catch (err) {
+      setError(userFacingMessage(err) ?? t("Settings could not be saved. Try again."));
     } finally {
       setSaving(false);
     }

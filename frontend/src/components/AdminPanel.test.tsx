@@ -52,7 +52,7 @@ describe("AdminPanel", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("shows an error and leaves the form editable when the save fails", async () => {
+  it("shows a bounded error and leaves the form editable when the save fails", async () => {
     vi.spyOn(api, "updateTenantConfig").mockRejectedValue(new Error("Failed to update settings"));
     render(
       <AdminPanel currentBrandName="LineageWeave" onBrandNameChange={vi.fn()} accessToken="token" />,
@@ -63,8 +63,27 @@ describe("AdminPanel", () => {
     await userEvent.type(input, "Renamed Corp");
     await userEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to update settings");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Settings could not be saved. Try again.");
+    expect(alert).not.toHaveTextContent("Failed to update settings");
     expect(screen.getByRole("button", { name: "Save settings" })).not.toBeDisabled();
+  });
+
+  it("uses the local next action when the service rejects the save", async () => {
+    vi.spyOn(api, "updateTenantConfig").mockRejectedValue(
+      new api.BackendError("/api/tenant/config", 403, "You cannot change these settings."),
+    );
+    render(
+      <AdminPanel currentBrandName="LineageWeave" onBrandNameChange={vi.fn()} accessToken="token" />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Tenant brand name" });
+    await userEvent.clear(input);
+    await userEvent.type(input, "Renamed Corp");
+    await userEvent.click(screen.getByRole("button", { name: "Save settings" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Settings could not be saved. Try again.");
+    expect(screen.queryByText("You cannot change these settings.")).not.toBeInTheDocument();
   });
 
   it("uses the actionable fallback when a failure has no message", async () => {
@@ -78,6 +97,6 @@ describe("AdminPanel", () => {
     await userEvent.type(input, "Renamed Corp");
     await userEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to update settings");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Settings could not be saved. Try again.");
   });
 });

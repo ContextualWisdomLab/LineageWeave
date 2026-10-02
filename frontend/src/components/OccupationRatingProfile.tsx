@@ -7,6 +7,7 @@ import {
   type OccupationRatingSource,
   type RatingSourceOccupation,
 } from "../api";
+import { safeHttpUrl } from "../safeHttpUrl";
 
 type Props = { accessToken: string };
 
@@ -17,16 +18,6 @@ function matchesOccupationCatalogQuery(
   const needle = query.trim().toLocaleLowerCase("en-US");
   return !needle || occupation.occupation_title.toLocaleLowerCase("en-US").includes(needle)
     || occupation.onetsoc_code.toLocaleLowerCase("en-US").includes(needle);
-}
-
-function safeHttpUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 /** Lets an authenticated user inspect one exact imported occupation profile. */

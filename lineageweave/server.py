@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlsplit
 
 from .channel_weight_estimation import estimate_fixture_channel_weights
 from .fixtures import sample_records
@@ -76,11 +77,19 @@ def build_server(
 
         def do_GET(self) -> None:  # noqa: N802
             """Handle a GET request using the server's health endpoint contract."""
-            if self.path == "/api/lineage":
+            request_path = urlsplit(self.path).path
+            if request_path == "/healthz":
+                self._send_json({"status": "ok"})
+                return
+            if request_path == "/api/lineage":
                 trees = reconstruct(sample_records(), weights=demo_weights)
                 self._send_json(trees_to_graph(trees))
                 return
-            self._send_static()
+            if request_path.startswith("/api/"):
+                self.send_response(404)
+                self.end_headers()
+                return
+            self._send_static(request_path)
 
         def _send_json(self, payload: dict) -> None:
             """Implement the _send_json operation for this channel."""
@@ -91,11 +100,15 @@ def build_server(
             self.end_headers()
             self.wfile.write(body)
 
-        def _send_static(self) -> None:
+        def _send_static(self, request_path: str) -> None:
             """Implement the _send_static operation for this channel."""
-            relative = "index.html" if self.path in ("/", "") else self.path.lstrip("/")
+            relative = "index.html" if request_path in ("/", "") else request_path.lstrip("/")
             file_path = os.path.normpath(os.path.join(_WEB_DIR, relative))
-            if not file_path.startswith(_WEB_DIR) or not os.path.isfile(file_path):
+            try:
+                inside_web_root = os.path.commonpath((_WEB_DIR, file_path)) == _WEB_DIR
+            except ValueError:
+                inside_web_root = False
+            if not inside_web_root or not os.path.isfile(file_path):
                 self.send_response(404)
                 self.end_headers()
                 return
