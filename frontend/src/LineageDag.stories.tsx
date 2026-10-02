@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 import { LineageDag } from "./LineageDag";
 import type { LineageGraph } from "./api";
 
@@ -184,6 +185,36 @@ export const UngroupedNode: Story = {
       edges: [],
     } satisfies LineageGraph,
     currentPostId: undefined,
+  },
+};
+
+// Regression for raw-identity preservation: a named thread whose literal name
+// is "Ungrouped" must not absorb records that truly have no reconstruct group.
+export const NamedAndTrulyUngrouped: Story = {
+  args: {
+    graph: {
+      nodes: [
+        { id: "a1", group: "Alpha", label: "Alpha record", occurred_at: "2026-01-01T00:00:00Z", is_root: true, is_branch_point: false },
+        { id: "named-u1", group: "Ungrouped", label: "Named Ungrouped record", occurred_at: "2026-01-02T00:00:00Z", is_root: true, is_branch_point: false },
+        { id: "loose-u1", group: "", label: "Truly ungrouped record", occurred_at: "2026-01-03T00:00:00Z", is_root: true, is_branch_point: false },
+      ],
+      edges: [],
+    } satisfies LineageGraph,
+    currentPostId: undefined,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.getByRole("button", { name: "Open post: Named Ungrouped record" })).toBeVisible();
+    expect(canvas.getByRole("button", { name: "Open post: Truly ungrouped record" })).toBeVisible();
+    expect(canvas.getAllByRole("region", { name: "Ungrouped lineage viewport" })).toHaveLength(2);
+
+    const figures = [...canvasElement.querySelectorAll(".lineage-dag-group")];
+    expect(figures).toHaveLength(3);
+    expect(figures[0]).toHaveTextContent("Alpha record");
+    expect(figures[1]).toHaveTextContent("Named Ungrouped record");
+    expect(figures[1]).not.toHaveTextContent("Truly ungrouped record");
+    expect(figures[2]).toHaveTextContent("Truly ungrouped record");
+    expect(figures[2]).not.toHaveTextContent("Named Ungrouped record");
   },
 };
 

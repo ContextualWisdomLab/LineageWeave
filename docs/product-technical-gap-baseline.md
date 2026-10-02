@@ -1,5 +1,39 @@
 # Product & Technical Gap Baseline
 
+> Exact-head loop snapshot: 2026-09-04 16:00 KST. Protected `main` is
+> `b0e94aa2a6f7a943f96dc5c4f2fdecd0021978a1`; the live inventory contains
+> 121 open PRs and 16 open issues. These counts are operational context, not
+> release evidence. PR #903 was repaired at
+> `f8b5a0d517739608d659e389bf1d8adcdaf5e66d`: its Vitest boundary now excludes
+> Storybook Playwright specifications, pre-existing DAG regressions agree with
+> the ADR-backed fail-closed cycle contract and deterministic ordering, and its
+> complete frontend suite (547 tests), lint, build, Storybook build, and seven
+> desktop/mobile browser checks pass locally. Fresh 1280 px and 390 px renders
+> retain readable evidence rows and contain the narrow DAG inside its intended
+> horizontal viewport. Normal squash auto-merge is armed, but hosted checks and
+> one independent approval remain required; therefore this is an active
+> candidate, not protected-main capability.
+>
+> The largest buyer-facing gap remains issue #922. PR #929 advanced again to
+> `aca158dc164508ab24fdffe12077e92661869690` while this snapshot was collected,
+> so evidence from its earlier heads is not transferred. It remains Draft and
+> runtime-unverified: the complete eight-locale authenticated UI, approved copy,
+> and exact-head desktop/mobile evidence are unavailable. No translation is
+> synthesized to make that acceptance look complete. Voice-of-X export repair
+> PR #780 is likewise Draft at `0bf2440dd4bfa3e840cefe06b25c22225beb5d1a`;
+> ADR 0246/0251 acceptance still requires authenticated PostgreSQL/API and
+> rendered evidence that separates carrying Posts from derivation evidence and
+> preserves paged multi-Voice JSON-LD.
+>
+> Cross-repository authority audit: GitHub confirms canonical
+> `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP`,
+> but the storage repository is lowercase `ContextualWisdomLab/disksage`.
+> `docs/product-requirements.md` still spells it `DiskSage`; PR #847 owns the
+> broader authority-identity reconciliation, so this loop records the mismatch
+> without racing that PR. Current protected `main` ends at migration 0245 and
+> frontend version 2.28.0. PR #929 alone proposes migration 0246; no same-number
+> migration or release-version collision was found in #903.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent

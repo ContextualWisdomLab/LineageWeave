@@ -136,8 +136,8 @@ describe("layoutLineageDag", () => {
     ).toEqual(["Named thread", "Ungrouped"]);
   });
 
-  it("places every node in a cyclic visible component without inventing a root", () => {
-    const [group] = layoutLineageDag({
+  it("rejects a cyclic visible component instead of inventing a root", () => {
+    expect(() => layoutLineageDag({
       nodes: [
         {
           id: "cycle-a",
@@ -160,16 +160,11 @@ describe("layoutLineageDag", () => {
         { source: "cycle-a", target: "cycle-b", fused_score: 0.8 },
         { source: "cycle-b", target: "cycle-a", fused_score: 0.79 },
       ],
-    });
-
-    expect(group.nodes.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
-      { id: "cycle-a", x: 28, y: 28 },
-      { id: "cycle-b", x: 28, y: 80 },
-    ]);
+    })).toThrow("cyclic visible lineage edges at: cycle-a");
   });
 
-  it("terminates when a visible root feeds a cycle", () => {
-    const [group] = layoutLineageDag({
+  it("rejects a visible root that feeds a cycle", () => {
+    expect(() => layoutLineageDag({
       nodes: ["root", "cycle-a", "cycle-b"].map((id) => ({
         id,
         group: "Cyclic import",
@@ -183,10 +178,7 @@ describe("layoutLineageDag", () => {
         { source: "cycle-a", target: "cycle-b", fused_score: 0.8 },
         { source: "cycle-b", target: "cycle-a", fused_score: 0.7 },
       ],
-    });
-
-    expect(group.nodes).toHaveLength(3);
-    expect(group.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y))).toBe(true);
+    })).toThrow("cyclic visible lineage edges at: cycle-a");
   });
 
   it("positions a shared child once while retaining both visible parent edges", () => {
@@ -210,9 +202,9 @@ describe("layoutLineageDag", () => {
 
     expect(group.edges).toHaveLength(5);
     expect(group.nodes.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
-      { id: "root", x: 28, y: 54 },
       { id: "branch-a", x: 248, y: 28 },
       { id: "branch-b", x: 248, y: 80 },
+      { id: "root", x: 28, y: 54 },
       { id: "shared-child", x: 468, y: 28 },
     ]);
   });
