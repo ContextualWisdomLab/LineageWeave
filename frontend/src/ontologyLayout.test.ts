@@ -338,6 +338,7 @@ describe("ontologyLayout", () => {
       ...source,
       exact_value_rows: [{
         ...source.exact_value_rows[0],
+        property_code: "hasVoiceAssignment",
         source_node_id: POST_ID,
         evidence_post_id: evidenceId,
         valid_from: "2026-01-10T12:00:00+00:00",
@@ -354,6 +355,46 @@ describe("ontologyLayout", () => {
       valid_from: "2026-01-10T12:00:00+00:00",
       valid_to: "2026-01-11T12:00:00+00:00",
     });
+  });
+
+  it.each(["node_post", "node_person", "node_corporate_entity", "node_team", "node_project"])(
+    "does not label a %s relation endpoint as a carrying Voice post",
+    (sourceType) => {
+      const source = payload();
+      const csv = neighborhoodCsv({
+        ...source,
+        exact_value_rows: [{
+          ...source.exact_value_rows[0],
+          source_type_code: sourceType,
+          evidence_post_id: POST_ID,
+        }],
+      });
+      const [header, row] = csv.trim().split("\n").map((line) => line.split(","));
+      const values = Object.fromEntries(header.map((key, index) => [key, row[index]]));
+      expect(values).toMatchObject({
+        source_node_id: POST_ID,
+        source_type_code: sourceType,
+        evidence_post_id: POST_ID,
+        carrying_post_id: "",
+        derivation_evidence_post_id: "",
+      });
+    },
+  );
+
+  it("does not fabricate a carrying Post for an incorrectly typed Voice row", () => {
+    const source = payload();
+    const csv = neighborhoodCsv({
+      ...source,
+      exact_value_rows: [{
+        ...source.exact_value_rows[0],
+        property_code: "hasVoiceAssignment",
+        source_type_code: "node_person",
+        evidence_post_id: POST_ID,
+      }],
+    });
+    const [header, row] = csv.trim().split("\n").map((line) => line.split(","));
+    expect(row[header.indexOf("carrying_post_id")]).toBe("");
+    expect(row[header.indexOf("derivation_evidence_post_id")]).toBe("");
   });
 
   it("keeps only exact canonical JSON-LD node ids when filtering", () => {
