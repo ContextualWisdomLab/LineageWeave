@@ -3496,6 +3496,10 @@ async def ask_agent(
         verify_external=request.verify_external,
         knowledge_cutoff=request.knowledge_cutoff,
         service_available=_post_chat_client().available,
+        question_max_bytes=load_settings().global_ask_max_question_bytes,
+        max_outstanding_jobs=load_settings().global_ask_max_outstanding_jobs,
+        quota_request_limit=load_settings().mcp_rate_limit_requests,
+        quota_window_seconds=load_settings().mcp_rate_limit_window_seconds,
     )
 
 

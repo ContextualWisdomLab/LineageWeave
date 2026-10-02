@@ -75,6 +75,8 @@ class Settings:
     mcp_max_request_bytes: int = 65_536
     mcp_rate_limit_requests: int | None = None
     mcp_rate_limit_window_seconds: int | None = None
+    global_ask_max_question_bytes: int | None = None
+    global_ask_max_outstanding_jobs: int | None = None
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -240,5 +242,11 @@ def load_settings() -> Settings:
         mcp_rate_limit_requests=_optional_positive_int("MCP_RATE_LIMIT_REQUESTS"),
         mcp_rate_limit_window_seconds=_optional_positive_int(
             "MCP_RATE_LIMIT_WINDOW_SECONDS"
+        ),
+        global_ask_max_question_bytes=_optional_positive_int(
+            "GLOBAL_ASK_MAX_QUESTION_BYTES"
+        ),
+        global_ask_max_outstanding_jobs=_optional_positive_int(
+            "GLOBAL_ASK_MAX_OUTSTANDING_JOBS"
         ),
     )

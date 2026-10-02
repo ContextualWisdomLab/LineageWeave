@@ -11,7 +11,15 @@ import redis.asyncio as redis
 from fastapi import HTTPException, status
 
 from backend.app.auth import CurrentAccount
-from backend.app.global_ask_queue import enqueue_global_ask_job
+from backend.app.global_ask_queue import (
+    GlobalAskOutstandingLimitExceeded,
+    enqueue_global_ask_job,
+)
+from backend.app.mcp_rate_limit import (
+    McpRateLimiterUnavailable,
+    McpRateLimitExceeded,
+    ValkeyMcpRateLimiter,
+)
 from backend.app.source_post_revision import parse_as_of_clock
 
 
@@ -24,6 +32,11 @@ async def submit_global_ask(
     verify_external: bool,
     knowledge_cutoff: str | None,
     service_available: bool,
+    question_max_bytes: int | None,
+    max_outstanding_jobs: int | None,
+    quota_request_limit: int | None,
+    quota_window_seconds: int | None,
+    quota_already_consumed: bool = False,
 ) -> dict[str, Any]:
     """Validate and enqueue one durable owner-scoped Global Ask job."""
     if not account.has_permission("post_read"):
@@ -42,27 +55,72 @@ async def submit_global_ask(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "knowledge_cutoff must be an ISO-8601 timestamp",
             ) from exc
-    async with pool.acquire() as conn:
-        if cutoff is not None and cutoff > await conn.fetchval("select now()"):
+    if (
+        question_max_bytes is None
+        or max_outstanding_jobs is None
+        or quota_request_limit is None
+        or quota_window_seconds is None
+    ):
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask is temporarily unavailable. Ask an administrator to finish "
+            "capacity setup, then retry.",
+        )
+    if len(normalized_question.encode("utf-8")) > question_max_bytes:
+        raise HTTPException(
+            status.HTTP_413_CONTENT_TOO_LARGE,
+            "The question is too long. Shorten it and try again.",
+        )
+    if not service_available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable. Ask an administrator to configure the "
+            "analysis service, then retry.",
+        )
+    if cutoff is not None:
+        async with pool.acquire() as conn:
+            if cutoff > await conn.fetchval("select now()"):
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    "knowledge_cutoff must be at or before the database clock",
+                )
+    if not quota_already_consumed:
+        limiter = ValkeyMcpRateLimiter(
+            valkey,
+            request_limit=quota_request_limit,
+            window_seconds=quota_window_seconds,
+        )
+        try:
+            await limiter.consume(account.user_account_id)
+        except McpRateLimitExceeded as exc:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "knowledge_cutoff must be at or before the database clock",
-            )
-        if not service_available:
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Too many questions are already being submitted. Retry later.",
+                headers={"Retry-After": str(exc.retry_after_seconds)},
+            ) from exc
+        except McpRateLimiterUnavailable as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is unavailable. Ask an administrator to configure the analysis service, then retry.",
+                "Ask is temporarily unavailable. Retry later.",
+            ) from exc
+    async with pool.acquire() as conn:
+        try:
+            job_id = await enqueue_global_ask_job(
+                conn,
+                valkey,
+                requesting_account_id=account.user_account_id,
+                question_text=normalized_question,
+                verify_external_requested=verify_external,
+                knowledge_cutoff=cutoff,
+                corporate_entity_ids=account.corporate_entity_ids,
+                process_unit_ids=account.process_unit_ids,
+                max_outstanding_jobs=max_outstanding_jobs,
             )
-        job_id = await enqueue_global_ask_job(
-            conn,
-            valkey,
-            requesting_account_id=account.user_account_id,
-            question_text=normalized_question,
-            verify_external_requested=verify_external,
-            knowledge_cutoff=cutoff,
-            corporate_entity_ids=account.corporate_entity_ids,
-            process_unit_ids=account.process_unit_ids,
-        )
+        except GlobalAskOutstandingLimitExceeded as exc:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Too many questions are still active. Wait for an existing question to finish before submitting another.",
+            ) from exc
     return {"ask_job_id": job_id, "job_status_code": "queued"}
 
 

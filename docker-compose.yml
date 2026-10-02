@@ -183,6 +183,11 @@ services:
       # Process HMAC for ontology source-window continuation. Empty keeps the
       # truncated-without-cursor contract. Never reuse an OIDC or orchestrator secret.
       ONTOLOGY_SOURCE_CURSOR_SECRET: ${ONTOLOGY_SOURCE_CURSOR_SECRET:-}
+      # Shared REST/MCP Ask admission has no guessed capacity defaults.
+      MCP_RATE_LIMIT_REQUESTS: ${MCP_RATE_LIMIT_REQUESTS:-}
+      MCP_RATE_LIMIT_WINDOW_SECONDS: ${MCP_RATE_LIMIT_WINDOW_SECONDS:-}
+      GLOBAL_ASK_MAX_QUESTION_BYTES: ${GLOBAL_ASK_MAX_QUESTION_BYTES:-}
+      GLOBAL_ASK_MAX_OUTSTANDING_JOBS: ${GLOBAL_ASK_MAX_OUTSTANDING_JOBS:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:
@@ -235,6 +240,8 @@ services:
       # capacity artifact for their deployment before enabling this profile.
       MCP_RATE_LIMIT_REQUESTS: ${MCP_RATE_LIMIT_REQUESTS:-}
       MCP_RATE_LIMIT_WINDOW_SECONDS: ${MCP_RATE_LIMIT_WINDOW_SECONDS:-}
+      GLOBAL_ASK_MAX_QUESTION_BYTES: ${GLOBAL_ASK_MAX_QUESTION_BYTES:-}
+      GLOBAL_ASK_MAX_OUTSTANDING_JOBS: ${GLOBAL_ASK_MAX_OUTSTANDING_JOBS:-}
     ports:
       - "18001:8001"
     depends_on:
