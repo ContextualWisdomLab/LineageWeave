@@ -45,6 +45,14 @@ PRD-FR-2B therefore left catalog search unavailable until this increment.
 7. The explorer hosts the search. It is not a new GNB destination. Customer
    copy tells the reviewer to type a catalog label and open the supporting
    record. Clicking a hit opens that Post.
+8. Search results and continuations remain bound to the submitted query,
+   family, reader authorization, and knowledge cutoff. A newer submission
+   supersedes both success and failure from earlier requests. Changing the
+   reader or cutoff clears displayed evidence before another result can be
+   accepted; an earlier continuation cannot restore that evidence.
+   The supporting-record action lays out its label, family, next action,
+   and verbatim evidence as separate wrapping lines, using the existing
+   control spacing and touch-target tokens at desktop and phone widths.
 
 ## Consequences
 
@@ -60,7 +68,8 @@ PRD-FR-2B therefore left catalog search unavailable until this increment.
   shape.
 - Schema tests require replay-safe label/description indexes.
 - Frontend tests cover short-query guidance, no-match and error states,
-  click-to-open, family filter, and localized next actions. Storybook adds
+  click-to-open, family filter, localized next actions, out-of-order completion,
+  and reader/cutoff changes during continuation. Storybook adds
   populated, empty, no-match, and loading scenes.
 
 ## References

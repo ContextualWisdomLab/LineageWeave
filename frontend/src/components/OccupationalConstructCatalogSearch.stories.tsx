@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { OccupationalConstructSearchPage } from "../api";
 import { OccupationalConstructCatalogSearch } from "./OccupationalConstructCatalogSearch";
 
@@ -55,6 +56,47 @@ export const Loading: Story = {
 export const Unavailable: Story = {
   args: {
     status: "error",
+  },
+};
+
+let completeEarlierSearch: (() => void) | undefined;
+
+export const SupersededSearch: Story = {
+  args: { accessToken: "synthetic-token" },
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.searchParams.get("q") === "Oral") {
+        return new Promise<Response>((resolve) => {
+          completeEarlierSearch = () => resolve(new Response(JSON.stringify(populated), {
+            headers: { "Content-Type": "application/json" },
+          }));
+        });
+      }
+      return new Response(JSON.stringify({
+        ...populated, query: "Written", hits: [{
+          ...populated.hits[0], preferred_label: "Written Comprehension",
+        }],
+      }), { headers: { "Content-Type": "application/json" } });
+    };
+    return () => { globalThis.fetch = previousFetch; completeEarlierSearch = undefined; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const query = canvas.getByLabelText(/Catalog label|카탈로그 명칭/);
+    const submit = canvas.getByRole("button", { name: /Find matching records|일치하는 기록 찾기/ });
+    await userEvent.type(query, "Oral");
+    await userEvent.click(submit);
+    await waitFor(() => expect(completeEarlierSearch).toBeDefined());
+    await userEvent.clear(query);
+    await userEvent.type(query, "Written");
+    await userEvent.click(submit);
+    await expect(canvas.findByRole("button", { name: /Written Comprehension/ })).resolves.toBeVisible();
+    completeEarlierSearch?.();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: /Oral Comprehension/ })).not.toBeInTheDocument());
+    await expect(canvas.getByRole("button", { name: /Written Comprehension/ })).toBeVisible();
   },
 };
 
