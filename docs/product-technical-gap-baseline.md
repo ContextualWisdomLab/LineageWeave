@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-03 01:46 KST
+
+Git transport confirmed canonical protected `main` at
+`da4e5d45420fdd6b2b9c1dc51eb613a706387da4`. The canonical repository names
+were checked against GitHub: `ContextualWisdomLab/LineageWeave`,
+`ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+`ContextualWisdomLab/disksage`, and `ContextualWisdomLab/TEPP`. Product
+authority remains `docs/product-requirements.md`; ADRs are normative. No
+authoritative aggregate open-PR/open-issue inventory was available because
+GitHub REST requests were rate-limited and GraphQL returned HTTP 502. Older
+inventory counts below remain dated snapshots.
+
+This snapshot records exact heads and hosted evidence observed during the
+loop; every PR row remains an open candidate unless a later protected merge
+SHA is recorded. No earlier Check or review transfers to a new head.
+
+| PR | Exact head / base | Current observed state |
+| ---: | --- | --- |
+| #1141 | `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731` / `main` `da4e5d45420fdd6b2b9c1dc51eb613a706387da4` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; full suite, frontend, CodeQL compatibility, Noema, OpenCode, coverage, and admission checks passed; no independent approval or merge SHA. |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` / same `main` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; CodeQL compatibility ×2, Trivy, and OpenCode failed; formal review list empty. Voice export acceptance remains incomplete without authenticated PostgreSQL/API and cutoff evidence. |
+| #1145 | `9bd758499a75a6f63a7ea5b118f2466e96968429` / same `main` | Normal squash auto-merge enabled; `REVIEW_REQUIRED` / `BLOCKED`; Full suite, Noema, Strix, and CodeRabbit were pending; CodeQL compatibility ×3, OpenCode, and Trivy failed; frontend and Semgrep passed. No independent approval. |
+| #1144 | `18a8ee76d3edcbd79c92a5e845f51d1ce996f840` / parent #1137 | Draft, no Checks or auto-merge. Parent #1137 remains based on `main`, auto-merge enabled, `REVIEW_REQUIRED` / `BLOCKED`, with CodeQL compatibility ×3, Noema, dependency review, Noema continuation, and OpenCode failures. Process the parent first and recollect child evidence after retargeting. |
+
+PR #1145's one-line heading repair addressed the valid review comment that a
+top-level dated overlay began at `###` beneath the document H1. The current
+frontend tests (32), lint, TypeScript build, and production build passed
+locally. Its exact new head started hosted verification; the pending and failed
+results above are not release evidence. The CodeQL compatibility, OpenCode,
+and filesystem Trivy logs could not be retrieved through GitHub's current
+workflow endpoints, so their owners and root causes remain unresolved.
+
+The user-facing candidate gap remains preservation of paged JSON-LD values for
+one subject: retain its single-valued latest label while unioning distinct
+multi-Voice relations and their evidence. PR #1145 contains this minimum change
+and synthetic regressions for label replacement, relation retention,
+idempotence, input immutability, and the actual download path. It adds no ADR,
+API, schema, migration, release, or inference policy. These local synthetic
+tests and desktop/mobile Storybook layout captures do not establish
+authenticated PostgreSQL/API behavior or a populated authenticated JSON-LD
+export; those acceptance conditions remain **unverified**. No authenticated
+synthetic k6 run or population inference was performed.
+
+## Current protected delivery and evidence-preserving export — 2026-10-02 20:39 KST
 ## Exact-head review repair and current acceptance boundary — 2026-10-02 23:12 KST
 
 This overlay records the latest read before the JSON-LD label repair was pushed.
