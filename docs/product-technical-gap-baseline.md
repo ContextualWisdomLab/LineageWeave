@@ -1408,3 +1408,48 @@ head. No real records or credentials were queried or recorded.
   this documentation audit. Concurrency, latency, errors, throughput, and
   PostgreSQL/worker/Valkey/gateway saturation therefore remain **unavailable**.
   No population inference or runtime completion is claimed.
+
+### Follow-up exact-head integration audit — 2026-10-02 11:40 KST
+
+- Baseline PR #1141 advanced from the previously recorded `24cc4137` to
+  `4152ada0096beea1dab38e821c1bdc7fea4bf869`. On `4152ada0`, the active
+  Full suite, frontend, CodeQL compatibility and analysis, Semgrep, admission,
+  coverage, Noema, and OpenCode checks completed successfully. GitHub still
+  reports `mergeStateStatus: BLOCKED`; normal squash auto-merge is enabled.
+  The formal review list contains comments, not an independent approval, and
+  no merge SHA exists. This follow-up baseline edit advances the head again;
+  collect fresh checks and preserve auto-merge before deciding delivery.
+- PR #1142 remains at `921f2df9629b8fbdef707b04469b45b2a1ed6299` on `main`,
+  auto-merge enabled, `REVIEW_REQUIRED`, with no merge SHA. Its active
+  dependency-review check failed; applicable Full suite, frontend, registry /
+  PostgreSQL, CodeQL, Trivy, Semgrep, ontology-publication validation, and
+  Noema checks passed. Skipped checks are not passes. The dismissed Noema
+  review, rate-limited CodeRabbit check, and skipped Devin run do not provide
+  independent approval. This candidate combines exact timestamp presentation
+  with the PyJWT 2.15.1 and urllib3 2.8.0 dependency floors.
+- The matching security-floor PR #1137 is at
+  `4344d4dcb80fa08971c33f2f7df912d389dc7c61`, also based on `main`, with
+  normal auto-merge enabled and `REVIEW_REQUIRED`. Its active failures are
+  the three CodeQL compatibility jobs, Dependency Review, Noema review and
+  transport continuation, and OpenCode review. Full suite, frontend, registry /
+  PostgreSQL, Trivy, OSV, Semgrep, and Strix passed. No independent approval
+  or merge SHA exists. The GitHub Actions workflow-log lookup returned 404, so
+  these failures remain unattributed and no consumer-side workaround was made.
+- A read-only merge-tree check of #1137 with #1142 found the baseline document
+  as the only content conflict; `pyproject.toml` and `uv.lock` merge cleanly.
+  #1142 + #1143 and #1139 + #1143 merged cleanly at their recorded heads.
+  After this baseline addition, the candidate #1141 + #1143 merge conflicts
+  only in `docs/product-technical-gap-baseline.md`. Keep #1141 as the parent,
+  pass its protected gate first, then retarget #1143 to `main` and recollect
+  every exact-head check and approval. No new ADR, API, schema, migration
+  ordinal, or release number is introduced here.
+- Exact-head local UI verification on #1142 passed the focused
+  `OntologyExplorer.test.tsx` (**17 tests**) and `pnpm run build-storybook`.
+  The `Same Day Voice Interval` synthetic story was visually inspected at
+  desktop **2636×2211** and Storybook **414×896** mobile. At mobile width, the
+  exact-values table stays inside its scroll region; horizontal scrolling
+  reaches the validity and recorded timestamps without altering fractional
+  seconds or timezone offsets. The table retains the carrying-Post and
+  evidence columns. These synthetic screenshots do not establish authenticated
+  API or PostgreSQL behavior. No authenticated k6 load was run; latency,
+  throughput, errors, concurrency, and service saturation remain unavailable.
