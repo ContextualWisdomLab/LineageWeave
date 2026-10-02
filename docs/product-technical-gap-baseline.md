@@ -1,5 +1,86 @@
 # Product & Technical Gap Baseline
 
+## Exact-head, authority, and acceptance refresh — 2026-10-03 06:42 KST
+
+### Normative authority and evidence
+
+The current product contract is `docs/product-requirements.md`; ADRs remain
+normative. Voice-of-X uses ADR 0246 for its twelve atomic classes, ADR 0256
+for evidence-bearing combinations, and ADR 0252 for temporal primary history.
+ADR 0251 governs the separate FJA/I-O psychology taxonomy. The cited
+stakeholder literature supports context-sensitive composition, not a closed
+combination list or a classifier, coefficient, or weight. I corrected the
+supporting Voice requirements and ADR index, which had incorrectly labeled
+ADR 0256 as 0251.
+
+### Current main and exact-head delivery
+
+Git transport and GitHub report `main` at
+`0fe1287fac3c0300203daf5add4dcb85c5dea64b`, the merge SHA for PR #1142.
+That PR merged head `4ef9a77d7631bd6ffe20606a69be052892e89a6e` after updating
+its old base `b8d76303bf4a63cbef97d415ecbe72ef416edaef` with a normal merge
+commit. PR #1146 previously merged head
+`141a19e19079bf4cb5805898ce3746ee396733a6` as SHA
+`b8d76303bf4a63cbef97d415ecbe72ef416edaef`.
+
+| PR | Merged head | Exact-head hosted result observed | Formal approval | Merge SHA |
+| ---: | --- | --- | --- | --- |
+| #1146 | `141a19e19079bf4cb5805898ce3746ee396733a6` | Four test and CodeQL jobs failed to start; annotations report the account was locked for a billing issue | none | `b8d76303bf4a63cbef97d415ecbe72ef416edaef` |
+| #1142 | `4ef9a77d7631bd6ffe20606a69be052892e89a6e` | Test suite, frontend, ontology publication, PROV-O, and CodeQL jobs failed to start; exact-head annotations report the same billing lock | none; last formal Noema review was dismissed on an earlier head | `0fe1287fac3c0300203daf5add4dcb85c5dea64b` |
+
+Both merges occurred through GitHub's normal auto-merge path, without a manual
+merge command, admin bypass, self-approval, or force push. The repository
+ruleset read exposed only the no-force-push rule; the `main` branch-protection
+endpoint returned 404 and the organization-ruleset endpoint returned 403.
+The available reads therefore do not establish independent-approval or
+required-check enforcement. The SHAs are confirmed merges, not verified
+protected delivery. Failed hosted jobs are not passing evidence.
+
+### Product gap and remaining acceptance
+
+The exact-value table previously removed everything after the calendar date
+from `valid_from`, `valid_to`, and `recorded_at`. Same-day Voice intervals
+therefore looked identical. PR #1142 now renders the supplied timestamp in
+full and shows Unknown for missing values. Its synthetic regression checks
+fractional seconds, timezone offsets, and missing timestamps. On the merged
+head, focused Python checks passed (70 tests); frontend lint passed, all 58
+frontend test files passed (538 tests), and production and Storybook builds
+completed. The existing bundle-size warnings remain visible.
+
+The `SameDayVoiceInterval` Storybook scene was rendered at 1440×900 and
+390×844 using synthetic data. Full timestamps remained legible in the
+keyboard-scrollable table; mobile document width stayed at 390 pixels and
+the table scrolled within its 317-pixel region. These renders verify the
+candidate presentation only. No authenticated Voice write/read through the
+running PostgreSQL-backed application, populated authorized JSON-LD response,
+or authenticated product-screen evidence was captured in this observation.
+Voice acceptance remains incomplete; no real records or credentials were
+read or recorded, and no authenticated synthetic k6 result is claimed.
+
+### Aggregate queue and cross-PR contracts
+
+At this observation GitHub returned **179 open PRs** (168 drafts, 117 with a
+non-`main` base, 11 ready PRs) and **42 open issues**. These are repository
+inventory counts, not customer-data counts or population estimates. PR #1141
+remains open at head `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731` on base
+`83eba56149eb802cd63642c507c324c9976ec78e`; its earlier successful checks do
+not prove current-base mergeability or independent approval. PR #1137 remains
+the dependency-security owner candidate at head
+`4344d4dcb80fa08971c33f2f7df912d389dc7c61`.
+
+The exact #1142 tree combined cleanly with RankWeave pin candidate #1133 and
+with #1137's `pyproject.toml` and `uv.lock` changes; the pairwise merge-tree
+conflict was limited to `docs/product-technical-gap-baseline.md`. #1142 also
+carried the same PyJWT and urllib3 floors as #1137, so those dependency edits
+now exist on `main` while #1137 retains its remaining owner documentation and
+test delta. The RankWeave repository's canonical name is
+`ContextualWisdomLab/RankWeave`; its current architecture describes the
+downstream release contract as synchronized package metadata, public version,
+version tests, wheel assertions, documentation, and changelog. The reviewed
+LineageWeave changes introduced no schema, API, migration-ordinal, or release
+number conflict. No consumer workaround was added for the GitHub billing
+failure.
+
 ## Protected-main and exact-head recheck — 2026-10-03 05:00 KST
 
 The remote default `main` now resolves to `8541b7c8a8e0cda4550046c4b39510cee58a9845`. PR #1143 merged at head `6903d05e5a94eea53e242e9bc94e2686d9724a46` with merge SHA `8541b7c8a8e0cda4550046c4b39510cee58a9845`; PR #1145 merged at head `3f8332db3c1166488b5fd7f443fa622a5eb04bf7` with merge SHA `03d4e2f7f1da3acc2aff3563045127ec5c4bd300`. Both SHAs appear in the observed `main` history. The auto-merge request was enabled for each. The retained formal review lists contain no `APPROVED` submissions for either head.
