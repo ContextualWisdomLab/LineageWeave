@@ -56,7 +56,7 @@ Compose services may contain authorized runtime records; they were not load
 tested. No Voice acceptance or release gate is marked complete from screenshots
 or local tests.
 
-### Current protected delivery and evidence-preserving export — 2026-10-02 20:39 KST
+## Current protected delivery and evidence-preserving export — 2026-10-02 20:39 KST
 
 This dated overlay supersedes conflicting present-tense queue statements below.
 REST pagination observed **181 open PRs**, **168 drafts**, **117 non-main
