@@ -1203,8 +1203,9 @@ async def read_customer_master(
         relationship_network = await fetch_relationship_network(
             conn,
             [str(entity_id) for entity_id in entity_ids],
-            account.process_unit_ids,
+            list(account.process_unit_ids),
         )
+
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
