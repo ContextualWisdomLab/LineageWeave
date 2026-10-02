@@ -430,6 +430,24 @@ export const Denied: Story = {
   },
 };
 
+export const DeniedAfterLoaded: Story = {
+  args: {
+    neighborhood: demoNeighborhood,
+    status: "denied",
+  },
+  play: ({ canvasElement }) => {
+    const buttons = Array.from(canvasElement.querySelectorAll("button"));
+    for (const label of ["Export CSV", "Export JSON-LD"]) {
+      if (!buttons.find((button) => button.textContent === label)?.disabled) {
+        throw new Error("A denied neighborhood must disable evidence exports");
+      }
+    }
+    if (canvasElement.querySelector(".ontology-exact-values, .ontology-drawer")) {
+      throw new Error("A denied neighborhood must omit prior evidence");
+    }
+  },
+};
+
 export const StaleCutoff: Story = {
   args: {
     knowledgeCutoff: "2026-01-15T12:00:00Z",
