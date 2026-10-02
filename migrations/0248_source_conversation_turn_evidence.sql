@@ -1,6 +1,4 @@
--- lineageweave-compatibility-alias-of: 0248_source_conversation_turn_evidence.sql
--- Historical migration 0233 path retained for audit/tooling compatibility.
--- Runtime replay skips declared aliases; the canonical forward identity is 0248.
+-- Migration 0248: canonical identity for persisted conversation-turn source evidence.
 begin;
 
 alter table post_content_unit

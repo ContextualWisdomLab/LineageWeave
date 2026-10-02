@@ -1,5 +1,145 @@
 # Product & Technical Gap Baseline
 
+## Current authority and protected-delivery snapshot — 2026-09-30 16:47 KST
+
+This dated section supersedes older present-tense delivery and queue claims in
+this file. It is a supporting inventory, not an ADR, release authorization, or
+deployment receipt. No protected merge was observed in this pass.
+
+### Authority, current implementation, and research
+
+The current LineageWeave PRD is `docs/product-requirements.md`; ADRs remain
+normative. PRD-FR-2/3/5, its asynchronous and security requirements, ADR 0166,
+and the proposed ADR 0372 are relevant to this increment. ADR 0372 is still
+Proposed: these focused checks do not satisfy all its promotion requirements.
+Its existing owner is PR #1049, not a new migration-policy lane.
+
+The ecosystem authorities read at their local revisions were ThreadWeave
+`docs/PRD.md` at `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, RankWeave
+`ARCHITECTURE.md` at `32c29a07a4e33ab9c4c2847cef41ed265b9bcc41`, TEPP
+`docs/product/prd-v0.4-approved.md` at
+`67b4fc15a835d007b4841941276207254b77480c`, disksage `docs/PRD.md` at
+`58b4aece3e38a1cc7f7fa4b7fce73443344b2397`, and contextual-orchestrator
+`README.md` at `50e1b0d0a7eddc0f866ab69162d6cf098efe693f`. These local
+revisions are not asserted to equal the remote default branches.
+
+Live remote metadata confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm`, with
+`ContextualWisdomLab/disksage` as the canonical remote case for DiskSage.
+No ecosystem inference, algebra, token-sizing, or measurement engine was
+reimplemented. contextual-orchestrator remains the sole LLM/VISION/embedding/
+structured-output owner; no such request was introduced by this repair.
+The cited standards and research support policy, not measured customer impact
+or calibrated weights. Unsupported inference remains unavailable.
+
+### Exact-head review and protection
+
+Remote protected `main` remains
+`83eba56149eb802cd63642c507c324c9976ec78e`. The paged inventory contains
+**175 open PRs**, **171 drafts**, **115 non-main bases**, and **43 open issues**.
+All 175 heads were queried for review decisions and review threads, and again
+for current-commit Checks; neither thread nor Check-context pages were
+truncated. The initial thread inventory found 97 unresolved threads; #1049's
+two valid findings became resolved after its repair. This is not a claim that
+every remaining finding has been repaired.
+
+| PR | Exact observed head | Current delivery boundary |
+| ---: | --- | --- |
+| #1049 | `3f33dbf8545923a7a7805be4f9fcd2ed6c8bca25` | Source repair verified locally; ready, normal squash auto-merge enabled, independent approval required; Checks pending; no merge SHA. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | Existing normal auto-merge retained; independent approval and pending review remain required. |
+| #1135 | `b992923501e5123470d18dcc62263a0939f04f64` | Existing error/link-boundary owner preserved; local frontend and rendered synthetic evidence refreshed; normal auto-merge retained; approval and Checks pending. |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Existing reader-scope isolation owner preserved; resolved review threads; normal auto-merge retained; approval and Checks pending. |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | Exact-head independent approval exists, but terminal failed Checks and the other agent's Draft decision remain authoritative. |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | Exact-head independent approval exists, but terminal failed Checks and the other agent's Draft decision remain authoritative. |
+| #1132 | `8bb057866abb7706a54f2801aafd6d6b56e8e243` | Still based on #1131; parent protection must complete before retargeting and fresh exact-head acceptance. |
+
+The active `main` rules require an independent approval, dismissal of stale
+reviews, resolved threads, and the central OpenCode, scheduler, security,
+Strix, Semgrep, Noema, and CodeQL workflow contracts. Classic branch-protection
+REST returned 404; it does not negate the branch rules returned by the rules
+API. No self-approval, administrative bypass, force push, or gate weakening
+was used. A REST preview `merge_commit_sha` while `merged=false` is not a
+protected merge receipt. This documentation's later commit requires a fresh
+head query; the source head above never transfers Checks or approval to it.
+
+### Selected user-impacting gap and minimal repair
+
+Recovery could stop even with valid password-file authentication because the
+rehearsal injected a placeholder password and replay required that password.
+A malformed empty migration alias also passed the identity gate while replay
+would skip its SQL. These failures can leave users unable to open evidence
+after an upgrade. This is a reproduced reliability gap, not a numerical claim
+that it has the greatest population impact.
+
+The repair stays in #1049: distinguish an empty alias declaration from no
+declaration, require a file target, preserve libpq's existing password-file or
+password environment when no explicit replay password exists, and stop
+manufacturing a rehearsal password. The existing proposed ADR was clarified
+before the change. No API, Voice classification, schema SQL, release number,
+or UI was changed. Historical migrations and rollback paths remain intact.
+
+At source head `3f33dbf8545923a7a7805be4f9fcd2ed6c8bca25`, **36 focused
+tests passed**, including real PostgreSQL clean/upgrade/replay and rollback
+tests using their own throwaway databases. Three assertions failed before the
+repair. Executable shell tests cover password-file-only, explicit password,
+and inherited-password environments; environment-builder tests cover the
+absence of a placeholder. Shell syntax and `git diff --check` passed. These
+focused tests do not certify the complete PostgreSQL suite, password-file
+authentication against a password-enforcing deployment, or the customer API.
+
+Independent safe work while hosted Checks waited refreshed #1135's local
+evidence without modifying its source: **60 frontend files / 565 tests
+passed**, lint and production build passed, and Storybook built. Chromium
+rendered the existing synthetic failed-question retry story at **1440** and
+**390** CSS pixels. Both inspected screenshots retained the question and one
+retry alert/button without horizontal document overflow or diagnostic text.
+The pre-existing production chunk warning remains visible and unrepaired;
+no warning was suppressed. Storybook is not authenticated application proof.
+
+### Collision, runtime, and acceptance boundaries
+
+Actual-base deltas were locally compared for **174 of 175 heads**; #1042's
+delta could not be computed from available local objects. There are 106 PR
+deltas touching this baseline, 13 touching the browser API, 21 touching the
+API entry point, 80 touching Python package metadata, 75 touching frontend
+package metadata, and 61 overlapping ADR paths. These are overlap counts,
+not automatically incompatible contracts. #980/#830 share ADR 0370 and the
+`2.56.0` changelog fragment; #928/#927 share ADR 0358; #1127/#929 share the
+0247 translation-ownership rollback. Issues #1048 and #1056 retain migration
+and release reconciliation ownership. This repair allocates no new ordinal
+and deletes no existing functionality. Stacked parents must protect their
+delta first; children then retarget and collect new evidence.
+
+Read-only aggregate SQL against the official `lineageweave` PostgreSQL
+service observed **43,189 Posts**, **43,189 primary Voice rows**, **0 additional
+Voice rows**, **4 analysis runs**, and **1 active / 7 total connections** at
+the observation instant. These are diagnostic full-table counts, not sampled
+population inference, a saturation measurement, or source-revision/runtime
+identity proof. No record title, organization, private identifier, or secret
+was copied into this inventory.
+
+ADR 0246/0251's twelve atomic Voices and extensible combinations remain
+unchanged. Approved evidence Posts, PROV-O derivation, truth status, cutoff,
+hidden-evidence omission, separate carrying/evidence actions, and same-subject
+paged JSON-LD property preservation remain distinct acceptance gates. Their
+authenticated PostgreSQL API and rendered application evidence remains
+**unavailable**; synthetic tests do not complete those gates.
+
+No synthetic-only authenticated k6 corpus boundary was certified on the
+shared private runtime, so no load was sent there. Concurrent throughput,
+latency, error-rate, and PostgreSQL/worker/Valkey/gateway saturation acceptance
+remain **unavailable**; no unobserved performance bottleneck was patched.
+The active-run query found no running repository jobs to cancel. Queued jobs
+for open PRs were preserved; no manual CI-stall cancellation was performed.
+Context7 was attempted but quota-limited, and DeepWiki had no repository
+index; local authority and executable tests were used instead. Sequential
+Thinking and Memory MCP were not exposed in this session's tool catalog.
+
+Next: verify the final #1049 documentation head and independent approval,
+retain its normal auto-merge, preserve #1131/#1135/#1136 ownership, and continue
+with a non-overlapping validated finding. Do not claim protected delivery or
+Voice/runtime acceptance from this source repair alone.
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
