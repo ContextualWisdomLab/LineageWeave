@@ -1453,3 +1453,89 @@ head. No real records or credentials were queried or recorded.
   evidence columns. These synthetic screenshots do not establish authenticated
   API or PostgreSQL behavior. No authenticated k6 load was run; latency,
   throughput, errors, concurrency, and service saturation remain unavailable.
+
+### Security-owner RCA and current merge gates — 2026-10-02 12:18 KST
+
+This snapshot distinguishes protected behavior from open candidates, hosted
+workflow evidence, and external GitHub entitlement. Only synthetic test counts,
+PR numbers, and commit SHAs are recorded; no source records or credentials are
+included.
+
+- **Protected base and active rulesets:** LineageWeave `main` is still
+  `83eba56149eb802cd63642c507c324c9976ec78e`; the current open queue remains
+  181 PRs and 43 issues. Active ruleset `18156473` requires one approving
+  review, resolved threads, and seven central workflows. It allows merge and
+  squash. Its `OrganizationAdmin` bypass actor is unused. Ruleset `21065108`
+  forbids non-fast-forward updates and has no bypass actors. The branch
+  protection REST endpoint returns 404 because rulesets govern this branch.
+  No self-approval, admin bypass, forced update, or ruleset change occurred.
+- **Baseline PR #1141 before this note:** exact head
+  `0df64b301009f81145789f5570ccd6d81ff4f270`; normal squash auto-merge is on
+  and the merge state is `BLOCKED`. Full suite, frontend, CodeQL and all three
+  CodeQL compatibility shards, Semgrep, Noema, OpenCode, coverage and current-
+  head admission passed. The formal review list contains comments only; there
+  is no independent approval or merge SHA. This note advances the head again,
+  so its hosted evidence must be refreshed while auto-merge stays enabled.
+- **Voice export candidate #1143:** exact head
+  `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67`, based on `main`; formal review
+  list empty, `REVIEW_REQUIRED`, and auto-merge on. Exact-head failures remain
+  the three CodeQL compatibility jobs, OpenCode, Noema, and `trivy-fs`; its
+  full suite, frontend, Strix, Semgrep and coverage pass. Its reusable export
+  filter and synthetic regression tests are the smallest known fix for an
+  additional Voice whose derivation Post is outside the visible neighborhood.
+  Local `tests/test_ontology_neighborhood.py` passed (**36 tests**). Keep this
+  PR behind #1141 because their baseline edits now conflict; after #1141's
+  protected merge, retarget #1143 to `main` and recollect all exact-head
+  evidence. Authenticated PostgreSQL/API and cutoff acceptance remain
+  **unverified**.
+- **Timestamp UI candidate #1142:** exact head
+  `921f2df9629b8fbdef707b04469b45b2a1ed6299`, based on `main`, auto-merge on,
+  `REVIEW_REQUIRED`, with no current approval. Hosted `dependency-review`
+  failed; applicable full suite, frontend, CodeQL, Trivy, Semgrep, Registry /
+  PostgreSQL and ontology publication checks passed. Local exact-head tests
+  passed (**17 tests**) and Storybook built. The synthetic interval story was
+  rendered at **2636×2211** desktop and **414×896** mobile; the contained table
+  scrolls horizontally to show full fractional timestamps and timezone
+  offsets. Authenticated UI/API behavior is still unavailable.
+- **Voice cutoff candidate #1139:** exact head
+  `421324c1b29d315d1987f69c3c16ce18a4330924`, base `main`, auto-merge on,
+  `REVIEW_REQUIRED`, with no formal reviews. Its synthetic Voice history and
+  ingestion tests passed locally (**13 tests**); the hosted full suite,
+  frontend, registry/PostgreSQL, Trivy, OSV, Semgrep, Strix and ontology
+  publication checks passed. The three CodeQL compatibility shards,
+  dependency-review, Noema and OpenCode failed. Its merge commit includes an
+  older #1137 dependency commit (`db96ff11`); current #1137 head
+  `4344d4dcb80fa08971c33f2f7df912d389dc7c61` is not an ancestor. Resolve the
+  dependency-parent order through normal protection and refresh #1139's
+  exact-head evidence before delivery.
+- **Dependency-floor owner candidate #1137:** exact head
+  `4344d4dcb80fa08971c33f2f7df912d389dc7c61`, base `main`, auto-merge on,
+  `REVIEW_REQUIRED`. Its active CodeQL compatibility, dependency-review,
+  Noema, Noema transport and OpenCode checks failed; full suite, frontend,
+  Trivy, OSV and Semgrep passed. #1137, #1139, and #1142 carry overlapping
+  PyJWT/urllib3 floor and lockfile changes. Read-only merge-tree checks showed
+  their source/lock changes combine; the shared gap-baseline document is the
+  only reported conflict. #1139 also changes a changelog fragment, but no
+  release number, API contract, or database schema changed in this review.
+- **Dependency Review root cause and owner:** central
+  `ContextualWisdomLab/.github` is at
+  `37b10243cec3d160ecc9c1be75c71428b160a703`. Its required `security-scan.yml`
+  calls the exact base/head `dependency-graph/compare` API and fails closed
+  unless transport succeeds with HTTP 200. The failed LineageWeave check is
+  that support probe. An authenticated comparison from the repository-admin
+  session against #1139's exact base/head also returned HTTP 403; no token was
+  printed. The endpoint's settings state was not exposed by the read API.
+  Central issue #810 remains open and owner PR #1725 is Draft / BEHIND at
+  `f27c5cfa4a61679e6ebb109d9e5972bd8a4f650d`, without auto-merge. Keep the
+  gate fail-closed; no consumer skip or fabricated pass was added. Central
+  CodeQL owner PR #2555 is also Draft and its own scans are blocked, so its
+  history fix is not yet delivered. These external owner conditions prevent
+  ordinary protected merges on #1137, #1139, #1142, and #1143.
+- **Voice acceptance boundary:** ADRs 0246, 0251, 0252 and 0256 remain
+  normative: twelve atomic Voice classes stay extensible; additional
+  assignments retain authorized Post evidence, PROV-O derivation, truth and
+  cutoff; carrying Post and derivation evidence remain separate. No
+  combination-code enumeration or B2B2C restriction is introduced. No
+  authenticated PostgreSQL/API test, real-rendered authenticated UI, or
+  authenticated k6 run was performed. These product acceptance gates remain
+  unavailable, and no release or customer runtime completion is claimed.
