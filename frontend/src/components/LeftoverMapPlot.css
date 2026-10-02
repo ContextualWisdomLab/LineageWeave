@@ -97,6 +97,10 @@
 .leftover-map-plot-segment-label {
   fill: var(--color-text);
   font-size: 0.65rem;
+  paint-order: stroke;
+  stroke: var(--color-background);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .leftover-map-plot-item {

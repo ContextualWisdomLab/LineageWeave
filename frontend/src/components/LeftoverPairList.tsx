@@ -61,7 +61,9 @@ export type LeftoverPairListProps = {
  * persisted leftover-map axis share when finite. ADR 0270 ticks those
  * leftover-map axes at persisted ``ξ`` / ``ζ`` so the pair-row badge matches
  * the plot. ADR 0271 names persisted leftover-map distance ``d`` on those
- * pair segments. Every badge still
+ * pair segments. ADR 0272 names persisted leftover-map reconstruction
+ * ``R̂`` on those pair segments. ADR 0273 names persisted leftover-map
+ * explained leftover share ``e`` on those pair segments. Every badge still
  * renders together before opening the named post.
  */
 export function LeftoverPairList({

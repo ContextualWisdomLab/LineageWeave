@@ -273,7 +273,7 @@ stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
-0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271) are computed in `lineageweave/leftover_pairs.py` from the
+0163 / 0164 / 0182 / 0185 / 0201 / 0233 / 0266 / 0267 / 0268 / 0269 / 0270 / 0271 / 0272 / 0273) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -301,7 +301,15 @@ plot; rank-0 unused axes name only `0` and do not invent drawing-scale
 ticks. ADR 0271 captions leftover-map pair segments with persisted
 leftover-map distance `d` so the pair-row badge matches the graphic;
 a missing or non-finite `d` omits that segment caption and does not
-invent `d` from plotted coordinates. When `R`, `R̂`, `U`, `x`,
+invent `d` from plotted coordinates. ADR 0272 captions leftover-map
+pair segments with persisted leftover-map reconstruction `R̂` so the
+pair-row badge matches the graphic; a missing or non-finite `R̂` omits
+that reconstruction caption and does not invent `R̂` from plotted
+coordinates. ADR 0273 captions leftover-map pair segments with persisted
+leftover-map explained leftover share `e` so the pair-row `R̂²/R²`
+badge matches the graphic; a missing or non-finite `e` omits that
+explained leftover share caption and does not invent `e` from `R̂` and
+`R` or from plotted coordinates. When `R`, `R̂`, `U`, `x`,
 `s`, and `e` are finite, `e + s + x = 1`. When coordinates,
 reconstruction, and distance are finite, `R̂ = ξ · ζ` and
 `d = ‖ξ − ζ‖`. The pairs sit above the member

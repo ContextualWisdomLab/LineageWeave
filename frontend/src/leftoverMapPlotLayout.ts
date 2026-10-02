@@ -1,15 +1,19 @@
 /** Gabriel leftover-map graphic display of persisted ``ξ_{1:2}`` / ``ζ_{1:2}``.
  *  Leftover-map axis share captions axes 1 and 2 when finite (ADR 0269).
  *  Axis ticks name persisted leftover-map coordinates (ADR 0270).
- *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271).
+ *  Pair segments name persisted leftover-map distance ``d`` (ADR 0271),
+ *  persisted leftover-map reconstruction ``R̂`` (ADR 0272), and persisted
+ *  leftover-map explained leftover share ``e`` (ADR 0273).
  */
 
 import { formatLeftoverMapCoordinatePair } from "./leftoverMapCoordinates";
+import { formatLeftoverMapExplainedShare } from "./leftoverMapExplainedShare";
+import { formatLeftoverMapReconstruction } from "./leftoverMapReconstruction";
 import { formatSignedLeftoverValue } from "./leftoverMapUnexplained";
 import type { LeftoverPair } from "./api";
 
 export const LEFTOVER_MAP_PLOT_CAPTION =
-  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d. Click a post marker to open that post. The plot does not invent a leftover score.";
+  "Leftover map after IRT main effects. Axis ticks name persisted leftover-map coordinates. Pair segments name leftover-map distance d, leftover-map reconstruction R̂, and leftover-map explained leftover share e. Click a post marker to open that post. The plot does not invent a leftover score.";
 
 export const LEFTOVER_MAP_PLOT_POST_ACTION =
   "Open leftover-map post {title} at ξ {person}";
@@ -20,6 +24,12 @@ export const LEFTOVER_MAP_PLOT_TICK =
 export const LEFTOVER_MAP_PLOT_SEGMENT_DISTANCE =
   "leftover-map distance {label}";
 
+export const LEFTOVER_MAP_PLOT_SEGMENT_RECONSTRUCTION =
+  "leftover-map reconstruction {label}";
+
+export const LEFTOVER_MAP_PLOT_SEGMENT_EXPLAINED_SHARE =
+  "leftover-map explained leftover share {label}";
+
 export const PLOT_WIDTH = 480;
 export const PLOT_HEIGHT = 320;
 export const PLOT_PADDING = 40;
@@ -27,6 +37,10 @@ export const PLOT_TICK_LENGTH = 6;
 const UNIT_DISPLAY_SPAN = 2;
 const COLLAPSED_SPAN = 1e-12;
 const COINCIDENT_LABEL_OFFSET = 14;
+const SEGMENT_LABEL_OFFSET = 24;
+const RECONSTRUCTION_LABEL_OFFSET = 12;
+const SEGMENT_LABEL_TOP_INSET = 12;
+const SEGMENT_LABEL_BOTTOM_INSET = 4;
 
 export type LeftoverMapPlottablePair = {
   pair_kind: LeftoverPair["pair_kind"];
@@ -34,6 +48,8 @@ export type LeftoverMapPlottablePair = {
   post_title: string;
   criterion_code: string;
   leftover_distance?: number | null;
+  leftover_map_reconstruction?: number | null;
+  leftover_map_explained_share?: number | null;
   leftover_map_person_axis_1?: number | null;
   leftover_map_person_axis_2?: number | null;
   leftover_map_item_axis_1?: number | null;
@@ -59,8 +75,14 @@ export type LeftoverMapPlotSegment = {
   x2: number;
   y2: number;
   distanceLabel: string | null;
+  reconstructionLabel: string | null;
+  explainedShareLabel: string | null;
   labelX: number;
   labelY: number;
+  reconstructionX: number;
+  reconstructionY: number;
+  explainedShareX: number;
+  explainedShareY: number;
 };
 
 export type LeftoverMapPlotTick = {
@@ -129,17 +151,17 @@ function toSvg(
 }
 
 function uniqueCoordinateTicks(values: number[]): { value: number; label: string }[] {
-  const byLabel = new Map<string, number>();
+  const seen = new Set<number>();
+  const ticks: { value: number; label: string }[] = [];
   for (const value of values) {
     const label = formatSignedLeftoverValue(value);
-    if (label === null) {
+    if (label === null || seen.has(value)) {
       continue;
     }
-    if (!byLabel.has(label)) {
-      byLabel.set(label, value);
-    }
+    seen.add(value);
+    ticks.push({ value, label });
   }
-  return [...byLabel.entries()].map(([label, value]) => ({ value, label }));
+  return ticks;
 }
 
 function leftoverMapCoordinateTicks(
@@ -186,10 +208,43 @@ function leftoverMapSegmentLabelPosition(
   y2: number,
 ): { labelX: number; labelY: number } {
   const coincident = Math.abs(x1 - x2) < 0.01 && Math.abs(y1 - y2) < 0.01;
+  const midpointX = (x1 + x2) / 2;
+  const midpointY = (y1 + y2) / 2;
+  if (coincident) {
+    return {
+      labelX: midpointX,
+      labelY: midpointY - COINCIDENT_LABEL_OFFSET,
+    };
+  }
+  const deltaX = x2 - x1;
+  const deltaY = y2 - y1;
+  const length = Math.hypot(deltaX, deltaY);
   return {
-    labelX: (x1 + x2) / 2,
-    labelY: coincident ? (y1 + y2) / 2 - COINCIDENT_LABEL_OFFSET : (y1 + y2) / 2,
+    labelX: midpointX - (deltaY / length) * SEGMENT_LABEL_OFFSET,
+    labelY: midpointY + (deltaX / length) * SEGMENT_LABEL_OFFSET,
   };
+}
+
+function leftoverMapStackedCaptionY(
+  labelY: number,
+  stackedAbove: number,
+  captionSpacing = RECONSTRUCTION_LABEL_OFFSET,
+): number {
+  return stackedAbove > 0 ? labelY + stackedAbove * captionSpacing : labelY;
+}
+
+function leftoverMapCaptionSpacing(height: number, captionCount: number): number {
+  if (captionCount <= 1) {
+    return 0;
+  }
+  const availableStackHeight = Math.max(
+    0,
+    height - SEGMENT_LABEL_TOP_INSET - SEGMENT_LABEL_BOTTOM_INSET,
+  );
+  return Math.min(
+    RECONSTRUCTION_LABEL_OFFSET,
+    availableStackHeight / (captionCount - 1),
+  );
 }
 
 export function layoutLeftoverMapPlot(
@@ -274,6 +329,42 @@ export function layoutLeftoverMapPlot(
       pair.leftover_map_item_axis_2 as number,
     );
     const distanceLabel = formatLeftoverMapDistance(pair.leftover_distance);
+    const reconstructionLabel = formatLeftoverMapReconstruction(
+      pair.leftover_map_reconstruction,
+    );
+    const explainedShareLabel = formatLeftoverMapExplainedShare(
+      pair.leftover_map_explained_share,
+    );
+    const labelPosition = leftoverMapSegmentLabelPosition(
+      personPos.x,
+      personPos.y,
+      itemPos.x,
+      itemPos.y,
+    );
+    const captionCount = [distanceLabel, reconstructionLabel, explainedShareLabel].filter(
+      (label) => label !== null,
+    ).length;
+    const captionSpacing = leftoverMapCaptionSpacing(height, captionCount);
+    const maximumLabelY = Math.max(
+      SEGMENT_LABEL_TOP_INSET,
+      height -
+        SEGMENT_LABEL_BOTTOM_INSET -
+        Math.max(0, captionCount - 1) * captionSpacing,
+    );
+    const labelY = Math.min(
+      Math.max(labelPosition.labelY, SEGMENT_LABEL_TOP_INSET),
+      maximumLabelY,
+    );
+    const reconstructionY = leftoverMapStackedCaptionY(
+      labelY,
+      distanceLabel !== null && reconstructionLabel !== null ? 1 : 0,
+      captionSpacing,
+    );
+    const explainedShareY = leftoverMapStackedCaptionY(
+      labelY,
+      (distanceLabel !== null ? 1 : 0) + (reconstructionLabel !== null ? 1 : 0),
+      captionSpacing,
+    );
     segments.push({
       pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
       postId: pair.post_id,
@@ -283,7 +374,14 @@ export function layoutLeftoverMapPlot(
       x2: itemPos.x,
       y2: itemPos.y,
       distanceLabel,
-      ...leftoverMapSegmentLabelPosition(personPos.x, personPos.y, itemPos.x, itemPos.y),
+      reconstructionLabel,
+      explainedShareLabel,
+      reconstructionX: labelPosition.labelX,
+      reconstructionY,
+      explainedShareX: labelPosition.labelX,
+      explainedShareY,
+      ...labelPosition,
+      labelY,
     });
   }
 
