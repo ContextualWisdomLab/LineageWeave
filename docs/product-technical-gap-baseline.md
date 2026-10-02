@@ -1,5 +1,73 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-03 08:12 KST
+
+This dated overlay supersedes older present-tense inventory only where stated.
+The current `main` head is `28f0c51b8341fa40218aab1b6368eeb185558a22`.
+GitHub reports 179 open PRs (168 drafts, 117 with a non-`main` base, 11
+ready) and 42 open issues; these repository counts say nothing about source
+records or customer populations.
+
+PR #1147 merged head `a36e561f9978a1ed45f42b40aee8945be4d5e645` as merge SHA
+`28f0c51b8341fa40218aab1b6368eeb185558a22`. Its four test and analysis
+checks failed to start on that exact head with GitHub's annotation “The job
+was not started because your account is locked due to a billing issue.” Its
+only submitted review was `COMMENTED`; there was no independent formal
+approval. The merge used GitHub's normal `gh pr merge --auto --squash` path,
+but it did not meet the requested independent-approval gate and is not counted
+here as protected delivery. The live repository ruleset read showed only
+active no-force-push protection; the branch-protection endpoint returned 404.
+No bypass or force push was used. The ADR cross-reference correction is
+present on `main`; its required hosted validation remains unproven.
+
+PR #1129 remains open at exact head
+`24d3b9cb1bc31f951da3879774013c97b415ecdf`, targeting `main`. Its prior
+successful application and PostgreSQL checks do not certify the new main
+base. A read-only merge-tree against the current main found conflicts in
+`docs/product-technical-gap-baseline.md`, `frontend/src/ontologyLayout.ts`,
+`pyproject.toml`, and `uv.lock`; do not transfer its reviews or Checks to a
+successor. Its Storybook comment correctly identifies a missing synthetic
+export assertion for retaining both primary and derived Voice relations.
+The head has no independent formal approval; its failed hosted jobs include
+CodeQL compatibility, dependency review, and review-transport gates. The
+candidate's exported-neighborhood privacy behavior therefore remains
+unverified for protected delivery.
+
+The exact-value Voice table's timestamp truncation is fixed on `main` and the
+synthetic desktop/mobile Storybook render is recorded below. The accepted
+Voice criteria still lack authenticated PostgreSQL reads/writes, paged
+JSON-LD multi-Voice preservation on a live response, exact-value CSV carrying
+Post versus derivation-evidence navigation through an authenticated screen,
+and authenticated product-screen evidence. Keep Voice acceptance open until
+those runtime conditions are demonstrated. A synthetic Storybook render does
+not substitute for database/API acceptance.
+
+### Selected Voice evidence-export gap
+
+PRD-FR-2 and ADR 0256 require the carrying Post and derivation evidence to stay
+distinct and require filtered, paged JSON-LD to retain only authorized Voice
+relations without replacing properties on a shared subject. The current-main
+behavior failed synthetic regressions for a hidden singleton Voice relation,
+multilingual labels on one subject, and downloading every scalar relation
+after paging. Candidate commit `7766134bea1f06622f8f9b40ceec282e65395349`
+keeps both singleton and array relations, removes a derived Voice when its
+evidence Post is filtered out, accumulates subject values without mutating
+input pages, and labels CSV `carrying_post_id` separately from
+`derivation_evidence_post_id`. It does not alter the 12-code taxonomy, add a
+fixed combination vocabulary, or change API or schema contracts.
+
+On that local code commit, frontend lint passed, all 58 frontend test files
+passed (551 tests), the production build and Storybook build passed, the three
+synthetic API-boundary tests passed, and `uv lock --check` passed. The
+`SeparateVoiceEvidence` Storybook scene was rendered and visually checked at
+1440×900 and 390×844; the mobile table stays within its viewport and scrolls
+to the distinct evidence column. Screenshots remain local at
+`/tmp/lineageweave-voice-successor-desktop.png` and
+`/tmp/lineageweave-voice-successor-mobile.png`. No authenticated PostgreSQL
+read/write or product-screen session was available, so runtime acceptance is
+still unverified. These are synthetic candidate results, not hosted Checks or
+protected delivery evidence.
+
 ## Exact-head, authority, and acceptance refresh — 2026-10-03 06:42 KST
 
 ### Normative authority and evidence
