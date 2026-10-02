@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+### Exact queue refresh — 2026-10-02 09:13 KST
+
+The paginated GitHub CLI reads returned **181 open PRs** and **43 open issues**.
+The non-draft `main` listing contained the 12 PRs summarized below; the larger
+inventory also contains drafts and stacked branches. No protected merge SHA
+was observed, and no candidate is described here as delivered.
+
+| PR | Current exact head and live status | Review / local evidence |
+| --- | --- | --- |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67`; five failures (CodeQL compatibility ×3, Trivy, OpenCode); `BLOCKED` | No exact-head approval; auto-merge on. CodeRabbit found no actionable comment. 56 focused backend ontology, SHACL, and public-docstring tests passed locally. Authenticated PostgreSQL/API, buyer UI, and k6 acceptance remain unverified. |
+| #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299`; Dependency Review failed; `BLOCKED` | Auto-merge on; review required. CodeRabbit found no actionable comment; prior Noema approval was dismissed on an older head. |
+| #1141 | `24cc4137158152d6544f85a43871a2ed45d9f7d9`; 24 checks succeeded, 11 skipped, 2 status contexts succeeded; full test suite pending | Review required; auto-merge on. The old SHA and heading findings are fixed; this exact head has no independent approval. |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924`; six failures (CodeQL compatibility ×3, Noema, Dependency Review, OpenCode); `BLOCKED` | Auto-merge on, no exact-head approval. The branch includes #1137's `db96ff11` dependency-owner commit; wait for #1137 to reach protected `main` before treating this dependent history as merge-ready. Focused Voice ingestion/history tests passed (13) with `DeprecationWarning` treated as errors. |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61`; seven failures (CodeQL compatibility ×3, Noema, Dependency Review, Noema continuation, OpenCode); `BLOCKED` | Canonical dependency owner, auto-merge on, independent approval required. The valid old-floor documentation finding is fixed; local PyJWT advisory tests passed (4). |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5`; five failures (CodeQL compatibility ×2, Noema, Trivy, OpenCode); `BLOCKED` | Auto-merge on. The stale-response finding is already fixed by `63f920485`; focused ontology explorer tests passed (34). |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589`; seven failures (CodeQL compatibility ×3, Noema, Dependency Review, Strix, OpenCode); `BLOCKED` | Auto-merge on. Both current-tree CodeRabbit suggestions are satisfied; frontend lint and 565 tests passed locally. |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e`; CodeQL compatibility ×2, Dependency Review, OpenCode failed; `BLOCKED` | Auto-merge on, approval required. CodeRabbit found no actionable comment. RankWeave `ARCHITECTURE.md` is the release authority; no API/schema or version conflict was found in the candidate. |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e`; 37 checks, no failure or pending check; `BLOCKED` | Auto-merge on, approval required; no review submitted. |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0`; four failures (CodeQL compatibility ×3, OpenCode); `BLOCKED` | `cwl-noema-review` approval is present; auto-merge on. Earlier translation and test comments are resolved. Local frontend tests passed (207), backend tests passed (40), and rendered Storybook screenshots were inspected at 1440×900 and 390×844. |
+| #1129 | `eb4c7bc169e2909298f7c3f1781c80285b71e5b0`; five failures (CodeQL compatibility ×3, Dependency Review, OpenCode); Noema and Strix pending | Auto-merge on, approval required. The carrying/evidence CSV columns have a focused regression test; 16 frontend tests, lint, build, and three Voice route tests passed on the candidate. |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af`; CodeQL compatibility ×3 and OpenCode failed; `BLOCKED` | `cwl-noema-review` approval is present; auto-merge on. No actionable source review finding remains. |
+
+Draft #1132 remains stacked on #1131's older branch head; draft #1138 remains
+stacked on dependency owner #1137. Do not retarget either before its parent is
+protected. Targeted merge-tree checks found no conflict markers for #1143 with
+#1129, #1139, or #1142. Earlier comparisons still show #1129/#1135 conflicts
+in the baseline and Storybook inventory, #1129/#1136 conflicts in those paths
+plus `OntologyExplorer.stories.tsx`, and dependency-file conflicts with
+#1133/#1137; preserve the canonical #1137 dependency owner. These branches add
+no conflicting API payload, schema migration, or release number. This baseline
+write creates a new #1129 head and invalidates its checks; re-enable auto-merge
+and read the replacement exact-head state after pushing.
+
 ### Cross-PR exact-head audit — 2026-10-02 08:26 KST
 
 The targeted PR detail reads covered these exact heads; they do not establish
