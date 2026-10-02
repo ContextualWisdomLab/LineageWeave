@@ -1,5 +1,128 @@
 # Product & Technical Gap Baseline
 
+### Current protected delivery and evidence-preserving export — 2026-10-02 20:39 KST
+
+This dated overlay supersedes conflicting present-tense queue statements below.
+REST pagination observed **181 open PRs**, **168 drafts**, **117 non-main
+bases**, and **42 open issues**, before creating this export candidate. Queue
+counts describe repository lifecycle state, not product acceptance or a
+population sample. GraphQL independently re-read the exact heads, formal
+reviews, review threads, and head-bound check rollups listed below after REST
+rate limiting. No check or approval is transferred between these heads.
+
+Protected `main` advanced from `83eba56149eb802cd63642c507c324c9976ec78e`
+to `da4e5d45420fdd6b2b9c1dc51eb613a706387da4`. PR #1040's merged lifecycle,
+merge SHA, and Git transport agree. Its current-head independent Noema approval
+and resolved threads were verified; the older four failed check observations
+have been superseded by the current rollup. The existing normal auto-merge
+completed without a self-approval, force push, or administrative bypass in this
+session. Post-merge runtime acceptance remains unverified. No open child targets
+#1040's branch, so this merge requires no child retarget.
+
+Live main rules require one approval, dismiss stale reviews, resolve review
+threads, enforce the extra approval for unattributed changes, and enforce seven
+central workflows (OpenCode, scheduler, Security Scan, Strix, Semgrep, Noema,
+and CodeQL). Last-push approval is false in this ruleset read; both organization
+and repository non-fast-forward protections remain active. The remaining
+ready PRs retain normal auto-merge. A missing verdict, cancelled check, skipped
+job, or dispatcher success is not substituted for a required passing verdict.
+
+| PR | Exact head | Lifecycle | Head-bound check rollup | Head approvals / unresolved threads | Auto-merge |
+|---|---|---|---|---|---|
+| #667 | `0c0f4af572a94e63cc8ea4545e48f5eda32a389c` | open / draft | failure 1, skipped 8, success 19 | none / 0 | none |
+| #672 | `a3e87a89185fae03c5f18c79e2d97d12c73e8af9` | open / draft | skipped 6, success 19 | none / 0 | none |
+| #1040 | `4d74c32a23cdc254cf5f4d4e72804fe54aa0f1af` | merged | skipped 19, success 27 | cwl-noema-review / 0 | enabled |
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` | open | cancelled 8, skipped 9, success 25 | none / 0 | enabled |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | open | failure 3, skipped 9, success 30 | none / 0 | enabled |
+| #1129 | `24d3b9cb1bc31f951da3879774013c97b415ecdf` | open | failure 7, skipped 5, success 30 | none / 0 | enabled |
+| #1130 | `383c392bc6713e55bed31b4d4053d93cfd1885d0` | open | failure 4, skipped 11, success 31 | cwl-noema-review / 0 | enabled |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | open | skipped 11, success 24 | none / 0 | enabled |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | open | cancelled 1, failure 4, skipped 14, success 33 | none / 0 | enabled |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | open | failure 7, skipped 6, success 29 | none / 0 | enabled |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | open | cancelled 1, failure 5, skipped 9, success 27 | none / 0 | enabled |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | open | failure 7, skipped 5, success 30 | none / 0 | enabled |
+| #1139 | `421324c1b29d315d1987f69c3c16ce18a4330924` | open | failure 5, skipped 6, success 31 | none / 0 | enabled |
+| #1141 | `56af953933499813ade0d1466754d7c04c447e14` | open | skipped 11, success 24 | none / 0 | enabled |
+| #1142 | `921f2df9629b8fbdef707b04469b45b2a1ed6299` | open | failure 1, skipped 20, success 24 | none / 0 | enabled |
+| #1143 | `ad7c7a154daad51d0125e81bfcdbd6b2f4498b67` | open | cancelled 1, failure 4, skipped 7, success 26 | none / 0 | enabled |
+
+The oldest #667 review's repeated-question React-key warning was compared with
+its actual head: suggestion and answer rows already use turn IDs with ordinal
+fallbacks. The old finding is not a new edit request. #667 and #672 remain
+conflicting draft candidates; their previously fixed comments are not copied
+as new repairs. Their broad deltas must be preserved and reconciled separately,
+not replaced with current-main files. Required-verdict failures on #1040 and
+#1130 were traced to central workflow enforcement steps rather than rewritten
+in LineageWeave. A bounded failed-job revalidation was requested for #1040;
+no active-main or open-PR run was cancelled. The in-progress run inventory was
+empty at the read, so there was no verified closed-PR stale run to cancel.
+
+**Authority and cross-PR conflicts.** Current LineageWeave PRD, ADR 0246,
+0251, and 0256 were read before implementation. ADR 0246 owns the twelve atomic
+Voices, ADR 0256 their extensible, evidence-bearing composition; ADR 0251 is the
+separate I/O psychology semantic layer. Research and source catalogs do not
+establish runtime Voice acceptance. Ecosystem authority reads include
+RankWeave `ARCHITECTURE.md`, ThreadWeave `docs/PRD.md`, TEPP's approved v0.4
+PRD, and DiskSage's current `docs/PRD.md`. Remote repository identity reads
+confirm `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+and **`ContextualWisdomLab/disksage`**. The PRD register's uppercase DiskSage
+machine reference and older claim of a missing standalone PRD are stale.
+
+Main has no duplicate four-digit ADR filenames, but the supporting PRD repeats
+FR-2A/FR-2B/FR-2C identifiers and contains differing occupational traceability
+references. Do not resolve that authority conflict by inventing a taxonomy or
+renumbering an accepted ADR. Read-only merge-tree checks of #1143 with #1139,
+#1142, and #1137 are textually clean. This limited conflict check does not prove
+semantic compatibility of all 181 candidates. Their authorization, cutoff,
+timestamp and dependency changes still need combined acceptance. The new export
+fix adds no ADR, API, schema, migration ordinal, dependency, or release number.
+It changes a different frontend file from #1143's backend evidence filter.
+Baseline overlays shared by multiple pending PRs remain an integration concern.
+
+**Selected reproducible product Gap.** Loading another neighborhood page could
+silently discard an earlier related record from exported JSON-LD. The backend
+emits separate scalar relation objects for the same subject and predicate;
+the frontend previously unioned values only when both happened to be arrays.
+The graph/CSV could therefore retain a relation that the downloaded JSON-LD
+lost. This is the highest-impact directly reproduced evidence-loss gap in this
+slice; no customer KPI or prevalence is inferred from the test fixture.
+
+Implementation commit `30adb0eacbe63bbebf65489c4511d40672fdc898` unions scalar,
+array and mixed property values while preserving subject identity, node
+properties, type values, and duplicate-free repeated paging. The candidate
+then normally merged new main at `d9213e64228c59c3aecb9181fa790ba4a491d855`.
+This repairs ADR 0256's existing export contract and follows W3C JSON-LD 1.1
+node/property semantics (https://www.w3.org/TR/json-ld11/), not a scoring rule.
+Regression tests cover repeated scalar server relations, every scalar/array
+Voice pairing, evidence relations, type union, input immutability, idempotent
+paging, and the actual Load-next-page → Export-JSON-LD download path. Four
+cases fail against the prior implementation; all **536 frontend tests** pass
+with the fix. Frontend lint, TypeScript/production build, and Storybook build
+pass. Existing bundle-size warnings remain visible.
+
+The existing CombinedVoiceEvidence Storybook scene was rendered and downloaded
+at 1440×900 and 390×844. Screenshots were visually inspected; the export control
+is reachable and body width matches each viewport, with the exact-value table
+scroll contained on mobile. These are synthetic rendering/export observations,
+not authenticated product acceptance, separate-Post derivation acceptance, or
+proof that all pending Voice changes compose correctly.
+
+**Current runtime aggregates and remaining acceptance.** A read-only count on
+the canonical `lineageweave` PostgreSQL container returned **43,189 source
+posts**. No titles, names, keys, record IDs, or credentials were output or added
+to artifacts. The synthetic direct-grant API probe returned HTTP 400 before an
+authorized product response, so authenticated PostgreSQL API/Voice acceptance
+remains **unverified**. The existing stack cannot be assumed synthetic-only;
+k6 load and PostgreSQL/worker/Valkey/gateway saturation measurements remain
+**unavailable** until an authenticated synthetic-only scope is established.
+No latency, throughput, error-rate, or saturation claim is made, and no
+unmeasured performance workaround was implemented. Official data volumes and
+other agents' work were preserved; the temporary Storybook server is stopped
+after capture. Hidden derivation evidence, truth/cutoff history, and actual
+multi-Voice API persistence remain required acceptance gates, not completed
+checkboxes. Missing scientific terminal artifacts remain unavailable.
+
+
 > Exact-head loop overlay: 2026-08-29 13:20 KST. Protected `main` is
 > `fc13acaa20adca11968238e398d4aafcf62b6cee` (v2.23.0 leftover-map
 > explained leftover share, #775). Open ready PRs still lack independent
