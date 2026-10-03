@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BackendError,
+  askAgent,
   fetchMe,
   fetchOccupationRatingSources,
   fetchOccupationRatings,
@@ -8,12 +9,89 @@ import {
   fetchRatingSourceOccupations,
   updateTenantConfig,
 } from "./api";
+import { config } from "./config";
+
+const defaultBackendBaseUrl = config.backendBaseUrl;
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
+  config.backendBaseUrl = defaultBackendBaseUrl;
 });
 
 describe("backendFetch provider-error boundary", () => {
+  it("refuses a remote cleartext backend before attaching authorization", async () => {
+    config.backendBaseUrl = "http://service.example";
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchMe("access-token")).rejects.toMatchObject({ status: 0 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("bounds a stalled Ask submission by the whole-operation deadline", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }),
+      ),
+    );
+
+    const pending = askAgent("access-token", "What changed?");
+    const rejection = expect(pending).rejects.toThrow("timed out waiting for an answer");
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
+
+    await rejection;
+  });
+
+  it("bounds a stalled Ask poll by the same whole-operation deadline", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ask_job_id: "job-1", job_status_code: "queued" })),
+      )
+      .mockImplementation((_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = askAgent("access-token", "What changed?");
+    const rejection = expect(pending).rejects.toThrow("timed out waiting for an answer");
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
+
+    await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("maps a stalled Ask response body to the whole-operation timeout", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener("abort", () =>
+                reject(new DOMException("aborted", "AbortError")),
+              );
+            }),
+        }),
+      ),
+    );
+
+    const pending = askAgent("access-token", "What changed?");
+    const rejection = expect(pending).rejects.toThrow("timed out waiting for an answer");
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
+
+    await rejection;
+  });
   it("binds the selected Dashboard period as inclusive API dates", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ cases: [] }), { headers: { "Content-Type": "application/json" } }),

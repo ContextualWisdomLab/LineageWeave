@@ -1,7 +1,7 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -88,6 +88,10 @@ import {
   type SimilarVocItem,
   fetchTenantConfig,
 } from "./api";
+import {
+  customerEntityDisplayRows,
+  type CustomerHierarchyIssue,
+} from "./customerMasterTree";
 import { CitationChip } from "./components/CitationChip";
 import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
@@ -4610,64 +4614,38 @@ function PostList({
   );
 }
 
-interface CustomerEntityTreeNode {
-  entity: CustomerMasterEntity;
-  children: CustomerEntityTreeNode[];
-}
-
-// Live bug (2026-08-19): Customer Master's own entity list rendered every
-// corporate_entity as an independent top-level row, even though the API
-// already carries parent_entity_id and the codebase already knows how to
-// build a real forest from it (lineageweave/affiliate_tree.py, used for
-// the post-detail popup's Affiliate tree) -- a group holding company and
-// its subsidiaries showed up as an unrelated flat list with no visual
-// hierarchy at all. A parent not present in this account's own visible
-// entity list (a real possibility -- ABAC can authorize a child entity
-// without its parent) is not dropped; that entity becomes a root here
-// instead of disappearing.
-function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
-  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
-  for (const entity of entities) {
-    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
-      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
-      siblings.push(entity);
-      childrenByParent.set(entity.parent_entity_id, siblings);
-    } else {
-      roots.push(entity);
-    }
-  }
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
-  });
-  return roots.map(toNode);
-}
+const CUSTOMER_HIERARCHY_ISSUE_LABEL: Record<CustomerHierarchyIssue, string> = {
+  cycle_parent_ignored: "Cyclic parent link omitted",
+  self_parent_ignored: "Self-parent link omitted",
+  parent_not_available: "Parent not available in this authorized view",
+};
 
 function CustomerEntityTreeRow({
-  node,
+  entity,
+  hierarchyIssue,
   depth,
   expandedEntityId,
   relatedByEntity,
   relatedLoading,
   onToggle,
   onOpenPost,
+  children,
 }: {
-  node: CustomerEntityTreeNode;
+  entity: CustomerMasterEntity;
+  hierarchyIssue: CustomerHierarchyIssue | null;
   depth: number;
   expandedEntityId: string | null;
   relatedByEntity: Record<string, RelatedNode[]>;
   relatedLoading: string | null;
   onToggle: (entityId: string) => void;
   onOpenPost: (postId: string) => void;
+  children?: ReactNode;
 }) {
-  const { entity, children } = node;
   const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
     (related) => related.node_type_code === NODE_POST,
   );
   return (
-    <li style={{ marginInlineStart: depth * 20 }}>
+    <li style={{ "--customer-hierarchy-depth": depth } as CSSProperties}>
       <button
         type="button"
         className="customer-entity-button"
@@ -4675,7 +4653,10 @@ function CustomerEntityTreeRow({
         onClick={() => onToggle(entity.corporate_entity_id)}
       >
         <strong>{entity.entity_name}</strong>
-        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+        <span>
+          {entity.corporate_entity_code} · {entity.entity_level_label}
+          {hierarchyIssue ? ` · ${t(CUSTOMER_HIERARCHY_ISSUE_LABEL[hierarchyIssue])}` : ""}
+        </span>
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
@@ -4700,24 +4681,53 @@ function CustomerEntityTreeRow({
           ) : null}
         </div>
       ) : null}
-      {children.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
-          {children.map((child) => (
-            <CustomerEntityTreeRow
-              key={child.entity.corporate_entity_id}
-              node={child}
-              depth={depth + 1}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={onToggle}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
-      ) : null}
+      {children}
     </li>
   );
+}
+
+function renderCustomerEntityRows(
+  entities: CustomerMasterEntity[],
+  expandedEntityId: string | null,
+  relatedByEntity: Record<string, RelatedNode[]>,
+  relatedLoading: string | null,
+  onToggle: (entityId: string) => void,
+  onOpenPost: (postId: string) => void,
+): ReactNode[] {
+  const rows = customerEntityDisplayRows(entities);
+  const pendingByDepth: ReactNode[][] = [];
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index];
+    const descendants = pendingByDepth[row.depth + 1] ?? [];
+    pendingByDepth[row.depth + 1] = [];
+    const nested = descendants.length > 0 ? (
+      <ul
+        className="customer-master-list customer-master-tree-children"
+        aria-label={tf("Affiliates of {name}", { name: row.entity.entity_name })}
+      >
+        {descendants}
+      </ul>
+    ) : null;
+    const rendered = (
+      <CustomerEntityTreeRow
+        key={row.entity.corporate_entity_id}
+        entity={row.entity}
+        hierarchyIssue={row.hierarchyIssue}
+        depth={row.depth}
+        expandedEntityId={expandedEntityId}
+        relatedByEntity={relatedByEntity}
+        relatedLoading={relatedLoading}
+        onToggle={onToggle}
+        onOpenPost={onOpenPost}
+      >
+        {nested}
+      </CustomerEntityTreeRow>
+    );
+    const siblings = pendingByDepth[row.depth] ?? [];
+    siblings.unshift(rendered);
+    pendingByDepth[row.depth] = siblings;
+  }
+  return pendingByDepth[0] ?? [];
 }
 
 function CustomerRelatedPostCard({
@@ -4752,7 +4762,7 @@ function CustomerRelatedPostCard({
   );
 }
 
-function CustomerMasterPanel({
+export function CustomerMasterPanel({
   accessToken,
 }: {
   accessToken: string;
@@ -4866,18 +4876,14 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
         <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
-          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
-            <CustomerEntityTreeRow
-              key={node.entity.corporate_entity_id}
-              node={node}
-              depth={0}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={toggleEntity}
-              onOpenPost={openPost}
-            />
-          ))}
+          {renderCustomerEntityRows(
+            master.corporate_entities,
+            expandedEntityId,
+            relatedByEntity,
+            relatedLoading,
+            toggleEntity,
+            openPost,
+          )}
         </ul>
       ) : null}
       {master && (master.relationship_network ?? []).length > 0 ? (
