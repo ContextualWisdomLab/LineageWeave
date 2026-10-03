@@ -22,6 +22,36 @@ new authenticated HTTP cases remain unverified locally: Keycloak returned
 HTTP 400 while requesting the synthetic test token, before database setup or
 the HTTP handlers ran.
 
+### Exact-head recheck — 2026-10-03 14:55 KST
+
+The newer protected `main` head remains
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. GitHub's refreshed inventory
+reports 179 open PRs (169 drafts, 117 with non-`main` bases, 10 ready) and 42
+open issues. These are repository counts, not usage or population estimates.
+Canonical casing was checked against GitHub and Git transport for LineageWeave,
+RankWeave, ThreadWeave, `disksage`, and TEPP.
+
+PR #1149 is at exact head `eac3543906f15b1d6ff569c8d04b0fce98e9aebb`, based
+on `main`, Draft, and mergeable. `Analyze (python)` and `Analyze (actions)`
+are terminal failures; the full suite and frontend checks are skipped while
+Draft. Reviews are comments only, the formal review decision is blank, and
+auto-merge is off. The GitHub API rate limit prevented retrieval of job details
+and live ruleset requirements; failure causes and the current approval count
+remain unavailable. The current source includes the valid JSON-LD selector
+repair: it selects the carrying-Post graph item containing `hasVoiceAssignment`.
+Local exact-head validation passed API-test-module compilation, documentation
+hygiene (5 tests), and ontology-neighborhood tests (36 tests). This does not
+prove authenticated PostgreSQL/API behavior.
+
+The largest remaining buyer-visible Voice acceptance gap is an authenticated
+runtime demonstration of the authorized assignment/read path and hidden
+evidence rejection, followed by rendered authenticated UI evidence showing the
+carrying Post separately from derivation evidence. The synthetic API tests are
+present but do not pass through the live Keycloak/PostgreSQL boundary here.
+Keep these acceptance criteria **unavailable** until both runtime API and UI
+evidence exist. Main already includes separate CSV fields for
+`carrying_post_id` and `derivation_evidence_post_id`.
+
 Current integration checks show:
 
 - #1141 remains at `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, based on
