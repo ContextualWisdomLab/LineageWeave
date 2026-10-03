@@ -249,6 +249,12 @@ export function filterNeighborhood(
       `${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
     ]),
   );
+  const edgeProperties = new Set(payload.edges.map((edge) => edge.ontology_property_iri));
+  const visibleAssertions = new Set(edges.map((edge) => JSON.stringify([
+    ontologyNodeId(edge.source_node_type_code, edge.source_node_id),
+    edge.ontology_property_iri,
+    ontologyNodeId(edge.target_node_type_code, edge.target_node_id),
+  ])));
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
@@ -261,14 +267,30 @@ export function filterNeighborhood(
               visibleNodeIds.has(item["@id"]) ||
               visibleVoiceIds.has(item["@id"])),
         ).map((item) => {
-          const rawRelations = item[HAS_VOICE_ASSIGNMENT];
-          if (rawRelations === undefined) return item;
+          const projected = { ...item };
+          for (const property of edgeProperties) {
+            const rawTargets = projected[property];
+            if (rawTargets === undefined) continue;
+            const targets = (Array.isArray(rawTargets) ? rawTargets : [rawTargets]).filter(
+              (target) => typeof target === "object" && target !== null &&
+                "@id" in target && visibleAssertions.has(JSON.stringify([
+                  item["@id"], property, target["@id"],
+                ])),
+            );
+            if (targets.length) {
+              projected[property] = Array.isArray(rawTargets) ? targets : targets[0];
+            } else {
+              delete projected[property];
+            }
+          }
+          const rawRelations = projected[HAS_VOICE_ASSIGNMENT];
+          if (rawRelations === undefined) return projected;
           const relations = (Array.isArray(rawRelations) ? rawRelations : [rawRelations]).filter(
             (relation) => typeof relation === "object" && relation !== null &&
               "@id" in relation && typeof relation["@id"] === "string" &&
               visibleVoiceIds.has(relation["@id"]),
           );
-          const { [HAS_VOICE_ASSIGNMENT]: _omitted, ...other } = item;
+          const { [HAS_VOICE_ASSIGNMENT]: _omitted, ...other } = projected;
           return relations.length ? { ...other, [HAS_VOICE_ASSIGNMENT]: relations } : other;
         }),
       }
