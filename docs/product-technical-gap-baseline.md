@@ -1,5 +1,170 @@
 # Product & Technical Gap Baseline
 
+## Exact-head recheck — 2026-10-03 18:52 KST
+
+Protected `main` remains `70f8f17b4228d571f57b357f1d884341d0131363`.
+GitHub reports 180 open PRs, 42 open issues, 168 drafts, 117 non-`main`
+bases, and 12 ready PRs.
+
+PR #1130 is at exact head `b25f10eb1021083317a8ecefd479efc29d6c0297`, based on
+this `main`; its rebase is a non-force fast-forward of the predecessor delta.
+GitHub still displays `APPROVED`, but the review commit is predecessor
+`383c392bc6713e55bed31b4d4053d93cfd1885d0`, so it is not current-head
+approval. The merge state is `UNSTABLE`, four hosted Checks failed, and
+auto-merge is off.
+
+PR #1151 is at `15039e587e7da626f2d12300d0c29b1df0a122b1`; PR #1152 is at
+`5bad1ebc57f8275d825f45db0f449fc40b760f76`. Both target `main`, have blank
+review decisions and no auto-merge requests, and each shows four failed and
+two successful hosted Checks. Local focused Compose (5), Voice API (3), and
+ontology/Voice projection (66) tests pass. The Voice-screen acceptance still
+needs an authenticated rendered UI on protected `main`.
+
+The hosted failures ended within seconds. GitHub's job-log API returned 403
+rate-limit errors, so run-specific causes remain unavailable. No PR has a
+merge SHA after `70f8f17` in this observation. Auto-merge remains disarmed on
+ready PRs lacking an independent approval for the current head because the
+active rulesets do not enforce that review requirement.
+
+## Exact-head refresh — 2026-10-03 17:53 KST
+
+Protected `main` remains `70f8f17b4228d571f57b357f1d884341d0131363`. GitHub
+now reports 180 open PRs, 42 open issues, 168 drafts, 117 non-`main` bases,
+and 12 ready PRs.
+
+PR #1151's previous exact head was
+`0bd68ab1987476eee9b141ed264e0609d95e978f`; it is open/ready on `main` with
+no formal approval or auto-merge. Four hosted Checks failed and two passed.
+Its local Compose tests and Ruff passed. This baseline refresh will itself
+produce a new PR head and require fresh checks.
+
+PR #1152 is open/ready at exact head
+`5bad1ebc57f8275d825f45db0f449fc40b760f76`, based on `main`, with a blank
+review decision and no auto-merge request. Four Checks failed, CodeRabbit was
+pending, and one Check passed. The local authenticated API suite passed three
+tests and the ontology/Voice projection suite passed 66. The repair authorizes
+the derivation Post independently of neighborhood traversal, retains cutoff
+and source eligibility, and omits the additional Voice when that evidence is
+hidden. Voice acceptance remains **partial** until an authenticated screen is
+rendered on protected `main`.
+
+PR #1130 remains open at remote head
+`ee6a98414f61119abe7e81a008c32c58b10afa8b`, based on older `main`
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. GitHub reports `DIRTY`, two
+analysis Checks failed, and no auto-merge request. Its displayed approval is
+from predecessor head `383c392bc6713e55bed31b4d4053d93cfd1885d0`; it is not
+current-head approval.
+
+The #1130 implementation addresses PRD-FR-5 and ADR 0014's Analysis-run
+recovery gap: visible next actions no longer include implementation-service
+terms, while the response fields and machine status remain intact. A
+live-`main` successor candidate has no schema migration, API field, model
+policy, or release-number change. On its previous exact candidate, 40 backend
+run/outbox tests, nine focused App/copy tests, production build, and Storybook
+build passed. Its synthetic recovery-copy story was inspected at 1280×720 and
+390×844. The broader frontend suite passed 539 of 556 tests; the 17 failures
+were on unrelated surfaces and mostly hit the existing five-second timeout.
+The timeout was left unchanged. Fresh exact-head Checks and independent review
+remain necessary after the successor is pushed.
+
+## Exact-head refresh — 2026-10-03 17:41 KST
+
+`main` remains `70f8f17b4228d571f57b357f1d884341d0131363`. GitHub now reports
+179 open PRs, 42 open issues, 168 drafts, 117 non-`main` bases, and 11 ready
+PRs.
+
+PR #1151 is open and ready at exact head
+`0bd68ab1987476eee9b141ed264e0609d95e978f` on `main`. Its review decision is
+blank, merge state is `UNSTABLE`, and auto-merge is off. Exact-head Checks show
+four failures and two passes; the log API remains rate-limited. Its local
+Compose/volume migration tests and Ruff pass. The follow-up keeps the existing
+official project label and volume names stable, handles an old directory-based
+project by an explicit project name, and reattaches the exact prior volumes
+without deleting them.
+
+The separately tested Authenticated Voice endpoint still lacks a rendered,
+authenticated Voice-screen capture on protected `main`; Voice acceptance is
+therefore partial.
+
+## Post-merge gate and volume-migration follow-up — 2026-10-03 17:33 KST
+
+Protected `main` is `70f8f17b4228d571f57b357f1d884341d0131363`. The latest
+repository inventory is 178 open PRs, 42 open issues, 168 drafts, 117
+non-`main` bases, and 10 ready PRs.
+
+PR #1149 merged head `13be5c2742c1123fe4f4b14f710688addc86ee1a` as
+`0368e96f99933cc94c8817fbd69aee5d5df64559`. Its review decision was blank;
+the submitted reviews were comments. The current-head Checks still showed two
+failures and two skips, with CodeRabbit pending at the read. PR #1150 merged
+head `478464d10497ed10dda64a6fefedcc8fc90d256b` as
+`70f8f17b4228d571f57b357f1d884341d0131363`. It also had a blank review
+decision; Devin left one potential bug comment and CodeRabbit was rate-limited.
+Its Checks showed two failures, two skips, and two passes. GitHub records both
+merge SHAs, but neither PR had an independent formal approval at merge time.
+No admin bypass or force push is claimed.
+
+The exact-head follow-up for Devin's finding is built from current `main` in
+this candidate. It scopes PostgreSQL and Valkey volume names to the selected
+Compose project, permits reuse of exact existing volume names, and stops an
+old project only when its exact name is supplied to `make down-legacy`. That
+target does not pass `-v`; the README gives the recovery sequence. Five local
+tests and Ruff pass, and the official stack remains under `lineageweave`.
+Hosted Checks and independent approval for this follow-up remain pending.
+
+Repository rulesets require PR/workflow execution and prohibit non-fast-forward
+updates, but do not require an independent approval; no classic branch
+protection rule is present. Auto-merge is disabled on the ten ready PRs until
+each has an independent approval for its exact current head. PR #1130's visible
+approval is tied to predecessor `383c392bc6713e55bed31b4d4053d93cfd1885d0`,
+not its current head `ee6a98414f61119abe7e81a008c32c58b10afa8b`; its head is
+`DIRTY`, two analysis Checks fail, and its auto-merge request is off.
+
+Voice API acceptance remains partial: the authenticated synthetic PostgreSQL
+API tests pass locally, but there is no authenticated Voice UI render on
+protected `main`. Carrying Post, derivation evidence, truth, cutoff, and
+multi-Voice JSON-LD remain separate evidence contracts.
+
+## Post-merge exact-head and Compose migration audit — 2026-10-03 17:10 KST
+
+Protected `main` is now `70f8f17b4228d571f57b357f1d884341d0131363`.
+GitHub's refreshed inventory is 178 open PRs, 42 open issues, 168 drafts, 117
+non-`main` bases, and 10 ready PRs. These are repository workflow counts.
+
+PR #1149's exact head was
+`13be5c2742c1123fe4f4b14f710688addc86ee1a`; GitHub records merge SHA
+`0368e96f99933cc94c8817fbd69aee5d5df64559` at 07:47 UTC. Its review decision
+was blank and its submitted reviews were `COMMENTED`; exact-head Checks showed
+two failures, two skips, and CodeRabbit still pending at the read. Local
+synthetic authenticated PostgreSQL acceptance passed its two new Voice API
+tests after fixing the neighborhood grouping query and fixture migration.
+That does not make the hosted Checks or independent review green.
+
+PR #1150's exact head was
+`478464d10497ed10dda64a6fefedcc8fc90d256b`; GitHub records merge SHA
+`70f8f17b4228d571f57b357f1d884341d0131363` at 07:48 UTC. Its review decision
+was blank. Devin left a potential-bug comment about migrating stacks from
+directory-derived project names; CodeRabbit's review was rate-limited. The
+Checks at the read had two failures, two skips, and two passes. This source
+adds a follow-up path that stops an explicitly named prior project without
+removing its volumes, then reuses the exact previous PostgreSQL and Valkey
+volume names under the canonical Compose project. The local Compose contract
+and migration tests pass (**5 tests**), and Ruff passes on the changed tests.
+
+The ruleset read found an active repository no-force-push rule and an
+organization rule requiring PR/workflow execution; neither defines an
+independent-approval count. Classic branch-protection rules were absent. Ten
+ready PRs had auto-merge armed but no independent approval on their current
+head (PR #1130's approval was on predecessor `383c392b…`). Their auto-merge
+requests have been disarmed until exact-head independent approval exists. No
+ruleset was modified, no admin bypass or force push was used, and no merge SHA
+is inferred for PR #1130.
+
+Voice-of-X remains **partial**: the authorized PostgreSQL API test passed
+locally with synthetic data and a real test-realm token, but no authenticated
+Voice UI render has been captured on protected `main`. CSV carrying/evidence
+columns and page-wise multi-Voice JSON-LD union remain distinct tested
+contracts; they do not substitute for that UI evidence.
+
 ## Voice API root-cause retest — 2026-10-03 16:40 KST
 
 Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
