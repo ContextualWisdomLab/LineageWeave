@@ -1,5 +1,19 @@
 # Product & Technical Gap Baseline
 
+## Candidate hosted handoff — 2026-10-04 00:22 KST
+
+PR #1156 was opened on `main` `259be21c4d3e551906c321ad7c911e0fa9695745`
+with implementation head `f61e9606ae443c71f4e95ec825410a142c53334d`.
+Its 13 executed-script regressions and seven Python contracts passed; final
+lint and TypeScript compilation passed. The four application/CodeQL Checks
+failed to start, each annotation citing an account billing lock. No approval,
+unresolved thread, or auto-merge request was present. This documentation-only
+handoff creates a new head; these hosted results are predecessor evidence and
+must be refreshed before any lifecycle decision. Auto-merge stays off because
+current rules do not enforce the task's required approval/check gates. The
+independently owned Voice candidates remain open, and authenticated Voice
+screen and successful load/saturation acceptance remain incomplete.
+
 ## Exact-head governance and authentication observation audit — 2026-10-03 23:55 KST
 
 This dated overlay distinguishes normative authority, candidate implementation,
