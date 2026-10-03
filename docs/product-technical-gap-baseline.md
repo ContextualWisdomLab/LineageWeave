@@ -1,5 +1,43 @@
 # Product & Technical Gap Baseline
 
+## Post-merge gate and volume-migration follow-up — 2026-10-03 17:33 KST
+
+Protected `main` is `70f8f17b4228d571f57b357f1d884341d0131363`. The latest
+repository inventory is 178 open PRs, 42 open issues, 168 drafts, 117
+non-`main` bases, and 10 ready PRs.
+
+PR #1149 merged head `13be5c2742c1123fe4f4b14f710688addc86ee1a` as
+`0368e96f99933cc94c8817fbd69aee5d5df64559`. Its review decision was blank;
+the submitted reviews were comments. The current-head Checks still showed two
+failures and two skips, with CodeRabbit pending at the read. PR #1150 merged
+head `478464d10497ed10dda64a6fefedcc8fc90d256b` as
+`70f8f17b4228d571f57b357f1d884341d0131363`. It also had a blank review
+decision; Devin left one potential bug comment and CodeRabbit was rate-limited.
+Its Checks showed two failures, two skips, and two passes. GitHub records both
+merge SHAs, but neither PR had an independent formal approval at merge time.
+No admin bypass or force push is claimed.
+
+The exact-head follow-up for Devin's finding is built from current `main` in
+this candidate. It scopes PostgreSQL and Valkey volume names to the selected
+Compose project, permits reuse of exact existing volume names, and stops an
+old project only when its exact name is supplied to `make down-legacy`. That
+target does not pass `-v`; the README gives the recovery sequence. Five local
+tests and Ruff pass, and the official stack remains under `lineageweave`.
+Hosted Checks and independent approval for this follow-up remain pending.
+
+Repository rulesets require PR/workflow execution and prohibit non-fast-forward
+updates, but do not require an independent approval; no classic branch
+protection rule is present. Auto-merge is disabled on the ten ready PRs until
+each has an independent approval for its exact current head. PR #1130's visible
+approval is tied to predecessor `383c392bc6713e55bed31b4d4053d93cfd1885d0`,
+not its current head `ee6a98414f61119abe7e81a008c32c58b10afa8b`; its head is
+`DIRTY`, two analysis Checks fail, and its auto-merge request is off.
+
+Voice API acceptance remains partial: the authenticated synthetic PostgreSQL
+API tests pass locally, but there is no authenticated Voice UI render on
+protected `main`. Carrying Post, derivation evidence, truth, cutoff, and
+multi-Voice JSON-LD remain separate evidence contracts.
+
 ## Post-merge exact-head and Compose migration audit — 2026-10-03 17:10 KST
 
 Protected `main` is now `70f8f17b4228d571f57b357f1d884341d0131363`.
