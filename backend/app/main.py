@@ -42,6 +42,7 @@ from lineageweave.claim_verification import (
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
+    index_legacy_activity_stream_aliases,
     publish_activity_event,
     read_activity_events,
     ticket_created_summary,
@@ -297,6 +298,7 @@ async def lifespan(app: FastAPI):
         pool = await create_pool(settings.database_url)
         app.state.pool = pool
         valkey = create_valkey_client(settings.valkey_url)
+        await index_legacy_activity_stream_aliases(valkey)
         app.state.valkey = valkey
         analysis_worker = asyncio.create_task(
             run_analysis_run_worker(
