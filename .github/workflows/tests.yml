@@ -63,6 +63,110 @@ jobs:
       - name: Run full test suite against PostgreSQL
         run: uv run --frozen python -m pytest -q
 
+  summary-authorization-integration:
+    name: Summary authorization integration
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_PROJECT_NAME: summary-auth-${{ github.run_id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install the committed universal lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Start synthetic identity and data services
+        run: docker compose up -d --build postgres valkey keycloak
+
+      - name: Wait for the synthetic integration stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            valkey_container_id="$(
+              docker ps -q \
+                --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" \
+                --filter "label=com.docker.compose.service=valkey" \
+                | head -n 1
+            )"
+            if curl --fail --silent --show-error \
+                http://localhost:18080/realms/lineageweave-demo/.well-known/openid-configuration \
+                >/dev/null \
+              && test -n "${valkey_container_id}" \
+              && test "$(docker exec "${valkey_container_id}" valkey-cli ping)" = "PONG"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker ps -a \
+            --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+          for service in postgres valkey keycloak; do
+            container_id="$(
+              docker ps -aq \
+                --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" \
+                --filter "label=com.docker.compose.service=${service}" \
+                | head -n 1
+            )"
+            if test -n "${container_id}"; then
+              echo "::group::${service} logs"
+              docker logs "${container_id}" || true
+              echo "::endgroup::"
+            fi
+          done
+          exit 1
+
+      - name: Run authenticated summary authorization regressions
+        run: >-
+          uv run --frozen python -m pytest -q
+          backend/tests/test_summary_catalog_authorization_api.py
+          backend/tests/test_summary_catalog_fallback_authorization_api.py
+
+      - name: Stop synthetic integration stack
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t container_ids < <(
+            docker ps -aq \
+              --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+          )
+          if ((${#container_ids[@]})); then
+            docker rm -f "${container_ids[@]}"
+          fi
+          mapfile -t volume_names < <(
+            docker volume ls -q \
+              --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+          )
+          if ((${#volume_names[@]})); then
+            docker volume rm "${volume_names[@]}"
+          fi
+          mapfile -t network_ids < <(
+            docker network ls -q \
+              --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+          )
+          if ((${#network_ids[@]})); then
+            docker network rm "${network_ids[@]}"
+          fi
+
   frontend:
     name: Frontend lint, test, build
     if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
