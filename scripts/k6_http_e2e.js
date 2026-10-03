@@ -7,6 +7,7 @@
  */
 
 import http from "k6/http";
+import exec from "k6/execution";
 import { check, fail } from "k6";
 import { Counter, Trend } from "k6/metrics";
 
@@ -17,6 +18,9 @@ const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
+const suppliedToken = __ENV.K6_ACCESS_TOKEN_FILE !== undefined
+  ? open(__ENV.K6_ACCESS_TOKEN_FILE).trim()
+  : null;
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
@@ -26,7 +30,13 @@ const askStateObservations = new Counter("lineageweave_ask_state_observations");
 
 let vuToken;
 
-function authenticate() {
+function authenticate(renew = false) {
+  if (suppliedToken !== null) {
+    if (!suppliedToken || renew) {
+      exec.test.abort("Supplied access token is unavailable; obtain a fresh authorized token and rerun");
+    }
+    return suppliedToken;
+  }
   const response = http.post(
     `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
     {
@@ -83,7 +93,7 @@ export function setup() {
   );
   askEnqueueDuration.add(submitted.timings.duration);
   if (submitted.status !== 202) {
-    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}: ${submitted.body}`);
+    fail(`synthetic Ask enqueue failed with HTTP ${submitted.status}`);
   }
   return { token, askJobId: submitted.json("ask_job_id") };
 }
@@ -92,7 +102,7 @@ export default function (data) {
   vuToken ||= data.token;
   let responses = readBatch(vuToken, data.askJobId);
   if (responses.some((response) => response.status === 401)) {
-    vuToken = authenticate();
+    vuToken = authenticate(true);
     responses = readBatch(vuToken, data.askJobId);
   }
 

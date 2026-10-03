@@ -60,6 +60,12 @@ invocation.
 
 ## Consequences
 
+Synthetic MCP load observations may use an opaque, audience-correct access
+token from an operator-owned runtime file. The identity owner supplies it;
+the harness does not change grant policy. A rejected supplied token ends the
+observation without password-grant fallback. Error diagnostics contain only
+bounded operation/status information, never server response content or tokens.
+
 - REST, MCP, UI polling, reports, and alerts read one persisted answer contract.
 - MCP submission remains responsive while multi-minute orchestration stays in
   the existing worker.

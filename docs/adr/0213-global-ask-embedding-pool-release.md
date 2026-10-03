@@ -28,6 +28,13 @@ requires it and an ADR records that exception.
 
 ## Consequences
 
+The synthetic HTTP observation harness may consume an opaque access token from
+an operator-owned runtime file. Authentication remains with the identity owner;
+the harness must not enable a disabled password grant or treat failed
+authentication as application capacity evidence. A rejected supplied token
+ends that observation rather than falling back to another grant. Diagnostics
+retain status codes only, never response bodies or credentials.
+
 - Embedding latency cannot exhaust the shared HTTP database pool.
 - Authorization predicates and persisted model/dimension matching remain in
   the database query and are unchanged.

@@ -1,5 +1,129 @@
 # Product & Technical Gap Baseline
 
+## Exact-head governance and authentication observation audit — 2026-10-03 23:55 KST
+
+This dated overlay distinguishes normative authority, candidate implementation,
+repository workflow counts, and runtime observations. It does not certify a
+release or a population estimate.
+
+### Authority and ownership read
+
+The current LineageWeave PRD (`docs/product-requirements.md`) was read before
+mutation, together with RankWeave's `ARCHITECTURE.md`, ThreadWeave's
+`docs/PRD.md`, TEPP's `docs/product/prd-v0.4-approved.md`,
+contextual-orchestrator's `docs/product_planning.md`, and disksage's
+`docs/superpowers/specs/2026-07-10-disksage-design.md`. GitHub confirms canonical
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`contextual-orchestrator`, `fast-mlsirm`, and lowercase `disksage`.
+The current default heads read for RankWeave, ThreadWeave, disksage, and TEPP
+are respectively `92323cb8b55baf5d840cb97fa8534a0e75ef234c`,
+`0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`,
+`05899ffb01ce91a9ea3d782630b28a398de59ddc`, and
+`a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`.
+No consumer mathematical, model-selection, or measurement policy was added.
+
+ADRs 0246 and 0256 govern the 12 atomic Voices and open-ended evidence-bearing
+composition; ADR 0251 governs a separate occupational psychology layer.
+Their cited literature supports evidence and stakeholder boundaries, not a
+finite combination vocabulary or a numeric weighting policy. ADRs 0204,
+0213, and 0218 govern asynchronous observations and owner-scoped Ask work.
+The token-file clarification below delegates identity issuance to its owner;
+it neither selects a provider nor changes an OAuth grant policy.
+
+### Current remote delivery evidence
+
+Git transport and GraphQL agree on default `main`
+`259be21c4d3e551906c321ad7c911e0fa9695745`. PR #1149 merged as
+`0368e96f99933cc94c8817fbd69aee5d5df64559`; #1152 merged as that current main
+SHA. #1152's exact head `5bad1ebc57f8275d825f45db0f449fc40b760f76`
+has only a COMMENTED review in the refreshed response. These are confirmed
+merge identities, **not independently approved protected-delivery evidence**.
+
+The paginated open inventory contains **181 PRs**, **168 drafts**, **117
+non-main bases**, and **42 open Issues**. These non-identifying workflow counts
+are not user adoption, source-data statistics, or inferential population
+results. No live source body, title, identifier, or credential was read.
+
+| PR | Exact observed head | Current-head review/Check evidence |
+| --- | --- | --- |
+| #1153 | `d207a0eb0de0c9ec35bdf1fe17dc40972afa3524` | No approval or unresolved thread; four failed-to-start application/CodeQL jobs |
+| #1154 | `7308da337b0cdc0559531c8b62ce889a2ca4a934` | COMMENTED review only; application jobs failed to start; the non-identifying software-delivery-reference finding was explained and resolved under AGENTS.md |
+| #1155 | `1a83f31daa881e58ddde181768d35acb77aaa613` | No approval; preserves the independently owned Voice-history documentation repair |
+| #1138 | `94f17ae5d0e3e69057cca605591e4d2941c3248f` | Draft child of #1137; derivation-admission work remains owned by that PR |
+
+GitHub check annotations for #1153 and #1154 explicitly state that jobs were
+not started because the account is locked by a billing issue. Application
+code cannot repair that owner/account condition. GraphQL ruleset inspection
+with inherited rules included returns only the active no-force-push rule;
+required approvals, thread resolution, and successful Checks are not enforced
+there. Consequently auto-merge would not enforce this task's mandatory gates
+and was not enabled. No self-approval, bypass, force push, or policy weakening
+occurred. Classic branch protection and runner inventories remain unavailable
+through the rate-limited REST API. Queued checks alone are not used to stop
+independent work; closed/stale runs are not cancelled without runner/head proof.
+
+### Largest outstanding acceptance gap and bounded repair
+
+PRD-FR-2's authenticated Voice API **and rendered UI together** remain the
+largest outstanding acceptance gap recorded here. #1149's synthetic API
+repair and #1153/#1154's export candidates remain separate evidence; the
+current task does not declare Voice acceptance complete. Atomic classification,
+PROV-O derivation, truth status, cutoff, separate carrying/evidence actions,
+and page-wise multi-Voice union must still pass the authenticated acceptance.
+
+The formal synthetic-token preflight for the existing k6 HTTP script returned
+**HTTP 400 before setup completed**, with zero workload iterations. This is
+failed authentication, not a PostgreSQL, worker, Valkey, or gateway saturation
+measurement. The current client disallows the harness's password grant.
+Re-enabling that grant would change identity policy to accommodate a test.
+
+The new candidate lets both existing HTTP and MCP scripts consume an opaque
+access token from a private runtime file supplied by the identity owner. A
+blank or subsequently rejected supplied token aborts the complete observation
+without another grant. Server bodies and MCP error content no longer enter
+failure diagnostics. Executed-script regressions cover token use, missing
+content, expiry, legacy synthetic authentication, and diagnostic privacy.
+This repairs a measurement prerequisite; it does **not** establish runtime
+capacity or fill the remaining authenticated Voice-screen acceptance.
+No latency, error-rate, concurrency threshold, provider ranking, sampling
+inference, or bottleneck repair is invented without measured evidence.
+
+### Local verification for this candidate — 2026-10-04 00:12 KST
+
+The 13 executed-script authentication/privacy regressions passed using Vitest's
+threads pool after the forks pool failed to start a local worker. No worker
+startup timeout or warning filter was changed. The seven existing k6/document
+contracts passed with `DeprecationWarning` treated as an error. Production
+TypeScript compilation and build succeeded; the existing 551.27 kB application
+chunk warning remains tracked by #994/#1012 and was not suppressed. This
+non-UI harness change adds no customer surface or Storybook scene.
+
+Real k6 negative preflights for both scripts produced exit 108 for empty
+runtime token files and exit 107 / HTTP 401 for explicitly invalid synthetic
+tokens. The rejected-token paths made no password-grant fallback and did not
+log token values. Each temporary token file was removed. These are rejection
+and privacy checks, not authenticated workload or saturation evidence. The
+formal `lineageweave` services and data volumes were not rebuilt or removed;
+no isolated Compose test project was created by this candidate.
+
+### Cross-PR contract audit
+
+Read-only merge-tree comparison of exact #1153/#1154 heads combines their
+production filtering, tests, and Storybook deltas; their dated gap-baseline
+sections conflict and both must survive integration. #1155 changes ADR 0252
+and ADR 0256 wording and must retain its author's interval-history rationale.
+#1138 stays behind its security parent #1137 until the parent is independently
+approved and normally merged, then requires main retargeting and new evidence.
+
+This candidate adds no API field, schema, migration ordinal, release version,
+Voice code, or owner calculation. The existing pair of migration 0233 files
+(`source_conversation_turn_evidence` and `report_leftover_map_unexplained_share`)
+remains an unresolved ordinal collision tracked by #1048; shipped history is
+not rewritten. The PRD also retains duplicate occupational requirement/ADR
+identities tracked by #807. Neither discrepancy is silently interpreted as a
+new runtime policy. Release authority reconciliation remains tracked by #1056.
+
+
 ## Voice API root-cause retest — 2026-10-03 16:40 KST
 
 Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.

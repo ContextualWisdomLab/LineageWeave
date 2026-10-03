@@ -36,6 +36,25 @@ observation boundary, not a product latency threshold.
 
 ## Interpret the output
 
+If the synthetic identity client disables password grants, obtain a token
+using its authorized sign-in flow and keep it in a permission-restricted
+runtime file outside the checkout. Set `K6_ACCESS_TOKEN_FILE` to that absolute
+path; the script reads it during initialization and makes no password-grant
+request. Use local `k6 run` only; do not archive or upload a script that opens the
+runtime token file. Never pass the token itself on the command line or enable
+HTTP debug logging. A missing/empty file or rejected token is failed authentication, not
+capacity evidence. If the supplied token expires, the entire observation aborts;
+obtain a fresh token and start a new observation. The harness never changes
+the identity client's grant configuration. Server bodies stay out of error
+diagnostics.
+
+```bash
+K6_ACCESS_TOKEN_FILE=/absolute/private/runtime/access-token \
+  k6 run -e REQUEST_TIMEOUT=<declared-request-window> \
+  --vus <measured-concurrency> --duration <observation-window> \
+  scripts/k6_http_e2e.js
+```
+
 k6 reports observed request counts, failure rate, and duration distributions.
 The custom metrics separate:
 
