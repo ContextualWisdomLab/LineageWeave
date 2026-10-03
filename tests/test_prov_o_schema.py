@@ -63,10 +63,14 @@ def prov_schema_db():
         database_dsn = _dsn_for_database(_ADMIN_DSN, database_name)
         connection = psycopg2.connect(database_dsn)
         try:
+            # Migration files own their BEGIN/COMMIT boundary. Run them outside
+            # psycopg2's implicit transaction so PostgreSQL does not emit nested
+            # transaction warnings, then restore normal test transactions.
+            connection.autocommit = True
             with connection.cursor() as cursor:
                 for migration_path in _MIGRATION_PATHS:
                     cursor.execute(migration_path.read_text())
-            connection.commit()
+            connection.autocommit = False
             yield connection
         finally:
             connection.close()
