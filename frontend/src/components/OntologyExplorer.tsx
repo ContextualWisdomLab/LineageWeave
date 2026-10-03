@@ -580,12 +580,12 @@ function OntologyExactValueTable({
                   {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
                     <button
                       type="button"
-                      aria-label={tf("Open evidence: {title}", {
-                        title: postLabels.get(row.evidence_post_id) ?? row.evidence_post_id,
-                      })}
+                      aria-label={postLabels.has(row.evidence_post_id)
+                        ? tf("Open evidence: {title}", { title: postLabels.get(row.evidence_post_id)! })
+                        : t("Open evidence post")}
                       onClick={() => onOpenEvidence(row.evidence_post_id as string)}
                     >
-                      {postLabels.get(row.evidence_post_id) ?? row.evidence_post_id}
+                      {postLabels.get(row.evidence_post_id) ?? t("Open evidence post")}
                     </button>
                   ) : row.evidence_count}
                 </td>

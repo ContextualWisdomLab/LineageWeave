@@ -4749,12 +4749,13 @@ def test_voice_assignment_round_trips_through_authorized_postgres_api(
         params={
             "focus_node_type": NODE_POST,
             "focus_node_id": carrying_post_id,
-            "maximum_depth": 2,
+            "maximum_depth": 1,
         },
         headers=headers,
     )
     assert neighborhood_response.status_code == 200, neighborhood_response.text
     neighborhood = neighborhood_response.json()
+    assert evidence_post_id not in {node["node_id"] for node in neighborhood["nodes"]}
     voice_row = next(
         row
         for row in neighborhood["exact_value_rows"]

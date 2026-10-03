@@ -337,6 +337,29 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
+  it("opens authorized evidence outside traversal without showing an internal identifier", async () => {
+    const source = neighborhood();
+    const evidenceId = "synthetic-outside-evidence";
+    const onSelectPost = vi.fn();
+    const onOpenEvidence = vi.fn();
+    render(<OntologyExplorer
+      focusNodeType="node_post"
+      focusNodeId={POST_ID}
+      neighborhood={{ ...source, exact_value_rows: [{
+        ...source.exact_value_rows[0],
+        edge_id: "voice-outside", property_code: "hasVoiceAssignment",
+        evidence_post_id: evidenceId,
+      }] }}
+      onSelectPost={onSelectPost}
+      onOpenEvidence={onOpenEvidence}
+    />);
+    await userEvent.click(screen.getByRole("button", { name: "Open post: Demo public post" }));
+    expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
+    expect(onOpenEvidence).toHaveBeenCalledWith(evidenceId);
+    expect(screen.queryByText(evidenceId)).not.toBeInTheDocument();
+  });
+
   it("opens the carrying post and its authorized Voice evidence separately", async () => {
     const onOpenEvidence = vi.fn();
     const onSelectPost = vi.fn();

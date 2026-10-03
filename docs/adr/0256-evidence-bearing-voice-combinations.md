@@ -94,10 +94,18 @@ repair of old intervals is rejected because the overwritten evidence is absent.
   derivation-evidence Post. It does not invent a graph edge or expose an
   internal assertion identifier. A single bounded query loads
   assignments for every authorized Post in the neighborhood, regardless of
-  whether the focus is a Post, Person, Organization, Team, or Project. An
-  additional assignment whose evidence Post is outside that authorized node
-  set is omitted as a whole, keeping the JSON-LD conformant with the SHACL
-  evidence minimum without disclosing or substituting hidden evidence. When
+  whether the focus is a Post, Person, Organization, Team, or Project. The
+  application independently authorizes each derivation-evidence Post against
+  source eligibility, caller visibility, knowledge cutoff, and snapshot time.
+  Traversal membership does not establish authorization: an authorized evidence
+  Post outside the bounded graph remains a reference, without expanding the
+  traversal or inventing an edge. The assembler accepts such references only
+  through an explicit application-owned authorized evidence set; its default
+  remains empty. A hidden, ineligible, or future evidence Post omits the whole
+  additional assignment and is never replaced with the carrying Post. Local
+  search may omit an in-graph evidence node and its assignment together; it
+  retains independently authorized out-of-traversal references for a retained
+  carrying Post. When
   bounded pages are accumulated, properties for the same JSON-LD subject are
   merged and multi-value Voice relations are unioned instead of one page
   replacing another. In exact-value CSV, `carrying_post_id` and
