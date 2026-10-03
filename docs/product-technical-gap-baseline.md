@@ -1823,3 +1823,45 @@ repository workflow metadata, not runtime or population evidence.
   release number was introduced; the baseline was appended to preserve the
   existing audits. Authentication, PostgreSQL acceptance, screenshot audit,
   and k6 saturation evidence remain unverified.
+
+### Exact-head delivery refresh — 2026-10-03 13:45 KST
+
+The canonical GitHub repository is `ContextualWisdomLab/LineageWeave`; its
+remote default branch is `main` at `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
+This overlay records the exact GitHub state observed before this documentation
+commit. It does not promote candidate or local evidence to protected delivery.
+
+- PR #1149, `docs/gap-baseline-post-merge-audit-20261003`, was Draft at head
+  `a9a89d282e7dc6f49afde615da555a80c89f2839`, based on that current `main`.
+  CodeRabbit's current actionable JSON-LD selector finding is fixed at this
+  head: the test selects the carrying Post that contains `hasVoiceAssignment`.
+  Its CodeQL Python and Actions jobs failed; full-suite and frontend jobs were
+  skipped because the PR is Draft. No independent approval or auto-merge was
+  present. GitHub's Actions API returned HTTP 403 rate-limit responses when
+  retrieving failure logs. The PR description reports local synthetic checks,
+  and remains **unverified**. Re-running its focused API tests in this refresh
+  reached the local OIDC endpoint but received HTTP 400 before database setup;
+  the aggregate-documentation hygiene test passed. This PR changes only tests and supporting docs;
+  production API/schema behavior is not established by it.
+- PR #1141, `codex/gap-baseline-exact-head-20261001`, was open at
+  `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, with base `main` recorded as
+  `83eba56149eb802cd63642c507c324c9976ec78e`. GitHub reported `DIRTY` and no
+  review decision; auto-merge was enabled. Its observed successful Checks
+  belong only to that exact head and old base. It is not merge-ready until the
+  live base/conflict is reconciled and fresh exact-head evidence is collected.
+- PR #1135's live branch ref was `73ba540789d2f2210a17e7eb5396270dafa66589`;
+  the checked-out workspace branch was at that same commit. Its broad earlier
+  exact-head check/review snapshots in this document are historical and must
+  not be carried forward. No merge claim is made here.
+- The open-PR listing was capped at 100 results, and subsequent GitHub REST
+  requests hit the authenticated API rate limit. A complete current open
+  PR/Issue inventory and live ruleset detail therefore remain unavailable in
+  this refresh; older inventory counts below are dated snapshots only.
+
+The material product acceptance gap remains the same as PRD-FR-2: authorized
+PostgreSQL/API evidence must keep the carrying Post distinct from the
+PROV-O-derived evidence Post, preserve truth status/cutoff, exclude hidden
+proof, and retain multi-Voice properties across paged JSON-LD. Synthetic API
+fixtures and a rendered Storybook scene do not satisfy the authenticated
+PostgreSQL/API or authenticated rendered-UI acceptance conditions. No
+population, customer, or runtime conclusion is inferred from current evidence.
