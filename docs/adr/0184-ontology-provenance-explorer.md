@@ -14,6 +14,11 @@
 3. RBAC/ABAC and source eligibility run before any node, edge, label, count, or path enters the response. A hidden endpoint removes the edge. Truncation never reports how many neighbors were omitted. Corporate hierarchy parents use the same visible-post evidence gate as other corporate-entity endpoints; a visible child alone does not reveal a hidden parent label.
    A missing and a non-visible focus return the same not-found status and buyer
    surface, so the response cannot become a catalog-existence oracle.
+   Reader, focus, and cutoff changes discard prior evidence and continuation
+   before rendering the new scope. Pending replies from the previous scope
+   cannot restore its graph, exports, selection, or nested catalog search.
+   A denied continuation clears every loaded page; a transient server failure
+   retains pages only within the same authorized scope.
 4. Truth status is one of `truth_authoritative`, `truth_observed`, `truth_inferred`, `truth_proposed`, `truth_superseded`, `truth_rejected`. Display never promotes inference to authority.
    Node truth and `recorded_at` are catalog-owned metadata. A missing catalog
    value is omitted from JSON-LD and represented as `null` in the typed API;
