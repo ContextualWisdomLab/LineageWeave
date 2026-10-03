@@ -267,4 +267,6 @@ services:
 
 volumes:
   postgres_data:
+    name: ${POSTGRES_DATA_VOLUME:-${COMPOSE_PROJECT_NAME:-lineageweave}_postgres_data}
   valkey_data:
+    name: ${VALKEY_DATA_VOLUME:-${COMPOSE_PROJECT_NAME:-lineageweave}_valkey_data}

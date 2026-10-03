@@ -115,6 +115,23 @@ make smoke   # real login as the synthetic demo user + JWT signature
 make down
 ```
 
+For an older checkout that started Compose under a directory-derived project
+name, identify that exact project and its existing data-volume names before
+switching. Stop only that project's containers and network with
+`LEGACY_COMPOSE_PROJECT_NAME=prior-stack make down-legacy`, replacing
+`prior-stack` with the exact name shown by `docker compose ls --all`. The
+command does not remove volumes. Check their exact names with
+`docker volume ls --filter label=com.docker.compose.project=prior-stack`.
+Then start the canonical project while reusing those volumes, for example:
+
+```bash
+POSTGRES_DATA_VOLUME=prior-stack_postgres_data \
+VALKEY_DATA_VOLUME=prior-stack_valkey_data make up
+```
+
+Replace the example volume names with the exact listed names. Do not add `-v`
+when stopping the old project.
+
 Outside GitHub, `make up` reads `~/.env` through Compose's `--env-file`.
 Configure the contextual-orchestrator provider there with
 `LLM_GATEWAY_API_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or

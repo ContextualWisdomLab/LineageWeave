@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke seed ps load-http load-mcp
+.PHONY: up down down-legacy logs smoke seed ps load-http load-mcp
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.
@@ -9,6 +9,12 @@ up:
 
 down:
 	$(COMPOSE) down
+
+# Stop a prior directory-named stack by its explicitly supplied Compose project.
+# This leaves its named data volumes in place for the canonical project to reuse.
+down-legacy:
+	@test -n "$$LEGACY_COMPOSE_PROJECT_NAME" || { echo "LEGACY_COMPOSE_PROJECT_NAME is required" >&2; exit 2; }
+	@docker compose --env-file "$$HOME/.env" --project-name "$$LEGACY_COMPOSE_PROJECT_NAME" down
 
 logs:
 	$(COMPOSE) logs -f

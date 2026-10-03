@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Post-merge exact-head and Compose migration audit — 2026-10-03 17:10 KST
+
+Protected `main` is now `70f8f17b4228d571f57b357f1d884341d0131363`.
+GitHub's refreshed inventory is 178 open PRs, 42 open issues, 168 drafts, 117
+non-`main` bases, and 10 ready PRs. These are repository workflow counts.
+
+PR #1149's exact head was
+`13be5c2742c1123fe4f4b14f710688addc86ee1a`; GitHub records merge SHA
+`0368e96f99933cc94c8817fbd69aee5d5df64559` at 07:47 UTC. Its review decision
+was blank and its submitted reviews were `COMMENTED`; exact-head Checks showed
+two failures, two skips, and CodeRabbit still pending at the read. Local
+synthetic authenticated PostgreSQL acceptance passed its two new Voice API
+tests after fixing the neighborhood grouping query and fixture migration.
+That does not make the hosted Checks or independent review green.
+
+PR #1150's exact head was
+`478464d10497ed10dda64a6fefedcc8fc90d256b`; GitHub records merge SHA
+`70f8f17b4228d571f57b357f1d884341d0131363` at 07:48 UTC. Its review decision
+was blank. Devin left a potential-bug comment about migrating stacks from
+directory-derived project names; CodeRabbit's review was rate-limited. The
+Checks at the read had two failures, two skips, and two passes. This source
+adds a follow-up path that stops an explicitly named prior project without
+removing its volumes, then reuses the exact previous PostgreSQL and Valkey
+volume names under the canonical Compose project. The local Compose contract
+and migration tests pass (**5 tests**), and Ruff passes on the changed tests.
+
+The ruleset read found an active repository no-force-push rule and an
+organization rule requiring PR/workflow execution; neither defines an
+independent-approval count. Classic branch-protection rules were absent. Ten
+ready PRs had auto-merge armed but no independent approval on their current
+head (PR #1130's approval was on predecessor `383c392b…`). Their auto-merge
+requests have been disarmed until exact-head independent approval exists. No
+ruleset was modified, no admin bypass or force push was used, and no merge SHA
+is inferred for PR #1130.
+
+Voice-of-X remains **partial**: the authorized PostgreSQL API test passed
+locally with synthetic data and a real test-realm token, but no authenticated
+Voice UI render has been captured on protected `main`. CSV carrying/evidence
+columns and page-wise multi-Voice JSON-LD union remain distinct tested
+contracts; they do not substitute for that UI evidence.
+
 ## Voice API root-cause retest — 2026-10-03 16:40 KST
 
 Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
