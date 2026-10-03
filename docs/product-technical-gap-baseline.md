@@ -53,6 +53,31 @@ or release number. Authenticated PostgreSQL/API and rendered customer-runtime
 acceptance remain unavailable; synthetic component evidence does not satisfy
 those gates.
 
+### Current gate-owner follow-up — 2026-10-04 07:12 KST
+
+The next exact-head read found PR #1158 at
+`277ce6c8d7158c678bf689a04680a087afdf799b`; all four hosted checks failed
+without starting a runner step. GitHub's annotation identifies the blocker as
+the organization account being locked for a billing issue. PR #1156 remains at
+`de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41`, with two failed checks and no
+current approval; its local regression suite passed 43 tests. PR #1157 remains
+at `2905bae54adb290c104c23210e3c1e098e401e31`; PR #1155 at
+`1a83f31daa881e58ddde181768d35acb77aaa613`; and Voice export PR #1153 at
+`45615b3d9d7f79fea4d81ed5eac9cd4637c3a300`. Those three have no formal
+reviews or current-head approvals and each shows four failed checks. No
+consumer-side CI workaround or fabricated passing result was added. The
+organization account owner must restore Actions execution before hosted
+verification can proceed; protected merges remain unavailable meanwhile.
+
+On the exact #1153 candidate, synthetic ontology-neighborhood tests passed
+**37 tests** and frontend Voice API, explorer, and layout tests passed **48**.
+An additional backend/API test selection could not collect because this
+worktree lacks the pinned Rust toolchain and the project backend extra, so it
+does not establish authenticated PostgreSQL/API acceptance. ADRs 0246, 0251,
+0252, and 0256 remain the Voice contract. No actual multi-Voice production
+result, paged JSON-LD runtime result, or authenticated desktop/mobile UI
+acceptance is claimed.
+
 The repaired continuation story was visually inspected in Storybook at the
 desktop browser viewport and the 414×896 Large mobile viewport. Both showed
 the empty-page guidance and continuation action without clipping. The story
