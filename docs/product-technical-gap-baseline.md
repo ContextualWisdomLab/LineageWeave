@@ -127,6 +127,18 @@ error rate, throughput, PostgreSQL/worker/Valkey/gateway saturation, and the
 cause of any runtime bottleneck remain **unavailable in this pass**. No
 performance improvement is claimed or guessed repair implemented.
 
+### Candidate publication follow-up — 2026-10-04
+
+The bounded discovery repair is now open as **PR #1158**, based on the named
+current-main source. At initial documentation head
+`d1fd3e0c476d3845254bc2db59fb40c33a539922`, all four new hosted Checks failed
+without execution and there were no formal reviews. That snapshot does not
+transfer to a later documentation head. The inventory above predates this
+newly opened PR. A read-only merge-tree check with #1153 and #1157 combines
+production changes but conflicts in this baseline; retain both dated evidence
+sections after each protected merge. There is no new API, schema, ADR ordinal,
+or release-number collision in those three slices.
+
 ### Voice, integration, and remaining acceptance
 
 - Twelve atomic Voice codes and extensible row combinations remain governed
