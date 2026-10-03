@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Voice API root-cause retest — 2026-10-03 16:40 KST
+
+Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
+GitHub's current inventory is 179 open PRs, 42 open issues, 169 drafts, 117
+non-`main` bases, and 10 ready PRs. These are repository workflow counts.
+GitHub confirmed the ecosystem spellings `ContextualWisdomLab/LineageWeave`,
+`ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+`ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`,
+`ContextualWisdomLab/contextual-orchestrator`, and
+`ContextualWisdomLab/fast-mlsirm`.
+
+ADR 0246/0251/0256 and PRD-FR-2 remain authoritative for Voice-of-X: retain
+all 12 atomic classifications and open-ended combinations, each with its own
+authorized Post evidence, PROV-O derivation, truth state, and cutoff. The
+research register supports these boundaries; it does not turn candidate
+assertions into accepted facts or authorize inferred combinations.
+
+PR #1149's prior exact head was `c51fde6bcfd5bc4aca9c3c5bdf9a8f6166684938`
+on `main`, Draft / `UNSTABLE`, with comments but no formal approval or
+auto-merge. `Analyze (actions)` and `Analyze (python)` failed to start; the
+full suite and frontend checks were skipped while Draft. Those predecessor
+Checks and comments do not certify the local repair below. Its current
+successor candidate adds the minimal SQL grouping key and the missing
+0238 occupational-construct migration to the synthetic API fixture. In a
+separate synthetic Compose project, the authenticated PostgreSQL API round
+trip and hidden-evidence rejection tests both passed (**2 tests**); the
+ontology neighborhood regression modules passed (**65 tests**). The database
+test exercised Voice assignment creation, exact-value carrying/evidence
+identities, and JSON-LD derivation/truth fields; a hidden evidence Post was
+rejected with the route's existing generic 403 and no Voice row persisted.
+Thirteen focused frontend tests passed for distinct carrying/evidence actions,
+the separate CSV columns, and page-wise union of multi-Voice JSON-LD values.
+
+The original API GET had failed because the aggregate query selected
+`edge.created_at` in `greatest()` without including it in `GROUP BY`. Adding
+that grouping key fixed the database path; the fixture now applies migration
+0238, which creates the assertion table already read by the neighborhood
+projection. This is local synthetic runtime evidence, not protected-main
+delivery. The exact-value table has separate carrying Post and derivation
+evidence actions, and CSV keeps `carrying_post_id` separate from
+`derivation_evidence_post_id`. No authenticated Voice-screen render was
+captured in this retest, so the combined Voice acceptance remains **partial**
+and must not be marked complete until authenticated API and rendered UI
+evidence both exist on protected main.
+
+The successor adds no migration, schema, or API-field change; migration 0238
+is applied only inside the existing synthetic API test fixture. No model or
+measurement policy, heuristic, or release number changed. Fresh hosted Checks
+and independent review are still required after the candidate is pushed.
+
 ## Exact-head and integration follow-up — 2026-10-03 12:30 KST
 
 Git transport still identifies protected `main` as

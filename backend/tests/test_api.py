@@ -207,6 +207,9 @@ _ONTOLOGY_TRUTH_STATUS_MIGRATION = (
 _VOICE_COMBINATION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0237_source_post_voice_combination.sql"
 )
+_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0238_occupational_construct_assertion.sql"
+)
 _VOICE_HISTORY_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0243_source_post_voice_history.sql"
 )
@@ -442,6 +445,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_VOICE_COMBINATION_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION.read_text())
             cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
@@ -4780,7 +4784,7 @@ def test_voice_assignment_api_rejects_hidden_post_as_evidence(
         },
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
-    assert response.status_code == 404
+    assert response.status_code == 403
 
     with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cursor:
         cursor.execute(
