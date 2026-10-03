@@ -1,16 +1,22 @@
 /** Measure authenticated MCP responsiveness against synthetic durable Ask data. */
 
 import http from "k6/http";
+import exec from "k6/execution";
 import { check, fail } from "k6";
 import { Counter, Trend } from "k6/metrics";
+import { credentialTarget } from "./k6_target.js";
 
-const mcpUrl = __ENV.MCP_URL || "http://localhost:18001/mcp";
-const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
+const mcpUrl = credentialTarget(__ENV.MCP_URL || "http://localhost:18001/mcp", "MCP_URL");
+const keycloakUrl = __ENV.K6_ACCESS_TOKEN_FILE !== undefined ? null
+  : credentialTarget(__ENV.KEYCLOAK_URL || "http://localhost:18080", "KEYCLOAK_URL").replace(/\/$/, "");
 const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
 const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
+const suppliedToken = __ENV.K6_ACCESS_TOKEN_FILE !== undefined
+  ? open(__ENV.K6_ACCESS_TOKEN_FILE).trim()
+  : null;
 const keycloakHost = __ENV.KEYCLOAK_HOST;
 const protocolVersion = "2025-11-25";
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
@@ -23,12 +29,18 @@ const jobStateObservations = new Counter("lineageweave_mcp_job_state_observation
 let vuToken;
 let vuSession;
 
-function authenticate() {
+function authenticate(renew = false) {
+  if (suppliedToken !== null) {
+    if (!suppliedToken || renew) {
+      exec.test.abort("Supplied access token is unavailable; obtain a fresh authorized token and rerun");
+    }
+    return suppliedToken;
+  }
   const headers = keycloakHost ? { Host: keycloakHost } : {};
   const response = http.post(
     `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
     { grant_type: "password", client_id: clientId, username, password },
-    { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
+    { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout, redirects: 0 },
   );
   if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
   return response.json("access_token");
@@ -37,8 +49,13 @@ function authenticate() {
 function result(response) {
   const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
   if (!line) fail(`MCP response omitted a data event: HTTP ${response.status}`);
-  const envelope = JSON.parse(line.slice(6));
-  if (envelope.error) fail(`MCP returned ${JSON.stringify(envelope.error)}`);
+  let envelope;
+  try {
+    envelope = JSON.parse(line.slice(6));
+  } catch {
+    fail(`MCP returned malformed JSON: HTTP ${response.status}`);
+  }
+  if (envelope.error) fail(`MCP returned an error: HTTP ${response.status}`);
   return envelope.result;
 }
 
@@ -56,7 +73,7 @@ function request(token, session, id, method, params) {
   return http.post(
     mcpUrl,
     JSON.stringify(envelope),
-    { headers, tags: { endpoint: method }, timeout: requestTimeout },
+    { headers, tags: { endpoint: method }, timeout: requestTimeout, redirects: 0 },
   );
 }
 
@@ -82,7 +99,7 @@ function callTool(token, session, id, name, args) {
 
 function structured(response) {
   const toolResult = result(response);
-  if (toolResult.isError) fail(`MCP tool failed: ${response.body}`);
+  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);
   return toolResult.structuredContent;
 }
 
@@ -104,7 +121,7 @@ export default function (data) {
   vuSession ||= initialize(vuToken);
   let response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
   if (response.status === 401) {
-    vuToken = authenticate();
+    vuToken = authenticate(true);
     vuSession = initialize(vuToken);
     response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
   }

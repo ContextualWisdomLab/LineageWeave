@@ -60,6 +60,12 @@ invocation.
 
 ## Consequences
 
+Synthetic MCP load observations may use an opaque, audience-correct access
+token from an operator-owned runtime file. The identity owner supplies it;
+the harness does not change grant policy. A rejected supplied token ends the
+observation without password-grant fallback. Error diagnostics contain only
+bounded operation/status information, never server response content or tokens.
+
 - REST, MCP, UI polling, reports, and alerts read one persisted answer contract.
 - MCP submission remains responsive while multi-minute orchestration stays in
   the existing worker.
@@ -69,6 +75,11 @@ invocation.
   startup instead of silently choosing a rule of thumb.
 - The historical MCP stacks remain reusable implementation evidence, not
   protected-main delivery or a second product contract.
+
+Credential-bearing observation targets must use HTTPS, with HTTP permitted
+only on `localhost`, `127.0.0.1`, or `[::1]`. Reject other targets before
+reading a runtime token and disable redirects, including on the synthetic
+identity request, as specified in ADR 0213.
 
 ## References
 
@@ -87,4 +98,3 @@ https://doi.org/10.17487/RFC9700
 Model Context Protocol. (2025). *Transports: Streamable HTTP* (Specification
 2025-06-18).
 https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
-

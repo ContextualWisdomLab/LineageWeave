@@ -36,6 +36,27 @@ observation boundary, not a product latency threshold.
 
 ## Interpret the output
 
+If the synthetic identity client disables password grants, obtain a token
+using its authorized sign-in flow and keep it in a permission-restricted
+runtime file outside the checkout. Set `K6_ACCESS_TOKEN_FILE` to that absolute
+path; the script reads it during initialization and makes no password-grant
+request. Use local `k6 run` only; do not archive or upload a script that opens the
+runtime token file. Never pass the token itself on the command line or enable
+HTTP debug logging. A missing/empty file or rejected token is failed authentication, not
+capacity evidence. If the supplied token expires, the entire observation aborts;
+obtain a fresh token and start a new observation. The harness never changes
+the identity client's grant configuration. Server bodies stay out of error
+diagnostics. Remote targets require HTTPS; HTTP is allowed only on the exact
+loopback hosts `localhost`, `127.0.0.1`, and `[::1]`. Redirects are disabled for
+all credential-bearing requests, including synthetic identity authentication.
+
+```bash
+K6_ACCESS_TOKEN_FILE=/absolute/private/runtime/access-token \
+  k6 run -e REQUEST_TIMEOUT=<declared-request-window> \
+  --vus <measured-concurrency> --duration <observation-window> \
+  scripts/k6_http_e2e.js
+```
+
 k6 reports observed request counts, failure rate, and duration distributions.
 The custom metrics separate:
 
@@ -49,8 +70,9 @@ The harness observes one Ask job's real lifecycle; it does not keep provider
 work running artificially. Report reader distributions with the state counts
 so a long settled tail is not misrepresented as contended capacity. Per-VU
 authentication is renewed after an HTTP 401 and the failed batch is retried
-once, so observation windows longer than the realm access-token lifetime do
-not silently become rejection measurements.
+once only when using the explicitly seeded synthetic password-grant path. A
+file-supplied token is never renewed or retried: rejection aborts the entire
+observation, requiring a fresh authorized token and a new run.
 
 There are deliberately no pass/fail thresholds. A latency or concurrency SLO
 requires a named deployment, representative workload, capacity evidence, and

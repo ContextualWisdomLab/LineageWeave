@@ -28,6 +28,19 @@ requires it and an ADR records that exception.
 
 ## Consequences
 
+The synthetic HTTP observation harness may consume an opaque access token from
+an operator-owned runtime file. Authentication remains with the identity owner;
+the harness must not enable a disabled password grant or treat failed
+authentication as application capacity evidence. A rejected supplied token
+ends that observation rather than falling back to another grant. Diagnostics
+retain status codes only, never response bodies or credentials.
+
+Credential-bearing observation targets must use HTTPS; HTTP is permitted only
+for the exact loopback hosts `localhost`, `127.0.0.1`, and `[::1]`. Validate
+targets before reading the runtime token, and disable HTTP redirects so a
+validated target cannot forward credentials to an unvalidated destination.
+Apply the same rule to the synthetic identity endpoint when that grant is used.
+
 - Embedding latency cannot exhaust the shared HTTP database pool.
 - Authorization predicates and persisted model/dimension matching remain in
   the database query and are unchanged.

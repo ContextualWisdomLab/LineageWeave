@@ -3,6 +3,24 @@
 This supporting record is governed by [ADR 0218](../adr/0218-current-contract-mcp-global-ask.md).
 It reports an observation, not an SLO or production capacity claim.
 
+## Authentication for new synthetic observations
+
+When the identity client disallows password grants, supply an audience-correct
+token through `K6_ACCESS_TOKEN_FILE`, an absolute path to a private runtime
+file outside git. Obtain it through the identity owner's authorized flow;
+do not enable a disabled grant. The script reads the opaque token at
+initialization. Use local `k6 run` only; do not archive or upload a script
+that opens this runtime file. The harness never logs the token and aborts the
+entire observation if it is empty
+or subsequently rejected. Acquire a fresh token before rerunning. HTTP debug
+logging must stay off. MCP error envelopes and tool-error content are omitted
+from diagnostics; a status code alone identifies the failed operation.
+
+Authentication failure supplies no concurrency, latency, throughput, or
+saturation evidence. Correlate a successfully authenticated synthetic run with
+PostgreSQL, worker, Valkey, and gateway measurements before assigning a
+bottleneck. No request-body content or identifying rows belong in that record.
+
 ## 2026-08-26 synthetic isolated-Compose observation
 
 The candidate containing the request-lifecycle repair was run in an isolated
@@ -40,3 +58,8 @@ This workstation result proves only that the declared synthetic workload
 completed on this candidate. Representative infrastructure telemetry and an
 approved quota/SLO decision remain required before a production capacity
 claim.
+
+Remote observation targets require HTTPS. HTTP is allowed only on the exact
+loopback hosts `localhost`, `127.0.0.1`, and `[::1]`. Every credential-bearing
+request disables redirects; synthetic identity authentication follows the same
+transport rule. File-supplied tokens are never automatically renewed.
