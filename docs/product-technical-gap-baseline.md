@@ -59,6 +59,18 @@ the empty-page guidance and continuation action without clipping. The story
 uses synthetic catalog data and a scoped successful fetch response; it is not
 an authenticated customer UI or PostgreSQL/API acceptance result.
 
+### Follow-up exact-head check — 2026-10-04 07:06 KST
+
+After the baseline snapshot above, PR #1156's verified query/fragment URL
+regression cases advanced it to exact head
+`de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41`. Its focused frontend suite passed
+**43 tests** and Oxlint passed. The refreshed hosted view has two failed Checks,
+no current-head approval, no auto-merge, and `DIRTY` mergeability; the other
+status rows had not completed at this observation. #1158 remains on exact head
+`674387980a7c9e763a61db51e53f68e8ba4fd0f4`, with two failed and two queued
+Checks, no approval, no auto-merge, and `UNSTABLE` mergeability. Local tests do
+not clear these hosted failures. No current main or open-PR run was cancelled.
+
 ## Exact-head development and discovery audit — 2026-10-04 05:34 KST
 
 The remote `main` source head is `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`.
