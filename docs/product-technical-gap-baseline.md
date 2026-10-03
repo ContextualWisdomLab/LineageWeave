@@ -1,5 +1,31 @@
 # Product & Technical Gap Baseline
 
+## Exact-head recheck — 2026-10-03 18:52 KST
+
+Protected `main` remains `70f8f17b4228d571f57b357f1d884341d0131363`.
+GitHub reports 180 open PRs, 42 open issues, 168 drafts, 117 non-`main`
+bases, and 12 ready PRs.
+
+PR #1130 is at exact head `b25f10eb1021083317a8ecefd479efc29d6c0297`, based on
+this `main`; its rebase is a non-force fast-forward of the predecessor delta.
+GitHub still displays `APPROVED`, but the review commit is predecessor
+`383c392bc6713e55bed31b4d4053d93cfd1885d0`, so it is not current-head
+approval. The merge state is `UNSTABLE`, four hosted Checks failed, and
+auto-merge is off.
+
+PR #1151 is at `15039e587e7da626f2d12300d0c29b1df0a122b1`; PR #1152 is at
+`5bad1ebc57f8275d825f45db0f449fc40b760f76`. Both target `main`, have blank
+review decisions and no auto-merge requests, and each shows four failed and
+two successful hosted Checks. Local focused Compose (5), Voice API (3), and
+ontology/Voice projection (66) tests pass. The Voice-screen acceptance still
+needs an authenticated rendered UI on protected `main`.
+
+The hosted failures ended within seconds. GitHub's job-log API returned 403
+rate-limit errors, so run-specific causes remain unavailable. No PR has a
+merge SHA after `70f8f17` in this observation. Auto-merge remains disarmed on
+ready PRs lacking an independent approval for the current head because the
+active rulesets do not enforce that review requirement.
+
 ## Exact-head refresh — 2026-10-03 17:53 KST
 
 Protected `main` remains `70f8f17b4228d571f57b357f1d884341d0131363`. GitHub
