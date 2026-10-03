@@ -78,6 +78,13 @@ does not establish authenticated PostgreSQL/API acceptance. ADRs 0246, 0251,
 result, paged JSON-LD runtime result, or authenticated desktop/mobile UI
 acceptance is claimed.
 
+Immediately before this documentation-only refresh, exact PR #1158 head
+`79fc93a02b26f851270debe81a26dc75cf1273cb` had four failed and two successful
+Checks, no eligible approval, and `UNSTABLE` mergeability. The failed test and
+CodeQL jobs were not started because GitHub reports the account billing lock.
+This refresh advances the PR head and invalidates that hosted evidence; the
+new head needs its own Checks and approval before any merge decision.
+
 The repaired continuation story was visually inspected in Storybook at the
 desktop browser viewport and the 414×896 Large mobile viewport. Both showed
 the empty-page guidance and continuation action without clipping. The story
