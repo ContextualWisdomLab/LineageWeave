@@ -29,6 +29,7 @@ SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
 SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
+LANDING_RELATIVE_PATH = Path("docs/index.html")
 #: ADR 0207: the repository-case namespace is canonical and the
 #: lowercase form is the deprecated compatibility vocabulary.
 CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
@@ -217,6 +218,7 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
     profile = root / PROV_PROFILE_RELATIVE_PATH
     compatibility_source = root / COMPATIBILITY_RELATIVE_PATH
     shapes_source = root / SHAPES_RELATIVE_PATH
+    landing_source = root / LANDING_RELATIVE_PATH
     if not source.is_file():
         raise FileNotFoundError(f"ontology source is missing: {source}")
     if not profile.is_file():
@@ -227,6 +229,8 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
         )
     if not shapes_source.is_file():
         raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes_source}")
+    if not landing_source.is_file():
+        raise FileNotFoundError(f"public landing source is missing: {landing_source}")
 
     output = _validate_output_directory(output_dir, source, profile)
     renderer = _load_renderer(root)
@@ -242,6 +246,7 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
         shutil.rmtree(output)
     try:
         renderer.build_site(root, output)
+        shutil.copyfile(landing_source, output / "index.html")
     except BaseException:
         shutil.rmtree(output, ignore_errors=True)
         raise
