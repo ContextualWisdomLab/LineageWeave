@@ -197,10 +197,6 @@ from lineageweave.adjudication_client import (
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
 )
-from lineageweave.caldav_client import (
-    CALDAV_UNAVAILABLE_NEXT_ACTION,
-    build_caldav_client,
-)
 from lineageweave.commitment_extraction import (
     ContextualOrchestratorCommitmentExtractionClient,
     NullCommitmentExtractionClient,
