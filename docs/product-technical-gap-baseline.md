@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+## Exact-head refresh — 2026-10-03 17:53 KST
+
+Protected `main` remains `70f8f17b4228d571f57b357f1d884341d0131363`. GitHub
+now reports 180 open PRs, 42 open issues, 168 drafts, 117 non-`main` bases,
+and 12 ready PRs.
+
+PR #1151's previous exact head was
+`0bd68ab1987476eee9b141ed264e0609d95e978f`; it is open/ready on `main` with
+no formal approval or auto-merge. Four hosted Checks failed and two passed.
+Its local Compose tests and Ruff passed. This baseline refresh will itself
+produce a new PR head and require fresh checks.
+
+PR #1152 is open/ready at exact head
+`5bad1ebc57f8275d825f45db0f449fc40b760f76`, based on `main`, with a blank
+review decision and no auto-merge request. Four Checks failed, CodeRabbit was
+pending, and one Check passed. The local authenticated API suite passed three
+tests and the ontology/Voice projection suite passed 66. The repair authorizes
+the derivation Post independently of neighborhood traversal, retains cutoff
+and source eligibility, and omits the additional Voice when that evidence is
+hidden. Voice acceptance remains **partial** until an authenticated screen is
+rendered on protected `main`.
+
+PR #1130 remains open at remote head
+`ee6a98414f61119abe7e81a008c32c58b10afa8b`, based on older `main`
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. GitHub reports `DIRTY`, two
+analysis Checks failed, and no auto-merge request. Its displayed approval is
+from predecessor head `383c392bc6713e55bed31b4d4053d93cfd1885d0`; it is not
+current-head approval.
+
+## Exact-head refresh — 2026-10-03 17:41 KST
+
+`main` remains `70f8f17b4228d571f57b357f1d884341d0131363`. GitHub now reports
+179 open PRs, 42 open issues, 168 drafts, 117 non-`main` bases, and 11 ready
+PRs.
+
+PR #1151 is open and ready at exact head
+`0bd68ab1987476eee9b141ed264e0609d95e978f` on `main`. Its review decision is
+blank, merge state is `UNSTABLE`, and auto-merge is off. Exact-head Checks show
+four failures and two passes; the log API remains rate-limited. Its local
+Compose/volume migration tests and Ruff pass. The follow-up keeps the existing
+official project label and volume names stable, handles an old directory-based
+project by an explicit project name, and reattaches the exact prior volumes
+without deleting them.
+
+The separately tested Authenticated Voice endpoint still lacks a rendered,
+authenticated Voice-screen capture on protected `main`; Voice acceptance is
+therefore partial.
+
 ## Post-merge gate and volume-migration follow-up — 2026-10-03 17:33 KST
 
 Protected `main` is `70f8f17b4228d571f57b357f1d884341d0131363`. The latest
