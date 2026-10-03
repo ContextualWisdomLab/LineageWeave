@@ -201,6 +201,9 @@ _LEFTOVER_MAP_COORDINATES_MIGRATION = (
 _VOICE_TAXONOMY_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0235_voice_of_x_post_taxonomy.sql"
 )
+_ONTOLOGY_TRUTH_STATUS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0175_ontology_truth_status.sql"
+)
 _VOICE_COMBINATION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0237_source_post_voice_combination.sql"
 )
@@ -437,6 +440,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
+            cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
             cur.execute(_VOICE_COMBINATION_MIGRATION.read_text())
             cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(
