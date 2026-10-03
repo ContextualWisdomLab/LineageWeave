@@ -6,7 +6,9 @@ import { describe, expect, it, vi } from "vitest";
 const syntheticToken = "synthetic-authorized-bearer";
 const sensitiveResponse = "synthetic-private-response-marker";
 
-function harness(kind: "http" | "mcp", token: string | null) {
+function harness(kind: "http" | "mcp", token: string | null, env: Record<string, string> = {}) {
+  const targetSource = readFileSync(new URL("../../scripts/k6_target.js", import.meta.url), "utf8")
+    .replaceAll("export function", "function");
   const source = readFileSync(
     new URL(`../../scripts/k6_${kind}_e2e.js`, import.meta.url),
     "utf8",
@@ -20,10 +22,11 @@ function harness(kind: "http" | "mcp", token: string | null) {
   }));
   const open = vi.fn(() => token);
   const abort = vi.fn((message: string) => { throw new Error(message); });
-  const api = runInNewContext(`${source}\n({ authenticate, setup, run${kind === "mcp" ? ", result, structured" : ""} });`, {
+  const api = runInNewContext(`${targetSource}\n${source}\n({ authenticate, setup, run${kind === "mcp" ? ", result, structured" : ""} });`, {
     __ENV: {
       REQUEST_TIMEOUT: "20s",
       ...(token === null ? {} : { K6_ACCESS_TOKEN_FILE: "/synthetic/runtime-token" }),
+      ...env,
     },
     open,
     exec: { test: { abort } },
@@ -46,6 +49,7 @@ describe.each(["http", "mcp"] as const)("%s k6 authentication", (kind) => {
     expect(post).toHaveBeenCalledTimes(1);
     expect(post.mock.calls[0][0]).not.toContain("openid-connect/token");
     expect(post.mock.calls[0][2].headers.Authorization).toBe(`Bearer ${syntheticToken}`);
+    expect(post.mock.calls[0][2]).toHaveProperty("redirects", 0);
   });
 
   it("rejects an empty supplied token before any authenticated request", () => {
@@ -66,6 +70,38 @@ describe.each(["http", "mcp"] as const)("%s k6 authentication", (kind) => {
     expect(() => api.authenticate()).toThrow(/HTTP 401/);
     expect(post.mock.calls[0][0]).toContain("openid-connect/token");
     expect(open).not.toHaveBeenCalled();
+    expect(post.mock.calls[0][2]).toHaveProperty("redirects", 0);
+  });
+
+  it.each([
+    "http://remote.example.test", "http://localhost.evil.test", "http://127.0.0.1@evil.test",
+    "http://127.0.0.1\\@evil.test", "http://[::1].evil.test", "ftp://localhost",
+    "https://user:synthetic-secret@remote.example.test", "https://remote.example.test\\@evil.test",
+  ])("rejects unsafe target %s before credential reading or network I/O", (target) => {
+    expect(() => harness(kind, syntheticToken, {
+      [kind === "http" ? "BACKEND_URL" : "MCP_URL"]: target,
+    })).toThrow(/requires HTTPS or HTTP on an exact loopback host/);
+  });
+
+  it.each(["https://remote.example.test/api", "http://127.0.0.1:18420", "http://[::1]:18001/mcp"])(
+    "allows declared secure or loopback target %s", (target) => {
+      const { api, post } = harness(kind, syntheticToken, {
+        [kind === "http" ? "BACKEND_URL" : "MCP_URL"]: target,
+      });
+      expect(() => api.setup()).toThrow(/HTTP 401/);
+      expect(post.mock.calls[0][0]).toContain(target);
+    },
+  );
+
+  it("rejects remote HTTP identity authentication before network I/O", () => {
+    expect(() => harness(kind, null, { KEYCLOAK_URL: "http://remote.example.test" }))
+      .toThrow(/KEYCLOAK_URL requires HTTPS/);
+  });
+
+  it("ignores an unused identity endpoint when a runtime token is supplied", () => {
+    const { api, post } = harness(kind, syntheticToken, { KEYCLOAK_URL: "http://remote.example.test" });
+    expect(api.authenticate()).toBe(syntheticToken);
+    expect(post).not.toHaveBeenCalled();
   });
 
   it("keeps rejection diagnostics free of response content and bearer tokens", () => {

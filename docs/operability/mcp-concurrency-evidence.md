@@ -58,3 +58,8 @@ This workstation result proves only that the declared synthetic workload
 completed on this candidate. Representative infrastructure telemetry and an
 approved quota/SLO decision remain required before a production capacity
 claim.
+
+Remote observation targets require HTTPS. HTTP is allowed only on the exact
+loopback hosts `localhost`, `127.0.0.1`, and `[::1]`. Every credential-bearing
+request disables redirects; synthetic identity authentication follows the same
+transport rule. File-supplied tokens are never automatically renewed.

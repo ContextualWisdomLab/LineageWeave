@@ -10,9 +10,11 @@ import http from "k6/http";
 import exec from "k6/execution";
 import { check, fail } from "k6";
 import { Counter, Trend } from "k6/metrics";
+import { credentialTarget } from "./k6_target.js";
 
-const backendUrl = (__ENV.BACKEND_URL || "http://localhost:18420").replace(/\/$/, "");
-const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
+const backendUrl = credentialTarget(__ENV.BACKEND_URL || "http://localhost:18420", "BACKEND_URL").replace(/\/$/, "");
+const keycloakUrl = __ENV.K6_ACCESS_TOKEN_FILE !== undefined ? null
+  : credentialTarget(__ENV.KEYCLOAK_URL || "http://localhost:18080", "KEYCLOAK_URL").replace(/\/$/, "");
 const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
 const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
@@ -45,7 +47,7 @@ function authenticate(renew = false) {
       username,
       password,
     },
-    { tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
+    { tags: { endpoint: "oidc_token" }, timeout: requestTimeout, redirects: 0 },
   );
   if (response.status !== 200) {
     fail(`synthetic OIDC login failed with HTTP ${response.status}`);
@@ -54,7 +56,7 @@ function authenticate(renew = false) {
 }
 
 function readBatch(token, askJobId) {
-  const params = { headers: { Authorization: `Bearer ${token}` } };
+  const params = { headers: { Authorization: `Bearer ${token}` }, redirects: 0 };
   return http.batch([
     [
       "GET",
@@ -89,7 +91,7 @@ export function setup() {
   const submitted = http.post(
     `${backendUrl}/api/ask`,
     JSON.stringify({ question: "Summarize the synthetic demo lineage evidence." }),
-    { headers, tags: { endpoint: "ask_enqueue" }, timeout: requestTimeout },
+    { headers, tags: { endpoint: "ask_enqueue" }, timeout: requestTimeout, redirects: 0 },
   );
   askEnqueueDuration.add(submitted.timings.duration);
   if (submitted.status !== 202) {

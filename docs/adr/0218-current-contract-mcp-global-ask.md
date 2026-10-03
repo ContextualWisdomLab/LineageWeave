@@ -76,6 +76,11 @@ bounded operation/status information, never server response content or tokens.
 - The historical MCP stacks remain reusable implementation evidence, not
   protected-main delivery or a second product contract.
 
+Credential-bearing observation targets must use HTTPS, with HTTP permitted
+only on `localhost`, `127.0.0.1`, or `[::1]`. Reject other targets before
+reading a runtime token and disable redirects, including on the synthetic
+identity request, as specified in ADR 0213.
+
 ## References
 
 Campbell, B., Bradley, J., & Tschofenig, H. (2020). *Resource indicators for
@@ -93,4 +98,3 @@ https://doi.org/10.17487/RFC9700
 Model Context Protocol. (2025). *Transports: Streamable HTTP* (Specification
 2025-06-18).
 https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
-

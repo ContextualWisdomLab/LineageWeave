@@ -46,7 +46,9 @@ HTTP debug logging. A missing/empty file or rejected token is failed authenticat
 capacity evidence. If the supplied token expires, the entire observation aborts;
 obtain a fresh token and start a new observation. The harness never changes
 the identity client's grant configuration. Server bodies stay out of error
-diagnostics.
+diagnostics. Remote targets require HTTPS; HTTP is allowed only on the exact
+loopback hosts `localhost`, `127.0.0.1`, and `[::1]`. Redirects are disabled for
+all credential-bearing requests, including synthetic identity authentication.
 
 ```bash
 K6_ACCESS_TOKEN_FILE=/absolute/private/runtime/access-token \
@@ -68,8 +70,9 @@ The harness observes one Ask job's real lifecycle; it does not keep provider
 work running artificially. Report reader distributions with the state counts
 so a long settled tail is not misrepresented as contended capacity. Per-VU
 authentication is renewed after an HTTP 401 and the failed batch is retried
-once, so observation windows longer than the realm access-token lifetime do
-not silently become rejection measurements.
+once only when using the explicitly seeded synthetic password-grant path. A
+file-supplied token is never renewed or retried: rejection aborts the entire
+observation, requiring a fresh authorized token and a new run.
 
 There are deliberately no pass/fail thresholds. A latency or concurrency SLO
 requires a named deployment, representative workload, capacity evidence, and

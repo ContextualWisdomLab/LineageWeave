@@ -4,9 +4,11 @@ import http from "k6/http";
 import exec from "k6/execution";
 import { check, fail } from "k6";
 import { Counter, Trend } from "k6/metrics";
+import { credentialTarget } from "./k6_target.js";
 
-const mcpUrl = __ENV.MCP_URL || "http://localhost:18001/mcp";
-const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
+const mcpUrl = credentialTarget(__ENV.MCP_URL || "http://localhost:18001/mcp", "MCP_URL");
+const keycloakUrl = __ENV.K6_ACCESS_TOKEN_FILE !== undefined ? null
+  : credentialTarget(__ENV.KEYCLOAK_URL || "http://localhost:18080", "KEYCLOAK_URL").replace(/\/$/, "");
 const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
 const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
@@ -38,7 +40,7 @@ function authenticate(renew = false) {
   const response = http.post(
     `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
     { grant_type: "password", client_id: clientId, username, password },
-    { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
+    { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout, redirects: 0 },
   );
   if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
   return response.json("access_token");
@@ -71,7 +73,7 @@ function request(token, session, id, method, params) {
   return http.post(
     mcpUrl,
     JSON.stringify(envelope),
-    { headers, tags: { endpoint: method }, timeout: requestTimeout },
+    { headers, tags: { endpoint: method }, timeout: requestTimeout, redirects: 0 },
   );
 }
 
