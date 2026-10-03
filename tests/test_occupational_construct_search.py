@@ -217,3 +217,34 @@ def test_oversized_construct_is_omitted_instead_of_hiding_a_truth_conflict() -> 
         )
     )
     assert page.hits == ()
+
+
+def test_empty_bounded_page_can_continue_to_authorized_evidence() -> None:
+    """An empty admitted page does not certify exhaustion of the source window."""
+    rows = [
+        _row(
+            construct_id=f"synthetic-construct-{index}",
+            construct_iri=f"{CONSTRUCT_IRI_PREFIX}1.A.synthetic.{index:03d}",
+            truth="truth_superseded",
+        )
+        for index in range(CANDIDATE_CONSTRUCT_LIMIT)
+    ]
+    page = asyncio.run(
+        search_visible_occupational_constructs(
+            RecordingConnection(rows), query="Oral", can_see_post=_public
+        )
+    )
+    assert page.hits == ()
+    assert page.next_cursor == rows[-1]["construct_iri"]
+    next_connection = RecordingConnection([_row(construct_iri=f"{CONSTRUCT_IRI_PREFIX}1.A.synthetic.999")])
+    continued = asyncio.run(
+        search_visible_occupational_constructs(
+            next_connection,
+            query=page.query,
+            cursor=page.next_cursor,
+            can_see_post=_public,
+        )
+    )
+    assert next_connection.calls[0][1][2] == page.next_cursor
+    assert continued.hits[0].supporting_post_id == POST_ID
+    assert continued.next_cursor is None

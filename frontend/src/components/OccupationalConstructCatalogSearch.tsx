@@ -100,7 +100,7 @@ export function OccupationalConstructCatalogSearch({
         cursor: page.next_cursor,
       });
       setPage({ ...result, hits: [...page.hits, ...result.hits] });
-      setStatus("ready");
+      setStatus(page.hits.length + result.hits.length ? "ready" : "empty");
     } catch {
       setStatus("error");
     }
@@ -138,29 +138,29 @@ export function OccupationalConstructCatalogSearch({
         </label>
         <button type="submit">{text("Find matching records")}</button>
       </form>
-      {statusMessage(status)}
+      {statusMessage(status, Boolean(page?.next_cursor && accessToken))}
       {status === "ready" && page && page.hits.length > 0 ? (
-        <>
-          <ul className="ticket-list" aria-labelledby="occupational-construct-catalog-search-heading">
-            {page.hits.map((hit) => (
-              <CatalogHitItem key={hit.construct_id} hit={hit} onSelectPost={onSelectPost} />
-            ))}
-          </ul>
-          {page.next_cursor ? (
-            <button type="button" onClick={onMore}>{text("Show more matching records")}</button>
-          ) : null}
-        </>
+        <ul className="ticket-list" aria-labelledby="occupational-construct-catalog-search-heading">
+          {page.hits.map((hit) => (
+            <CatalogHitItem key={hit.construct_id} hit={hit} onSelectPost={onSelectPost} />
+          ))}
+        </ul>
+      ) : null}
+      {(status === "ready" || status === "empty") && page?.next_cursor && accessToken ? (
+        <button type="button" onClick={onMore}>{text("Show more matching records")}</button>
       ) : null}
     </section>
   );
 }
 
-function statusMessage(status: OccupationalConstructCatalogSearchStatus) {
+function statusMessage(status: OccupationalConstructCatalogSearchStatus, hasNextPage: boolean) {
   const messages: Record<OccupationalConstructCatalogSearchStatus, string> = {
     idle: text("Type two or more letters of a catalog label, then open the supporting record."),
     loading: text("Finding work evidence..."),
     ready: "",
-    empty: text("No visible work evidence matches. Open a record with work evidence next."),
+    empty: hasNextPage
+      ? text("No matches on this page. Check the next page.")
+      : text("No visible work evidence matches. Open a record with work evidence next."),
     error: text("Work-evidence search is unavailable. Open a visible record next."),
   };
   const message = messages[status];

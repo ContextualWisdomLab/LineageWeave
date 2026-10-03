@@ -46,6 +46,14 @@ export const NoMatches: Story = {
   },
 };
 
+export const EmptyWithContinuation: Story = {
+  args: {
+    accessToken: "synthetic-story-reader",
+    page: { query: "Oral", family_code: null, next_cursor: "https://data.onetcenter.org/element/1.A.1.a.1", hits: [] },
+    status: "empty",
+  },
+};
+
 export const Loading: Story = {
   args: {
     status: "loading",

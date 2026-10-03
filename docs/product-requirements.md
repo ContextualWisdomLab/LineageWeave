@@ -113,7 +113,9 @@ projects assertion-backed constructs into the existing ABAC-filtered ontology
 neighborhood without duplicating graph storage or promoting truth. ADR 0257
 adds authorized catalog-label search: reviewers type an official O*NET label
 and open the earliest visible supporting Post. Constructs without visible
-evidence stay undisclosed. Occupation ratings remain unavailable.
+evidence stay undisclosed. A bounded empty page with continuation keeps the
+next-page action available; only an exhausted search reports no matches.
+Occupation ratings remain unavailable.
 
 ### PRD-FR-2C — FJA I/O-Psychology cognitive, affective & behavioral semantic layer
 

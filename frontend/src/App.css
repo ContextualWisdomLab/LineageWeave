@@ -1245,8 +1245,16 @@
 }
 
 .occupational-construct-catalog-search-form button,
+.occupational-construct-catalog-search > button,
 .occupational-construct-catalog-search .post-list-item {
-  min-height: var(--size-control-min, 44px);
+  min-height: var(--size-touch-target);
+}
+
+.occupational-construct-catalog-search .post-list-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-control-gap);
+  overflow-wrap: anywhere;
 }
 
 .occupational-construct-catalog-search q {
