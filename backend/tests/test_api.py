@@ -4727,6 +4727,22 @@ def test_voice_assignment_round_trips_through_authorized_postgres_api(
         "truth_status_code": "truth_observed",
         "evidence_available": True,
     }
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            """
+            select count(*)
+              from source_post_voice voice
+              join provenance_assertion assertion
+                on assertion.assertion_id = voice.provenance_assertion_id
+              join provenance_resource_binding evidence
+                on evidence.resource_id = assertion.object_resource_id
+             where voice.post_id = %s and voice.voice_type_code = 'vops'
+               and evidence.node_type_code = 'node_post'
+               and evidence.node_id = %s
+            """,
+            (carrying_post_id, evidence_post_id),
+        )
+        assert cursor.fetchone()[0] == 1
 
     neighborhood_response = client.get(
         "/api/ontology/neighborhood",
@@ -4793,6 +4809,55 @@ def test_voice_assignment_api_rejects_hidden_post_as_evidence(
             (seeded_db["own_private_post_id"],),
         )
         assert cursor.fetchone()[0] == 0
+
+
+def test_neighborhood_omits_additional_voice_after_its_evidence_becomes_hidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A now-hidden evidence Post never becomes the carrying Post on reads."""
+    _grant_post_admin(seeded_db["dsn"])
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    carrying_post_id = seeded_db["own_private_post_id"]
+    evidence_post_id = seeded_db["public_post_id"]
+
+    created = client.post(
+        f"/api/posts/{carrying_post_id}/voice-assignments",
+        json={
+            "voice_type_code": "vops",
+            "truth_status_code": "truth_observed",
+            "evidence_post_id": evidence_post_id,
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            "update source_post set visibility_code = 'private', corporate_entity_id = %s "
+            "where post_id = %s",
+            (seeded_db["other_corp_id"], evidence_post_id),
+        )
+        conn.commit()
+
+    neighborhood = client.get(
+        "/api/ontology/neighborhood",
+        params={
+            "focus_node_type": "node_post",
+            "focus_node_id": carrying_post_id,
+            "maximum_depth": 2,
+        },
+        headers=headers,
+    )
+    assert neighborhood.status_code == 200, neighborhood.text
+    payload = neighborhood.json()
+    assert not any(
+        row["property_code"] == "hasVoiceAssignment" and row["target_node_id"] == "vops"
+        for row in payload["exact_value_rows"]
+    )
+    assert not any(
+        assignment["voice_type_code"] == "vops"
+        for assignment in payload["voice_assignments"]
+    )
 
 
 def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:
