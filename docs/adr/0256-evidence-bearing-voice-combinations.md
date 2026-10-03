@@ -155,7 +155,7 @@ sequenceDiagram
   Admin->>API: Add atomic Voice + truth + evidence Post
   API->>ABAC: Authorize target and evidence Posts
   ABAC-->>API: Both visible
-  API->>PostgreSQL: Atomic PROV derivation + assignment upsert
+  API->>PostgreSQL: Atomic PROV derivation + assignment interval insert
   PostgreSQL-->>API: Evidence-bearing assignment
 ```
 
