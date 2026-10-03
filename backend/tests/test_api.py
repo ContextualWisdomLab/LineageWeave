@@ -439,8 +439,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
-            cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_ONTOLOGY_TRUTH_STATUS_MIGRATION.read_text())
+            cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_VOICE_COMBINATION_MIGRATION.read_text())
             cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(

@@ -1,5 +1,65 @@
 # Product & Technical Gap Baseline
 
+## Exact-head and integration follow-up — 2026-10-03 12:13 KST
+
+Git transport still identifies protected `main` as
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. The latest inventory read found
+179 open PRs, 168 drafts, and 117 with a non-`main` base. The open-Issue count
+was not refreshed because GitHub API calls were rate-limited.
+
+At exact PR #1149 head `00d5dd47be2c69c2294ea4aebea65a94641d285a`, targeting
+that `main`, the PR is Draft / `UNSTABLE`. `Analyze (actions)` and
+`Analyze (python)` failed within three seconds; the full suite and frontend
+jobs were skipped while Draft, and CodeRabbit skipped review for the same
+reason. The formal review decision is blank, there is no qualifying approval,
+and auto-merge is off. These are pre-follow-up results; any new commit needs
+fresh exact-head Checks and review. The new PostgreSQL API cases remain
+unverified locally: Keycloak returned HTTP 400 while the test requested its
+synthetic fixture token, before database setup or handler execution. A schema
+prerequisite is now ordered in the fixture before the Voice trigger migration,
+and the JSON-LD assertion selects the carrying-Post projection by its
+`hasVoiceAssignment` property.
+
+Current integration checks show:
+
+- #1141 remains at `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, based on
+  `83eba56149eb802cd63642c507c324c9976ec78e`. It is `DIRTY`, has no
+  qualifying approval, and retains squash auto-merge. Its baseline change
+  conflicts with #1149's baseline delta. Preserve both dated records in a
+  live-base successor; predecessor Checks and reviews cannot transfer.
+- #1137 (`4344d4dcb80fa08971c33f2f7df912d389dc7c61`) and #1133
+  (`1420a733eb30cea5198dffc2ae08734c9cfe521e`) are also based on
+  `83eba56149eb802cd63642c507c324c9976ec78e`, with no qualifying approvals
+  and squash auto-merge enabled. Their current merge-tree comparison
+  conflicts in `pyproject.toml` and `uv.lock`; exact-head Checks have failures.
+  The dependency floors and RankWeave pin need one reviewed live-base
+  integration before either candidate can merge.
+- #1136 remains at `55f6992637c53cfb51a74f55987a40b359152bd5` on the same old
+  base, `DIRTY`, without approval, and with auto-merge enabled. Its
+  generation guard rejects stale success and error responses; the old review
+  finding is addressed on this head. The focused UI suite passed (26 tests),
+  as did frontend lint, production build, and Storybook build. Synthetic
+  desktop and mobile Storybook renders were visually checked; the screenshots
+  remain local at `/tmp/lw-pr1136-desktop.png` and
+  `/tmp/lw-pr1136-mobile.png`. The mobile story's own viewport preset is
+  320×568 inside a 390×844 browser viewport. Its current-base merge tree
+  conflicts in the gap baseline, Storybook inventory, OntologyExplorer story,
+  test, and component, so preserve its code delta for a new live-base check.
+- #1135 remains at `73ba540789d2f2210a17e7eb5396270dafa66589`, based on the
+  same stale SHA, `DIRTY`, without qualifying approval, and with squash
+  auto-merge enabled. Its older actionable comments about waiting for the
+  occupation option and filling all Calendar translations are reflected in
+  this source. Exact-head security/review Checks still fail.
+
+For the concrete merge-tree conflicts above, no migration or database-schema
+conflict was found; #1133/#1137 conflict only in dependency declarations and
+the lock file. The candidates examined here do not show an overlapping
+release-number update. These observations are dated evidence, not a claim that
+all 179 open PRs were diff-audited. Canonical ecosystem spellings verified by
+GitHub remain `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+`ContextualWisdomLab/TEPP`; no ecosystem contract is changed here.
+
 ## PR #1149 Voice fixture prerequisite repair — 2026-10-03
 
 PR #1149 was inspected at exact head
