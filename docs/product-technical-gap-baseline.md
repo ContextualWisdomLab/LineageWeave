@@ -1,5 +1,64 @@
 # Product & Technical Gap Baseline
 
+## Exact-head refresh — 2026-10-04 06:54 KST
+
+Git transport confirms protected `main` at
+`a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. GitHub's current inventory is
+**182 open PRs**, **168 drafts**, **117 non-main bases**, and **42 open issues**.
+The 14 non-draft PR heads were queried individually; the table records each
+head and its observed check conclusions. Two initial GraphQL reads timed out;
+those PRs were retried successfully. These are repository inventory and
+workflow observations, not product usage or population evidence.
+
+| PR | Exact head | Check conclusions | Exact-head approval |
+| --- | --- | --- | --- |
+| #1158 | `2a764340438466348753bc694da47b41707d7273` | failure 4, success 2 | 0 |
+| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | failure 4, success 2 | 0 |
+| #1156 | `27d99059bfb9b135a4adb20c6af4e57d4498f78b` | failure 4, success 2 | 0 |
+| #1155 | `1a83f31daa881e58ddde181768d35acb77aaa613` | failure 4, success 2 | 0 |
+| #1153 | `45615b3d9d7f79fea4d81ed5eac9cd4637c3a300` | failure 4, success 2 | 0 |
+| #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | failure 4, success 2 | 0 |
+| #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | failure 4, success 2 | 0 |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | failure 7, skipped 5, success 32 | 0 |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | cancelled 1, failure 7, skipped 9, success 30 | 0 |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | failure 9, skipped 6, success 32 | 0 |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | cancelled 1, failure 6, skipped 14, success 36 | 0 |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | skipped 11, success 26 | 0 |
+| #1130 | `b25f10eb1021083317a8ecefd479efc29d6c0297` | failure 4, success 2 | 0 |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | failure 3, skipped 9, success 32 | 0 |
+
+No current-head eligible approval was observed. #1130's prior approval names
+commit `383c392bc6713e55bed31b4d4053d93cfd1885d0`, not its current head.
+Checks remain failed or skipped; no new auto-merge was enabled. The branch
+rules API returned rate-limit HTTP 403, so this refresh cannot certify live
+ruleset details. No merge or post-merge SHA is claimed for these open PRs.
+
+The implementation repair for #1158 advanced its head after the pre-repair
+review; its current checks above belong to the repaired code head. Git merge
+tree found a content conflict in this baseline between #1157 and #1158 and
+between #1153 and #1158. Keep both dated evidence sections when resolving
+those overlaps after a parent is protected. #1155 with #1153 and #1130 with
+#1158 merge cleanly. This bounded overlap check found no API, schema, migration
+ordinal, or release-number collision in those pairs; the remaining pairs have
+not been certified.
+
+The LineageWeave authority for the repaired catalog search remains PRD-FR-2B,
+accepted ADR 0265, and the pinned O*NET 31.0 catalog contract. No ecosystem
+engine owns this presentation-state correction. Canonical repository spellings
+and fetched default heads were checked over Git transport: LineageWeave
+`a67c5b0e`, RankWeave `92323cb8`, ThreadWeave `0fda6e60`, disksage
+`05899ffb`, TEPP `a243f18d`, contextual-orchestrator `8e1f1a8b`, and
+fast-mlsirm `a0d7958e`. This change adds no ADR ordinal, API, schema, migration,
+or release number. Authenticated PostgreSQL/API and rendered customer-runtime
+acceptance remain unavailable; synthetic component evidence does not satisfy
+those gates.
+
+The repaired continuation story was visually inspected in Storybook at the
+desktop browser viewport and the 414×896 Large mobile viewport. Both showed
+the empty-page guidance and continuation action without clipping. The story
+uses synthetic catalog data and a scoped successful fetch response; it is not
+an authenticated customer UI or PostgreSQL/API acceptance result.
+
 ## Exact-head development and discovery audit — 2026-10-04 05:34 KST
 
 The remote `main` source head is `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`.
