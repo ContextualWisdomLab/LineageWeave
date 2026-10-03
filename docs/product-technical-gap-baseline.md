@@ -1,5 +1,137 @@
 # Product & Technical Gap Baseline
 
+## Exact-head export and governance audit — 2026-10-03 21:44 KST
+
+This dated snapshot supersedes earlier queue counts only at its named heads.
+Remote `main` was `259be21c4d3e551906c321ad7c911e0fa9695745`; it is a
+source-state observation, not a protected-delivery certificate. The paged
+inventory contained **179 open PRs**, **168 drafts**, **117 non-main bases**,
+and **42 open issues**. Twenty ready or changes-requested PR heads were
+inspected for exact-head checks and formal reviews: none had an APPROVED
+review attached to its current head. Historical approvals, including #1130's
+older Noema approval, are not transferred to later heads.
+
+| Ready PR | Exact head | Observed check-run states | Exact-head approvals |
+| --- | --- | --- | --- |
+| #1126 | `c0c5204b702d2d4d24928389db7d04ebe5cb9739` | cancelled 8, skipped 9, success 25 | 0 |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | failure 3, skipped 9, success 30 | 0 |
+| #1130 | `b25f10eb1021083317a8ecefd479efc29d6c0297` | failure 4 | 0 |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | skipped 11, success 24 | 0 |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | cancelled 1, failure 4, skipped 14, success 33 | 0 |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | failure 7, skipped 6, success 29 | 0 |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | cancelled 1, failure 5, skipped 9, success 27 | 0 |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | failure 7, skipped 5, success 30 | 0 |
+| #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | failure 4 | 0 |
+| #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | failure 4 | 0 |
+| #1153 | `d207a0eb0de0c9ec35bdf1fe17dc40972afa3524` | failure 4 | 0 |
+
+These are repository workflow aggregates, not customer usage or population
+inference. Other draft PRs were inventoried but not individually certified;
+all unresolved-thread and stack prerequisites still require live verification
+before a merge decision. Check runs alone do not establish required-status
+coverage or independent approval.
+
+### Live governance and owner boundaries
+
+- `rules/branches/main` returned only repository no-force-push ruleset
+  **21065108**. The classic protection endpoint returned **404 Branch not
+  protected**; organization rulesets returned **403 Upgrade to GitHub Team**.
+  Independent approval and terminal-success checks remain explicit delivery
+  requirements of this task even though the available remote policy does not
+  establish those gates. Enabling auto-merge could immediately merge a PR in
+  that state, so this audit neither enables unsafe auto-merge nor bypasses an
+  approval. Existing requests are not removed.
+- #1153's full-suite annotation says its job **was not started because the
+  account is locked due to a billing issue**. The job has no executed steps.
+  This is account/platform evidence, not an application test failure. No CI
+  gate, check result, runner routing, or scanner policy is weakened to hide it.
+- Merge records were independently read for #1147
+  (`28f0c51b8341fa40218aab1b6368eeb185558a22`), #1148
+  (`479b8c3d6047ccf76a9ced56e6633e948f10c92c`), #1149
+  (`0368e96f99933cc94c8817fbd69aee5d5df64559`), #1150
+  (`70f8f17b4228d571f57b357f1d884341d0131363`), and #1152
+  (`259be21c4d3e551906c321ad7c911e0fa9695745`). These SHAs prove merge
+  records; independent current-head approval, required terminal Checks, and
+  authenticated deployed acceptance were not certified by this audit.
+- GitHub repository metadata confirmed `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `disksage`, `TEPP`, and
+  `contextual-orchestrator`. DiskSage's canonical repository spelling is
+  lowercase `disksage`; the current-main PRD register already uses that spelling.
+
+### Product gap and minimal candidate
+
+PRD-FR-2/3 and normative ADR 0184 require the screen, exact-value table, CSV,
+and JSON-LD to show the same selected relationships. The source projector
+emits direct property assertions alongside reified statements. Previously,
+search dropped the reified statement but retained a direct assertion on a
+subject that remained visible for another relationship. A synthetic direct
+reproduction on the named main source confirmed this discrepancy.
+
+The candidate filters direct assertions using the already-retained typed
+edge identities and predicates. It preserves subject metadata, singleton or
+array representation, and the separately governed Voice provenance contract;
+it adds no heuristic, score, inference engine, API field, migration, or release
+number. Regression cases cover unpaged and accumulated subjects, filtered
+relations between still-visible endpoints, multiple target values, metadata,
+reified predicates, and unchanged input payloads. The existing page-union and
+Voice regression suite remains applicable.
+
+The `FilteredExport` Storybook scene reuses existing ontology/table tokens.
+Synthetic renders at **1440×900** and **390×844** were visually inspected;
+actual browser downloads in both viewports kept the selected affiliation and
+excluded the removed mentions. Mobile retains the existing horizontally
+scrollable exact-values table. Screenshots contain synthetic content only and
+stay outside git. This is rendered candidate evidence, not authenticated
+customer UI or deployed PostgreSQL/API acceptance.
+
+Local verification: the relevant two-file suite passed **49 tests**, and the
+layout regressions passed **31 tests** after the final type-check correction.
+Frontend lint, production build, Storybook build, and documentation hygiene
+(**5 tests**, DeprecationWarning treated as error) passed. The first full
+frontend run passed **553/554** tests and timed out in the unchanged
+AdminPanel input test; that module then passed all **4** tests in isolation.
+A full rerun is required before claiming an entirely green suite. No timeout
+or warning suppression was added to code or test configuration.
+
+### Authority, research, and acceptance limits
+
+- The current LineageWeave PRD was read before editing. RankWeave's current
+  architecture, ThreadWeave's PRD, and TEPP's approved v0.4 product authority
+  were retrieved for their respective owner boundaries. No owner calculation
+  or provider policy is implemented in this export repair.
+- ADR 0246 supplies twelve atomic Voices; ADR 0251's I/O-psychology layer
+  remains distinct; ADR 0256 governs extensible evidence-bearing combinations.
+  The ADR 0084 register and ADR 0184's W3C RDF/JSON-LD/PROV-O references support
+  provenance and projection semantics. They do not prove runtime acceptance
+  or authorize guessed combinations, weights, or population estimators.
+- The synthetic demo OIDC token preflight returned **HTTP 400**, with no token.
+  Authenticated API/UI and synthetic authenticated k6 saturation acceptance
+  therefore remain **unavailable in this audit**. No latency, error rate,
+  throughput, database/worker/Valkey/gateway saturation, or capacity improvement
+  is claimed, and no guessed bottleneck is repaired. The formal Compose stack
+  and all existing data volumes remain intact; no temporary containers were
+  created or other agents' containers removed.
+- DeepWiki returned repository-not-indexed errors. Sequential-thinking and
+  graph-memory tools were not exposed in this session. These missing tools
+  are not replaced with invented authority or observations.
+
+### Cross-PR integration boundaries
+
+The twenty inspected heads overlap on `pyproject.toml` (#929/#911/#1133/
+#1135/#1137), ADR 0123 (#983/#1135), the ADR index (#929/#1121), and the
+backend API entry point (#929/#974). These are collision candidates, not
+proof of a semantic conflict; older branches must not revert current owner
+changes. #984 remains stacked on a non-main base and needs its parent merged
+before retargeting and fresh exact-head evidence.
+
+This export slice shares `ontologyLayout.ts` and its tests with #1153's
+separate authorized-outside-traversal Voice repair. Preserve both changes and
+retest their integration; do not fold in the parent repair or transfer its
+Checks. This slice introduces no ADR ordinal, migration ordinal, API/schema
+contract, or release number. All other draft-stack semantic/version conflicts
+remain unverified rather than being reported clean.
+
+
 ## Voice API root-cause retest — 2026-10-03 16:40 KST
 
 Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
