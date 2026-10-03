@@ -1,5 +1,160 @@
 # Product & Technical Gap Baseline
 
+## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
+
+This dated overlay supersedes older present-tense queue statements. Historical
+snapshots below remain historical evidence. Repository counts, candidate tests,
+authenticated synthetic acceptance, protected delivery, and product outcomes
+are separate evidence classes.
+
+### Current authority and queue
+
+- Git and GraphQL identify `main` as
+  `0f6634ffe3e8f441d71b17ca1cef5c7e4cb38e98`. The paged inventory returned
+  **181 open PRs**, **168 drafts**, **117 non-`main` bases**, and **42 open
+  issues**. These are repository counts, not usage or population estimates.
+- Exact-head review/check rollups and changed paths were read for all 181 open
+  PRs. No qualifying current-head approval was found in the bounded last-ten
+  review windows. Rollups were 96 success and 85 failure; no pending rollup was
+  returned. A successful rollup on a draft or stack is not a protected merge.
+  Forty-six PRs had an unresolved thread in the retrieved windows. Five PRs
+  had more than 30 threads, so their complete thread audit remains unavailable.
+  No changed-file page was truncated.
+- Active central ruleset 18156473 requires one approval, dismissal on push,
+  resolved threads, and seven central workflows. Last-push approval is false.
+  Repository ruleset 21065108 prohibits force pushes. The central ruleset also
+  exposes an `ALWAYS` bypass entry whose actor was unavailable through
+  GraphQL. This is not authorization to use it.
+- Recent `Analyze`, full-suite, and frontend check annotations state:
+  “The job was not started because your account is locked due to a billing
+  issue.” The account owner must restore execution; no LineageWeave workflow
+  change, local pass, skipped check, or fabricated status clears that gate.
+  REST was rate-limited; bounded GraphQL and Git reads supplied this audit.
+- #1156's new exact head is
+  `27d99059bfb9b135a4adb20c6af4e57d4498f78b`. Its remote-target finding was
+  valid: HTTP could send authentication to a remote host. Both harnesses now
+  require HTTPS except on exact loopback hosts and disable redirects before
+  credential-bearing requests. Rejected owned tokens never fall back to a
+  password grant; the documentation now distinguishes that path. Its 39
+  frontend regressions, seven Python harness/document checks, lint, production
+  build, and native k6 script inspection passed. Hosted checks still fail
+  before execution because of the billing lock; independent approval is absent.
+
+### Selected product gap and root repair
+
+The selected gap is opening and reading accepted, evidence-bearing Voices
+without losing the separate supporting Post. PR #1153's existing owner delta
+was inspected and merged with the current `main` in an isolated worktree,
+preserving both histories and the newly merged Similar VOC controls. The
+resulting product-code candidate is
+`3a3c86621fc343e9779fd3af6e3b6db65e32a32d`.
+
+Authenticated synthetic acceptance exposed two real defects:
+
+1. An additional Voice was accepted and persisted, but an immediate neighborhood
+   read omitted it. Assignments use PostgreSQL time while the fresh snapshot
+   used the application host's wall clock. The observed database clock was
+   about 0.099 seconds ahead; no grace period or sleep was added. ADR 0184 now
+   specifies PostgreSQL `clock_timestamp()` for a fresh snapshot. Cursor
+   continuation retains its original snapshot, and truth/cutoff rules remain
+   fail closed. The existing immediate-read regression became green.
+2. The live Post detail path called its existing occupational evidence-status
+   owner without importing it, causing a runtime NameError. One import restores
+   that owned call. The synthetic API fixture now applies the existing catalog
+   and extraction migrations needed by this real read, rather than hiding a
+   missing table in application code.
+
+The twelve governed atomic Voice categories remain open to evidence-backed
+extension under ADR 0246. ADR 0251 governs the distinct I/O-psychology layer;
+ADR 0256 governs evidence-bearing combinations. No fixed combination codes,
+B2B2C restriction, inferred Voice, weight, mathematical implementation, API
+schema, migration ordinal, dependency, or release number was introduced.
+Authorized supporting Posts outside the drawn neighborhood retain their Voice,
+PROV-O derivation, truth state, and separate CSV identity. Hidden support is
+omitted, never replaced with the carrying Post.
+
+### Candidate validation and runtime limits
+
+- Relevant backend ontology/Voice/persistence, documentation, and public
+  docstring checks passed (**139 tests**). Authentication-boundary and snapshot
+  regressions passed again (**9 tests**). Four real-token PostgreSQL/API tests
+  passed: immediate accepted-Voice read, hidden evidence rejection, revocation
+  omission, and Post detail. Tokens came from the existing Authorization Code
+  sign-in flow and a private runtime file; no identity grant was enabled.
+  Credential fixture representations now omit the token.
+- Five relevant frontend files passed (**62 tests**), including the existing
+  paged JSON-LD property/multi-Voice unions. Lint, production build, and
+  Storybook build passed. The inherited production bundle warning remains;
+  it was neither suppressed nor relabeled as a performance pass.
+- The real candidate frontend used the throwaway synthetic PostgreSQL database,
+  the existing identity service, and authenticated HTTP. Desktop **1440×900**
+  and mobile **390×844** screenshots were visually inspected. The exact table
+  retains its named horizontal-scroll region; carrying-Post and supporting-Post
+  actions are distinct. Downloaded CSV retained separate carrying and derivation
+  identities. Screenshots and exports remain outside git and contain synthetic
+  fixtures only. This is candidate acceptance, not deployed private-corpus or
+  protected-release evidence.
+- An authenticated synthetic HTTP k6 observation used **2 VU**, a **10-second**
+  declared window, and a **20-second** request boundary. The first observation
+  completed 3,337 requests with zero HTTP failures and 331.56 requests/second;
+  duration p95 was 26.90 ms. This describes that small four-visible-Post fixture
+  only. It is not an SLO, saturation ceiling, or population inference. A later
+  observation adds correlated database/worker/Valkey diagnostics; its final
+  metrics are recorded separately when available.
+- The observed Ask jobs settled as **failed**. Successful enqueue/status HTTP
+  calls do not establish a successful answer, a running-workload capacity
+  envelope, or gateway saturation. Gateway concurrency/capacity remains
+  unavailable. No bottleneck repair or consumer fallback is inferred from this
+  settled tail. Shared Valkey blocked clients include ordinary blocking
+  consumers and do not alone establish saturation. Diagnostic convenience
+  samples are not probability samples; population inference remains unavailable
+  without the complete Rust-owned terminal artifact contract.
+
+### Integration conflicts and retained work
+
+- #1153 and #1154 merge cleanly in product code; their dated baseline overlays
+  conflict. Preserve both evidence records when integrating and collect fresh
+  head evidence afterward. #1136's reader-scope guard remains independently
+  owned; its `.slice()` date formatting also differs from current full-value
+  rendering and needs reconciliation before integration. Its code was not
+  copied into this candidate.
+- The current main migration stream still has two `0233` files: leftover-map
+  unexplained share and source-conversation-turn evidence. Issue #1048 and
+  owner PR #1049 remain the repair lane; shipped history was not renumbered.
+  The main ADR directory has no duplicate ordinal. Many open release stacks
+  edit package/runtime versions and shared API files; path overlap is an
+  integration warning, not an accepted combined schema or release. Issue #1056
+  remains the version-authority gate. Stacked children stay on their parents
+  until those parents are protected; their checks/approvals do not transfer.
+- Canonical names were compared with GitHub:
+  `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+  `TEPP`, and `contextual-orchestrator`. The local `DiskSage` spelling is not the
+  canonical repository spelling. LineageWeave's current PRD, ThreadWeave's PRD,
+  TEPP's approved v0.4 PRD, RankWeave's current architecture authority,
+  disksage's available product documentation, and contextual-orchestrator's
+  current product planning were read before their boundaries were used. No
+  downstream copy of an owned estimation or provider policy was introduced.
+
+### Merge-control incident and outstanding protection
+
+The normal `gh pr merge --auto --squash --match-head-commit` request for #1126
+completed a merge at
+`0f6634ffe3e8f441d71b17ca1cef5c7e4cb38e98`. The caller had not established
+qualifying current-head independent approval and terminal successful required
+checks first; a subsequent exact-head read found no approving review and
+cancelled review/scan jobs. This is a **merge-control incident**, not a
+protected-acceptance completion. No self-approval, force push, or `--admin`
+option was issued, but that does not repair the missing evidence. No further
+merge is authorized without the explicit independent-approval/check guard,
+regardless of a server-side bypass entry.
+
+Other normal auto-merge requests were rejected by GitHub as lacking required
+protected-branch rules or being unstable. Do not claim they remain armed.
+Candidate #1153 and #1156 still require fresh hosted checks, independent review,
+resolved threads, normal protection, and verified merge SHAs. The documentation
+commit changes the candidate head; no predecessor hosted evidence transfers.
+Full Voice release acceptance remains incomplete.
+
 ## Exact-head Voice export and delivery audit — 2026-10-03 20:24 KST
 
 This dated overlay supersedes older live-state claims below. Git transport and
