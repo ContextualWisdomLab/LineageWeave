@@ -138,42 +138,6 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
-  it("blocks cached neighborhood exports when supplied access is denied", () => {
-    render(
-      <OntologyExplorer
-        focusNodeType="node_post"
-        focusNodeId={POST_ID}
-        neighborhood={neighborhood()}
-        status="denied"
-      />,
-    );
-    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
-    expect(screen.queryByRole("table", { name: "Exact values" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
-  });
-
-  it.each(["node", "edge"])("removes the selected %s details when supplied access is denied", async (selection) => {
-    const payload = neighborhood();
-    const props = { focusNodeType: "node_post", focusNodeId: POST_ID, neighborhood: payload };
-    const { rerender } = render(<OntologyExplorer {...props} status="ready" />);
-    await userEvent.click(screen.getByRole("button", {
-      name: selection === "node" ? "Select node: Post Demo public post" : /Select edge: mentions/,
-    }));
-    const drawer = selection === "node" ? "Node evidence" : "Edge provenance";
-    expect(screen.getByRole("complementary", { name: drawer })).toBeVisible();
-    rerender(<OntologyExplorer {...props} status="denied" />);
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
-      expect(screen.queryByRole("complementary", { name: drawer })).not.toBeInTheDocument();
-      expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
-    });
-    rerender(<OntologyExplorer {...props} status="ready" />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled());
-    expect(screen.getByRole("table", { name: "Exact values" })).toBeVisible();
-  });
-
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
     const projectNode = {
@@ -700,4 +664,40 @@ describe("OntologyExplorer", () => {
     const missing = rows[1].querySelectorAll("td");
     for (const index of [4, 5, 7]) expect(missing[index]).toHaveTextContent("Unknown");
   });
+  it("blocks cached neighborhood exports when supplied access is denied", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+        status="denied"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByRole("table", { name: "Exact values" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+  });
+
+  it.each(["node", "edge"])("removes the selected %s details when supplied access is denied", async (selection) => {
+    const payload = neighborhood();
+    const props = { focusNodeType: "node_post", focusNodeId: POST_ID, neighborhood: payload };
+    const { rerender } = render(<OntologyExplorer {...props} status="ready" />);
+    await userEvent.click(screen.getByRole("button", {
+      name: selection === "node" ? "Select node: Post Demo public post" : /Select edge: mentions/,
+    }));
+    const drawer = selection === "node" ? "Node evidence" : "Edge provenance";
+    expect(screen.getByRole("complementary", { name: drawer })).toBeVisible();
+    rerender(<OntologyExplorer {...props} status="denied" />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+      expect(screen.queryByRole("complementary", { name: drawer })).not.toBeInTheDocument();
+      expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+    });
+    rerender(<OntologyExplorer {...props} status="ready" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled());
+    expect(screen.getByRole("table", { name: "Exact values" })).toBeVisible();
+  });
+
 });
