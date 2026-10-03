@@ -100,7 +100,20 @@ repair of old intervals is rejected because the overwritten evidence is absent.
   evidence minimum without disclosing or substituting hidden evidence. When
   bounded pages are accumulated, properties for the same JSON-LD subject are
   merged and multi-value Voice relations are unioned instead of one page
-  replacing another.
+  replacing another. In exact-value CSV, `carrying_post_id` and
+  `derivation_evidence_post_id` are populated only for a qualified Voice
+  assignment whose subject is a Post; unrelated ontology relations leave
+  both columns empty rather than relabeling an endpoint identifier as Voice
+  evidence.
+  JSON-LD singleton and array representations carry the same relation set:
+  page accumulation unions both forms, and search filtering removes hidden
+  assignment references in either form. CSV retains the carrying Post's
+  `source_node_id` separately from `evidence_post_id`, along with the
+  persisted validity bounds. It also names those roles explicitly as
+  `carrying_post_id` and `derivation_evidence_post_id` columns so spreadsheet
+  readers can distinguish the Post that carries a Voice from its derivation
+  evidence. It never derives either identity or interval from a label or an
+  encoded row identifier.
 
 ## Data model
 

@@ -243,7 +243,11 @@ describe("OntologyExplorer", () => {
         reader.readAsText(blob);
       });
       expect(JSON.parse(body)["@graph"]).toEqual([
-        { "@id": subject, "rdfs:label": "Synthetic approved", "lw:mentions": [person, organization] },
+        {
+          "@id": subject,
+          "rdfs:label": ["Synthetic draft", "Synthetic approved"],
+          "lw:mentions": [person, organization],
+        },
       ]);
       expect(blob.type).toBe("application/ld+json");
       expect(click).toHaveBeenCalledOnce();
