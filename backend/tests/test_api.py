@@ -1447,7 +1447,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert report_refused.status_code == 422
-    assert "invent a measurement" in report_refused.json()["detail"]
+    assert report_refused.json()["detail"] == "Open the period report to rebuild it."
 
     running = client.post(
         f"/api/analysis-runs/{running_run_id}/start",
