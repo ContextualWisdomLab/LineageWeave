@@ -37,7 +37,7 @@ class NullAdjudicationClient:
 
     available = False
 
-    def judge(self, candidate_label: str, record_label: str) -> float:  # pragma: no cover
+    def judge(self, candidate_label: str, record_label: str) -> float:
         """Score the candidate and record labels for semantic adjudication."""
         raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
 
