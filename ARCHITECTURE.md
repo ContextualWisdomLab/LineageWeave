@@ -247,6 +247,21 @@ caps the payload at the landing node bound, keeping cited posts first
 (ADR 0169). Optional `knowledge_cutoff` on `POST /api/ask` selects the
 covering `source_post_revision` and never substitutes a live body
 (ADR 0216). Open a cited post to read the focused thread.
+
+A dedicated MCP resource server (`backend/app/mcp_server.py`, ADR 0218)
+exposes `submit_global_ask` / `read_global_ask_job` over Streamable HTTP,
+delegating to the same durable application-service functions as REST.
+ADR 0272 serves the current 2026-07-28 stateless revision and the legacy
+handshake revisions from the pinned official SDK's same app: modern
+requests carry the `_meta` protocol/capability envelope and `Mcp-Method` /
+`Mcp-Name` routing headers with no `Mcp-Session-Id`, legacy clients keep
+`initialize` and session state, and a routing-header mismatch fails closed
+before any tool call or quota consumption. Legacy sessions are process-local
+in the pinned SDK, so an MCP deployment with more than one process must route
+a given `Mcp-Session-Id` to its initializing process; the modern lane is
+self-contained and needs no affinity. The pre-auth admission boundary
+allows those two headers in CORS without widening origins, Host, audience,
+or quota policy.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and atomically rewrites edges, channel signals, and
 Allen interval relations. Reconstruct grouping is
