@@ -25,6 +25,23 @@ attributes rather than from one exhaustive industry-role list.
 Represent composition as rows in normalized `source_post_voice`, not as
 compound lookup codes.
 
+Additional-assignment reassertion (2026-10-01): changing an additional Voice's
+truth state or derivation evidence closes its current half-open interval and
+inserts a new assignment interval. The closed row retains its original truth
+state, assertion, start, and recording time; historical reads must not acquire
+later evidence or lose an earlier assertion. Repeating the same truth state
+and derivation is idempotent and retains the existing interval. The write locks
+the carrying Post before reading its current Voice, serializing with other
+assignments and imported-primary changes. The replacement boundary comes from
+the database clock after that lock, not the transaction's possibly earlier
+start time. A failed replacement rolls back the interval close and provenance
+writes together. Previously overwritten evidence cannot be reconstructed:
+an additional row recorded after the requested cutoff is omitted, even if its
+old start predates that cutoff. The imported-primary source-time contract
+remains governed by ADR 0252.
+In-place upsert is rejected because it destroys cutoff evidence; an inferred
+repair of old intervals is rejected because the overwritten evidence is absent.
+
 - The existing `source_post.voc_type_code` remains the authoritative imported
   primary voice. A trigger mirrors it into exactly one primary association so
   existing import, filtering, and lineage behavior remains stable.
@@ -63,8 +80,8 @@ compound lookup codes.
 - A `post_admin` may add an additional assignment by naming an ABAC-visible
   evidence Post, an atomic Voice code, and a governed truth state. The API does
   not accept a caller-supplied assertion identifier: one transaction binds the
-  evidence Post as a PROV Entity, records `prov:wasDerivedFrom`, and upserts the
-  assignment. It cannot replace or demote the imported primary Voice.
+  evidence Post as a PROV Entity, records `prov:wasDerivedFrom`, and records the
+  effective assignment interval. It cannot replace or demote the imported primary Voice.
 - In the live Post popup, a `post_admin` may choose one unassigned atomic Voice
   and one explicit truth state. The open Post is submitted as its own evidence,
   which covers a single record that contains several perspectives without

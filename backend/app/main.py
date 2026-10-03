@@ -744,6 +744,7 @@ async def _load_post_voice_types(
                 or ($2::timestamptz is not null
                     and voice.effective_from <= $2
                     and (voice.effective_to is null or $2 < voice.effective_to)))
+           and ($2::timestamptz is null or voice.is_primary or voice.recorded_at <= $2)
          order by voice.is_primary desc, lookup.display_order, voice.voice_type_code
         """,
         post_id,

@@ -914,6 +914,7 @@ async def _load_voice_assignments(
                or coalesce($2::timestamptz, $3::timestamptz) < voice.effective_to
            )
            and voice.recorded_at <= $3::timestamptz
+           and (voice.is_primary or voice.recorded_at <= coalesce($2::timestamptz, $3::timestamptz))
          order by voice.post_id, voice.is_primary desc,
                   lookup.display_order, voice.voice_type_code
         """,
