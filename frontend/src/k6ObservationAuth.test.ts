@@ -77,6 +77,7 @@ describe.each(["http", "mcp"] as const)("%s k6 authentication", (kind) => {
     "http://remote.example.test", "http://localhost.evil.test", "http://127.0.0.1@evil.test",
     "http://127.0.0.1\\@evil.test", "http://[::1].evil.test", "ftp://localhost",
     "https://user:synthetic-secret@remote.example.test", "https://remote.example.test\\@evil.test",
+    "https://remote.example.test/path?query=1", "https://remote.example.test/path#fragment",
   ])("rejects unsafe target %s before credential reading or network I/O", (target) => {
     expect(() => harness(kind, syntheticToken, {
       [kind === "http" ? "BACKEND_URL" : "MCP_URL"]: target,
