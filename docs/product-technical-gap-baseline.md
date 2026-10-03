@@ -12,6 +12,13 @@ has not seeded the governed truth-status lookup. The new HTTP regressions
 therefore could not reach their asserted API behavior even with a healthy
 Keycloak token.
 
+The JSON-LD assertion also selected the first graph item with the carrying
+Post `@id`, while `jsonld_document()` emits the base node before a second item
+with the same `@id` and `hasVoiceAssignment`. Ordinary child
+`20028402f893f6385289e1e4069ba3213f84ab12` now requires that property in the
+selector, preventing a false `KeyError` after an otherwise successful API
+round trip.
+
 An executable source-order assertion failed on the inspected head because the
 `0175` fixture dependency was absent. Ordinary child
 `9f76a3229c95b8eda4810ef7811c155f82c56fb9` applies that exact prerequisite
