@@ -162,7 +162,10 @@ export function OntologyExplorer({
     };
   }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
 
-  const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
+  const visible = useMemo(
+    () => status === "denied" || providedStatus === "denied" ? null : filterNeighborhood(loaded, query),
+    [loaded, query, status, providedStatus],
+  );
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;

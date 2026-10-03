@@ -27,6 +27,10 @@ operator-facing control you can click before changing product CSS.
 | `Ask Agent/Public claim verification` | Compare supported, refuted, and not-enough-information states; open only the external evidence link, then review the separate internal citation before changing governed graph state. | `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min`, `PublicClaimVerification` |
 | `Ask Agent/Knowledge cutoff` | Exercise partial historical grounding, retained-revision provenance, later-live-change disclosure, and the narrow viewport before relying on a historical answer. | Native `datetime-local`, `--space-panel-block`, `--space-control-gap`, `--color-border`, `--size-control-min` |
 
+`Evidence/OntologyExplorer/DeniedCachedEvidence` supplies synthetic cached Voices
+with denied access. Both exports stay disabled, and record labels, the
+exact-value table, and selected evidence details stay absent (ADR 0184).
+
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
 Storybook is installed with the existing pnpm pin on Node 24.
