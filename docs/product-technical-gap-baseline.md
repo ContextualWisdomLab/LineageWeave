@@ -1,5 +1,56 @@
 # Product & Technical Gap Baseline
 
+## Post-merge exact-head and policy audit — 2026-10-03 10:30 KST
+
+Git transport confirms `main` at `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
+GitHub reports 178 open PRs, 168 drafts, and 42 open issues. These are
+repository inventory counts, not product-use or population estimates.
+
+PR #1148 merged source head
+`0a71d0b44ed95c50b6537b861765707a9a2d7693` as merge SHA
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`; Git confirms that SHA is the
+current `main` head. The merge tree is byte-identical to the locally tested
+candidate tree. Its additive Voice export change and regressions alter no
+database schema, server API, migration ordinal, or release number. The PRD and
+ADR 0256 describe the CSV carrying-Post and derivation-evidence columns.
+
+The exact source-head checks did **not** pass: `Analyze (actions)`,
+`Analyze (python)`, `Full test suite`, and `Frontend lint, test, build` failed
+to start with GitHub's annotation, “The job was not started because your
+account is locked due to a billing issue.” CodeRabbit was pending at the
+last read; jobs later skipped after the PR closed are not passes. The formal
+review list contained no `APPROVED` review on the source head, and GitHub's
+review decision was blank. `mergedBy` is `seonghobae`. No `--admin` flag or
+self-approval was used, but the merge occurred without the requested
+independent approval or terminal-success Checks, so it is not recorded as
+ruleset-compliant protected delivery.
+
+The active organization ruleset `CWL Central required workflows` applies to
+the default branch. Its GraphQL projection requires one approving review and
+resolved review threads, and lists seven required central workflows. The
+active `CWL Noema central security scan` ruleset also applies. The repository
+ruleset prohibits force pushes; the branch-protection query returned no
+rules. The central ruleset exposes an `ALWAYS` bypass actor whose actor value
+is null in GraphQL. Its identity and relationship to this merge are
+unverified. This discrepancy is an unresolved governance defect; do not
+infer approval or bypass behavior from the merge SHA alone.
+
+Focused local verification on the identical candidate tree passed: 551
+frontend tests, lint, production build, Storybook build, 62 Voice/ontology
+backend tests, and eight synthetic PostgreSQL Voice-history tests. The
+`SeparateVoiceEvidence` Storybook story was rendered and visually inspected at
+1440×900 and 390×844. This is synthetic presentation and isolated database
+evidence; it does not establish an authenticated HTTP request through the
+PostgreSQL-backed application. Voice acceptance therefore remains incomplete.
+
+PR #1141 remains open at head
+`e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, based on
+`83eba56149eb802cd63642c507c324c9976ec78e`. It is `DIRTY`, has no qualifying
+approval, and retains its squash auto-merge request. Its old exact-head Checks
+do not prove mergeability against current `main`. Leave that PR and its
+branch-owned documentation delta intact until its current base can be
+reconciled without transferring reviews or Checks.
+
 ## PR recheck and CSV export contract — 2026-10-03 08:47 KST
 
 The repository still reports 179 open PRs (168 drafts, 117 with a non-`main`
