@@ -411,6 +411,15 @@ export const SeparateVoiceEvidence: Story = {
   },
 };
 
+export const VoiceEvidenceOutsideTraversal: Story = {
+  args: {
+    neighborhood: {
+      ...SeparateVoiceEvidence.args!.neighborhood!,
+      nodes: combinedVoiceNeighborhood.nodes,
+    },
+  },
+};
+
 export const LongLabelsAndEvidenceTable: Story = {
   args: {
     neighborhood: {

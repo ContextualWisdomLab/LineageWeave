@@ -1,5 +1,143 @@
 # Product & Technical Gap Baseline
 
+## Exact-head Voice export and delivery audit — 2026-10-03 20:24 KST
+
+This dated overlay supersedes older live-state claims below. Git transport and
+GitHub GraphQL agree on `main` `259be21c4d3e551906c321ad7c911e0fa9695745`.
+The full paged inventory before publishing this repair contains **178 open PRs,
+168 drafts, 117 non-main bases, ten ready PRs, and 42 open issues**. These are
+repository workflow counts, not a customer dataset or population estimate.
+
+### Authority and ownership
+
+The current LineageWeave `docs/product-requirements.md` was read before repair.
+ADRs remain normative; PRD and this baseline are supporting documents.
+ADR 0246 supplies twelve atomic Voices, ADR 0251 the separate I/O-Psychology
+semantic layer, ADR 0252 temporal history, and ADR 0256 open-ended,
+evidence-bearing combinations. W3C [PROV-O](https://www.w3.org/TR/prov-o/)
+and [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/#node-objects) are primary
+serialization/provenance authorities; they do not supply a Voice classifier,
+psychometric weight, or acceptance verdict. No new combination code, scoring
+heuristic, model choice, or Python numerical engine is introduced.
+
+Canonical remote identity/default-branch heads were read from GitHub GraphQL:
+
+| Repository | Current authority read | Default head |
+|---|---|---|
+| `ContextualWisdomLab/LineageWeave` | `docs/product-requirements.md`, applicable ADRs | `259be21c4d3e551906c321ad7c911e0fa9695745` |
+| `ContextualWisdomLab/RankWeave` | `ARCHITECTURE.md` | `92323cb8b55baf5d840cb97fa8534a0e75ef234c` |
+| `ContextualWisdomLab/ThreadWeave` | `docs/PRD.md` | `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0` |
+| `ContextualWisdomLab/disksage` | `README.md` product authority | `05899ffb01ce91a9ea3d782630b28a398de59ddc` |
+| `ContextualWisdomLab/TEPP` | `docs/product/prd-v0.4-approved.md` | `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0` |
+| `ContextualWisdomLab/contextual-orchestrator` | `README.md`; `docs/PRD.md`/`ARCHITECTURE.md` unavailable at this head | `8e1f1a8bf3e96e56dc8fcc90ec777883a1d56ce6` |
+
+The remote repository spelling is `disksage`, despite the local DiskSage label.
+The repair belongs to LineageWeave's authorization/projection boundary. No TEPP,
+fast-mlsirm, ThreadWeave, RankWeave, or orchestrator arithmetic is reimplemented.
+No LLM, VISION, embedding, or structured-output request was made in this audit.
+
+### Observed gap and minimal repair candidate
+
+At #1152 exact head `5bad1ebc57f8275d825f45db0f449fc40b760f76`, the
+loader independently authorizes a derivation-evidence Post outside traversal,
+but the pure exporter still discards its Voice. The review finding is valid:
+`voice_assignments` can disagree with exact-value CSV and JSON-LD. This is the
+selected customer correctness gap; no measured impact ranking is claimed.
+
+Code candidate `f688984c6` preserves the carrying Post requirement and admits
+external evidence only through an explicit application-owned authorized set
+(default empty). Hidden, ineligible, or future evidence remains omitted, with
+no carrying-Post substitution. Existing truth/effective/cutoff fields and
+PROV-O references stay intact. Local filtering retains admitted external
+references while preserving removal of evidence nodes hidden by local search.
+The evidence button uses the existing localized next action when its label
+is outside traversal, instead of exposing an internal identifier. Existing
+CSV carrying/evidence columns and paged JSON-LD property/multi-Voice unions
+remain separate and are regression-checked. ADR 0256 was amended before code.
+No API field, schema migration, release number, or new ADR ordinal is added.
+
+Local candidate validation: **84 backend/projection/schema/docstring tests
+passed with DeprecationWarning treated as an error**; frontend **58 files /
+551 tests passed** before the final copy regression, then **47 focused tests
+passed** including that added regression. Frontend lint, production build,
+Storybook build, touched-file Ruff, and diff checks pass. Build chunk-size
+warnings remain visible. These results are candidate evidence only.
+
+Synthetic `VoiceEvidenceOutsideTraversal` rendered at **1440×900** and
+**390×844**. Desktop shows separate carrying/evidence actions; mobile keeps
+the table within a horizontal scroll and reveals the focused evidence action
+when scrolled. Screenshots were visually inspected; neither viewport has page
+horizontal overflow. They are local synthetic Storybook evidence, not an
+authenticated customer screen or production-record artifact.
+
+The three real-token PostgreSQL API regressions were attempted but could not
+start: the current synthetic OIDC client rejects the fixture's password grant
+with HTTP 400 `unauthorized_client`. A browser authorization-code probe of the
+checked-in return URI also reports `Invalid parameter: redirect_uri`. No
+identity policy was relaxed, token fabricated, or authentication mocked.
+Authenticated API and authenticated rendered Voice acceptance remain
+**unavailable / incomplete on this candidate**.
+
+### Current checks, approval, and merge evidence
+
+#1152 was observed merged at **2026-10-03 11:12:11 UTC**, merge SHA
+`259be21c4d3e551906c321ad7c911e0fa9695745`. The normal
+`gh pr merge --auto --squash --match-head-commit` invocation immediately
+merged it; it did not retain an auto-merge request. Its exact-head review
+contained only a COMMENTED review, no independent APPROVED review, and four
+failed application/CodeQL checks. Their annotations say the jobs did not start
+because the account is locked by a billing issue. Therefore this merge is
+**not evidence of the user's required protected delivery**. No self-approval,
+admin option, force-push, or ruleset mutation was used. This governance failure
+must not be hidden by the existence of a merge SHA. Subsequent auto-merge
+requests use the explicit enable-only GraphQL mutation; no further merge is
+attempted without independent approval and terminal successful exact-head
+checks. The export repair is a new candidate based on this observed `main`.
+
+The applicable organization gate was freshly read: one approving review,
+resolved threads, and seven central workflows (OpenCode, scheduler, Security,
+Strix, Semgrep, Noema, CodeQL); the repository forbids non-fast-forward updates.
+Historical claims of two approvals are superseded by this read. The apparent
+mismatch between the configured organization gate and immediate merge remains
+unresolved; changing protection is outside this repair.
+
+#1130 remains exact head `b25f10eb1021083317a8ecefd479efc29d6c0297`,
+with four failed checks and unresolved threads. Its formal approval is on
+older commit `383c392bc6713e55bed31b4d4053d93cfd1885d0`, so it is not reused
+as current-head approval. GitHub rejected enable-only auto-merge as unstable;
+no policy was bypassed. Other ready PR heads/check totals were re-read, without
+transferring predecessor evidence or cancelling current-main/open-PR runs.
+
+### Integration and load limits
+
+Read-only merge-tree checks find #1141
+`cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` and #1131
+`ee3d8890ce3b7829f668e05732ef55d24e2e688e` conflict in both the PRD and
+this baseline. Preserve both ownership/evidence deltas when reconciling.
+#1151 `ab0c639fd50cb13f764416d99038140af3b86c73` combines textually with
+current main and changes Compose-volume identity; that does not authorize
+volume deletion or prove runtime migration. The protected parent-first rule
+still applies to all **117** observed stacked PRs; they were not bulk retargeted.
+There are no duplicate ADR ordinals in current main, but migration ordinal
+**0233** has two distinct existing files. Their full sorted filenames remain
+separate; this repair neither renumbers them nor deletes a migration. The
+whole open stack has not been semantically certified conflict-free.
+
+The existing authenticated synthetic k6 HTTP harness was attempted with two
+VUs, a ten-second duration, and a five-second request timeout. Setup stopped at
+OIDC HTTP 400 before enqueue or data reads: one failed login request is not
+application latency, throughput, concurrency, or saturation evidence. Only an
+idle five-service CPU/memory snapshot was obtained; worker metrics were not
+available. PostgreSQL/worker/Valkey/gateway saturation and terminal asynchronous
+Ask behavior remain **unavailable**. No bottleneck was inferred or tuned.
+Compose remains `lineageweave`; no new containers or data volumes were created,
+and no other agent's temporary container was removed. No real record or
+credential was output or committed. Sequential Thinking and Memory MCP tools
+were absent from the callable catalog; DeepWiki returned repository-not-indexed,
+so current repository authorities were read directly. Context7 asyncpg docs
+confirmed the existing parameter/Record contract.
+
+
 ## Voice API root-cause retest — 2026-10-03 16:40 KST
 
 Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
