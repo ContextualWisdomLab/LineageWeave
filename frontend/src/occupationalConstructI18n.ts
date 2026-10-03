@@ -39,6 +39,7 @@ const COPY = {
     "Open the supporting record": "Open the supporting record",
     "Open supporting record: {label} · {title}": "Open supporting record: {label} · {title}",
     "Finding work evidence...": "Finding work evidence...",
+    "No matches on this page. Check the next page.": "No matches on this page. Check the next page.",
     "Show more matching records": "Show more matching records",
   },
   ko: {
@@ -79,6 +80,7 @@ const COPY = {
     "Open the supporting record": "뒷받침하는 기록 열기",
     "Open supporting record: {label} · {title}": "뒷받침하는 기록 열기: {label} · {title}",
     "Finding work evidence...": "업무 근거를 찾는 중...",
+    "No matches on this page. Check the next page.": "이 페이지에는 일치하는 기록이 없습니다. 다음 페이지를 확인하세요.",
     "Show more matching records": "일치하는 기록 더 보기",
   },
   zh: {
@@ -118,6 +120,7 @@ const COPY = {
     "Open the supporting record": "打开支持记录",
     "Open supporting record: {label} · {title}": "打开支持记录：{label} · {title}",
     "Finding work evidence...": "正在查找工作证据...",
+    "No matches on this page. Check the next page.": "本页没有匹配记录。请查看下一页。",
     "Show more matching records": "显示更多匹配记录",
   },
   ja: {
@@ -158,6 +161,7 @@ const COPY = {
     "Open the supporting record": "裏付け記録を開く",
     "Open supporting record: {label} · {title}": "裏付け記録を開く: {label} · {title}",
     "Finding work evidence...": "業務エビデンスを検索中...",
+    "No matches on this page. Check the next page.": "このページには一致する記録がありません。次のページを確認してください。",
     "Show more matching records": "一致する記録をさらに表示",
   },
   vi: {
@@ -198,6 +202,7 @@ const COPY = {
     "Open the supporting record": "Mở bản ghi hỗ trợ",
     "Open supporting record: {label} · {title}": "Mở bản ghi hỗ trợ: {label} · {title}",
     "Finding work evidence...": "Đang tìm bằng chứng công việc...",
+    "No matches on this page. Check the next page.": "Trang này không có bản ghi phù hợp. Hãy kiểm tra trang tiếp theo.",
     "Show more matching records": "Hiển thị thêm bản ghi phù hợp",
   },
 } as const satisfies Record<Locale, Record<string, string>>;

@@ -46,6 +46,19 @@ PRD-FR-2B therefore left catalog search unavailable until this increment.
    copy tells the reviewer to type a catalog label and open the supporting
    record. Clicking a hit opens that Post.
 
+### Empty-page continuation amendment — 2026-10-04
+
+In the context of authorized work-evidence search, facing a bounded response
+with no admitted hits and an existing continuation, we decided to preserve
+the explicit next-page action and against treating that page as exhausted or
+automatically scanning every remaining page, to achieve access to later
+authorized evidence without inventing a match, accepting that the reviewer
+may need to request several pages. A continuation is not a count or a promise
+of a match. Until it is exhausted, the empty view asks the reviewer to check
+the next page; the definitive no-match guidance applies only without a
+continuation. Pending continuation retains the existing loading feedback.
+All requests preserve the query, family, cutoff, and authorization boundary.
+
 ## Consequences
 
 - Reviewers can find Oral Comprehension (or another official label) across
