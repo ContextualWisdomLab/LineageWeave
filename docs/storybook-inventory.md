@@ -51,3 +51,7 @@ actions are executable component-test states governed by ADR 0243. The
 1440×1000 and 390×844 audits are retained in
 `docs/screenshots/project-history-time-source-{desktop,mobile}.png`; both show
 the customer-readable time source without exposing the stored basis code.
+
+`Evidence/OntologyExplorer/DeniedCachedEvidence` supplies synthetic cached Voices
+with denied access. Both exports stay disabled, and record labels, the
+exact-value table, and selected evidence details stay absent (ADR 0184).
