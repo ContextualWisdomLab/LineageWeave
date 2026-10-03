@@ -29,6 +29,18 @@ analysis Checks failed, and no auto-merge request. Its displayed approval is
 from predecessor head `383c392bc6713e55bed31b4d4053d93cfd1885d0`; it is not
 current-head approval.
 
+The #1130 implementation addresses PRD-FR-5 and ADR 0014's Analysis-run
+recovery gap: visible next actions no longer include implementation-service
+terms, while the response fields and machine status remain intact. A
+live-`main` successor candidate has no schema migration, API field, model
+policy, or release-number change. On its previous exact candidate, 40 backend
+run/outbox tests, nine focused App/copy tests, production build, and Storybook
+build passed. Its synthetic recovery-copy story was inspected at 1280×720 and
+390×844. The broader frontend suite passed 539 of 556 tests; the 17 failures
+were on unrelated surfaces and mostly hit the existing five-second timeout.
+The timeout was left unchanged. Fresh exact-head Checks and independent review
+remain necessary after the successor is pushed.
+
 ## Exact-head refresh — 2026-10-03 17:41 KST
 
 `main` remains `70f8f17b4228d571f57b357f1d884341d0131363`. GitHub now reports
