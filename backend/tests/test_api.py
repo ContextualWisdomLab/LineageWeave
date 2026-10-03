@@ -4749,6 +4749,7 @@ def test_voice_assignment_round_trips_through_authorized_postgres_api(
         item
         for item in graph
         if item["@id"] == ontology_node_iri(NODE_POST, carrying_post_id)
+        and str(LW.hasVoiceAssignment) in item
     )
     voice_assignment_ids = {
         value["@id"] for value in carrying_post[str(LW.hasVoiceAssignment)]
