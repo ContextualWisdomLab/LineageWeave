@@ -90,8 +90,8 @@ Frontend lint, production build, Storybook build, and documentation hygiene
 (**5 tests**, DeprecationWarning treated as error) passed. The first full
 frontend run passed **553/554** tests and timed out in the unchanged
 AdminPanel input test; that module then passed all **4** tests in isolation.
-A full rerun is required before claiming an entirely green suite. No timeout
-or warning suppression was added to code or test configuration.
+The subsequent full rerun passed **58 files / 554 tests**. No timeout or
+warning suppression was added to code or test configuration.
 
 ### Authority, research, and acceptance limits
 
@@ -127,7 +127,12 @@ before retargeting and fresh exact-head evidence.
 This export slice shares `ontologyLayout.ts` and its tests with #1153's
 separate authorized-outside-traversal Voice repair. Preserve both changes and
 retest their integration; do not fold in the parent repair or transfer its
-Checks. This slice introduces no ADR ordinal, migration ordinal, API/schema
+Checks. A merge-tree check against #1153 confirmed that production filtering and
+layout tests combine cleanly. Both PRs add a dated baseline section, so that
+document has a content conflict; preserve both evidence sections when the
+first PR is protected and the second is synchronized. The new Storybook
+scene is placed separately to avoid colliding with #1153's evidence scene.
+This slice introduces no ADR ordinal, migration ordinal, API/schema
 contract, or release number. All other draft-stack semantic/version conflicts
 remain unverified rather than being reported clean.
 

@@ -260,24 +260,6 @@ const emptyNeighborhood: OntologyNeighborhoodPayload = {
   limitation_code: "neighborhood_empty",
 };
 
-const exportNeighborhood: OntologyNeighborhoodPayload = {
-  ...demoNeighborhood,
-  jsonld: {
-    ...demoNeighborhood.jsonld,
-    "@graph": [
-      ...demoNeighborhood.nodes.map((node) => ({
-        "@id": `${ONTOLOGY_NAMESPACE}node/${node.node_type_code}/${node.node_id}`,
-        "rdfs:label": node.display_label,
-      })),
-      ...demoNeighborhood.edges.map((edge) => ({
-        "@id": `${ONTOLOGY_NAMESPACE}node/${edge.source_node_type_code}/${edge.source_node_id}`,
-        [edge.ontology_property_iri]: {
-          "@id": `${ONTOLOGY_NAMESPACE}node/${edge.target_node_type_code}/${edge.target_node_id}`,
-        },
-      })),
-    ],
-  },
-};
 
 const truncatedNeighborhood: OntologyNeighborhoodPayload = {
   ...demoNeighborhood,
@@ -430,10 +412,6 @@ export const SeparateVoiceEvidence: Story = {
   },
 };
 
-export const FilteredExport: Story = {
-  args: { neighborhood: exportNeighborhood },
-};
-
 export const LongLabelsAndEvidenceTable: Story = {
   args: {
     neighborhood: {
@@ -545,4 +523,28 @@ export const RejectedProposal: Story = {
     neighborhood: rejectedNeighborhood,
     status: "rejected",
   },
+};
+
+const exportNeighborhood: OntologyNeighborhoodPayload = {
+  ...demoNeighborhood,
+  jsonld: {
+    ...demoNeighborhood.jsonld,
+    "@graph": [
+      ...demoNeighborhood.nodes.map((node) => ({
+        "@id": `${ONTOLOGY_NAMESPACE}node/${node.node_type_code}/${node.node_id}`,
+        "rdfs:label": node.display_label,
+      })),
+      ...demoNeighborhood.edges.map((edge) => ({
+        "@id": `${ONTOLOGY_NAMESPACE}node/${edge.source_node_type_code}/${edge.source_node_id}`,
+        [edge.ontology_property_iri]: {
+          "@id": `${ONTOLOGY_NAMESPACE}node/${edge.target_node_type_code}/${edge.target_node_id}`,
+        },
+      })),
+    ],
+  },
+};
+
+
+export const FilteredExport: Story = {
+  args: { neighborhood: exportNeighborhood },
 };
