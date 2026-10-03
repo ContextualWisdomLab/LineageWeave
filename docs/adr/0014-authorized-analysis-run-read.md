@@ -36,6 +36,17 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 - contextual-orchestrator remains the only LLM path. This slice does not
   call a raw model API.
 
+### Amendment — customer-facing analysis status copy (2026-09-27)
+
+The API continues to return the governed run kind and machine failure code to
+authorized clients. The customer screen presents a product action and a safe
+status label instead of displaying internal service names, transport setup, or
+machine failure codes. A failed run stays terminal; the screen asks the reader
+to contact an administrator before requesting another run. Pending and running
+runs do not claim a result, and an accepted request does not become a
+measurement. This is a presentation change only; it does not alter the registry,
+authorization, status transitions, or measurement boundary.
+
 ## Consequences
 
 `make seed` writes one synthetic Demo Corp lineage run, one TEPP

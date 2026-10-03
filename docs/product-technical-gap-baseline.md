@@ -1,5 +1,110 @@
 # Product & Technical Gap Baseline
 
+## Current authority and exact-head loop — 2026-10-03 16:55 KST
+
+Protected `main` is `479b8c3d6047ccf76a9ced56e6633e948f10c92c`. The current
+product contract is `docs/product-requirements.md`; ADRs remain normative and
+the literature register is supporting evidence. This loop also read
+ThreadWeave's PRD, RankWeave's architecture, DiskSage's PRD, TEPP's approved
+PRD and architecture, contextual-orchestrator's architecture, and
+fast-mlsirm's PRD and architecture. GitHub confirmed their canonical names:
+`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`,
+`ContextualWisdomLab/TEPP`, `ContextualWisdomLab/contextual-orchestrator`,
+and `ContextualWisdomLab/fast-mlsirm`.
+
+GitHub reported **179 open PRs, 42 open issues, 169 drafts, 117 non-`main`
+bases, and 10 ready PRs**. These counts describe repository work only. The
+official Compose project is `lineageweave` with nine running service
+containers; no source-record query or population inference was performed.
+
+PR #1149 is now at exact head `13be5c2742c1123fe4f4b14f710688addc86ee1a`,
+ready on `main`, with a blank review decision and no auto-merge request. Its
+current Actions/Python analysis, full-suite, and frontend Checks failed within
+four seconds; CodeRabbit was still in progress. The hosted log API returned
+403 rate-limit errors, so the failure cause is not claimed. The local
+synthetic authenticated PostgreSQL candidate passed two Voice API tests, 65
+ontology-neighborhood tests, and 13 focused frontend Voice/CSV/page-union
+tests. This is local evidence; Voice acceptance remains **partial** because
+there is no authenticated Voice-screen render on protected `main`.
+
+PR #1150 is at exact head `478464d10497ed10dda64a6fefedcc8fc90d256b`, ready
+on `main`, with a blank review decision and no auto-merge request. Its four
+Actions/Python/full-suite/frontend Checks failed within four seconds; Devin
+Review was pending and CodeRabbit was rate-limited. Its local Compose project
+name contract passes two tests and Ruff. No merge SHA is claimed for either
+PR.
+
+The ready predecessor #1130 was at exact head
+`383c392bc6713e55bed31b4d4053d93cfd1885d0`, `DIRTY` against current `main`,
+with an approval and a resolved CodeRabbit thread on that predecessor head.
+The old approval and Checks do not transfer. A non-force successor candidate
+merges the valid PR delta onto current `main`; it adds no migration, database
+schema, API field, or release number. Backend run/outbox tests passed (40),
+the focused Analysis-run component tests passed (3), and the production and
+Storybook builds passed. The targeted App tests passed (6). The broader
+frontend run passed 539 of 556 tests but had 17 failures across unrelated
+surfaces, predominantly the existing five-second test timeout; no timeout was
+changed. The synthetic `Analysis/RunCopy` story was visually inspected at
+1280×720 and 390×844 with no horizontal overflow or provider/service terms.
+This is component render evidence, not authenticated screen acceptance.
+
+The #1130 predecessor's dated baseline conflicted with the current baseline;
+this successor keeps the current history and adds the fresh loop evidence
+above. #1149 and #1150 use no overlapping API fields, schema, migrations, or
+release numbers with that UI-copy slice. The Voice API, Voice CSV, page-wise
+JSON-LD, and Analysis-run presentation remain distinct acceptance surfaces.
+
+## Exact-head loop and user-facing recovery gap — 2026-10-03 16:13 KST
+
+Protected `main` is `479b8c3d6047ccf76a9ced56e6633e948f10c92c`. The product
+contract is `docs/product-requirements.md`; ADRs are normative, while
+`docs/lineage-bi-research-notes.md` and the cited papers are supporting
+evidence, not implementation or runtime proof. The ecosystem authorities read
+for this loop were ThreadWeave's PRD, RankWeave's architecture, DiskSage's
+PRD, TEPP's approved PRD and architecture, contextual-orchestrator's
+architecture, and fast-mlsirm's PRD and architecture. Their owner boundaries
+are unchanged by this slice. GitHub's canonical names are
+`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`,
+`ContextualWisdomLab/TEPP`, `ContextualWisdomLab/contextual-orchestrator`,
+and `ContextualWisdomLab/fast-mlsirm`.
+
+| Evidence class | Current observation | Limit |
+| --- | --- | --- |
+| Product and research authority | PRD-FR-5 requires truthful pending, unavailable, failed, and succeeded states with a valid next action. ADR 0014 owns authorized Analysis-run reads; ADR 0076 and the named upstream measurement owners constrain model and measurement claims. | Research grounding does not certify a particular customer screen or estimate. |
+| Protected implementation | `main` retains machine failure codes in authorized reads and already distinguishes run kinds. Some Analysis-run actions and messages still expose service-level language or give a retry path that the failed run cannot perform. This candidate localizes customer actions and hides machine details while keeping the existing response shape. | The candidate is not protected delivery until its successor head passes Checks and normal review. |
+| Voice-of-X contract | ADRs 0246/0251/0256 govern the 12 atomic classifications and open-ended, evidence-bearing Voice assignments. Protected code preserves the carrying Post, derivation Post, PROV-O relation, truth state, cutoff, and page-wise JSON-LD property/relation union. | The authenticated PostgreSQL API acceptance remains unavailable: a fresh local run of the unchanged #1149 test source stopped at Keycloak HTTP 400 before creating its throwaway database. No authenticated API or Voice-screen screenshot acceptance is claimed. |
+| Non-identifying runtime aggregate | The official `lineageweave` Compose project had 9 service containers running; 5 exposed healthy checks at the read. | Container health does not establish Voice API behavior, customer acceptance, or a production SLO. No source records were queried. |
+| Repository inventory | GitHub reported 179 open PRs and 42 open issues; the PR list showed 168 drafts, 117 non-`main` bases, and 10 ready PRs. | These are repository workflow counts, not source-record or customer-population estimates. |
+
+PR #1149 is at exact head `c51fde6bcfd5bc4aca9c3c5bdf9a8f6166684938`, targeting
+`main`; it is Draft with no formal approval or auto-merge. Its current `Analyze
+(actions)` and `Analyze (python)` Checks failed to start; Full suite and
+Frontend Checks were skipped because it is Draft. CodeRabbit and Devin left
+`COMMENTED` reviews, not approvals. The CodeRabbit finding about JSON-LD item
+selection was corrected in later commits, but this does not change the failed
+hosted checks or supply the missing authenticated API evidence.
+
+PR #1141 is at `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`; its 25 Checks passed
+and 11 were skipped, but it has no formal approval, remains `DIRTY`, and keeps
+normal squash auto-merge enabled. PR #1131 is at
+`ee3d8890ce3b7829f668e05732ef55d24e2e688e`; 26 Checks passed and 11 were
+skipped, but it likewise has no formal approval, remains `DIRTY`, and keeps
+auto-merge enabled. PR #1130's predecessor head
+`383c392bc6713e55bed31b4d4053d93cfd1885d0` received an approval and an
+addressed CodeRabbit thread, but is `DIRTY` against the current base. That
+approval and its Checks do not transfer to this live-main successor.
+
+The #1130 successor changes only Analysis-run response copy, presentation,
+translations, tests, Storybook inventory, ADR 0014 wording, and this baseline.
+It adds no migration, database schema, API field, model policy, or release
+number. The existing `detail` response field stays in place; exact message
+text remains covered by API and service tests. The feature uses current tokens
+and synthetic Storybook states. Desktop/mobile render checks for this
+successor are recorded after the render audit; they do not certify the
+separate Voice UI.
+
 ## PR recheck and CSV export contract — 2026-10-03 08:47 KST
 
 The repository still reports 179 open PRs (168 drafts, 117 with a non-`main`
