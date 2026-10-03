@@ -124,6 +124,14 @@ proof of a semantic conflict; older branches must not revert current owner
 changes. #984 remains stacked on a non-main base and needs its parent merged
 before retargeting and fresh exact-head evidence.
 
+Current-main filenames contain no duplicate ADR ordinals. Migration ordinal
+**0233** is shared by `0233_source_conversation_turn_evidence.sql` and
+`0233_report_leftover_map_unexplained_share.sql`. They are distinct existing
+files; this audit does not rename, delete, or claim to replay-validate them.
+The replay authority is ADR 0166's sorted-filename contract, not an ordinal
+allowlist. New migrations must inspect that existing ownership before choosing
+an ordinal. No migration is added by this candidate.
+
 This export slice shares `ontologyLayout.ts` and its tests with #1153's
 separate authorized-outside-traversal Voice repair. Preserve both changes and
 retest their integration; do not fold in the parent repair or transfer its
