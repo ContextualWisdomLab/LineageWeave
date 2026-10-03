@@ -1,10 +1,12 @@
 # Product & Technical Gap Baseline
 
-## Post-merge exact-head and policy audit — 2026-10-03 10:30 KST
+## Post-merge exact-head and policy audit — 2026-10-03 11:42 KST
 
 Git transport confirms `main` at `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
-GitHub reports 178 open PRs, 168 drafts, and 42 open issues. These are
-repository inventory counts, not product-use or population estimates.
+The current paged PR inventory read found 179 open PRs, 168 drafts, and 117
+non-`main` bases. The earlier 42-open-issue count was not refreshed because
+GitHub API reads were rate-limited. These are repository inventory counts,
+not product-use or population estimates.
 
 PR #1148 merged source head
 `0a71d0b44ed95c50b6537b861765707a9a2d7693` as merge SHA
@@ -50,6 +52,17 @@ approval, and retains its squash auto-merge request. Its old exact-head Checks
 do not prove mergeability against current `main`. Leave that PR and its
 branch-owned documentation delta intact until its current base can be
 reconciled without transferring reviews or Checks.
+
+Before this regression-test update, PR #1149 was open at exact head
+`2bf6bb1884af2871f149f1ded3931adf2bfe0065`, based on the current `main`
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. Its latest Checks snapshot marks
+`Analyze (actions)`, `Analyze (python)`, `Full test suite`, and
+`Frontend lint, test, build` failed; the check-run details could not be read
+because GitHub's API rate limit blocked the job-log request. The Devin review
+is `COMMENTED`, CodeRabbit's check is not a formal approval, the review
+decision is blank, and auto-merge is not enabled. The merge state is
+`UNSTABLE`. Do not treat this documentation PR as ready to merge; refresh
+these facts on a new exact head after the hosted failure cause is available.
 
 ## PR recheck and CSV export contract — 2026-10-03 08:47 KST
 

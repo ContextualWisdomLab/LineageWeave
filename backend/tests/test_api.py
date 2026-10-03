@@ -38,6 +38,7 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_PROV_O_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0017_prov_o_standard_relations.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RECONSTRUCTION_MIGRATION = (
@@ -197,6 +198,15 @@ _LEFTOVER_MAP_COORDINATES_MIGRATION = (
     / "migrations"
     / "0245_report_leftover_map_coordinates.sql"
 )
+_VOICE_TAXONOMY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0235_voice_of_x_post_taxonomy.sql"
+)
+_VOICE_COMBINATION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0237_source_post_voice_combination.sql"
+)
+_VOICE_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0243_source_post_voice_history.sql"
+)
 _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -332,6 +342,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_PROV_O_MIGRATION.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
@@ -425,6 +436,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COORDINATES_MIGRATION.read_text())
+            cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
+            cur.execute(_VOICE_COMBINATION_MIGRATION.read_text())
+            cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4674,6 +4688,102 @@ def _grant_post_admin(dsn: str) -> None:
             )
     finally:
         admin_conn.close()
+
+
+def test_voice_assignment_round_trips_through_authorized_postgres_api(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An authorized real-token write preserves Voice and evidence identities in reads."""
+    from lineageweave.ontology import LW
+    from lineageweave.ontology_neighborhood import NODE_POST, ontology_node_iri
+
+    _grant_post_admin(seeded_db["dsn"])
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    carrying_post_id = seeded_db["own_private_post_id"]
+    evidence_post_id = seeded_db["public_post_id"]
+
+    created = client.post(
+        f"/api/posts/{carrying_post_id}/voice-assignments",
+        json={
+            "voice_type_code": "vops",
+            "truth_status_code": "truth_observed",
+            "evidence_post_id": evidence_post_id,
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+    assert created.json() == {
+        "code": "vops",
+        "label": "Voice of Process",
+        "is_primary": False,
+        "truth_status_code": "truth_observed",
+        "evidence_available": True,
+    }
+
+    neighborhood_response = client.get(
+        "/api/ontology/neighborhood",
+        params={
+            "focus_node_type": NODE_POST,
+            "focus_node_id": carrying_post_id,
+            "maximum_depth": 2,
+        },
+        headers=headers,
+    )
+    assert neighborhood_response.status_code == 200, neighborhood_response.text
+    neighborhood = neighborhood_response.json()
+    voice_row = next(
+        row
+        for row in neighborhood["exact_value_rows"]
+        if row["property_code"] == "hasVoiceAssignment"
+        and row["target_node_id"] == "vops"
+    )
+    assert voice_row["source_node_id"] == carrying_post_id
+    assert voice_row["evidence_post_id"] == evidence_post_id
+
+    graph = neighborhood["jsonld"]["@graph"]
+    carrying_post = next(
+        item
+        for item in graph
+        if item["@id"] == ontology_node_iri(NODE_POST, carrying_post_id)
+    )
+    voice_assignment_ids = {
+        value["@id"] for value in carrying_post[str(LW.hasVoiceAssignment)]
+    }
+    process_voice = next(
+        item
+        for item in graph
+        if item.get(str(LW.assignedVoiceType)) == {"@id": str(LW.voiceOfProcessType)}
+    )
+    assert process_voice["@id"] in voice_assignment_ids
+    assert process_voice["prov:wasDerivedFrom"]["@id"] == ontology_node_iri(
+        NODE_POST, evidence_post_id
+    )
+    assert process_voice["lw:truthStatus"] == "truth_observed"
+
+
+def test_voice_assignment_api_rejects_hidden_post_as_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A hidden evidence Post cannot produce a persisted Voice assignment."""
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/voice-assignments",
+        json={
+            "voice_type_code": "vops",
+            "truth_status_code": "truth_observed",
+            "evidence_post_id": seeded_db["other_private_post_id"],
+        },
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            "select count(*) from source_post_voice "
+            "where post_id = %s and voice_type_code = 'vops' and not is_primary",
+            (seeded_db["own_private_post_id"],),
+        )
+        assert cursor.fetchone()[0] == 0
 
 
 def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:
