@@ -24,6 +24,11 @@
    a project mention is available at the later of its mention and source
    creation. Current-only facts without a time contract stay out of an as-of
    response.
+   A fresh neighborhood captures its snapshot with PostgreSQL's
+   `clock_timestamp()`, the authority that timestamps persisted assignments.
+   Continuation retains the cursor's original snapshot. The application host's
+   wall clock and a guessed grace period are rejected: clock skew must not hide
+   a just-accepted Voice or admit a later fact into a retained snapshot.
 7. The workspace surface extends the existing Keyman/evidence panel with **Inspect ontology neighborhood**. It is not a second GNB destination.
 8. Node type uses shape plus text (never color alone). Every edge carries both endpoint type codes and IDs, so heterogeneous catalogs remain unambiguous even if UUIDs collide. Keyboard users can select every visible node and edge. The graph SVG has no enclosing ARIA `img`; native browser text layout wraps complete node labels instead of truncating or estimating character widths. Exact-value table, CSV, JSON-LD, and print expose the same authorized visible graph. JSON-LD emits the source-to-target property assertion directly and describes its evidence-bearing edge as an RDF reified statement with exact `rdf:subject`, `rdf:predicate`, and `rdf:object`; it does not make the edge resource itself the relationship subject. JSON-LD represents system time with `prov:generatedAtTime` and non-null validity bounds as OWL-Time `time:Instant` values using `time:inXSDDateTimeStamp`; it omits unavailable bounds rather than inventing them.
    Local search applies the retained typed edge set to direct JSON-LD property
