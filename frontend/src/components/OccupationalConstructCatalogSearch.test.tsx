@@ -140,6 +140,17 @@ describe("OccupationalConstructCatalogSearch", () => {
     expect(screen.queryByRole("button", { name: "Show more matching records" })).not.toBeInTheDocument();
   });
 
+  it("does not report exhaustion when continuation needs authentication", () => {
+    render(<OccupationalConstructCatalogSearch
+      page={{ query: "Oral", family_code: null, hits: [], next_cursor: HIT.construct_iri }}
+      status="empty"
+    />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Work-evidence search is unavailable. Open a visible record next.",
+    );
+    expect(screen.queryByText("No visible work evidence matches. Open a record with work evidence next.")).not.toBeInTheDocument();
+  });
+
   it("continues from next_cursor and retains earlier matches", async () => {
     const user = userEvent.setup();
     vi.mocked(fetchOccupationalConstructSearch)

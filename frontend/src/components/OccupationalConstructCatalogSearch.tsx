@@ -138,7 +138,7 @@ export function OccupationalConstructCatalogSearch({
         </label>
         <button type="submit">{text("Find matching records")}</button>
       </form>
-      {statusMessage(status, Boolean(page?.next_cursor && accessToken))}
+      {statusMessage(status, Boolean(page?.next_cursor), Boolean(accessToken))}
       {status === "ready" && page && page.hits.length > 0 ? (
         <ul className="ticket-list" aria-labelledby="occupational-construct-catalog-search-heading">
           {page.hits.map((hit) => (
@@ -153,13 +153,19 @@ export function OccupationalConstructCatalogSearch({
   );
 }
 
-function statusMessage(status: OccupationalConstructCatalogSearchStatus, hasNextPage: boolean) {
+function statusMessage(
+  status: OccupationalConstructCatalogSearchStatus,
+  hasNextPage: boolean,
+  canContinue: boolean,
+) {
   const messages: Record<OccupationalConstructCatalogSearchStatus, string> = {
     idle: text("Type two or more letters of a catalog label, then open the supporting record."),
     loading: text("Finding work evidence..."),
     ready: "",
     empty: hasNextPage
-      ? text("No matches on this page. Check the next page.")
+      ? canContinue
+        ? text("No matches on this page. Check the next page.")
+        : text("Work-evidence search is unavailable. Open a visible record next.")
       : text("No visible work evidence matches. Open a record with work evidence next."),
     error: text("Work-evidence search is unavailable. Open a visible record next."),
   };

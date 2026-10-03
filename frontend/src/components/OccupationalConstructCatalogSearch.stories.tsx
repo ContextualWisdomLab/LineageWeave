@@ -24,6 +24,13 @@ const populated: OccupationalConstructSearchPage = {
 const meta = {
   title: "Evidence/OccupationalConstructCatalogSearch",
   component: OccupationalConstructCatalogSearch,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      query: "Oral", family_code: null, next_cursor: null, hits: [],
+    }), { headers: { "Content-Type": "application/json" } });
+    return () => { globalThis.fetch = previousFetch; };
+  },
 } satisfies Meta<typeof OccupationalConstructCatalogSearch>;
 
 export default meta;
