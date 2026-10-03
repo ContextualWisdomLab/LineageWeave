@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+## PR #1149 Voice fixture prerequisite repair — 2026-10-03
+
+PR #1149 was inspected at exact head
+`6f871ab27e3baa629a2186319b523187b39cabf8`. Its PostgreSQL fixture applied
+the Voice combination migration `0237` without first applying
+`0175_ontology_truth_status.sql`. The resulting `source_post` inserts invoke
+`synchronize_source_post_primary_voice()`, which writes `truth_observed`, and
+the `source_post_voice_type_guard` then rejects that value because the fixture
+has not seeded the governed truth-status lookup. The new HTTP regressions
+therefore could not reach their asserted API behavior even with a healthy
+Keycloak token.
+
+An executable source-order assertion failed on the inspected head because the
+`0175` fixture dependency was absent. Ordinary child
+`9f76a3229c95b8eda4810ef7811c155f82c56fb9` applies that exact prerequisite
+before `0237`; the same assertion, Python compilation, and `git diff --check`
+then pass. The full authenticated PostgreSQL API tests remain unproven in this
+environment because no PostgreSQL, Keycloak, or Valkey executables are
+available. Hosted Tests run `37091588196` also supplies no product-test
+evidence: both failed jobs ended before runner steps (`steps=null`). PR #1149
+is therefore Draft / Proposed pending a runnable exact-head integration test,
+terminal hosted Checks, and qualifying independent approval.
+
 ## Post-merge exact-head and policy audit — 2026-10-03 11:42 KST
 
 Git transport confirms `main` at `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
