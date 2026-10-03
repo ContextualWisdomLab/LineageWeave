@@ -1,109 +1,264 @@
 # Product & Technical Gap Baseline
 
-## Current authority and exact-head loop — 2026-10-03 16:55 KST
+## Voice API root-cause retest — 2026-10-03 16:40 KST
 
-Protected `main` is `479b8c3d6047ccf76a9ced56e6633e948f10c92c`. The current
-product contract is `docs/product-requirements.md`; ADRs remain normative and
-the literature register is supporting evidence. This loop also read
-ThreadWeave's PRD, RankWeave's architecture, DiskSage's PRD, TEPP's approved
-PRD and architecture, contextual-orchestrator's architecture, and
-fast-mlsirm's PRD and architecture. GitHub confirmed their canonical names:
-`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
-`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`,
-`ContextualWisdomLab/TEPP`, `ContextualWisdomLab/contextual-orchestrator`,
-and `ContextualWisdomLab/fast-mlsirm`.
+Protected `main` remains `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
+GitHub's current inventory is 179 open PRs, 42 open issues, 169 drafts, 117
+non-`main` bases, and 10 ready PRs. These are repository workflow counts.
+GitHub confirmed the ecosystem spellings `ContextualWisdomLab/LineageWeave`,
+`ContextualWisdomLab/RankWeave`, `ContextualWisdomLab/ThreadWeave`,
+`ContextualWisdomLab/disksage`, `ContextualWisdomLab/TEPP`,
+`ContextualWisdomLab/contextual-orchestrator`, and
+`ContextualWisdomLab/fast-mlsirm`.
 
-GitHub reported **179 open PRs, 42 open issues, 169 drafts, 117 non-`main`
-bases, and 10 ready PRs**. These counts describe repository work only. The
-official Compose project is `lineageweave` with nine running service
-containers; no source-record query or population inference was performed.
+ADR 0246/0251/0256 and PRD-FR-2 remain authoritative for Voice-of-X: retain
+all 12 atomic classifications and open-ended combinations, each with its own
+authorized Post evidence, PROV-O derivation, truth state, and cutoff. The
+research register supports these boundaries; it does not turn candidate
+assertions into accepted facts or authorize inferred combinations.
 
-PR #1149 is now at exact head `13be5c2742c1123fe4f4b14f710688addc86ee1a`,
-ready on `main`, with a blank review decision and no auto-merge request. Its
-current Actions/Python analysis, full-suite, and frontend Checks failed within
-four seconds; CodeRabbit was still in progress. The hosted log API returned
-403 rate-limit errors, so the failure cause is not claimed. The local
-synthetic authenticated PostgreSQL candidate passed two Voice API tests, 65
-ontology-neighborhood tests, and 13 focused frontend Voice/CSV/page-union
-tests. This is local evidence; Voice acceptance remains **partial** because
-there is no authenticated Voice-screen render on protected `main`.
+PR #1149's prior exact head was `c51fde6bcfd5bc4aca9c3c5bdf9a8f6166684938`
+on `main`, Draft / `UNSTABLE`, with comments but no formal approval or
+auto-merge. `Analyze (actions)` and `Analyze (python)` failed to start; the
+full suite and frontend checks were skipped while Draft. Those predecessor
+Checks and comments do not certify the local repair below. Its current
+successor candidate adds the minimal SQL grouping key and the missing
+0238 occupational-construct migration to the synthetic API fixture. In a
+separate synthetic Compose project, the authenticated PostgreSQL API round
+trip and hidden-evidence rejection tests both passed (**2 tests**); the
+ontology neighborhood regression modules passed (**65 tests**). The database
+test exercised Voice assignment creation, exact-value carrying/evidence
+identities, and JSON-LD derivation/truth fields; a hidden evidence Post was
+rejected with the route's existing generic 403 and no Voice row persisted.
+Thirteen focused frontend tests passed for distinct carrying/evidence actions,
+the separate CSV columns, and page-wise union of multi-Voice JSON-LD values.
 
-PR #1150 is at exact head `478464d10497ed10dda64a6fefedcc8fc90d256b`, ready
-on `main`, with a blank review decision and no auto-merge request. Its four
-Actions/Python/full-suite/frontend Checks failed within four seconds; Devin
-Review was pending and CodeRabbit was rate-limited. Its local Compose project
-name contract passes two tests and Ruff. No merge SHA is claimed for either
-PR.
+The original API GET had failed because the aggregate query selected
+`edge.created_at` in `greatest()` without including it in `GROUP BY`. Adding
+that grouping key fixed the database path; the fixture now applies migration
+0238, which creates the assertion table already read by the neighborhood
+projection. This is local synthetic runtime evidence, not protected-main
+delivery. The exact-value table has separate carrying Post and derivation
+evidence actions, and CSV keeps `carrying_post_id` separate from
+`derivation_evidence_post_id`. No authenticated Voice-screen render was
+captured in this retest, so the combined Voice acceptance remains **partial**
+and must not be marked complete until authenticated API and rendered UI
+evidence both exist on protected main.
 
-The ready predecessor #1130 was at exact head
-`383c392bc6713e55bed31b4d4053d93cfd1885d0`, `DIRTY` against current `main`,
-with an approval and a resolved CodeRabbit thread on that predecessor head.
-The old approval and Checks do not transfer. A non-force successor candidate
-merges the valid PR delta onto current `main`; it adds no migration, database
-schema, API field, or release number. Backend run/outbox tests passed (40),
-the focused Analysis-run component tests passed (3), and the production and
-Storybook builds passed. The targeted App tests passed (6). The broader
-frontend run passed 539 of 556 tests but had 17 failures across unrelated
-surfaces, predominantly the existing five-second test timeout; no timeout was
-changed. The synthetic `Analysis/RunCopy` story was visually inspected at
-1280×720 and 390×844 with no horizontal overflow or provider/service terms.
-This is component render evidence, not authenticated screen acceptance.
+The successor adds no migration, schema, or API-field change; migration 0238
+is applied only inside the existing synthetic API test fixture. No model or
+measurement policy, heuristic, or release number changed. Fresh hosted Checks
+and independent review are still required after the candidate is pushed.
 
-The #1130 predecessor's dated baseline conflicted with the current baseline;
-this successor keeps the current history and adds the fresh loop evidence
-above. #1149 and #1150 use no overlapping API fields, schema, migrations, or
-release numbers with that UI-copy slice. The Voice API, Voice CSV, page-wise
-JSON-LD, and Analysis-run presentation remain distinct acceptance surfaces.
+## Exact-head and integration follow-up — 2026-10-03 12:30 KST
 
-## Exact-head loop and user-facing recovery gap — 2026-10-03 16:13 KST
+Git transport still identifies protected `main` as
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. The latest inventory read found
+179 open PRs, 168 drafts, and 117 with a non-`main` base. The open-Issue count
+was not refreshed because GitHub API calls were rate-limited.
 
-Protected `main` is `479b8c3d6047ccf76a9ced56e6633e948f10c92c`. The product
-contract is `docs/product-requirements.md`; ADRs are normative, while
-`docs/lineage-bi-research-notes.md` and the cited papers are supporting
-evidence, not implementation or runtime proof. The ecosystem authorities read
-for this loop were ThreadWeave's PRD, RankWeave's architecture, DiskSage's
-PRD, TEPP's approved PRD and architecture, contextual-orchestrator's
-architecture, and fast-mlsirm's PRD and architecture. Their owner boundaries
-are unchanged by this slice. GitHub's canonical names are
-`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
-`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`,
-`ContextualWisdomLab/TEPP`, `ContextualWisdomLab/contextual-orchestrator`,
-and `ContextualWisdomLab/fast-mlsirm`.
+At exact PR #1149 head `975fa82b135f2e96a4b3011d0ba86528cd06ec66`, targeting
+that `main`, the PR is Draft / `UNSTABLE`. `Analyze (actions)` and
+`Analyze (python)` failed within four seconds; the full suite and frontend
+jobs were skipped while Draft, and CodeRabbit skipped review for the same
+reason. The formal review decision is blank, there is no qualifying approval,
+and auto-merge is off. These are pre-follow-up results; any new commit needs
+fresh exact-head Checks and review. The fixture now applies the ontology truth
+status migration before the Voice trigger migration, and the JSON-LD assertion
+selects the carrying-Post projection by its `hasVoiceAssignment` property. A
+throwaway PostgreSQL smoke check applied the six required migrations in order
+and confirmed `truth_observed` belongs to the governed status category. The
+new authenticated HTTP cases remain unverified locally: Keycloak returned
+HTTP 400 while requesting the synthetic test token, before database setup or
+the HTTP handlers ran.
 
-| Evidence class | Current observation | Limit |
-| --- | --- | --- |
-| Product and research authority | PRD-FR-5 requires truthful pending, unavailable, failed, and succeeded states with a valid next action. ADR 0014 owns authorized Analysis-run reads; ADR 0076 and the named upstream measurement owners constrain model and measurement claims. | Research grounding does not certify a particular customer screen or estimate. |
-| Protected implementation | `main` retains machine failure codes in authorized reads and already distinguishes run kinds. Some Analysis-run actions and messages still expose service-level language or give a retry path that the failed run cannot perform. This candidate localizes customer actions and hides machine details while keeping the existing response shape. | The candidate is not protected delivery until its successor head passes Checks and normal review. |
-| Voice-of-X contract | ADRs 0246/0251/0256 govern the 12 atomic classifications and open-ended, evidence-bearing Voice assignments. Protected code preserves the carrying Post, derivation Post, PROV-O relation, truth state, cutoff, and page-wise JSON-LD property/relation union. | The authenticated PostgreSQL API acceptance remains unavailable: a fresh local run of the unchanged #1149 test source stopped at Keycloak HTTP 400 before creating its throwaway database. No authenticated API or Voice-screen screenshot acceptance is claimed. |
-| Non-identifying runtime aggregate | The official `lineageweave` Compose project had 9 service containers running; 5 exposed healthy checks at the read. | Container health does not establish Voice API behavior, customer acceptance, or a production SLO. No source records were queried. |
-| Repository inventory | GitHub reported 179 open PRs and 42 open issues; the PR list showed 168 drafts, 117 non-`main` bases, and 10 ready PRs. | These are repository workflow counts, not source-record or customer-population estimates. |
+### Exact-head recheck — 2026-10-03 14:55 KST
 
-PR #1149 is at exact head `c51fde6bcfd5bc4aca9c3c5bdf9a8f6166684938`, targeting
-`main`; it is Draft with no formal approval or auto-merge. Its current `Analyze
-(actions)` and `Analyze (python)` Checks failed to start; Full suite and
-Frontend Checks were skipped because it is Draft. CodeRabbit and Devin left
-`COMMENTED` reviews, not approvals. The CodeRabbit finding about JSON-LD item
-selection was corrected in later commits, but this does not change the failed
-hosted checks or supply the missing authenticated API evidence.
+The newer protected `main` head remains
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. GitHub's refreshed inventory
+reports 179 open PRs (169 drafts, 117 with non-`main` bases, 10 ready) and 42
+open issues. These are repository counts, not usage or population estimates.
+Canonical casing was checked against GitHub and Git transport for LineageWeave,
+RankWeave, ThreadWeave, `disksage`, and TEPP.
 
-PR #1141 is at `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`; its 25 Checks passed
-and 11 were skipped, but it has no formal approval, remains `DIRTY`, and keeps
-normal squash auto-merge enabled. PR #1131 is at
-`ee3d8890ce3b7829f668e05732ef55d24e2e688e`; 26 Checks passed and 11 were
-skipped, but it likewise has no formal approval, remains `DIRTY`, and keeps
-auto-merge enabled. PR #1130's predecessor head
-`383c392bc6713e55bed31b4d4053d93cfd1885d0` received an approval and an
-addressed CodeRabbit thread, but is `DIRTY` against the current base. That
-approval and its Checks do not transfer to this live-main successor.
+PR #1149 is at exact head `eac3543906f15b1d6ff569c8d04b0fce98e9aebb`, based
+on `main`, Draft, and mergeable. `Analyze (python)` and `Analyze (actions)`
+are terminal failures; the full suite and frontend checks are skipped while
+Draft. Reviews are comments only, the formal review decision is blank, and
+auto-merge is off. The GitHub API rate limit prevented retrieval of job details
+and live ruleset requirements; failure causes and the current approval count
+remain unavailable. The current source includes the valid JSON-LD selector
+repair: it selects the carrying-Post graph item containing `hasVoiceAssignment`.
+Local exact-head validation passed API-test-module compilation, documentation
+hygiene (5 tests), and ontology-neighborhood tests (36 tests). This does not
+prove authenticated PostgreSQL/API behavior.
 
-The #1130 successor changes only Analysis-run response copy, presentation,
-translations, tests, Storybook inventory, ADR 0014 wording, and this baseline.
-It adds no migration, database schema, API field, model policy, or release
-number. The existing `detail` response field stays in place; exact message
-text remains covered by API and service tests. The feature uses current tokens
-and synthetic Storybook states. Desktop/mobile render checks for this
-successor are recorded after the render audit; they do not certify the
-separate Voice UI.
+The largest remaining buyer-visible Voice acceptance gap is an authenticated
+runtime demonstration of the authorized assignment/read path and hidden
+evidence rejection, followed by rendered authenticated UI evidence showing the
+carrying Post separately from derivation evidence. The synthetic API tests are
+present but do not pass through the live Keycloak/PostgreSQL boundary here.
+Keep these acceptance criteria **unavailable** until both runtime API and UI
+evidence exist. Main already includes separate CSV fields for
+`carrying_post_id` and `derivation_evidence_post_id`.
+
+Current integration checks show:
+
+- #1141 remains at `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, based on
+  `83eba56149eb802cd63642c507c324c9976ec78e`. It is `DIRTY`, has no
+  qualifying approval, and retains squash auto-merge. Its baseline change
+  conflicts with #1149's baseline delta. Preserve both dated records in a
+  live-base successor; predecessor Checks and reviews cannot transfer.
+- #1137 (`4344d4dcb80fa08971c33f2f7df912d389dc7c61`) and #1133
+  (`1420a733eb30cea5198dffc2ae08734c9cfe521e`) are also based on
+  `83eba56149eb802cd63642c507c324c9976ec78e`, with no qualifying approvals
+  and squash auto-merge enabled. Their exact-head Checks have failures. A
+  `git merge-tree --write-tree` comparison of those two heads is clean. Against
+  current `main`, #1137 conflicts in its dependency-security note and the gap
+  baseline; #1133 merges cleanly. They can be integrated independently once
+  their own exact-head gates pass.
+- #1136 remains at `55f6992637c53cfb51a74f55987a40b359152bd5` on the same old
+  base, `DIRTY`, without approval, and with auto-merge enabled. Its
+  generation guard rejects stale success and error responses; the old review
+  finding is addressed on this head. The focused UI suite passed (26 tests),
+  as did frontend lint, production build, and Storybook build. Synthetic
+  desktop and mobile Storybook renders were visually checked; the screenshots
+  remain local at `/tmp/lw-pr1136-desktop.png` and
+  `/tmp/lw-pr1136-mobile.png`. The mobile story's own viewport preset is
+  320×568 inside a 390×844 browser viewport. Its current-base merge tree
+  conflicts in the gap baseline, Storybook inventory, OntologyExplorer story,
+  test, and component, so preserve its code delta for a new live-base check.
+- #1135 remains at `73ba540789d2f2210a17e7eb5396270dafa66589`, based on the
+  same stale SHA, `DIRTY`, without qualifying approval, and with squash
+  auto-merge enabled. Its older actionable comments about waiting for the
+  occupation option and filling all Calendar translations are reflected in
+  this source. Exact-head security/review Checks still fail.
+- #1130 remains at `383c392bc6713e55bed31b4d4053d93cfd1885d0`, based on the
+  same old SHA, `DIRTY`, and has squash auto-merge enabled. Its CodeRabbit
+  localization finding is addressed on this head: the run captions and
+  recovery actions use translation keys, and `analysisRunCopy.test.ts` covers
+  all five supported locales. Three focused tests, frontend lint, production
+  build, and Storybook build passed locally; the synthetic status story was
+  visually checked at desktop and mobile sizes. The current-base merge tree
+  conflicts only in the gap baseline. Hosted CodeQL and OpenCode Checks still
+  fail. The recorded `APPROVED` review is from the Noema integration account;
+  qualifying independent approval remains unverified.
+- #1129 remains at `24d3b9cb1bc31f951da3879774013c97b415ecdf`, based on the
+  same old SHA, `DIRTY`, without qualifying approval, and with squash
+  auto-merge enabled. Its older Storybook JSON-LD finding is addressed on this
+  head: the story now projects both primary and derived Voice relations and
+  gives the derived assignment separate evidence. Exact-head security/review
+  Checks still fail; current `main` merge-tree conflicts include the baseline,
+  ontology layout, dependency contract, and lock file.
+
+The read-only merge-tree scan against current `main` also finds: #1131 conflicts
+in the PRD and gap baseline; #1130 and #1141 in the gap baseline; #1129 in the
+gap baseline, ontology layout, PyJWT regression test, dependency contract, and
+lock file; #1135 in the baseline, Storybook inventory, PyJWT regression test,
+dependency contract, and lock file; and #1136 in the baseline, Storybook
+inventory, and an OntologyExplorer regression test. #1133, #1128, and #1126
+merge cleanly with current `main`; #1133 and #1137 also merge cleanly with each
+other. None of the compared candidates changes a migration file; no competing
+runtime API or release-number conflict was found in the inspected file deltas.
+These observations are dated evidence, not a claim that all 179 open PRs were
+diff-audited. Canonical ecosystem spellings verified by GitHub remain
+`ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+`ContextualWisdomLab/TEPP`; no ecosystem contract is changed here.
+
+## PR #1149 Voice fixture prerequisite repair — 2026-10-03
+
+PR #1149 was inspected at exact head
+`6f871ab27e3baa629a2186319b523187b39cabf8`. Its PostgreSQL fixture applied
+the Voice combination migration `0237` without first applying
+`0175_ontology_truth_status.sql`. The resulting `source_post` inserts invoke
+`synchronize_source_post_primary_voice()`, which writes `truth_observed`, and
+the `source_post_voice_type_guard` then rejects that value because the fixture
+has not seeded the governed truth-status lookup. The new HTTP regressions
+therefore could not reach their asserted API behavior even with a healthy
+Keycloak token.
+
+The JSON-LD assertion also selected the first graph item with the carrying
+Post `@id`, while `jsonld_document()` emits the base node before a second item
+with the same `@id` and `hasVoiceAssignment`. Ordinary child
+`20028402f893f6385289e1e4069ba3213f84ab12` now requires that property in the
+selector, preventing a false `KeyError` after an otherwise successful API
+round trip.
+
+An executable source-order assertion failed on the inspected head because the
+`0175` fixture dependency was absent. Ordinary child
+`9f76a3229c95b8eda4810ef7811c155f82c56fb9` applies that exact prerequisite
+before `0237`; the same assertion, Python compilation, and `git diff --check`
+then pass. The full authenticated PostgreSQL API tests remain unproven in this
+environment because no PostgreSQL, Keycloak, or Valkey executables are
+available. Hosted Tests run `37091588196` also supplies no product-test
+evidence: both failed jobs ended before runner steps (`steps=null`). PR #1149
+is therefore Draft / Proposed pending a runnable exact-head integration test,
+terminal hosted Checks, and qualifying independent approval.
+
+## Post-merge exact-head and policy audit — 2026-10-03 11:42 KST
+
+Git transport confirms `main` at `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
+The current paged PR inventory read found 179 open PRs, 168 drafts, and 117
+non-`main` bases. The earlier 42-open-issue count was not refreshed because
+GitHub API reads were rate-limited. These are repository inventory counts,
+not product-use or population estimates.
+
+PR #1148 merged source head
+`0a71d0b44ed95c50b6537b861765707a9a2d7693` as merge SHA
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`; Git confirms that SHA is the
+current `main` head. The merge tree is byte-identical to the locally tested
+candidate tree. Its additive Voice export change and regressions alter no
+database schema, server API, migration ordinal, or release number. The PRD and
+ADR 0256 describe the CSV carrying-Post and derivation-evidence columns.
+
+The exact source-head checks did **not** pass: `Analyze (actions)`,
+`Analyze (python)`, `Full test suite`, and `Frontend lint, test, build` failed
+to start with GitHub's annotation, “The job was not started because your
+account is locked due to a billing issue.” CodeRabbit was pending at the
+last read; jobs later skipped after the PR closed are not passes. The formal
+review list contained no `APPROVED` review on the source head, and GitHub's
+review decision was blank. `mergedBy` is `seonghobae`. No `--admin` flag or
+self-approval was used, but the merge occurred without the requested
+independent approval or terminal-success Checks, so it is not recorded as
+ruleset-compliant protected delivery.
+
+The active organization ruleset `CWL Central required workflows` applies to
+the default branch. Its GraphQL projection requires one approving review and
+resolved review threads, and lists seven required central workflows. The
+active `CWL Noema central security scan` ruleset also applies. The repository
+ruleset prohibits force pushes; the branch-protection query returned no
+rules. The central ruleset exposes an `ALWAYS` bypass actor whose actor value
+is null in GraphQL. Its identity and relationship to this merge are
+unverified. This discrepancy is an unresolved governance defect; do not
+infer approval or bypass behavior from the merge SHA alone.
+
+Focused local verification on the identical candidate tree passed: 551
+frontend tests, lint, production build, Storybook build, 62 Voice/ontology
+backend tests, and eight synthetic PostgreSQL Voice-history tests. The
+`SeparateVoiceEvidence` Storybook story was rendered and visually inspected at
+1440×900 and 390×844. This is synthetic presentation and isolated database
+evidence; it does not establish an authenticated HTTP request through the
+PostgreSQL-backed application. Voice acceptance therefore remains incomplete.
+
+PR #1141 remains open at head
+`e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, based on
+`83eba56149eb802cd63642c507c324c9976ec78e`. It is `DIRTY`, has no qualifying
+approval, and retains its squash auto-merge request. Its old exact-head Checks
+do not prove mergeability against current `main`. Leave that PR and its
+branch-owned documentation delta intact until its current base can be
+reconciled without transferring reviews or Checks.
+
+Before this regression-test update, PR #1149 was open at exact head
+`2bf6bb1884af2871f149f1ded3931adf2bfe0065`, based on the current `main`
+`479b8c3d6047ccf76a9ced56e6633e948f10c92c`. Its latest Checks snapshot marks
+`Analyze (actions)`, `Analyze (python)`, `Full test suite`, and
+`Frontend lint, test, build` failed; the check-run details could not be read
+because GitHub's API rate limit blocked the job-log request. The Devin review
+is `COMMENTED`, CodeRabbit's check is not a formal approval, the review
+decision is blank, and auto-merge is not enabled. The merge state is
+`UNSTABLE`. Do not treat this documentation PR as ready to merge; refresh
+these facts on a new exact head after the hosted failure cause is available.
 
 ## PR recheck and CSV export contract — 2026-10-03 08:47 KST
 
@@ -1748,3 +1903,45 @@ repository workflow metadata, not runtime or population evidence.
   release number was introduced; the baseline was appended to preserve the
   existing audits. Authentication, PostgreSQL acceptance, screenshot audit,
   and k6 saturation evidence remain unverified.
+
+### Exact-head delivery refresh — 2026-10-03 13:45 KST
+
+The canonical GitHub repository is `ContextualWisdomLab/LineageWeave`; its
+remote default branch is `main` at `479b8c3d6047ccf76a9ced56e6633e948f10c92c`.
+This overlay records the exact GitHub state observed before this documentation
+commit. It does not promote candidate or local evidence to protected delivery.
+
+- PR #1149, `docs/gap-baseline-post-merge-audit-20261003`, was Draft at head
+  `a9a89d282e7dc6f49afde615da555a80c89f2839`, based on that current `main`.
+  CodeRabbit's current actionable JSON-LD selector finding is fixed at this
+  head: the test selects the carrying Post that contains `hasVoiceAssignment`.
+  Its CodeQL Python and Actions jobs failed; full-suite and frontend jobs were
+  skipped because the PR is Draft. No independent approval or auto-merge was
+  present. GitHub's Actions API returned HTTP 403 rate-limit responses when
+  retrieving failure logs. The PR description reports local synthetic checks,
+  and remains **unverified**. Re-running its focused API tests in this refresh
+  reached the local OIDC endpoint but received HTTP 400 before database setup;
+  the aggregate-documentation hygiene test passed. This PR changes only tests and supporting docs;
+  production API/schema behavior is not established by it.
+- PR #1141, `codex/gap-baseline-exact-head-20261001`, was open at
+  `e6d3ae2b6b4d6d0bb54e7bd2b500f57812767731`, with base `main` recorded as
+  `83eba56149eb802cd63642c507c324c9976ec78e`. GitHub reported `DIRTY` and no
+  review decision; auto-merge was enabled. Its observed successful Checks
+  belong only to that exact head and old base. It is not merge-ready until the
+  live base/conflict is reconciled and fresh exact-head evidence is collected.
+- PR #1135's live branch ref was `73ba540789d2f2210a17e7eb5396270dafa66589`;
+  the checked-out workspace branch was at that same commit. Its broad earlier
+  exact-head check/review snapshots in this document are historical and must
+  not be carried forward. No merge claim is made here.
+- The open-PR listing was capped at 100 results, and subsequent GitHub REST
+  requests hit the authenticated API rate limit. A complete current open
+  PR/Issue inventory and live ruleset detail therefore remain unavailable in
+  this refresh; older inventory counts below are dated snapshots only.
+
+The material product acceptance gap remains the same as PRD-FR-2: authorized
+PostgreSQL/API evidence must keep the carrying Post distinct from the
+PROV-O-derived evidence Post, preserve truth status/cutoff, exclude hidden
+proof, and retain multi-Voice properties across paged JSON-LD. Synthetic API
+fixtures and a rendered Storybook scene do not satisfy the authenticated
+PostgreSQL/API or authenticated rendered-UI acceptance conditions. No
+population, customer, or runtime conclusion is inferred from current evidence.

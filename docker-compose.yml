@@ -1,3 +1,5 @@
+name: lineageweave
+
 services:
   postgres:
     # Built (not bind-mounted) so the keycloak-db init script and the
