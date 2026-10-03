@@ -70,9 +70,10 @@ does it (`gh repo list ContextualWisdomLab`).
 - All LLM, VISION, embedding, and structured-output traffic crosses
   `contextual-orchestrator`. This repository never calls a provider API
   directly and never uses a monkey patch to repair an upstream capability.
-- Compose loads provider transport credentials from `~/.env` into the
-  orchestrator service. Never copy those values into this repository, an
-  image, a fixture, a log, or a committed agent configuration.
+- LineageWeave accepts only the deployed orchestrator's
+  `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY`. Provider transport
+  credentials stay in the contextual-orchestrator deployment; never copy them
+  into this repository, an image, a fixture, a log, or agent configuration.
 - `LLM_GATEWAY_MODEL`, `VISION_MODEL`, and provider-specific model selectors
   are not LineageWeave configuration. Model discovery, capability selection,
   reasoning effort, protocol negotiation, and VISION selection belong to
@@ -98,16 +99,16 @@ evidence for model quality, routing, reasoning effort, agent count, synthesis,
 or VISION selection. If the papers do not support a policy, leave it
 undecided or unavailable rather than inventing a heuristic.
 
-The canonical provider credentials are runtime-only from `~/.env` through the
-Compose `env_file` boundary. Never copy `~/.env` into the repository or image,
-print its values, or persist them. Do not add `LLM_GATEWAY_MODEL`; the upstream
+Provider credentials remain runtime-only in the contextual-orchestrator
+deployment. Never copy them into this repository or image, print them, or
+persist them. Do not add `LLM_GATEWAY_MODEL`; the upstream
 contextual-orchestrator owns model discovery and selection.
 
 ## LLM and VISION boundary
 
-- Use `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` from the user's `~/.env`
-  at runtime. Keep compatibility aliases only at the process boundary; do not
-  introduce a second credential source or a repository-local secret.
+- Use `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` to consume the
+  deployed contextual-orchestrator. Do not introduce a provider credential
+  source, compatibility alias, or repository-local secret.
 - Every LLM and VISION operation goes through contextual-orchestrator. This
   includes adjudication, summaries, Keyman/entity extraction, post chat,
   paragraph structure, image region recognition, OCR, image descriptions, and
@@ -128,7 +129,8 @@ contextual-orchestrator owns model discovery and selection.
   instruction roles at the orchestrator boundary. The orchestrator owns the
   translation and provider capability handling; do not fork prompts per
   transport in this repository.
-- Treat `LLM_GATEWAY_API_URL` as an opaque OpenAI-compatible gateway endpoint.
+- Treat `ORCHESTRATOR_BASE_URL` as the deployed contextual-orchestrator
+  endpoint.
   Do not add MLX/local-server URL schemes, port lists, local defaults,
   chat-template injection, or vendor-specific bootstrap exceptions in
   LineageWeave. Provider-specific capability translation belongs upstream.

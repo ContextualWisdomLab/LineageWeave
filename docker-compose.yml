@@ -97,45 +97,6 @@ services:
       postgres:
         condition: service_healthy
 
-  orchestrator:
-    # Consume the paper-grounded orchestration service from main; inference
-    # remains behind its authenticated OpenAI-compatible boundary.
-    build:
-      context: ./docker/contextual-orchestrator
-      dockerfile: Dockerfile
-    env_file:
-      - ${HOME}/.env
-    environment:
-      AGENTS_FILE: /app/agents.json
-      PORT: 8000
-      CONTEXTUAL_ORCHESTRATOR_TOKEN: ${CONTEXTUAL_ORCHESTRATOR_TOKEN:-${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}}
-      # Gateway credentials and URL are supplied only by env_file (${HOME}/.env).
-      # Do not repeat them under environment:, where Compose interpolation can
-      # overwrite env_file values with an empty host-shell value.
-      # The upstream default remains 64 KiB for ordinary text APIs. Buyer
-      # image blocks are base64 data URIs, so the multimodal boundary gets an
-      # explicit bounded 8 MiB limit rather than an unbounded request size.
-      CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
-      CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
-      OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
-      # Do not set OTEL_EXPORTER_OTLP_ENDPOINT here. An empty
-      # ${OTEL_EXPORTER_OTLP_ENDPOINT:-} interpolation would wipe a value from
-      # env_file (${HOME}/.env). Export stays opt-in from that file or the host.
-    command: ["python", "/app/start.py"]
-    ports:
-      - "${ORCHESTRATOR_PORT:-18000}:8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      # Warm-up window: failures inside start_period do not consume the retry
-      # budget, so a booting orchestrator that becomes healthy within 50s is
-      # never counted against retries. A dead service trips the gate at
-      # ~100s (start_period + 10 x 5s), matching the previous retries: 20
-      # budget exactly; the win is boot tolerance, not faster dead detection.
-      start_period: 50s
-
   backend:
     build:
       context: .
@@ -167,12 +128,11 @@ services:
       VALKEY_URL: redis://valkey:6379/0
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-lineageweave}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      # Empty by default: every LLM/vision channel stays the Null client
-      # (dropped, not faked). Set these to a running contextual-orchestrator
-      # to turn the channels on. Provider credentials use LLM_GATEWAY_API_URL /
-      # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
-      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      # Empty by default: every LLM/vision channel stays unavailable. Set only
+      # the published contextual-orchestrator consumer endpoint and bearer to
+      # enable them. Provider configuration belongs to contextual-orchestrator.
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
@@ -190,8 +150,6 @@ services:
         condition: service_healthy
       database_migration:
         condition: service_completed_successfully
-      orchestrator:
-        condition: service_healthy
       keycloak:
         condition: service_started
       valkey:
@@ -222,8 +180,8 @@ services:
       OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
       OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       VALKEY_URL: redis://valkey:6379/0
-      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       # Local Keycloak mints this exact fixed audience. Production Keyverse
       # deployments configure both values together outside this demo stack.
       MCP_RESOURCE_URL: http://localhost:18001/mcp
@@ -242,8 +200,6 @@ services:
         condition: service_healthy
       database_migration:
         condition: service_completed_successfully
-      orchestrator:
-        condition: service_healthy
       keycloak:
         condition: service_started
       valkey:
