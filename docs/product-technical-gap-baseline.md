@@ -98,9 +98,14 @@ omitted, never replaced with the carrying Post.
   declared window, and a **20-second** request boundary. The first observation
   completed 3,337 requests with zero HTTP failures and 331.56 requests/second;
   duration p95 was 26.90 ms. This describes that small four-visible-Post fixture
-  only. It is not an SLO, saturation ceiling, or population inference. A later
-  observation adds correlated database/worker/Valkey diagnostics; its final
-  metrics are recorded separately when available.
+  only. It is not an SLO, saturation ceiling, or population inference. A second
+  2-VU/10-second observation completed **2,203 requests**, zero HTTP failures,
+  **218.82 requests/second**, and **58.54 ms p95**. Its ten one-second diagnostic
+  samples observed at most two active synthetic-database connections and zero
+  database lock waiters. Shared Valkey had at most four blocked clients. The
+  sampled worker jobs were already failed, so this is settled-status reader
+  behavior, not a contended running-answer capacity test. Shared service
+  utilization snapshots and gateway saturation remain qualified observations.
 - The observed Ask jobs settled as **failed**. Successful enqueue/status HTTP
   calls do not establish a successful answer, a running-workload capacity
   envelope, or gateway saturation. Gateway concurrency/capacity remains
