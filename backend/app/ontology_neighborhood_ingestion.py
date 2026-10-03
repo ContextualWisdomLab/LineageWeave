@@ -441,7 +441,7 @@ async def _load_facts(
                and ($7::timestamptz is null or edge.created_at <= $7::timestamptz)
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
-                      edge.edge_type_code
+                      edge.edge_type_code, edge.created_at
             union all
             select 'node_post'::text as source_node_type_code,
                    mention.post_id::text as source_node_id,
@@ -914,6 +914,7 @@ async def _load_voice_assignments(
                or coalesce($2::timestamptz, $3::timestamptz) < voice.effective_to
            )
            and voice.recorded_at <= $3::timestamptz
+           and (voice.is_primary or voice.recorded_at <= coalesce($2::timestamptz, $3::timestamptz))
          order by voice.post_id, voice.is_primary desc,
                   lookup.display_order, voice.voice_type_code
         """,
