@@ -115,6 +115,58 @@ function payload(): OntologyNeighborhoodPayload {
 }
 
 describe("ontologyLayout", () => {
+  it.each([false, true])("removes filtered direct assertions from JSON-LD (paged: %s)", (paged) => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const personIri = `${ONTOLOGY_NAMESPACE}node/node_person/${PERSON_ID}`;
+    const corpIri = `${ONTOLOGY_NAMESPACE}node/node_corporate_entity/${CORP_ID}`;
+    const mentions = source.edges[0].ontology_property_iri;
+    const affiliation = source.edges[1].ontology_property_iri;
+    const first = { ...source, jsonld: { "@graph": [
+      { "@id": postIri, "rdfs:label": "Demo public post", [mentions]: { "@id": personIri } },
+      { "@id": personIri, "rdfs:label": "Test Person", [affiliation]: { "@id": corpIri } },
+      { "@id": corpIri, "rdfs:label": "Demo Corp" },
+      { "@id": `lw:edge/${source.edges[0].edge_id}`, "rdf:predicate": { "@id": mentions } },
+      { "@id": `lw:edge/${source.edges[1].edge_id}`, "rdf:predicate": { "@id": affiliation } },
+    ] } };
+    const combined = paged ? accumulateNeighborhoodPages(first, first) : first;
+    const filtered = filterNeighborhood(combined, "mentions")!;
+
+    expect(filtered.edges.map((edge) => edge.edge_id)).toEqual([source.edges[0].edge_id]);
+    expect(filtered.exact_value_rows).toEqual(source.exact_value_rows);
+    expect(filtered.jsonld["@graph"]).toEqual([
+      { "@id": postIri, "rdfs:label": "Demo public post", [mentions]: { "@id": personIri } },
+      { "@id": personIri, "rdfs:label": "Test Person" },
+      { "@id": `lw:edge/${source.edges[0].edge_id}`, "rdf:predicate": { "@id": mentions } },
+    ]);
+    expect(JSON.stringify(filtered.jsonld)).not.toContain(corpIri);
+    expect(Object.entries(first.jsonld["@graph"][1])).toContainEqual([affiliation, { "@id": corpIri }]);
+  });
+
+  it("filters individual direct targets even when both endpoints remain visible", () => {
+    const source = payload();
+    const postIri = `${ONTOLOGY_NAMESPACE}node/node_post/${POST_ID}`;
+    const personIri = `${ONTOLOGY_NAMESPACE}node/node_person/${PERSON_ID}`;
+    const relation = source.edges[0].ontology_property_iri;
+    const filtered = filterNeighborhood({
+      ...source,
+      edges: [{ ...source.edges[0], property_label: "selected" }, {
+        ...source.edges[0], edge_id: "excluded-reverse", source_node_type_code: "node_person",
+        source_node_id: PERSON_ID, target_node_type_code: "node_post", target_node_id: POST_ID,
+        property_label: "excluded",
+      }],
+      jsonld: { "@graph": [
+        { "@id": postIri, [relation]: [{ "@id": personIri }, { "@id": postIri }] },
+        { "@id": personIri, [relation]: { "@id": postIri } },
+      ] },
+    }, "selected")!;
+    expect(filtered.nodes.map((node) => node.node_id)).toEqual([POST_ID, PERSON_ID]);
+    expect(filtered.jsonld["@graph"]).toEqual([
+      { "@id": postIri, [relation]: [{ "@id": personIri }] },
+      { "@id": personIri },
+    ]);
+  });
+
   it("keeps evidence-bearing voice assignments in CSV, filters, and page accumulation", () => {
     const source = payload();
     const assignment = {

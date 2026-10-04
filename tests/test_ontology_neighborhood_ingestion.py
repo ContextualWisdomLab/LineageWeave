@@ -63,6 +63,8 @@ class ScriptedConn:
 
     def _match(self, sql: str) -> object | None:
         compact = " ".join(sql.split())
+        if "from source_post_voice voice" in compact:
+            return self.script.get("from source_post_voice voice", [])
         hits = [(key, value) for key, value in self.script.items() if key in compact]
         if not hits:
             return None
@@ -994,7 +996,7 @@ def test_load_labels_ignores_unknown_node_types() -> None:
 
 
 def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -> None:
-    """Qualified voices load only from the authorized post and hide assertion ids."""
+    """Visible carrying and evidence Posts keep their distinct Voice identities."""
     conn = ScriptedConn(
         {
             "from source_post_voice voice": [
@@ -1007,7 +1009,7 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "recorded_at": T0,
                     "effective_from": T0,
                     "effective_to": None,
-                    "has_assertion": False,
+                    "provenance_assertion_id": None,
                     "evidence_post_id": None,
                 },
                 {
@@ -1019,23 +1021,32 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
                     "recorded_at": T0,
                     "effective_from": T0,
                     "effective_to": None,
-                    "has_assertion": True,
+                    "provenance_assertion_id": "synthetic-assertion",
                     "evidence_post_id": POST_ID,
+                    "evidence_visibility_code": "public",
+                    "evidence_corporate_entity_id": CORP_ID,
+                    "evidence_process_unit_id": None,
                 },
             ]
         }
     )
 
     assignments = asyncio.run(
-        _load_voice_assignments(conn, [POST_ID], knowledge_cutoff=T0, snapshot_at=T0)
+        _load_voice_assignments(
+            conn,
+            [POST_ID],
+            can_see_post=lambda post: post["visibility_code"] == "public",
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
+        )
     )
 
     assert [assignment.voice_type_code for assignment in assignments] == ["voc", "vops"]
     assert assignments[0].provenance_reference == "Imported primary voice"
     assert assignments[1].provenance_reference == "Evidence-backed additional voice"
     assert assignments[1].evidence_post_id == POST_ID
-    assert "evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
-    assert "voice.is_primary or evidence.node_id = any($1::uuid[])" in conn.calls[0][0]
+    assert "left join source_post evidence_post" in conn.calls[0][0]
+    assert "evidence.node_id = any($1::uuid[])" not in conn.calls[0][0]
     assert (
         "voice.effective_from <= coalesce($2::timestamptz, $3::timestamptz)"
         in conn.calls[0][0]
@@ -1049,12 +1060,55 @@ def test_load_voice_assignments_preserves_truth_and_customer_safe_provenance() -
     assert conn.calls[0][1] == ([POST_ID], T0, T0)
 
 
+def test_load_voice_assignments_omits_additional_voice_with_hidden_evidence() -> None:
+    """A hidden derivation Post omits its additional Voice without substitution."""
+    conn = ScriptedConn(
+        {
+            "from source_post_voice voice": [
+                {
+                    "post_id": POST_ID,
+                    "voice_type_code": "vops",
+                    "lookup_label": "Voice of Process",
+                    "is_primary": False,
+                    "provenance_assertion_id": "synthetic-assertion",
+                    "truth_status_code": "truth_observed",
+                    "recorded_at": T0,
+                    "effective_from": T0,
+                    "effective_to": None,
+                    "evidence_post_id": PERSON_ID,
+                    "evidence_visibility_code": "private",
+                    "evidence_corporate_entity_id": CORP_ID,
+                    "evidence_process_unit_id": None,
+                },
+            ]
+        }
+    )
+
+    assignments = asyncio.run(
+        _load_voice_assignments(
+            conn,
+            [POST_ID],
+            can_see_post=lambda _post: False,
+            knowledge_cutoff=None,
+            snapshot_at=T0,
+        )
+    )
+
+    assert assignments == ()
+
+
 def test_load_voice_assignments_skips_database_for_no_visible_posts() -> None:
     """A non-post-only neighborhood does not issue an empty-array query."""
     conn = ScriptedConn({})
 
     assert asyncio.run(
-        _load_voice_assignments(conn, [], knowledge_cutoff=None, snapshot_at=T0)
+        _load_voice_assignments(
+            conn,
+            [],
+            can_see_post=lambda _post: False,
+            knowledge_cutoff=None,
+            snapshot_at=T0,
+        )
     ) == ()
     assert conn.calls == []
 

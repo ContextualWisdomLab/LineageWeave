@@ -1,7 +1,7 @@
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
-import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -1986,9 +1986,17 @@ function PostDetailPopup({
   const [similarVocError, setSimilarVocError] = useState<string | null>(null);
   const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
   const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
+  const [similarVocRetry, setSimilarVocRetry] = useState(0);
   const similarVocLoadingMoreRef = useRef(false);
-  const similarVocScopeRef = useRef({ postId });
-  if (similarVocScopeRef.current.postId !== postId) similarVocScopeRef.current = { postId };
+  const similarVocScopeRef = useRef({ postId, accessToken });
+  useLayoutEffect(() => {
+    if (
+      similarVocScopeRef.current.postId !== postId ||
+      similarVocScopeRef.current.accessToken !== accessToken
+    ) {
+      similarVocScopeRef.current = { postId, accessToken };
+    }
+  }, [postId, accessToken]);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -2087,11 +2095,6 @@ function PostDetailPopup({
     setLineage(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
-    setSimilarVoc(null);
-    setSimilarVocError(null);
-    setSimilarVocNextOffset(null);
-    setSimilarVocLoadingMore(false);
-    similarVocLoadingMoreRef.current = false;
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -2148,6 +2151,22 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    return () => {
+      disposed = true;
+      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+      if (contentReloadRef.current === reloadContent) {
+        contentReloadRef.current = () => undefined;
+      }
+    };
+  }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+
+  useEffect(() => {
+    let disposed = false;
+    setSimilarVoc(null);
+    setSimilarVocError(null);
+    setSimilarVocNextOffset(null);
+    setSimilarVocLoadingMore(false);
+    similarVocLoadingMoreRef.current = false;
     fetchSimilarVoc(accessToken, postId)
       .then((result) => {
         if (disposed) return;
@@ -2161,12 +2180,8 @@ function PostDetailPopup({
       });
     return () => {
       disposed = true;
-      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
-      if (contentReloadRef.current === reloadContent) {
-        contentReloadRef.current = () => undefined;
-      }
     };
-  }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+  }, [postId, accessToken, similarVocRetry]);
 
   useEffect(() => {
     let disposed = false;
@@ -2690,33 +2705,35 @@ function PostDetailPopup({
 
             <SurfaceBoundary>
               <SimilarVocPanel
-                            items={similarVoc}
-                            error={similarVocError}
-                            onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
-                            loadingMore={similarVocLoadingMore}
-                            onLoadMore={similarVocNextOffset === null ? null : () => {
-                              if (similarVocLoadingMoreRef.current) return;
-                              const requestScope = similarVocScopeRef.current;
-                              similarVocLoadingMoreRef.current = true;
-                              setSimilarVocLoadingMore(true);
-                              setSimilarVocError(null);
-                              fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
-                                .then((result) => {
-                                  if (similarVocScopeRef.current !== requestScope) return;
-                                  setSimilarVoc((current) => [...(current ?? []), ...result.items]);
-                                  setSimilarVocNextOffset(result.next_offset);
-                                })
-                                .catch(() => {
-                                  if (similarVocScopeRef.current === requestScope) {
-                                    setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
-                                  }
-                                })
-                                .finally(() => {
-                                  if (similarVocScopeRef.current !== requestScope) return;
-                                  similarVocLoadingMoreRef.current = false;
-                                  setSimilarVocLoadingMore(false);
-                                });
-                            }}
+                sourcePostId={postId}
+                items={similarVoc}
+                error={similarVocError}
+                onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+                loadingMore={similarVocLoadingMore}
+                onRetry={() => setSimilarVocRetry((attempt) => attempt + 1)}
+                onLoadMore={similarVocNextOffset === null ? null : () => {
+                  if (similarVocLoadingMoreRef.current) return;
+                  const requestScope = similarVocScopeRef.current;
+                  similarVocLoadingMoreRef.current = true;
+                  setSimilarVocLoadingMore(true);
+                  setSimilarVocError(null);
+                  fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
+                    .then((result) => {
+                      if (similarVocScopeRef.current !== requestScope) return;
+                      setSimilarVoc((current) => [...(current ?? []), ...result.items]);
+                      setSimilarVocNextOffset(result.next_offset);
+                    })
+                    .catch(() => {
+                      if (similarVocScopeRef.current === requestScope) {
+                        setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요.");
+                      }
+                    })
+                    .finally(() => {
+                      if (similarVocScopeRef.current !== requestScope) return;
+                      similarVocLoadingMoreRef.current = false;
+                      setSimilarVocLoadingMore(false);
+                    });
+                }}
               />
             </SurfaceBoundary>
 

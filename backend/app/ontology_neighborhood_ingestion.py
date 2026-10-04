@@ -884,19 +884,22 @@ async def _load_voice_assignments(
     conn: asyncpg.Connection,
     post_ids: Sequence[str],
     *,
+    can_see_post: Callable[[Mapping[str, Any]], bool],
     knowledge_cutoff: datetime | None,
     snapshot_at: datetime,
 ) -> tuple[OntologyVoiceAssignment, ...]:
-    """Load qualified voices only for posts admitted to the visible neighborhood."""
+    """Load qualified Voices only when carrying and evidence Posts are visible."""
     if not post_ids:
         return ()
     rows = await conn.fetch(
-        """
+        f"""
         select voice.post_id, voice.voice_type_code, lookup.lookup_label, voice.is_primary,
-               voice.truth_status_code, voice.recorded_at,
+               voice.provenance_assertion_id, voice.truth_status_code, voice.recorded_at,
                voice.effective_from, voice.effective_to,
-               case when evidence.node_id = any($1::uuid[]) then evidence.node_id end
-                   as evidence_post_id
+               evidence_post.post_id as evidence_post_id,
+               evidence_post.visibility_code as evidence_visibility_code,
+               evidence_post.corporate_entity_id as evidence_corporate_entity_id,
+               evidence_post.process_unit_id as evidence_process_unit_id
           from source_post_voice voice
           join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
@@ -906,8 +909,14 @@ async def _load_voice_assignments(
           left join provenance_resource_binding evidence
             on evidence.resource_id = assertion.object_resource_id
            and evidence.node_type_code = 'node_post'
+          left join source_post evidence_post
+            on evidence_post.post_id = evidence.node_id
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="evidence_post")}
+           and ($2::timestamptz is null
+                or evidence_post.created_at <= $2::timestamptz)
+           and evidence_post.created_at <= $3::timestamptz
          where voice.post_id = any($1::uuid[])
-           and (voice.is_primary or evidence.node_id = any($1::uuid[]))
+           and (voice.is_primary or evidence_post.post_id is not null)
            and voice.effective_from <= coalesce($2::timestamptz, $3::timestamptz)
            and (
                voice.effective_to is null
@@ -924,6 +933,21 @@ async def _load_voice_assignments(
     )
     assignments: list[OntologyVoiceAssignment] = []
     for row in rows:
+        evidence_post_id = row.get("evidence_post_id")
+        provenance_assertion_id = row.get("provenance_assertion_id")
+        evidence_is_visible = False
+        if evidence_post_id is not None:
+            evidence_is_visible = can_see_post(
+                {
+                    "visibility_code": row.get("evidence_visibility_code"),
+                    "corporate_entity_id": row.get("evidence_corporate_entity_id"),
+                    "process_unit_id": row.get("evidence_process_unit_id"),
+                }
+            )
+        if not evidence_is_visible and (
+            not row["is_primary"] or provenance_assertion_id is not None
+        ):
+            continue
         voice_type_iri = iri_for_lookup_code(row["voice_type_code"])
         if voice_type_iri is None:
             raise OntologyNeighborhoodError(
@@ -946,8 +970,8 @@ async def _load_voice_assignments(
                 effective_from=row["effective_from"],
                 effective_to=row["effective_to"],
                 evidence_post_id=(
-                    str(row["evidence_post_id"])
-                    if row["evidence_post_id"] is not None
+                    str(evidence_post_id)
+                    if evidence_is_visible
                     else None
                 ),
             )
@@ -1280,6 +1304,7 @@ async def visible_ontology_neighborhood(
             voice_assignments=await _load_voice_assignments(
                 conn,
                 visible_post_ids,
+                can_see_post=can_see_post,
                 knowledge_cutoff=knowledge_cutoff,
                 snapshot_at=snapshot_at,
             ),
