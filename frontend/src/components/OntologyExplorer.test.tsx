@@ -275,7 +275,7 @@ describe("OntologyExplorer", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
     expect(await screen.findByText("Related information is unavailable. Open a visible post next.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
     expect(screen.queryByText("Related information is unavailable. Open a visible post next.")).not.toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(

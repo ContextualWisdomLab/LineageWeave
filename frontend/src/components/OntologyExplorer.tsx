@@ -10,6 +10,7 @@ import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
 import { occupationalConstructText } from "../occupationalConstructI18n";
 import { OccupationalConstructCatalogSearch } from "./OccupationalConstructCatalogSearch";
+import { StatusNotice } from "./StatusNotice";
 import {
   accumulateNeighborhoodPages,
   filterNeighborhood,
@@ -243,8 +244,16 @@ export function OntologyExplorer({
           aria-label={t("Search within this neighborhood")}
         />
       </label>
-      {statusMessage(status, loaded, canLoadNextPage)}
-      {canLoadNextPage && status !== "loading" ? (
+      {status === "error" ? (
+        <StatusNotice
+          kind="retry"
+          message={t("Related information is unavailable. Open a visible post next.")}
+          onRetry={accessToken && (!provided || liveFocus)
+            ? () => setPageRetry((attempt) => attempt + 1)
+            : undefined}
+        />
+      ) : statusMessage(status, loaded, canLoadNextPage)}
+      {canLoadNextPage && status !== "loading" && status !== "error" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
             {ontologyExplorerText("Load next relation page")}
