@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BackendError, fetchOccupationalConstructSearch } from "../api";
+import type { OccupationalConstructSearchPage } from "../api";
 import { setLocale } from "../i18n";
 import { OccupationalConstructCatalogSearch } from "./OccupationalConstructCatalogSearch";
 
@@ -130,5 +131,109 @@ describe("OccupationalConstructCatalogSearch", () => {
     });
     expect(screen.getByText(/Oral Comprehension/)).toBeVisible();
     expect(screen.getByText(/Written Comprehension/)).toBeVisible();
+  });
+
+  it.each(["success", "denial"])("ignores an earlier search's late %s", async (completion) => {
+    const user = userEvent.setup();
+    let resolve!: (page: OccupationalConstructSearchPage) => void;
+    let reject!: (error: BackendError) => void;
+    vi.mocked(fetchOccupationalConstructSearch)
+      .mockImplementationOnce(() => new Promise((yes, no) => { resolve = yes; reject = no; }))
+      .mockResolvedValueOnce({ query: "Written", family_code: null, next_cursor: null, hits: [
+        { ...HIT, preferred_label: "Written Comprehension" },
+      ] });
+    render(<OccupationalConstructCatalogSearch accessToken="synthetic-token" />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await user.clear(screen.getByLabelText("Catalog label"));
+    await user.type(screen.getByLabelText("Catalog label"), "Written");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await act(async () => {
+      if (completion === "success") resolve({ query: "Oral", family_code: null, next_cursor: null, hits: [HIT] });
+      else reject(new BackendError("/api/occupational-constructs/search", 403));
+    });
+    expect(screen.getByRole("button", { name: /Open supporting record: Written Comprehension/ })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /Open supporting record: Oral Comprehension/ })).not.toBeInTheDocument();
+  });
+
+  it.each(["success", "denial"])("ignores an old continuation's late %s after a newer search", async (completion) => {
+    const user = userEvent.setup();
+    let resolve!: (page: OccupationalConstructSearchPage) => void;
+    let reject!: (error: BackendError) => void;
+    vi.mocked(fetchOccupationalConstructSearch)
+      .mockResolvedValueOnce({ query: "Oral", family_code: null, next_cursor: HIT.construct_iri, hits: [HIT] })
+      .mockImplementationOnce(() => new Promise((yes, no) => { resolve = yes; reject = no; }))
+      .mockResolvedValueOnce({ query: "Written", family_code: null, next_cursor: null, hits: [
+        { ...HIT, preferred_label: "Written Comprehension" },
+      ] });
+    render(<OccupationalConstructCatalogSearch accessToken="synthetic-token" />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await user.click(screen.getByRole("button", { name: "Show more matching records" }));
+    await user.clear(screen.getByLabelText("Catalog label"));
+    await user.type(screen.getByLabelText("Catalog label"), "Written");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await act(async () => {
+      if (completion === "success") resolve({ query: "Oral", family_code: null, next_cursor: null, hits: [
+        { ...HIT, construct_id: "second", preferred_label: "Old continuation" },
+      ] });
+      else reject(new BackendError("/api/occupational-constructs/search", 403));
+    });
+    expect(screen.getByRole("button", { name: /Open supporting record: Written Comprehension/ })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /Open supporting record: Old continuation/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open supporting record: Oral Comprehension/ })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { accessToken: "another-synthetic-token", knowledgeCutoff: undefined },
+    { accessToken: undefined, knowledgeCutoff: undefined },
+    { accessToken: "synthetic-token", knowledgeCutoff: "2026-01-01T00:00:00Z" },
+  ])("clears evidence and rejects pending results when reader scope changes: %j", async (scope) => {
+    const user = userEvent.setup();
+    let resolve!: (page: OccupationalConstructSearchPage) => void;
+    vi.mocked(fetchOccupationalConstructSearch)
+      .mockResolvedValueOnce({ query: "Oral", family_code: null, next_cursor: HIT.construct_iri, hits: [HIT] })
+      .mockImplementationOnce(() => new Promise((yes) => { resolve = yes; }));
+    const { rerender } = render(<OccupationalConstructCatalogSearch accessToken="synthetic-token" />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await user.click(screen.getByRole("button", { name: "Show more matching records" }));
+    rerender(<OccupationalConstructCatalogSearch {...scope} />);
+    await act(async () => resolve({ query: "Oral", family_code: null, next_cursor: null, hits: [{ ...HIT, construct_id: "second", preferred_label: "Old continuation" }] }));
+    expect(screen.queryByRole("button", { name: /Open supporting record: Oral Comprehension/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open supporting record/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Type two or more letters");
+  });
+
+  it.each([
+    { accessToken: "another-synthetic-token", knowledgeCutoff: undefined },
+    { accessToken: undefined, knowledgeCutoff: undefined },
+    { accessToken: "synthetic-token", knowledgeCutoff: "2026-01-01T00:00:00Z" },
+  ])("clears displayed evidence on reader-scope change: %j", (scope) => {
+    const { rerender } = render(<OccupationalConstructCatalogSearch
+      accessToken="synthetic-token"
+      page={{ query: "Oral", family_code: null, next_cursor: HIT.construct_iri, hits: [HIT] }}
+    />);
+    expect(screen.getByRole("button", { name: /Open supporting record: Oral Comprehension/ })).toBeVisible();
+    rerender(<OccupationalConstructCatalogSearch {...scope} />);
+    expect(screen.queryByRole("button", { name: /Open supporting record/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show more matching records" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Catalog label")).toHaveValue("");
+  });
+
+  it("invalidates a pending search when a short query is submitted", async () => {
+    const user = userEvent.setup();
+    let resolve!: (page: OccupationalConstructSearchPage) => void;
+    vi.mocked(fetchOccupationalConstructSearch).mockImplementationOnce(() => new Promise((yes) => { resolve = yes; }));
+    render(<OccupationalConstructCatalogSearch accessToken="synthetic-token" />);
+    await user.type(screen.getByLabelText("Catalog label"), "Oral");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await user.clear(screen.getByLabelText("Catalog label"));
+    await user.type(screen.getByLabelText("Catalog label"), "O");
+    await user.click(screen.getByRole("button", { name: "Find matching records" }));
+    await act(async () => resolve({ query: "Oral", family_code: null, next_cursor: null, hits: [HIT] }));
+    expect(screen.queryByRole("button", { name: /Open supporting record/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Type two or more letters");
+    expect(fetchOccupationalConstructSearch).toHaveBeenCalledTimes(1);
   });
 });

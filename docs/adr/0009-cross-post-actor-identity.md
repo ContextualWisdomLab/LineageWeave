@@ -89,6 +89,14 @@ once `:Team`) would let RDFS entail every `:mentionedIn` subject is BOTH,
 which is false. The natural-language `:mentions` property is retained as
 the declared inverse of canonical `:mentionedIn` for RDF consumers.
 
+## Catalog authority clarification (2026-10-03)
+
+Summary materialization under `post_read` writes post-owned projections, not shared
+catalog identities. Existing identities may be reused read-only. Shared corporate
+enrichment and team upsert require explicit `post_admin` capability; omitted
+capability defaults to denial (Proposed ADR 0375). Null model clients alone do not
+confer catalog-write authority.
+
 ## Consequences
 
 - Team/organization mention persistence only runs when

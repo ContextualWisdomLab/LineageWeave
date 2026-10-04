@@ -69,10 +69,7 @@ def _postgres_available() -> bool:
 
 pytestmark = pytest.mark.skipif(
     not _postgres_available(),
-    reason=(
-        "no reachable PostgreSQL server at "
-        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
-    ),
+    reason="requires the configured disposable PostgreSQL admin endpoint",
 )
 
 
