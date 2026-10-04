@@ -26,7 +26,7 @@
    response.
    A fresh neighborhood captures its snapshot with PostgreSQL's
    `clock_timestamp()`, the authority that timestamps persisted assignments.
-   Continuation retains the cursor's original snapshot. The application host's
+   Source-cursor continuation retains the cursor's original snapshot. The application host's
    wall clock and a guessed grace period are rejected: clock skew must not hide
    a just-accepted Voice or admit a later fact into a retained snapshot.
 7. The workspace surface extends the existing Keyman/evidence panel with **Inspect ontology neighborhood**. It is not a second GNB destination.
