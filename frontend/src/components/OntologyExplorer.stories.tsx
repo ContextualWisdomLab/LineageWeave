@@ -412,6 +412,30 @@ export const SeparateVoiceEvidence: Story = {
   },
 };
 
+const controlCharacterExport = SeparateVoiceEvidence.args!.neighborhood!;
+const exportLabels = new Map([
+  [POST_ID, "Demo\rsource"],
+  [VOICE_EVIDENCE_POST_ID, "Synthetic\revidence"],
+  [PERSON_ID, "＠Synthetic reviewer"],
+]);
+
+export const CsvSourceLabels: Story = {
+  args: {
+    neighborhood: {
+      ...controlCharacterExport,
+      nodes: controlCharacterExport.nodes.map((node) => ({
+        ...node,
+        display_label: exportLabels.get(node.node_id) ?? node.display_label,
+      })),
+      exact_value_rows: controlCharacterExport.exact_value_rows.map((row) => ({
+        ...row,
+        source_label: exportLabels.get(row.source_node_id) ?? row.source_label,
+        target_label: exportLabels.get(row.target_node_id) ?? row.target_label,
+      })),
+    },
+  },
+};
+
 export const LongLabelsAndEvidenceTable: Story = {
   args: {
     neighborhood: {

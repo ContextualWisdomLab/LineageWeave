@@ -31,6 +31,12 @@
    visible relation does not retain its filtered-out relations, including
    when accumulated pages carry singleton or multi-value properties. Node
    metadata and separately governed Voice provenance keep their own contracts.
+   CSV keeps carriage returns, line feeds, commas, and quotes inside their
+   original field using RFC 4180 quoting. The existing spreadsheet text prefix
+   also covers OWASP's leading tab, carriage-return, line-feed, and full-width
+   formula markers; this export adaptation does not alter source labels or
+   JSON-LD. Spreadsheet save/reopen behavior is outside this bounded escaping
+   contract; no universal spreadsheet execution-safety guarantee is claimed.
 9. Synthetic Storybook frames cover desktop, narrow exact-value-first, node drawer, edge drawer, legend, empty, truncated, denied, stale, and rejected states. No confidential Figma content enters the repository. Storybook inventory records the implementation surface; frame IDs are not copied from the confidential design file (ADR 0002).
 
 **Consequences:**
@@ -41,6 +47,12 @@
 - Continuing past the SQL source window is [ADR 0124](0124-ontology-source-window-cursor.md) / issue #363.
 
 **References**
+
+Shafranovich, Y. (2005). *Common format and MIME type for comma-separated
+values (CSV) files* (RFC 4180). https://www.rfc-editor.org/rfc/rfc4180
+
+Open Worldwide Application Security Project. (n.d.). *CSV injection*.
+https://owasp.org/www-community/attacks/CSV_Injection
 
 Cyganiak, R., Wood, D., & Lanthaler, M. (Eds.). (2014). *RDF 1.1 concepts and abstract syntax* (W3C Recommendation). World Wide Web Consortium. https://www.w3.org/TR/rdf11-concepts/
 
