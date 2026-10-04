@@ -138,6 +138,37 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it.each(["initial", "continuation"])("requires sign-in after a rejected %s credential without retaining evidence", async (request) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    if (request === "continuation") {
+      fetchNeighborhood.mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }));
+    }
+    fetchNeighborhood.mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 401, "synthetic-secret-diagnostic"));
+    const { rerender } = render(
+      <OntologyExplorer accessToken="synthetic-expired-token" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    if (request === "continuation") {
+      await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+      await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    }
+    expect(await screen.findByText("Sign in again to view related information.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("synthetic-secret-diagnostic")).not.toBeInTheDocument();
+    const count = fetchNeighborhood.mock.calls.length;
+    fetchNeighborhood.mockResolvedValueOnce(neighborhood());
+    rerender(<OntologyExplorer accessToken="synthetic-renewed-token" focusNodeType="node_post" focusNodeId={POST_ID} />);
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(count + 1, "synthetic-renewed-token", expect.objectContaining({ cursor: undefined }));
+    expect(screen.queryByText("Sign in again to view related information.")).not.toBeInTheDocument();
+    fetchNeighborhood.mockReset();
+  });
+
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
     const projectNode = {

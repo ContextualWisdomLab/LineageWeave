@@ -5,6 +5,7 @@ operator-facing control you can click before changing product CSS.
 
 | Story | Operator next action | Token / module |
 |---|---|---|
+| `Evidence/OntologyExplorer/SignInRequired` | Sign in again after authentication expires; no same-credential Retry or export is available. Desktop/mobile retain the shared named unavailable region. | `OntologyExplorer`, `StatusNotice`, existing status tokens |
 | `Evidence/OntologyExplorerRetry/InitialRequestRetry` | Retry the same failed related-information request without reopening the Post; desktop/mobile show the shared retry alert and keep exports disabled until evidence arrives. Synthetic diagnostics stay hidden. | `OntologyExplorer`, `StatusNotice`, existing badge-status tokens |
 | `Evidence/OntologyExplorer/FilteredExport` | Search for a relation, then export JSON-LD and CSV; both retain only the relationships shown in the exact-value table. Desktop/mobile reuse the existing graph and keyboard-scrollable table. | `OntologyExplorer`, `ontologyLayout`, existing ontology/table tokens |
 | `Evidence/OntologyExplorer/SameDayVoiceInterval` | Distinguish same-day Voice validity boundaries and recorded time using the complete supplied timestamp, including fractional seconds and timezone. Missing times remain Unknown. Desktop and mobile use the existing keyboard-scrollable exact-values region. | `OntologyExplorer`, `--color-table-border`, `--color-focus-border` |

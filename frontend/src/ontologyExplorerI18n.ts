@@ -2,6 +2,7 @@ import { getLocale, type Locale } from "./i18n";
 
 const ONTOLOGY_EXPLORER_COPY = {
   en: {
+    "Sign in again to view related information.": "Sign in again to view related information.",
     "Load next relation page": "Load next relation page",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
       "Some related information is not shown. Open a source post to continue.",
@@ -11,6 +12,7 @@ const ONTOLOGY_EXPLORER_COPY = {
       "No direct evidence post is attached. Review the provenance reference above.",
   },
   ko: {
+    "Sign in again to view related information.": "관련 정보를 보려면 다시 로그인하세요.",
     "Load next relation page": "다음 관계 페이지 불러오기",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
       "일부 관련 정보가 표시되지 않습니다. 계속하려면 원본 글을 여세요.",
@@ -20,6 +22,7 @@ const ONTOLOGY_EXPLORER_COPY = {
       "직접 연결된 근거 게시물이 없습니다. 위의 출처 참조를 검토하세요.",
   },
   zh: {
+    "Sign in again to view related information.": "请重新登录以查看相关信息。",
     "Load next relation page": "加载下一页关系",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
       "部分相关信息未显示。请打开来源文章继续。",
@@ -29,6 +32,7 @@ const ONTOLOGY_EXPLORER_COPY = {
       "未附加直接证据帖子。请检查上方的来源引用。",
   },
   ja: {
+    "Sign in again to view related information.": "関連情報を見るには、もう一度ログインしてください。",
     "Load next relation page": "次の関係ページを読み込む",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
       "一部の関連情報は表示されません。続けるには元の投稿を開いてください。",
@@ -38,6 +42,7 @@ const ONTOLOGY_EXPLORER_COPY = {
       "直接の根拠投稿は添付されていません。上の出典参照を確認してください。",
   },
   vi: {
+    "Sign in again to view related information.": "Đăng nhập lại để xem thông tin liên quan.",
     "Load next relation page": "Tải trang quan hệ tiếp theo",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
       "Một số thông tin liên quan không được hiển thị. Hãy mở bài viết nguồn để tiếp tục.",
