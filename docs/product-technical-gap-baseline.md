@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head request-recovery loop — 2026-10-04 11:15 KST
+## Exact-head request-recovery loop — 2026-10-04 11:13 KST
 
 This dated overlay separates source, local candidate, GitHub workflow, and
 runtime evidence. It does not certify a release or supersede older observations
@@ -11,6 +11,19 @@ commit does not change application behavior. The complete paged inventory read
 in this loop contained **183 open PRs**, **168 drafts**, **117 non-main bases**,
 and **42 open issues**, before opening this recovery candidate. These are
 repository workflow counts, not a private-corpus or population estimate.
+
+### Published recovery candidate
+
+Recovery PR **#1160** was opened ready on `main` at exact head
+`b57f1fe19b76126647dfa87691b1cb3c083dbe38`. Its four executed-status
+Checks are terminal failures with no job steps: the new full-suite annotation
+again reports the account billing lock. No formal review exists on that head;
+CodeRabbit was pending and Devin Review successful at this observation, neither
+being an independent approving review. Applicable main rules were re-read and
+still contain only no-force-push ruleset 21065108. Auto-merge remains unarmed
+because it cannot safely defer to absent enforced approval/check gates.
+This baseline-only follow-up creates a later head; those Checks and review
+observations do not transfer to it. Re-read that head before any merge action.
 
 ### Review, Checks, and protection
 
