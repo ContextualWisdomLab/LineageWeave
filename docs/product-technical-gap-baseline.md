@@ -1,5 +1,184 @@
 # Product & Technical Gap Baseline
 
+## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
+
+This overlay supersedes older live-state wording only at the exact heads named
+here. Remote `main` is `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`.
+The paged inventory contains **184 open PRs**, **168 drafts**, **117 non-main
+bases**, and **42 open issues**. These are repository inventory observations,
+not private-corpus or population estimates. Drafts are not certified by the
+ready-PR table.
+
+### Review and implementation candidate
+
+PR #1160's review at `ab71df03313e4e61e62f629f740c3023878f6c75`
+correctly identifies that an expired credential offered Retry with the same
+credential. The minimal repair at implementation commit
+`4f3655c61ad50174a7bb6aaf97b06aafaa624555` clears retained evidence, the
+selected drawer, and continuation state on 401; the shared unavailable notice
+asks the reader to sign in again. Reset focus cannot restore supplied evidence
+with that rejected credential. A renewed credential can load evidence without
+the old cursor. Transient errors retain same-request Retry. ADR 0184 records
+the boundary before implementation; ADR 0220 supplies the existing notice and
+tokens. No new API, schema, migration ordinal, or release is introduced.
+This baseline-only follow-up has a later head: hosted evidence below does not
+transfer to that later head or to the implementation candidate.
+
+Regression verification reproduced both the missing initial/continuation
+reauthentication behavior and the supplied-evidence Reset focus bypass before
+the repair. Frontend lint, **60 files / 570 tests**, production build, and
+Storybook build pass. Relevant backend ontology, SHACL, Voice-ingestion,
+route-contract, and documentation tests pass (**67 tests**), with
+DeprecationWarning treated as an error. A separate synthetic throwaway
+PostgreSQL database passes **8 temporal Voice-history tests**, including
+A → B → A and concurrent primary history, and is removed by the fixture.
+These are local/candidate results, not hosted or authenticated API acceptance.
+The existing production bundle warning remains visible at approximately
+551 kB; it was not suppressed or relabeled as fixed.
+
+`SignInRequired` and `SeparateVoiceEvidence` were rendered and visually
+inspected at **1440×900** and **390×844**. The sign-in notice fits both viewports
+without document overflow; CSV and JSON-LD are disabled and Retry is absent.
+The existing exact-value table retains distinct carrying-Post and derivation-
+evidence actions; mobile uses its existing keyboard-scrollable region.
+Screenshots contain synthetic records only and stay outside git. This is
+Storybook acceptance, not authenticated customer UI acceptance.
+
+The remaining #1158 review request to remove public repository names, PR
+numbers, and commit SHAs is invalid against ADR 0001 and AGENTS.md: the
+prohibition concerns identifiable real source records, and explicitly allows
+aggregate counts and PR numbers. Public delivery identifiers are required for
+an honest exact-head audit. No fabricated aliases replace observed heads.
+Its product implementation is preserved, and the invalid review thread is
+resolved without changing source data or transferring Checks.
+
+### Ready-PR exact-head observation before this repair
+
+All check-suite commit identities in this table match the named PR head.
+No ready PR has a formal independent APPROVED review on its current head;
+#1130's approval belongs to an older commit. No open PR had an auto-merge
+request in the inventory. Context totals include external status contexts;
+non-failing, skipped, pending, or commented reviews do not imply acceptance.
+
+| PR | Exact observed head | Hosted check/status contexts |
+|---|---|---|
+| #1160 | `ab71df03313e4e61e62f629f740c3023878f6c75` | 6 contexts; 4 failures; 0 pending |
+| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` | 6 contexts; 4 failures; 0 pending |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | 6 contexts; 4 failures; 0 pending |
+| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | 6 contexts; 4 failures; 0 pending |
+| #1156 | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | 4 contexts; 2 failures; 0 pending |
+| #1155 | `1a83f31daa881e58ddde181768d35acb77aaa613` | 6 contexts; 4 failures; 0 pending |
+| #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` | 6 contexts; 4 failures; 0 pending |
+| #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | 6 contexts; 4 failures; 0 pending |
+| #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | 6 contexts; 4 failures; 0 pending |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | 44 contexts; 7 failures; 0 pending |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | 47 contexts; 5 failures; 0 pending |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | 47 contexts; 7 failures; 0 pending |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | 57 contexts; 4 failures; 0 pending |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 37 contexts; 0 failures; 0 pending |
+| #1130 | `b25f10eb1021083317a8ecefd479efc29d6c0297` | 6 contexts; 4 failures; 0 pending |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 44 contexts; 3 failures; 0 pending |
+
+The current-head full-suite annotation on #1130 reports that the job was not
+started because the account is locked due to a billing issue; its jobs have
+no executed steps. This is a GitHub account/platform condition, not a failing
+application test. REST subsequently exhausted its rate allowance; independent
+GraphQL reads and Git transport remain available. Re-read each new head's
+Checks, reviews, threads, and live protection before any merge action.
+
+Effective branch-rule and inherited-ruleset reads expose only repository
+no-force-push rule **21065108**. Classic branch protection returns 404. No
+approval or required-check gate is proven enforced for this repository in that
+read. Arming auto-merge could therefore immediately merge an unapproved head;
+it is left unarmed until enforced gates and eligible independent approval can
+be verified. No existing request is disabled. No self-approval, admin bypass,
+force push, unsafe merge, child retarget, or stale-run cancellation is used.
+The account billing condition is not repaired by weakening workflow contracts.
+The active-run inventory became unavailable after the REST limit; no current
+main or open-PR run is cancelled on inference.
+
+### Authority and runtime evidence
+
+- Current-main LineageWeave PRD, ADR 0246/0251/0256/0184/0220, TEPP's approved
+  v0.4 PRD, fast-mlsirm's PRD, ThreadWeave's PRD, RankWeave's architecture,
+  contextual-orchestrator's product planning, DiskSage's current README, and
+  Keyverse's PRD were read before this slice. Canonical remote metadata confirms
+  `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+  lowercase `ContextualWisdomLab/disksage`. The current disksage tree does not
+  resolve `docs/PRD.md`; that path in the supporting authority register does
+  not establish a present product authority. Its current README/design boundary
+  is used instead.
+- Remote default heads are RankWeave
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, disksage
+  `05899ffb01ce91a9ea3d782630b28a398de59ddc`, and TEPP
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`. Owner product sources remain
+  design/contract evidence, not proof that a downstream runtime accepts them.
+- ADR 0246 retains twelve extensible atomic Voices; ADR 0251's I/O-psychology
+  taxonomy remains distinct; ADR 0256 governs composition, PROV-O derivation,
+  truth, and cutoff. No fixed combination enumeration, B2B2C limitation,
+  hidden-evidence substitution, numeric weight, Python numerical kernel, or
+  unaccepted inference is added. Same-subject JSON-LD property/multi-Voice unions
+  and carrying-versus-evidence CSV regressions remain in the passing suites.
+- A read-only diagnostic of the formal `lineageweave` PostgreSQL service found
+  **43,189 Posts**, **43,189 primary Voice rows**, **0 additional Voice rows**,
+  **0 additional rows with an assertion**, and **0 multi-Voice Posts**. These
+  administrative aggregate observations are not authorized reader API proof,
+  not a classifier result, and not a population inference. No record title,
+  organization, production key, body, or credential was printed or persisted.
+- The synthetic authorization-code browser probe did not obtain an access
+  token. No owned k6 token file was configured. **Authenticated PostgreSQL/API
+  and UI Voice acceptance, synthetic authenticated k6 concurrency, latency,
+  error rate, throughput, and PostgreSQL/worker/Valkey/gateway saturation remain
+  unavailable.** No unobserved performance bottleneck is changed. Formal
+  Compose services/volumes are preserved; this loop creates no containers.
+
+The largest remaining release acceptance gap is still additional-Voice
+accepted/persisted evidence in the authenticated product. The repair above
+closes a concrete session-expiry recovery failure within that evidence workflow;
+it does not certify the larger runtime gate. W3C JSON-LD/PROV-O/SHACL/WCAG and
+owner PRDs support the contracts, not a fabricated completed-runtime claim.
+Context7 verifies React's cleanup behavior. DeepWiki has no indexed repository;
+Sequential Thinking and graph-memory tools are not exposed in this session.
+
+### Cross-PR ADR, schema, API, and release integration
+
+All **184 exact-head deltas** were inspected relative to their declared local
+base refs; Git transport verified main and the repaired PR head. This audit
+finds **19 filename-ordinal collision groups** across ADR/migration deltas;
+inherited stack deltas are included, so these are collision groups rather than
+19 independent defects. Examples requiring owner reconciliation before merging:
+
+- Migration 0249: #1047's post-chat authorization scope and #1127's translation
+  ownership/similar-VOC files; migration 0248: #929's Customer Master draft and
+  #1049's conversation-turn repair; #929 itself has multiple 0247 filenames.
+- ADR 0272: leftover-map reconstruction, exact-read SLO, and stateless MCP
+  candidates; ADR 0245: #702's scoring/identity owner contract versus the
+  occupational taxonomy; ADR 0355: #915 dynamic evaluation versus #920 plot
+  origin; ADR 0300/0301/0279 and several 0290–0297/0305 slices also collide.
+- Current main has two 0233 migration filenames. #1049 and issue #1048 own the
+  forward-ordinal repair. Main has no duplicate ADR filename ordinals, but its
+  supporting PRD still has duplicate FR labels and misbound occupational ADR
+  references; #997 is the reconciliation candidate. No shipped migration or
+  normative decision is silently renamed or deleted here.
+- Exact read-only merge-tree checks find only baseline-text conflicts between
+  #1160 and #1159/#1157. #1160 versus #1136 also conflicts in Storybook inventory
+  and component tests. #1153/#1155 and #1137/#1133 combine textually cleanly.
+  This does not prove semantic API compatibility or transfer approval. Preserve
+  the independent evidence-denial, scope-reset, and review-history changes when
+  their first protected parent is integrated, then collect fresh child evidence.
+- Across the 184 heads, package/frontend/module versions produce **74 distinct
+  tuples**, with **131 heads** containing a version mismatch. Some are inherited
+  stack states, not independent releases. Current main remains package/frontend
+  `2.28.0` versus module `2.20.0`; issue #1056 owns release-authority repair.
+  This slice changes no version and creates no release claim.
+
+API admission, truth/cutoff, and semantic compatibility of draft stacks remain
+unverified beyond the named contract tests and selected merge-tree checks.
+Parents must be protected first; no non-main stack delta is retargeted merely
+because its textual merge is clean. Keep older dated observations below as
+history rather than treating them as current authority.
+
 ## Exact-head request-recovery loop — 2026-10-04 11:13 KST
 
 This dated overlay separates source, local candidate, GitHub workflow, and
