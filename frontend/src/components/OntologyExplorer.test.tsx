@@ -192,6 +192,24 @@ describe("OntologyExplorer", () => {
     expect(container.querySelector('polygon[points="0,-16 20,0 0,16 -20,0"]')).not.toBeNull();
   });
 
+  it("does not restore supplied evidence when focus resets after authentication fails", async () => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood.mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 401));
+    render(
+      <OntologyExplorer accessToken="synthetic-expired-token" focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Person Test Person" }));
+    await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
+    expect(await screen.findByText("Sign in again to view related information.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
+    expect(screen.getByText("Sign in again to view related information.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(fetchNeighborhood).toHaveBeenCalledOnce();
+    fetchNeighborhood.mockReset();
+  });
+
   it("keeps loaded pages visible when a continuation page fails", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
     let rejectContinuation!: (error: BackendError) => void;

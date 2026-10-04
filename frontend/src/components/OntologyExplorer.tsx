@@ -123,6 +123,7 @@ export function OntologyExplorer({
   }, [focusNodeType, focusNodeId]);
 
   useEffect(() => {
+    if (accessToken && accessToken === rejectedAccessToken.current) return;
     const useProvided = Boolean(provided) && !liveFocus;
     if (useProvided && provided) {
       setLoaded(provided);
@@ -137,7 +138,6 @@ export function OntologyExplorer({
       return;
     }
     let cancelled = false;
-    if (accessToken === rejectedAccessToken.current) return;
     setStatus("loading");
     fetchOntologyNeighborhood(accessToken, {
       focusNodeType: focusType,
