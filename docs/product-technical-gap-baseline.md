@@ -1,5 +1,145 @@
 # Product & Technical Gap Baseline
 
+## Exact-head request-recovery loop — 2026-10-04 11:15 KST
+
+This dated overlay separates source, local candidate, GitHub workflow, and
+runtime evidence. It does not certify a release or supersede older observations
+outside the heads named here. The implementation candidate is
+`ad2d0da703734b5a5db827b44783219d1e7d263a` on remote main
+`a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`; the following baseline-only
+commit does not change application behavior. The complete paged inventory read
+in this loop contained **183 open PRs**, **168 drafts**, **117 non-main bases**,
+and **42 open issues**, before opening this recovery candidate. These are
+repository workflow counts, not a private-corpus or population estimate.
+
+### Review, Checks, and protection
+
+- Ready PR heads were inspected with their current-head check rollups, formal
+  review commit identities, and unresolved threads. None had a qualifying
+  APPROVED review on its current head. #1130's older approval does not transfer
+  to `b25f10eb1021083317a8ecefd479efc29d6c0297`. Draft stacks were inventoried,
+  not individually certified. Pending checks are not an independent-work
+  blocker; failures and absent approval remain merge requirements.
+- #1153's valid review finding was reproduced against its loader: an `after:`
+  edge continuation captures a fresh database snapshot, while source-cursor
+  continuation restores the retained snapshot. Its ADR now limits the retention
+  statement to source-cursor continuation. The non-force review repair moved
+  head from `5b1645607e1e8e7986f735fa8bf37dd3bb77ad3e` to
+  `93b674ed08d338ec72ec7d98737e4aa2a17adee8`; the review thread is resolved.
+  Documentation hygiene passed **5 tests**, with DeprecationWarning as error.
+- All four Checks on that new head were re-read through the exact commit's
+  check-runs endpoint. CodeQL Python/Actions, full suite, and frontend jobs
+  failed before executing any step because the account is locked due to a
+  billing issue. This is a GitHub account/platform condition, not a tested
+  application failure. No scanner, runner route, gate, or warning was suppressed.
+- Current branch-rule and inherited repository-ruleset reads expose only
+  no-force-push ruleset **21065108**. Organization GraphQL metadata separately
+  declares the active central one-approval/resolved-thread/workflow contract,
+  but that declaration is not proof that it is enforced on this repository.
+  No eligible independent approval exists. New auto-merge is therefore held:
+  arming it without enforced gates could immediately merge an unapproved head.
+  Existing auto-merge requests were not removed; no self-approval, bypass,
+  force push, parent retarget, or unsafe merge occurred.
+- #1154's merge record was verified at
+  `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. This confirms that merge record,
+  not independent review, protected delivery, or authenticated deployment.
+  There were no in-progress repository runs in the bounded current run read;
+  no closed-PR stale run was cancelled and no manual queue workaround occurred.
+
+### Prioritized product slice and verification
+
+The release-critical gap remains accepted, authorized Voice evidence in the
+running product. That acceptance cannot be certified without authentication.
+While that gate waits, the actionable local PRD-FR-3/5 gap reproduced here is
+request recovery: an initial related-information failure had no retry control,
+so the user could not resume the same request without leaving the view.
+
+The minimal candidate reuses ADR 0220's `StatusNotice` and the existing request
+attempt state. A failed initial request retries the same focus and cutoff; a
+failed continuation retries its same opaque cursor and retains the previous
+page. A processing request removes the retry control. Denied evidence has no
+retry control. Provider diagnostics are never interpolated into the notice.
+No new dependency, provider policy, heuristic, inferred value, API field,
+schema, migration, ADR ordinal, or release number is introduced.
+
+Regression tests first failed against the old implementation, then passed for
+initial failure/recovery, pending exports, exact request identity, continuation
+recovery with prior evidence, and 403/404 denial. The focused ontology/export
+suite passed **61 tests**; the full frontend suite passed **60 files / 567
+tests**. Frontend lint, production build, and Storybook build passed. Relevant
+Python documentation/Voice/projection/SHACL tests passed **64 tests**, treating
+DeprecationWarning as error. No warning filter or timeout relaxation was added.
+With the official backend extras installed, live PostgreSQL synthetic primary/
+additional Voice history tests passed **8 tests**. Those isolated databases
+were dropped by their fixtures. The authorized API round-trip test failed at
+its genuine OIDC token fixture with **HTTP 400**, before API admission; it is
+not a passing or skipped acceptance result.
+
+`Evidence/OntologyExplorerRetry/InitialRequestRetry` rendered and was visually
+inspected at **1440×900** and **390×844**. Both browsers operated Retry and
+returned to the safe failure notice in the controlled synthetic outage;
+neither viewport overflowed and neither exposed the synthetic diagnostic.
+The shared token-backed control exceeds the existing 24-pixel minimum in both
+renders. Screenshots remain outside git. This is synthetic rendered evidence,
+not authenticated customer UI acceptance.
+
+### Authority, Voice, and runtime boundary
+
+- The current-main LineageWeave PRD and ADR 0184/0246/0251/0256/0220/0123 were
+  read. ADR 0246's twelve atomic Voices stay extensible; ADR 0251's
+  I/O-psychology taxonomy remains a separate authority; ADR 0256 governs
+  evidence-bearing combinations and their retained truth/cutoff intervals.
+  The retry slice preserves carrying-Post versus derivation-evidence actions,
+  same-subject JSON-LD property unions, and multi-Voice relations. Relevant
+  export regressions passed; authenticated Voice acceptance stays incomplete.
+- Canonical names were verified against GitHub repository metadata, including
+  lowercase `ContextualWisdomLab/disksage`. Fresh remote default heads:
+  LineageWeave `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`, RankWeave
+  `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave
+  `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, disksage
+  `05899ffb01ce91a9ea3d782630b28a398de59ddc`, TEPP
+  `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`. RankWeave architecture,
+  ThreadWeave PRD, DiskSage current README authority, and TEPP approved PRD
+  were retrieved for owner boundaries. No owner computation was reimplemented.
+- The cited W3C RDF/JSON-LD/PROV-O/WCAG authorities support projection,
+  provenance, and accessible recovery. They supply no weights, Voice
+  classification heuristic, provider selection, or population estimator.
+  Context7 supplied React's effect-cleanup contract. DeepWiki could not find
+  this repository; Sequential-thinking and graph-memory tools are unavailable
+  in this session. No missing-tool response is treated as authority.
+- A fresh synthetic demo OIDC preflight returned **HTTP 400**, without an
+  access token. No owned k6 access-token file was configured. Authenticated
+  PostgreSQL/API, authenticated UI, and synthetic authenticated k6 concurrency,
+  latency, error rate, throughput, and PostgreSQL/worker/Valkey/gateway
+  saturation remain **unavailable in this audit**. No unobserved bottleneck
+  was repaired, no real source content was queried, and no sampling result was
+  promoted to population inference. Existing formal Compose services and
+  volumes remain intact; this slice created no containers.
+
+### Cross-PR integration findings
+
+Read-only merge-tree checks of the recovery implementation with exact heads
+#1153 `93b674ed08d338ec72ec7d98737e4aa2a17adee8`, #1157
+`2905bae54adb290c104c23210e3c1e098e401e31`, and #1159
+`b28ade6690cf1e1191d310a4ef2cf3e024513187` are clean. These other-agent
+changes remain independent; their approval and Checks are not transferred.
+Later baseline overlays can conflict textually and must preserve both dated
+observations after the first PR is protected. #1132, #1138, and #1144 remain
+parent-bound; no child was retargeted before its parent was protected.
+
+The existing PRD duplicates PRD-FR-2A/2B/2C identifiers and describes SOC
+hierarchy under ADR 0252 and O*NET linkages under ADR 0256, whereas the current
+normative files with those ordinals govern primary Voice history and Voice
+combinations. These are authority/traceability conflicts, not permission to
+invent a new ontology mapping. ADR filenames have no duplicate ordinals.
+Migration ordinal 0233 still names two distinct existing files under ADR
+0166's sorted-filename replay contract. Open stacks #843 and #844 both claim
+v2.62.0 at heads `2a5ab4d735a1240997150578b151c6b6492e2f43` and
+`0882cc90a1af545d9d67e0965134c7686a119671`; those release claims require
+serialized reconciliation. This candidate allocates none of those identifiers
+and does not declare all 183 PRs semantically conflict-free.
+
+
 ## Exact-head export and governance audit — 2026-10-03 21:44 KST
 
 This dated snapshot supersedes earlier queue counts only at its named heads.
