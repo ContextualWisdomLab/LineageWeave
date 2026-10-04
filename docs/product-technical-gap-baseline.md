@@ -24,6 +24,16 @@ tokens. No new API, schema, migration ordinal, or release is introduced.
 This baseline-only follow-up has a later head: hosted evidence below does not
 transfer to that later head or to the implementation candidate.
 
+Published repair receipt, before this receipt-only commit: PR #1160 is ready
+and Open at `0d7ea382541ce5ed20b9147735a24bfbfd199633`. All four
+exact-head CodeQL/test checks are terminal failures; each annotation states
+that the job was not started because the account is locked due to a billing
+issue. No formal approval exists on this head, Devin Review is a successful
+status rather than approval, and CodeRabbit is pending. The addressed 401
+review thread is resolved. Auto-merge is unarmed for the enforcement reason
+below. This receipt advances the head again, so re-read the resulting head
+before lifecycle action; no predecessor evidence is transferred.
+
 Regression verification reproduced both the missing initial/continuation
 reauthentication behavior and the supplied-evidence Reset focus bypass before
 the repair. Frontend lint, **60 files / 570 tests**, production build, and
