@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BackendError,
   fetchOntologyNeighborhood,
@@ -106,11 +106,60 @@ export function OntologyExplorer({
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
   const rejectedAccessToken = useRef<string | undefined>(undefined);
+  const [requestScope, setRequestScope] = useState({
+    accessToken,
+    focusNodeType,
+    focusNodeId,
+    knowledgeCutoff,
+    generation: 0,
+  });
+  const committedGeneration = useRef(requestScope.generation);
+
+  useLayoutEffect(() => {
+    committedGeneration.current = requestScope.generation;
+  }, [requestScope.generation]);
 
   function clearSelection() {
     setSelectedNodeKey(null);
     setSelectedEdgeId(null);
     setQuery("");
+  }
+
+  if (
+    requestScope.accessToken !== accessToken ||
+    requestScope.focusNodeType !== focusNodeType ||
+    requestScope.focusNodeId !== focusNodeId ||
+    requestScope.knowledgeCutoff !== knowledgeCutoff
+  ) {
+    if (requestScope.accessToken !== accessToken && accessToken !== rejectedAccessToken.current) {
+      rejectedAccessToken.current = undefined;
+    }
+    const rejected = Boolean(accessToken && accessToken === rejectedAccessToken.current);
+    setRequestScope({
+      accessToken,
+      focusNodeType,
+      focusNodeId,
+      knowledgeCutoff,
+      generation: requestScope.generation + 1,
+    });
+    setLoaded(rejected ? null : provided ?? null);
+    setStatus(
+      rejected
+        ? "authentication_required"
+        : providedStatus ?? (
+          provided
+            ? statusFromPayload(provided, knowledgeCutoff)
+            : accessToken
+              ? "loading"
+              : "empty"
+        ),
+    );
+    setFocusType(focusNodeType);
+    setFocusId(focusNodeId);
+    setCursor(undefined);
+    setPageRetry(0);
+    setLiveFocus(false);
+    clearSelection();
   }
 
   useEffect(() => {
@@ -138,22 +187,23 @@ export function OntologyExplorer({
       return;
     }
     let cancelled = false;
+    const requestGeneration = requestScope.generation;
     setStatus("loading");
     fetchOntologyNeighborhood(accessToken, {
       focusNodeType: focusType,
       focusNodeId: focusId,
       knowledgeCutoff,
       cursor,
-    })
+      })
       .then((payload) => {
-        if (cancelled) return;
+        if (cancelled || requestGeneration !== committedGeneration.current) return;
         setLoaded((current) =>
           cursor && current ? accumulateNeighborhoodPages(current, payload) : payload,
         );
         setStatus(statusFromPayload(payload, knowledgeCutoff));
       })
       .catch((error: unknown) => {
-        if (cancelled) return;
+        if (cancelled || requestGeneration !== committedGeneration.current) return;
         if (error instanceof BackendError && error.status === 401) {
           rejectedAccessToken.current = accessToken;
           setLoaded(null);
@@ -164,6 +214,8 @@ export function OntologyExplorer({
         }
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -172,7 +224,7 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus, requestScope.generation]);
 
   const visible = useMemo(
     () => filterNeighborhood(status === "authentication_required" ? null : loaded, query),
@@ -184,6 +236,9 @@ export function OntologyExplorer({
   const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !provided);
 
   function resetFocus() {
+    setRequestScope((scope) => ({ ...scope, generation: scope.generation + 1 }));
+    setLoaded(null);
+    setStatus(accessToken && rejectedAccessToken.current === accessToken ? "authentication_required" : "loading");
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
@@ -246,6 +301,7 @@ export function OntologyExplorer({
         </div>
       </header>
       <OccupationalConstructCatalogSearch
+        key={requestScope.generation}
         accessToken={accessToken}
         knowledgeCutoff={knowledgeCutoff}
         onSelectPost={onSelectPost ?? onOpenEvidence}
@@ -314,6 +370,9 @@ export function OntologyExplorer({
           node={selectedNode}
           canRefocus={Boolean(accessToken)}
           onFocus={() => {
+            setRequestScope((scope) => ({ ...scope, generation: scope.generation + 1 }));
+            setLoaded(null);
+            setStatus(accessToken && rejectedAccessToken.current === accessToken ? "authentication_required" : "loading");
             setLiveFocus(true);
             setFocusType(selectedNode.node_type_code);
             setFocusId(selectedNode.node_id);

@@ -525,6 +525,14 @@ export const StaleCutoff: Story = {
   },
 };
 
+export const CutoffLoading: Story = {
+  args: {
+    neighborhood: null,
+    knowledgeCutoff: "2026-01-15T12:00:00Z",
+    status: "loading",
+  },
+};
+
 export const RejectedProposal: Story = {
   args: {
     neighborhood: rejectedNeighborhood,

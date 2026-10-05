@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+## Reader-scope repair integration refresh — 2026-10-06
+
+The protected base is `8be55f0306015a1a8deda02fa9131e165254d239`. PR #1157's
+prior remote head was `2905bae54adb290c104c23210e3c1e098e401e31`; it had four
+failed check contexts, two successful review-bot statuses, no current-head
+approval, no auto-merge request, and `DIRTY` merge state. GraphQL found no
+unresolved review threads. The ordinary synchronization commit
+`c4bda8c29a41109088d1f9718d588160be3a1801` now carries that candidate and
+current `main` as its parents; no force push was used.
+
+The paged live inventory contains **187 open PRs**, **168 drafts**, **117
+non-main bases**, and **42 open issues**. The only active default-branch rule
+found by GraphQL is `NON_FAST_FORWARD`; classic branch protection has no
+configured rule. Auto-merge stays unarmed because no independent-approval or
+required-check gate is established.
+
+The conflict review preserves both ADR 0184 contracts: PR #1157's generation
+fence rejects stale success and denial after scope changes; main's 401 path
+clears cached pages and asks the reader to sign in again. Focus/reset also
+advances the request generation, and a still-rejected token cannot restore
+supplied pages. Tests from both deltas remain in the integration candidate.
+No API shape, schema, migration, dependency, or release identity changes.
+
+On the integration worktree combining that prior head with current main,
+focused local checks passed: **75** backend
+ontology/ingestion/cutoff/visibility tests, **74** frontend explorer/layout
+tests, frontend lint, production build, and Storybook build. The denied-evidence
+Storybook scene was rendered at **1440×900** and **390×844**; both screenshots
+show the unavailable next action, no graph evidence, and disabled exports.
+The authenticated PostgreSQL/API acceptance and synthetic authenticated k6
+capacity evidence remain unavailable. No production rows or credentials were
+included in artifacts.
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
