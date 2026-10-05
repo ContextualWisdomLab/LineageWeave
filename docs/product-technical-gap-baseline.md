@@ -1,5 +1,34 @@
 # Product & Technical Gap Baseline
 
+### Exact-head continuation — 2026-10-05 21:35 KST
+
+This observation follows the ordinary merges of current `main` into PR #1153
+and this baseline candidate. Remote `main` was
+`8be55f0306015a1a8deda02fa9131e165254d239` at capture.
+
+- PR #1153 was head `727a0366d250770e532189702a6c701886a9f712`, based on that
+  `main`, open, non-draft, and GitHub reported `MERGEABLE`. The credential-field
+  review finding is present in the test. The focused authentication test passed
+  **6 tests** after the main merge. All four application/analysis checks failed
+  within seconds with zero job steps; logs were unavailable, so their cause is
+  unverified. CodeRabbit was rate-limited, and there is no formal approval.
+- PR #1161 was head `e64ed8f0123aa8b26d1be4daea1d23e9e48bc1b9`, based on that
+  `main`, open, non-draft, and GitHub reported `MERGEABLE`. Its Full test,
+  frontend, and two Analyze jobs also failed with zero steps; CodeRabbit was
+  rate-limited. No formal approval exists. This baseline update creates another
+  head, so these check results do not apply to the resulting commit.
+- Active ruleset **21065108** still exposes only no-force-push protection;
+  classic branch protection was unavailable. There is no verified required
+  approval/check gate. Auto-merge remains unarmed because its immediate merge
+  would not establish the user's independent-approval and passing-check
+  requirements.
+
+The additional-Voice authenticated PostgreSQL/API and rendered application
+acceptance remains **unverified**. Synthetic local tests, earlier browser
+renders, and a mergeable PR state do not satisfy those runtime criteria.
+
+
+
 ### Exact-head continuation — 2026-10-05 21:24 KST
 
 This overlay is a live-state snapshot, separate from the dated 2026-10-04
