@@ -1,5 +1,38 @@
 # Product & Technical Gap Baseline
 
+## Current denied-evidence integration — 2026-10-06 00:34 KST
+
+This receipt names implementation `9b1386052` and remote main
+`8be55f0306015a1a8deda02fa9131e165254d239`. The #1159 owner delta is
+integrated with current credential rejection, recovery, and visible-page
+continuation; both sides of the historical baseline conflict are retained.
+Denied supplied/loaded evidence stays out of the shared visible projection,
+so CSV/JSON-LD exports and selected node/edge details are unavailable.
+No customer-facing style, heuristic, model, API, schema, migration ordinal,
+ADR identity, or release number changes.
+
+Frontend lint, 60 files / 573 tests, production build and Storybook build
+pass. Related Python/projection/Voice unit checks pass 88 tests with
+DeprecationWarning as error. Eight additional live PostgreSQL Voice-history
+tests pass against the authenticated formal lineageweave PostgreSQL service;
+fixture-owned throwaway databases are removed. The initial missing native
+psql path was fixed in the command environment. No production volume changes.
+DeniedCachedEvidence desktop 1440x900 and mobile 390x844 screenshots were
+visually inspected outside git: exports disabled, no evidence table or
+selected details, and no document overflow. This is synthetic rendered
+evidence, not authenticated product UI acceptance.
+
+Hosted Checks cannot start because GitHub reports an account billing lock.
+No current-head independent approval exists. The organization declares its
+central required-review/workflow rule, while the repository inherited-ruleset
+read exposes only 21065108; applied enforcement remains unverified. New
+auto-merge is withheld because it could otherwise immediately merge without
+the requested protections. No existing request is removed or gate weakened.
+The larger authenticated API/UI and k6 acceptance remains unavailable;
+healthy services do not close those gaps. Older observations below retain
+their original heads/times and are not current integration evidence.
+
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
