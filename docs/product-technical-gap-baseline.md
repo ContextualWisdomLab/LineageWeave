@@ -83,33 +83,42 @@ not customer usage or population evidence. The table excludes this baseline
 PR #1161 because the update changes its head; its prior head
 `4677412dfffdf234a6253a0a1ceb99e13f290f66` had four failed checks, and the new
 first refresh head `10d00386ddb80160da60e2f32956c697bda3259a` also had four
-failed checks. This update's new head must receive its own Checks and review
-evidence.
+failed checks. The second refresh head
+`40894360d26a1e6a46cd6ef7c279c6a67c5c7e67` also had four failed checks. This
+update's new head must receive its own Checks and review evidence.
 
-All other 16 non-draft `main` heads were re-fetched and checked for terminal
-check runs and reviews attached to that exact SHA. No exact-head APPROVE was
-found. Candidate PR checks are not inherited from their parent or an older
-commit. A failed run without accessible job logs is recorded as a failure;
-its cause remains unknown until the owning workflow provides evidence.
+All other 16 non-draft PRs targeting `main` were re-fetched with their exact
+head and base SHA and checked for terminal check runs and reviews attached to
+that exact head. No exact-head APPROVE was found. Candidate PR checks are not
+inherited from their parent or an older commit. A failed run without accessible
+job logs is recorded as a failure; its cause remains unknown until the owning
+workflow provides evidence.
 
-| PR | Exact head | Exact-head check runs | Exact-head APPROVE |
-| ---: | --- | --- | --- |
-| #1160 | `a826d42d1d429f54c507dc050aa9c4af40669179` | 4 failed | None |
-| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` | 4 failed | None |
-| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | 4 failed | None |
-| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | 4 failed | None |
-| #1156 | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | 2 failed | None |
-| #1155 | `1a83f31daa881e58ddde181768d35acb77aaa613` | 4 failed | None |
-| #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` | 4 failed | None |
-| #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | 4 failed | None |
-| #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | 4 failed | None |
-| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | 7 failed, 19 passed, 4 skipped | None |
-| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | 5 failed, 1 cancelled, 16 passed, 8 skipped | None |
-| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | 7 failed, 18 passed, 5 skipped | None |
-| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | 3 failed, 1 cancelled, 17 passed, 9 skipped | None |
-| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 19 passed, 11 skipped | None |
-| #1130 | `b25f10eb1021083317a8ecefd479efc29d6c0297` | 4 failed | None |
-| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 3 failed, 19 passed, 8 skipped | None |
+| PR | Exact base SHA | Exact head SHA | Exact-head check runs | Exact-head APPROVE |
+| ---: | --- | --- | --- | --- |
+| #1160 | `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | `a826d42d1d429f54c507dc050aa9c4af40669179` | 4 failed | None |
+| #1159 | `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | `b28ade6690cf1e1191d310a4ef2cf3e024513187` | 4 failed | None |
+| #1158 | `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | 4 failed | None |
+| #1157 | `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | `2905bae54adb290c104c23210e3c1e098e401e31` | 4 failed | None |
+| #1156 | `259be21c4d3e551906c321ad7c911e0fa9695745` | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | 2 failed | None |
+| #1155 | `259be21c4d3e551906c321ad7c911e0fa9695745` | `1a83f31daa881e58ddde181768d35acb77aaa613` | 4 failed | None |
+| #1153 | `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` | 4 failed | None |
+| #1151 | `70f8f17b4228d571f57b357f1d884341d0131363` | `ab0c639fd50cb13f764416d99038140af3b86c73` | 4 failed | None |
+| #1141 | `70f8f17b4228d571f57b357f1d884341d0131363` | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | 4 failed | None |
+| #1137 | `83eba56149eb802cd63642c507c324c9976ec78e` | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | 7 failed, 19 passed, 4 skipped | None |
+| #1136 | `83eba56149eb802cd63642c507c324c9976ec78e` | `55f6992637c53cfb51a74f55987a40b359152bd5` | 5 failed, 1 cancelled, 16 passed, 8 skipped | None |
+| #1135 | `83eba56149eb802cd63642c507c324c9976ec78e` | `73ba540789d2f2210a17e7eb5396270dafa66589` | 7 failed, 18 passed, 5 skipped | None |
+| #1133 | `83eba56149eb802cd63642c507c324c9976ec78e` | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | 3 failed, 1 cancelled, 17 passed, 9 skipped | None |
+| #1131 | `83eba56149eb802cd63642c507c324c9976ec78e` | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 19 passed, 11 skipped | None |
+| #1130 | `70f8f17b4228d571f57b357f1d884341d0131363` | `b25f10eb1021083317a8ecefd479efc29d6c0297` | 4 failed | None |
+| #1128 | `83eba56149eb802cd63642c507c324c9976ec78e` | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 3 failed, 19 passed, 8 skipped | None |
+
+Among these 16 rows, only #1153 and #1157–#1160 currently use the live
+`main` SHA as their base.
+The remaining candidates target `main` by branch name but use older base
+commits. Treat those as stale-base candidates: their head checks do not prove
+compatibility with current `main`, and their deltas must be re-evaluated on a
+verified live base before merge.
 
 PR #1158's actionable continuation-state findings are already resolved on its
 current head `f92dddb460fd73a20eafa7c26de8f49085821d9a` by commit
@@ -124,6 +133,14 @@ not applied: these identifiers are verified Git metadata allowed by the
 repository's artifact rules, and the snapshot contains no production post or
 organization records.
 
+PR #1160's exact-head 401 review finding is also addressed in its current code:
+the component clears prior evidence and continuation state, disables exports,
+and shows sign-in guidance without offering Retry with the rejected token.
+Focused tests passed (**25 tests**), Storybook built, and the sign-in-required
+scene was rendered and inspected at **1440×900** and **390×844**; both views
+show the guidance without horizontal page overflow. Its hosted checks still
+show four failures and no exact-head approval.
+
 The repository exposes one active repository ruleset, `LineageWeave: no force
 pushes` (`21065108`). Classic branch protection returns 404. The organization
 ruleset read for `18156473` returns HTTP 403 because the current GitHub plan
@@ -132,19 +149,30 @@ required-workflow rules could not be independently re-read here, and no
 candidate is described as merge-ready. No candidate had an auto-merge request
 at this snapshot. Do not bypass or infer a missing protection rule.
 
-Cross-PR source comparison found no overlapping migration, API-route, or
-release-version files among the 16 candidates. Known overlapping files and
-merge-tree results are:
+All **120 pairwise** read-only merge-tree comparisons among these 16 candidate
+heads completed. **46** pairs were clean and **74** conflicted; every conflict
+pair included `docs/product-technical-gap-baseline.md`, and **45** also had at
+least one other conflicting path. The widespread baseline overlap is a dated
+evidence-history collision; preserve both observations when constructing a
+live-base successor. It does not make these independent PRs a valid stack.
 
-| Candidates | Shared changed files | Merge-tree result |
+Changed-path intersection found no migration, API-route, schema, or release
+file shared by the candidates. The only shared dependency-contract paths were
+`pyproject.toml` and `uv.lock`, touched by #1133, #1135, and #1137; #1133+#1137
+merge cleanly, while #1135 conflicts with both dependency candidates. Key
+non-baseline merge-tree conflicts include:
+
+| Candidates | Conflicting paths | Required handling |
 | --- | --- | --- |
-| #1153 + #1157 | ADR 0184, baseline | Clean outside the baseline; baseline text conflicts |
-| #1153 + #1160 | ADR 0184, baseline | Clean outside the baseline; baseline text conflicts |
-| #1153 + #1155 | ADR 0256, baseline | Clean |
-| #1157 + #1160 | ADR 0184, baseline, `OntologyExplorer.tsx`, its tests | UI component/tests and baseline conflict; parent order and fresh exact-head validation required |
-| #1133 + #1137 | baseline, `pyproject.toml`, `uv.lock` | Clean; dependency changes compose |
-| #1135 + #1137 | baseline, `pyproject.toml`, `uv.lock` | Conflicts in dependency contract/lock and baseline; reconcile on current main before merge |
-| #1131 + #1135 | baseline | Baseline text conflict; preserve both audits in any successor |
+| #1160 + #1159 | `frontend/src/components/OntologyExplorer.tsx` | Reconcile retry and denied-evidence states after one change lands; revalidate authorization and stale-response tests. |
+| #1160 + #1157; #1160 + #1136 | `OntologyExplorer.tsx`, `OntologyExplorer.test.tsx` | Preserve the reader-scope reset and authentication recovery in parent-first successors. |
+| #1158 + #1136; #1157 + #1136 | `OntologyExplorer.test.tsx`; #1158 also conflicts in `docs/storybook-inventory.md` | Rebuild from live `main`, retain each regression and inventory entry. |
+| #1135 + #1137; #1135 + #1130 | `pyproject.toml`, `uv.lock`, dependency-floor tests; #1130 also conflicts in `frontend/src/App.tsx` | Resolve dependency and app changes on the current base, then rerun exact-head checks. |
+| #1131 + #1160, #1159, #1158, #1157, #1156, #1155, #1153, #1151, #1141, #1137, #1136, #1135, #1130 | `docs/product-requirements.md` and/or `docs/product-technical-gap-baseline.md` | Keep authority and dated evidence from both sides; stale-base heads require fresh checks after any successor is built. |
+
+Other non-baseline conflicts affect shared Storybook inventory and dated
+security evidence. These are merge-tree results against the current exact PR
+heads, not proof that all candidates should be combined.
 
 The largest evidence-backed Voice gap remains an additional Voice whose
 separate derivation Post is independently authorized but outside the bounded
