@@ -297,6 +297,13 @@ export function OntologyExplorer({
               }}
             />
           </div>
+          {visible.exact_value_rows.length > 0 ? (
+            <p>
+              {ontologyExplorerText(
+                "Scroll horizontally to see all columns, including evidence and recorded time.",
+              )}
+            </p>
+          ) : null}
           <OntologyExactValueTable
             payload={visible}
             selectedEdgeId={selectedEdgeId}

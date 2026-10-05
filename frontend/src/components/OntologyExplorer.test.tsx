@@ -374,6 +374,11 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Scroll horizontally to see all columns, including evidence and recorded time.",
+      ),
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
