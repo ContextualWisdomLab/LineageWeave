@@ -93,3 +93,59 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const AwardToRebid: Story = {};
+
+export const NoAssignments: Story = {
+  args: {
+    projection: {
+      ...projection,
+      distinct_observed_actor_count: 0,
+      events: projection.events.map((item) => ({
+        ...item,
+        observed_responsibilities: [],
+        responsibility_transition_code: null,
+      })),
+    },
+  },
+};
+
+export const OneAssignment: Story = {
+  args: {
+    projection: {
+      ...projection,
+      distinct_observed_actor_count: 1,
+      events: projection.events.map((item, index) => ({
+        ...item,
+        observed_responsibilities: index === 0 ? item.observed_responsibilities : [],
+        responsibility_transition_code: null,
+      })),
+    },
+  },
+};
+
+export const HiddenEvidenceRemoved: Story = {
+  args: {
+    projection: {
+      ...projection,
+      event_count: 3,
+      distinct_observed_actor_count: 2,
+      events: projection.events.slice(0, 3),
+      focus_event_id: "delivery",
+    },
+  },
+};
+
+export const Truncated: Story = {
+  args: { projection: { ...projection, truncated: true } },
+};
+
+export const Empty: Story = {
+  args: {
+    projection: {
+      ...projection,
+      event_count: 0,
+      distinct_observed_actor_count: 0,
+      events: [],
+      focus_event_id: "",
+    },
+  },
+};
