@@ -49,3 +49,5 @@ def test_explicit_synthetic_grant_remains_available(monkeypatch) -> None:
     assert api_tests._fetch_demo_analyst_token() == "synthetic-opaque-token"
     assert len(calls) == 1
     assert calls[0]["grant_type"] == "password"
+    assert calls[0]["client_id"] == "lineageweave-frontend"
+    assert calls[0]["username"] == "demo.analyst"
