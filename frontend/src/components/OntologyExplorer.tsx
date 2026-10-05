@@ -272,7 +272,7 @@ export function OntologyExplorer({
             : undefined}
         />
       ) : statusMessage(status, loaded, canLoadNextPage)}
-      {canLoadNextPage && status !== "loading" && status !== "error" ? (
+      {canLoadNextPage && status !== "loading" && status !== "error" && status !== "denied" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
             {ontologyExplorerText("Load next relation page")}
