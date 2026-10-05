@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BackendError,
   fetchOntologyNeighborhood,
@@ -10,6 +10,7 @@ import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
 import { occupationalConstructText } from "../occupationalConstructI18n";
 import { OccupationalConstructCatalogSearch } from "./OccupationalConstructCatalogSearch";
+import { StatusNotice } from "./StatusNotice";
 import {
   accumulateNeighborhoodPages,
   filterNeighborhood,
@@ -24,6 +25,7 @@ export type OntologyExplorerStatus =
   | "empty"
   | "truncated"
   | "denied"
+  | "authentication_required"
   | "stale"
   | "rejected"
   | "error";
@@ -103,6 +105,7 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const rejectedAccessToken = useRef<string | undefined>(undefined);
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -120,6 +123,7 @@ export function OntologyExplorer({
   }, [focusNodeType, focusNodeId]);
 
   useEffect(() => {
+    if (accessToken && accessToken === rejectedAccessToken.current) return;
     const useProvided = Boolean(provided) && !liveFocus;
     if (useProvided && provided) {
       setLoaded(provided);
@@ -150,6 +154,14 @@ export function OntologyExplorer({
       })
       .catch((error: unknown) => {
         if (cancelled) return;
+        if (error instanceof BackendError && error.status === 401) {
+          rejectedAccessToken.current = accessToken;
+          setLoaded(null);
+          setCursor(undefined);
+          clearSelection();
+          setStatus("authentication_required");
+          return;
+        }
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
           setStatus("denied");
@@ -162,11 +174,14 @@ export function OntologyExplorer({
     };
   }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
 
-  const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
+  const visible = useMemo(
+    () => filterNeighborhood(status === "authentication_required" ? null : loaded, query),
+    [loaded, query, status],
+  );
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
-  const canLoadNextPage = Boolean(loaded?.next_cursor && accessToken && !provided);
+  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !provided);
 
   function resetFocus() {
     setFocusType(focusNodeType);
@@ -243,8 +258,21 @@ export function OntologyExplorer({
           aria-label={t("Search within this neighborhood")}
         />
       </label>
-      {statusMessage(status, loaded, canLoadNextPage)}
-      {canLoadNextPage && status !== "loading" ? (
+      {status === "authentication_required" ? (
+        <StatusNotice
+          kind="unavailable"
+          message={ontologyExplorerText("Sign in again to view related information.")}
+        />
+      ) : status === "error" ? (
+        <StatusNotice
+          kind="retry"
+          message={t("Related information is unavailable. Open a visible post next.")}
+          onRetry={accessToken && (!provided || liveFocus)
+            ? () => setPageRetry((attempt) => attempt + 1)
+            : undefined}
+        />
+      ) : statusMessage(status, loaded, canLoadNextPage)}
+      {canLoadNextPage && status !== "loading" && status !== "error" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
             {ontologyExplorerText("Load next relation page")}
@@ -350,6 +378,7 @@ function statusMessage(
     empty: t("No related information is available. Open a visible post next."),
     truncated: t("Some related information is not shown. Open a source post to continue."),
     denied: t("Related information is unavailable for this record. Open a visible post next."),
+    authentication_required: ontologyExplorerText("Sign in again to view related information."),
     stale: t("This information reflects an earlier view. Compare it with the current record next."),
     rejected: t("This suggestion was not accepted. Open the evidence to review it."),
     error: t("Related information is unavailable. Open a visible post next."),

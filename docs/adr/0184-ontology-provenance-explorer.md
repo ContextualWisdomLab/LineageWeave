@@ -37,6 +37,12 @@
    when accumulated pages carry singleton or multi-value properties. Node
    metadata and separately governed Voice provenance keep their own contracts.
 9. Synthetic Storybook frames cover desktop, narrow exact-value-first, node drawer, edge drawer, legend, empty, truncated, denied, stale, and rejected states. No confidential Figma content enters the repository. Storybook inventory records the implementation surface; frame IDs are not copied from the confidential design file (ADR 0002).
+10. A failed authenticated read with HTTP 401 clears accumulated evidence,
+    selections, and continuation state. The shared unavailable notice asks the
+    reader to sign in again; it never retries with the rejected credential.
+    A refreshed credential starts a new request without the old cursor.
+    Resetting focus cannot restore supplied evidence with the rejected credential.
+    Transient failures retain the existing same-request retry contract.
 
 **Consequences:**
 
