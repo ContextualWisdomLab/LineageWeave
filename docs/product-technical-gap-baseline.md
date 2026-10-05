@@ -1,5 +1,68 @@
 # Product & Technical Gap Baseline
 
+## Exact-head loop continuation — 2026-10-06 01:49 KST
+
+This snapshot separates normative product authority, candidate implementation,
+runtime aggregates, and open delivery work. The current LineageWeave PRD keeps
+ADRs normative. ADR 0184 governs authorized ontology neighborhood visibility
+and denial behavior; ADRs 0246 and 0256 govern atomic Voice assignments and
+extensible evidence-bearing combinations. ADR 0251 is the separate I/O
+psychology semantic taxonomy. No reviewed change introduces a Voice code,
+fixed combination list, score, heuristic, or external inference engine.
+Without accepted and persisted provenance, inference remains unavailable.
+ADR 0246's twelve governed categories are product vocabulary: Freeman (1984),
+Mitchell et al. (1997), ISO 16355-4, and quality-engineering sources do not
+define that exact list. ADR 0256 uses ISO 26000, AA1000SES, and Mitchell et al.
+to ground context-sensitive stakeholder combinations, not a closed catalog.
+ADR 0251's APA literature anchors its separate psychology constructs; they do
+not establish a Voice classification or crosswalk.
+
+Protected `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The current
+repository inventory is 185 open PRs (168 drafts, 17 ready, 117 with a
+non-`main` base) and 42 open issues. The canonical `lineageweave` PostgreSQL
+service contains 43,189 Posts by aggregate count; no record content, names, or
+identifiers were read or emitted.
+
+| PR | Exact observed head | Base | State at snapshot |
+|---:|---|---|---|
+| #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | `main` | open, unstable, no approval |
+| #1161 | `abcb2371535c4632e897ecccbd7e5b77eb8ddf47` | `main` | open, unstable, no approval |
+| #1159 | `304094f3b6b93e934eca92e0d7cd1d372e195f8c` | `main` | open, unstable, no approval |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | `main` | open, dirty, no approval |
+| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | `main` | open, dirty, no approval |
+| #1156 | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | `main` | open, dirty, no approval |
+
+At #1162 head `39db0ce7`, the CodeRabbit findings against evidence denial and
+CSV row immutability were checked in the current source. The denied-state
+pagination action is hidden, and the test now asserts immutability on the row
+actually passed to the exporter. The focused ontology and export tests pass
+(62 tests). This is local candidate evidence; its current hosted checks fail
+and there is no independent approval.
+
+At #1159 head `772a05e4`, the current review's continuation-page denial test
+gap was valid: the implementation hid evidence on 403/404, but tests covered
+only initial denial and transient continuation failure. Commit `304094f3`
+adds synthetic 403 and 404 continuation cases verifying the cached graph,
+details, pagination, and exports are hidden. The focused component suite passes
+26 tests and frontend lint passes locally. The exact-head hosted read reports
+four failed checks and CodeRabbit pending; no approval exists.
+
+For #1159 the repository GraphQL read shows one active repository rule,
+non-fast-forward protection, and no branch-protection review rules. The
+organization-ruleset REST read is rate-limited (403), so inherited approval and
+workflow enforcement remain unverified. Auto-merge is not enabled without a
+verifiable independent-approval condition. No self-approval, bypass, merge, or
+force push occurred. This snapshot commit itself advances #1161 from the head
+recorded above; its predecessor checks and reviews do not transfer.
+
+The largest remaining acceptance gap is authenticated API and rendered
+customer-flow proof that denied continuation removes cached Voice evidence
+while authorized exact-value and CSV/JSON-LD views keep the carrying Post
+separate from derivation evidence. Existing synthetic desktop/mobile rendering
+is candidate evidence only. No authenticated customer acceptance or
+population inference is claimed. Counts are dated operational aggregates, not
+population estimates or release authority.
+
 ### Exact-head continuation — 2026-10-05 21:45 KST
 
 PR #1159 is open at unchanged head
