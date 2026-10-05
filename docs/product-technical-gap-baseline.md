@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+### Exact-head continuation — 2026-10-05 21:45 KST
+
+PR #1159 is open at unchanged head
+`b28ade6690cf1e1191d310a4ef2cf3e024513187`, still based on the earlier
+`a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`; protected `main` is
+`8be55f0306015a1a8deda02fa9131e165254d239`. The parent #1160 is merged with
+that exact merge SHA. #1159 has no formal review or inline review comment, no
+independent approval, and no auto-merge request. GitHub marks it CONFLICTING
+against current `main`. Its current-head frontend regression file passes
+**21 tests** locally. The last current-head hosted run had four failures; the
+full-suite and frontend jobs ended in three seconds with zero steps, so no
+application test execution is evidenced. A read-only merge attempt identified
+collisions in shared baseline/story inventory plus files not changed by #1159
+(App and Similar VOC panel code/tests, dependency manifest/lock and dependency
+floor test). No conflict resolution was committed or pushed for this PR.
+
+ADR 0184's denial behavior remains a candidate implementation in #1159; the
+UI/runtime acceptance and protected delivery are **unverified** until the
+conflict is safely integrated and fresh exact-head checks and approval exist.
+This baseline commit itself advances #1161 and invalidates its earlier Checks.
+
+
+
 ### Exact-head continuation — 2026-10-05 21:35 KST
 
 This observation follows the ordinary merges of current `main` into PR #1153
