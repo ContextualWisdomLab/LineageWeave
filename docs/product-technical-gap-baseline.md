@@ -1,5 +1,42 @@
 # Product & Technical Gap Baseline
 
+### Exact-head continuation — 2026-10-05 21:24 KST
+
+This overlay is a live-state snapshot, separate from the dated 2026-10-04
+candidate evidence below. Canonical remote `ContextualWisdomLab/LineageWeave`
+reports `main` at `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`.
+
+- **PR #1153** is open, non-draft, base `main`, at exact head
+  `c06920c41a90048ae16eccf79e5cc9662d651afa`. The current-head review note
+  requesting password-grant assertions for `client_id` and `username` was
+  verified against the test and fixed in this commit. Focused local validation
+  passed: `uv run pytest tests/test_api_acceptance_authentication.py -q`
+  (**6 passed**). GitHub reports both Analyze jobs failed before exposing any
+  steps; CodeRabbit was still pending at this observation. No independent
+  approval is recorded, no auto-merge request exists, and merge state is DIRTY.
+  Older full-suite and integration evidence belongs to earlier heads and does
+  not transfer to this one.
+- **PR #1162** remains Draft at exact head
+  `ca7fe1c55d8a92f2c3d4dbf58455b3a6019bb046`. Its current checks show Analyze
+  failures, frontend and full-suite jobs skipped, and a CodeRabbit result that
+  explicitly skipped the draft. It has no review or auto-merge request.
+- **PR #1161**, this baseline candidate, is open, non-draft at exact head
+  `8e890e5c23f8911fdb57a17f0f62637035669769`. Its Analyze jobs fail before
+  steps; CodeRabbit passed. There is no independent approval and no auto-merge
+  request. This overlay will create a new head, so all prior Checks are stale
+  for its resulting commit.
+- The live repository ruleset read found active rule **21065108**, which blocks
+  force pushes and has no bypass actor. The classic branch-protection endpoint
+  returned 404. No independent-approval or required-check gate was established
+  by those policy reads; consequently, passing local tests or enabling
+  auto-merge alone would not prove those user-required protections.
+
+The user's requested authenticated PostgreSQL API and rendered UI acceptance
+for Voice exports is still **unverified**. Existing synthetic test and browser
+observations are candidate evidence only. No acceptance claim is upgraded by
+this overlay, and no real records or credentials are recorded here.
+
+
 ## Exact-head continuation — 2026-10-05 20:08 KST
 
 This observation supersedes the 2026-10-04 inventory below only for the live
