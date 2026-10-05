@@ -73,6 +73,87 @@ all unresolved-thread and stack prerequisites still require live verification
 before a merge decision. Check runs alone do not establish required-status
 coverage or independent approval.
 
+### Exact-head and owner-boundary refresh — 2026-10-05
+
+This snapshot was captured from GitHub and Git transport against protected
+`main` `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. GitHub reports **186 open
+PRs** (**169 drafts**), **69** PRs targeting `main`, and **17 non-draft `main`
+PRs; `gh issue list` reports **42 open issues**. These are workflow counts,
+not customer usage or population evidence. The table excludes this baseline
+PR #1161 because the update changes its head; its prior head
+`4677412dfffdf234a6253a0a1ceb99e13f290f66` had four failed checks, and the new
+head must receive its own Checks and review evidence.
+
+All other 16 non-draft `main` heads were re-fetched and checked for terminal
+check runs and reviews attached to that exact SHA. No exact-head APPROVE was
+found. Candidate PR checks are not inherited from their parent or an older
+commit. A failed run without accessible job logs is recorded as a failure;
+its cause remains unknown until the owning workflow provides evidence.
+
+| PR | Exact head | Exact-head check runs | Exact-head APPROVE |
+| ---: | --- | --- | --- |
+| #1160 | `a826d42d1d429f54c507dc050aa9c4af40669179` | 4 failed | None |
+| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` | 4 failed | None |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | 4 failed | None |
+| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | 4 failed | None |
+| #1156 | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | 2 failed | None |
+| #1155 | `1a83f31daa881e58ddde181768d35acb77aaa613` | 4 failed | None |
+| #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` | 4 failed | None |
+| #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | 4 failed | None |
+| #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | 4 failed | None |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | 7 failed, 19 passed, 4 skipped | None |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | 5 failed, 1 cancelled, 16 passed, 8 skipped | None |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | 7 failed, 18 passed, 5 skipped | None |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | 3 failed, 1 cancelled, 17 passed, 9 skipped | None |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 19 passed, 11 skipped | None |
+| #1130 | `b25f10eb1021083317a8ecefd479efc29d6c0297` | 4 failed | None |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 3 failed, 19 passed, 8 skipped | None |
+
+The repository exposes one active repository ruleset, `LineageWeave: no force
+pushes` (`21065108`). Classic branch protection returns 404. The organization
+ruleset read for `18156473` returns HTTP 403 because the current GitHub plan
+does not expose that endpoint. Therefore the current approval-count and
+required-workflow rules could not be independently re-read here, and no
+candidate is described as merge-ready. No candidate had an auto-merge request
+at this snapshot. Do not bypass or infer a missing protection rule.
+
+Cross-PR source comparison found no overlapping migration, API-route, or
+release-version files among the 16 candidates. Known overlapping files and
+merge-tree results are:
+
+| Candidates | Shared changed files | Merge-tree result |
+| --- | --- | --- |
+| #1153 + #1157 | ADR 0184, baseline | Clean outside the baseline; baseline text conflicts |
+| #1153 + #1160 | ADR 0184, baseline | Clean outside the baseline; baseline text conflicts |
+| #1153 + #1155 | ADR 0256, baseline | Clean |
+| #1157 + #1160 | ADR 0184, baseline, `OntologyExplorer.tsx`, its tests | UI component/tests and baseline conflict; parent order and fresh exact-head validation required |
+| #1133 + #1137 | baseline, `pyproject.toml`, `uv.lock` | Clean; dependency changes compose |
+| #1135 + #1137 | baseline, `pyproject.toml`, `uv.lock` | Conflicts in dependency contract/lock and baseline; reconcile on current main before merge |
+| #1131 + #1135 | baseline | Baseline text conflict; preserve both audits in any successor |
+
+The largest evidence-backed Voice gap remains an additional Voice whose
+separate derivation Post is independently authorized but outside the bounded
+graph traversal. Candidate #1153 contains the narrow API/export projection
+repair and regression coverage; its current exact-head Python regression
+passed (**1 passed**) and the ontology explorer frontend tests passed (**19
+passed**). The existing desktop and narrow Storybook renders were visually
+checked at **1440×900** and **390×844**; carrying Post and derivation evidence
+remain separate actions, with the narrow exact-value table horizontally
+scrollable. These are candidate and synthetic/rendered-fixture results only.
+PR #1153 also contains synthetic authenticated PostgreSQL/API test cases for
+authorized evidence, hidden evidence denial, and hidden-evidence omission.
+They were not executed in this audit: the canonical `lineageweave` Compose
+project reported only `backend-ask-worker` in a restarting state. No
+authenticated PostgreSQL-to-API run or authenticated application UI result
+was established, so Voice acceptance remains **incomplete**.
+Keep the twelve atomic classifications extensible; do not enumerate
+combinations or narrow their audience. Preserve PROV-O derivation, truth
+status, cutoff, and the distinction between the carrying Post and evidence.
+
+No ADR, API, schema, migration ordinal, or release number was added by this
+snapshot. RankWeave, ThreadWeave, DiskSage (`ContextualWisdomLab/disksage`),
+and TEPP were not changed, so no ecosystem PRD was imported into this change.
+
 ### Live governance and owner boundaries
 
 - `rules/branches/main` returned only repository no-force-push ruleset
