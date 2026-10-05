@@ -528,6 +528,13 @@ export const Denied: Story = {
   },
 };
 
+export const SignInRequired: Story = {
+  args: {
+    neighborhood: null,
+    status: "authentication_required",
+  },
+};
+
 export const StaleCutoff: Story = {
   args: {
     knowledgeCutoff: "2026-01-15T12:00:00Z",
