@@ -3,7 +3,7 @@
 ## Exact-head Voice delivery and acceptance — 2026-10-06
 
 Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239` (the confirmed
-merge commit for #1160). The current open inventory is **185 PRs**, **168
+merge commit for #1160). The current open inventory is **187 PRs**, **168
 drafts**, **117 non-main bases**, and **42 issues**. These are repository
 workflow counts only. Canonical remote metadata confirms
 `ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
@@ -25,7 +25,17 @@ rendering, and authenticated API evidence before acceptance is complete.
 |---:|---|---|
 | #1153 | `727a0366d250770e532189702a6c701886a9f712` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. The only formal review shown by the current PR view is a comment on predecessor head `5b1645607e1e8e7986f735fa8bf37dd3bb77ad3e`. |
 | #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
+| #1164 | `0289942d194c45d6e1012c082dfa401d3a2ba59e` | Open on `main`; four test/code-analysis checks are queued, two bot statuses succeed, no current-head approval or auto-merge request. This one-line test synchronization repair is isolated from product code. |
 | #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Open on `main`; seven reported check contexts fail and the merge state is `DIRTY`. Older comments are not approval evidence for this head. |
+
+On #1158's exact code head, the request to remove public PR numbers and
+commit SHAs conflicts with the repository's non-identifying-artifact rule:
+these are public delivery references, not source-record identifiers. The
+other two findings are already addressed in that head: Storybook scopes a
+successful continuation response mock to this component, and a remaining
+cursor without a current sign-in shows the search-unavailable next step rather
+than a final no-match claim. A frontend regression test covers the latter.
 
 GraphQL confirms the only active default-branch ruleset is
 `LineageWeave: no force pushes` with `NON_FAST_FORWARD`; the classic branch
@@ -47,14 +57,17 @@ multi-Voice unions. #1159 separately repairs denied-evidence recovery. Review
 of their exact current code found no additional valid defect to patch, so this
 refresh does not duplicate their implementation or invent a policy.
 
-An exact-branch merge-tree comparison of #1153 and #1159 finds one textual
-conflict, this supporting baseline. ADR 0184, ADR 0256, API/backend files,
-Storybook inventory, and frontend implementation/test files auto-merge; this
-is only a textual integration result, not semantic acceptance. The #1159
-delta also merges cleanly with current `main`. The two candidates introduce
-no migration, API schema, dependency, or release-number delta. Resolve the
-baseline evidence together and re-run hosted checks on any successor head;
-do not transfer prior checks or approvals.
+Exact-branch merge-tree comparisons show #1153 and #1159 conflict only in this
+supporting baseline. #1158 overlaps each of them in this baseline and
+`docs/storybook-inventory.md`; #1164 also conflicts with #1158 only in those
+two supporting documents, and merges cleanly with #1153. `docs/product-
+requirements.md`, ADR 0184, ADR 0256, and the affected frontend/backend
+implementation and test files auto-merge. These are textual results only, not
+semantic acceptance. The #1159 delta merges cleanly with current `main`. The
+four candidates introduce no migration, API shape, dependency, or
+release-number delta. Reconcile supporting-document conflicts before
+integration and re-run hosted checks on any successor head; do not transfer
+prior checks or approvals.
 
 On an isolated worktree at #1153's exact head, local regressions passed:
 **64** ontology/ingestion/Voice tests, **31** paged JSON-LD/CSV layout tests,
@@ -71,6 +84,20 @@ authenticated API run was not established. These limits mean authenticated
 PostgreSQL/API and rendered customer acceptance remain **unavailable**,
 regardless of passing unit, synthetic database, or Storybook build evidence.
 No k6 saturation evidence was produced and no performance change is justified.
+
+PR #1158's exact-head review checks also passed locally: nine server-side
+occupational-search tests, frontend lint, production build, and Storybook
+build. The full frontend run had **565 passes and one failure** in the
+comparison-strip Post popup assertion. The same assertion failed on `main`
+because the test queried the asynchronously rendered Event Lineage node
+synchronously after the Post body appeared. PR #1164 now waits for that
+accessible node; all **102** `App.test.tsx` tests and frontend lint pass on its
+exact local head. This is test synchronization, not a product-code change. The
+`Empty With Continuation` Storybook state was rendered and inspected at
+**1440×900** and **390×844**; the query, next-page guidance, and button remain
+visible without viewport overflow. The candidate's review comments are
+already addressed at its current code head; no source change is needed for
+that PR.
 
 No production record identifiers, titles, organization names, or credentials
 were used in this baseline. The temporary test database was synthetic and
