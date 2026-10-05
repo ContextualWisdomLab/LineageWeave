@@ -174,17 +174,27 @@ Other non-baseline conflicts affect shared Storybook inventory and dated
 security evidence. These are merge-tree results against the current exact PR
 heads, not proof that all candidates should be combined.
 
-The largest evidence-backed Voice gap remains an additional Voice whose
-separate derivation Post is independently authorized but outside the bounded
-graph traversal. Candidate #1153 contains the narrow API/export projection
-repair and regression coverage; its current exact-head Python regression
-passed (**1 passed**) and the ontology explorer frontend tests passed (**19
-passed**). The existing desktop and narrow Storybook renders were visually
-checked at **1440×900** and **390×844**; carrying Post and derivation evidence
-remain separate actions, with the narrow exact-value table horizontally
-scrollable. These are candidate and synthetic/rendered-fixture results only.
-PR #1153 also contains synthetic authenticated PostgreSQL/API test cases for
-authorized evidence, hidden evidence denial, and hidden-evidence omission.
+The highest-severity buyer-visible gap in this audit is cached ontology
+evidence remaining visible or exportable after an access-denied response.
+Candidate #1159 masks the supplied and loaded neighborhood while access is
+denied, disables CSV/JSON-LD export, and removes selected-node/edge details.
+On exact head `b28ade6690cf1e1191d310a4ef2cf3e024513187`, the focused explorer
+suite passed (**21 tests**) and Storybook built. Its denied-cached-evidence
+scene was rendered and inspected at **1440×900** and **390×844**: the cached
+table stays hidden, both exports stay disabled, and the narrow page has no
+horizontal overflow. These are candidate and synthetic/rendered-fixture
+results; #1159 still has four failed hosted checks and no exact-head approval.
+
+A related Voice-completeness gap is an additional Voice whose separate
+derivation Post is independently authorized but outside the bounded graph
+traversal. Candidate #1153 contains the narrow API/export projection repair
+and regression coverage; its current exact-head Python regression passed
+(**1 passed**) and ontology explorer frontend tests passed (**19 passed**).
+The Voice evidence scene was rendered and inspected at **1440×900** and
+**390×844**; the carrying Post and derivation evidence remain separate
+actions, and the narrow exact-value region scrolls horizontally without page
+overflow. PR #1153 also contains synthetic authenticated PostgreSQL/API tests
+for authorized evidence, hidden evidence denial, and hidden-evidence omission.
 They were not executed in this audit: the canonical `lineageweave` Compose
 project reported only `backend-ask-worker` in a restarting state. No
 authenticated PostgreSQL-to-API run or authenticated application UI result
