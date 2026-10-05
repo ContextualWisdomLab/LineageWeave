@@ -27,6 +27,28 @@ const failure = (status: number) => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe("OntologyExplorer request recovery", () => {
+  it.each([403, 404])("reauthorizes supplied evidence after a denied refocus (%s)", async (status) => {
+    let resolveReset!: (response: ReturnType<typeof success>) => void;
+    const fetchMock = vi.fn().mockResolvedValueOnce(failure(status))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveReset = resolve; }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<OntologyExplorer accessToken="synthetic-token" focusNodeType="node_post"
+      focusNodeId={postId} neighborhood={evidence} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo recovery post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
+    await screen.findByText("Related information is unavailable for this record. Open a visible post next.");
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls[1]).toEqual(fetchMock.mock.calls[0]);
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo recovery post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    resolveReset(success(evidence));
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo recovery post" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeEnabled();
+  });
+
   it("retries an initial failure with the same focus and cutoff and waits for evidence", async () => {
     let resolveRetry!: (response: ReturnType<typeof success>) => void;
     const fetchMock = vi.fn().mockResolvedValueOnce(failure(503))

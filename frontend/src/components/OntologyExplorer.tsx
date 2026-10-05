@@ -106,6 +106,8 @@ export function OntologyExplorer({
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
   const rejectedAccessToken = useRef<string | undefined>(undefined);
+  const deniedProvided = useRef<OntologyNeighborhoodPayload | null | undefined>(undefined);
+  const useProvided = Boolean(provided) && !liveFocus && provided !== deniedProvided.current;
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -124,7 +126,6 @@ export function OntologyExplorer({
 
   useEffect(() => {
     if (accessToken && accessToken === rejectedAccessToken.current) return;
-    const useProvided = Boolean(provided) && !liveFocus;
     if (useProvided && provided) {
       setLoaded(provided);
       setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));
@@ -164,6 +165,9 @@ export function OntologyExplorer({
         }
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+          deniedProvided.current = provided;
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -172,7 +176,7 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus, useProvided]);
 
   const visible = useMemo(
     () => status === "denied" || providedStatus === "denied" || status === "authentication_required"
@@ -182,7 +186,7 @@ export function OntologyExplorer({
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
-  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !provided);
+  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !useProvided);
 
   function resetFocus() {
     setFocusType(focusNodeType);
@@ -268,7 +272,7 @@ export function OntologyExplorer({
         <StatusNotice
           kind="retry"
           message={t("Related information is unavailable. Open a visible post next.")}
-          onRetry={accessToken && (!provided || liveFocus)
+          onRetry={accessToken && !useProvided
             ? () => setPageRetry((attempt) => attempt + 1)
             : undefined}
         />

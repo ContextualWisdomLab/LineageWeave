@@ -38,6 +38,12 @@
     A refreshed credential starts a new request without the old cursor.
     Resetting focus cannot restore supplied evidence with the rejected credential.
     Transient failures retain the existing same-request retry contract.
+    A denied live refocus (403/404) clears retained evidence and invalidates the
+    supplied snapshot for reuse. Reset focus must reauthorize the original
+    focus before displaying or exporting it; the reset itself cannot restore
+    cached evidence. A replacement supplied snapshot retains the host's
+    authorization contract. Denied requests offer no retry or continuation;
+    transient failures on the reauthorized path retain same-request retry.
 
 **Consequences:**
 

@@ -353,6 +353,8 @@ unbound, and prove the normalized snapshot store is immutable.
 - Let users retry a failed first or continuation request with the same focus,
   cutoff, and opaque cursor. Keep retry unavailable for denied evidence and
   prevent duplicate retry while the request is processing.
+- After a denied live refocus, resetting focus reauthorizes the original
+  record before restoring supplied evidence or enabling its exports.
 
 Acceptance: tamper, scope drift, snapshot drift, unsupported terms, and
 dangling endpoints fail closed; fixed input produces stable page boundaries.
