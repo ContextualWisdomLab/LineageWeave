@@ -538,6 +538,34 @@ describe("ontologyLayout", () => {
     expect(formula).toContain("'=1+1");
   });
 
+  it.each(["\r", "\n", "\r\n"])("keeps embedded %j in the original CSV field", (newline) => {
+    const data = payload();
+    const sourceLabel = `Demo${newline}source`;
+    const targetLabel = `Evidence${newline}record`;
+    const csv = neighborhoodCsv({
+      ...data,
+      exact_value_rows: [{
+        ...data.exact_value_rows[0],
+        source_label: sourceLabel,
+        target_label: targetLabel,
+      }],
+    });
+    expect(csv).toContain(`,"${sourceLabel}",mentions,"${targetLabel}",`);
+    expect(data.exact_value_rows[0].source_label).toBe("Demo public post");
+  });
+
+  it.each(["\t=1+1", "\r=1+1", "\n=1+1", "＝1+1", "＋1+1", "－1+1", "＠SUM(1)"])(
+    "exports the spreadsheet-leading value %j as text",
+    (label) => {
+      const data = payload();
+      const row = { ...data.exact_value_rows[0], source_label: label };
+      const csv = neighborhoodCsv({ ...data, exact_value_rows: [row] });
+      const escaped = /[\r\n]/.test(label) ? `"'${label}"` : `'${label}`;
+      expect(csv).toContain(`,${escaped},mentions,`);
+      expect(row.source_label).toBe(label);
+    },
+  );
+
   it("uses code-unit ordering instead of the runtime locale", () => {
     const unordered = payload();
     const laidOut = layoutOntologyNeighborhood({
