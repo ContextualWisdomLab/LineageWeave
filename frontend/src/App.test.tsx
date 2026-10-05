@@ -3740,6 +3740,7 @@ describe("App, authenticated", () => {
       ).toHaveLength(1);
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
+      await screen.findByLabelText("Open post: Public post");
       const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
       expect(currentNode).toHaveAttribute("aria-current", "true");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
