@@ -27,6 +27,7 @@ rendering, and authenticated API evidence before acceptance is complete.
 | #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
 | #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
 | #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Listed review objects are comments on predecessor heads; GraphQL reports no unresolved review threads. |
+| #1157 | `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` | Open on `main`; the old branch was synchronized with current `main` by merge commit `c4bda8c29a41109088d1f9718d588160be3a1801`. This later receipt changes supporting documentation only. Four of six reported check contexts fail, CodeRabbit is pending, Devin Review is successful, no formal review object or unresolved thread, no auto-merge request; merge state `UNSTABLE`. |
 | #1164 | `0289942d194c45d6e1012c082dfa401d3a2ba59e` | Open on `main`; four test/code-analysis checks are queued, two bot statuses succeed, no current-head approval or auto-merge request. This one-line test synchronization repair is isolated from product code. |
 | #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Open on `main`; seven reported check contexts fail and the merge state is `DIRTY`. Older comments are not approval evidence for this head. |
 
@@ -47,6 +48,21 @@ steps, so those contexts contain no executed test result. Locally, three
 changed explorer/layout suites pass **68 tests**, along with frontend lint,
 production build, and Storybook build. No exported label or JSON-LD value is
 rewritten in memory.
+
+PR #1157's stale head `2905bae54adb290c104c23210e3c1e098e401e31` was
+non-force synchronized with current main `8be55f0306015a1a8deda02fa9131e165254d239`
+at code commit `c4bda8c29a41109088d1f9718d588160be3a1801`; current remote PR
+head `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` is a later supporting-document
+receipt. The exact code integration's scope-fencing and 401 recovery regressions
+pass together: **75** backend and **74** frontend tests, plus frontend lint,
+production build, and Storybook build. REST run-detail requests are rate-limited,
+so the four hosted failure contexts are not assigned a code cause here.
+Current-head formal approval is absent and auto-merge remains unarmed.
+
+The denied-scope story was rendered in Safari at **1440×900** and **390×844**.
+Both views show the unavailable next action, no graph evidence, and disabled
+CSV/JSON-LD exports. These are synthetic Storybook screenshots, not
+authenticated product acceptance.
 
 GraphQL confirms the only active default-branch ruleset is
 `LineageWeave: no force pushes` with `NON_FAST_FORWARD`; the classic branch
@@ -72,15 +88,17 @@ Exact-branch merge-tree comparisons show #1153 and #1159 conflict only in this
 supporting baseline. #1158 overlaps them in this baseline and
 `docs/storybook-inventory.md`; #1162 also overlaps #1153 in
 `OntologyExplorer.stories.tsx`, and #1159 in `OntologyExplorerRetry.stories.tsx`.
-The remaining #1162 conflicts are this baseline and, with #1159/#1158,
+#1157 conflicts with #1153, #1159, and #1162 in `OntologyExplorer.tsx`, its
+tests, and this baseline; it conflicts with #1158 only in the baseline. The
+remaining #1162 conflicts are this baseline and, with #1159/#1158,
 `docs/storybook-inventory.md`. #1164 merges cleanly with #1153 and #1162.
 `docs/product-requirements.md`, ADR 0184, ADR 0256, and other affected
 frontend/backend implementation and test files auto-merge. These are textual
 results only, not semantic acceptance. The #1159 delta merges cleanly with
-current `main`. These five candidates introduce no migration, API shape,
-dependency, or release-number delta. Reconcile supporting-document and
-Storybook conflicts before integration and re-run hosted checks on any
-successor head; do not transfer prior checks or approvals.
+current `main`. These six candidates introduce no migration, API shape,
+dependency, or release-number delta. Reconcile supporting-document, Storybook,
+and component-test conflicts before integration and re-run hosted checks on
+any successor head; do not transfer prior checks or approvals.
 
 On an isolated worktree at #1153's exact head, local regressions passed:
 **64** ontology/ingestion/Voice tests, **31** paged JSON-LD/CSV layout tests,
