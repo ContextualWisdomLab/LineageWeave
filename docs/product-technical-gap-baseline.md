@@ -40,6 +40,43 @@ The largest unresolved acceptance gap remains additional-Voice provenance in the
 - Related ontology, SHACL, Voice-ingestion, backend-loader, and public-docstring checks pass: **83 tests**, with `DeprecationWarning` treated as an error. This does not establish live PostgreSQL/API acceptance.
 - `CsvSourceLabels` rendered at **1440×900** and **390×844**. Both screenshots were visually inspected. Browser downloads parse as six CSV rows with sixteen fields, retaining embedded carriage returns and distinct carrying/evidence identities. Both viewports have no document overflow; mobile retains the existing table scroll. Screenshots/downloads use synthetic records only and remain outside git.
 
+### Subsequent owner review and cross-PR contract refresh
+
+PR #1130 advances from `b25f10eb1021083317a8ecefd479efc29d6c0297` to
+`45487181f0750fc3b1da8dfa8670debb8faca055`. Its two Voice-history wording
+fixes reuse the exact reviewed owner delta from #1155
+`1a83f31daa881e58ddde181768d35acb77aaa613`; no second policy is invented.
+The empty duplicated receipt heading is removed only after verifying that its
+actual later section remains. Documentation/Voice-ingestion validation passes
+(**10 tests**, deprecations as errors), and all three valid review threads are
+resolved after verifying the published new head. The older approval does not
+transfer. Its new-head rollup has four terminal failures, no independent
+current-head approval, and no merge SHA; the table above remains the dated
+pre-repair observation.
+
+PR #1162's first published integration head
+`a01200ed196ac3e99aabefc1b413251f48936ffb` is ready. Both exact-head CodeQL
+annotations still report account billing lock; draft-era full/frontend runs
+are skipped in that read. Its existing workflow already triggers
+`ready_for_review`; no missing trigger or runner workaround is inferred.
+The only review is COMMENTED on predecessor
+`ca7fe1c55d8a92f2c3d4dbf58455b3a6019bb046`, not a qualifying approval.
+This receipt-only update again requires fresh hosted Checks.
+
+All **185 inventoried exact-head deltas** were compared against Git-transport
+verified declared base heads. Added/modified ADR and migration paths yield
+**21 ordinal collision candidate groups**; including removed paths yields 26.
+Inherited stack differences and alternate filenames mean these counts are
+screening observations, not 21 independently confirmed defects. ADR 0272,
+0245, 0300/0301, 0355 and migration 0247/0248/0249 still require owner
+reconciliation before integration. No existing migration or feature is deleted.
+The heads contain **68 distinct package-version candidates**; four have
+package/frontend mismatch (#702, #679, #672, #667). #843 and #844 both name
+2.62.0 and require serialized release reconciliation. This slice retains
+2.28.0 and allocates no competing API, schema, ADR, migration, or release.
+These comparisons do not prove compatibility or permit retargeting a child
+before its parent has protected delivery.
+
 ### Current authority and runtime limitations
 
 - Current-main LineageWeave PRD and ADR 0246/0251/0256/0184 were read. Canonical remote metadata reconfirms `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `ContextualWisdomLab/disksage`. RankWeave architecture, ThreadWeave PRD, TEPP approved PRD, and disksage README were read at their current remote heads. The CSV change adds no cross-owner inference or transport contract.
