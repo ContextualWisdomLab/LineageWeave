@@ -32,6 +32,15 @@ identifiers were read or emitted.
 | #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | `main` | open, dirty, no approval |
 | #1156 | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | `main` | open, dirty, no approval |
 
+Pairwise `git merge-tree` checks show integration conflicts between #1162 and
+#1159 in the shared baseline, between #1162/#1157 and #1159/#1157 in the
+baseline plus `OntologyExplorer` implementation/tests, and between #1159/#1158
+in the baseline and Storybook inventory. These are overlapping documentation
+and authorization-flow changes; parents must be integrated before children
+are retargeted and revalidated. The inspected diffs do not change API/schema,
+migration, dependency, or release-number contracts. The overlapping ADR 0184
+denial and Voice contracts still need combined behavior review.
+
 At #1162 head `39db0ce7`, the CodeRabbit findings against evidence denial and
 CSV row immutability were checked in the current source. The denied-state
 pagination action is hidden, and the test now asserts immutability on the row
