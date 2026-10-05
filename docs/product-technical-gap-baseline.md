@@ -1,5 +1,75 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-05 18:41 KST
+
+This observation supersedes the 2026-10-04 inventory below only for the live
+heads and counts named here. The canonical remote is
+`ContextualWisdomLab/LineageWeave`, default branch `main` at
+`a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. Paginated GitHub reads returned
+**186 open PRs** and **42 open issues**, including this baseline PR #1161. These
+are repository workflow counts. GitHub identifies `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/disksage`, and
+`ContextualWisdomLab/TEPP` as the canonical remote spellings checked for this
+loop; the current slice adds no change to their contracts.
+
+The live #1161 candidate was head
+`e080715cbc197f0d9e7e174ac7787447b7175294` on base
+`a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. It has no formal approval or
+auto-merge request. Its Full test suite, Frontend lint/test/build, Python
+analysis, and Actions analysis checks failed before any runner started. Each
+failure annotation states that the account is locked because of a billing
+issue; the corresponding check runs have `runner_id: 0` and no steps. This is
+hosted execution unavailability, not a code-test result. No local workaround,
+synthetic status, or consumer-side workflow change is recorded.
+
+| PR | Exact head / base | Review and hosted state at observation |
+| ---: | --- | --- |
+| #1162 | `ca7fe1c55d8a92f2c3d4dbf58455b3a6019bb046` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Draft; no formal approval; CodeRabbit succeeded; hosted analysis checks failed. |
+| #1161 | `e080715cbc197f0d9e7e174ac7787447b7175294` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; four hosted checks failed before runner startup due to the account billing lock; no auto-merge. |
+| #1160 | `a826d42d1d429f54c507dc050aa9c4af40669179` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | The current code handles 401 with sign-in guidance and suppresses retry with the rejected token; the exact-head CodeRabbit note is addressed. No formal approval; hosted checks failed. |
+| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No review findings or formal approval; four hosted checks failed before runner startup due to the account billing lock; no auto-merge. |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Prior-head review comments do not attach approval to this head; hosted checks failed. |
+| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; hosted checks failed. |
+| #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | The exact-value `after:` wording comment is addressed on this head; no formal approval; hosted checks failed. |
+
+For #1159, the existing candidate is the minimum implementation of the
+highest-severity buyer-visible gap: after access is denied, cached nodes,
+details, and exports disappear together. Its exact-head synthetic regression
+suite passed **29 tests** across the neighborhood and stabilization tests, and
+Storybook built successfully. The `Denied Cached Evidence` story was rendered
+and inspected at **1440×900** and **390×844**; neither viewport overflowed,
+the unavailable next step remained visible, and CSV/JSON-LD exports stayed
+disabled. This is candidate UI evidence only. Compose inspection found the
+PostgreSQL and backend services exited and a worker restarting; authenticated
+PostgreSQL/API behavior, authenticated UI evidence, and authenticated k6
+concurrency/latency/error/throughput/saturation results remain **unverified**.
+The twelve atomic Voice types and extensible evidence-bearing combinations
+remain governed by ADRs 0246/0251/0256; none is narrowed or marked complete by
+this candidate.
+
+The only repository ruleset visible to this credential is
+`21065108` (active non-fast-forward protection). Classic branch protection
+returns 404; the organization ruleset endpoint for `18156473` returns HTTP
+403. Required review/check policy therefore cannot be verified from the live
+policy surface in this run. No candidate has a qualifying exact-head approval.
+Auto-merge stays off because the accessible policy does not prove an approval
+gate and could allow an immediate merge; no self-approval or bypass was used.
+
+The #1159 UI repair and #1160 retry repair both touch `OntologyExplorer.tsx`;
+#1159 also conflicts with #1157 and the shared baseline. Preserve the
+access-denial fix before restacking the retry and scope-reset candidates, then
+collect fresh checks and reviews on each new head. PR #1135 remains based on
+`83eba56149eb802cd63642c507c324c9976ec78e` while `main` is `a67c5b0e...`; a
+read-only merge-tree reports conflicts in the baseline, application screen,
+dependency files, Storybook inventory, and focused tests. Its dependency-floor
+delta overlaps #1137, so no force-push, blind merge, or stale-head revalidation
+was attempted.
+
+This update advances #1161 and invalidates that PR's prior exact-head checks.
+It adds no ADR, API, schema, migration ordinal, release number, model policy,
+or numeric heuristic. ADRs remain normative; candidate PRs, local tests,
+Storybook renders, and workflow inventory are not protected-main delivery.
+
 ## Exact-head delivery and product-gap audit — 2026-10-04
 
 Git fetch identifies `origin/main` as `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. This is a repository source-state observation; no PR was merged during this audit. The current PRD is `docs/product-requirements.md`; ADRs remain normative. Current Voice authority is ADR 0246 (twelve atomic Voices), ADR 0251 (a separate I/O-psychology taxonomy), and ADR 0256 (open-ended evidence-bearing combinations), with PROV-O derivation and authorization/cutoff governed by their referenced ADR contracts.
