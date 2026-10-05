@@ -245,6 +245,34 @@ describe("OntologyExplorer", () => {
     );
   });
 
+  it.each([403, 404])("hides cached neighborhood after a continuation page is denied with %i", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status));
+
+    render(
+      <OntologyExplorer
+        accessToken="synthetic-access-token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+
+    expect(await screen.findByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(2);
+  });
+
   it("downloads every scalar relation after loading another authorized page", async () => {
     const subject = `lw:node/node_post/${POST_ID}`;
     const person = { "@id": `lw:node/node_person/${PERSON_ID}` };
