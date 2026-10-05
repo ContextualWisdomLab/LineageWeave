@@ -28,7 +28,7 @@ synthetic status, or consumer-side workflow change is recorded.
 | #1161 | `e080715cbc197f0d9e7e174ac7787447b7175294` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; four hosted checks failed before runner startup due to the account billing lock; no auto-merge. |
 | #1160 | `a826d42d1d429f54c507dc050aa9c4af40669179` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | The current code handles 401 with sign-in guidance and suppresses retry with the rejected token; the exact-head CodeRabbit note is addressed. No formal approval; hosted checks failed. |
 | #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No review findings or formal approval; four hosted checks failed before runner startup due to the account billing lock; no auto-merge. |
-| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Prior-head review comments do not attach approval to this head; hosted checks failed. |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Current code keeps an unauthenticated continuation unavailable instead of calling it exhausted; the continuation Story mocks the empty page and restores `fetch`. No exact-head approval; four hosted checks failed before runner startup due to the account billing lock. |
 | #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; hosted checks failed. |
 | #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | The exact-value `after:` wording comment is addressed on this head; no formal approval; hosted checks failed. |
 
@@ -59,6 +59,17 @@ and the narrow table scrolls without page overflow. All four hosted checks on
 that candidate failed before runner startup with the same account billing-lock
 annotation. This still does not prove authenticated PostgreSQL/API behavior,
 truth/cutoff handling against live authorization, or protected delivery.
+
+For #1158's work-evidence continuation, the exact-head synthetic backend
+search tests passed **9 tests**, focused frontend tests passed **8 tests**, and
+Storybook built successfully. The `Empty With Continuation` story returned a
+mocked empty next page and displayed the exhausted-search next step at
+**1440×900** and **390×844**, with no page overflow or request-error message.
+Its four hosted checks have the same pre-runner account billing-lock failure;
+this does not establish authenticated catalog/API behavior. The review
+suggestion to alias PR numbers and commit SHAs was skipped: those are GitHub
+workflow identifiers needed for the exact-head audit and are allowed by the
+repository artifact rule; no source-post or organization identifier appears.
 
 The only repository ruleset visible to this credential is
 `21065108` (active non-fast-forward protection). Classic branch protection
