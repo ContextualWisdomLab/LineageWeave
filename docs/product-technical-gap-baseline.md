@@ -1,5 +1,89 @@
 # Product & Technical Gap Baseline
 
+## Exact-head Voice delivery and acceptance — 2026-10-06
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239` (the confirmed
+merge commit for #1160). The current open inventory is **185 PRs**, **168
+drafts**, **117 non-main bases**, and **42 issues**. These are repository
+workflow counts only. Canonical remote metadata confirms
+`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/TEPP`, and lowercase
+`ContextualWisdomLab/disksage`.
+
+The current PRD and ADRs 0246, 0251, 0252, and 0256 were checked against the
+Voice-combination technical requirements. ADRs remain normative. The twelve
+atomic Voice classes and open composition contract remain intact; combinations
+are sets of evidence-bearing assignments, not enumerated codes or a B2B2C-only
+model. Each additional assignment retains its authorized evidence Post,
+PROV-O derivation, truth state, and cutoff. The PRD requires distinct carrying
+Post and derivation-evidence actions, bounded authorized JSON-LD/CSV, accessible
+rendering, and authenticated API evidence before acceptance is complete.
+
+### Current candidate state
+
+| PR | Exact current head | Current observation |
+|---:|---|---|
+| #1153 | `727a0366d250770e532189702a6c701886a9f712` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. The only formal review shown by the current PR view is a comment on predecessor head `5b1645607e1e8e7986f735fa8bf37dd3bb77ad3e`. |
+| #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Open on `main`; seven reported check contexts fail and the merge state is `DIRTY`. Older comments are not approval evidence for this head. |
+
+GraphQL confirms the only active default-branch ruleset is
+`LineageWeave: no force pushes` with `NON_FAST_FORWARD`; the classic branch
+protection query returns no rules. Thus no required approval or status-check
+gate is established by the policy reads. Auto-merge stays unarmed on #1153 and
+#1159 because it could merge without those gates. REST review-thread detail
+hit the API rate limit, so unresolved inline-thread state is not asserted.
+No self-approval, force push, bypass, or check cancellation was used. #1160 is
+merged at the current-main SHA above.
+
+### Largest buyer-facing gap and bounded verification
+
+The largest remaining Voice gap is that a buyer still cannot rely on the full
+additional-Voice workflow as protected, authenticated product behavior. The
+existing #1153 candidate is the smallest implementation already covering the
+write boundary, evidence-preserving neighborhood projection, separate
+carrying/evidence actions, CSV identity columns, and paged JSON-LD property and
+multi-Voice unions. #1159 separately repairs denied-evidence recovery. Review
+of their exact current code found no additional valid defect to patch, so this
+refresh does not duplicate their implementation or invent a policy.
+
+An exact-branch merge-tree comparison of #1153 and #1159 finds one textual
+conflict, this supporting baseline. ADR 0184, ADR 0256, API/backend files,
+Storybook inventory, and frontend implementation/test files auto-merge; this
+is only a textual integration result, not semantic acceptance. The #1159
+delta also merges cleanly with current `main`. The two candidates introduce
+no migration, API schema, dependency, or release-number delta. Resolve the
+baseline evidence together and re-run hosted checks on any successor head;
+do not transfer prior checks or approvals.
+
+On an isolated worktree at #1153's exact head, local regressions passed:
+**64** ontology/ingestion/Voice tests, **31** paged JSON-LD/CSV layout tests,
+**22** Ontology Explorer interaction tests, and **11** Voice assignment and
+synthetic PostgreSQL history tests. Storybook built successfully, and the
+synthetic `Separate Voice Evidence` story rendered in Safari at **1440×900** and
+**390×896**. The exact-value table shows the carrying Post action separately
+from the derivation-evidence action; mobile keeps the wide table inside its own
+scroll region. Screenshots use only synthetic story data and are not committed.
+The three legacy authenticated API tests selected from
+`backend/tests/test_api.py` attempted the password-grant fallback and received
+HTTP 400; no response body or credential was captured. A token-file-backed
+authenticated API run was not established. These limits mean authenticated
+PostgreSQL/API and rendered customer acceptance remain **unavailable**,
+regardless of passing unit, synthetic database, or Storybook build evidence.
+No k6 saturation evidence was produced and no performance change is justified.
+
+No production record identifiers, titles, organization names, or credentials
+were used in this baseline. The temporary test database was synthetic and
+removed by its fixture. No unverified acceptance condition is marked complete.
+
+A read-only aggregate of the formal `lineageweave` PostgreSQL service returned
+**43,189 Posts**, **43,189 current primary Voice assignments**, **0 current
+additional assignments**, **0 asserted additional assignments**, and **0
+current multi-Voice Posts**. These counts describe database state only; they
+do not establish authorized API visibility, successful authoring, buyer
+exports, an inferred Voice result, or a population estimate. No rows or
+identifiers were returned.
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
