@@ -265,6 +265,7 @@ describe("OntologyExplorer", () => {
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
 
     expect(await screen.findByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /Unavailable/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();

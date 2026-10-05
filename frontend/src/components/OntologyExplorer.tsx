@@ -272,6 +272,11 @@ export function OntologyExplorer({
             ? () => setPageRetry((attempt) => attempt + 1)
             : undefined}
         />
+      ) : status === "denied" ? (
+        <StatusNotice
+          kind="unavailable"
+          message={t("Related information is unavailable for this record. Open a visible post next.")}
+        />
       ) : statusMessage(status, loaded, canLoadNextPage)}
       {canLoadNextPage && status !== "loading" && status !== "error" ? (
         <div className="ontology-explorer-actions">
