@@ -26,6 +26,7 @@ rendering, and authenticated API evidence before acceptance is complete.
 | #1153 | `727a0366d250770e532189702a6c701886a9f712` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. The only formal review shown by the current PR view is a comment on predecessor head `5b1645607e1e8e7986f735fa8bf37dd3bb77ad3e`. |
 | #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
 | #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
+| #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Listed review objects are comments on predecessor heads; GraphQL reports no unresolved review threads. |
 | #1164 | `0289942d194c45d6e1012c082dfa401d3a2ba59e` | Open on `main`; four test/code-analysis checks are queued, two bot statuses succeed, no current-head approval or auto-merge request. This one-line test synchronization repair is isolated from product code. |
 | #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Open on `main`; seven reported check contexts fail and the merge state is `DIRTY`. Older comments are not approval evidence for this head. |
 
@@ -36,6 +37,16 @@ other two findings are already addressed in that head: Storybook scopes a
 successful continuation response mock to this component, and a remaining
 cursor without a current sign-in shows the search-unavailable next step rather
 than a final no-match claim. A frontend regression test covers the latter.
+
+The two #1162 review findings are also covered on its current code head:
+denied Voice evidence hides further-page navigation and has 403/404
+regressions; the CSV test retains and checks the exact row object after
+escaping. GraphQL reports no unresolved review threads. The exact head's
+`Tests` workflow reports its full-suite and frontend jobs failed with zero
+steps, so those contexts contain no executed test result. Locally, three
+changed explorer/layout suites pass **68 tests**, along with frontend lint,
+production build, and Storybook build. No exported label or JSON-LD value is
+rewritten in memory.
 
 GraphQL confirms the only active default-branch ruleset is
 `LineageWeave: no force pushes` with `NON_FAST_FORWARD`; the classic branch
@@ -58,16 +69,18 @@ of their exact current code found no additional valid defect to patch, so this
 refresh does not duplicate their implementation or invent a policy.
 
 Exact-branch merge-tree comparisons show #1153 and #1159 conflict only in this
-supporting baseline. #1158 overlaps each of them in this baseline and
-`docs/storybook-inventory.md`; #1164 also conflicts with #1158 only in those
-two supporting documents, and merges cleanly with #1153. `docs/product-
-requirements.md`, ADR 0184, ADR 0256, and the affected frontend/backend
-implementation and test files auto-merge. These are textual results only, not
-semantic acceptance. The #1159 delta merges cleanly with current `main`. The
-four candidates introduce no migration, API shape, dependency, or
-release-number delta. Reconcile supporting-document conflicts before
-integration and re-run hosted checks on any successor head; do not transfer
-prior checks or approvals.
+supporting baseline. #1158 overlaps them in this baseline and
+`docs/storybook-inventory.md`; #1162 also overlaps #1153 in
+`OntologyExplorer.stories.tsx`, and #1159 in `OntologyExplorerRetry.stories.tsx`.
+The remaining #1162 conflicts are this baseline and, with #1159/#1158,
+`docs/storybook-inventory.md`. #1164 merges cleanly with #1153 and #1162.
+`docs/product-requirements.md`, ADR 0184, ADR 0256, and other affected
+frontend/backend implementation and test files auto-merge. These are textual
+results only, not semantic acceptance. The #1159 delta merges cleanly with
+current `main`. These five candidates introduce no migration, API shape,
+dependency, or release-number delta. Reconcile supporting-document and
+Storybook conflicts before integration and re-run hosted checks on any
+successor head; do not transfer prior checks or approvals.
 
 On an isolated worktree at #1153's exact head, local regressions passed:
 **64** ontology/ingestion/Voice tests, **31** paged JSON-LD/CSV layout tests,
