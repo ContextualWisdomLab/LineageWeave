@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-05 18:41 KST
+## Exact-head continuation — 2026-10-05 20:08 KST
 
 This observation supersedes the 2026-10-04 inventory below only for the live
 heads and counts named here. The canonical remote is
@@ -12,23 +12,27 @@ are repository workflow counts. GitHub identifies `ContextualWisdomLab/RankWeave
 `ContextualWisdomLab/TEPP` as the canonical remote spellings checked for this
 loop; the current slice adds no change to their contracts.
 
-The live #1161 candidate was head
-`e080715cbc197f0d9e7e174ac7787447b7175294` on base
+At the start of this continuation, the live #1161 candidate was head
+`e0ee51fcc7621ee94a831e84ffc8d74448c5bc69` on base
 `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644`. It has no formal approval or
-auto-merge request. Its Full test suite, Frontend lint/test/build, Python
-analysis, and Actions analysis checks failed before any runner started. Each
-failure annotation states that the account is locked because of a billing
-issue; the corresponding check runs have `runner_id: 0` and no steps. This is
-hosted execution unavailability, not a code-test result. No local workaround,
-synthetic status, or consumer-side workflow change is recorded.
+auto-merge request. On this exact head, Full test suite, Frontend lint/test/build,
+Python analysis, and Actions analysis report failure; CodeRabbit reports review
+completed but provides no formal approval. This audit could not retrieve the
+failed job logs or verify their cause. These hosted failures are not local test
+results. Enabling auto-merge was rejected by GitHub because the branch does not
+have required protected-branch rules; the organization ruleset endpoint also
+returned HTTP 403, so the applicable approval/check policy remains unverified.
+No approval, check, or merge is inferred from local work. The documentation
+correction in this continuation changes #1161's head and invalidates its prior
+Checks; re-fetch the resulting head and statuses before any lifecycle claim.
 
 | PR | Exact head / base | Review and hosted state at observation |
 | ---: | --- | --- |
 | #1162 | `ca7fe1c55d8a92f2c3d4dbf58455b3a6019bb046` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Draft; no formal approval; CodeRabbit succeeded; hosted analysis checks failed. |
-| #1161 | `e080715cbc197f0d9e7e174ac7787447b7175294` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; four hosted checks failed before runner startup due to the account billing lock; no auto-merge. |
+| #1161 | `e0ee51fcc7621ee94a831e84ffc8d74448c5bc69` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; four hosted checks fail, cause unverified; auto-merge unavailable because GitHub reports no required protected-branch rules. |
 | #1160 | `a826d42d1d429f54c507dc050aa9c4af40669179` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | The current code handles 401 with sign-in guidance and suppresses retry with the rejected token; the exact-head CodeRabbit note is addressed. No formal approval; hosted checks failed. |
-| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No review findings or formal approval; four hosted checks failed before runner startup due to the account billing lock; no auto-merge. |
-| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Current code keeps an unauthenticated continuation unavailable instead of calling it exhausted; the continuation Story mocks the empty page and restores `fetch`. No exact-head approval; four hosted checks failed before runner startup due to the account billing lock. |
+| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No review findings or formal approval; four hosted checks fail, cause unverified; no auto-merge. |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | Current code keeps an unauthenticated continuation unavailable instead of calling it exhausted; the continuation Story mocks the empty page and restores `fetch`. No exact-head approval; four hosted checks fail, cause unverified. |
 | #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | No formal approval; hosted checks failed. |
 | #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` / `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` | The exact-value `after:` wording comment is addressed on this head; no formal approval; hosted checks failed. |
 
@@ -56,8 +60,8 @@ relations when multiple JSON-LD pages describe the same subject. Storybook
 built, and `Separate Voice Evidence` was rendered and inspected at **1440×900**
 and **390×844**; the source Post and separate evidence Post remain distinct,
 and the narrow table scrolls without page overflow. All four hosted checks on
-that candidate failed before runner startup with the same account billing-lock
-annotation. This still does not prove authenticated PostgreSQL/API behavior,
+that candidate report failure; their cause was not reverified in this update.
+This still does not prove authenticated PostgreSQL/API behavior,
 truth/cutoff handling against live authorization, or protected delivery.
 
 For #1158's work-evidence continuation, the exact-head synthetic backend
@@ -65,7 +69,7 @@ search tests passed **9 tests**, focused frontend tests passed **8 tests**, and
 Storybook built successfully. The `Empty With Continuation` story returned a
 mocked empty next page and displayed the exhausted-search next step at
 **1440×900** and **390×844**, with no page overflow or request-error message.
-Its four hosted checks have the same pre-runner account billing-lock failure;
+Its four hosted checks report failure; their cause was not reverified here;
 this does not establish authenticated catalog/API behavior. The review
 suggestion to alias PR numbers and commit SHAs was skipped: those are GitHub
 workflow identifiers needed for the exact-head audit and are allowed by the
@@ -118,6 +122,31 @@ This inventory was captured immediately before opening this baseline update as P
 | #1153 | `93b674ed08d338ec72ec7d98737e4aa2a17adee8` | Checks failed; available review is on an earlier head. |
 | #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | Checks failed; no exact-head approval. |
 | #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | Checks failed; merge state is dirty; no exact-head approval. |
+
+### Focused candidate rechecks — 2026-10-05 20:08 KST
+
+The exact PR heads above were re-read before these local checks. #1153 remains
+at `93b674ed08d338ec72ec7d98737e4aa2a17adee8`; its current review set has no
+formal approval and the available CodeRabbit review is on an earlier commit.
+Its focused synthetic backend neighborhood, cutoff, ingestion, visibility,
+windowing, and authenticated API tests passed (**83 tests**). #1160 remains at
+`a826d42d1d429f54c507dc050aa9c4af40669179`; its focused frontend explorer and
+layout tests passed (**56 tests**). CodeRabbit's actionable 401 retry comment
+was on an earlier commit, and the current implementation maps 401 to sign-in
+guidance while the regression test checks the rejected-token retry path. #1159
+remains the smallest available repair for the highest-severity buyer-visible
+gap: a denied read must clear previously authorized evidence and exports. It
+has no formal review or approval. Hosted Checks for all three PRs currently
+report failure; failed job causes were not independently retrieved in this
+continuation, so no failure is described as a source-code defect or as a
+verified billing issue. None has an auto-merge request. Authenticated live
+PostgreSQL/API behavior and authenticated browser acceptance remain unverified.
+
+The normal auto-merge request for #1160 was rejected by GitHub with “Pull
+request Branch does not have required protected branch rules”. The same
+response occurred for #1161. Organization ruleset `18156473` remains
+unreadable to this credential (HTTP 403), and classic protection returned no
+policy document in the earlier audit. No PR is merged and no merge SHA exists.
 | #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | Required review/security checks failed; no exact-head approval. |
 | #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | Required checks failed; no exact-head approval. |
 | #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Required checks failed; no exact-head approval. |
