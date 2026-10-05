@@ -23,7 +23,7 @@ rendering, and authenticated API evidence before acceptance is complete.
 
 | PR | Exact current head | Current observation |
 |---:|---|---|
-| #1153 | `727a0366d250770e532189702a6c701886a9f712` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. The only formal review shown by the current PR view is a comment on predecessor head `5b1645607e1e8e7986f735fa8bf37dd3bb77ad3e`. |
+| #1153 | `f18c736f4c51dea62d2f543134e077a3f9d9eb22` | Open on `main`; the four hosted test/code-analysis checks failed within 3–4 seconds without running steps. The frontend check annotation explicitly says the account is locked for a billing issue. CodeRabbit is rate-limited and Devin Review skipped its review, despite passing check statuses. No current-head approval or auto-merge request. On this exact head, 57 targeted frontend tests passed across the component, copy, and page-accumulation suites (one component-suite timeout under concurrent Storybook build passed on isolated rerun), 59 backend neighborhood tests passed, lint and Storybook build passed, and desktop/mobile screenshots were inspected. |
 | #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
 | #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
 | #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Listed review objects are comments on predecessor heads; GraphQL reports no unresolved review threads. |
@@ -80,9 +80,11 @@ additional-Voice workflow as protected, authenticated product behavior. The
 existing #1153 candidate is the smallest implementation already covering the
 write boundary, evidence-preserving neighborhood projection, separate
 carrying/evidence actions, CSV identity columns, and paged JSON-LD property and
-multi-Voice unions. #1159 separately repairs denied-evidence recovery. Review
-of their exact current code found no additional valid defect to patch, so this
-refresh does not duplicate their implementation or invent a policy.
+multi-Voice unions. #1159 separately repairs denied-evidence recovery. A
+desktop/mobile render audit found that the exact-value table's Evidence and
+Recorded at columns were off-screen on narrow devices without a scroll cue.
+#1153 now adds localized guidance outside the horizontally scrollable table;
+the existing carrying-Post and derivation-evidence actions remain distinct.
 
 Exact-branch merge-tree comparisons show #1153 and #1159 conflict only in this
 supporting baseline. #1158 overlaps them in this baseline and
@@ -100,14 +102,17 @@ dependency, or release-number delta. Reconcile supporting-document, Storybook,
 and component-test conflicts before integration and re-run hosted checks on
 any successor head; do not transfer prior checks or approvals.
 
-On an isolated worktree at #1153's exact head, local regressions passed:
-**64** ontology/ingestion/Voice tests, **31** paged JSON-LD/CSV layout tests,
-**22** Ontology Explorer interaction tests, and **11** Voice assignment and
-synthetic PostgreSQL history tests. Storybook built successfully, and the
-synthetic `Separate Voice Evidence` story rendered in Safari at **1440×900** and
-**390×896**. The exact-value table shows the carrying Post action separately
-from the derivation-evidence action; mobile keeps the wide table inside its own
-scroll region. Screenshots use only synthetic story data and are not committed.
+On an isolated worktree at #1153's current exact head, local regressions passed:
+**59** ontology neighborhood and ingestion tests, **31** paged JSON-LD/CSV
+layout tests, and **26** Ontology Explorer interaction and localization tests.
+The component suite passed all **22** tests on an isolated rerun after one
+timeout while Storybook was building concurrently. Frontend lint and Storybook
+build passed. The synthetic `Separate Voice Evidence` story was rendered with
+Playwright at **1440×900** and iPhone 13 **390×844**. Both carrying and evidence
+actions remain distinct. On mobile, the guidance stays outside the horizontal
+table scroll region; the page width remains 390 CSS pixels while the table
+scrolls within its 332-pixel viewport. Screenshots use only synthetic story
+data and are not committed.
 The three legacy authenticated API tests selected from
 `backend/tests/test_api.py` attempted the password-grant fallback and received
 HTTP 400; no response body or credential was captured. A token-file-backed
