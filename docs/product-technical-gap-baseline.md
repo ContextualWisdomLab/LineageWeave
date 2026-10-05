@@ -1,5 +1,83 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head evidence — 2026-10-06 00:34 KST
+
+This receipt supersedes present-tense delivery claims in the dated history below. Authority, research, implementation, local verification, hosted Checks, and runtime acceptance are separate evidence classes. The remote main head is `8be55f0306015a1a8deda02fa9131e165254d239`; GitHub confirms #1160 merged to that SHA. This is a merge record, not proof of authenticated deployment or of every required independent review.
+
+### Authority and ownership
+
+Before implementation, the current LineageWeave PRD, ADR 0184, ADR 0246, ADR 0251, and ADR 0256 were read. ADR 0246 governs the twelve open atomic Voice categories; ADR 0256 governs extensible evidence-bearing combinations; ADR 0251 governs the separate I/O-psychology layer. The stakeholder and W3C authorities cited in those ADRs support context, provenance, and projection contracts; they establish no inferred Voice weights, universal compound-code enumeration, or population estimator.
+
+GitHub freshly confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`, `contextual-orchestrator`, and lowercase `ContextualWisdomLab/disksage`. The requested DiskSage capitalization is not canonical. RankWeave ARCHITECTURE.md, ThreadWeave docs/PRD.md, TEPP docs/product/prd-v0.4-approved.md, fast-mlsirm docs/PRD.md, and contextual-orchestrator docs/product_planning.md were retrieved. DiskSage has no current docs/PRD.md at the queried remote head; its README remains the product fallback. This slice modifies only LineageWeave rendering/export behavior and reimplements no owner computation.
+
+### Queue, exact heads, and protected delivery
+
+The complete two-page inventory contains **185 open PRs**, **168 drafts**, **117 non-main bases**, and **42 open issues**. All **17 Ready PRs** have base main; none has a qualifying formal APPROVED review attached to its observed current head. No observed auto-merge request was armed. Draft authoring work and parent-bound children remain untouched. These aggregates describe repository workflow metadata, not a sample of customer records.
+
+| PR | Observed exact head before this repair | Merge-tree against main | Unresolved review threads |
+| ---: | --- | --- | ---: |
+| #1162 | `e2d9ce659e622829f4c4274892638638e81c53e6` | clean | 2 |
+| #1130 | `45487181f0750fc3b1da8dfa8670debb8faca055` | clean | 0 |
+| #1161 | `abcb2371535c4632e897ecccbd7e5b77eb8ddf47` | clean | 0 |
+| #1153 | `727a0366d250770e532189702a6c701886a9f712` | clean | 0 |
+| #1159 | `b28ade6690cf1e1191d310a4ef2cf3e024513187` | conflict | 0 |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | conflict | 0 |
+| #1156 | `de83d47cdb3b6e0593ab74ed84f4af2c1d4e7b41` | conflict | 0 |
+| #1157 | `2905bae54adb290c104c23210e3c1e098e401e31` | conflict | 0 |
+| #1155 | `1a83f31daa881e58ddde181768d35acb77aaa613` | clean | 0 |
+| #1141 | `cf6a83efec9d1ccb8ef01eeaac2d0c38e20c32e6` | conflict | 0 |
+| #1151 | `ab0c639fd50cb13f764416d99038140af3b86c73` | conflict | 0 |
+| #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | clean | 0 |
+| #1137 | `4344d4dcb80fa08971c33f2f7df912d389dc7c61` | conflict | 0 |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | conflict | 0 |
+| #1133 | `1420a733eb30cea5198dffc2ae08734c9cfe521e` | clean | 0 |
+| #1136 | `55f6992637c53cfb51a74f55987a40b359152bd5` | conflict | 0 |
+| #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | conflict | 0 |
+
+#1162 and #1159 receive new heads in this run: the rows above are the explicit pre-repair observations. Older checks and reviews never transfer to those heads. Complete first-page review-thread responses for all Ready PRs were checked for further pagination; no unresolved finding outside #1162 was found.
+
+Current-head annotations for #1162 CodeQL Python/Actions, full-suite, and frontend jobs state: "The job was not started because your account is locked due to a billing issue." Those four terminal failures are platform/account execution failures; no application test ran. No local workflow, runner change, fabricated status, warning suppression, or repeated rerun can repair that billing condition.
+
+Organization GraphQL declares active central ruleset 18156473 with one approval, stale-review dismissal, resolved threads, and seven required workflows; last-push approval is false. Its declared target includes this default branch. However, the repository inherited-ruleset read still returns only no-force-push ruleset 21065108. REST applied-rule verification is rate-limited. Therefore server enforcement of the independent-review/workflow gate remains **unverified**. With no current-head independent approval, new auto-merge is withheld because arming it could merge immediately without enforced gates. No existing auto-merge request is removed and no self-approval, admin bypass, force push, or child retarget is used.
+
+### Largest actionable user gap and minimal candidate repairs
+
+The release-critical product gap remains authenticated, accepted/persisted Voice evidence in the running API and UI. It stays incomplete. While those prerequisites wait, the highest-impact reproducible rendering gap is denied evidence retaining active exports or selected details. The existing owner #1159 supplies the minimal shared visibility predicate; its current-main integration at `9b1386052` preserves that predicate together with main's 401 credential rejection, unavailable sign-in notice, request recovery, and visible-page continuation. Both sides of the baseline conflict are retained as dated history; no feature, workflow, source file, or other owner delta is deleted.
+
+#1162 implementation `7276fa36e426a369a72d07b507e59a7964b3ec42` fixes its two valid current-head review findings: denied continuation no longer offers the pagination button that would retry a 403/404, and CSV immutability assertions inspect the actual submitted row. Two new denial regressions fail against the unpatched predicate and pass after the one-condition fix. The owner's CSV source-field preservation and spreadsheet text adaptation remain intact.
+
+- #1162: frontend lint, **60 files / 582 tests**, production build and Storybook build pass; related Python projection/SHACL/documentation/docstring checks pass **83 tests** with DeprecationWarning as error.
+- #1159 integration: frontend lint, **60 files / 573 tests**, production build and Storybook build pass; related Python/Voice unit checks pass **88 tests**. With the native psql path restored, **8 live PostgreSQL Voice-history tests** pass against the authenticated formal lineageweave PostgreSQL service in fixture-owned throwaway databases; fixture teardown removes those databases. The initial psql-not-found setup error was an environment-path failure, not a product repair.
+- #1162 DeniedContinuation and #1159 DeniedCachedEvidence render at desktop and 390-pixel mobile sizes. Screenshots were visually inspected outside git. Denied continuation has no pagination/Retry; denied cached evidence has disabled CSV/JSON-LD exports and no table/details. Both have no document overflow and preserve existing tokens and next-action copy. These are synthetic Storybook observations, not authenticated product UI acceptance.
+- Existing component/projection tests retain distinct carrying Post and derivation evidence, primary/additional Voice semantics, truth/cutoff preservation, and same-subject property/multi-Voice unions across paged JSON-LD. No API, schema, migration, model policy, weight, ADR ordinal, or release version is allocated.
+
+### Runtime and unresolved acceptance
+
+Formal lineageweave services that were exited were restarted by exact existing container name without recreating containers or deleting volumes. PostgreSQL, Valkey, gateway, and the analysis process report healthy after restart; health alone establishes no customer acceptance. No real source content was queried. The current-head authenticated Voice API round-trip test has **one fixture error** and is not counted as passing. No authorized k6 access-token file is configured; the disabled-password-grant path is not weakened to manufacture authentication. Authenticated PostgreSQL/API acceptance, authenticated rendered UI, k6 concurrency/latency/error-rate/throughput and PostgreSQL/worker/Valkey/gateway saturation therefore remain **unavailable**. No unobserved bottleneck or population conclusion is asserted.
+
+### Cross-PR ADR, API, schema, and release reconciliation
+
+Read-only merge-tree checks find **10 of 17 Ready heads** conflicting with main. #1159's frontend conflict is integrated with both owner behaviors preserved. #1135's already-unmerged primary checkout and its broad other-agent changes remain intact. Other conflicts require their own reviewed integration; clean Git merging is not semantic compatibility. PRD duplicate FR-2A/2B/2C identifiers and mismatched occupational ADR references remain tracked by #807; release authority drift remains #1056 (package/frontend 2.28.0 versus exported Python 2.20.0).
+
+Exact-head added-file inspection covers all 185 open candidates and flags divergent ordinal allocations:
+- migrations 0248: #929, #1049.
+- migrations 0247: #929.
+- migrations 0249: #1047, #1127.
+- docs/adr 0272: #802, #1009.
+- docs/adr 0300: #837, #899.
+- docs/adr 0355: #915, #920.
+- docs/adr 0301: #838, #902.
+- docs/adr 0297: #832, #833.
+- docs/adr 0279: #811, #888.
+- docs/adr 0305: #843, #844.
+
+Title-declared release versions collide at v2.62.0 (#843/#844) and v2.92.0 (#876/#877). Direct newly added app route decorators show no duplicate method/path in this static scan; dynamically registered APIs and broader semantic compatibility are not certified. The shared pyproject.toml changes in #1133/#1135/#1137 need serialized reconciliation. No shipped migration is renumbered or deleted in this slice. Parent-first protected merge and fresh child evidence remain mandatory. No active/current-main/open-PR run was cancelled; no manual queue workaround was introduced.
+
+## Dated historical receipts
+
+The observations below retain their original heads and times; they do not override the current receipt above.
+
+
 ## Exact-head CSV integration and protected-delivery audit — 2026-10-05 23:03 KST
 
 This snapshot reads protected-delivery evidence separately from implementation. Remote main was `8be55f0306015a1a8deda02fa9131e165254d239`; the CSV integration implementation is `06ea011c359659b5bd2c77a3a5d7a2c61f9a5087`. This documentation-only receipt creates a later head; rerun hosted evidence for that head before delivery.
