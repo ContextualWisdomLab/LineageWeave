@@ -1,5 +1,41 @@
 # Product & Technical Gap Baseline
 
+## Exact-head denial acceptance update — 2026-10-06 02:15 KST
+
+PR #1159 is now at exact head `d2376dcc7c02a2d2f52f263f49a4ecf8e734f799`,
+based on protected `main` `8be55f0306015a1a8deda02fa9131e165254d239`. It adds
+the ADR 0220 `StatusNotice` named region for denied evidence and retains the
+403/404 continuation regression cases. The focused ontology component suite
+passes 26 tests; lint, production build, and Storybook build pass. Four tests
+timed out in the full frontend run (571 passed, 4 timed out); the four
+unrelated `App.test.tsx` cases passed when rerun in isolation. No timeout was
+increased or warning suppressed.
+
+The existing `DeniedCachedEvidence` Storybook scene was rendered and visually
+inspected at 1440×900 and 390×844. The denied notice has a named region, the
+next step remains visible, both exports are disabled, and the mobile layout
+has no horizontal overflow. Screenshots use synthetic fixtures and remain
+outside git. This is rendered component evidence, not authenticated customer
+API or UI acceptance.
+
+At exact head `d2376dcc`, the Actions analysis, Python analysis, frontend, and
+full-suite jobs all fail before starting; each current job page reports that
+the account is locked due to a billing issue. The CodeRabbit status is rate
+limited and its latest review is on older head `772a05e4`. No independent
+approval exists; the review decision is empty and auto-merge is disabled. The
+only readable active repository rule is non-fast-forward protection. The
+organization ruleset remains unreadable (403), so inherited approval gates
+are unverified. Billing is the GitHub execution-account control-plane owner;
+LineageWeave has no consumer-side repair for it.
+
+The #1161 documentation PR was at head `551246a17d8b3c8baa578cef546ee0865b71a3dc`
+when this snapshot was prepared. Its four hosted jobs also failed before
+starting for the same billing lock, with no review or approval. This document
+update advances #1161 again; checks and review evidence from head `551246a` do
+not transfer to the resulting head. Neither PR is merged. Authenticated API
+acceptance, multi-Voice persistence/cutoff proof, and a protected merge remain
+unverified.
+
 ## Exact-head loop continuation — 2026-10-06 01:49 KST
 
 This snapshot separates normative product authority, candidate implementation,
