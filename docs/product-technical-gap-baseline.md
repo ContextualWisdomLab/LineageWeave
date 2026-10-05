@@ -6,8 +6,9 @@ The protected base is `8be55f0306015a1a8deda02fa9131e165254d239`. PR #1157's
 prior remote head was `2905bae54adb290c104c23210e3c1e098e401e31`; it had four
 failed check contexts, two successful review-bot statuses, no current-head
 approval, no auto-merge request, and `DIRTY` merge state. GraphQL found no
-unresolved review threads. This candidate is being synchronized with current
-main by an ordinary merge commit, not a force push.
+unresolved review threads. The ordinary synchronization commit
+`c4bda8c29a41109088d1f9718d588160be3a1801` now carries that candidate and
+current `main` as its parents; no force push was used.
 
 The paged live inventory contains **187 open PRs**, **168 drafts**, **117
 non-main bases**, and **42 open issues**. The only active default-branch rule
