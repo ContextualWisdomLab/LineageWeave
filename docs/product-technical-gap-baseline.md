@@ -82,7 +82,9 @@ PRs; `gh issue list` reports **42 open issues**. These are workflow counts,
 not customer usage or population evidence. The table excludes this baseline
 PR #1161 because the update changes its head; its prior head
 `4677412dfffdf234a6253a0a1ceb99e13f290f66` had four failed checks, and the new
-head must receive its own Checks and review evidence.
+first refresh head `10d00386ddb80160da60e2f32956c697bda3259a` also had four
+failed checks. This update's new head must receive its own Checks and review
+evidence.
 
 All other 16 non-draft `main` heads were re-fetched and checked for terminal
 check runs and reviews attached to that exact SHA. No exact-head APPROVE was
@@ -108,6 +110,19 @@ its cause remains unknown until the owning workflow provides evidence.
 | #1131 | `ee3d8890ce3b7829f668e05732ef55d24e2e688e` | 19 passed, 11 skipped | None |
 | #1130 | `b25f10eb1021083317a8ecefd479efc29d6c0297` | 4 failed | None |
 | #1128 | `91143146623948dbd26bbfc1c69de3cd77d2ae06` | 3 failed, 19 passed, 8 skipped | None |
+
+PR #1158's actionable continuation-state findings are already resolved on its
+current head `f92dddb460fd73a20eafa7c26de8f49085821d9a` by commit
+`2a764340438466348753bc694da47b41707d7273`: a cursor without a reader token
+reports unavailable continuation rather than exhausted results, and its
+Storybook fetch stub restores the prior global fetch on cleanup. The regression
+test passed with **8 tests**; Storybook built, and the continuation button was
+exercised at **1440×900** and **390×844** with no horizontal page overflow.
+The current hosted checks still show four failures and no exact-head approval.
+The separate bot suggestion to alias repository PR numbers and commit SHAs was
+not applied: these identifiers are verified Git metadata allowed by the
+repository's artifact rules, and the snapshot contains no production post or
+organization records.
 
 The repository exposes one active repository ruleset, `LineageWeave: no force
 pushes` (`21065108`). Classic branch protection returns 404. The organization
