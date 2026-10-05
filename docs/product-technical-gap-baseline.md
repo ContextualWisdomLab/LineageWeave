@@ -47,6 +47,19 @@ The twelve atomic Voice types and extensible evidence-bearing combinations
 remain governed by ADRs 0246/0251/0256; none is narrowed or marked complete by
 this candidate.
 
+The adjacent Voice export candidate #1153 was also revalidated at exact head
+`93b674ed08d338ec72ec7d98737e4aa2a17adee8` on the same live base. Local
+synthetic checks passed: **59** backend neighborhood/ingestion tests, **26**
+API/explorer tests, and **31** ontology-layout tests. The layout tests cover
+the CSV's distinct carrying/evidence columns and union of properties and Voice
+relations when multiple JSON-LD pages describe the same subject. Storybook
+built, and `Separate Voice Evidence` was rendered and inspected at **1440×900**
+and **390×844**; the source Post and separate evidence Post remain distinct,
+and the narrow table scrolls without page overflow. All four hosted checks on
+that candidate failed before runner startup with the same account billing-lock
+annotation. This still does not prove authenticated PostgreSQL/API behavior,
+truth/cutoff handling against live authorization, or protected delivery.
+
 The only repository ruleset visible to this credential is
 `21065108` (active non-fast-forward protection). Classic branch protection
 returns 404; the organization ruleset endpoint for `18156473` returns HTTP
