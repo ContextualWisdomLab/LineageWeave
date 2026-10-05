@@ -64,6 +64,13 @@ verifiable independent-approval condition. No self-approval, bypass, merge, or
 force push occurred. This snapshot commit itself advances #1161 from the head
 recorded above; its predecessor checks and reviews do not transfer.
 
+For #1161 head `e5994d08`, all four hosted jobs (Actions analysis, Python
+analysis, frontend, and full suite) failed before starting. Each current job
+page says the account is locked due to a billing issue. This is a GitHub
+execution-account control-plane blocker; LineageWeave code cannot repair it.
+No retry, cancellation, or consumer-side workaround changes that owner
+boundary.
+
 The largest remaining acceptance gap is authenticated API and rendered
 customer-flow proof that denied continuation removes cached Voice evidence
 while authorized exact-value and CSV/JSON-LD views keep the carrying Post
