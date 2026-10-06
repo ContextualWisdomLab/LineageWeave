@@ -51,9 +51,12 @@ reanalysis an operator-only command with no public route, so the reader had
 no way to act on it.
 
 The minimal change keeps the count and replaces the alert with ADR 0220's
-`unavailable` notice: the failures are not yet reflected in the figures, the
-source remains openable from the Board, and reanalysis is requested from an
-operations administrator. No retry control is offered. The Dashboard
+`unavailable` notice: failed Posts stay in the post total, classified Events
+and case cards update only after reanalysis, the source remains openable from
+the Board, and reanalysis is requested from an operations administrator. No
+retry control is offered. A review finding on the first wording was valid
+(the backend counts failed Posts in `total_post_count`) and is fixed at
+`b892a9fa1`. The Dashboard
 regression fails on the previous copy and passes now; frontend lint,
 **60 files / 570 tests**, build, and Storybook build pass. The
 `AnalysisFailed` story was rendered at **1440×900** and **390×844** without
