@@ -25,6 +25,23 @@ attributes rather than from one exhaustive industry-role list.
 Represent composition as rows in normalized `source_post_voice`, not as
 compound lookup codes.
 
+Additional-assignment reassertion (2026-10-01): changing an additional Voice's
+truth state or derivation evidence closes its current half-open interval and
+inserts a new assignment interval. The closed row retains its original truth
+state, assertion, start, and recording time; historical reads must not acquire
+later evidence or lose an earlier assertion. Repeating the same truth state
+and derivation is idempotent and retains the existing interval. The write locks
+the carrying Post before reading its current Voice, serializing with other
+assignments and imported-primary changes. The replacement boundary comes from
+the database clock after that lock, not the transaction's possibly earlier
+start time. A failed replacement rolls back the interval close and provenance
+writes together. Previously overwritten evidence cannot be reconstructed:
+an additional row recorded after the requested cutoff is omitted, even if its
+old start predates that cutoff. The imported-primary source-time contract
+remains governed by ADR 0252.
+In-place upsert is rejected because it destroys cutoff evidence; an inferred
+repair of old intervals is rejected because the overwritten evidence is absent.
+
 - The existing `source_post.voc_type_code` remains the authoritative imported
   primary voice. A trigger mirrors it into exactly one primary association so
   existing import, filtering, and lineage behavior remains stable.
@@ -63,8 +80,8 @@ compound lookup codes.
 - A `post_admin` may add an additional assignment by naming an ABAC-visible
   evidence Post, an atomic Voice code, and a governed truth state. The API does
   not accept a caller-supplied assertion identifier: one transaction binds the
-  evidence Post as a PROV Entity, records `prov:wasDerivedFrom`, and upserts the
-  assignment. It cannot replace or demote the imported primary Voice.
+  evidence Post as a PROV Entity, records `prov:wasDerivedFrom`, and records the
+  effective assignment interval. It cannot replace or demote the imported primary Voice.
 - In the live Post popup, a `post_admin` may choose one unassigned atomic Voice
   and one explicit truth state. The open Post is submitted as its own evidence,
   which covers a single record that contains several perspectives without
@@ -83,7 +100,20 @@ compound lookup codes.
   evidence minimum without disclosing or substituting hidden evidence. When
   bounded pages are accumulated, properties for the same JSON-LD subject are
   merged and multi-value Voice relations are unioned instead of one page
-  replacing another.
+  replacing another. In exact-value CSV, `carrying_post_id` and
+  `derivation_evidence_post_id` are populated only for a qualified Voice
+  assignment whose subject is a Post; unrelated ontology relations leave
+  both columns empty rather than relabeling an endpoint identifier as Voice
+  evidence.
+  JSON-LD singleton and array representations carry the same relation set:
+  page accumulation unions both forms, and search filtering removes hidden
+  assignment references in either form. CSV retains the carrying Post's
+  `source_node_id` separately from `evidence_post_id`, along with the
+  persisted validity bounds. It also names those roles explicitly as
+  `carrying_post_id` and `derivation_evidence_post_id` columns so spreadsheet
+  readers can distinguish the Post that carries a Voice from its derivation
+  evidence. It never derives either identity or interval from a label or an
+  encoded row identifier.
 
 ## Data model
 
@@ -146,6 +176,14 @@ and 44-pixel touch controls. A synthetic real-OIDC integration on 2026-08-27
 proved the permission denial, authorized write, normalized PROV-O derivation,
 additional-Voice row, and unchanged imported primary against PostgreSQL. A
 release claim still requires protected-main delivery evidence.
+
+## Export boundary validation
+
+Both reusable CSV and JSON-LD projectors enforce the admitted-Post evidence
+boundary, including callers outside the database loader. A missing carrying
+Post fails closed; absent additional evidence omits the assignment and never
+falls back to the carrying Post. The imported primary may cite its own source
+Post.
 
 ## References
 

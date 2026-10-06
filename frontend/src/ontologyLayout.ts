@@ -29,6 +29,7 @@ const ROW_GAP = 128;
 const LEFT = ONTOLOGY_NODE_LABEL_WIDTH / 2 + 20;
 const TOP = 48;
 const ONTOLOGY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#";
+const HAS_VOICE_ASSIGNMENT = `${ONTOLOGY_NAMESPACE}hasVoiceAssignment`;
 
 function nodeKey(nodeTypeCode: string, nodeId: string): string {
   return `${nodeTypeCode}:${nodeId}`;
@@ -147,12 +148,28 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
     "recorded_at",
     "ontology_property_iri",
     "evidence_post_id",
+    "source_node_id",
+    "source_type_code",
+    "target_node_id",
+    "target_type_code",
+    "valid_from",
+    "valid_to",
+    "carrying_post_id",
+    "derivation_evidence_post_id",
   ];
   const lines = [header.join(",")];
   for (const row of payload.exact_value_rows) {
+    const isVoiceAssignment = row.property_code === "hasVoiceAssignment" && row.source_type_code === "node_post";
     lines.push(
       header
-        .map((key) => csvCell(String(row[key as keyof typeof row] ?? "")))
+        .map((key) => {
+          const value = key === "carrying_post_id"
+            ? isVoiceAssignment ? row.source_node_id : ""
+            : key === "derivation_evidence_post_id"
+              ? isVoiceAssignment ? row.evidence_post_id : ""
+              : row[key as keyof typeof row];
+          return csvCell(String(value ?? ""));
+        })
         .join(","),
     );
   }
@@ -191,7 +208,8 @@ export function filterNeighborhood(
   const edges = payload.edges.filter((edge) => {
     const source = nodesByKey.get(nodeKey(edge.source_node_type_code, edge.source_node_id));
     const target = nodesByKey.get(nodeKey(edge.target_node_type_code, edge.target_node_id));
-    return edgeMatch(edge) || Boolean(source && nodeMatch(source)) || Boolean(target && nodeMatch(target));
+    if (!source || !target) return false;
+    return edgeMatch(edge) || nodeMatch(source) || nodeMatch(target);
   });
   const keep = new Set<string>([nodeKey(payload.focus_node_type_code, payload.focus_node_id)]);
   for (const edge of edges) {
@@ -202,13 +220,19 @@ export function filterNeighborhood(
     if (nodeMatch(node)) keep.add(nodeKey(node.node_type_code, node.node_id));
   }
   const nodes = payload.nodes.filter((node) => keep.has(nodeKey(node.node_type_code, node.node_id)));
+  const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
+    keep.has(nodeKey("node_post", assignment.post_id)) &&
+    (assignment.is_primary ||
+      (assignment.evidence_post_id !== null &&
+        assignment.evidence_post_id !== undefined &&
+        keep.has(nodeKey("node_post", assignment.evidence_post_id)))),
+  );
+  const visibleVoiceRowIds = new Set(visibleVoiceAssignments.map(
+    (assignment) => `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}`,
+  ));
   const exact_value_rows = payload.exact_value_rows.filter((row) =>
     edges.some((edge) => edge.edge_id === row.edge_id) ||
-    (payload.voice_assignments ?? []).some(
-      (assignment) =>
-        row.edge_id === `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}` &&
-        keep.has(nodeKey("node_post", assignment.post_id)),
-    ),
+    visibleVoiceRowIds.has(row.edge_id),
   );
   const visibleIds = new Set([
     ...nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
@@ -217,15 +241,18 @@ export function filterNeighborhood(
   const visibleNodeIds = new Set(nodes.map(
     (node) => ontologyNodeId(node.node_type_code, node.node_id),
   ));
-  const visibleVoiceAssignments = (payload.voice_assignments ?? []).filter((assignment) =>
-    keep.has(nodeKey("node_post", assignment.post_id)),
-  );
   const visibleVoiceIds = new Set(
     visibleVoiceAssignments.flatMap((assignment) => [
       assignment.voice_type_iri,
       `${ONTOLOGY_NAMESPACE}voice-assignment/${assignment.post_id}/${assignment.voice_type_code}`,
     ]),
   );
+  const edgeProperties = new Set(payload.edges.map((edge) => edge.ontology_property_iri));
+  const visibleAssertions = new Set(edges.map((edge) => JSON.stringify([
+    ontologyNodeId(edge.source_node_type_code, edge.source_node_id),
+    edge.ontology_property_iri,
+    ontologyNodeId(edge.target_node_type_code, edge.target_node_id),
+  ])));
   const graph = payload.jsonld["@graph"];
   const jsonld = Array.isArray(graph)
     ? {
@@ -237,7 +264,33 @@ export function filterNeighborhood(
             (visibleIds.has(item["@id"]) ||
               visibleNodeIds.has(item["@id"]) ||
               visibleVoiceIds.has(item["@id"])),
-        ),
+        ).map((item) => {
+          const projected = { ...item };
+          for (const property of edgeProperties) {
+            const rawTargets = projected[property];
+            if (rawTargets === undefined) continue;
+            const targets = (Array.isArray(rawTargets) ? rawTargets : [rawTargets]).filter(
+              (target) => typeof target === "object" && target !== null &&
+                "@id" in target && visibleAssertions.has(JSON.stringify([
+                  item["@id"], property, target["@id"],
+                ])),
+            );
+            if (targets.length) {
+              projected[property] = Array.isArray(rawTargets) ? targets : targets[0];
+            } else {
+              delete projected[property];
+            }
+          }
+          const rawRelations = projected[HAS_VOICE_ASSIGNMENT];
+          if (rawRelations === undefined) return projected;
+          const relations = (Array.isArray(rawRelations) ? rawRelations : [rawRelations]).filter(
+            (relation) => typeof relation === "object" && relation !== null &&
+              "@id" in relation && typeof relation["@id"] === "string" &&
+              visibleVoiceIds.has(relation["@id"]),
+          );
+          const { [HAS_VOICE_ASSIGNMENT]: _omitted, ...other } = projected;
+          return relations.length ? { ...other, [HAS_VOICE_ASSIGNMENT]: relations } : other;
+        }),
       }
     : payload.jsonld;
   return {
@@ -294,15 +347,21 @@ export function accumulateNeighborhoodPages(
         }
         const merged = { ...existing, ...incoming };
         for (const key of Object.keys(incoming)) {
-          if (Array.isArray(existing[key]) && Array.isArray(incoming[key])) {
-            const values = [...existing[key], ...incoming[key]];
+          // JSON-LD describes one RDF subject across pages, so retain every
+          // distinct property value while keeping its identity singular.
+          if (Object.hasOwn(existing, key) && key !== "@id") {
+            const values = [existing[key], incoming[key]].flatMap((value) =>
+              Array.isArray(value) ? value : [value],
+            );
             const seen = new Set<string>();
-            merged[key] = values.filter((value) => {
+            const unique = values.filter((value) => {
               const serialized = JSON.stringify(value);
               if (seen.has(serialized)) return false;
               seen.add(serialized);
               return true;
             });
+            merged[key] = Array.isArray(existing[key]) || Array.isArray(incoming[key])
+              || unique.length > 1 ? unique : unique[0];
           }
         }
         graphItems.set(item["@id"], merged);

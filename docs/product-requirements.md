@@ -58,15 +58,17 @@ edge exposes the same authorized endpoints and evidence through API and UI.
   authorized Post as evidence and hide the write action on cutoff views.
 - Validate DB-to-RDF projections with SHACL, including complete reified
   ProjectMention subject/predicate/object chains.
+- Preserve an additional perspective's earlier truth state and evidence when
+  it is revised; an unchanged retry retains its original availability time.
 - Keep SKOS broader/narrower distinct from OWL subclass semantics.
 
 Acceptance: Turtle, JSON-LD, N-Triples, SHACL, API payloads, persisted IRIs,
 and rendered labels agree on term kind, direction, namespace, and provenance;
 an additional Voice cannot demote the imported primary or cite hidden evidence;
-the exact-value table opens the carrying Post and its authorized derivation
-evidence as distinct actions;
-the authoring form has explicit selections, permission/cutoff gating, retryable
-feedback, keyboard labels, and desktop/mobile Storybook evidence.
+the exact-value table and downloadable CSV identify the carrying Post and its
+authorized derivation evidence separately; the table opens both as distinct
+actions. The authoring form has explicit selections, permission/cutoff gating,
+retryable feedback, keyboard labels, and desktop/mobile Storybook evidence.
 
 ### PRD-FR-2A — Worker-function taxonomy
 
@@ -348,6 +350,9 @@ unbound, and prove the normalized snapshot store is immutable.
   keyset cursor for continuation.
 - Provide graph interaction and an exact-value alternative with the same
   authorized content.
+- Let users retry a failed first or continuation request with the same focus,
+  cutoff, and opaque cursor. Keep retry unavailable for denied evidence and
+  prevent duplicate retry while the request is processing.
 
 Acceptance: tamper, scope drift, snapshot drift, unsupported terms, and
 dangling endpoints fail closed; fixed input produces stable page boundaries.
@@ -526,7 +531,7 @@ current boundary until that repository adopts one.
 | `ContextualWisdomLab/keyverse` | `docs/PRD.md` | Production OIDC/JWKS/identity control plane; local demo Keycloak is not Keyverse |
 | `ContextualWisdomLab/RankWeave` | No standalone PRD; `README.md`, `ARCHITECTURE.md` | Store-agnostic ranking/fusion dependency; caller owns channels and authorization |
 | `ContextualWisdomLab/ThreadWeave` | `docs/PRD.md` | Deterministic reference-thread assembly dependency; LineageWeave owns records and persistence |
-| `ContextualWisdomLab/DiskSage` | No standalone PRD; `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
+| `ContextualWisdomLab/disksage` | `docs/PRD.md`; supporting `docs/superpowers/specs/2026-07-10-disksage-design.md` | Prospective storage-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/wardnet` | No standalone PRD; `README.md`, `docs/architecture.md` | Prospective gateway/network-policy boundary; no current runtime integration |
 | `ContextualWisdomLab/naruon` | Scoped `docs/topic-intelligence/PRD.md` only | Owns observed calendar/email projections; LineageWeave owns commitments and combined display |
 | `ContextualWisdomLab/LineageWeave` | This PRD, with ADRs normative | Evidence BI/orchestration, lineage, semantic projection, API, and UI owner |

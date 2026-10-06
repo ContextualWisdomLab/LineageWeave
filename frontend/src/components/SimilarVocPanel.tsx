@@ -1,32 +1,82 @@
+import { useContext, useEffect, useId, useState } from "react";
+import { AuthContext } from "react-oidc-context";
 import "./SimilarVocPanel.css";
 
 import type { SimilarVocItem } from "../api";
 import { t, tf } from "../i18n";
+import { StatusNotice } from "./StatusNotice";
 
 type Props = {
+  sourcePostId?: string;
   items: SimilarVocItem[] | null;
   error?: string | null;
   onOpenPost: (postId: string) => void;
   onLoadMore?: (() => void) | null;
+  onRetry?: (() => void) | null;
   loadingMore?: boolean;
 };
 
+type DisplayScope = {
+  sourcePostId?: string;
+  authorizationScope: string | null;
+};
+
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
-export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, loadingMore = false }: Props) {
+export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoadMore, onRetry, loadingMore = false }: Props) {
+  const headingId = useId();
+  const auth = useContext(AuthContext);
+  const authorizationScope = auth?.user?.access_token ?? null;
+  const [displayedScope, setDisplayedScope] = useState<DisplayScope>(() => ({
+    sourcePostId,
+    authorizationScope,
+  }));
+
+  const displayScopeIsCurrent =
+    displayedScope.sourcePostId === sourcePostId &&
+    displayedScope.authorizationScope === authorizationScope;
+
+  useEffect(() => {
+    if (items === null && !displayScopeIsCurrent) {
+      setDisplayedScope({ sourcePostId, authorizationScope });
+    }
+  }, [authorizationScope, displayScopeIsCurrent, items, sourcePostId]);
+
+  const scopedItems = displayScopeIsCurrent ? items : null;
+  const scopedError = displayScopeIsCurrent ? error : null;
+  const scopedOnLoadMore = displayScopeIsCurrent ? onLoadMore : null;
+  const scopedLoadingMore = displayScopeIsCurrent && loadingMore;
+  const retryLoadedPage = Boolean(scopedError && scopedOnLoadMore);
+  const hasRetainedEvidence = Boolean(scopedItems && scopedItems.length > 0);
+  const retryAction = retryLoadedPage ? scopedOnLoadMore : onRetry;
+
   return (
-    <section className="similar-voc" aria-labelledby="similar-voc-heading">
+    <section className="similar-voc" aria-labelledby={headingId}>
       <header>
-        <h3 id="similar-voc-heading">{t("Similar VOC · customer cohort check")}</h3>
+        <h3 id={headingId}>{t("Similar VOC · customer cohort check")}</h3>
         <p>{t("Review prior evidence and action history adjudicated under the same issue type.")}</p>
       </header>
-      {error ? <p role="alert">{error}</p> : null}
-      {items === null && !error ? (
+      {scopedError ? (
+        <StatusNotice
+          kind="retry"
+          message={scopedError}
+          nextAction={
+            retryLoadedPage
+              ? hasRetainedEvidence
+                ? t("Loaded evidence stays visible. Request the failed next page again.")
+                : t("Request the failed next page again.")
+              : t("Try the same lookup again.")
+          }
+          retryLabel={retryLoadedPage ? t("Retry loading more prior VOC") : t("Look up similar VOC again")}
+          onRetry={retryAction ?? undefined}
+        />
+      ) : null}
+      {scopedItems === null && !scopedError ? (
         <p role="status">{t("Adjudicating similar VOC evidence.")}</p>
-      ) : items?.length === 0 && !error ? (
+      ) : scopedItems?.length === 0 && !scopedError ? (
         <p role="status">{t("No prior VOC adjudicated under the same issue type.")}</p>
-      ) : items && items.length > 0 ? (
+      ) : scopedItems && scopedItems.length > 0 ? (
         <ol>
-          {items.map((item) => (
+          {scopedItems.map((item) => (
             <li key={item.post_id}>
               <article>
                 <p className="similar-voc-time">{tf("Event time {time}", { time: new Date(item.occurred_at).toLocaleString() })}</p>
@@ -46,9 +96,9 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, loadingM
           ))}
         </ol>
       ) : null}
-      {onLoadMore ? (
-        <button type="button" onClick={onLoadMore} disabled={loadingMore}>
-          {loadingMore ? t("Loading more prior VOC...") : t("Show more prior VOC")}
+      {scopedOnLoadMore && !retryLoadedPage ? (
+        <button type="button" onClick={scopedOnLoadMore} disabled={scopedLoadingMore}>
+          {scopedLoadingMore ? t("Loading more prior VOC...") : t("Show more prior VOC")}
         </button>
       ) : null}
     </section>

@@ -7,17 +7,21 @@ Synthetic fixtures only: no real organization, person, or record ids.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import threading
 import uuid
 from datetime import datetime, timedelta
+from itertools import pairwise
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 import psycopg2
 import psycopg2.errors
 import pytest
+
+from backend.app.source_post_voice_ingestion import persist_additional_voice_assignment
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -100,6 +104,14 @@ def voice_history_dsn():
     database_dsn = _database_dsn(database_name)
     try:
         _apply_migrations(database_dsn)
+        with _connect(database_dsn) as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                insert into common_lookup_value (lookup_category, lookup_code, lookup_label)
+                values ('knowledge_graph_node_type', 'node_post', 'Post')
+                on conflict (lookup_code) do nothing
+                """
+            )
         yield database_dsn
     finally:
         admin_conn = psycopg2.connect(_ADMIN_DSN)
@@ -180,6 +192,237 @@ def _primary_rows(cursor, post_id: str) -> list[tuple]:
     return cursor.fetchall()
 
 
+def test_additional_voice_reassertion_preserves_cutoff_evidence(
+    voice_history_dsn,
+) -> None:
+    """Later truth/evidence writes cannot rewrite an earlier additional Voice."""
+    import asyncpg
+
+    from backend.app.main import _load_post_voice_types
+    from backend.app.ontology_neighborhood_ingestion import _load_voice_assignments
+
+    with _connect(voice_history_dsn) as connection, connection.cursor() as cursor:
+        post_id = _insert_synthetic_post(cursor)
+        first_evidence = _insert_synthetic_post(cursor)
+        later_evidence = _insert_synthetic_post(cursor)
+
+    async def exercise():
+        conn = await asyncpg.connect(voice_history_dsn)
+        try:
+
+            async def assign(truth, evidence):
+                await persist_additional_voice_assignment(
+                    conn,
+                    post_id=post_id,
+                    voice_type_code="vops",
+                    truth_status_code=truth,
+                    evidence_post_id=evidence,
+                )
+
+            await assign("truth_proposed", first_evidence)
+            first = await conn.fetchrow(
+                "select * from source_post_voice where post_id = $1::uuid and not is_primary",
+                post_id,
+            )
+            cutoff = await conn.fetchval("select clock_timestamp()")
+            await assign("truth_proposed", first_evidence)
+            assert (
+                await conn.fetchrow(
+                    "select * from source_post_voice where voice_assignment_id = $1",
+                    first["voice_assignment_id"],
+                )
+                == first
+            )
+            await assign("truth_observed", first_evidence)
+            await assign("truth_observed", later_evidence)
+            rows = await conn.fetch(
+                """
+                select voice.*, binding.node_id as evidence_post_id
+                  from source_post_voice voice
+                  join provenance_assertion assertion
+                    on assertion.assertion_id = voice.provenance_assertion_id
+                  join provenance_resource_binding binding
+                    on binding.resource_id = assertion.object_resource_id
+                 where voice.post_id = $1::uuid and not voice.is_primary
+                 order by voice.effective_from
+                """,
+                post_id,
+            )
+            assert len(rows) == 3
+            old, intermediate, new = rows
+            assert old["voice_assignment_id"] != new["voice_assignment_id"]
+            assert old["truth_status_code"] == "truth_proposed"
+            assert str(old["evidence_post_id"]) == first_evidence
+            assert old["recorded_at"] == first["recorded_at"]
+            assert old["effective_from"] == first["effective_from"]
+            assert old["effective_to"] == intermediate["effective_from"]
+            assert intermediate["truth_status_code"] == "truth_observed"
+            assert str(intermediate["evidence_post_id"]) == first_evidence
+            assert (
+                intermediate["effective_to"]
+                == new["effective_from"]
+                == new["recorded_at"]
+            )
+            assert new["truth_status_code"] == "truth_observed"
+            assert str(new["evidence_post_id"]) == later_evidence
+            assert new["effective_to"] is None
+            before_failure = await conn.fetchrow(
+                "select * from source_post_voice where voice_assignment_id = $1",
+                new["voice_assignment_id"],
+            )
+            with pytest.raises(asyncpg.CheckViolationError):
+                await assign("truth_unsupported", first_evidence)
+            assert (
+                await conn.fetchrow(
+                    "select * from source_post_voice where voice_assignment_id = $1",
+                    new["voice_assignment_id"],
+                )
+                == before_failure
+            )
+            assert (
+                await conn.fetchval(
+                    "select count(*) from source_post_voice where post_id=$1::uuid and not is_primary",
+                    post_id,
+                )
+                == 3
+            )
+            historical = await conn.fetchrow(
+                """
+                select voice_assignment_id, truth_status_code, provenance_assertion_id
+                  from source_post_voice
+                 where post_id = $1::uuid and not is_primary
+                   and effective_from <= $2 and recorded_at <= $2
+                   and (effective_to is null or $2 < effective_to)
+                """,
+                post_id,
+                cutoff,
+            )
+            assert historical["voice_assignment_id"] == first["voice_assignment_id"]
+            assert historical["truth_status_code"] == first["truth_status_code"]
+            assert (
+                historical["provenance_assertion_id"]
+                == first["provenance_assertion_id"]
+            )
+            assert (
+                await conn.fetchval(
+                    "select voice_type_code from source_post_voice where post_id=$1::uuid and is_primary and effective_to is null",
+                    post_id,
+                )
+                == "voc"
+            )
+            detail = await _load_post_voice_types(conn, post_id, cutoff)
+            assert [
+                (voice["code"], voice["truth_status_code"]) for voice in detail
+            ] == [
+                ("voc", "truth_observed"),
+                ("vops", "truth_proposed"),
+            ]
+            snapshot_at = await conn.fetchval("select clock_timestamp()")
+            assignments = await _load_voice_assignments(
+                conn,
+                [post_id, first_evidence, later_evidence],
+                can_see_post=lambda _post: True,
+                knowledge_cutoff=cutoff,
+                snapshot_at=snapshot_at,
+            )
+            earlier = next(voice for voice in assignments if not voice.is_primary)
+            assert earlier.evidence_post_id == first_evidence
+            assert earlier.truth_status_code == "truth_proposed"
+            # Emulate a legacy overwritten row whose original truth is lost.
+            await conn.execute(
+                "update source_post_voice set recorded_at=clock_timestamp() where voice_assignment_id=$1",
+                first["voice_assignment_id"],
+            )
+            assert [
+                voice["code"]
+                for voice in await _load_post_voice_types(conn, post_id, cutoff)
+            ] == ["voc"]
+            assignments = await _load_voice_assignments(
+                conn,
+                [post_id, first_evidence, later_evidence],
+                can_see_post=lambda _post: True,
+                knowledge_cutoff=cutoff,
+                snapshot_at=await conn.fetchval("select clock_timestamp()"),
+            )
+            assert all(voice.is_primary for voice in assignments)
+        finally:
+            await conn.close()
+
+    asyncio.run(exercise())
+
+
+def test_waiting_additional_voice_writer_uses_post_lock_clock(
+    voice_history_dsn,
+) -> None:
+    """An earlier-started transaction cannot backdate a replacement after waiting."""
+    import asyncpg
+
+    with _connect(voice_history_dsn) as connection, connection.cursor() as cursor:
+        post_id = _insert_synthetic_post(cursor)
+        evidence = _insert_synthetic_post(cursor)
+
+    async def exercise():
+        first = await asyncpg.connect(voice_history_dsn)
+        second = await asyncpg.connect(voice_history_dsn)
+        observer = await asyncpg.connect(voice_history_dsn)
+        pending = None
+        try:
+
+            async def assign(conn, truth):
+                await persist_additional_voice_assignment(
+                    conn,
+                    post_id=post_id,
+                    voice_type_code="vops",
+                    truth_status_code=truth,
+                    evidence_post_id=evidence,
+                )
+
+            await assign(first, "truth_proposed")
+            second_pid = await second.fetchval("select pg_backend_pid()")
+            async with first.transaction():
+                await first.fetchval(
+                    "select post_id from source_post where post_id=$1::uuid for update",
+                    post_id,
+                )
+                pending = asyncio.create_task(assign(second, "truth_authoritative"))
+                async with asyncio.timeout(5):
+                    while not await observer.fetchval(
+                        "select wait_event_type = 'Lock' from pg_stat_activity where pid=$1",
+                        second_pid,
+                    ):
+                        await asyncio.sleep(0.001)
+                await assign(first, "truth_observed")
+            await asyncio.wait_for(pending, 5)
+            rows = await first.fetch(
+                """
+                select truth_status_code, effective_from, effective_to, recorded_at
+                  from source_post_voice where post_id=$1::uuid and not is_primary
+                 order by effective_from
+                """,
+                post_id,
+            )
+            assert [row["truth_status_code"] for row in rows] == [
+                "truth_proposed",
+                "truth_observed",
+                "truth_authoritative",
+            ]
+            for old, new in pairwise(rows):
+                assert (
+                    old["effective_from"] < old["effective_to"] == new["effective_from"]
+                )
+                assert new["recorded_at"] == new["effective_from"]
+            assert rows[-1]["effective_to"] is None
+        finally:
+            if pending is not None and not pending.done():
+                pending.cancel()
+                await asyncio.gather(pending, return_exceptions=True)
+            await first.close()
+            await second.close()
+            await observer.close()
+
+    asyncio.run(exercise())
+
+
 def _api_primary(cursor, post_id: str, cutoff: datetime | None) -> list[str]:
     cursor.execute(
         _API_CUTOFF_SQL,
@@ -251,7 +494,9 @@ def _insert_additional_voice(cursor, post_id: str, voice_type_code: str) -> None
     )
 
 
-def test_aba_primary_history_matches_api_and_ontology_cutoffs(voice_history_dsn: str) -> None:
+def test_aba_primary_history_matches_api_and_ontology_cutoffs(
+    voice_history_dsn: str,
+) -> None:
     """A → B → A is recoverable at before / between / after cutoffs."""
     connection = _connect(voice_history_dsn)
     try:
@@ -294,10 +539,16 @@ def test_aba_primary_history_matches_api_and_ontology_cutoffs(voice_history_dsn:
 
             snapshot_during_b = between
             snapshot_after = after_last
-            assert _ontology_primary(cursor, post_id, None, snapshot_during_b) == ["vops"]
+            assert _ontology_primary(cursor, post_id, None, snapshot_during_b) == [
+                "vops"
+            ]
             assert _ontology_primary(cursor, post_id, None, snapshot_after) == ["voc"]
-            assert _ontology_primary(cursor, post_id, first_from, snapshot_after) == ["voc"]
-            assert _ontology_primary(cursor, post_id, between, snapshot_after) == ["vops"]
+            assert _ontology_primary(cursor, post_id, first_from, snapshot_after) == [
+                "voc"
+            ]
+            assert _ontology_primary(cursor, post_id, between, snapshot_after) == [
+                "vops"
+            ]
 
             cursor.execute(
                 """
@@ -442,7 +693,7 @@ def test_concurrent_primary_updates_serialize_non_overlapping_history(
                     (next_code, post_id),
                 )
             connection.commit()
-        except Exception as exc:
+        except (psycopg2.Error, threading.BrokenBarrierError) as exc:
             errors.append(exc)
             connection.rollback()
         finally:
