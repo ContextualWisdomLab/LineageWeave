@@ -23,7 +23,7 @@ rendering, and authenticated API evidence before acceptance is complete.
 
 | PR | Exact current head | Current observation |
 |---:|---|---|
-| #1153 | `f18c736f4c51dea62d2f543134e077a3f9d9eb22` | Open on `main`; the four hosted test/code-analysis checks failed within 3–4 seconds without running steps. The frontend check annotation explicitly says the account is locked for a billing issue. CodeRabbit is rate-limited and Devin Review skipped its review, despite passing check statuses. No current-head approval or auto-merge request. On this exact head, 57 targeted frontend tests passed across the component, copy, and page-accumulation suites (one component-suite timeout under concurrent Storybook build passed on isolated rerun), 59 backend neighborhood tests passed, lint and Storybook build passed, and desktop/mobile screenshots were inspected. |
+| #1153 | `f18c736f4c51dea62d2f543134e077a3f9d9eb22` | Open on `main`; the four hosted test/code-analysis checks failed within 3–4 seconds without running steps. The frontend check annotation explicitly says the account is locked for a billing issue. CodeRabbit is rate-limited and Devin Review skipped its review, despite passing check statuses. No current-head approval or auto-merge request. On this exact head, 57 targeted frontend tests passed across the component, copy, and page-accumulation suites (one component-suite timeout under concurrent Storybook build passed on isolated rerun), 59 backend neighborhood tests and six token-file contract tests passed, lint and Storybook build passed, and desktop/mobile screenshots were inspected. The dedicated test access-token file was absent, so no authenticated API call was run. |
 | #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
 | #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
 | #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four hosted test/code-analysis checks fail before running steps. The frontend check annotation explicitly reports the account locked for a billing issue. CodeRabbit reports a rate-limited review; `reviewDecision` is empty and auto-merge is off. Listed formal review objects are comments on predecessor heads; a fresh review-thread query was unavailable under the REST API rate limit. |
@@ -116,10 +116,12 @@ actions remain distinct. On mobile, the guidance stays outside the horizontal
 table scroll region; the page width remains 390 CSS pixels while the table
 scrolls within its 332-pixel viewport. Screenshots use only synthetic story
 data and are not committed.
-The three legacy authenticated API tests selected from
-`backend/tests/test_api.py` attempted the password-grant fallback and received
-HTTP 400; no response body or credential was captured. A token-file-backed
-authenticated API run was not established. These limits mean authenticated
+The previous legacy authenticated API tests selected from
+`backend/tests/test_api.py` attempted the local password-grant fallback and
+received HTTP 400; no response body or credential was captured. In this
+recheck the dedicated test access-token file was absent, so no authenticated
+API request was made. The six `test_api_acceptance_authentication.py`
+contract tests pass but prove only the token-file boundary. Authenticated
 PostgreSQL/API and rendered customer acceptance remain **unavailable**,
 regardless of passing unit, synthetic database, or Storybook build evidence.
 No k6 saturation evidence was produced and no performance change is justified.
