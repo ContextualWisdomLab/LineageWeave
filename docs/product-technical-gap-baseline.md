@@ -1,5 +1,242 @@
 # Product & Technical Gap Baseline
 
+## Exact-head authenticated Voice acceptance — 2026-10-07
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The open
+inventory is **189 PRs**, **168 drafts**, **117 non-main bases**, and **42
+issues**: repository workflow counts only, not corpus or population estimates.
+The current PRD (PRD-FR-2/3 and the section 4 delivery rule), ADRs 0246, 0251,
+0252, and 0256, TEPP's approved v0.4 PRD, ThreadWeave's and fast-mlsirm's
+PRDs, contextual-orchestrator's product planning, and RankWeave's architecture
+were reread. Canonical remote names are `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`,
+`fast-mlsirm`, and lowercase `disksage`; `disksage` still has no
+`docs/PRD.md`.
+
+### Authenticated PostgreSQL/API evidence
+
+The running `lineageweave` Compose identity container predates the current
+realm export and rejects the synthetic test grant. A throwaway identity
+container was built from the current-main `docker/keycloak` definition for
+this run only, beside the same synthetic Compose PostgreSQL and Valkey. No
+credential, token, or response body was recorded. Each test creates and drops
+its own synthetic database.
+
+| Exact head | `backend/tests` (DeprecationWarning as error) | Voice API tests |
+|---|---|---|
+| `main` `8be55f03` | 170 passed, 8 failed, 5 skipped | 2 of 3 pass |
+| #1153 `f18c736f` | 175 passed, 3 failed, 5 skipped | 3 of 3 pass |
+
+On `main`, `test_voice_assignment_round_trips_through_authorized_postgres_api`
+fails. A `post_admin` adds a Voice of Process with a separate authorized
+evidence Post; the write and its PROV-O derivation persist, but the carrying
+Post's neighborhood omits that Voice from both the exact-value rows and the
+JSON-LD. #1152 loads the evidence Post's authorization, yet the projection
+still admits an additional Voice only when traversal reached the evidence
+Post. #1153 passes the application-boundary decision into the projection and
+passes the round trip, the hidden-evidence rejection, and the
+omission-after-hiding tests. This is the largest buyer-facing Voice gap, and
+#1153 is its minimal existing repair, so no parallel implementation is opened.
+
+Four other `main` failures come from the live fixture skipping migrations 0217
+and 0240. #1153 already applies 0239/0240. New PR #1166 applies 0217 (test
+only); with it `test_start_analysis_run_recovers_the_a100_fork` and the other
+analysis-run tests pass (4 of 4). The two failures left on both heads are
+Global Ask jobs reported unavailable because contextual-orchestrator returned
+no complete evidence object. That failure belongs to the orchestrator boundary;
+no local substitute is added.
+
+Rendered authenticated customer UI for the additional-Voice workflow was not
+captured in this cycle, so PRD-FR-2 acceptance stays **incomplete** even
+though its API leg now has passing exact-head evidence on #1153. No k6 run was
+made, and no performance change is justified.
+
+### Review repair and delivery state
+
+#1135's unresolved review finding was valid: a symbolic link inside the static
+web root could serve a file outside it, because the root check compared
+unresolved paths. Commit `76494dcebab30c03e2b09bfcffbae5a689724eb1` resolves
+both paths before comparing them and adds a regression test that failed before
+the change; `tests/test_server.py` and the docstring gate pass (12 tests). The
+thread is now outdated and resolved. No other ready PR has an unresolved review
+thread.
+
+Every current-head Tests and CodeQL job on the ready PRs fails within seconds;
+GitHub's annotation says the job was not started because the account is locked
+due to a billing issue. Workflows are not weakened to route around it. The only
+active branch rule is no-force-push ruleset **21065108**, classic protection
+returns 404, and the repository's only collaborator is its administrator, so no
+independent approver exists. Auto-merge would merge without approval or
+terminal checks and stays unarmed. No merge, self-approval, bypass, force push,
+or run cancellation was used.
+
+### Cross-PR identity conflicts
+
+Comparing every open PR's added ADR and migration files with `main` finds no
+new conflict among ready PRs. Draft collisions persist: ADR ordinals 0272,
+0279, 0290–0297, 0300, 0301, 0305, and 0355 are each claimed by two or more
+drafts with different subjects; #672/#811 reuse 0233; #702 reuses 0245 and
+0246 with different subjects; #667 adds a second 0223 migration; and #929,
+#1047, #1049, and #1127 claim overlapping 0247–0249 migration ordinals. Each
+must be renumbered when its draft is revived; none blocks the ready set.
+
+## Exact-head Voice delivery and acceptance — 2026-10-06
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239` (the confirmed
+merge commit for #1160). The current open inventory is **187 PRs**, **168
+drafts**, **117 non-main bases**, and **42 issues**. These are repository
+workflow counts only. Canonical remote metadata confirms
+`ContextualWisdomLab/LineageWeave`, `ContextualWisdomLab/RankWeave`,
+`ContextualWisdomLab/ThreadWeave`, `ContextualWisdomLab/TEPP`, and lowercase
+`ContextualWisdomLab/disksage`.
+
+The current PRD and ADRs 0246, 0251, 0252, and 0256 were checked against the
+Voice-combination technical requirements. ADRs remain normative. The twelve
+atomic Voice classes and open composition contract remain intact; combinations
+are sets of evidence-bearing assignments, not enumerated codes or a B2B2C-only
+model. Each additional assignment retains its authorized evidence Post,
+PROV-O derivation, truth state, and cutoff. The PRD requires distinct carrying
+Post and derivation-evidence actions, bounded authorized JSON-LD/CSV, accessible
+rendering, and authenticated API evidence before acceptance is complete.
+
+### Current candidate state
+
+| PR | Exact current head | Current observation |
+|---:|---|---|
+| #1153 | `f18c736f4c51dea62d2f543134e077a3f9d9eb22` | Open on `main`; the four hosted test/code-analysis checks failed within 3–4 seconds without running steps. The frontend check annotation explicitly says the account is locked for a billing issue. CodeRabbit is rate-limited and Devin Review skipped its review, despite passing check statuses. No current-head approval or auto-merge request. On this exact head, 57 targeted frontend tests passed across the component, copy, and page-accumulation suites (one component-suite timeout under concurrent Storybook build passed on isolated rerun), 59 backend neighborhood tests and six token-file contract tests passed, lint and Storybook build passed, and desktop/mobile screenshots were inspected. The dedicated test access-token file was absent, so no authenticated API call was run. |
+| #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four hosted test/code-analysis checks fail within 2–4 seconds. The frontend annotation explicitly reports the account locked for a billing issue. CodeRabbit completed a review and Devin completed analysis, but `reviewDecision` is empty and auto-merge is off. On this exact head, 40 focused recovery tests, lint, and Storybook build passed; the synthetic `DeniedCachedEvidence` story rendered at 1440×900 and 390×844 with no cached Post, disabled CSV/JSON-LD exports, and no page overflow. |
+| #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
+| #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four hosted test/code-analysis checks fail before running steps. The frontend check annotation explicitly reports the account locked for a billing issue. CodeRabbit reports a rate-limited review; `reviewDecision` is empty and auto-merge is off. Listed formal review objects are comments on predecessor heads; a fresh review-thread query was unavailable under the REST API rate limit. |
+| #1157 | `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` | Open on `main`; the old branch was synchronized with current `main` by merge commit `c4bda8c29a41109088d1f9718d588160be3a1801`. This later receipt changes supporting documentation only. Four of six reported check contexts fail, CodeRabbit is pending, Devin Review is successful, no formal review object or unresolved thread, no auto-merge request; merge state `UNSTABLE`. |
+| #1164 | `0289942d194c45d6e1012c082dfa401d3a2ba59e` | Open on `main`; the current hosted test jobs failed before any step ran, with GitHub reporting the account locked for a billing issue. `Analyze (actions)` has the same explicit billing failure; `Analyze (python)` is canceled. CodeRabbit is rate-limited and Devin Review skipped its review, despite their passing check statuses. There is no current-head approval or auto-merge request. The one-line test synchronization change is isolated from product code; its 102 `App.test.tsx` tests and the focused comparison-strip case pass locally. |
+| #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Open on `main`; seven reported check contexts fail and the merge state is `DIRTY`. Older comments are not approval evidence for this head. |
+
+On #1158's exact code head, the request to remove public PR numbers and
+commit SHAs conflicts with the repository's non-identifying-artifact rule:
+these are public delivery references, not source-record identifiers. The
+other two findings are already addressed in that head: Storybook scopes a
+successful continuation response mock to this component, and a remaining
+cursor without a current sign-in shows the search-unavailable next step rather
+than a final no-match claim. A frontend regression test covers the latter.
+
+The two #1162 review findings are also covered on its current code head:
+denied Voice evidence hides further-page navigation and has 403/404
+regressions; the CSV test retains and checks the exact row object after
+escaping. An earlier GraphQL read reported no unresolved review threads; the
+current REST review refresh hit the API rate limit. The exact head's four
+hosted test/code-analysis checks fail before executing their jobs, and the
+frontend annotation names the GitHub billing lock. This provides no hosted
+test result. Rechecked locally, the focused explorer and CSV suites pass **62
+tests**, frontend lint and Storybook build pass, and the synthetic
+`CSV Source Labels` story renders at **1440×900** and iPhone 13 **390×844**
+without page-level horizontal overflow. No exported label or JSON-LD value is
+rewritten in memory.
+
+PR #1157's stale head `2905bae54adb290c104c23210e3c1e098e401e31` was
+non-force synchronized with current main `8be55f0306015a1a8deda02fa9131e165254d239`
+at code commit `c4bda8c29a41109088d1f9718d588160be3a1801`; current remote PR
+head `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` is a later supporting-document
+receipt. The exact code integration's scope-fencing and 401 recovery regressions
+pass together: **75** backend and **74** frontend tests, plus frontend lint,
+production build, and Storybook build. REST run-detail requests are rate-limited,
+so the four hosted failure contexts are not assigned a code cause here.
+Current-head formal approval is absent and auto-merge remains unarmed.
+
+The denied-scope story was rendered in Safari at **1440×900** and **390×844**.
+Both views show the unavailable next action, no graph evidence, and disabled
+CSV/JSON-LD exports. These are synthetic Storybook screenshots, not
+authenticated product acceptance.
+
+GraphQL confirms the only active default-branch ruleset is
+`LineageWeave: no force pushes` with `NON_FAST_FORWARD`; the classic branch
+protection query returns no rules. Thus no required approval or status-check
+gate is established by the policy reads. Auto-merge stays unarmed on #1153 and
+#1159 because it could merge without those gates. REST review-thread detail
+hit the API rate limit, so unresolved inline-thread state is not asserted.
+No self-approval, force push, bypass, or check cancellation was used. #1160 is
+merged at the current-main SHA above.
+
+### Largest buyer-facing gap and bounded verification
+
+The largest remaining Voice gap is that a buyer still cannot rely on the full
+additional-Voice workflow as protected, authenticated product behavior. The
+existing #1153 candidate is the smallest implementation already covering the
+write boundary, evidence-preserving neighborhood projection, separate
+carrying/evidence actions, CSV identity columns, and paged JSON-LD property and
+multi-Voice unions. #1159 separately repairs denied-evidence recovery. A
+desktop/mobile render audit found that the exact-value table's Evidence and
+Recorded at columns were off-screen on narrow devices without a scroll cue.
+#1153 now adds localized guidance outside the horizontally scrollable table;
+the existing carrying-Post and derivation-evidence actions remain distinct.
+
+Exact merge-tree comparisons on the fetched heads show these file conflicts:
+
+- #1153 with #1159 conflicts only in this supporting baseline.
+- #1153 with #1157, and #1162 with #1157, conflict only in this baseline;
+  their changed component, story, and test files auto-merge.
+- #1153 with #1162 conflicts in this baseline and
+  `frontend/src/components/OntologyExplorer.stories.tsx`.
+- #1153 with #1158, and #1162 with #1158, conflict in this baseline and
+  `docs/storybook-inventory.md`.
+- #1162 with #1159 conflicts in this baseline, `docs/storybook-inventory.md`,
+  and `frontend/src/components/OntologyExplorerRetry.stories.tsx`.
+
+The affected `docs/product-requirements.md`, ADR 0184, ADR 0256, and the other
+implementation and test files auto-merge in those comparisons. These are
+textual results only, not semantic acceptance. The #1159 delta merges cleanly
+with current `main`. These candidates add no migration, API shape, dependency,
+or release-number delta. Reconcile supporting-document and Storybook conflicts
+after any protected parent merge, retarget a child only when it is actually
+stacked, and re-run hosted checks on each new head; do not transfer prior
+checks or approvals.
+
+On an isolated worktree at #1153's current exact head, local regressions passed:
+**59** ontology neighborhood and ingestion tests, **31** paged JSON-LD/CSV
+layout tests, and **26** Ontology Explorer interaction and localization tests.
+The component suite passed all **22** tests on an isolated rerun after one
+timeout while Storybook was building concurrently. Frontend lint and Storybook
+build passed. The synthetic `Separate Voice Evidence` story was rendered with
+Playwright at **1440×900** and iPhone 13 **390×844**. Both carrying and evidence
+actions remain distinct. On mobile, the guidance stays outside the horizontal
+table scroll region; the page width remains 390 CSS pixels while the table
+scrolls within its 332-pixel viewport. Screenshots use only synthetic story
+data and are not committed.
+The previous legacy authenticated API tests selected from
+`backend/tests/test_api.py` attempted the local password-grant fallback and
+received HTTP 400; no response body or credential was captured. In this
+recheck the dedicated test access-token file was absent, so no authenticated
+API request was made. The six `test_api_acceptance_authentication.py`
+contract tests pass but prove only the token-file boundary. Authenticated
+PostgreSQL/API and rendered customer acceptance remain **unavailable**,
+regardless of passing unit, synthetic database, or Storybook build evidence.
+No k6 saturation evidence was produced and no performance change is justified.
+
+PR #1158's exact-head review checks also passed locally: nine server-side
+occupational-search tests, frontend lint, production build, and Storybook
+build. The full frontend run had **565 passes and one failure** in the
+comparison-strip Post popup assertion. The same assertion failed on `main`
+because the test queried the asynchronously rendered Event Lineage node
+synchronously after the Post body appeared. PR #1164 now waits for that
+accessible node; all **102** `App.test.tsx` tests and frontend lint pass on its
+exact local head. This is test synchronization, not a product-code change. The
+`Empty With Continuation` Storybook state was rendered and inspected at
+**1440×900** and **390×844**; the query, next-page guidance, and button remain
+visible without viewport overflow. The candidate's review comments are
+already addressed at its current code head; no source change is needed for
+that PR.
+
+No production record identifiers, titles, organization names, or credentials
+were used in this baseline. The temporary test database was synthetic and
+removed by its fixture. No unverified acceptance condition is marked complete.
+
+A read-only aggregate of the formal `lineageweave` PostgreSQL service returned
+**43,189 Posts**, **43,189 current primary Voice assignments**, **0 current
+additional assignments**, **0 asserted additional assignments**, and **0
+current multi-Voice Posts**. These counts describe database state only; they
+do not establish authorized API visibility, successful authoring, buyer
+exports, an inferred Voice result, or a population estimate. No rows or
+identifiers were returned.
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
