@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchOperationsDashboard, type OperationsDashboardResponse } from "../api";
+import { StatusNotice } from "./StatusNotice";
 
 type Props = {
   accessToken: string;
@@ -105,7 +106,13 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       {cases.length === 0 && data.failed_analysis_count === 0 ? (
         <p role="status">{data.pending_analysis_count > 0 ? "선택 기간에 분석 완료된 근거가 없습니다. 분석 대기 건부터 처리하세요." : "선택 기간에 분석할 수 있는 근거가 없습니다. 기간이나 접근 범위를 확인하세요."}</p>
       ) : null}
-      {data.failed_analysis_count > 0 ? <p role="alert">분석 실패 {data.failed_analysis_count}건을 재처리한 뒤 근거 누락 여부를 다시 확인하세요.</p> : null}
+      {data.failed_analysis_count > 0 ? (
+        <StatusNotice
+          kind="unavailable"
+          message={`분석 실패 ${data.failed_analysis_count}건은 아직 이 Dashboard 수치에 반영되지 않았습니다.`}
+          nextAction="원문은 게시판에서 바로 열 수 있습니다. 재분석은 운영 관리자에게 요청한 뒤 이 화면에서 수치를 다시 확인하세요."
+        />
+      ) : null}
     </section>
   );
 }

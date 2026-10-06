@@ -1,5 +1,85 @@
 # Product & Technical Gap Baseline
 
+## Exact-head Dashboard failure next-action loop — 2026-10-07 05:05 KST
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The paged
+inventory contains **189 open PRs**, **168 drafts**, **117 non-main bases**,
+and **42 open issues**. These are repository workflow counts, not corpus or
+population estimates.
+
+### Checks, reviews, and protection
+
+Every ready PR head re-read in this loop (#1166 through #1128) has terminal
+CodeQL/test failures whose annotations state that the job was not started
+because the account is locked due to a billing issue; the jobs have no
+executed steps. This is a GitHub account condition, not an application test
+result, and no gate or scanner was weakened. No ready PR has an APPROVED
+review on its current head, and no ready PR has an unresolved review thread.
+Live rules still expose only no-force-push ruleset **21065108**; classic
+branch protection is absent. Auto-merge stays unarmed because it would merge
+an unapproved head immediately. No self-approval, bypass, force push, retarget,
+or run cancellation occurred.
+
+Local exact-head evidence: #1165's conflict-marker regression passes
+(**2 tests**) at `80f24209e75891f0b2a419eae7ddd42590f7593f`, and current
+`main` still contains the unresolved marker in ADR 0245; #1164's App suite
+passes (**102 tests**) at `0289942d194c45d6e1012c082dfa401d3a2ba59e`.
+Neither is merged by this loop.
+
+### Cross-PR integration
+
+Pairwise merge-tree checks of the ready main-based heads find only textual
+conflicts: gap-baseline overlays across the documentation PRs,
+`OntologyExplorer` stories/component between #1162/#1159/#1157/#1153, and
+`App.tsx` between #1135 and #1130. #1156, #1151, #1141, #1137, and #1136
+already conflict with `main`. No ready PR adds an ADR or migration file, and
+none changes a package version, so the ready set introduces no new ordinal or
+release collision. Earlier draft-stack collision groups remain as recorded
+below. Draft #774 and #983 also edit the Dashboard component; they are not
+certified here.
+
+### Largest observed user-visible gap
+
+An authenticated synthetic `demo.admin` session on the formal `lineageweave`
+Compose stack opens the Dashboard and reports every visible Post as
+analysis-failed. Aggregate ledger state: **43,171** post-content jobs are
+terminal `attempt_limit` failures last updated between 2026-08-30 and
+2026-09-01, dominated by provider HTTP 500, 429, and `unknown_fields`
+responses at the operations-case stage; **132** case classifications exist.
+The Dashboard told readers to reprocess failures, but ADR 0115 makes
+reanalysis an operator-only command with no public route, so the reader had
+no way to act on it.
+
+The minimal change keeps the count and replaces the alert with ADR 0220's
+`unavailable` notice: the failures are not yet reflected in the figures, the
+source remains openable from the Board, and reanalysis is requested from an
+operations administrator. No retry control is offered. The Dashboard
+regression fails on the previous copy and passes now; frontend lint,
+**60 files / 570 tests**, build, and Storybook build pass. The
+`AnalysisFailed` story was rendered at **1440×900** and **390×844** without
+horizontal overflow. Screenshots are synthetic and stay outside git.
+
+One failed job was requeued through the ADR 0115 operator command for
+diagnosis only. It completed without a case analysis because the running
+`backend` container has no orchestrator URL or key: it was created from a
+since-removed temporary PR #1120 checkout whose Compose file left those
+values empty, while the dedicated worker has them. A job claimed by that
+container therefore succeeds with the orchestrator channels dropped. This is
+deployment drift from current `main`'s Compose contract, not a defect on
+`main`; recreating the formal services from `main` is required before any
+bulk reanalysis. Bulk requeue is not performed: it is an operator cost
+decision and the provider failures have not been re-verified.
+
+### Authenticated runtime boundary
+
+The rendered sign-in path works through the authorization-code flow with the
+synthetic realm user; the direct password grant is refused
+(`unauthorized_client`), as intended. Authenticated additional-Voice
+acceptance, owned k6 token issuance, and PostgreSQL/worker/Valkey/gateway
+saturation remain **unavailable** in this loop. The backend logs repeated
+Valkey `xread` timeouts; they are recorded as an observation and left
+unchanged without a k6 measurement.
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
