@@ -1,5 +1,85 @@
 # Product & Technical Gap Baseline
 
+## Exact-head authenticated Voice acceptance — 2026-10-07
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The open
+inventory is **189 PRs**, **168 drafts**, **117 non-main bases**, and **42
+issues**: repository workflow counts only, not corpus or population estimates.
+The current PRD (PRD-FR-2/3 and the section 4 delivery rule), ADRs 0246, 0251,
+0252, and 0256, TEPP's approved v0.4 PRD, ThreadWeave's and fast-mlsirm's
+PRDs, contextual-orchestrator's product planning, and RankWeave's architecture
+were reread. Canonical remote names are `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `contextual-orchestrator`,
+`fast-mlsirm`, and lowercase `disksage`; `disksage` still has no
+`docs/PRD.md`.
+
+### Authenticated PostgreSQL/API evidence
+
+The running `lineageweave` Compose identity container predates the current
+realm export and rejects the synthetic test grant. A throwaway identity
+container was built from the current-main `docker/keycloak` definition for
+this run only, beside the same synthetic Compose PostgreSQL and Valkey. No
+credential, token, or response body was recorded. Each test creates and drops
+its own synthetic database.
+
+| Exact head | `backend/tests` (DeprecationWarning as error) | Voice API tests |
+|---|---|---|
+| `main` `8be55f03` | 170 passed, 8 failed, 5 skipped | 2 of 3 pass |
+| #1153 `f18c736f` | 175 passed, 3 failed, 5 skipped | 3 of 3 pass |
+
+On `main`, `test_voice_assignment_round_trips_through_authorized_postgres_api`
+fails. A `post_admin` adds a Voice of Process with a separate authorized
+evidence Post; the write and its PROV-O derivation persist, but the carrying
+Post's neighborhood omits that Voice from both the exact-value rows and the
+JSON-LD. #1152 loads the evidence Post's authorization, yet the projection
+still admits an additional Voice only when traversal reached the evidence
+Post. #1153 passes the application-boundary decision into the projection and
+passes the round trip, the hidden-evidence rejection, and the
+omission-after-hiding tests. This is the largest buyer-facing Voice gap, and
+#1153 is its minimal existing repair, so no parallel implementation is opened.
+
+Four other `main` failures come from the live fixture skipping migrations 0217
+and 0240. #1153 already applies 0239/0240. New PR #1166 applies 0217 (test
+only); with it `test_start_analysis_run_recovers_the_a100_fork` and the other
+analysis-run tests pass (4 of 4). The two failures left on both heads are
+Global Ask jobs reported unavailable because contextual-orchestrator returned
+no complete evidence object. That failure belongs to the orchestrator boundary;
+no local substitute is added.
+
+Rendered authenticated customer UI for the additional-Voice workflow was not
+captured in this cycle, so PRD-FR-2 acceptance stays **incomplete** even
+though its API leg now has passing exact-head evidence on #1153. No k6 run was
+made, and no performance change is justified.
+
+### Review repair and delivery state
+
+#1135's unresolved review finding was valid: a symbolic link inside the static
+web root could serve a file outside it, because the root check compared
+unresolved paths. Commit `76494dcebab30c03e2b09bfcffbae5a689724eb1` resolves
+both paths before comparing them and adds a regression test that failed before
+the change; `tests/test_server.py` and the docstring gate pass (12 tests). The
+thread is now outdated and resolved. No other ready PR has an unresolved review
+thread.
+
+Every current-head Tests and CodeQL job on the ready PRs fails within seconds;
+GitHub's annotation says the job was not started because the account is locked
+due to a billing issue. Workflows are not weakened to route around it. The only
+active branch rule is no-force-push ruleset **21065108**, classic protection
+returns 404, and the repository's only collaborator is its administrator, so no
+independent approver exists. Auto-merge would merge without approval or
+terminal checks and stays unarmed. No merge, self-approval, bypass, force push,
+or run cancellation was used.
+
+### Cross-PR identity conflicts
+
+Comparing every open PR's added ADR and migration files with `main` finds no
+new conflict among ready PRs. Draft collisions persist: ADR ordinals 0272,
+0279, 0290–0297, 0300, 0301, 0305, and 0355 are each claimed by two or more
+drafts with different subjects; #672/#811 reuse 0233; #702 reuses 0245 and
+0246 with different subjects; #667 adds a second 0223 migration; and #929,
+#1047, #1049, and #1127 claim overlapping 0247–0249 migration ordinals. Each
+must be renumbered when its draft is revived; none blocks the ready set.
+
 ## Exact-head Voice delivery and acceptance — 2026-10-06
 
 Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239` (the confirmed
