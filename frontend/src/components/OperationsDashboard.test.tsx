@@ -45,7 +45,7 @@ describe("OperationsDashboardView", () => {
     render(<OperationsDashboardView data={{ ...data, failed_analysis_count: 2, cases: [] }} onOpenPost={() => undefined} />);
     expect(screen.getByText("분석 실패").nextElementSibling).toHaveTextContent("2");
     const notice = screen.getByRole("region", { name: /This evidence is unavailable/ });
-    expect(notice).toHaveTextContent("분석 실패 2건은 아직 이 Dashboard 수치에 반영되지 않았습니다");
+    expect(notice).toHaveTextContent("분석 실패 2건은 전체 글 수에 포함됩니다. 분류 Event와 사례 카드는 재분석이 끝난 뒤 갱신됩니다");
     expect(notice).toHaveTextContent("재분석은 운영 관리자에게 요청");
     // Reanalysis is an operator command (ADR 0115); the reader gets no retry
     // control and no instruction to reprocess something the UI cannot start.
