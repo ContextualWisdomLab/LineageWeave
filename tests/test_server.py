@@ -177,6 +177,32 @@ def test_sibling_prefix_path_is_not_inside_web_root(tmp_path, monkeypatch) -> No
     assert raised
 
 
+def test_symlink_inside_web_root_cannot_serve_outside_file(tmp_path, monkeypatch) -> None:
+    web_root = tmp_path / "web"
+    web_root.mkdir()
+    outside = tmp_path / "outside.html"
+    outside.write_text("not public", encoding="utf-8")
+    (web_root / "link.html").symlink_to(outside)
+    monkeypatch.setattr(server_module, "_WEB_DIR", str(web_root))
+
+    server = server_module.build_server(port=0, weights=_SYNTHETIC_WEIGHTS)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = server.server_address[1]
+
+    try:
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/link.html", timeout=5)
+            status = 200
+        except urllib.error.HTTPError as exc:
+            status = exc.code
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+
+    assert status == 404
+
+
 def test_static_viewer_has_loading_empty_and_error_states() -> None:
     html = (Path(__file__).parents[1] / "web" / "index.html").read_text(encoding="utf-8")
 

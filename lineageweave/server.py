@@ -103,9 +103,10 @@ def build_server(
         def _send_static(self, request_path: str) -> None:
             """Implement the _send_static operation for this channel."""
             relative = "index.html" if request_path in ("/", "") else request_path.lstrip("/")
-            file_path = os.path.normpath(os.path.join(_WEB_DIR, relative))
+            web_root = os.path.realpath(_WEB_DIR)
+            file_path = os.path.realpath(os.path.join(web_root, relative))
             try:
-                inside_web_root = os.path.commonpath((_WEB_DIR, file_path)) == _WEB_DIR
+                inside_web_root = os.path.commonpath((web_root, file_path)) == web_root
             except ValueError:
                 inside_web_root = False
             if not inside_web_root or not os.path.isfile(file_path):
