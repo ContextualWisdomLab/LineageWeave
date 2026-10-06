@@ -245,6 +245,35 @@ describe("OntologyExplorer", () => {
     );
   });
 
+  it.each([403, 404])("hides cached neighborhood after a continuation page is denied with %i", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status));
+
+    render(
+      <OntologyExplorer
+        accessToken="synthetic-access-token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+
+    expect(await screen.findByText("Related information is unavailable for this record. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /Unavailable/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(2);
+  });
+
   it("downloads every scalar relation after loading another authorized page", async () => {
     const subject = `lw:node/node_post/${POST_ID}`;
     const person = { "@id": `lw:node/node_person/${PERSON_ID}` };
@@ -713,4 +742,40 @@ describe("OntologyExplorer", () => {
     const missing = rows[1].querySelectorAll("td");
     for (const index of [4, 5, 7]) expect(missing[index]).toHaveTextContent("Unknown");
   });
+  it("blocks cached neighborhood exports when supplied access is denied", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+        status="denied"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByRole("table", { name: "Exact values" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+  });
+
+  it.each(["node", "edge"])("removes the selected %s details when supplied access is denied", async (selection) => {
+    const payload = neighborhood();
+    const props = { focusNodeType: "node_post", focusNodeId: POST_ID, neighborhood: payload };
+    const { rerender } = render(<OntologyExplorer {...props} status="ready" />);
+    await userEvent.click(screen.getByRole("button", {
+      name: selection === "node" ? "Select node: Post Demo public post" : /Select edge: mentions/,
+    }));
+    const drawer = selection === "node" ? "Node evidence" : "Edge provenance";
+    expect(screen.getByRole("complementary", { name: drawer })).toBeVisible();
+    rerender(<OntologyExplorer {...props} status="denied" />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+      expect(screen.queryByRole("complementary", { name: drawer })).not.toBeInTheDocument();
+      expect(screen.queryByText("Demo public post")).not.toBeInTheDocument();
+    });
+    rerender(<OntologyExplorer {...props} status="ready" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled());
+    expect(screen.getByRole("table", { name: "Exact values" })).toBeVisible();
+  });
+
 });

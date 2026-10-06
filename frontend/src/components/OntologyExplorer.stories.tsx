@@ -504,6 +504,23 @@ export const Partial: Story = {
   },
 };
 
+export const DeniedCachedEvidence: Story = {
+  args: {
+    neighborhood: combinedVoiceNeighborhood,
+    status: "denied",
+  },
+  play: ({ canvasElement }) => {
+    const exports = Array.from(canvasElement.querySelectorAll<HTMLButtonElement>("button"))
+      .filter((button) => button.textContent?.startsWith("Export "));
+    if (exports.length !== 2 || exports.some((button) => !button.disabled)) {
+      throw new Error("Denied evidence must not be downloadable");
+    }
+    if (canvasElement.querySelector(".ontology-exact-values, .ontology-drawer, .ontology-graph-desktop .ontology-node")) {
+      throw new Error("Denied evidence must not be rendered");
+    }
+  },
+};
+
 export const Denied: Story = {
   args: {
     neighborhood: null,
