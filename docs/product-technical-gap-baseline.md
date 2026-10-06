@@ -24,7 +24,7 @@ rendering, and authenticated API evidence before acceptance is complete.
 | PR | Exact current head | Current observation |
 |---:|---|---|
 | #1153 | `f18c736f4c51dea62d2f543134e077a3f9d9eb22` | Open on `main`; the four hosted test/code-analysis checks failed within 3–4 seconds without running steps. The frontend check annotation explicitly says the account is locked for a billing issue. CodeRabbit is rate-limited and Devin Review skipped its review, despite passing check statuses. No current-head approval or auto-merge request. On this exact head, 57 targeted frontend tests passed across the component, copy, and page-accumulation suites (one component-suite timeout under concurrent Storybook build passed on isolated rerun), 59 backend neighborhood tests and six token-file contract tests passed, lint and Storybook build passed, and desktop/mobile screenshots were inspected. The dedicated test access-token file was absent, so no authenticated API call was run. |
-| #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
+| #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four hosted test/code-analysis checks fail within 2–4 seconds. The frontend annotation explicitly reports the account locked for a billing issue. CodeRabbit completed a review and Devin completed analysis, but `reviewDecision` is empty and auto-merge is off. On this exact head, 40 focused recovery tests, lint, and Storybook build passed; the synthetic `DeniedCachedEvidence` story rendered at 1440×900 and 390×844 with no cached Post, disabled CSV/JSON-LD exports, and no page overflow. |
 | #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
 | #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four hosted test/code-analysis checks fail before running steps. The frontend check annotation explicitly reports the account locked for a billing issue. CodeRabbit reports a rate-limited review; `reviewDecision` is empty and auto-merge is off. Listed formal review objects are comments on predecessor heads; a fresh review-thread query was unavailable under the REST API rate limit. |
 | #1157 | `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` | Open on `main`; the old branch was synchronized with current `main` by merge commit `c4bda8c29a41109088d1f9718d588160be3a1801`. This later receipt changes supporting documentation only. Four of six reported check contexts fail, CodeRabbit is pending, Devin Review is successful, no formal review object or unresolved thread, no auto-merge request; merge state `UNSTABLE`. |
@@ -89,21 +89,26 @@ Recorded at columns were off-screen on narrow devices without a scroll cue.
 #1153 now adds localized guidance outside the horizontally scrollable table;
 the existing carrying-Post and derivation-evidence actions remain distinct.
 
-Exact-branch merge-tree comparisons show #1153 and #1159 conflict only in this
-supporting baseline. #1158 overlaps them in this baseline and
-`docs/storybook-inventory.md`; #1162 also overlaps #1153 in
-`OntologyExplorer.stories.tsx`, and #1159 in `OntologyExplorerRetry.stories.tsx`.
-#1157 conflicts with #1153, #1159, and #1162 in `OntologyExplorer.tsx`, its
-tests, and this baseline; it conflicts with #1158 only in the baseline. The
-remaining #1162 conflicts are this baseline and, with #1159/#1158,
-`docs/storybook-inventory.md`. #1164 merges cleanly with #1153 and #1162.
-`docs/product-requirements.md`, ADR 0184, ADR 0256, and other affected
-frontend/backend implementation and test files auto-merge. These are textual
-results only, not semantic acceptance. The #1159 delta merges cleanly with
-current `main`. These six candidates introduce no migration, API shape,
-dependency, or release-number delta. Reconcile supporting-document, Storybook,
-and component-test conflicts before integration and re-run hosted checks on
-any successor head; do not transfer prior checks or approvals.
+Exact merge-tree comparisons on the fetched heads show these file conflicts:
+
+- #1153 with #1159 conflicts only in this supporting baseline.
+- #1153 with #1157, and #1162 with #1157, conflict only in this baseline;
+  their changed component, story, and test files auto-merge.
+- #1153 with #1162 conflicts in this baseline and
+  `frontend/src/components/OntologyExplorer.stories.tsx`.
+- #1153 with #1158, and #1162 with #1158, conflict in this baseline and
+  `docs/storybook-inventory.md`.
+- #1162 with #1159 conflicts in this baseline, `docs/storybook-inventory.md`,
+  and `frontend/src/components/OntologyExplorerRetry.stories.tsx`.
+
+The affected `docs/product-requirements.md`, ADR 0184, ADR 0256, and the other
+implementation and test files auto-merge in those comparisons. These are
+textual results only, not semantic acceptance. The #1159 delta merges cleanly
+with current `main`. These candidates add no migration, API shape, dependency,
+or release-number delta. Reconcile supporting-document and Storybook conflicts
+after any protected parent merge, retarget a child only when it is actually
+stacked, and re-run hosted checks on each new head; do not transfer prior
+checks or approvals.
 
 On an isolated worktree at #1153's current exact head, local regressions passed:
 **59** ontology neighborhood and ingestion tests, **31** paged JSON-LD/CSV
