@@ -26,7 +26,7 @@ rendering, and authenticated API evidence before acceptance is complete.
 | #1153 | `f18c736f4c51dea62d2f543134e077a3f9d9eb22` | Open on `main`; the four hosted test/code-analysis checks failed within 3–4 seconds without running steps. The frontend check annotation explicitly says the account is locked for a billing issue. CodeRabbit is rate-limited and Devin Review skipped its review, despite passing check statuses. No current-head approval or auto-merge request. On this exact head, 57 targeted frontend tests passed across the component, copy, and page-accumulation suites (one component-suite timeout under concurrent Storybook build passed on isolated rerun), 59 backend neighborhood tests passed, lint and Storybook build passed, and desktop/mobile screenshots were inspected. |
 | #1159 | `8e420f3289da6d6de456cccea74aaf6293cd83ed` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Its latest listed review entries are comments, not approvals. |
 | #1158 | `f92dddb460fd73a20eafa7c26de8f49085821d9a` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request, merge state `DIRTY`. Its only review object is a bot comment on predecessor head `6e8f7c24ac58e2ace46118af66e84d8c1f6684c7`; GraphQL reports no unresolved review threads. |
-| #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four of six reported checks fail, two review-bot statuses succeed, no current-head approval decision, no auto-merge request. Listed review objects are comments on predecessor heads; GraphQL reports no unresolved review threads. |
+| #1162 | `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` | Open on `main`; four hosted test/code-analysis checks fail before running steps. The frontend check annotation explicitly reports the account locked for a billing issue. CodeRabbit reports a rate-limited review; `reviewDecision` is empty and auto-merge is off. Listed formal review objects are comments on predecessor heads; a fresh review-thread query was unavailable under the REST API rate limit. |
 | #1157 | `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` | Open on `main`; the old branch was synchronized with current `main` by merge commit `c4bda8c29a41109088d1f9718d588160be3a1801`. This later receipt changes supporting documentation only. Four of six reported check contexts fail, CodeRabbit is pending, Devin Review is successful, no formal review object or unresolved thread, no auto-merge request; merge state `UNSTABLE`. |
 | #1164 | `0289942d194c45d6e1012c082dfa401d3a2ba59e` | Open on `main`; the current hosted test jobs failed before any step ran, with GitHub reporting the account locked for a billing issue. `Analyze (actions)` has the same explicit billing failure; `Analyze (python)` is canceled. CodeRabbit is rate-limited and Devin Review skipped its review, despite their passing check statuses. There is no current-head approval or auto-merge request. The one-line test synchronization change is isolated from product code; its 102 `App.test.tsx` tests and the focused comparison-strip case pass locally. |
 | #1135 | `73ba540789d2f2210a17e7eb5396270dafa66589` | Open on `main`; seven reported check contexts fail and the merge state is `DIRTY`. Older comments are not approval evidence for this head. |
@@ -42,11 +42,14 @@ than a final no-match claim. A frontend regression test covers the latter.
 The two #1162 review findings are also covered on its current code head:
 denied Voice evidence hides further-page navigation and has 403/404
 regressions; the CSV test retains and checks the exact row object after
-escaping. GraphQL reports no unresolved review threads. The exact head's
-`Tests` workflow reports its full-suite and frontend jobs failed with zero
-steps, so those contexts contain no executed test result. Locally, three
-changed explorer/layout suites pass **68 tests**, along with frontend lint,
-production build, and Storybook build. No exported label or JSON-LD value is
+escaping. An earlier GraphQL read reported no unresolved review threads; the
+current REST review refresh hit the API rate limit. The exact head's four
+hosted test/code-analysis checks fail before executing their jobs, and the
+frontend annotation names the GitHub billing lock. This provides no hosted
+test result. Rechecked locally, the focused explorer and CSV suites pass **62
+tests**, frontend lint and Storybook build pass, and the synthetic
+`CSV Source Labels` story renders at **1440×900** and iPhone 13 **390×844**
+without page-level horizontal overflow. No exported label or JSON-LD value is
 rewritten in memory.
 
 PR #1157's stale head `2905bae54adb290c104c23210e3c1e098e401e31` was
