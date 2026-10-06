@@ -5,6 +5,7 @@ operator-facing control you can click before changing product CSS.
 
 | Story | Operator next action | Token / module |
 |---|---|---|
+| `Evidence/OccupationalConstructCatalogSearch/EmptyWithContinuation` | Check the next page when no matches have been admitted yet; no exhaustion or hidden-count claim. Desktop and mobile use existing search controls and tokens. | `OccupationalConstructCatalogSearch`, existing ontology tokens |
 | `Evidence/OntologyExplorer/SignInRequired` | Sign in again after authentication expires; no same-credential Retry or export is available. Desktop/mobile retain the shared named unavailable region. | `OntologyExplorer`, `StatusNotice`, existing status tokens |
 | `Evidence/OntologyExplorerRetry/InitialRequestRetry` | Retry the same failed related-information request without reopening the Post; desktop/mobile show the shared retry alert and keep exports disabled until evidence arrives. Synthetic diagnostics stay hidden. | `OntologyExplorer`, `StatusNotice`, existing badge-status tokens |
 | `Evidence/OntologyExplorer/FilteredExport` | Search for a relation, then export JSON-LD and CSV; both retain only the relationships shown in the exact-value table. Desktop/mobile reuse the existing graph and keyboard-scrollable table. | `OntologyExplorer`, `ontologyLayout`, existing ontology/table tokens |

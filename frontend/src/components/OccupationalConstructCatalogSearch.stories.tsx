@@ -24,6 +24,13 @@ const populated: OccupationalConstructSearchPage = {
 const meta = {
   title: "Evidence/OccupationalConstructCatalogSearch",
   component: OccupationalConstructCatalogSearch,
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      query: "Oral", family_code: null, next_cursor: null, hits: [],
+    }), { headers: { "Content-Type": "application/json" } });
+    return () => { globalThis.fetch = previousFetch; };
+  },
 } satisfies Meta<typeof OccupationalConstructCatalogSearch>;
 
 export default meta;
@@ -42,6 +49,14 @@ export const Populated: Story = {
 export const NoMatches: Story = {
   args: {
     page: { query: "Oral", family_code: null, next_cursor: null, hits: [] },
+    status: "empty",
+  },
+};
+
+export const EmptyWithContinuation: Story = {
+  args: {
+    accessToken: "synthetic-story-reader",
+    page: { query: "Oral", family_code: null, next_cursor: "https://data.onetcenter.org/element/1.A.1.a.1", hits: [] },
     status: "empty",
   },
 };
