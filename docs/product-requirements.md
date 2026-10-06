@@ -352,6 +352,9 @@ unbound, and prove the normalized snapshot store is immutable.
   keyset cursor for continuation.
 - Provide graph interaction and an exact-value alternative with the same
   authorized content.
+- Let users retry a failed first or continuation request with the same focus,
+  cutoff, and opaque cursor. Keep retry unavailable for denied evidence and
+  prevent duplicate retry while the request is processing.
 
 Acceptance: tamper, scope drift, snapshot drift, unsupported terms, and
 dangling endpoints fail closed; fixed input produces stable page boundaries.
