@@ -62,6 +62,13 @@ Migration replay also rebuilds a GIN index in 0035 that 0036 then drops,
 which adds minutes to each formal restart. No SLO is set from these
 observations.
 
+The full authenticated API module passes **126** cases with this change and
+skips **5**. The same **7** failures occur on unchanged `main`. Four post-detail
+cases lack the occupational-extraction table in the test fixture, one lacks the
+TEPP receipt table (#1166 adds that migration), and two Global Ask cases fail
+because the orchestrator returned no complete evidence object. None of these
+is attributed to this change.
+
 ### Cross-PR integration
 
 The new migration takes ordinal **0252**. Open drafts already use
