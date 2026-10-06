@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation sync and validation — 2026-10-06
+
+Current `main` is `8be55f0306015a1a8deda02fa9131e165254d239`.
+The live inventory is **187 open PRs**, **168 drafts**, **117 non-main
+bases**, and **42 open issues**. These are repository workflow counts only.
+
+PR #1158's exact feature head `f92dddb460fd73a20eafa7c26de8f49085821d9a`
+was based on older main `a67c5b0e725f40ac52cc6dcb1f2e5e4cb9d64644` and
+reported `DIRTY`. A normal merge of current main resolved the only textual
+conflicts in this baseline and `docs/storybook-inventory.md`; the resolution
+retains the main recovery stories and the feature's `EmptyWithContinuation`
+story. The new
+head is `f0f64d04641c7c73fc6148238084e4310b34778d`, based on current main, and
+is `UNSTABLE` while hosted checks fail. No force push was used.
+
+On that exact head, the empty-page continuation change keeps a next-page action
+after an empty authorized page and reports a final no-match only after the
+cursor is exhausted. Nine backend search tests, eight frontend tests, frontend
+lint, and Storybook build passed locally. The synthetic
+`EmptyWithContinuation` story rendered at **1440×900** and iPhone 13
+**390×844**; the next-page action remains visible, no final no-match is
+claimed, and the document has no horizontal overflow. Screenshots are not
+committed.
+
+Four hosted test/code-analysis checks failed within 2–4 seconds. The frontend
+annotation explicitly reports the GitHub account locked for a billing issue.
+CodeRabbit is rate-limited and Devin Review skipped its review, despite their
+passing status contexts. No exact-head human approval or auto-merge request
+exists. These results are not test execution, and no previous-head Checks or
+reviews are transferred. The change introduces no API shape, schema,
+migration, dependency, or release-number delta.
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
