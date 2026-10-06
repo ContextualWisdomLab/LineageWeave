@@ -1,5 +1,17 @@
 # Product & Technical Gap Baseline
 
+## Exact-head loop — 2026-10-07
+
+This overlay is the current delivery reading. Older sections remain history.
+
+- Protected `main` is `8be55f0306015a1a8deda02fa9131e165254d239`, which includes the merged ontology retry repair. That merge SHA is not authenticated customer acceptance.
+- PR #1159 is open at `b9e6b64b901f8a1057d40028516a6e070a92a5f2`. Its product-requirements sentence now matches ADR 0184: after a denied refocus, evidence and export return only from a replacement snapshot obtained after reauthorization. No independent approval exists on this head, and auto-merge stays unarmed.
+- PR #1135 is open at `debd66def941abf7030587f52413a9e5782e290d` after a non-force merge of current `main`. The resolution keeps the PyJWT 2.15.1 floor, Similar VOC authorization-scope reset, and localized retry copy. It is not merged.
+- Repository rules previously exposed only the no-force-push ruleset. This loop did not self-approve, bypass rules, force-push, or cancel current runs. Hosted Checks were not treated as a reason to weaken a workflow. A fresh hosted rollup was not claimed for these new heads.
+- ADR 0245 on `main` contained an unresolved merge marker and a link to a nonexistent SOC file under ADR number 0252. ADR 0252 remains temporal primary Voice history. The marker and false link are removed in the ADR repair branch; occupational classification is not silently reassigned.
+- The largest user-facing acceptance gap remains additional Voice evidence through an authenticated PostgreSQL API and rendered UI. A read-only administrative count from an earlier loop is not that proof. No population inference, weight, or unavailable measurement was invented.
+
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named
