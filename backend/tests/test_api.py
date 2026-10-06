@@ -163,6 +163,11 @@ _TEPP_LINEAGE_ANCHOR_MIGRATION = (
     / "migrations"
     / "0207_lineage_weight_tepp_anchor.sql"
 )
+_EXCERPT_TEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0252_source_post_excerpt_text.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -364,6 +369,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SOURCE_STATE_MIGRATION.read_text())
             cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
             cur.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text())
+            cur.execute(_EXCERPT_TEXT_MIGRATION.read_text())
             cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
             cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text())

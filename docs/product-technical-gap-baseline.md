@@ -1,5 +1,74 @@
 # Product & Technical Gap Baseline
 
+## Exact-head Voice acceptance and Board load loop — 2026-10-07 07:45 KST
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The paged
+inventory contains **190 open PRs**, **168 drafts**, **117 non-main bases**,
+and **42 open issues**; these are repository workflow counts, not corpus or
+population estimates.
+
+### Checks, reviews, and protection
+
+Every ready PR head re-read in this loop (#1167 through #1130) still has
+terminal CodeQL/test failures whose annotation states that the job was not
+started because the account is locked due to a billing issue. A failed-job
+rerun of #1167 at `08ff77868465a6ca3eba7c98d1e18d1d3132a724` failed the same
+way, so reruns cannot clear it. No ready PR has an approval on its current head
+or an unresolved review thread. The live rule set is still only no-force-push
+ruleset **21065108**. No self-approval, bypass, force push, or cancellation
+occurred, and auto-merge stays unarmed.
+
+### Formal stack drift repaired
+
+The formal `lineageweave` Compose services ran from four deleted temporary
+checkouts; `backend` had no orchestrator URL or key. The services in
+`main`'s default profile were recreated from an isolated `main` worktree with
+named volumes preserved. The live demo realm also refused the password grant
+that `main`'s realm export and integration tests declare; that client setting
+was restored to the export. `backend-ask-worker` and `mcp` remain from an
+earlier checkout because `main` does not define the worker service.
+
+### Voice acceptance on the authenticated PostgreSQL API
+
+Against the real Keycloak/PostgreSQL boundary, `main` passes hidden-evidence
+rejection and hidden-evidence omission but **fails** the round trip. The
+additional Voice persists with qualified derivation (HTTP 201), yet the
+immediate neighborhood read omits it. The cause is a clock mismatch:
+`snapshot_at` comes from the application clock, while assignments use
+PostgreSQL time, measured **~0.10 s** ahead. PR #1153 at
+`f18c736f4c51dea62d2f543134e077a3f9d9eb22` already carries the
+database-clock repair. At that exact head the same authenticated cases pass
+(**8**). So do **93** ontology, Voice-history, docstring, and acceptance tests,
+plus frontend lint, **571** tests, and the build. #1153 needs hosted checks and
+an independent approval; this loop does not certify rendered authenticated UI.
+
+### Board load bottleneck (observed, partly repaired)
+
+A synthetic authenticated k6 run (4 VUs, 20 s) on the formal stack had **0**
+failed requests, **16.0 req/s**, and **790 ms** p95. PostgreSQL used about
+**380%** CPU while every other service stayed under 13%. Sampled active queries
+were the Board page and its filter-options scan. Each 420-character excerpt
+regex-normalized the whole body (**5.6 GB** across **43,189** rows).
+
+The ADR 0053 amendment adds `source_post_excerpt_text`, which normalizes a
+bounded prefix and falls back to the full body when needed. It returned
+identical text for all **43,189** local rows. On the same 50 rows it took
+**85 ms**, where full normalization took **374–414 ms**. After the change,
+k6 recorded **17.2 req/s** and **762 ms** p95 with **0** failures.
+PostgreSQL stays CPU-bound on two measured costs that remain unchanged: the
+full-population `count(*) over()` window (~120 ms) and the filter-options
+scan (~260 ms) per Board read. Changing either needs a separate decision.
+Migration replay also rebuilds a GIN index in 0035 that 0036 then drops,
+which adds minutes to each formal restart. No SLO is set from these
+observations.
+
+### Cross-PR integration
+
+The new migration takes ordinal **0252**. Open drafts already use
+0246–0251; none uses 0252. The change adds no ADR ordinal, API field, or
+release number. Earlier draft-stack collision groups remain as recorded below.
+
+
 ## Exact-head authentication recovery and integration audit — 2026-10-04 12:38 KST
 
 This overlay supersedes older live-state wording only at the exact heads named

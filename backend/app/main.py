@@ -1631,7 +1631,7 @@ async def list_posts(
                                strpos(lower(source_post_search_text(post.post_body)), lower($1)) - 140
                            ) for 420
                        ))
-                       else btrim(left(source_post_search_text(post.post_body), 420))
+                       else source_post_excerpt_text(post.post_body, 420)
                    end as post_body_excerpt,
                    char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
                    coalesce(projects.project_evidence, '[]'::json) as project_evidence,
@@ -2876,7 +2876,7 @@ async def read_post_lineage(
             # Safe SQL: the eligibility predicate is an immutable schema fragment; candidate ids are bound.
             fetched = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 "select post_id, post_title, visibility_code, corporate_entity_id, process_unit_id, "
-                "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
+                "source_post_excerpt_text(post_body, 420) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
                 f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
                 list(candidate_ids),
