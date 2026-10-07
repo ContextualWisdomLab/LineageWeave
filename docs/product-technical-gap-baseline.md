@@ -1,5 +1,6 @@
 # Product & Technical Gap Baseline
 
+
 ## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
 
 This dated overlay supersedes older present-tense queue statements. Historical
@@ -2747,3 +2748,5 @@ Current external authority references were checked at their canonical remotes: R
 
 
 Focused local checks on the bounded PR sample also passed: #1169 at `2e54b725832afa45a59f754ecd6ff0d85658d52c` passed 8 Voice-form tests, frontend lint/build, and Storybook build; synthetic Retry and Sign-in states were visually checked at desktop and mobile sizes. #1167 at `08ff77868465a6ca3eba7c98d1e18d1d3132a724` passed 4 Dashboard tests, lint/build, and Storybook build; its failed-analysis state was visually checked at both sizes. #1165 at `80f24209e75891f0b2a419eae7ddd42590f7593f` passed 7 ADR-marker and documentation-hygiene tests. #1164 at `0289942d194c45d6e1012c082dfa401d3a2ba59e` passed its changed report-member wait test. A different existing App test failed when isolated on both #1164 and its pre-change base `8be55f0`; the #1153 candidate's complete frontend suite passed, so this observation is not attributed to #1164. #1168 at `f4900a08d44672bdb4fc413987366f3bbaca6a7c` passed 6 synthetic excerpt privacy/documentation tests; its throwaway PostgreSQL migration test was not run against the active canonical stack. These local results do not replace each PR's failed hosted Checks, and no authenticated PostgreSQL API acceptance was collected.
+
+PR #1162 at `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` passed all 582 frontend tests, lint, production build, and Storybook build. Its synthetic CSV round-trip preserves a newline in the source label and distinguishes the carrying Post from the derivation-evidence Post. The branch-specific mobile Storybook capture shows the Evidence columns outside the initial viewport without a scroll cue; the current #1153 candidate adds a visible cue, but merge-tree reports a conflict in `OntologyExplorer.stories.tsx`. The #1162 design therefore needs parent/base reconciliation and a fresh mobile screenshot before UI acceptance. This is synthetic local evidence only.
