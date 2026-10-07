@@ -4,9 +4,10 @@
 
 This observation supersedes earlier live-state summaries only for the heads
 listed here. Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`,
-also the confirmed merge SHA of #1160 (merged before this cycle). PR #1169 is
-now exact head `0e1a19064f291b84941053b375953631ef9934b0`; Git transport
-confirms that SHA on `fix/voice-save-recovery-20261007`. Before publishing this
+also the confirmed merge SHA of #1160 (merged before this cycle). PR #1169's
+code repair head before this documentation receipt was
+`0e1a19064f291b84941053b375953631ef9934b0`; this receipt advances the branch and
+requires a fresh Checks/review read before lifecycle action. Before publishing this
 recovery slice, the paged inventory contained **191 open PRs**, **168 drafts**,
 **117 non-main bases**, and **42 open issues**. A second inventory found no head
 drift. These are repository workflow counts, not private-record or population
@@ -106,8 +107,9 @@ All 23 ready PRs were inspected for review threads and current-head approvals
 before #1169 opened. #1169 then received one valid CodeRabbit review finding on
 `a1475b1229aab918946eca2400093a647316489e`; the current head
 `0e1a19064f291b84941053b375953631ef9934b0` applies that packaging-floor repair.
-GitHub REST rate limiting prevents a fresh exact-head Checks reread for that
-new SHA in this turn. None of the earlier ready PRs has an APPROVED review on
+This documentation receipt advances the branch again. GitHub REST rate limiting
+prevents a fresh exact-head Checks reread for the resulting SHA in this turn.
+None of the earlier ready PRs has an APPROVED review on
 its present head; #1130's displayed approval belongs to an older commit. #1168 has a valid unresolved credential-bearing
 skip-message finding. Its existing owner worktree already contains the privacy
 repair and regression test; those uncommitted agent changes were preserved,
@@ -116,7 +118,7 @@ Other ready PRs have no unresolved threads in this observation.
 
 | PR | Exact observed head | Check runs; failed; pending |
 |---|---|---|
-| #1169 | `0e1a19064f291b84941053b375953631ef9934b0` | REST rate-limited after push; exact-head Checks unverified |
+| #1169 | code repair `0e1a19064f291b84941053b375953631ef9934b0`; later documentation receipt on same branch | REST rate-limited after push; resulting exact-head Checks unverified |
 | #1168 | `603f6653cc0e94ebd208a02b46e5899e53ef854a` | 4; 4 failures; 0 pending |
 | #1167 | `08ff77868465a6ca3eba7c98d1e18d1d3132a724` | 4; 4 failures; 0 pending |
 | #1166 | `0dc48e644deb0f0db775ac1271bf00978a2aef31` | 4; 4 failures; 0 pending |
