@@ -110,31 +110,63 @@ async def resolve_organization_name(
 
 async def fetch_corroborated_organization_aliases(
     conn: asyncpg.Connection,
+    *,
+    organization_names: tuple[str, ...] | None = None,
 ) -> tuple[OrganizationNameAlias, ...]:
-    """Load corroborated pairs with a unique current catalog target, if any.
+    """Load corroborated aliases, optionally bounded to observed names.
 
-    Pending and uncorroborated rows stay out. The statement is a static
-    literal; only the status code is bound. Same-named catalog rows fail
+    ``organization_names`` narrows the resolution rows and catalog-name join
+    before they enter application memory. Callers that need the complete
+    corroborated alias catalog may omit it and retain the existing behavior.
+    Pending and uncorroborated rows stay out, and same-named catalog rows fail
     closed with a null target id.
     """
-    rows = await conn.fetch(
-        """
-        select resolution.raw_organization_name,
-               resolution.resolved_organization_name,
-               case when count(distinct entity.corporate_entity_id) = 1
-                    then min(entity.corporate_entity_id::text)
-                    else null
-               end as corporate_entity_id
-        from organization_name_resolution as resolution
-        left join corporate_entity as entity
-          on entity.entity_name = resolution.raw_organization_name
-          or entity.entity_name = resolution.resolved_organization_name
-        where resolution.verification_status_code = $1
-        group by resolution.raw_organization_name,
-                 resolution.resolved_organization_name
-        """,
-        STATUS_CORROBORATED,
-    )
+    if organization_names is None:
+        rows = await conn.fetch(
+            """
+            select resolution.raw_organization_name,
+                   resolution.resolved_organization_name,
+                   case when count(distinct entity.corporate_entity_id) = 1
+                        then min(entity.corporate_entity_id::text)
+                        else null
+                   end as corporate_entity_id
+            from organization_name_resolution as resolution
+            left join corporate_entity as entity
+              on entity.entity_name = resolution.raw_organization_name
+              or entity.entity_name = resolution.resolved_organization_name
+            where resolution.verification_status_code = $1
+            group by resolution.raw_organization_name,
+                     resolution.resolved_organization_name
+            """,
+            STATUS_CORROBORATED,
+        )
+    else:
+        names = sorted({name.strip() for name in organization_names if name.strip()})
+        if not names:
+            return ()
+        rows = await conn.fetch(
+            """
+            select resolution.raw_organization_name,
+                   resolution.resolved_organization_name,
+                   case when count(distinct entity.corporate_entity_id) = 1
+                        then min(entity.corporate_entity_id::text)
+                        else null
+                   end as corporate_entity_id
+            from organization_name_resolution as resolution
+            left join corporate_entity as entity
+              on entity.entity_name = resolution.raw_organization_name
+              or entity.entity_name = resolution.resolved_organization_name
+            where resolution.verification_status_code = $1
+              and (
+                  resolution.raw_organization_name = any($2::text[])
+                  or resolution.resolved_organization_name = any($2::text[])
+              )
+            group by resolution.raw_organization_name,
+                     resolution.resolved_organization_name
+            """,
+            STATUS_CORROBORATED,
+            names,
+        )
     return tuple(
         OrganizationNameAlias(
             alt_label=row["raw_organization_name"],
