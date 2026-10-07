@@ -3,6 +3,7 @@ import { AuthContext } from "react-oidc-context";
 import "./SimilarVocPanel.css";
 
 import type { SimilarVocItem } from "../api";
+import { t, tf } from "../i18n";
 import { StatusNotice } from "./StatusNotice";
 
 type Props = {
@@ -51,8 +52,8 @@ export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoad
   return (
     <section className="similar-voc" aria-labelledby={headingId}>
       <header>
-        <h3 id={headingId}>유사 VOC · 고객군 확인</h3>
-        <p>같은 문제 유형으로 판정된 과거 근거와 조치 이력을 확인하세요.</p>
+        <h3 id={headingId}>{t("Similar VOC · customer cohort check")}</h3>
+        <p>{t("Review prior evidence and action history adjudicated under the same issue type.")}</p>
       </header>
       {scopedError ? (
         <StatusNotice
@@ -61,35 +62,35 @@ export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoad
           nextAction={
             retryLoadedPage
               ? hasRetainedEvidence
-                ? "불러온 근거는 그대로 유지됩니다. 실패한 다음 페이지를 다시 요청하세요."
-                : "실패한 다음 페이지를 다시 요청하세요."
-              : "같은 조회를 다시 시도하세요."
+                ? t("Loaded evidence stays visible. Request the failed next page again.")
+                : t("Request the failed next page again.")
+              : t("Try the same lookup again.")
           }
-          retryLabel={retryLoadedPage ? "이전 VOC 더 불러오기 다시 시도" : "유사 VOC 다시 조회"}
+          retryLabel={retryLoadedPage ? t("Retry loading more prior VOC") : t("Look up similar VOC again")}
           onRetry={retryAction ?? undefined}
         />
       ) : null}
       {scopedItems === null && !scopedError ? (
-        <p role="status">유사 VOC 근거를 판정하고 있습니다.</p>
+        <p role="status">{t("Adjudicating similar VOC evidence.")}</p>
       ) : scopedItems?.length === 0 && !scopedError ? (
-        <p role="status">같은 문제 유형으로 판정된 과거 VOC가 없습니다.</p>
+        <p role="status">{t("No prior VOC adjudicated under the same issue type.")}</p>
       ) : scopedItems && scopedItems.length > 0 ? (
         <ol>
           {scopedItems.map((item) => (
             <li key={item.post_id}>
               <article>
-                <p className="similar-voc-time">사건 시각 {new Date(item.occurred_at).toLocaleString()}</p>
+                <p className="similar-voc-time">{tf("Event time {time}", { time: new Date(item.occurred_at).toLocaleString() })}</p>
                 <h4>{item.post_title}</h4>
                 <p>{item.issue_summary}</p>
-                <p><strong>현재 글 근거</strong></p>
+                <p><strong>{t("Current post evidence")}</strong></p>
                 <blockquote>{item.focal_evidence_text}</blockquote>
-                <p><strong>과거 글 근거</strong></p>
+                <p><strong>{t("Prior post evidence")}</strong></p>
                 <blockquote>{item.candidate_evidence_text}</blockquote>
                 <dl>
-                  <div><dt>고객군</dt><dd>{item.customer_cohort_text ?? "동일 고객 근거 없음"}</dd></div>
-                  <div><dt>과거 조치</dt><dd>{item.action_history.length ? <ul>{item.action_history.map((action) => <li key={action}>{action}</li>)}</ul> : "기록된 조치 없음"}</dd></div>
+                  <div><dt>{t("Customer cohort")}</dt><dd>{item.customer_cohort_text ?? t("No shared customer evidence")}</dd></div>
+                  <div><dt>{t("Prior action")}</dt><dd>{item.action_history.length ? <ul>{item.action_history.map((action) => <li key={action}>{action}</li>)}</ul> : t("No recorded action")}</dd></div>
                 </dl>
-                <button type="button" onClick={() => onOpenPost(item.post_id)}>근거 글 열기</button>
+                <button type="button" onClick={() => onOpenPost(item.post_id)}>{t("Open evidence post")}</button>
               </article>
             </li>
           ))}
@@ -97,7 +98,7 @@ export function SimilarVocPanel({ sourcePostId, items, error, onOpenPost, onLoad
       ) : null}
       {scopedOnLoadMore && !retryLoadedPage ? (
         <button type="button" onClick={scopedOnLoadMore} disabled={scopedLoadingMore}>
-          {scopedLoadingMore ? "이전 VOC를 불러오는 중..." : "이전 VOC 더 보기"}
+          {scopedLoadingMore ? t("Loading more prior VOC...") : t("Show more prior VOC")}
         </button>
       ) : null}
     </section>

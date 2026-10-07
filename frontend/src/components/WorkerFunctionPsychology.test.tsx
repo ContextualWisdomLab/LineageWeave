@@ -88,4 +88,31 @@ describe("WorkerFunctionPsychology", () => {
     expect(screen.queryByText("Analyzing")).not.toBeInTheDocument();
     expect(screen.getByText("Catalog dimensions")).toBeVisible();
   });
+
+  it("does not turn an unsafe catalog IRI into a link", () => {
+    const unsafeCatalog = {
+      ...CATALOG,
+      constructs: {
+        cognitive: [{ ...CATALOG.constructs.cognitive![0], iri: "javascript:alert(1)" }],
+        affective: [],
+        behavioral: [],
+      },
+    };
+    render(<WorkerFunctionPsychology profile={null} catalog={unsafeCatalog} />);
+    expect(screen.queryByRole("link", { name: "Mental Workload" })).not.toBeInTheDocument();
+    expect(screen.getByText("Mental Workload")).toBeInTheDocument();
+  });
+
+  it("keeps duplicate construct IRIs as distinct rendered entries", () => {
+    const duplicateCatalog = {
+      ...CATALOG,
+      constructs: {
+        cognitive: [CATALOG.constructs.cognitive![0], CATALOG.constructs.cognitive![0]],
+        affective: [],
+        behavioral: [],
+      },
+    };
+    render(<WorkerFunctionPsychology profile={null} catalog={duplicateCatalog} />);
+    expect(screen.getAllByRole("link", { name: "Mental Workload" })).toHaveLength(2);
+  });
 });

@@ -26,7 +26,18 @@ boundary.
 The browser API client is a second trust boundary: HTTP 5xx details are
 discarded, and transport failures become a stable status-0 client error
 before any UI handler can render them. Client-error details remain available
-only for actionable validation or authorization responses.
+to the API consumer, but an HTTP status alone does not certify their text as
+buyer-safe. The browser's shared presentation boundary uses the localized
+action-specific fallback for 4xx errors instead of rendering response details
+or route paths. Status codes remain available for authorization, conflict,
+and unavailable handling. A future structured validation-copy contract must
+be governed before it can replace that fallback.
+
+A failed asynchronous Ask job is also an untrusted response envelope, even
+when polling returns HTTP 200. Its persisted failure detail never becomes a
+client-created user-facing exception. The browser supplies a fixed retry
+message and keeps the question available for retry. This does not change
+the job's terminal status, evidence, or server-side failure record.
 
 Missing or malformed evidence remains unavailable; it is never converted into
 a fabricated negative result. Existing input-validation errors outside a

@@ -8,6 +8,34 @@ describe("AskAgentPanel public verification", () => {
     vi.unstubAllGlobals();
   });
 
+  it("keeps a failed question retryable without rendering persisted diagnostics", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-job", job_status_code: "queued" }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ask_job_id: "synthetic-job", job_status_code: "failed",
+        failure_detail: "synthetic provider diagnostic and hidden evidence",
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ask_job_id: "synthetic-retry", job_status_code: "queued" }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ask_job_id: "synthetic-retry", job_status_code: "succeeded",
+        answer: { answer_text: "Authorized synthetic answer", cited_post_ids: [], source_post_ids: [] },
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AskAgentPanel accessToken="access-token" onOpenPost={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Ask a question"), "Which evidence is available?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The request could not be completed. Try again later.");
+    expect(screen.queryByText(/synthetic provider diagnostic/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Ask a question")).toHaveValue("Which evidence is available?");
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("Authorized synthetic answer")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toEqual(
+      JSON.parse(String(fetchMock.mock.calls[0][1]?.body)),
+    );
+  });
+
   it("keeps public verification separate and renders cutoff provenance", async () => {
     const fetchMock = vi
       .fn()

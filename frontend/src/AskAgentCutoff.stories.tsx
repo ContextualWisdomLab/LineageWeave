@@ -63,3 +63,23 @@ export const NarrowViewport: Story = {
   ...PartialHistoricalEvidence,
   globals: { viewport: { value: "mobile1", isRotated: false } },
 };
+
+export const FailedQuestionRetry: Story = {
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (_input, init) => new Response(JSON.stringify(
+      init?.method === "POST"
+        ? { ask_job_id: "synthetic-failed-job", job_status_code: "queued" }
+        : { ask_job_id: "synthetic-failed-job", job_status_code: "failed",
+            failure_detail: "synthetic provider diagnostic" },
+    ), { status: init?.method === "POST" ? 202 : 200 });
+    return () => { globalThis.fetch = previousFetch; };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByLabelText("Ask a question"), "Which evidence is available?");
+    await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
+    await expect(canvas.findByRole("alert")).resolves.toHaveTextContent("Try again later.");
+    await expect(canvas.getByRole("button", { name: "Retry" })).toBeVisible();
+  },
+};
