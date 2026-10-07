@@ -4,11 +4,13 @@
 
 This observation supersedes earlier live-state summaries only for the heads
 listed here. Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`,
-also the confirmed merge SHA of #1160 (merged before this cycle). Before
-publishing this recovery slice, the paged inventory contained **191 open PRs**,
-**168 drafts**, **117 non-main bases**, and **42 open issues**. A second
-inventory found no head drift. These are repository workflow counts, not
-private-record or population estimates.
+also the confirmed merge SHA of #1160 (merged before this cycle). PR #1169 is
+now exact head `0e1a19064f291b84941053b375953631ef9934b0`; Git transport
+confirms that SHA on `fix/voice-save-recovery-20261007`. Before publishing this
+recovery slice, the paged inventory contained **191 open PRs**, **168 drafts**,
+**117 non-main bases**, and **42 open issues**. A second inventory found no head
+drift. These are repository workflow counts, not private-record or population
+estimates.
 
 ### Product gap, implementation, and authority
 
@@ -25,10 +27,14 @@ retains selections for transient retries, and withholds success until the save
 resolves. A 401 asks the reader to sign in and reopen the Post; a 403, 404, or
 409 asks them to reopen it and disables the same rejected save. No response
 body, provider name, exception text, or internal identifier is rendered.
-Existing locale resources and tokens are reused. ADR 0123/0220 already govern
-this behavior; the supporting PRD, Storybook inventory, and changelog fragment
-are synchronized. No new ADR ordinal, API, schema, numerical operation, Voice
-code, combination enumeration, or release number is introduced.
+Existing locale resources and tokens are reused. The latest exact-head repair
+`0e1a19064f291b84941053b375953631ef9934b0` also raises the build backend floor
+to `setuptools>=77.0.0`, matching the SPDX license metadata contract introduced
+by the PR without changing package identity or runtime behavior. ADR 0123/0220
+already govern the user-facing recovery behavior; the supporting PRD, Storybook
+inventory, changelog fragment, and packaging metadata are synchronized. No new
+ADR ordinal, API, schema, numerical operation, Voice code, combination
+enumeration, or release number is introduced.
 
 Current LineageWeave PRD and ADR 0246/0251/0256/0184/0123/0220 were read before
 implementation. ADR 0246 owns the twelve extensible atomic Voices; current ADR
@@ -61,8 +67,11 @@ Sequential Thinking and graph-memory tools are not exposed in this session.
 
 - Before the repair, the added frontend regressions fail **7 cases**. After
   repair, frontend lint, **60 files / 575 tests**, production build, and
-  Storybook build pass. A focused rerun also covers same-subject JSON-LD
-  property/multi-Voice unions and carrying-versus-evidence CSV behavior.
+  Storybook build pass. The exact-head packaging review repair parses
+  `pyproject.toml`, confirms `license = "MIT"` with `setuptools>=77.0.0`, passes
+  `tests/test_public_docstrings.py` (**2 tests**), and reruns frontend lint.
+  A focused rerun also covers same-subject JSON-LD property/multi-Voice unions
+  and carrying-versus-evidence CSV behavior.
 - Related backend, Voice, ontology, SHACL, and documentation tests pass
   **67 tests**, treating `DeprecationWarning` as an error. The pre-existing
   approximately **554 kB** frontend chunk warning remains visible.
@@ -93,9 +102,13 @@ Sequential Thinking and graph-memory tools are not exposed in this session.
 
 ### Exact-head review and Checks
 
-All 23 ready PRs were inspected for review threads and current-head approvals.
-None has an APPROVED review on its present head; #1130's displayed approval
-belongs to an older commit. #1168 has a valid unresolved credential-bearing
+All 23 ready PRs were inspected for review threads and current-head approvals
+before #1169 opened. #1169 then received one valid CodeRabbit review finding on
+`a1475b1229aab918946eca2400093a647316489e`; the current head
+`0e1a19064f291b84941053b375953631ef9934b0` applies that packaging-floor repair.
+GitHub REST rate limiting prevents a fresh exact-head Checks reread for that
+new SHA in this turn. None of the earlier ready PRs has an APPROVED review on
+its present head; #1130's displayed approval belongs to an older commit. #1168 has a valid unresolved credential-bearing
 skip-message finding. Its existing owner worktree already contains the privacy
 repair and regression test; those uncommitted agent changes were preserved,
 not overwritten, committed by this slice, or counted as delivered.
@@ -103,6 +116,7 @@ Other ready PRs have no unresolved threads in this observation.
 
 | PR | Exact observed head | Check runs; failed; pending |
 |---|---|---|
+| #1169 | `0e1a19064f291b84941053b375953631ef9934b0` | REST rate-limited after push; exact-head Checks unverified |
 | #1168 | `603f6653cc0e94ebd208a02b46e5899e53ef854a` | 4; 4 failures; 0 pending |
 | #1167 | `08ff77868465a6ca3eba7c98d1e18d1d3132a724` | 4; 4 failures; 0 pending |
 | #1166 | `0dc48e644deb0f0db775ac1271bf00978a2aef31` | 4; 4 failures; 0 pending |
