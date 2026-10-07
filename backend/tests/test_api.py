@@ -163,6 +163,11 @@ _TEPP_LINEAGE_ANCHOR_MIGRATION = (
     / "migrations"
     / "0207_lineage_weight_tepp_anchor.sql"
 )
+_TEPP_RECEIPT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0217_analysis_run_tepp_receipt.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -413,6 +418,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_UNION_MIGRATION.read_text())
             cur.execute(_PAIR_JUDGMENT_MIGRATION.read_text())
             cur.execute(_TEPP_LINEAGE_ANCHOR_MIGRATION.read_text())
+            cur.execute(_TEPP_RECEIPT_MIGRATION.read_text())
             # Product reconstruction fails closed without an ACTIVATED
             # estimate (ADR 0200 points 1+3); this synthetic fixture set
             # under the authorized anchor stands in for a fast-mlsirm
