@@ -166,6 +166,7 @@ describe("App, authenticated", () => {
     askImageCitation?: boolean;
     askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
+    startFailure?: { status: number; detail: string };
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -650,6 +651,11 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-tepp/start") && method === "POST") {
+        if (options?.startFailure) {
+          return Promise.resolve(new Response(JSON.stringify({ detail: options.startFailure.detail }), {
+            status: options.startFailure.status,
+          }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-tepp",
@@ -3415,11 +3421,11 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Analysis runs" });
-    expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
-    expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
+    expect(list).toHaveTextContent("Record connections · Succeeded · Demo Corp");
+    expect(list).toHaveTextContent("Record measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then retry with the latest available records.",
+      "Open this run to review its status. Ask an administrator to restore analysis before requesting another run.",
     );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
@@ -3435,10 +3441,10 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+        name: "Open analysis run: Record connections · Succeeded · Demo Corp",
       }),
     );
-    expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Record connections · Succeeded · Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
     const digests = screen.getByLabelText("Analysis run reproducibility digests");
@@ -3509,15 +3515,18 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: Record measurement · Failed · Demo Corp",
       }),
     );
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Record measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
     const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
-    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · Analysis unavailable");
+    expect(screen.getByText(/selected for measurement, but this run has no result/i)).toBeInTheDocument();
+    expect(teppHistory.closest(".popup-section")).not.toHaveTextContent(
+      /TEPP|transport|provider|model|worker|tepp_/i,
+    );
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
@@ -3527,7 +3536,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+        name: "Open analysis run: Record connections · Succeeded · Demo Corp",
       }),
     );
     await userEvent.click(
@@ -3569,22 +3578,22 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
-  it("tells a running lineage run to refresh the durable outbox", async () => {
+  it("tells a running lineage run to refresh its status without another start", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App showLabPanels />);
 
     const lineageButton = await screen.findByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
+      name: "Open analysis run: Record connections · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run to see whether the analysis has finished.",
     );
     await userEvent.click(lineageButton);
     expect(
       screen.queryByRole("button", { name: "Start reconstruction" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run to see whether the analysis has finished."),
     ).not.toHaveLength(0);
   });
 
@@ -3594,17 +3603,17 @@ describe("App, authenticated", () => {
 
     await screen.findByRole("list", { name: "Analysis runs" });
     const lineageButton = screen.getByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
+      name: "Open analysis run: Record connections · Failed · Demo Corp",
     });
     const teppButton = screen.getByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      name: "Open analysis run: Record measurement · Failed · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
       "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then retry with the latest available records.",
+      "Open this run to review its status. Ask an administrator to restore analysis before requesting another run.",
     );
     expect(teppButton).not.toHaveTextContent("measurement service");
     expect(teppButton).not.toHaveTextContent("reconstruction");
@@ -3905,17 +3914,17 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: Record measurement · Pending · Demo Corp",
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
+      await screen.findByText("These posts are selected for measurement. Start this run to request a result."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start measurement" })).toBeInTheDocument();
   });
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
@@ -3924,14 +3933,14 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: Record measurement · Pending · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start measurement" }));
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Record measurement · Failed · Demo Corp" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
+    expect(screen.getByText(/Analysis unavailable/)).toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     const startCall = fetchMock.mock.calls.find((call) =>
@@ -3940,22 +3949,39 @@ describe("App, authenticated", () => {
     expect(startCall?.[1]?.method).toBe("POST");
   });
 
+  it.each([
+    [409, "Refresh this run to see whether the analysis has finished."],
+    [503, "Ask an administrator to restore analysis before requesting another run."],
+  ])("keeps failed start details out of the customer view (%i)", async (status, action) => {
+    stubBackend({
+      pendingTeppRun: true,
+      startFailure: { status, detail: "synthetic provider and worker diagnostics" },
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Record measurement · Pending · Demo Corp",
+    }));
+    await userEvent.click(screen.getByRole("button", { name: "Start measurement" }));
+    expect(await screen.findByText(action)).toBeInTheDocument();
+    expect(screen.queryByText(/synthetic provider and worker diagnostics/i)).not.toBeInTheDocument();
+  });
+
   it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
     const fetchMock = stubBackend();
     render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: Record measurement · Failed · Demo Corp",
       }),
     );
     expect(
       await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+        "Ask an administrator to restore analysis before requesting another run.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Record measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
     expect(
       fetchMock.mock.calls.some(
         (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
@@ -3969,11 +3995,11 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp",
+        name: "Open analysis run: Record measurement · Succeeded · Demo Corp",
       }),
     );
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByText("These posts were used for measurement. Review this run's status and available evidence."),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Measurement request accepted")).toHaveTextContent(
       "Refresh this run to check whether results are ready.",
@@ -3990,11 +4016,11 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
     );
     expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Record connections · Pending · Demo Corp" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp",
+        name: "Open analysis run: Record connections · Pending · Demo Corp",
       }),
     ).toBeInTheDocument();
     expect(
@@ -4085,7 +4111,7 @@ describe("App, authenticated", () => {
     );
     await userEvent.click(await screen.findByRole("button", { name: "Start reconstruction" }));
     expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Record connections · Succeeded · Demo Corp" }),
     ).toBeInTheDocument();
     const fork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
     expect(fork).toHaveTextContent(

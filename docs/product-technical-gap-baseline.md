@@ -1447,7 +1447,6 @@ hidden-evidence omission, distinct carrying/evidence navigation, paged JSON-LD
 parity, and protected-main delivery remain separate gates. This focused
 rendering repair does not complete Voice acceptance or a release.
 
-## Current protected delivery and evidence-preserving export — 2026-10-02 20:39 KST
 ## Exact-head review repair and current acceptance boundary — 2026-10-02 23:12 KST
 
 This overlay records the latest read before the JSON-LD label repair was pushed.

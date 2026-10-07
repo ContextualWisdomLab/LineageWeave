@@ -158,13 +158,11 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     if run_kind_code == _REPORT_KIND:
         return AnalysisRunStartError(
             422,
-            "Rebuild the period report from the reports panel. "
-            "This start path does not invent a measurement.",
+            "Open the period report to rebuild it.",
         )
     return AnalysisRunStartError(
         422,
-        "Start reconstructs a Pending lineage run or submits TEPP. "
-        "This start path does not invent a measurement.",
+        "This run cannot be started here. Open it to review its status.",
     )
 
 
@@ -897,8 +895,8 @@ async def enqueue_pending_analysis_run(
         if latest_outbox_delivery_is_delivered(latest):
             raise AnalysisRunStartError(
                 409,
-                "Open this run. Start is only for a Pending lineage reconstruction "
-                "or TEPP measurement.",
+                "This run cannot start from its current status. "
+                "Refresh it to see the latest status.",
             )
         has_outbox = await conn.fetchval(
             """
@@ -909,8 +907,8 @@ async def enqueue_pending_analysis_run(
         if has_outbox is None:
             raise AnalysisRunStartError(
                 409,
-                "Open this run. Start is only for a Pending lineage reconstruction "
-                "or TEPP measurement.",
+                "This run cannot start from its current status. "
+                "Refresh it to see the latest status.",
             )
         return await _attach_outbox_digest(
             conn,
@@ -921,8 +919,8 @@ async def enqueue_pending_analysis_run(
     if locked_status != _PENDING:
         raise AnalysisRunStartError(
             409,
-            "Open this run. Start is only for a Pending lineage reconstruction "
-            "or TEPP measurement.",
+            "This run cannot start from its current status. "
+            "Refresh it to see the latest status.",
         )
 
     now = await conn.fetchval("select clock_timestamp()")
@@ -1074,8 +1072,8 @@ async def _claim_delivery_plan(
     if outbox is None:
         raise AnalysisRunStartError(
             409,
-            "Open this run. Start is only for a Pending lineage reconstruction "
-            "or TEPP measurement.",
+            "This run cannot start from its current status. "
+            "Refresh it to see the latest status.",
         )
     latest = await _latest_outbox_delivery(conn, analysis_run_id)
     if latest_outbox_delivery_is_delivered(latest):
@@ -1115,9 +1113,8 @@ async def _claim_delivery_plan(
     if weights is None:
         raise AnalysisRunStartError(
             503,
-            "Channel weights are not estimated yet for this run's active "
-            f"channels ({', '.join(sorted(active_channels))}). Run "
-            "scripts/estimate_channel_weights.py, then start this run again.",
+            "Required evidence for reconstruction is unavailable. "
+            "Ask an administrator to review this run before starting it again.",
         )
     return _DeliveryPlan(
         _LINEAGE_KIND,
@@ -1147,9 +1144,8 @@ def _execute_delivery_plan(
         except _AdjudicationProviderError as exc:
             raise AnalysisRunStartError(
                 503,
-                "The adjudication provider failed mid-reconstruction; nothing "
-                "was persisted. Check the contextual-orchestrator transport, "
-                "then start this run again.",
+                "This run could not finish, and no result was saved. "
+                "Ask an administrator to restore analysis, then start it again.",
             ) from exc
         return _DeliveryOutcome(plan.work_kind_code, plan.started_at, tuple(edges))
 
