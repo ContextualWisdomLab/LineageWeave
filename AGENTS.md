@@ -422,3 +422,68 @@ columns). Do not silently rewrite either historical form. The SHACL
 shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
 closed-world data-validation boundary for DB-to-RDF projections and is
 published beside the ontology.
+
+## Agent loop discipline for PRs and Issues
+
+Nested loops carry a ledger: loop id, parent id, goal, owner/scope,
+dependencies, pass/retry/block conditions, evidence SHAs, next action
+(tool plus arguments), and return point. Goal:PR and PR:loop are not
+1:1; no fixed depth, no needless decomposition, and shared work is
+never duplicated. Finishing investigation, finding a gap, or defining
+a KPI completes only that step -- never the gap fix, the goal, or the
+merge. Never auto-complete a parent; on evidence-SHA change, re-verify
+only the affected nodes.
+
+Chain Todo to READY to RUNNING to a real lookup, repair, or test call
+to a verdict to the next call in the same run. Plans, reports, and
+step-by-step reasoning are not execution; a RUNNING mark without
+linked tool results proves nothing. Scope waits narrowly: external
+CI/review waits attach to that node and its real depends_on path
+only, never as a global stop -- keep executing READY siblings, other
+PRs and issues, and acceptance gaps. Never dispatch healthy CI twice;
+never self-approve or forge approvals; request review only when no
+valid request exists for that head. Reuse valid evidence and do not
+re-run completed same-SHA tests to manufacture activity, but that
+never halts other work. Do independent work on a separate
+branch/worktree that respects single-writer and dependency
+boundaries.
+
+Measurement loops follow the autoresearch shape: goal, metric command
+with extraction and direction, scope, isolated change, commit,
+measure, keep-or-revert, log. Keep the journal as tab-separated
+experiment/commit/metric/status/description rows outside git. Shared-branch
+reset --hard, force push, and discarding others' deltas are forbidden;
+so are operating/global environment, secret, and paid-resource changes.
+Within a general development delegation, local source/test edits,
+independent branch/worktree creation, isolated installs of declared
+reviewed project dev/test dependencies, and non-force push of an owned
+branch do not wait for per-action re-designation -- a narrower user
+limit, read-only scope, tool ask/deny, or server permission denial
+still wins when present, and a claimed approval requirement needs its
+directive, policy, or actual request/denial identifier as evidence.
+Missing skills install only to
+supported project paths after license, permission, and SHA review --
+no personal, global, duplicate, or bulk installs, no permission
+widening, no paid services. Use step-by-step machine reasoning only
+for genuinely complex judgment, interleaved with real lookups, and
+never count its calls or verdicts as execution, verification, review
+approval, or KPI improvement.
+
+Normal merge is the default. Infrastructure, CI, runner, and workflow failures
+do not create a standing bypass. An exceptional bypass is allowed only when
+explicit current owner or ruleset authority identifies the exact PR/head and
+the minimal protection that may be bypassed; record that authority identifier,
+failure SHA, alternative verification, impact, and recovery in the PR. Without
+that exact current authority, fail-closed. Code, security, contract,
+orchestrator-routing, and secret-policy failures are never bypassed. Completion
+evidence is tool events plus dependency and acceptance checks -- never planned
+commands, summaries, or idle and finish markers.
+
+A stopped remote head, a running CI, a passing local suite, an
+active owner branch, or no new review is each a status, not a
+top-level blocker; keep working other READY paths. Never report
+"no side-effect-free step left" as a stop, and never use the
+goal-blocked tool for routine waits -- it can pause the top-level
+loop. Do not change another writer's branch to evade single-writer;
+independent work gets its own branch/worktree with no shared-file
+surprises.
