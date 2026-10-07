@@ -349,10 +349,8 @@ def test_loaded_display_edge_keeps_its_raw_sql_cursor_key() -> None:
 class CursorConnection:
     """Supply the focus label used by the in-memory continuation regression."""
 
-    async def fetchval(self, query: str, *_args: object) -> str | datetime | None:
+    async def fetchval(self, query: str, *_args: object) -> str | None:
         """Return only the synthetic focus title."""
-        if query == "select clock_timestamp()":
-            return T0
         return "Focus" if "post_title" in query else None
 
 

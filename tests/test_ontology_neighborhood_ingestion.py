@@ -63,8 +63,6 @@ class ScriptedConn:
 
     def _match(self, sql: str) -> object | None:
         compact = " ".join(sql.split())
-        if compact == "select clock_timestamp()":
-            return self.script.get(compact, T0)
         if "from source_post_voice voice" in compact:
             return self.script.get("from source_post_voice voice", [])
         hits = [(key, value) for key, value in self.script.items() if key in compact]

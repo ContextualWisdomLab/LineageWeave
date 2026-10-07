@@ -7,7 +7,6 @@ const KEYS = [
   "Neighborhood truncated. Load the next relation page or inspect one edge.",
   "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
   "No direct evidence post is attached. Review the provenance reference above.",
-  "Scroll horizontally to see all columns, including evidence and recorded time.",
 ] as const;
 
 afterEach(() => {

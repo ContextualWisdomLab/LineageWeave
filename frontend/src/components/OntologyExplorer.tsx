@@ -297,13 +297,6 @@ export function OntologyExplorer({
               }}
             />
           </div>
-          {visible.exact_value_rows.length > 0 ? (
-            <p>
-              {ontologyExplorerText(
-                "Scroll horizontally to see all columns, including evidence and recorded time.",
-              )}
-            </p>
-          ) : null}
           <OntologyExactValueTable
             payload={visible}
             selectedEdgeId={selectedEdgeId}
@@ -616,12 +609,12 @@ function OntologyExactValueTable({
                   {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
                     <button
                       type="button"
-                      aria-label={postLabels.has(row.evidence_post_id)
-                        ? tf("Open evidence: {title}", { title: postLabels.get(row.evidence_post_id)! })
-                        : t("Open evidence post")}
+                      aria-label={tf("Open evidence: {title}", {
+                        title: postLabels.get(row.evidence_post_id) ?? row.evidence_post_id,
+                      })}
                       onClick={() => onOpenEvidence(row.evidence_post_id as string)}
                     >
-                      {postLabels.get(row.evidence_post_id) ?? t("Open evidence post")}
+                      {postLabels.get(row.evidence_post_id) ?? row.evidence_post_id}
                     </button>
                   ) : row.evidence_count}
                 </td>

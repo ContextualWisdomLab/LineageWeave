@@ -1166,33 +1166,3 @@ def test_voice_exports_reject_missing_carrying_post(export_method: str) -> None:
     with pytest.raises(OntologyNeighborhoodError) as raised:
         getattr(neighborhood, export_method)()
     assert raised.value.code == "dangling_endpoint"
-
-
-def test_voice_exports_admit_independently_authorized_evidence_outside_traversal() -> None:
-    """An explicit authorized reference survives without enlarging the graph."""
-    neighborhood = assemble_ontology_neighborhood(
-        focus_node_type_code=NODE_POST, focus_node_id=POST_ID, facts=[], labels=_labels(),
-    )
-    evidence_id = "synthetic-outside-evidence"
-    assignment = OntologyVoiceAssignment(
-        post_id=POST_ID, voice_type_code="vops",
-        voice_type_iri=str(LW.voiceOfProcessType), voice_type_label="Voice of Process",
-        is_primary=False, truth_status_code=TRUTH_PROPOSED,
-        recorded_at=T0, effective_from=T0, effective_to=T_LATE,
-        provenance_reference="Synthetic authorized derivation", evidence_post_id=evidence_id,
-    )
-    neighborhood = replace(neighborhood, voice_assignments=(assignment,))
-    assert neighborhood.exact_value_rows() == ()
-    admitted = replace(neighborhood, authorized_voice_evidence_post_ids=frozenset({evidence_id}))
-    row = admitted.exact_value_rows()[0]
-    assert row["source_node_id"] == POST_ID
-    assert row["evidence_post_id"] == evidence_id
-    assert row["truth_status_code"] == TRUTH_PROPOSED
-    assert row["valid_to"] == T_LATE.isoformat()
-    assert admitted.nodes == neighborhood.nodes
-    assert admitted.edges == ()
-    graph = admitted.jsonld_document()["@graph"]
-    projected = next(item for item in graph if item.get("@type") == str(LW.VoiceAssignment))
-    assert projected["prov:wasDerivedFrom"] == {"@id": ontology_node_iri(NODE_POST, evidence_id)}
-    assert projected[str(LW.voiceAssignmentEvidence)] == projected["prov:wasDerivedFrom"]
-    assert projected["lw:truthStatus"] == TRUTH_PROPOSED

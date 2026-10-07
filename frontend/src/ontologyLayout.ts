@@ -225,9 +225,7 @@ export function filterNeighborhood(
     (assignment.is_primary ||
       (assignment.evidence_post_id !== null &&
         assignment.evidence_post_id !== undefined &&
-        (keep.has(nodeKey("node_post", assignment.evidence_post_id)) ||
-          !payload.nodes.some((node) => node.node_type_code === "node_post" &&
-            node.node_id === assignment.evidence_post_id)))),
+        keep.has(nodeKey("node_post", assignment.evidence_post_id)))),
   );
   const visibleVoiceRowIds = new Set(visibleVoiceAssignments.map(
     (assignment) => `voice-assignment:${assignment.post_id}:${assignment.voice_type_code}`,

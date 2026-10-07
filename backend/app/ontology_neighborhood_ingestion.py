@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, Callable, Mapping, Sequence
 from uuid import UUID
 
 import asyncpg
@@ -21,13 +20,14 @@ from backend.app.knowledge_graph import (
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.knowledge_graph import (
     EDGE_MENTION_PROJECT,
-    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     NODE_CORPORATE_ENTITY,
     NODE_OCCUPATIONAL_CONSTRUCT,
     NODE_PERSON,
     NODE_POST,
     NODE_PROJECT,
     NODE_TEAM,
+    EDGE_MENTION_PROJECT,
+    EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
 )
 from lineageweave.ontology import iri_for_lookup_code
 from lineageweave.ontology_neighborhood import (
@@ -1015,7 +1015,7 @@ async def visible_ontology_neighborhood(
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
     secret = source_cursor_secret_from_env(source_cursor_secret)
-    snapshot_at = await conn.fetchval("select clock_timestamp()")
+    snapshot_at = datetime.now(timezone.utc)
     after_key: OntologySourceKey | None = None
     source_cursor_claims: OntologySourceCursor | None = None
     assembler_cursor = cursor
@@ -1299,20 +1299,14 @@ async def visible_ontology_neighborhood(
         if node.node_type_code == NODE_POST
     )
     if visible_post_ids:
-        voice_assignments = await _load_voice_assignments(
-            conn,
-            visible_post_ids,
-            can_see_post=can_see_post,
-            knowledge_cutoff=knowledge_cutoff,
-            snapshot_at=snapshot_at,
-        )
         neighborhood = replace(
             neighborhood,
-            voice_assignments=voice_assignments,
-            authorized_voice_evidence_post_ids=frozenset(
-                assignment.evidence_post_id
-                for assignment in voice_assignments
-                if assignment.evidence_post_id is not None
+            voice_assignments=await _load_voice_assignments(
+                conn,
+                visible_post_ids,
+                can_see_post=can_see_post,
+                knowledge_cutoff=knowledge_cutoff,
+                snapshot_at=snapshot_at,
             ),
         )
     last_source_key = None

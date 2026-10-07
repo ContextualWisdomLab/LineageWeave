@@ -91,10 +91,6 @@ def test_visible_neighborhood_canonicalizes_uppercase_uuid_before_traversal(
         seen["assemble"] = kwargs
         return sentinel
 
-    class SnapshotConnection:
-        async def fetchval(self, sql: str, *args: object) -> datetime | None:
-            return CUTOFF if sql == "select clock_timestamp()" else None
-
     monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_focus_exists)
     monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_visible_posts)
     monkeypatch.setattr(ingestion, "_load_facts", fake_load_facts)
@@ -106,7 +102,7 @@ def test_visible_neighborhood_canonicalizes_uppercase_uuid_before_traversal(
 
     result = asyncio.run(
         ingestion.visible_ontology_neighborhood(
-            SnapshotConnection(),  # type: ignore[arg-type]
+            object(),  # type: ignore[arg-type]
             focus_node_type_code=NODE_POST,
             focus_node_id=POST_ID.upper(),
             can_see_post=lambda _row: True,
@@ -120,32 +116,5 @@ def test_visible_neighborhood_canonicalizes_uppercase_uuid_before_traversal(
     assert isinstance(seen["facts"], dict)
     assert seen["facts"]["focus_node_id"] == POST_ID  # type: ignore[index]
     assert seen["facts"]["knowledge_cutoff"] == CUTOFF  # type: ignore[index]
-    assert seen["facts"]["snapshot_at"] == CUTOFF  # type: ignore[index]
     assert isinstance(seen["assemble"], dict)
     assert seen["assemble"]["focus_node_id"] == POST_ID  # type: ignore[index]
-
-
-def test_fresh_snapshot_uses_persistence_clock_when_host_clock_is_behind(monkeypatch) -> None:
-    """A just-accepted assignment must not disappear because the host clock lags."""
-    from tests.test_ontology_neighborhood_ingestion import ScriptedConn
-
-    class HostClock:
-        @staticmethod
-        def now(*args):
-            raise AssertionError("host wall clock must not govern persisted evidence")
-
-    monkeypatch.setattr(ingestion, "datetime", HostClock)
-    connection = ScriptedConn({
-        "select clock_timestamp()": CUTOFF,
-        "select 1 from source_post": {"exists": 1},
-        "select post_id, visibility_code": {
-            "post_id": POST_ID, "visibility_code": "public", "corporate_entity_id": None,
-        },
-        "select post_title from source_post": "Synthetic focus",
-    })
-    asyncio.run(ingestion.visible_ontology_neighborhood(
-        connection, focus_node_type_code=NODE_POST, focus_node_id=POST_ID,
-        can_see_post=lambda _: True,
-    ))
-    voice_query = next(args for sql, args in connection.calls if "from source_post_voice voice" in sql)
-    assert voice_query[2] == CUTOFF

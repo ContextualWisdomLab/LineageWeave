@@ -374,11 +374,6 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Scroll horizontally to see all columns, including evidence and recorded time.",
-      ),
-    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
@@ -389,29 +384,6 @@ describe("OntologyExplorer", () => {
     await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-  });
-
-  it("opens authorized evidence outside traversal without showing an internal identifier", async () => {
-    const source = neighborhood();
-    const evidenceId = "synthetic-outside-evidence";
-    const onSelectPost = vi.fn();
-    const onOpenEvidence = vi.fn();
-    render(<OntologyExplorer
-      focusNodeType="node_post"
-      focusNodeId={POST_ID}
-      neighborhood={{ ...source, exact_value_rows: [{
-        ...source.exact_value_rows[0],
-        edge_id: "voice-outside", property_code: "hasVoiceAssignment",
-        evidence_post_id: evidenceId,
-      }] }}
-      onSelectPost={onSelectPost}
-      onOpenEvidence={onOpenEvidence}
-    />);
-    await userEvent.click(screen.getByRole("button", { name: "Open post: Demo public post" }));
-    expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
-    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
-    expect(onOpenEvidence).toHaveBeenCalledWith(evidenceId);
-    expect(screen.queryByText(evidenceId)).not.toBeInTheDocument();
   });
 
   it("opens the carrying post and its authorized Voice evidence separately", async () => {
