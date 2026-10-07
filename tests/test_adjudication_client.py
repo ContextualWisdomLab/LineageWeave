@@ -5,6 +5,7 @@ import pytest
 from lineageweave.adjudication_client import (
     AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
     parse_confidence_response,
 )
 
@@ -104,4 +105,12 @@ def test_adjudication_fails_closed_for_unscoreable_responses(monkeypatch, body) 
     )
 
     with pytest.raises(AdjudicationClientError):
+        client.judge("workshop", "follow-up bid")
+
+
+def test_null_adjudication_client_judge_fails_closed() -> None:
+    """Without an orchestrator the llm channel raises instead of scoring zero."""
+    client = NullAdjudicationClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError, match="no llm channel"):
         client.judge("workshop", "follow-up bid")

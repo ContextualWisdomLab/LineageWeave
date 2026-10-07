@@ -146,7 +146,7 @@ class NullImageContentClient:
 
     available = False
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:  # pragma: no cover
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         """Describe the supplied image through the configured vision channel."""
         raise RuntimeError("NullImageContentClient has no image channel; check .available first")
 
