@@ -19,6 +19,9 @@ const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    "Sign in again, then reopen this post.": "다시 로그인한 뒤 이 글을 다시 여세요.",
+    "Reopen this post to check your access and its recorded perspectives.": "이 글을 다시 열어 접근 권한과 기록된 관점을 확인하세요.",
+    "Review your selections and choose Connect perspective to try again.": "선택한 값을 확인하고 관점 연결을 눌러 다시 시도하세요.",
     "Connect another perspective": "다른 관점 연결",
     "This post will be recorded as the evidence.": "이 글이 근거로 기록됩니다.",
     Perspective: "관점",
@@ -608,6 +611,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
+    "Sign in again, then reopen this post.": "重新登录，然后重新打开此记录。",
+    "Reopen this post to check your access and its recorded perspectives.": "重新打开此记录，检查您的访问权限和已记录的观点。",
+    "Review your selections and choose Connect perspective to try again.": "检查所选内容，然后选择关联观点以重试。",
     "Connect another perspective": "关联另一个观点",
     "This post will be recorded as the evidence.": "此文章将被记录为证据。",
     Perspective: "观点",
@@ -1188,6 +1194,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
+    "Sign in again, then reopen this post.": "もう一度ログインしてから、この投稿を開き直してください。",
+    "Reopen this post to check your access and its recorded perspectives.": "この投稿を開き直して、アクセス権と記録された観点を確認してください。",
+    "Review your selections and choose Connect perspective to try again.": "選択内容を確認し、観点を関連付けるを選んでもう一度お試しください。",
     "Connect another perspective": "別の観点を関連付ける",
     "This post will be recorded as the evidence.": "この投稿が根拠として記録されます。",
     Perspective: "観点",
@@ -1772,6 +1781,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
+    "Sign in again, then reopen this post.": "Đăng nhập lại, rồi mở lại bài viết này.",
+    "Reopen this post to check your access and its recorded perspectives.": "Mở lại bài viết này để kiểm tra quyền truy cập và các góc nhìn đã ghi nhận.",
+    "Review your selections and choose Connect perspective to try again.": "Kiểm tra các lựa chọn và chọn Liên kết góc nhìn để thử lại.",
     "Connect another perspective": "Liên kết góc nhìn khác",
     "This post will be recorded as the evidence.": "Bài đăng này sẽ được ghi nhận làm bằng chứng.",
     Perspective: "Góc nhìn",

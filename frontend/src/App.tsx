@@ -95,6 +95,7 @@ import { organizationAliasCaption } from "./components/organizationAliasCaption"
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { StatusNotice } from "./components/StatusNotice";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
@@ -1873,11 +1874,12 @@ export function VoiceAssignmentForm({
   const [truthStatusCode, setTruthStatusCode] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<"retry" | "sign_in" | "reopen" | null>(null);
+  const canRetry = error === null || error === "retry";
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!voiceTypeCode || !truthStatusCode || saving) return;
+    if (!voiceTypeCode || !truthStatusCode || saving || !canRetry) return;
     setSaving(true);
     setSaved(false);
     setError(null);
@@ -1887,7 +1889,11 @@ export function VoiceAssignmentForm({
       setTruthStatusCode("");
       setSaved(true);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("Perspective could not be connected."));
+      setError(caught instanceof BackendError && caught.status === 401
+        ? "sign_in"
+        : caught instanceof BackendError && [403, 404, 409].includes(caught.status)
+          ? "reopen"
+          : "retry");
     } finally {
       setSaving(false);
     }
@@ -1927,11 +1933,21 @@ export function VoiceAssignmentForm({
             ))}
           </select>
         </label>
-        <button type="submit" className="btn-primary" disabled={saving || !voiceTypeCode || !truthStatusCode}>
+        <button type="submit" className="btn-primary" disabled={saving || !canRetry || !voiceTypeCode || !truthStatusCode}>
           {t(saving ? "Connecting..." : "Connect perspective")}
         </button>
-        {saved ? <p className="voice-assignment-feedback" role="status">{t("Perspective connected.")}</p> : null}
-        {error ? <p role="alert" className="error voice-assignment-feedback">{error}</p> : null}
+        {saved ? <StatusNotice kind="success" message={t("Perspective connected.")} /> : null}
+        {error ? (
+          <StatusNotice
+            kind={error === "retry" ? "retry" : "unavailable"}
+            message={t("Perspective could not be connected.")}
+            nextAction={t(error === "sign_in"
+              ? "Sign in again, then reopen this post."
+              : error === "reopen"
+                ? "Reopen this post to check your access and its recorded perspectives."
+                : "Review your selections and choose Connect perspective to try again.")}
+          />
+        ) : null}
       </form>
     </section>
   );
