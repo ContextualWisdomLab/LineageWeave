@@ -18,6 +18,14 @@ or an unresolved review thread. The live rule set is still only no-force-push
 ruleset **21065108**. No self-approval, bypass, force push, or cancellation
 occurred, and auto-merge stays unarmed.
 
+After this snapshot, #1168 received a valid CodeRabbit finding: the live
+PostgreSQL excerpt test could echo a configured administrative DSN in a skip
+reason when PostgreSQL was unavailable. The branch now uses a fixed,
+actionable skip reason and adds a synthetic regression that proves the DSN,
+username, password, host, and database name stay out of pytest collection
+output. This receipt advances #1168 and requires a fresh exact-head Checks and
+review read before lifecycle action.
+
 ### Formal stack drift repaired
 
 The formal `lineageweave` Compose services ran from four deleted temporary
@@ -68,6 +76,12 @@ cases lack the occupational-extraction table in the test fixture, one lacks the
 TEPP receipt table (#1166 adds that migration), and two Global Ask cases fail
 because the orchestrator returned no complete evidence object. None of these
 is attributed to this change.
+
+The skip-privacy repair was verified with
+`tests/test_source_post_excerpt_skip_privacy.py` and
+`tests/test_source_post_excerpt_live.py`: **17 passed**. It does not change the
+excerpt SQL, migration ordinal, API surface, release number, or observed Board
+load bottleneck.
 
 ### Cross-PR integration
 
