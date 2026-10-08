@@ -98,6 +98,28 @@ or population inference is claimed.
   they remain unavailable and no bottleneck tuning was attempted. The formal
   Compose project remains `lineageweave`; no container or volume was removed.
 
+### Follow-through receipt
+
+Remote #1169 head `52eb154656fbc0b2b1924b2b446829ce91a1cff9` was re-read
+following the push: six application/security checks failed before starting with
+the same billing-lock annotation, while the review status remained pending.
+The existing packaging thread is resolved; it is not an independent approval.
+GitHub rejected the explicit enable-only auto-merge mutation for #1169, #1166,
+and #1164 with `Pull request is in unstable status`. Auto-merge therefore could
+not be retained; no direct-merge fallback, self-approval, admin flag, force push,
+or protection change was attempted.
+
+Independent work continued: #1166 at
+`0dc48e644deb0f0db775ac1271bf00978a2aef31` passes its three authenticated
+PostgreSQL analysis-run tests with DeprecationWarning as an error. #1164 at
+`0289942d194c45d6e1012c082dfa401d3a2ba59e` passes **102 App tests**. Their
+reviews remain empty and failed/cancelled hosted checks remain unsatisfied.
+#1168's credential-safe skip finding was already fixed; its resolved thread
+was checked against `f4900a08d44672bdb4fc413987366f3bbaca6a7c`. Main integration
+preserves that owner delta and both dated evidence records. **19 live excerpt,
+skip-privacy, and docstring tests** pass on the integration candidate, including
+migration replay; it changes no original excerpt policy or model arithmetic.
+
 ### Cross-PR contract collisions
 
 The complete changed-path inventory identifies overlapping ADR 0252/0256
