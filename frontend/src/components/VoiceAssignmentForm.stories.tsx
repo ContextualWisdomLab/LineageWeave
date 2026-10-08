@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 
@@ -68,4 +69,17 @@ export const SignInRequired: Story = {
     await expect(canvas.getByRole("region", { name: /Unavailable:/ })).toHaveTextContent("Sign in again, then reopen this post.");
     await expect(canvas.getByRole("button", { name: "Connect perspective" })).toBeDisabled();
   },
+};
+
+export const LastPerspectiveCompleted: Story = {
+  render: function LastPerspective(args) {
+    const [voices, setVoices] = useState(args.voices);
+    return <VoiceAssignmentForm {...args} voices={voices}
+      options={[{ code: "vops", label: "Voice of Process" }]}
+      onSave={async (code, truthStatusCode) => {
+        setVoices([...voices, { code, label: "Voice of Process", is_primary: false,
+          truth_status_code: truthStatusCode, evidence_available: true }]);
+      }} />;
+  },
+  play: Completed.play,
 };

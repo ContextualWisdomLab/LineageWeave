@@ -1899,7 +1899,9 @@ export function VoiceAssignmentForm({
     }
   }
 
-  if (available.length === 0) return null;
+  if (available.length === 0) {
+    return saved ? <StatusNotice kind="success" message={t("Perspective connected.")} /> : null;
+  }
   return (
     <section className="popup-section" aria-label={t("Connect another perspective")}>
       <h3>{t("Connect another perspective")}</h3>

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { VoiceAssignmentForm } from "../App";
 import { BackendError } from "../api";
@@ -54,6 +54,25 @@ describe("VoiceAssignmentForm", () => {
 
     expect(await screen.findByRole("region", { name: /Ready:/ })).toHaveTextContent("Perspective connected.");
     expect(onSave).toHaveBeenCalledWith("vops", "truth_observed");
+  });
+
+  it("retains confirmation after the last available perspective is persisted", async () => {
+    let finish!: () => void;
+    const onSave = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const options = [{ code: "vops", label: "Voice of Process" }];
+    const { rerender } = render(<VoiceAssignmentForm voices={[]} options={options} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vops" } });
+    fireEvent.change(screen.getByLabelText("Evidence status"), { target: { value: "truth_observed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Connect perspective" }));
+    await act(async () => {
+      rerender(<VoiceAssignmentForm voices={[{
+        code: "vops", label: "Voice of Process", is_primary: false,
+        truth_status_code: "truth_observed", evidence_available: true,
+      }]} options={options} onSave={onSave} />);
+      finish();
+    });
+    expect(await screen.findByRole("region", { name: /Ready:/ })).toHaveTextContent("Perspective connected.");
+    expect(screen.queryByRole("button", { name: "Connect perspective" })).not.toBeInTheDocument();
   });
 
   it("keeps the submitted values available after a failed save", async () => {
