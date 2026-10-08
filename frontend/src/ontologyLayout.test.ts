@@ -299,12 +299,12 @@ describe("ontologyLayout", () => {
       }],
     }, "related evidence")!;
     expect(dangling.edges).toEqual([]);
-    expect(dangling.voice_assignments).toEqual([primary]);
+    expect(dangling.voice_assignments).toEqual([assignment, primary]);
     expect(dangling.exact_value_rows.map((value) => value.edge_id)).toEqual([
-      `voice-assignment:${POST_ID}:voc`,
+      row.edge_id, `voice-assignment:${POST_ID}:voc`,
     ]);
     expect((dangling.jsonld["@graph"] as Array<Record<string, unknown>>)[0][relation]).toEqual([
-      { "@id": primaryIri },
+      { "@id": assignmentIri }, { "@id": primaryIri },
     ]);
   });
 
