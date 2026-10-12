@@ -556,6 +556,14 @@
   font: inherit;
 }
 
+.voice-assignment-form .btn-primary:disabled,
+.voice-assignment-form .btn-primary:disabled:hover {
+  background: var(--color-btn-secondary-bg);
+  color: var(--color-text);
+  border-color: var(--color-btn-secondary-border);
+  cursor: not-allowed;
+}
+
 .voice-assignment-feedback {
   grid-column: 1 / -1;
   margin: 0;
