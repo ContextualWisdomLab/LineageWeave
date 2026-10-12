@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-12
+
+The remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`.
+GitHub reports 192 open PRs and 42 open issues. These are workflow counts, not
+customer or population evidence. The current ready Voice recovery PR #1169 is
+`9705426650ab2c87d9e46a3d46b33fabf7a60cfb`; governance PR #1170 was
+reviewed at `52d859c8bca718e6b3f9ac5e435e6e7147c46747` before this
+documentation update. Both target `main`, have no independent approving review
+or armed auto-merge, and report failed hosted application checks on their
+current heads. GitHub Actions job-detail REST calls returned HTTP 403, so the
+cause of those failures was not re-established in this audit. Neither PR is
+eligible for a protected merge on the observed evidence.
+
+The selected customer gap is recovery from a failed attempt to connect another
+Post perspective. PR #1169 keeps the selected Voice and truth state for a
+retryable failure, gives a next action for access or conflict failures, and
+keeps private error payloads off the screen. Its current head also raises the
+setuptools build floor alongside its PEP 639 license declaration, addressing
+the only reviewed inline finding. The focused Voice form suite passed 9 tests
+on that head. This is a tested candidate, not a protected delivery or an
+authenticated rendered-UI acceptance result. The broader frontend test run
+was stopped after unrelated timeout failures; it supplies no full-suite pass.
+
+ADR 0246 governs twelve open-ended atomic Voice categories; ADR 0256 governs
+evidence-bearing composition and retained cutoff intervals. ADR 0251 governs
+the separate I/O-psychology layer. The accepted/persisted derivation, carrying
+Post, independently authorized evidence Post, truth state, and cutoff remain
+distinct. The earlier synthetic CSV and paged JSON-LD checks below remain
+candidate evidence. Authenticated PostgreSQL API and rendered UI evidence for
+this exact head were not collected, so full Voice export acceptance remains
+unavailable.
+
+Current `main` still has duplicate PRD-FR-2A, 2B, and 2C headings and two
+`0233` migrations. The duplicate labels and ordinals are pre-existing
+integration conflicts; this continuation does not silently rename a shipped
+schema or claim one requirement supersedes another. PR #1169 and #1170 overlap
+in this baseline, so their evidence needs a deliberate content merge before
+either changes base. The reviewed heads do not add a competing API, schema,
+or release version. Canonical remote spelling is
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+`TEPP`, `fast-mlsirm`, and `contextual-orchestrator`; their product or
+architecture authorities were read before this continuation.
+
 
 ## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
 
