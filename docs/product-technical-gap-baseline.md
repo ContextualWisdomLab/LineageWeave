@@ -1,5 +1,37 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-12
+
+Remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`. The
+reviewed customer gap is recovery after a failed attempt to connect another
+Post perspective. PR #1169 at `27b3f9557538179900f3c5ff7047373116ea7b4d`
+keeps the selected perspective and truth state available for a retry, gives
+sign-in or reopen actions when access has changed, and keeps private error
+details off the screen. Its existing regression covers the last available
+perspective after a persisted save. On this exact head, 109 focused frontend
+tests and lint passed. These are local candidate results; authenticated
+PostgreSQL API and authenticated rendered UI acceptance were not repeated.
+
+PR #1169 targets this `main` SHA. Its six hosted application/security checks
+are terminal failures; its review decision is empty, and auto-merge is not
+armed. PR #1170 at `e0f3e43e4b0c870081a2cd80ef01daaf53e388e6` also
+targets this `main` SHA, has terminal failed application checks, no independent
+approval, and no armed auto-merge. Its reviewed governance wording now
+distinguishes detecting a persistent ruleset bypass actor from removing that
+actor. The canonical `.github` owner PR #2596 remains Draft. No current-head
+protected merge is established. The baseline edits in #1169 and #1170 overlap
+and require a content merge before either can inherit the other's evidence.
+
+The PRD still repeats FR-2A, FR-2B, and FR-2C labels; the main migration stream
+still contains two `0233` filenames. Neither is silently renumbered here.
+This bounded continuation adds no API, schema, ADR, model, weight, or release
+policy. ADR 0246's twelve atomic Voices remain extensible; ADR 0256 requires
+separate authorized carrying and derivation Posts, PROV-O derivation, truth
+state, and cutoff. A hidden evidence Post cannot be replaced by the carrying
+Post. Prior synthetic CSV and paged JSON-LD regressions do not establish this
+head's authenticated acceptance. No population or capacity claim follows from
+the local tests.
+
 ## Exact-head Voice completion audit — 2026-10-08 11:25 KST
 
 This overlay supersedes historical queue claims below only for the recorded
