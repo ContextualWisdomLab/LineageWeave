@@ -5,7 +5,7 @@
 The remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`.
 GitHub reports 192 open PRs and 42 open issues. These are workflow counts, not
 customer or population evidence. The current ready Voice recovery PR #1169 is
-`9705426650ab2c87d9e46a3d46b33fabf7a60cfb`; governance PR #1170 was
+`27b3f9557538179900f3c5ff7047373116ea7b4d`; governance PR #1170 was
 reviewed at `52d859c8bca718e6b3f9ac5e435e6e7147c46747` before this
 documentation update. Both target `main`, have no independent approving review
 or armed auto-merge, and report failed hosted application checks on their
@@ -18,10 +18,16 @@ Post perspective. PR #1169 keeps the selected Voice and truth state for a
 retryable failure, gives a next action for access or conflict failures, and
 keeps private error payloads off the screen. Its current head also raises the
 setuptools build floor alongside its PEP 639 license declaration, addressing
-the only reviewed inline finding. The focused Voice form suite passed 9 tests
-on that head. This is a tested candidate, not a protected delivery or an
-authenticated rendered-UI acceptance result. The broader frontend test run
-was stopped after unrelated timeout failures; it supplies no full-suite pass.
+the only reviewed inline finding. The previous head passed the focused Voice
+form suite (9 tests), lint, and production build. The current head adds a
+token-based disabled-button style after desktop/mobile Storybook inspection
+showed that an unavailable action still appeared active. Storybook built and
+both updated synthetic desktop/mobile states were visually inspected. Its
+first focused rerun timed out in three tests amid host contention; a second
+rerun did not start its Vitest worker. Neither is a pass. This is a candidate,
+not a protected delivery or an authenticated
+rendered-UI acceptance result. The broader frontend test run was stopped
+after unrelated timeout failures and supplies no full-suite pass.
 
 ADR 0246 governs twelve open-ended atomic Voice categories; ADR 0256 governs
 evidence-bearing composition and retained cutoff intervals. ADR 0251 governs
