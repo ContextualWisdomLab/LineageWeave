@@ -2791,9 +2791,11 @@ across 18 non-baseline files without an open successor carrying the accepted
 Voice delta. That is not a valid review reset: it would trade an admission
 incident for a product regression. The branch now forward-restores every
 non-baseline path byte-for-byte from protected `main`, retaining only this
-governance record. The separate canonical `.github` owner repair adds RED/GREEN
-coverage so ruleset `18156473` rejects persistent bypass actors. Fresh hosted
-Checks and independent review remain required on both exact heads; neither
+governance record. The canonical `.github` owner PR #2596 is a Draft repair
+that makes its audit detect persistent bypass actors and fail the audit. It
+does not itself remove the actor from ruleset `18156473`. Protected integration,
+actor removal, and a successful subsequent scheduled audit remain pending.
+Fresh hosted Checks and independent review remain required on both exact heads; neither
 local equality nor this correction retroactively certifies the #1153 merge.
 
 The current product gap remains evidence-backed Voice export acceptance. ADR 0246 keeps the twelve atomic Voice categories open to supported extension; ADR 0256 requires each additional Voice to retain its authorized carrying Post, independently authorized derivation evidence, PROV-O derivation, truth state, and temporal cutoff. The #1153 candidate satisfied the synthetic export checks locally: 96 focused Python tests passed; frontend lint passed; all 60 frontend test files (571 tests), production build, and Storybook build passed. Desktop and mobile Storybook captures of synthetic separate Voice evidence were visually inspected, and CSV output kept the carrying Post distinct from the derivation-evidence Post. Frontend tests cover paged JSON-LD union of same-subject properties and multi-Voice relations. These are local synthetic candidate results only. No authenticated PostgreSQL API was tested, so this acceptance remains incomplete. The screenshots were temporary artifacts and are not repository fixtures.
