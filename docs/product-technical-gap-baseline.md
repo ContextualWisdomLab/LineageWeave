@@ -1,33 +1,35 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-12
+## Exact-head continuation — 2026-10-13 00:20 KST
 
 The remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`.
-GitHub reports 192 open PRs and 42 open issues. These are workflow counts, not
-customer or population evidence. The current ready Voice recovery PR #1169 is
-`27b3f9557538179900f3c5ff7047373116ea7b4d`; governance PR #1170 was
-reviewed at `52d859c8bca718e6b3f9ac5e435e6e7147c46747` before this
-documentation update. Both target `main`, have no independent approving review
-or armed auto-merge, and report failed hosted application checks on their
-current heads. GitHub Actions job-detail REST calls returned HTTP 403, so the
-cause of those failures was not re-established in this audit. Neither PR is
-eligible for a protected merge on the observed evidence.
+GitHub reports 192 open PRs (168 drafts, 117 non-`main` bases) and 42 open
+issues. These are workflow counts, not customer or population evidence. The
+ready Voice recovery PR #1169 is at
+`fb4f106a5b3855176884bec5c752c1b60b33155a`; governance PR #1170 is
+at `e0f3e43e4b0c870081a2cd80ef01daaf53e388e6` before this documentation
+update. Both target `main`, have no independent approving review, have zero
+unresolved threads in the retrieved review-thread pages, and have no armed
+auto-merge. Their exact-head hosted application checks failed before starting;
+the current CodeQL check annotations identify an account billing lock. No
+local result clears that owner-side gate, and neither PR is eligible for a
+protected merge on the observed evidence.
 
 The selected customer gap is recovery from a failed attempt to connect another
 Post perspective. PR #1169 keeps the selected Voice and truth state for a
 retryable failure, gives a next action for access or conflict failures, and
 keeps private error payloads off the screen. Its current head also raises the
 setuptools build floor alongside its PEP 639 license declaration, addressing
-the only reviewed inline finding. The previous head passed the focused Voice
-form suite (9 tests), lint, and production build. The current head adds a
-token-based disabled-button style after desktop/mobile Storybook inspection
-showed that an unavailable action still appeared active. Storybook built and
-both updated synthetic desktop/mobile states were visually inspected. Its
-first focused rerun timed out in three tests amid host contention; a second
-rerun did not start its Vitest worker. Neither is a pass. This is a candidate,
-not a protected delivery or an authenticated
-rendered-UI acceptance result. The broader frontend test run was stopped
-after unrelated timeout failures and supplies no full-suite pass.
+the only reviewed inline finding. The current #1169 head passed 109 focused
+Voice-form and i18n tests, frontend lint, and a production build in an isolated
+worktree. The built synthetic Storybook Retry state at 1440×900 and Sign-in
+state at 390×844 were opened in Chromium, awaited to their settled notices,
+captured outside git, and visually inspected. The mobile unavailable save
+action is visibly inactive; the desktop retry retains both selections and a
+clear next action. The earlier host-contention
+timeouts are superseded only for this focused rerun, not for the full frontend
+suite. This is a candidate, not protected delivery or authenticated rendered-UI
+acceptance.
 
 ADR 0246 governs twelve open-ended atomic Voice categories; ADR 0256 governs
 evidence-bearing composition and retained cutoff intervals. ADR 0251 governs
