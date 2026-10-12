@@ -210,6 +210,12 @@ _VOICE_COMBINATION_MIGRATION = (
 _OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0238_occupational_construct_assertion.sql"
 )
+_OCCUPATIONAL_CONSTRUCT_CATALOG_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0239_occupational_construct_catalog.sql"
+)
+_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0240_occupational_construct_extraction_run.sql"
+)
 _VOICE_HISTORY_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0243_source_post_voice_history.sql"
 )
@@ -304,8 +310,24 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+class _AcceptanceToken(str):
+    """Keep fixture failure representations from exposing a runtime credential."""
+
+    def __repr__(self) -> str:
+        return "<synthetic acceptance token>"
+
+
 def _fetch_demo_analyst_token() -> str:
-    """Request a real resource-owner token for the synthetic demo.analyst user."""
+    """Use an owned sign-in token or the explicitly enabled synthetic grant."""
+    token_path = os.environ.get("LINEAGEWEAVE_TEST_ACCESS_TOKEN_FILE")
+    if token_path is not None:
+        try:
+            token = Path(token_path).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeError):
+            raise RuntimeError("Synthetic acceptance token is unavailable; sign in again") from None
+        if not token:
+            raise RuntimeError("Synthetic acceptance token is unavailable; sign in again")
+        return _AcceptanceToken(token)
     token_response = post_form(
         f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",
         {
@@ -316,7 +338,7 @@ def _fetch_demo_analyst_token() -> str:
         },
         timeout=10,
     )
-    return token_response["access_token"]
+    return _AcceptanceToken(token_response["access_token"])
 
 
 @pytest.fixture(scope="module")
@@ -446,6 +468,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_VOICE_TAXONOMY_MIGRATION.read_text())
             cur.execute(_VOICE_COMBINATION_MIGRATION.read_text())
             cur.execute(_OCCUPATIONAL_CONSTRUCT_ASSERTION_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_CATALOG_MIGRATION.read_text())
+            cur.execute(_OCCUPATIONAL_CONSTRUCT_EXTRACTION_MIGRATION.read_text())
             cur.execute(_VOICE_HISTORY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
@@ -4749,12 +4773,13 @@ def test_voice_assignment_round_trips_through_authorized_postgres_api(
         params={
             "focus_node_type": NODE_POST,
             "focus_node_id": carrying_post_id,
-            "maximum_depth": 2,
+            "maximum_depth": 1,
         },
         headers=headers,
     )
     assert neighborhood_response.status_code == 200, neighborhood_response.text
     neighborhood = neighborhood_response.json()
+    assert evidence_post_id not in {node["node_id"] for node in neighborhood["nodes"]}
     voice_row = next(
         row
         for row in neighborhood["exact_value_rows"]
