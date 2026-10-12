@@ -1,5 +1,43 @@
 # Product & Technical Gap Baseline
 
+## Voice recovery continuation — 2026-10-12 23:00 KST
+
+The observed protected `main` is
+`03c575013e00fbce3d31bdc73eabd2bd13fa65e1`. GitHub lists **192 open
+PRs** (168 drafts, 117 based outside `main`) and **42 open issues**. These are
+workflow counts, not product usage or population estimates. Canonical remote
+names are `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase
+`disksage` under `ContextualWisdomLab`.
+
+At the observed #1169 head
+`97a51d2bc51a5109c79131e029a77bbe9491810d`, the Voice save recovery
+candidate preserves selected values after a transient failure, gives a sign-in
+or reopen action for a rejected save, and keeps private error details out of
+the screen. The exact-head focused Voice/i18n run passed **109 tests** using
+`pnpm exec vitest run src/components/VoiceAssignmentForm.test.tsx
+src/i18n.test.ts --maxWorkers=1`. An earlier invocation with an extra `--`
+ran the full suite unintentionally and encountered host-load timeouts; it is
+not claimed as a pass. This documentation commit will advance the PR head,
+so its hosted evidence must be read again after publication.
+
+The observed #1169 head has six terminal failed hosted application/security
+Checks, no independent approval, and no armed auto-merge. The jobs report no
+runner assignment; the CodeQL annotation says the job was not started because
+of an account billing lock. These failures do not establish a failing code
+test. The account owner must restore hosted execution at its canonical boundary.
+PR #1170 at `e0f3e43e4b0c870081a2cd80ef01daaf53e388e6` is also open
+with four failed application Checks and no independent approval. Neither PR
+has a protected merge SHA. The #1169 and #1170 baseline edits overlap; retain
+both dated records when integrating. No live PostgreSQL/API or authenticated
+rendered UI acceptance was run at these heads. The earlier synthetic CSV and
+paged JSON-LD tests remain candidate evidence only; they do not establish
+current runtime acceptance for the carrying Post and separate derivation Post.
+
+The PRD's repeated FR-2A/FR-2B/FR-2C identifiers and the two historical
+`0233` migration filenames remain owned conflicts (issues #807 and #1048).
+The Voice recovery slice adds no ADR, API, schema, release number, inferred
+Voice, weight, or numerical policy.
+
 ## Exact-head continuation — 2026-10-12
 
 Remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`. The
