@@ -279,6 +279,29 @@ _POST_CHAT_AUTHORIZATION_SCOPE_MIGRATION = (
 )
 
 
+_MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "migrations"
+
+
+def _replay_window_gap_migrations() -> list[Path]:
+    """0012+ migrations the explicit chain below does not apply, sorted.
+
+    docker/postgres-init/migrate.sh replays every 0012+ file in sorted order
+    (ADR 0166). The explicit chain fell behind (0217, 0233 among others), so
+    any replay-window file it does not name is applied here in the same
+    sorted order instead of being hand-picked.
+    """
+    chained = {
+        value.name
+        for value in globals().values()
+        if isinstance(value, Path) and value.parent == _MIGRATIONS_DIR
+    }
+    return [
+        migration
+        for migration in sorted(_MIGRATIONS_DIR.glob("[0-9][0-9][0-9][0-9]_*.sql"))
+        if migration.name >= "0012" and migration.name not in chained
+    ]
+
+
 def _postgres_available() -> bool:
     """True when a Postgres at the admin DSN accepts a connection."""
     try:
@@ -522,6 +545,18 @@ def seeded_db(demo_analyst_token):
                 "('prov_agent_type', 'prov_team', 'Team')"
             )
             conn.commit()
+            # After the fixture's lookup seed: replay seeds are on-conflict no-ops.
+            # Same per-file psql -X -v ON_ERROR_STOP=1 contract as migrate.sh;
+            # also lets CREATE INDEX CONCURRENTLY run outside a transaction.
+            conn.autocommit = True
+            for migration in _replay_window_gap_migrations():
+                subprocess.run(
+                    ["psql", "-X", "-q", "-v", "ON_ERROR_STOP=1", db_dsn, "-f", str(migration)],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    # Keep psql errors visible; silence replay NOTICE noise.
+                    env={**os.environ, "PGOPTIONS": "-c client_min_messages=warning"},
+                )
             conn.autocommit = False
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
