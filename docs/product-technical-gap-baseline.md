@@ -1,5 +1,43 @@
 # Product & Technical Gap Baseline
 
+## Board excerpt continuation — 2026-10-13 19:14 KST
+
+The observed remote `main` is
+`bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`. The observed #1168 head
+before this integration is
+`d7e19aa25a16379183b24383eb583830055b78da`. GitHub lists **192 open
+PRs**, including **168 drafts** and **117** based outside `main`, plus **42
+open issues**. These are repository counts, not a corpus sample. #1168's
+CodeRabbit finding about an administrative DSN in a test skip reason is
+already corrected at that head with a fixed reason and a privacy regression.
+Its hosted application Checks fail before job steps and it has no independent
+approval or armed auto-merge. Merging the current `main` into the candidate
+had no content conflict; this paragraph does not carry old Checks onto the
+new head.
+
+The customer gap remains slow Board reading of large Posts. ADR 0053 owns
+the 420-character excerpt contract and the existing search-prefix bound.
+#1168 consumes that bound and falls back to whole-body normalization when
+necessary, preserving the excerpt instead of introducing a score or a new
+semantic rule. Its earlier four-VU synthetic k6 measurement is a dated
+diagnostic observation, not current-main throughput or a population
+estimate. On the combined tree, the isolated live PostgreSQL excerpt and
+privacy regressions passed **17 tests** with `DeprecationWarning` as an error;
+the throwaway test database was dropped by the fixture. No new authenticated
+load measurement or saturation correction is claimed for this integration.
+
+The current LineageWeave PRD and ADR 0053 remain the product authority;
+TEPP and fast-mlsirm still own measurement. Current `main` has migrations
+0249 and 0250 and ADRs 0373–0375; #1168 adds replay-safe migration 0252
+and amends ADR 0053, without sharing an ordinal or changing an API or release
+number. The duplicate historical `0233` migration and repeated PRD FR-2
+labels remain issues #1048 and #807. #1169 independently owns Voice save
+recovery, and the dated baseline overlays in both PRs must be retained when
+either integrates. The canonical remote spelling remains lowercase
+`ContextualWisdomLab/disksage`; the other linked owner names are
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+`contextual-orchestrator`.
+
 ## Exact-head Voice acceptance and Board load loop — 2026-10-07 07:45 KST
 
 Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The paged
