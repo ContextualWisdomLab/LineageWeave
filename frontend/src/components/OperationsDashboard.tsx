@@ -109,6 +109,7 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
       {data.failed_analysis_count > 0 ? (
         <StatusNotice
           kind="unavailable"
+          announce
           message={`분석 실패 ${data.failed_analysis_count}건은 전체 글 수에 포함됩니다. 분류 Event와 사례 카드는 재분석이 끝난 뒤 갱신됩니다.`}
           nextAction="원문은 게시판에서 바로 열 수 있습니다. 재분석은 운영 관리자에게 요청한 뒤 이 화면에서 수치를 다시 확인하세요."
         />

@@ -47,7 +47,7 @@ export const AnalysisFailed: Story = {
     onOpenPost: () => undefined,
   },
   play: async ({ canvasElement }) => {
-    const notice = within(canvasElement).getByRole("region", { name: /This evidence is unavailable/ });
+    const notice = within(canvasElement).getByRole("alert");
     await expect(notice).toHaveTextContent("재분석은 운영 관리자에게 요청");
     await expect(within(notice).queryByRole("button")).toBeNull();
   },
