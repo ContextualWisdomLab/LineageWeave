@@ -2,8 +2,8 @@
 
 ## Protected-main and exact-head correction — 2026-10-14 KST
 
-The current protected-branch commit is
-`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`, the merge commit for
+The current `main` commit is
+`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`, the squash commit for
 PR #1173. Its candidate head was
 `0e53fd321349fa48b5db0865e423c8d7e4bceaa6` against base
 `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`. The two valid inline
@@ -33,9 +33,10 @@ organization upgrades to GitHub Team**. It also shows an `Organization admin`
 actor with `Always allow` bypass, `Require status checks to pass` unchecked,
 and `Require workflows to pass before merging` checked. GraphQL returned no
 classic branch-protection rule; the publicly readable repository ruleset
-21065108 blocks force pushes only. These live controls explain why a configured
-review rule did not stop #1173. No further merge or auto-merge request is safe
-until an enforced repository or organization policy requires independent
+21065108 blocks force pushes only. These live controls show current
+enforcement, but no merge-time policy snapshot was recovered to establish
+the exact cause of #1173's admission. No further merge or auto-merge request
+is safe until an enforced repository or organization policy requires independent
 approval and successful exact-head checks for the merge actor. The central
 `.github` audit and live ruleset configuration own that repair; pending #1170
 and central `.github` #2596 do not themselves activate enforcement.
