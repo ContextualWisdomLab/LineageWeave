@@ -1,5 +1,88 @@
 # Product & Technical Gap Baseline
 
+## Governance continuation — 2026-10-13 19:23 KST
+
+Remote `main` is `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`, the
+confirmed merge SHA of #1172; #1171 merged at
+`a49f802eec69501191615c63261341cf1e43bf9a`. Available review records
+for those merges show comments but no independent approvals, and their
+application Checks failed. Merge SHA is therefore integration evidence only;
+the records do not establish the required protected approval path. This
+observation does not assert that the historical central-ruleset bypass actor
+has been removed.
+
+#1170's observed head before this integration is
+`d6700b417ccfbd2b3c162760125c3a6070a226a6`. Its one reviewed
+finding is addressed in the existing text below: the Draft canonical `.github`
+#2596 audit would detect a persistent bypass actor and fail, while removal of
+that actor and a passing later audit remain separate, unverified operations.
+#1170 adds no product code, ADR, API field, schema migration, or release
+number. The current-main merge had no content conflict. Its hosted Checks and
+independent approval must be re-read at the new head before any lifecycle
+action; no auto-merge was armed on the observed head.
+
+The current LineageWeave PRD and linked owner product/architecture authorities
+were read before this continuation. The selected buyer gap is still the
+evidence-bearing Voice save recovery in #1169, now at
+`7915fe3613a66fb410acf3490f826fe6bfd264c4`; #1168 owns the separate
+Board excerpt repair. Both PRs have newer local evidence and their dated
+baseline overlays must be preserved during integration. The historical
+duplicate `0233` migrations and repeated PRD FR-2 headings remain issues
+#1048 and #807. Current `main` adds migrations 0249/0250 and ADRs
+0373–0375; this documentation PR introduces no competing ordinal.
+
+## Exact-head continuation — 2026-10-13 00:20 KST
+
+The remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`.
+GitHub reports 192 open PRs (168 drafts, 117 non-`main` bases) and 42 open
+issues. These are workflow counts, not customer or population evidence. The
+ready Voice recovery PR #1169 is at
+`fb4f106a5b3855176884bec5c752c1b60b33155a`; governance PR #1170 is
+at `e0f3e43e4b0c870081a2cd80ef01daaf53e388e6` before this documentation
+update. Both target `main`, have no independent approving review, have zero
+unresolved threads in the retrieved review-thread pages, and have no armed
+auto-merge. Their exact-head hosted application checks failed before starting;
+the current CodeQL check annotations identify an account billing lock. No
+local result clears that owner-side gate, and neither PR is eligible for a
+protected merge on the observed evidence.
+
+The selected customer gap is recovery from a failed attempt to connect another
+Post perspective. PR #1169 keeps the selected Voice and truth state for a
+retryable failure, gives a next action for access or conflict failures, and
+keeps private error payloads off the screen. Its current head also raises the
+setuptools build floor alongside its PEP 639 license declaration, addressing
+the only reviewed inline finding. The current #1169 head passed 109 focused
+Voice-form and i18n tests, frontend lint, and a production build in an isolated
+worktree. The built synthetic Storybook Retry state at 1440×900 and Sign-in
+state at 390×844 were opened in Chromium, awaited to their settled notices,
+captured outside git, and visually inspected. The mobile unavailable save
+action is visibly inactive; the desktop retry retains both selections and a
+clear next action. The earlier host-contention
+timeouts are superseded only for this focused rerun, not for the full frontend
+suite. This is a candidate, not protected delivery or authenticated rendered-UI
+acceptance.
+
+ADR 0246 governs twelve open-ended atomic Voice categories; ADR 0256 governs
+evidence-bearing composition and retained cutoff intervals. ADR 0251 governs
+the separate I/O-psychology layer. The accepted/persisted derivation, carrying
+Post, independently authorized evidence Post, truth state, and cutoff remain
+distinct. The earlier synthetic CSV and paged JSON-LD checks below remain
+candidate evidence. Authenticated PostgreSQL API and rendered UI evidence for
+this exact head were not collected, so full Voice export acceptance remains
+unavailable.
+
+Current `main` still has duplicate PRD-FR-2A, 2B, and 2C headings and two
+`0233` migrations. The duplicate labels and ordinals are pre-existing
+integration conflicts; this continuation does not silently rename a shipped
+schema or claim one requirement supersedes another. PR #1169 and #1170 overlap
+in this baseline, so their evidence needs a deliberate content merge before
+either changes base. The reviewed heads do not add a competing API, schema,
+or release version. Canonical remote spelling is
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+`TEPP`, `fast-mlsirm`, and `contextual-orchestrator`; their product or
+architecture authorities were read before this continuation.
+
+
 ## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
 
 This dated overlay supersedes older present-tense queue statements. Historical
@@ -2728,3 +2811,39 @@ proof, and retain multi-Voice properties across paged JSON-LD. Synthetic API
 fixtures and a rendered Storybook scene do not satisfy the authenticated
 PostgreSQL/API or authenticated rendered-UI acceptance conditions. No
 population, customer, or runtime conclusion is inferred from current evidence.
+
+
+### Exact-head protected review correction — 2026-10-07
+
+The current LineageWeave remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`, a squash merge of PR #1153 whose sole parent is `8be55f0306015a1a8deda02fa9131e165254d239`. PR #1153 head was `f18c736f4c51dea62d2f543134e077a3f9d9eb22`. Immediately before merge, its exact-head Checks showed failures in Analyze (Python), Analyze (Actions), Frontend lint/test/build, and Full test suite; formal review history contained only a CodeRabbit COMMENTED review, and `reviewDecision` was empty. The merge actor was `seonghobae`, with organization-admin permission. The active organization ruleset 18156473 exposes an organization-admin `ALWAYS` bypass actor. The merge was triggered with `gh pr merge --auto --squash`, without an explicit `--admin` flag, but the immediate merge despite failed Checks and no independent approval cannot be certified as compliant with the user’s required review path. Treat it as an unprotected delivery; the merge SHA alone is not acceptance evidence.
+
+PR #1170 initially proposed restoring the pre-#1153 implementation. Its heads
+`a19735a72dd3de4bfc6c107409aff8ab2dfa3b81` through
+`e1363f21964aaef3116ff55442596e3003979fdd` removed 244 product/test lines
+across 18 non-baseline files without an open successor carrying the accepted
+Voice delta. That is not a valid review reset: it would trade an admission
+incident for a product regression. The branch now forward-restores every
+non-baseline path byte-for-byte from protected `main`, retaining only this
+governance record. The canonical `.github` owner PR #2596 is a Draft repair
+that makes its audit detect persistent bypass actors and fail the audit. It
+does not itself remove the actor from ruleset `18156473`. Protected integration,
+actor removal, and a successful subsequent scheduled audit remain pending.
+Fresh hosted Checks and independent review remain required on both exact heads; neither
+local equality nor this correction retroactively certifies the #1153 merge.
+
+The current product gap remains evidence-backed Voice export acceptance. ADR 0246 keeps the twelve atomic Voice categories open to supported extension; ADR 0256 requires each additional Voice to retain its authorized carrying Post, independently authorized derivation evidence, PROV-O derivation, truth state, and temporal cutoff. The #1153 candidate satisfied the synthetic export checks locally: 96 focused Python tests passed; frontend lint passed; all 60 frontend test files (571 tests), production build, and Storybook build passed. Desktop and mobile Storybook captures of synthetic separate Voice evidence were visually inspected, and CSV output kept the carrying Post distinct from the derivation-evidence Post. Frontend tests cover paged JSON-LD union of same-subject properties and multi-Voice relations. These are local synthetic candidate results only. No authenticated PostgreSQL API was tested, so this acceptance remains incomplete. The screenshots were temporary artifacts and are not repository fixtures.
+
+At this re-read, PRs #1169–#1161 and #1159–#1151 remain open except #1153. The inspected non-draft heads have no formal independent APPROVED review. Their reported exact-head application checks are failed; these are terminal failure reports, not a queue wait, and Actions job logs could not be fetched because REST returned HTTP 403 rate-limit responses. GitHub’s PR objects still report base OIDs `8be55f0`, `a67c5b0`, or `259be21` while the live remote `main` is `03c5750`; therefore those stored snapshots do not prove checks on the new base. Do not transfer review or check evidence across a head or base change. In particular #1162 still reports base `a67c5b0` despite targeting `main`.
+
+Read-only `git merge-tree` checks found baseline conflicts among #1169 with #1168, #1167, #1165, and #1163; between #1153 and #1159/#1157/#1162; between #1159 and #1157/#1162; and between #1157 and #1162. Additional code conflicts are #1153/#1162 in `OntologyExplorer.stories.tsx`, #1159/#1157 in `OntologyExplorer.tsx`, and #1159/#1162 in `OntologyExplorerRetry.stories.tsx`. These PRs need a deliberate parent-first order and fresh head/base evidence; none was retargeted here. Among the inspected heads, migration 0252 appears only in #1168; no duplicate migration ordinal or competing release number was found in that bounded set. This does not certify the entire open queue conflict-free.
+
+Current external authority references were checked at their canonical remotes: RankWeave `ARCHITECTURE.md` at `92323cb8b55baf5d840cb97fa8534a0e75ef234c`, ThreadWeave `docs/PRD.md` at `0fda6e60c2c80ec7b2aa2d58dac6b944dec6a6d0`, TEPP approved v0.4 PRD at `a243f18da4a4ca8a8d068c39922537f1f8ed6ad0`, fast-mlsirm `docs/PRD.md` at `a0d7958ead3b7bc474e45709ea8fa87122aa6406`, and canonical `ContextualWisdomLab/disksage` README at `05899ffb01ce91a9ea3d782630b28a398de59ddc` (no standalone PRD is present on its protected main). No ecosystem computation or provider boundary was reimplemented. The canonical Compose project was observed as `lineageweave`; no service, container, or data volume was modified. No real record or credential was printed or committed.
+
+
+
+Focused local checks on the bounded PR sample also passed: #1169 at `2e54b725832afa45a59f754ecd6ff0d85658d52c` passed 8 Voice-form tests, frontend lint/build, and Storybook build; synthetic Retry and Sign-in states were visually checked at desktop and mobile sizes. #1167 at `08ff77868465a6ca3eba7c98d1e18d1d3132a724` passed 4 Dashboard tests, lint/build, and Storybook build; its failed-analysis state was visually checked at both sizes. #1165 at `80f24209e75891f0b2a419eae7ddd42590f7593f` passed 7 ADR-marker and documentation-hygiene tests. #1164 at `0289942d194c45d6e1012c082dfa401d3a2ba59e` passed its changed report-member wait test. A different existing App test failed when isolated on both #1164 and its pre-change base `8be55f0`; the #1153 candidate's complete frontend suite passed, so this observation is not attributed to #1164. #1168 at `f4900a08d44672bdb4fc413987366f3bbaca6a7c` passed 6 synthetic excerpt privacy/documentation tests; its throwaway PostgreSQL migration test was not run against the active canonical stack. These local results do not replace each PR's failed hosted Checks, and no authenticated PostgreSQL API acceptance was collected.
+
+PR #1162 at `39db0ce75c7bb5722a46ba2f4959ed505e001aeb` passed all 582 frontend tests, lint, production build, and Storybook build. Its synthetic CSV round-trip preserves a newline in the source label and distinguishes the carrying Post from the derivation-evidence Post. The branch-specific mobile Storybook capture shows the Evidence columns outside the initial viewport without a scroll cue; the current #1153 candidate adds a visible cue, but merge-tree reports a conflict in `OntologyExplorer.stories.tsx`. The #1162 design therefore needs parent/base reconciliation and a fresh mobile screenshot before UI acceptance. This is synthetic local evidence only.
+
+
+PR #1159 at `b9e6b64b901f8a1057d40028516a6e070a92a5f2` passed all 577 frontend tests, lint, production build, and Storybook build; its denied-refocus screen was inspected at desktop and mobile sizes and kept cached evidence and exports unavailable. PR #1157 at `3d6c6bfbd7d7687917a1cc2c8126affc0aef2791` passed all 580 frontend tests when run by itself after a parallel run had reported six 5-second failures; the initial failure is not carried as a final local verdict, and the rerun does not explain why the parallel run timed out. Lint, build, Storybook build, and desktop/mobile denied-state captures also passed inspection. These branches still conflict in `OntologyExplorer.tsx` and both conflict in the baseline; no protected merge or authenticated API acceptance is established.
