@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Current-head candidate audit — 2026-10-13 KST
+## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
 
 This section supersedes dated queue statements below. It distinguishes the
 protected `main` snapshot, open PR heads, a local candidate, and acceptance
