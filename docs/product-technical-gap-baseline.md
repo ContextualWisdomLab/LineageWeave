@@ -47,9 +47,13 @@ none had auto-merge armed. These are repository queue counts, not evidence of
 customer usage or a population estimate. Ready #1169 remains at
 `7915fe3613a66fb410acf3490f826fe6bfd264c4` with terminal failed
 hosted checks, no independent approval, and no unresolved review thread in
-the bounded current GraphQL read. The current failure cause could not be
-confirmed from job logs because the REST Actions endpoint was rate-limited.
-Its Voice save-recovery behavior therefore remains a candidate.
+the bounded current GraphQL read. The GitHub UI annotation on its exact-head
+Full test suite job says the job never started because the account is locked
+for billing. The same annotation appeared on #1174's predecessor head
+`87dc411206de76e06a73228ed11e3f40545535bf`. Other failed jobs were not
+individually inspected, and this documentation commit needs new head checks.
+Billing recovery belongs to the account owner; no local pass can replace a
+hosted check. #1169's Voice save-recovery behavior remains a candidate.
 
 The current PRD still duplicates FR-2A/2B/2C identifiers with different
 descriptions, and the migration tree still has two `0233` filenames. Those
