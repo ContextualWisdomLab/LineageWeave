@@ -220,11 +220,33 @@ def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
-    assert "invent a measurement" in report.detail
-    assert "period report" in report.detail
+    assert report.detail == "Open the period report to rebuild it."
     assert start_kind_rejection("analysis_run_lineage") is None
     assert start_kind_rejection("analysis_run_tepp") is None
     assert start_kind_rejection("analysis_run_topic_lineage") is None
+    unknown = start_kind_rejection("unrecognized_run_kind")
+    assert unknown is not None
+    assert unknown.status_code == 422
+    assert unknown.detail == "This run cannot be started here. Open it to review its status."
+
+
+def test_provider_failure_returns_a_customer_action_without_internal_details(monkeypatch) -> None:
+    """A provider failure remains unavailable without exposing service diagnostics."""
+    def fail_reconstruction(*_args, **_kwargs):
+        raise analysis_run_start._AdjudicationProviderError("synthetic provider detail")
+
+    monkeypatch.setattr(analysis_run_start, "lineage_edge_specs", fail_reconstruction)
+    plan = analysis_run_start._DeliveryPlan(
+        "analysis_run_lineage", datetime(2026, 8, 25, tzinfo=timezone.utc), {}
+    )
+    with pytest.raises(AnalysisRunStartError) as exc_info:
+        analysis_run_start._execute_delivery_plan(plan, None, None)
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == (
+        "This run could not finish, and no result was saved. "
+        "Ask an administrator to restore analysis, then start it again."
+    )
+    assert "synthetic provider detail" not in exc_info.value.detail
 
 
 def _tepp_request() -> AnalysisRunRequest:
