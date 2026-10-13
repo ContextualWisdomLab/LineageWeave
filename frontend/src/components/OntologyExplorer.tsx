@@ -200,6 +200,10 @@ export function OntologyExplorer({
     () => filterNeighborhood(status === "authentication_required" ? null : loaded, query),
     [loaded, query, status],
   );
+  const visibleStatus = loaded?.edges.some((edge) => edge.truth_status_code === "truth_rejected")
+    && (status === "ready" || status === "empty" || status === "truncated" || status === "stale")
+    ? "rejected"
+    : status;
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
@@ -284,12 +288,12 @@ export function OntologyExplorer({
           aria-label={t("Search within this neighborhood")}
         />
       </label>
-      {status === "authentication_required" ? (
+      {visibleStatus === "authentication_required" ? (
         <StatusNotice
           kind="unavailable"
           message={ontologyExplorerText("Sign in again to view related information.")}
         />
-      ) : status === "error" ? (
+      ) : visibleStatus === "error" ? (
         <StatusNotice
           kind="retry"
           message={t("Related information is unavailable. Open a visible post next.")}
@@ -297,8 +301,8 @@ export function OntologyExplorer({
             ? () => setPageRetry((attempt) => attempt + 1)
             : undefined}
         />
-      ) : statusMessage(status, loaded, canLoadNextPage)}
-      {canLoadNextPage && status !== "loading" && status !== "error" ? (
+      ) : statusMessage(visibleStatus, loaded, canLoadNextPage)}
+      {canLoadNextPage && visibleStatus !== "loading" && visibleStatus !== "error" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
             {ontologyExplorerText("Load next relation page")}
