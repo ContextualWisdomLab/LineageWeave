@@ -1,5 +1,59 @@
 # Product & Technical Gap Baseline
 
+## Current candidate and protection snapshot — 2026-10-14 KST
+
+This snapshot supersedes present-tense claims in the dated sections below.
+Protected `main` was fetched at `51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`.
+The open inventory contained 193 PRs; this is a queue count, not customer
+usage or a population estimate. The canonical remote names are
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+`TEPP`, and `contextual-orchestrator`. This audit read the current
+LineageWeave PRD and the linked repositories' PRD or product/architecture
+authority before choosing the work. ADRs remain normative.
+
+The selected buyer-visible gap is the Period report group summary's display
+of a fitting-model identifier. That identifier is an internal measurement
+detail and gives the reader no action when a report needs review. The
+existing #1130 analysis-run copy PR owns this screen. Its predecessor exact
+head was `45487181f0750fc3b1da8dfa8670debb8faca055`. The candidate retains
+the persisted group measure, omits the model identifier from the group
+caption, and tells the reader to ask an administrator to review a report
+whose fit has not converged. It does not change the API, persisted model
+evidence, estimation, schema, ADR, or release version. The change is a
+presentation repair within the existing measurement boundary; it makes no
+new calibrated-quality claim.
+
+The candidate was integrated with the fetched protected `main` without
+discarding either branch's work. Focused frontend tests passed (108 in the
+two affected files), as did frontend lint, production build, Storybook build,
+and the new copy test in all five supported locales. Synthetic Storybook
+rendering was visually inspected at 1440×900 and 390×844; its long review
+action remained readable. The screenshots remain outside git. This is local
+rendering evidence, not authenticated PostgreSQL/API or private-runtime
+acceptance. The production build still reports its existing large-chunk
+warning; no performance fix or capacity claim follows from it.
+
+At the predecessor #1130 head, an `APPROVED` review was recorded on an older
+commit, four named hosted jobs were terminal failures, and auto-merge was
+absent. The current candidate needs fresh exact-head checks and independent
+approval. Ready #1169 at `31640c5289888a5c83a1483a2b15b5036abcf288`
+had its only inline finding resolved, 11 focused frontend tests passing
+locally, failed hosted checks, and no independent approval. #1174 at
+`32081438511e7a48bae4156a1b1db9580abe1ce1` had both reviewed inline
+findings resolved, failed hosted checks, and no independent approval. Its
+governance audit records that the present organization ruleset does not
+enforce the intended review/check gate at the current plan; the exact cause
+of #1173's earlier admission is unconfirmed. No merge or auto-merge request
+is made while this control is ineffective.
+
+The current PRD repeats FR-2A/2B/2C identifiers and the migration tree has
+two `0233` filenames. These pre-existing authority and migration conflicts
+remain open; the #1130 copy change adds no new ADR, API, schema, or release
+collision. Open PRs that touch shared docs and the report screen need a fresh
+combined diff after their parent merges. Authenticated load, gateway/worker
+saturation, and probability-sample population inference remain unavailable
+without their respective runtime and Rust-owned terminal evidence.
+
 ## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
 
 This section supersedes dated queue statements below. It distinguishes the
