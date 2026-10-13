@@ -1,5 +1,57 @@
 # Product & Technical Gap Baseline
 
+## Voice authoring follow-up — 2026-10-14 05:27 KST
+
+This overlay records fetched authority before the candidate edit below. It
+does not promote local tests, prior screenshots, or failed hosted checks into
+protected delivery or authenticated product acceptance.
+
+- Protected `main` was fetched at
+  `51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`. The Voice recovery owner
+  PR #1169 is open and ready at
+  `31640c5289888a5c83a1483a2b15b5036abcf288`, mergeable against that
+  base. Its review decision is empty, review threads are resolved, auto-merge
+  is absent, and six named hosted jobs failed. GitHub's REST job endpoint was
+  rate-limited, so those failure causes are unverified. The earlier CodeRabbit
+  setuptools finding is repaired at this head.
+- The fetched inventory has 193 open PRs: 168 drafts, 25 ready, 117 with a
+  non-`main` base, one with a nominal `APPROVED` decision, and none with
+  auto-merge armed. There are 42 open issues. These are repository counts, not
+  customer or population estimates. #1130's approving review names an older
+  commit; its current head has failed checks. No PR in this inventory was
+  established as eligible for a protected merge.
+- The PRD is supporting authority and ADRs remain normative. ADR 0246 defines
+  twelve atomic Voices, ADR 0251 owns the separate occupational psychology
+  layer, ADR 0256 governs evidence-bearing open combinations, and ADR 0220
+  governs the shared customer notice. The selected remaining reader gap in
+  #1169 is a stale success notice: after one save succeeds, choosing a
+  different Voice leaves the first save's confirmation visible. The candidate
+  clears that notice on a new selection and adds one focused regression and
+  Storybook state. It changes no classification, derivation, truth status,
+  cutoff, API, schema, migration, weight, or release number.
+- The current PRD repeats FR-2A, FR-2B, and FR-2C with incompatible headings
+  (issue #807). Migrations retain two `0233` files (issue #1048); the ADR
+  ordinals checked here have no duplicate. #1169 overlaps #1130 in `App.tsx`
+  and this baseline, and overlaps #1174 in this baseline. Neither overlap is
+  an accepted combined contract. Stacked children retain their parent bases
+  until a protected parent merge and fresh child evidence.
+- Canonical remotes checked are `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`, and lowercase `disksage`.
+  Their applicable product or architecture authorities were read before this
+  work. This candidate makes no inference-engine or gateway change.
+- The new local Voice regression passed 12 focused tests; frontend lint and
+  production and Storybook builds passed. The production build still reports
+  a 554.46 kB application chunk. The built synthetic Storybook state was
+  visually inspected at 1440×900 and 390×844 after choosing a second Voice:
+  the old confirmation is absent and the mobile form stays within the viewport.
+  Screenshots remain outside git. An unintended broad Vitest invocation showed
+  unrelated timeout failures before it was stopped; it is not a passing
+  full-suite result. Authenticated PostgreSQL/API acceptance, the authenticated
+  buyer flow, running-job k6 saturation, terminal successful hosted checks, independent
+  current-head approval, and a merge SHA remain unavailable for this
+  candidate. Prior convenience samples support no capacity or population
+  claim.
+
 ## Voice recovery candidate on current main — 2026-10-14 KST
 
 The #1169 Voice save-recovery delta was merged locally with current `main`

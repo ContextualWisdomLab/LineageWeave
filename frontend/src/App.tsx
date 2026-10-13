@@ -1918,7 +1918,10 @@ export function VoiceAssignmentForm({
           {t("Perspective")}
           <select
             value={voiceTypeCode}
-            onChange={(event) => setVoiceTypeCode(event.target.value)}
+            onChange={(event) => {
+              setVoiceTypeCode(event.target.value);
+              setSaved(false);
+            }}
             disabled={saving}
             required
           >
@@ -1932,7 +1935,10 @@ export function VoiceAssignmentForm({
           {t("Evidence status")}
           <select
             value={truthStatusCode}
-            onChange={(event) => setTruthStatusCode(event.target.value)}
+            onChange={(event) => {
+              setTruthStatusCode(event.target.value);
+              setSaved(false);
+            }}
             disabled={saving}
             required
           >

@@ -43,6 +43,24 @@ export const Completed: Story = {
   },
 };
 
+export const NewSelectionAfterCompletion: Story = {
+  args: {
+    options: [
+      { code: "vops", label: "Voice of Process" },
+      { code: "vor", label: "Voice of Regulator" },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(canvas.getByLabelText("Perspective"), "vops");
+    await userEvent.selectOptions(canvas.getByLabelText("Evidence status"), "truth_observed");
+    await userEvent.click(canvas.getByRole("button", { name: "Connect perspective" }));
+    await expect(canvas.getByRole("region", { name: /Ready:/ })).toHaveTextContent("Perspective connected.");
+    await userEvent.selectOptions(canvas.getByLabelText("Perspective"), "vor");
+    await expect(canvas.queryByText("Perspective connected.")).not.toBeInTheDocument();
+  },
+};
+
 export const NarrowViewport: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };

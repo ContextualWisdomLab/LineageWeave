@@ -75,6 +75,22 @@ describe("VoiceAssignmentForm", () => {
     expect(screen.queryByRole("button", { name: "Connect perspective" })).not.toBeInTheDocument();
   });
 
+  it("clears the previous save confirmation when a new perspective is selected", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<VoiceAssignmentForm voices={[]} options={[
+      { code: "vops", label: "Voice of Process" },
+      { code: "vor", label: "Voice of Regulator" },
+    ]} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vops" } });
+    fireEvent.change(screen.getByLabelText("Evidence status"), { target: { value: "truth_observed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Connect perspective" }));
+    expect(await screen.findByRole("region", { name: /Ready:/ })).toHaveTextContent("Perspective connected.");
+
+    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vor" } });
+    expect(screen.queryByText("Perspective connected.")).not.toBeInTheDocument();
+    expect(onSave).toHaveBeenCalledOnce();
+  });
+
   it("keeps a recovery action when the last perspective becomes unavailable during a failed save", async () => {
     let rejectSave!: (reason: unknown) => void;
     const onSave = vi.fn(() => new Promise<void>((_, reject) => { rejectSave = reject; }));
