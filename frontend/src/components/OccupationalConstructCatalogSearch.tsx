@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
   BackendError,
@@ -56,9 +56,26 @@ export function OccupationalConstructCatalogSearch({
   const [status, setStatus] = useState<OccupationalConstructCatalogSearchStatus>(
     providedStatus ?? (provided ? (provided.hits.length ? "ready" : "empty") : "idle"),
   );
+  const [readerScope, setReaderScope] = useState({ accessToken, knowledgeCutoff });
+  const latestRequest = useRef(0);
+
+  if (readerScope.accessToken !== accessToken || readerScope.knowledgeCutoff !== knowledgeCutoff) {
+    setReaderScope({ accessToken, knowledgeCutoff });
+    setPage(null);
+    setStatus("idle");
+    setQuery("");
+    setFamily("");
+  }
+
+  useLayoutEffect(() => {
+    // Invalidate at the committed boundary, including unmount, before an old
+    // request can restore evidence from a different reader or cutoff.
+    return () => { latestRequest.current += 1; };
+  }, [accessToken, knowledgeCutoff]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const request = ++latestRequest.current;
     const trimmed = query.trim();
     if (trimmed.length < 2) {
       setPage(null);
@@ -77,9 +94,11 @@ export function OccupationalConstructCatalogSearch({
         family: family || undefined,
         knowledgeCutoff,
       });
+      if (request !== latestRequest.current) return;
       setPage(result);
       setStatus(result.hits.length ? "ready" : "empty");
     } catch (error: unknown) {
+      if (request !== latestRequest.current) return;
       setPage(null);
       if (error instanceof BackendError && error.status === 422) {
         setStatus("idle");
@@ -91,6 +110,7 @@ export function OccupationalConstructCatalogSearch({
 
   async function onMore() {
     if (!accessToken || !page?.next_cursor) return;
+    const request = ++latestRequest.current;
     setStatus("loading");
     try {
       const result = await fetchOccupationalConstructSearch(accessToken, {
@@ -99,9 +119,12 @@ export function OccupationalConstructCatalogSearch({
         knowledgeCutoff,
         cursor: page.next_cursor,
       });
+      if (request !== latestRequest.current) return;
       setPage({ ...result, hits: [...page.hits, ...result.hits] });
       setStatus("ready");
     } catch {
+      if (request !== latestRequest.current) return;
+      setPage(null);
       setStatus("error");
     }
   }

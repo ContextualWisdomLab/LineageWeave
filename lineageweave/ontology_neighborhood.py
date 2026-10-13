@@ -14,9 +14,9 @@ Bechhofer, 2009); PROV-O (Lebo, Sahoo, & McGuinness, 2013); OWL-Time
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Mapping, Sequence
 
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
@@ -28,8 +28,8 @@ from lineageweave.knowledge_graph import (
     EDGE_SUPPORTS_OCCUPATIONAL_CONSTRUCT,
     EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
-    NODE_PERSON,
     NODE_OCCUPATIONAL_CONSTRUCT,
+    NODE_PERSON,
     NODE_POST,
     NODE_PROJECT,
     NODE_TEAM,
@@ -286,6 +286,8 @@ class OntologyNeighborhood:
     next_cursor: str | None
     limitation_code: str | None
     voice_assignments: tuple[OntologyVoiceAssignment, ...] = ()
+    # Only the application authorization boundary may admit references outside traversal.
+    authorized_voice_evidence_post_ids: frozenset[str] = frozenset()
 
     def _exportable_voice_assignments(self) -> tuple[OntologyVoiceAssignment, ...]:
         """Admit qualified Voices only with their visible carrying and evidence Posts."""
@@ -301,7 +303,7 @@ class OntologyNeighborhood:
             evidence_post_id = assignment.evidence_post_id
             if evidence_post_id is None and assignment.is_primary:
                 evidence_post_id = assignment.post_id
-            if evidence_post_id in post_ids:
+            if evidence_post_id in post_ids or evidence_post_id in self.authorized_voice_evidence_post_ids:
                 assignments.append(assignment)
         return tuple(assignments)
 

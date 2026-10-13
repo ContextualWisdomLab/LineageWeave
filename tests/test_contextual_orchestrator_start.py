@@ -112,14 +112,24 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS", "gateway.example")
 
     module.main()
 
     argv = captured["argv"]
     assert isinstance(argv, list)
+    assert "--auth-token" not in argv
+    assert "orchestrator-token" not in argv
+    assert "--inference-token-key" in argv
+    assert "--admin-token-key" in argv
+    assert "CONTEXTUAL_ORCHESTRATOR_TOKEN" not in os.environ
+    assert captured["credentials"][-2][0] == "CONTEXTUAL_ORCHESTRATOR_INFERENCE_TOKEN"
+    assert captured["credentials"][-2][1] == "orchestrator-token"
+    assert captured["credentials"][-1][0] == "CONTEXTUAL_ORCHESTRATOR_ADMIN_TOKEN"
+    assert captured["credentials"][-1][1] != "orchestrator-token"
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
-    assert captured["credentials"] == [
+    assert captured["credentials"][:-2] == [
         ("LLM_GATEWAY_API_KEY", "provider-key"),
         ("OPENAI_API_KEY", "openai-key"),
         ("OPENROUTER_API_KEY", "openrouter-key"),
@@ -136,7 +146,10 @@ def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -
         "NVIDIA_NIM_API_KEY_SUB",
         "BYTEZ_API_KEY",
     } & os.environ.keys()
+    assert "--allowed-provider-host" in argv
+    assert argv[argv.index("--allowed-provider-host") + 1] == "gateway.example"
     agents = captured["agents"]
     assert isinstance(agents, dict)
+    assert all(agent["provider_name"] == "configured_gateway" for agent in agents["agents"])
     assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
     assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ

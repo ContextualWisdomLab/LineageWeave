@@ -261,3 +261,12 @@ def test_evidence_status_distinguishes_missing_setup_from_retryable_failure() ->
             evidence_configured=False,
         )
     ) == "setup_required"
+
+
+def test_post_detail_binds_the_evidence_status_loader() -> None:
+    """The live post-detail endpoint can call its canonical status loader."""
+    from backend.app import main
+
+    assert main.read_post.__globals__.get(
+        "load_occupational_construct_evidence_status"
+    ) is load_occupational_construct_evidence_status

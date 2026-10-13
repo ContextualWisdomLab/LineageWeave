@@ -69,10 +69,7 @@ def _postgres_available() -> bool:
 
 pytestmark = pytest.mark.skipif(
     not _postgres_available(),
-    reason=(
-        "no reachable PostgreSQL server at "
-        f"{_ADMIN_DSN} (set LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN)"
-    ),
+    reason="requires the configured disposable PostgreSQL admin endpoint",
 )
 
 
@@ -321,6 +318,7 @@ def test_additional_voice_reassertion_preserves_cutoff_evidence(
             assignments = await _load_voice_assignments(
                 conn,
                 [post_id, first_evidence, later_evidence],
+                can_see_post=lambda _post: True,
                 knowledge_cutoff=cutoff,
                 snapshot_at=snapshot_at,
             )
@@ -339,6 +337,7 @@ def test_additional_voice_reassertion_preserves_cutoff_evidence(
             assignments = await _load_voice_assignments(
                 conn,
                 [post_id, first_evidence, later_evidence],
+                can_see_post=lambda _post: True,
                 knowledge_cutoff=cutoff,
                 snapshot_at=await conn.fetchval("select clock_timestamp()"),
             )
