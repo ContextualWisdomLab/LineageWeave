@@ -1,5 +1,67 @@
 # Product & Technical Gap Baseline
 
+## Current-main Voice recovery integration — 2026-10-13 19:06 KST
+
+This is a bounded observation, not a release or usage claim. Remote
+`main` is `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`, the confirmed
+merge SHA of #1172; #1171 merged at
+`a49f802eec69501191615c63261341cf1e43bf9a`. Their available review
+records contain comments but no independent approval, and their application
+Checks failed. Their merge SHAs therefore prove integration only, not that the
+required review and Checks were satisfied. GitHub lists **192 open PRs**
+(**168 drafts**, **117** with a non-`main` base) and **42 open issues**.
+These are workflow totals, not representative product observations.
+
+The selected buyer-visible gap is recovery after connecting another Post
+perspective fails. #1169's observed remote head before this integration is
+`fb4f106a5b3855176884bec5c752c1b60b33155a`. Its one inline
+`setuptools` finding is addressed at that head: the build minimum is 77.0.0
+for the SPDX license string. The Voice change keeps the selected atomic
+category and explicit truth state for a transient retry, gives a sign-in or
+reopen action after access rejection, and never displays the caught response.
+It uses the existing notice and tokens. Merging current `main` into this
+candidate had no content conflicts and preserved the other agents' merged
+authorization and replay repairs. This candidate has no new Voice code, ADR,
+API field, schema migration, mathematical rule, or release number beyond
+#1169 and current `main`.
+
+On the combined local tree, **109 focused frontend tests**, lint, production
+build, Storybook build, and **44 focused backend tests** passed. The backend
+run treated `DeprecationWarning` as an error. The production build still warns
+about a 554.22 kB application chunk; that warning is not a load measurement.
+Synthetic Storybook's sign-in-required state was rendered and visually checked
+at **1440×900** and **390×844**: the rejected action stays disabled, the
+next step is readable, and neither image contains private error details.
+This is rendered component evidence, not an authenticated customer session.
+
+At the observed #1169 head, six hosted application/security Checks completed
+as failures without job steps, independent approval is absent, and auto-merge
+is not armed. The current combined tree needs a fresh exact-head hosted read
+after publication. The account-level execution failure remains with the
+GitHub billing owner; local results cannot replace those Checks. No
+authenticated PostgreSQL API or rendered Voice acceptance was obtained for
+this candidate. In particular, the carrying Post and authorized derivation
+Post, PROV-O relation, truth history, cutoff, CSV, and paged JSON-LD acceptance
+remain unclaimed here. ADR 0246's twelve atomic Voices stay open to
+evidence-backed extension; ADR 0251's psychology taxonomy is separate, and
+ADR 0256 governs evidence-bearing combinations without fixed combination
+codes.
+
+The canonical remote names checked this turn are `LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, `contextual-orchestrator`, and lowercase `disksage`.
+The current LineageWeave PRD and those repositories' PRD or available product
+architecture were read before integration. PRD FR-2A/FR-2B/FR-2C identifiers
+still repeat (issue #807); the two historical `0233` migration files still
+collide (issue #1048). Current `main` adds migrations 0249 and 0250 and ADRs
+0373–0375; #1169 introduces no competing ordinal or release version. Open
+stacks that edit shared API, schema, or release authority still require
+parent-first protected merges and new child-head evidence. The current k6
+scripts use a disabled password-grant fixture path; owner PR #1156 has not
+merged, so no authenticated synthetic load or gateway saturation claim was
+made from this tree. Prior convenience samples remain nonrepresentative;
+population inference is unavailable without the complete Rust-owned terminal
+artifact.
+
 ## Voice recovery continuation — 2026-10-12 23:00 KST
 
 The observed protected `main` is

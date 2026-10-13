@@ -281,6 +281,7 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
             connection,
             str(uuid.uuid4()),
             summary,
+            allow_catalog_enrichment=True,
         )
     )
 
@@ -359,6 +360,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
             connection,
             str(uuid.uuid4()),
             summary,
+            allow_catalog_enrichment=True,
         )
     )
 

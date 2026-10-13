@@ -28,6 +28,7 @@ therefore cannot extend the lock or the atomic replacement window.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Any
 
 import asyncpg
@@ -219,37 +220,112 @@ async def fetch_persisted_summary(
     }
 
 
-async def persist_post_summary(
+class _SummaryIdentityPoolConnection:
+    """Lease only database work while reusing the canonical corporate resolver.
+
+    This adapter is request-local. Its transaction pins one lease solely for
+    the resolver's existing short, post-inference catalog creation phase.
+    """
+
+    def __init__(self, pool: asyncpg.Pool) -> None:
+        self._pool = pool
+        self._conn = None
+
+    @asynccontextmanager
+    async def transaction(self):
+        """Pin a connection only for a short canonical catalog transaction."""
+        if self._conn is not None:
+            raise RuntimeError("summary identity transaction already active")
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                self._conn = conn
+                try:
+                    yield
+                finally:
+                    self._conn = None
+
+    async def fetch(self, query, *args):
+        """Delegate the resolver's exact query using a short lease."""
+        if self._conn is not None:
+            return await self._conn.fetch(query, *args)
+        async with self._pool.acquire() as conn:
+            return await conn.fetch(query, *args)
+
+    async def fetchrow(self, query, *args):
+        """Delegate one exact resolver lookup or creation statement."""
+        if self._conn is not None:
+            return await self._conn.fetchrow(query, *args)
+        async with self._pool.acquire() as conn:
+            return await conn.fetchrow(query, *args)
+
+    async def execute(self, query, *args):
+        """Delegate a catalog statement, retaining its creation transaction."""
+        if self._conn is not None:
+            return await self._conn.execute(query, *args)
+        async with self._pool.acquire() as conn:
+            return await conn.execute(query, *args)
+
+
+async def prepare_post_summary_identities_from_pool(
+    pool: asyncpg.Pool,
+    summary: PostSummary,
+    **kwargs: Any,
+) -> tuple[list[Any], dict[int, str]]:
+    """Prepare identities without holding pool leases during inference/verification."""
+    return await prepare_post_summary_identities(
+        _SummaryIdentityPoolConnection(pool), summary, **kwargs
+    )
+
+
+async def persist_prepared_post_summary(
     conn: asyncpg.Connection,
     post_id: str,
+    summary: PostSummary,
+    prepared: tuple[list[Any], dict[int, str]],
+    *,
+    allow_catalog_enrichment: bool = False,
+) -> dict[str, Any]:
+    """Replace and read post-owned projections inside a caller's authorized transaction.
+
+    Identity preparation must already be complete. No external inference or
+    verification occurs here; the caller owns source share-lock revalidation.
+    """
+    candidates, resolved_organization_ids = prepared
+    await _replace_summary_projection(
+        conn, post_id, summary, candidates, resolved_organization_ids,
+        allow_catalog_enrichment=allow_catalog_enrichment,
+    )
+    payload = await fetch_persisted_summary(conn, post_id)
+    if payload is None:
+        raise RuntimeError("persist_prepared_post_summary wrote no row")
+    return payload
+
+
+async def prepare_post_summary_identities(
+    conn: Any,
     summary: PostSummary,
     *,
     post_body: str | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
     verification_client: RelationVerificationClient | None = None,
-) -> dict[str, Any]:
-    """Replace the stored summary for ``post_id`` and return the public payload.
+    allow_catalog_enrichment: bool = False,
+) -> tuple[list[Any], dict[int, str]]:
+    """Prepare shared organization identities before post-owned source locking.
 
-    ``post_body`` is the context an organization-actor hierarchy proposal
-    is inferred from (ADR 0010); it falls back to the summary's own Korean
-    text when not given.  The pluggable clients default to unavailable Null
-    clients, so an organization actor then only resolves against an existing
-    ``corporate_entity``.
-
-    Organization inference, verification, and any lock-protected catalog
-    creation complete before the atomic summary transaction.  The catalog is
-    an idempotent shared identity registry; keeping that enrichment separate
-    prevents network latency and ``pg_advisory_xact_lock`` from extending the
-    summary replacement transaction while all post-owned rows still commit or
-    roll back together.
+    A pool-backed query adapter releases leases between database operations, so
+    the canonical resolver never reserves a connection during external work.
     """
     if post_body is not None:
         require_summary_source_body(post_body)
 
-    hierarchy_inference_client = (
-        hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
-    )
-    verification_client = verification_client or NullRelationVerificationClient()
+    if allow_catalog_enrichment:
+        hierarchy_inference_client = (
+            hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
+        )
+        verification_client = verification_client or NullRelationVerificationClient()
+    else:
+        hierarchy_inference_client = NullCorporateHierarchyInferenceClient()
+        verification_client = NullRelationVerificationClient()
 
     context_text = post_body if post_body is not None else summary.korean_summary
     aliases = (
@@ -278,6 +354,41 @@ async def persist_post_summary(
         if corporate_entity_id is not None:
             resolved_organization_ids[role_index] = corporate_entity_id
 
+    return candidates, resolved_organization_ids
+
+
+async def persist_post_summary(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: PostSummary,
+    *,
+    post_body: str | None = None,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
+    verification_client: RelationVerificationClient | None = None,
+    allow_catalog_enrichment: bool = False,
+) -> dict[str, Any]:
+    """Replace the stored summary for ``post_id`` and return the public payload.
+
+    ``post_body`` is the context an organization-actor hierarchy proposal
+    is inferred from (ADR 0010); it falls back to the summary's own Korean
+    text when not given.  The pluggable clients default to unavailable Null
+    clients, so an organization actor then only resolves against an existing
+    ``corporate_entity``.
+
+    Organization inference, verification, and any lock-protected catalog
+    creation complete before the atomic summary transaction.  The catalog is
+    an idempotent shared identity registry; keeping that enrichment separate
+    prevents network latency and ``pg_advisory_xact_lock`` from extending the
+    summary replacement transaction while all post-owned rows still commit or
+    roll back together.
+    """
+    candidates, resolved_organization_ids = await prepare_post_summary_identities(
+        conn, summary, post_body=post_body,
+        hierarchy_inference_client=hierarchy_inference_client,
+        verification_client=verification_client,
+        allow_catalog_enrichment=allow_catalog_enrichment,
+    )
+
     async with conn.transaction():
         await _replace_summary_projection(
             conn,
@@ -285,6 +396,7 @@ async def persist_post_summary(
             summary,
             candidates,
             resolved_organization_ids,
+            allow_catalog_enrichment=allow_catalog_enrichment,
         )
 
     payload = await fetch_persisted_summary(conn, post_id)
@@ -313,12 +425,35 @@ async def _resolve_existing_cataloged_person_id(
     return str(person_row["person_id"])
 
 
+async def _resolve_summary_team_id(
+    conn: asyncpg.Connection,
+    team_name: str,
+    affiliated_organization_name: str | None,
+    candidates: list[Any],
+    *,
+    allow_catalog_enrichment: bool,
+) -> str | None:
+    """Reuse an existing team for readers; only explicit enrichment may upsert."""
+    if allow_catalog_enrichment:
+        return await upsert_team(conn, team_name, affiliated_organization_name, candidates)
+    row = await conn.fetchrow(
+        "select team_id from cataloged_team "
+        "where team_name = $1 "
+        "and affiliated_organization_name is not distinct from $2",
+        team_name,
+        affiliated_organization_name,
+    )
+    return None if row is None else str(row["team_id"])
+
+
 async def _replace_summary_projection(
     conn: asyncpg.Connection,
     post_id: str,
     summary: PostSummary,
     candidates: list[Any],
     resolved_organization_ids: dict[int, str],
+    *,
+    allow_catalog_enrichment: bool,
 ) -> None:
     """Write one atomic replacement using pre-resolved shared identities."""
     # Summary replacement owns only R&R projections. Keyman mentions remain
@@ -407,11 +542,12 @@ async def _replace_summary_projection(
         cataloged_corporate_entity_id = None
         cataloged_person_id = None
         if role.actor_type_code == ACTOR_TYPE_TEAM:
-            cataloged_team_id = await upsert_team(
+            cataloged_team_id = await _resolve_summary_team_id(
                 conn,
                 role.actor_name,
                 role.affiliated_organization_name,
                 candidates,
+                allow_catalog_enrichment=allow_catalog_enrichment,
             )
         elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
             cataloged_corporate_entity_id = resolved_organization_ids.get(

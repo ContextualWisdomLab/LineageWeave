@@ -36,6 +36,7 @@ from lineageweave.semantic_hints import format_semantic_hints
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Build the bounded operator CLI without introducing provider controls."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--target-dsn",
@@ -63,6 +64,7 @@ def _gateway_config() -> tuple[str, str]:
 
 
 def _semantic_hints(row: asyncpg.Record) -> str:
+    """Format persisted source context for CO without inventing missing identity data."""
     source_author_name = row["source_author_name"]
     if source_author_name and source_author_name == row["source_author_code"]:
         source_author_name = None
@@ -213,6 +215,7 @@ async def backfill_post_summaries(
     raw_post_ids: list[str] | None,
     limit: int | None,
 ) -> dict[str, object]:
+    """Backfill post-owned evidence while explicitly denying shared-catalog enrichment."""
     post_ids = [str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])]
     base_url, api_key = _gateway_config()
     if not base_url or not api_key:
@@ -268,6 +271,7 @@ async def backfill_post_summaries(
                         post_body=normalized.text,
                         hierarchy_inference_client=NullCorporateHierarchyInferenceClient(),
                         verification_client=NullRelationVerificationClient(),
+                        allow_catalog_enrichment=False,
                     )
                 result["processed_posts"] = int(result["processed_posts"]) + 1
                 result["project_mentions"] = int(result["project_mentions"]) + len(summary.project_mentions)
@@ -283,6 +287,7 @@ async def backfill_post_summaries(
 
 
 def main() -> None:
+    """Validate CLI scope and execute one explicit backfill batch."""
     args = _parser().parse_args()
     if args.limit < 1:
         raise SystemExit("--limit must be positive")

@@ -22,8 +22,10 @@ The comparison payload carries the same ABAC-filtered `leftover_pairs`
 as the period-report payload. Each visible comparison row may name
 closest and farthest leftover pairs. Clicking a leftover pair on the
 strip opens that post with the same handler as a leftover pair on the
-period-report list. A leftover pair for a hidden post is omitted the
-same way a hidden member is.
+period-report list. Under the #1050 / #1054 whole-population authorization correction in ADR
+0048, a hidden member or leftover contributor suppresses the entire stored
+comparison aggregate, not just that row. Missing contributor authorization
+metadata also suppresses the aggregate; it is never guessed or zero-filled.
 
 Do not invent leftover numbers or a second theta. Missing leftover
 rows render nothing.
