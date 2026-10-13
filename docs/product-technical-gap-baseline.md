@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Protected-main and exact-head correction — 2026-10-14 KST
+
+The current protected-branch commit is
+`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`, the merge commit for
+PR #1173. Its candidate head was
+`0e53fd321349fa48b5db0865e423c8d7e4bceaa6` against base
+`bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`. The two valid inline
+review findings on an earlier head were fixed, both threads were resolved,
+and 37 focused component tests passed locally on the final head. The merged
+candidate preserves the rejected-relation warning across ontology pages and
+removes it when local search hides that relation. Its synthetic Storybook
+desktop/mobile inspection is recorded below. An authenticated, paged
+PostgreSQL/API and browser acceptance for this behavior remains unavailable.
+
+The merge command requested ordinary squash auto-merge without `--admin` or a
+force push, but GitHub merged #1173 immediately at 2026-10-13 16:30:15 UTC.
+At that exact head, the Full test suite and Frontend lint/test/build checks
+were terminal failures, and the only recorded review was `COMMENTED`, not an
+independent approval. GitHub recorded the merge actor as the PR author.
+This is a review-control incident, not evidence that the requested protected
+merge conditions passed. Do not repeat a merge or auto-merge request on a PR
+without first verifying that the live ruleset enforces independent approval
+and successful required checks for that actor. The ruleset detail endpoint was
+rate-limited during this audit, so the precise live bypass entry and the
+reason GitHub admitted the merge remain unverified. The central `.github`
+ruleset audit and actor configuration own that repair; the pending governance
+work in #1170 and central `.github` #2596 does not itself prove a fixed policy.
+
+The open inventory returned 192 PRs, including 168 drafts and 117 with a
+non-`main` base; 42 issues were open. One PR had an `APPROVED` rollup, and
+none had auto-merge armed. These are repository queue counts, not evidence of
+customer usage or a population estimate. Ready #1169 remains at
+`7915fe3613a66fb410acf3490f826fe6bfd264c4` with terminal failed
+hosted checks, no independent approval, and no unresolved review thread in
+the bounded current GraphQL read. The current failure cause could not be
+confirmed from job logs because the REST Actions endpoint was rate-limited.
+Its Voice save-recovery behavior therefore remains a candidate.
+
+The current PRD still duplicates FR-2A/2B/2C identifiers with different
+descriptions, and the migration tree still has two `0233` filenames. Those
+cross-PR authority and schema-ordinal conflicts remain open; this audit does
+not choose a new policy, migration number, API contract, or release number.
+The canonical remote name is `ContextualWisdomLab/disksage` (lowercase), and
+its protected `main` has no standalone `docs/PRD.md`; its README is the
+current product authority. TEPP, RankWeave, ThreadWeave, fast-mlsirm, and
+contextual-orchestrator retain the owner boundaries named in the PRD. No
+current authenticated load or Rust-owned probability-sample terminal artifact
+was produced, so saturation, capacity, and population claims remain
+unavailable.
+
 ## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
 
 This section supersedes dated queue statements below. It distinguishes the
