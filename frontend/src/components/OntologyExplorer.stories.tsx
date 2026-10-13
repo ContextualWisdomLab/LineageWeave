@@ -412,6 +412,15 @@ export const SeparateVoiceEvidence: Story = {
   },
 };
 
+export const VoiceEvidenceOutsideTraversal: Story = {
+  args: {
+    neighborhood: {
+      ...SeparateVoiceEvidence.args!.neighborhood!,
+      nodes: combinedVoiceNeighborhood.nodes,
+    },
+  },
+};
+
 export const LongLabelsAndEvidenceTable: Story = {
   args: {
     neighborhood: {
@@ -508,6 +517,13 @@ export const Denied: Story = {
   args: {
     neighborhood: null,
     status: "denied",
+  },
+};
+
+export const SignInRequired: Story = {
+  args: {
+    neighborhood: null,
+    status: "authentication_required",
   },
 };
 

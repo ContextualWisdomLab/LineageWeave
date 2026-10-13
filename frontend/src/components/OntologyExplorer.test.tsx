@@ -304,6 +304,36 @@ describe("OntologyExplorer", () => {
       expect(screen.getByText("Loading related information...")).toBeInTheDocument();
     },
   );
+  it.each(["initial", "continuation"])("requires sign-in after a rejected %s credential without retaining evidence", async (request) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    if (request === "continuation") {
+      fetchNeighborhood.mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }));
+    }
+    fetchNeighborhood.mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 401, "synthetic-secret-diagnostic"));
+    const { rerender } = render(
+      <OntologyExplorer accessToken="synthetic-expired-token" focusNodeType="node_post" focusNodeId={POST_ID} />,
+    );
+    if (request === "continuation") {
+      await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+      await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    }
+    expect(await screen.findByText("Sign in again to view related information.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("synthetic-secret-diagnostic")).not.toBeInTheDocument();
+    const count = fetchNeighborhood.mock.calls.length;
+    fetchNeighborhood.mockResolvedValueOnce(neighborhood());
+    rerender(<OntologyExplorer accessToken="synthetic-renewed-token" focusNodeType="node_post" focusNodeId={POST_ID} />);
+    expect(await screen.findByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(count + 1, "synthetic-renewed-token", expect.objectContaining({ cursor: undefined }));
+    expect(screen.queryByText("Sign in again to view related information.")).not.toBeInTheDocument();
+    fetchNeighborhood.mockReset();
+  });
 
   it("renders a project node with a text-labeled diamond", () => {
     const payload = neighborhood();
@@ -326,6 +356,24 @@ describe("OntologyExplorer", () => {
 
     expect(screen.getByLabelText("Select node: Project Demo Project")).toBeVisible();
     expect(container.querySelector('polygon[points="0,-16 20,0 0,16 -20,0"]')).not.toBeNull();
+  });
+
+  it("does not restore supplied evidence when focus resets after authentication fails", async () => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset();
+    fetchNeighborhood.mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 401));
+    render(
+      <OntologyExplorer accessToken="synthetic-expired-token" focusNodeType="node_post" focusNodeId={POST_ID} neighborhood={neighborhood()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Person Test Person" }));
+    await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
+    expect(await screen.findByText("Sign in again to view related information.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
+    expect(screen.getByText("Sign in again to view related information.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select node: Post Demo public post" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(fetchNeighborhood).toHaveBeenCalledOnce();
+    fetchNeighborhood.mockReset();
   });
 
   it("keeps loaded pages visible when a continuation page fails", async () => {
@@ -473,7 +521,26 @@ describe("OntologyExplorer", () => {
     },
   );
 
-  it.each([401, 403, 404])("drops all prior evidence when continuation access is denied (%s)", async (status) => {
+  it("requires sign-in and clears all prior evidence when continuation authentication expires", async () => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockReset()
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 401, "synthetic-secret-diagnostic"));
+    render(<OntologyExplorer accessToken="synthetic-expired-token" focusNodeType="node_post" focusNodeId={POST_ID} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(await screen.findByText("Sign in again to view related information.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Select node:/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export JSON-LD" })).toBeDisabled();
+    expect(screen.queryByText("synthetic-secret-diagnostic")).not.toBeInTheDocument();
+    expect(fetchNeighborhood).toHaveBeenCalledTimes(2);
+    fetchNeighborhood.mockReset();
+  });
+
+  it.each([403, 404])("drops all prior evidence when continuation access is denied (%s)", async (status) => {
     vi.mocked(fetchOntologyNeighborhood).mockReset()
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
       .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", status));
@@ -558,7 +625,7 @@ describe("OntologyExplorer", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
     expect(await screen.findByText("Related information is unavailable. Open a visible post next.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() => expect(fetchNeighborhood).toHaveBeenCalledTimes(3));
     expect(screen.queryByText("Related information is unavailable. Open a visible post next.")).not.toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
@@ -608,6 +675,11 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Scroll horizontally to see all columns, including evidence and recorded time.",
+      ),
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
@@ -618,6 +690,29 @@ describe("OntologyExplorer", () => {
     await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
     expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("opens authorized evidence outside traversal without showing an internal identifier", async () => {
+    const source = neighborhood();
+    const evidenceId = "synthetic-outside-evidence";
+    const onSelectPost = vi.fn();
+    const onOpenEvidence = vi.fn();
+    render(<OntologyExplorer
+      focusNodeType="node_post"
+      focusNodeId={POST_ID}
+      neighborhood={{ ...source, exact_value_rows: [{
+        ...source.exact_value_rows[0],
+        edge_id: "voice-outside", property_code: "hasVoiceAssignment",
+        evidence_post_id: evidenceId,
+      }] }}
+      onSelectPost={onSelectPost}
+      onOpenEvidence={onOpenEvidence}
+    />);
+    await userEvent.click(screen.getByRole("button", { name: "Open post: Demo public post" }));
+    expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
+    expect(onOpenEvidence).toHaveBeenCalledWith(evidenceId);
+    expect(screen.queryByText(evidenceId)).not.toBeInTheDocument();
   });
 
   it("opens the carrying post and its authorized Voice evidence separately", async () => {
