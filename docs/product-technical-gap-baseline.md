@@ -41,24 +41,37 @@ approval and successful exact-head checks for the merge actor. The central
 `.github` audit and live ruleset configuration own that repair; pending #1170
 and central `.github` #2596 do not themselves activate enforcement.
 
-The open inventory returned 192 PRs, including 168 drafts and 117 with a
+The 2026-10-14 live inventory returned 193 PRs, including 168 drafts and 117 with a
 non-`main` base; 42 issues were open. One PR had an `APPROVED` rollup, and
 none had auto-merge armed. These are repository queue counts, not evidence of
 customer usage or a population estimate. Ready #1169 remains at
-`7915fe3613a66fb410acf3490f826fe6bfd264c4` with terminal failed
-hosted checks, no independent approval, and no unresolved review thread in
-the bounded current GraphQL read. The GitHub UI annotation on its exact-head
-Full test suite job says the job never started because the account is locked
-for billing. The same annotation appeared on #1174's predecessor head
-`87dc411206de76e06a73228ed11e3f40545535bf`. Other failed jobs were not
-individually inspected, and this documentation commit needs new head checks.
+`31640c5289888a5c83a1483a2b15b5036abcf288` with terminal failed
+hosted checks and no independent approval. A complete current review-thread
+page returned zero unresolved threads for #1169 and #1174. The exact-head
+Full test suite and frontend job annotations for #1169 say the jobs never
+started because the account is locked for billing; #1174's predecessor head
+`30d3a97a75ae6936fb5f390552130bb40d7d764c` has the same Full test suite
+annotation. Other failed jobs were not individually inspected, and this
+documentation commit needs new head checks.
 Billing recovery belongs to the account owner; no local pass can replace a
-hosted check. #1169's Voice save-recovery behavior remains a candidate.
+hosted check. #1169's Voice save-recovery behavior remains a candidate. Its
+latest focused fix keeps the sign-in action when an unauthorized final-Voice
+save races with an updated assignment list. The 11 focused component tests,
+frontend lint, production build, and Storybook build passed locally. The
+built synthetic Storybook scene was rendered and visually inspected at
+1440×900 and 390×844; the notice and next action were readable at both sizes.
+These checks do not prove authenticated PostgreSQL/API or production UI
+acceptance, and the screenshots remain outside git.
 
 The current PRD still duplicates FR-2A/2B/2C identifiers with different
 descriptions, and the migration tree still has two `0233` filenames. Those
 cross-PR authority and schema-ordinal conflicts remain open; this audit does
 not choose a new policy, migration number, API contract, or release number.
+#1169 changes buyer copy and its supporting PRD, plus the package build floor;
+#1174 changes only this baseline. Their inspected deltas add no ADR, API field,
+schema migration, or release-number change, so they create no new collision in
+those four contracts. The inherited duplicate PRD IDs and migration ordinal
+still need their owners to resolve them before a release claim.
 The canonical remote name is `ContextualWisdomLab/disksage` (lowercase), and
 its protected `main` has no standalone `docs/PRD.md`; its README is the
 current product authority. TEPP, RankWeave, ThreadWeave, fast-mlsirm, and
