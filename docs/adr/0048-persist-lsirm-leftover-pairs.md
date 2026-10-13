@@ -92,7 +92,15 @@ Rebuild and seed write leftover pairs in the same transaction as
 member scores. `GET /api/reports/{grouping}/{period}` returns
 `leftover_pairs` with the post title so the buyer can open that post.
 Hidden posts stay hidden: leftover pairs join `source_post` and use
-the same ABAC gate as members. Migration `0012_report_leftover_pair.sql`
+the same ABAC gate as members. The #1050 / #1054 authorization correction
+admits a persisted report aggregate only when **every** stored member and
+leftover-pair contributor is visible to the current corporate/process scope
+and passes the existing synthetic-demo exclusion. An empty member population
+or missing contributor authorization metadata fails closed. Filtering member
+rows after calibration is not authorization of the precomputed statistic:
+suppress the whole aggregate, including theta, calibration, item information,
+leftover-map axes and coverage, instead of recomputing from a visible subset.
+The list, detail and comparison projections use this same admission rule. Migration `0012_report_leftover_pair.sql`
 upgrades volumes that already applied `0001`.
 
 ## References
