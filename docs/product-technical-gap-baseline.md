@@ -52,10 +52,23 @@ No previous PR approval or check is transferred to the integration candidate.
 The current PRD still repeats FR-2A/2B/2C identifiers with incompatible
 requirements, and two `0233` migration filenames remain. This integration
 allocates no ADR, API, schema, migration, release number, model rule, or
-statistical estimator. A synthetic authenticated k6 saturation measurement and
-Rust-owned probability-sample terminal artifact remain unavailable; no
-unobserved performance bottleneck is modified and no convenience sample is
-promoted to a population result.
+statistical estimator. A Rust-owned probability-sample terminal artifact
+remains unavailable; no convenience sample is promoted to a population result.
+
+An authenticated synthetic HTTP k6 observation ran against the formal
+`lineageweave` Compose project with two virtual users for 20 seconds. An
+uncommitted copy of the existing harness removed response-body text from its
+failure message; credentials and response bodies were not printed. It made
+116 HTTP requests at 4.93/s with zero failed requests and 114/114 successful
+checks. The 38 completed iterations averaged 1.13 s; overall request p95 was
+1.81 s, read p95 was 2.46 s, and Ask-poll p95 was 315.73 ms. One Ask submission
+was observed at 251.14 ms. A simultaneous single `docker stats` snapshot
+showed PostgreSQL at 334% CPU, backend at 11%, orchestrator at 19%, and Valkey
+at 5%, with container memory below the reported 3.813 GiB limit. This one
+short convenience run has no baseline, per-route saturation trace, worker
+queue series, or approved capacity threshold. It does not establish a
+PostgreSQL bottleneck or a population-level latency claim, so no performance
+change follows from it.
 
 ## Dated reader candidate audit — 2026-10-13 to 2026-10-14 KST
 
