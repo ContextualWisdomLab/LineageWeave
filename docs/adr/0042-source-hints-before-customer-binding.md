@@ -29,6 +29,17 @@ belong to a fictional organization.
   buyer can open the original post, read its body, and inspect semantic
   evidence without turning the hint into a customer binding.
 
+## Authorization clarification (2026-10-03)
+
+Source corporate/process columns remain ownership, never resolved customer identity.
+Customer hint resolution captures only caller-visible eligible evidence, releases
+its source connection before corroboration, delegates catalog identity to the
+ADR 0010/0012 owner, and revalidates the exact source set under short share locks
+before persisting the separate association (Proposed ADR 0374). Relationship
+aggregates use the same corporate/process predicate. Explicit empty process scope
+retains authenticated unrestricted semantics; omitted scope admits public evidence
+only, never private evidence.
+
 ## Consequences
 
 The customer master can show useful source evidence immediately without

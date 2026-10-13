@@ -1,5 +1,36 @@
 # Product & Technical Gap Baseline
 
+## Governance continuation — 2026-10-13 19:23 KST
+
+Remote `main` is `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`, the
+confirmed merge SHA of #1172; #1171 merged at
+`a49f802eec69501191615c63261341cf1e43bf9a`. Available review records
+for those merges show comments but no independent approvals, and their
+application Checks failed. Merge SHA is therefore integration evidence only;
+the records do not establish the required protected approval path. This
+observation does not assert that the historical central-ruleset bypass actor
+has been removed.
+
+#1170's observed head before this integration is
+`d6700b417ccfbd2b3c162760125c3a6070a226a6`. Its one reviewed
+finding is addressed in the existing text below: the Draft canonical `.github`
+#2596 audit would detect a persistent bypass actor and fail, while removal of
+that actor and a passing later audit remain separate, unverified operations.
+#1170 adds no product code, ADR, API field, schema migration, or release
+number. The current-main merge had no content conflict. Its hosted Checks and
+independent approval must be re-read at the new head before any lifecycle
+action; no auto-merge was armed on the observed head.
+
+The current LineageWeave PRD and linked owner product/architecture authorities
+were read before this continuation. The selected buyer gap is still the
+evidence-bearing Voice save recovery in #1169, now at
+`7915fe3613a66fb410acf3490f826fe6bfd264c4`; #1168 owns the separate
+Board excerpt repair. Both PRs have newer local evidence and their dated
+baseline overlays must be preserved during integration. The historical
+duplicate `0233` migrations and repeated PRD FR-2 headings remain issues
+#1048 and #807. Current `main` adds migrations 0249/0250 and ADRs
+0373–0375; this documentation PR introduces no competing ordinal.
+
 ## Exact-head continuation — 2026-10-13 00:20 KST
 
 The remote `main` is `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`.
