@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   BackendError,
   fetchOntologyNeighborhood,
@@ -105,7 +105,13 @@ export function OntologyExplorer({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
+  const [requestScope, setRequestScope] = useState({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff, generation: 0 });
+  const committedGeneration = useRef(requestScope.generation);
   const rejectedAccessToken = useRef<string | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    committedGeneration.current = requestScope.generation;
+  }, [requestScope.generation]);
 
   function clearSelection() {
     setSelectedNodeKey(null);
@@ -113,14 +119,27 @@ export function OntologyExplorer({
     setQuery("");
   }
 
-  useEffect(() => {
+  if (
+    requestScope.accessToken !== accessToken ||
+    requestScope.focusNodeType !== focusNodeType ||
+    requestScope.focusNodeId !== focusNodeId ||
+    requestScope.knowledgeCutoff !== knowledgeCutoff
+  ) {
+    if (requestScope.accessToken !== accessToken) rejectedAccessToken.current = undefined;
+    setRequestScope({ accessToken, focusNodeType, focusNodeId, knowledgeCutoff, generation: requestScope.generation + 1 });
+    setLoaded(provided ?? null);
+    setStatus(
+      providedStatus ?? (accessToken && accessToken === rejectedAccessToken.current
+        ? "authentication_required"
+        : provided ? statusFromPayload(provided, knowledgeCutoff) : accessToken ? "loading" : "empty"),
+    );
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
     setPageRetry(0);
     setLiveFocus(false);
     clearSelection();
-  }, [focusNodeType, focusNodeId]);
+  }
 
   useEffect(() => {
     if (accessToken && accessToken === rejectedAccessToken.current) return;
@@ -138,6 +157,7 @@ export function OntologyExplorer({
       return;
     }
     let cancelled = false;
+    const requestGeneration = requestScope.generation;
     setStatus("loading");
     fetchOntologyNeighborhood(accessToken, {
       focusNodeType: focusType,
@@ -146,14 +166,14 @@ export function OntologyExplorer({
       cursor,
     })
       .then((payload) => {
-        if (cancelled) return;
+        if (cancelled || requestGeneration !== committedGeneration.current) return;
         setLoaded((current) =>
           cursor && current ? accumulateNeighborhoodPages(current, payload) : payload,
         );
         setStatus(statusFromPayload(payload, knowledgeCutoff));
       })
       .catch((error: unknown) => {
-        if (cancelled) return;
+        if (cancelled || requestGeneration !== committedGeneration.current) return;
         if (error instanceof BackendError && error.status === 401) {
           rejectedAccessToken.current = accessToken;
           setLoaded(null);
@@ -164,6 +184,8 @@ export function OntologyExplorer({
         }
         if (!cursor) setLoaded(null);
         if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
+          setLoaded(null);
+          clearSelection();
           setStatus("denied");
           return;
         }
@@ -172,18 +194,25 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus, requestScope.generation]);
 
   const visible = useMemo(
     () => filterNeighborhood(status === "authentication_required" ? null : loaded, query),
     [loaded, query, status],
   );
+  const visibleStatus = visible && (
+    status === "ready" || status === "empty" || status === "truncated"
+    || status === "stale" || status === "rejected"
+  ) ? statusFromPayload(visible, knowledgeCutoff) : status;
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
   const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !provided);
 
   function resetFocus() {
+    setRequestScope((scope) => ({ ...scope, generation: scope.generation + 1 }));
+    setLoaded(null);
+    setStatus(accessToken && accessToken === rejectedAccessToken.current ? "authentication_required" : "loading");
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
@@ -246,6 +275,7 @@ export function OntologyExplorer({
         </div>
       </header>
       <OccupationalConstructCatalogSearch
+        key={requestScope.generation}
         accessToken={accessToken}
         knowledgeCutoff={knowledgeCutoff}
         onSelectPost={onSelectPost ?? onOpenEvidence}
@@ -258,12 +288,12 @@ export function OntologyExplorer({
           aria-label={t("Search within this neighborhood")}
         />
       </label>
-      {status === "authentication_required" ? (
+      {visibleStatus === "authentication_required" ? (
         <StatusNotice
           kind="unavailable"
           message={ontologyExplorerText("Sign in again to view related information.")}
         />
-      ) : status === "error" ? (
+      ) : visibleStatus === "error" ? (
         <StatusNotice
           kind="retry"
           message={t("Related information is unavailable. Open a visible post next.")}
@@ -271,8 +301,8 @@ export function OntologyExplorer({
             ? () => setPageRetry((attempt) => attempt + 1)
             : undefined}
         />
-      ) : statusMessage(status, loaded, canLoadNextPage)}
-      {canLoadNextPage && status !== "loading" && status !== "error" && status !== "denied" ? (
+      ) : statusMessage(visibleStatus, loaded, canLoadNextPage)}
+      {canLoadNextPage && visibleStatus !== "loading" && visibleStatus !== "error" && visibleStatus !== "denied" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
             {ontologyExplorerText("Load next relation page")}
@@ -321,10 +351,14 @@ export function OntologyExplorer({
           node={selectedNode}
           canRefocus={Boolean(accessToken)}
           onFocus={() => {
+            setRequestScope((scope) => ({ ...scope, generation: scope.generation + 1 }));
+            setLoaded(null);
+            setStatus("loading");
             setLiveFocus(true);
             setFocusType(selectedNode.node_type_code);
             setFocusId(selectedNode.node_id);
             setCursor(undefined);
+            setPageRetry(0);
             clearSelection();
           }}
           onOpenEvidence={

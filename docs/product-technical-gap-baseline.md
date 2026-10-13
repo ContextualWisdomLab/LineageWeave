@@ -1,6 +1,149 @@
 # Product & Technical Gap Baseline
 
-## CSV and Voice integration — 2026-10-13 KST
+## Exact-head CSV integration audit — 2026-10-14 KST
+
+This section supersedes present-tense queue and delivery statements in the dated
+receipts below. The observed remote `main` is
+`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`; ready PR #1162 is
+`c5c0e42803528d178c77527bb29dfde2080f1118`. The isolated integration
+merges that main into #1162's CSV repair while retaining both sides of the
+previously conflicting product documentation and the reader's current visible
+warning state. The candidate must receive new exact-head Checks and review.
+
+The current LineageWeave PRD was read before integration, with ADR 0184 as
+normative authority for this reader and ADR 0246/0256 for extensible,
+evidence-bearing Voice assignments. Remote metadata confirms canonical
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`contextual-orchestrator`, `fast-mlsirm`, and lowercase `disksage`. Current
+product or architecture authorities were read for each linked owner. No owner
+calculation or provider boundary changes in this candidate.
+
+The buyer gap is a source label with an embedded carriage return splitting a
+CSV field, or a spreadsheet-leading marker being interpreted as a formula.
+The #1162 repair quotes CR and preserves the original label in memory; its
+synthetic regressions cover CR, LF, CRLF and the leading markers. The merged
+reader also keeps a denied continuation from offering another page and retains
+the warning computed from the visible accumulated graph. The distinct carrying
+Post and authorized derivation-evidence Post remain separate in exact values
+and CSV. These are candidate behaviors; authenticated PostgreSQL/API and
+customer UI acceptance still need current-head evidence.
+
+On the integrated tree, 84 focused frontend tests, frontend lint, production
+build, Storybook build, and five documentation-hygiene tests pass; no warning is
+suppressed. The synthetic CSV Story rendered at 1440×900 and 390×844 and both
+screenshots were visually inspected outside git. Its browser download parses
+as six rows of sixteen columns, with the embedded carriage return retained and
+separate carrying/evidence fields. The mobile table scrolls horizontally
+without document overflow. This is rendered synthetic evidence, not an
+authenticated customer session.
+
+The current repository ruleset read exposes only a no-force-push rule. The
+central approval/check policy is not confirmed as enforced for this repository.
+The observed #1162 head has failed hosted checks and no independent APPROVED
+review. Do not request merge or auto-merge until exact-head successful checks,
+resolved threads, independent approval, and enforced protection are verified.
+No previous PR approval or check is transferred to the integration candidate.
+
+The current PRD still repeats FR-2A/2B/2C identifiers with incompatible
+requirements, and two `0233` migration filenames remain. This integration
+allocates no ADR, API, schema, migration, release number, model rule, or
+statistical estimator. A synthetic authenticated k6 saturation measurement and
+Rust-owned probability-sample terminal artifact remain unavailable; no
+unobserved performance bottleneck is modified and no convenience sample is
+promoted to a population result.
+
+## Dated reader candidate audit — 2026-10-13 to 2026-10-14 KST
+
+This dated receipt distinguishes its `main` snapshot, open PR heads, a local
+candidate, and acceptance that still needs authenticated runtime evidence.
+
+### Authority and delivery state
+
+- Protected `main` fetched at `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`.
+  The product PRD is supporting authority; ADR 0184 governs the ontology
+  reader, ADR 0246 the twelve atomic Voices, ADR 0251 the separate
+  I/O-psychology taxonomy, and ADR 0256 evidence-bearing Voice combinations.
+  The implementation inspected is `OntologyExplorer` and its page accumulator.
+- GitHub's current open inventory returned 192 PRs: 168 drafts, 117 with a
+  non-`main` base, 24 ready PRs, and 42 open issues. One PR carried an
+  `APPROVED` review decision; no open PR had auto-merge armed in that snapshot.
+  These are workflow counts, not a sample of users or records. Per-PR approval
+  validity, all review threads, and required ruleset checks were not audited
+  across the full inventory, so none of those counts establishes mergeability.
+- Ready #1169 was checked at exact head
+  `7915fe3613a66fb410acf3490f826fe6bfd264c4`: its latest review was a
+  comment, not an independent approval; seven named hosted checks were
+  terminal failures and auto-merge was absent. Ready #1170 was checked at
+  `c47e358e3a37222f272919436b7293d7874eba54`: review decision was empty,
+  named checks failed, and auto-merge was absent. Neither may be merged on
+  local evidence. The reason for these current failures was not established
+  from job annotations; the 2026-10-04 billing observation below is historical.
+  #1169's CodeRabbit comment asked for a `setuptools>=77.0.0` build floor;
+  that exact requirement is already present at its fetched current head, so
+  the finding does not justify a second edit.
+- The remote canonical repositories are `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `disksage`, `TEPP`, `contextual-orchestrator`,
+  and `fast-mlsirm`. Current remote product authorities were read at their
+  fetched `main` heads: RankWeave architecture, ThreadWeave PRD, TEPP approved
+  v0.4 PRD, contextual-orchestrator product planning, and fast-mlsirm PRD.
+  `disksage` has no `docs/PRD.md` on current `main`; its README is the current
+  product authority. Its local working-tree PRD is not a protected-main claim.
+  Fetched authority heads, in that order, were `92323cb8b55b`,
+  `0fda6e60c2c8`, `0555fe9168f8`, `c226f48db69d`, and `d72ad5e7f739`;
+  `disksage` README was read at `67a511303b51`.
+
+### Selected reader gap and candidate
+
+The observed reader gap is that a rejected relation on an earlier ontology
+page remains in the accumulated graph but its warning disappears after a later
+ordinary page returns. The page result overwrote the warning state even though
+the reader still sees the rejected relation. The candidate derives the warning
+from the accumulated, locally visible edges after successful reads and keeps
+the existing retry, access-denial, and cutoff handling. A synthetic two-page
+regression asserts that the warning and both pages' relations remain visible,
+then removes the warning when local search hides the rejected edge. This
+is a correctness gap in the inspected surface; there is no measured basis to
+rank its frequency or customer impact above every other open gap.
+
+This change adds no Voice code, weight, model rule, provider call, numerical
+implementation, API field, migration, ADR ordinal, or release number. Voice
+derivation and hidden-evidence authorization stay at the existing server
+boundary. The existing tests for distinct carrying and derivation Post IDs in
+CSV and for paged JSON-LD property and multi-Voice unions remain the contract.
+Authenticated PostgreSQL/API acceptance for this candidate is pending;
+Voice-of-X release acceptance is not complete.
+The focused new regression passed; the complete `OntologyExplorer` component
+file passed 37 tests with a single worker, frontend lint passed, and the
+production and Storybook builds passed with their existing large-chunk warning. Two earlier
+full-file attempts could not start a Vitest worker under host load, and one
+default-timeout run had three timeout failures; those attempts are not counted
+as passing evidence. A Storybook development iframe returned only its loading
+spinner, so the deterministic built Storybook artifact was served instead.
+Its synthetic rejected-relation scene was visually inspected at 1440×900 and
+390×844: the warning and rejected truth label remain readable, and the narrow
+exact-value table retains horizontal scrolling. These screenshots remain
+outside git. They prove the rendered state, not the authenticated two-page
+browser flow or a private-runtime acceptance.
+An exact-head automated review identified the search-status mismatch and an
+assertion that did not wait for page two to render. Both findings were valid;
+the candidate now derives status from the filtered view and waits for the
+second relation in its regression. The 37 component tests passed again after
+that repair. All hosted checks and reviews on the predecessor candidate head
+must be re-evaluated on the amended head.
+
+### Integration and measurement limits
+
+- The current PRD contains repeated FR-2A, FR-2B, and FR-2C headings with
+  incompatible titles. The migration directory also retains two `0233`
+  files. These are authority/integration conflicts, not resolved by this
+  reader candidate; a stacked PR cannot inherit its parent's old checks.
+- The previous small synthetic k6 observation below is retained as a dated
+  observation. No current authenticated running-job saturation or gateway
+  capacity result was collected for this candidate, so no bottleneck or
+  population-level capacity claim follows. Probability-sample inference
+  remains unavailable without the full Rust-owned terminal artifact.
+
+## Dated CSV and Voice integration — 2026-10-13 KST
 
 This candidate integrates the #1162 CSV source-label repair with protected
 `main` `03c575013e00fbce3d31bdc73eabd2bd13fa65e1`. Both conflicting
@@ -186,7 +329,6 @@ before its parent has protected delivery.
 - **Authenticated additional-Voice PostgreSQL/API/UI acceptance and synthetic authenticated k6 concurrency, latency, errors, throughput, and PostgreSQL/worker/Valkey/gateway saturation remain unavailable.** No unobserved bottleneck is repaired. No formal data volume or container is deleted; no temporary container is created.
 - Current-main PRD authority mismatches and the existing migration-0233 filename overlap remain owned reconciliation work described below. This integration allocates none of those ordinals and changes no API/schema/release contract. A textual merge is not semantic compatibility or protected delivery.
 - CodeGraph is initialized in this isolated worktree. Context7 verifies the Vitest API; DeepWiki has no indexed LineageWeave repository. Sequential Thinking and Memory MCP tools are not exposed, so no unavailable tool execution is claimed.
-
 
 ## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
 
