@@ -13,6 +13,12 @@ candidate preserves the rejected-relation warning across ontology pages and
 removes it when local search hides that relation. Its synthetic Storybook
 desktop/mobile inspection is recorded below. An authenticated, paged
 PostgreSQL/API and browser acceptance for this behavior remains unavailable.
+The same merged code passed 31 page-accumulation/export tests and 37
+synthetic backend ontology tests in this audit. The built Storybook
+rejected-relation scene was inspected in a desktop browser and at 390×844:
+the warning and rejected label remained readable, action buttons wrapped,
+and the narrow exact-value table retained its labeled horizontal-scroll
+region. These render checks do not establish an authenticated paged flow.
 
 The merge command requested ordinary squash auto-merge without `--admin` or a
 force push, but GitHub merged #1173 immediately at 2026-10-13 16:30:15 UTC.
