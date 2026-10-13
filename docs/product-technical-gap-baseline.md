@@ -22,7 +22,8 @@ necessary, preserving the excerpt instead of introducing a score or a new
 semantic rule. Its earlier four-VU synthetic k6 measurement is a dated
 diagnostic observation, not current-main throughput or a population
 estimate. On the combined tree, the isolated live PostgreSQL excerpt and
-privacy regressions passed **17 tests** with `DeprecationWarning` as an error;
+privacy and public-docstring regressions passed **19 tests** with
+`DeprecationWarning` as an error;
 the throwaway test database was dropped by the fixture. No new authenticated
 load measurement or saturation correction is claimed for this integration.
 

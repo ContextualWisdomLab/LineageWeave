@@ -1,6 +1,10 @@
+import inspect
+
 from backend.app.post_eligibility import (
     SOURCE_CONTEXT_COLUMNS,
     SOURCE_POST_ELIGIBILITY_SQL,
+    fetch_visible_eligible_source_post_ids_for_share,
+    source_post_scope_sql,
     source_context_missing_sql,
     source_context_present_sql,
 )
@@ -53,3 +57,17 @@ def test_real_source_context_hides_pure_seed_rows_at_read_boundary() -> None:
     for column in SOURCE_CONTEXT_COLUMNS:
         assert f"post.{column}" in source_context_missing_sql("post")
         assert f"real_post.{column}" in source_context_present_sql("real_post")
+
+
+def test_locked_replay_query_tracks_shared_visibility_and_eligibility_contract() -> None:
+    """The literal asyncpg sink must stay equivalent to shared source-post policy."""
+    helper_source = " ".join(
+        inspect.getsource(fetch_visible_eligible_source_post_ids_for_share).split()
+    )
+    visibility = " ".join(source_post_scope_sql("source_post").split())
+    eligibility = " ".join(
+        SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post").split()
+    )
+    assert visibility in helper_source
+    assert eligibility in helper_source
+    assert "for share" in helper_source.lower()

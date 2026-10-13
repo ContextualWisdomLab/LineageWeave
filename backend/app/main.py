@@ -25,14 +25,14 @@ import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date, datetime, timezone
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 
 from lineageweave.claim_verification import (
     NullClaimVerificationClient,
@@ -132,6 +132,7 @@ from backend.app.iopsy_ontology_api import (
     construct_catalog_payload,
     worker_function_profile_payload,
 )
+from backend.app.post_chat_replay_policy import PostChatAuthorizationScope
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -157,7 +158,14 @@ from backend.app.occupational_construct_search import (
     search_visible_occupational_constructs,
 )
 from backend.app.post_content_worker import run_post_content_worker
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    fetch_visible_eligible_source_post_ids_for_share,
+    capture_visible_summary_source,
+    fetch_eligible_summary_access_metadata,
+    lock_unchanged_summary_source,
+    source_post_visible,
+)
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
@@ -175,6 +183,8 @@ from backend.app.project_history import (
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,
+    prepare_post_summary_identities_from_pool,
+    persist_prepared_post_summary,
     require_summary_source_body,
 )
 from backend.app.ranking_ingestion import load_visible_ranking_posts
@@ -250,6 +260,7 @@ from lineageweave.organization_name_resolution import (
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    cited_post_evidence,
     cited_post_summaries,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -914,7 +925,7 @@ class LocalePreferenceRequest(BaseModel):
 class CustomerHintResolveRequest(BaseModel):
     """Body of a POST /api/customer-master/resolve-hint request."""
 
-    hint_code: str
+    hint_code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 @app.patch("/api/me/preferences")
@@ -931,6 +942,28 @@ async def update_me_preferences(
             account.user_account_id,
         )
     return {"preferred_locale": preference.preferred_locale}
+
+
+def _serialize_customer_hint(row: Any) -> dict[str, Any]:
+    """Build the stable Customer Master hint response from one authorized read-model row."""
+    related_posts = row["related_posts"]
+    if isinstance(related_posts, str):
+        related_posts = json.loads(related_posts)
+    return {
+        "customer_code": row["customer_code"],
+        "customer_name": row["customer_name"],
+        "post_count": row["post_count"],
+        "related_posts": related_posts or [],
+        "resolution_status": row["verification_status_code"] or "hint_only",
+        "resolved_corporate_entity_id": row["resolved_corporate_entity_id"],
+        "resolved_entity_name": row["resolved_entity_name"],
+        "verification_evidence_url": row["verification_evidence_url"],
+        "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
+        "provenance": (
+            "source_post.source_customer_code/source_post.source_customer_name/"
+            "source_post_customer_resolution.resolved_corporate_entity_id"
+        ),
+    }
 
 
 @app.get("/api/customer-master")
@@ -954,15 +987,26 @@ async def read_customer_master(
         source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with scoped as (
-                select post_id, post_title, created_at,
-                       nullif(btrim(source_customer_code), '') as customer_code,
-                       nullif(btrim(source_customer_name), '') as customer_name,
-                       case when nullif(btrim(source_customer_code), '') is null
-                            then nullif(btrim(source_customer_name), '')
-                            else null end as customer_name_group
+                select source_post.post_id, source_post.post_title, source_post.created_at,
+                       nullif(btrim(source_post.source_customer_code), '') as customer_code,
+                       nullif(btrim(source_post.source_customer_name), '') as customer_name,
+                       case when nullif(btrim(source_post.source_customer_code), '') is null
+                            then nullif(btrim(source_post.source_customer_name), '')
+                            else null end as customer_name_group,
+                       resolution.resolved_corporate_entity_id::text
+                           as resolved_corporate_entity_id,
+                       resolution.resolved_entity_name,
+                       resolution.verification_status_code,
+                       resolution.verification_evidence_url,
+                       resolution.resolved_at
                   from source_post
-                 where (nullif(btrim(source_customer_code), '') is not null
-                        or nullif(btrim(source_customer_name), '') is not null)
+                  left join source_post_customer_resolution resolution
+                    on resolution.post_id = source_post.post_id
+                   and resolution.source_customer_code = source_post.source_customer_code
+                   and resolution.source_content_digest =
+                       encode(sha256(convert_to(jsonb_build_array(source_post.post_title, source_post.post_body)::text, 'UTF8')), 'hex')
+                 where (nullif(btrim(source_post.source_customer_code), '') is not null
+                        or nullif(btrim(source_post.source_customer_name), '') is not null)
                    and (visibility_code = 'public' or (
                         corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
@@ -973,12 +1017,25 @@ async def read_customer_master(
                        row_number() over (
                            partition by customer_code, customer_name_group
                            order by created_at desc, post_id desc
-                       ) as related_rank
+                       ) as related_rank,
+                       row_number() over (
+                           partition by customer_code, customer_name_group
+                           order by resolved_at desc nulls last, post_id desc
+                       ) as resolution_rank
                   from scoped
             ), groups as (
                 select customer_code, customer_name_group,
                        max(customer_name) as customer_name,
-                       count(*) as post_count
+                       count(*) as post_count,
+                       count(distinct resolved_corporate_entity_id) as resolution_entity_count,
+                       max(resolved_corporate_entity_id) filter (where resolution_rank = 1)
+                           as resolved_corporate_entity_id,
+                       max(resolved_entity_name) filter (where resolution_rank = 1)
+                           as resolved_entity_name,
+                       max(verification_status_code) filter (where resolution_rank = 1)
+                           as verification_status_code,
+                       max(verification_evidence_url) filter (where resolution_rank = 1)
+                           as verification_evidence_url
                   from ranked
                  group by customer_code, customer_name_group
             ), top_groups as materialized (
@@ -1004,6 +1061,16 @@ async def read_customer_master(
                  group by ranked.customer_code, ranked.customer_name_group
             )
             select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
+                   top_groups.resolution_entity_count,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.resolved_corporate_entity_id end
+                       as resolved_corporate_entity_id,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.resolved_entity_name end as resolved_entity_name,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.verification_status_code end as verification_status_code,
+                   case when top_groups.resolution_entity_count = 1
+                        then top_groups.verification_evidence_url end as verification_evidence_url,
                    coalesce(related.related_posts, '[]'::json) as related_posts
               from top_groups
               left join related
@@ -1202,7 +1269,12 @@ async def read_customer_master(
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        relationship_network = await fetch_relationship_network(
+            conn,
+            [str(entity_id) for entity_id in entity_ids],
+            list(account.process_unit_ids),
+        )
+
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -1249,20 +1321,7 @@ async def read_customer_master(
         ],
         "keymen": list(keymen_by_id.values()),
         "source_customer_hints": [
-            {
-                "customer_code": row["customer_code"],
-                "customer_name": row["customer_name"],
-                "post_count": row["post_count"],
-                "related_posts": (
-                    json.loads(row["related_posts"])
-                    if isinstance(row["related_posts"], str)
-                    else row["related_posts"] or []
-                ),
-                "resolution_status": "hint_only",
-                "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
-                "provenance": "source_post.source_customer_code/source_post.source_customer_name",
-            }
-            for row in source_customer_rows
+            _serialize_customer_hint(row) for row in source_customer_rows
         ],
         "source_author_hints": [
             {
@@ -1306,46 +1365,40 @@ async def resolve_customer_master_hint(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Resolve one observed customer-hint code to a real corporate_entity.
+    """Corroborate one visible customer hint without changing source ownership.
 
-    Gated by post_admin, not post_read: this is a write action with a
-    real LLM-call cost, same discipline as extract-keymen/verify-relations.
-    Only an externally-corroborated proposed name ever creates or binds an
-    entity (`backend.app.customer_hint_ingestion`) -- an unresolved or
-    uncorroborated hint is returned as such, never guessed into the
-    catalog.
+    ``post_admin`` admits the write action, while the authenticated
+    corporate/process scope bounds every source post used as model evidence.
+    Customer identity is persisted separately from tenant authorization
+    ownership (ADR 0042 / Proposed ADR 0374).
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        try:
-            resolution = await resolve_customer_hint(
-                conn,
-                _customer_hint_resolution_client(),
-                _relation_verification_client(),
-                request.hint_code,
-            )
-        except (HttpClientError, OSError) as exc:
-            # resolve_and_verify_organization_name's resolution/verification
-            # calls raise on a failed request rather than silently returning
-            # "unresolved" -- a failed call is not the same claim as "the
-            # model looked and found nothing" (same discipline as
-            # verify-relations' identical try/except).
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
-            ) from exc
+    try:
+        resolution = await resolve_customer_hint(
+            pool,
+            _customer_hint_resolution_client(),
+            _relation_verification_client(),
+            _corporate_hierarchy_inference_client(),
+            request.hint_code,
+            list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
+        )
+    except (HttpClientError, OSError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+        ) from exc
     if resolution is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             "this hint could not be resolved to a corroborated organization name",
         )
     return resolution
-
 
 @app.get("/api/lineage")
 async def read_lineage_graph(
@@ -3002,6 +3055,34 @@ async def evaluate_post(
     }
 
 
+def _report_population_is_fully_visible(
+    account: CurrentAccount,
+    aggregate: Any,
+    demo_entity_ids: set[str],
+) -> bool:
+    """Require every persisted contributor before exposing a precomputed aggregate.
+
+    Period-report statistics are calibrated over the persisted member/evidence
+    population. Filtering that population after calibration would disclose a
+    statistic that includes hidden evidence, so any invisible or synthetic-only
+    contributor suppresses the aggregate as a whole.
+    """
+    members = list(aggregate["members"])
+    if not members:
+        return False
+    contributors = members + list(aggregate.get("leftover_pairs", []))
+    return all(
+        all(
+            field in contributor
+            for field in ("visibility_code", "corporate_entity_id", "process_unit_id")
+        )
+        and contributor.get("source_eligible") is True
+        and _can_see_post(account, contributor)
+        and not _is_synthetic_demo_member(contributor, demo_entity_ids)
+        for contributor in contributors
+    )
+
+
 @app.get("/api/reports/compare/{period_code}")
 async def compare_period_groupings(
     period_code: str,
@@ -3021,20 +3102,9 @@ async def compare_period_groupings(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for row in rows:
-        members = [
-            member
-            for member in row["members"]
-            if _can_see_post(account, member)
-            and not _is_synthetic_demo_member(member, demo_entity_ids)
-        ]
-        if not members:
+        if not _report_population_is_fully_visible(account, row, demo_entity_ids):
             continue
-        leftover_pairs = [
-            pair
-            for pair in row.get("leftover_pairs", [])
-            if _can_see_post(account, pair)
-            and not _is_synthetic_demo_member(pair, demo_entity_ids)
-        ]
+        members = list(row["members"])
         leftover_pairs = [
             {
                 key: value
@@ -3042,12 +3112,13 @@ async def compare_period_groupings(
                 if key
                 not in {
                     "has_real_source_context",
+                    "source_eligible",
                     "visibility_code",
                     "corporate_entity_id",
                     "process_unit_id",
                 }
             }
-            for pair in leftover_pairs
+            for pair in row.get("leftover_pairs", [])
         ]
         visible.append(
             {
@@ -3077,15 +3148,15 @@ async def list_period_reports(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for summary in summaries:
-        members = [
-            member
-            for member in summary["members"]
-            if _can_see_post(account, member)
-            and not _is_synthetic_demo_member(member, demo_entity_ids)
-        ]
-        if not members:
+        if not _report_population_is_fully_visible(account, summary, demo_entity_ids):
             continue
-        visible.append({**summary, "members": [], "post_count": len(members)})
+        visible.append(
+            {
+                **{key: value for key, value in summary.items() if key != "leftover_pairs"},
+                "members": [],
+                "post_count": len(summary["members"]),
+            }
+        )
     return {"grouping_kind": grouping_kind, "periods": visible}
 
 
@@ -3111,20 +3182,8 @@ async def read_period_reports(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for report in reports:
-        members = [
-            member
-            for member in report["members"]
-            if _can_see_post(account, member)
-            and not _is_synthetic_demo_member(member, demo_entity_ids)
-        ]
-        if not members:
+        if not _report_population_is_fully_visible(account, report, demo_entity_ids):
             continue
-        leftover_pairs = [
-            pair
-            for pair in report.get("leftover_pairs", [])
-            if _can_see_post(account, pair)
-            and not _is_synthetic_demo_member(pair, demo_entity_ids)
-        ]
         members = [
             {
                 key: value
@@ -3132,12 +3191,13 @@ async def read_period_reports(
                 if key
                 not in {
                     "has_real_source_context",
+                    "source_eligible",
                     "visibility_code",
                     "corporate_entity_id",
                     "process_unit_id",
                 }
             }
-            for member in members
+            for member in report["members"]
         ]
         leftover_pairs = [
             {
@@ -3146,12 +3206,13 @@ async def read_period_reports(
                 if key
                 not in {
                     "has_real_source_context",
+                    "source_eligible",
                     "visibility_code",
                     "corporate_entity_id",
                     "process_unit_id",
                 }
             }
-            for pair in leftover_pairs
+            for pair in report.get("leftover_pairs", [])
         ]
         leftover_map_axes = list(report.get("leftover_map_axes", []))
         visible.append(
@@ -3192,6 +3253,70 @@ async def rebuild_period_report_endpoint(
     }
 
 
+async def _persist_post_summary_for_account(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: Any,
+    *,
+    post_body: str,
+    account: CurrentAccount,
+) -> dict[str, Any]:
+    """Persist post-owned summary evidence without granting catalog-write authority."""
+    allow_catalog_enrichment = account.has_permission(_POST_ADMIN)
+    hierarchy_inference_client = (
+        _corporate_hierarchy_inference_client()
+        if allow_catalog_enrichment
+        else NullCorporateHierarchyInferenceClient()
+    )
+    verification_client = (
+        _relation_verification_client()
+        if allow_catalog_enrichment
+        else NullRelationVerificationClient()
+    )
+    return await persist_post_summary(
+        conn,
+        post_id,
+        summary,
+        post_body=post_body,
+        hierarchy_inference_client=hierarchy_inference_client,
+        verification_client=verification_client,
+        allow_catalog_enrichment=allow_catalog_enrichment,
+    )
+
+
+async def _prepare_post_summary_for_account(
+    pool: asyncpg.Pool,
+    summary: Any,
+    *,
+    post_body: str,
+    account: CurrentAccount,
+) -> tuple[list[Any], dict[int, str]]:
+    """Prepare canonical identities without retaining a source lock or DB lease."""
+    allow_catalog_enrichment = account.has_permission(_POST_ADMIN)
+    return await prepare_post_summary_identities_from_pool(
+        pool, summary, post_body=post_body,
+        hierarchy_inference_client=(
+            _corporate_hierarchy_inference_client()
+            if allow_catalog_enrichment else NullCorporateHierarchyInferenceClient()
+        ),
+        verification_client=(
+            _relation_verification_client()
+            if allow_catalog_enrichment else NullRelationVerificationClient()
+        ),
+        allow_catalog_enrichment=allow_catalog_enrichment,
+    )
+
+
+async def _lock_post_summary_source(
+    conn: asyncpg.Connection, post: dict[str, Any], account: CurrentAccount
+) -> None:
+    """Reject current authorization or content drift before summary publication."""
+    if not await lock_unchanged_summary_source(
+        conn, account.corporate_entity_ids, account.process_unit_ids, post
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "summary source changed")
+
+
 @app.get("/api/posts/{post_id}/summary")
 async def read_post_summary(
     post_id: str,
@@ -3199,123 +3324,131 @@ async def read_post_summary(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """A Korean summary, key events, and R&R for the popup.
+    """Read or derive a summary using scoped capture and final locked authorization.
 
-    Returns a persisted row when one exists so a seeded demo stack is
-    not empty without a live LLM. Otherwise derives through the
-    orchestrator and stores the result. Missing both is 503 -- never a
-    fabricated summary.
+    Current/stale continuity and generation share the same final boundary.
+    Normalization, inference and identity enrichment reserve no source lock
+    or database lease. Missing channels never fabricate a summary.
     """
-    post = await _load_visible_post(post_id, account, pool)
-    post_metadata = build_post_llm_metadata(post_id, post)
-    queue_event: tuple[str, str] | None = None
+    _require_post_read(account)
     async with pool.acquire() as conn:
-        body_row = await conn.fetchrow(
-            "select post_body from source_post where post_id = $1", post_id
-        )
-        try:
-            raw_body = require_summary_source_body(
-                None if body_row is None else body_row["post_body"]
-            )
-        except ValueError as exc:
-            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
-        stored = await fetch_persisted_summary(conn, post_id)
-        if stored is not None:
-            return stored
-        stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
-
-        def stale_fallback(
-            reason: str, error: BaseException | None = None
-        ) -> dict[str, Any]:
-            """Return explicitly stale evidence while preserving operator diagnostics."""
-            if stale is None:
-                raise RuntimeError("stale summary fallback called without a stale row")
-            logger.warning(
-                "post_summary_stale_fallback post_id=%s reason=%s error_type=%s",
-                post_id,
-                reason,
-                type(error).__name__ if error is not None else "unavailable",
-            )
-            return stale
-
-        with use_llm_metadata(post_metadata):
-            client = _post_summary_client()
-            if not client.available:
-                if stale is not None:
-                    return stale_fallback("orchestrator_unavailable")
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-                )
-            context_hints = await _load_post_semantic_hints(conn, post_id)
-            summarize_with_hints = getattr(client, "summarize_with_hints", None)
-            try:
-                normalized = await asyncio.to_thread(normalize_post_body, raw_body)
-                normalized_body = normalized.text
-                if callable(summarize_with_hints):
-                    summary = await asyncio.to_thread(
-                        summarize_with_hints, post["post_title"], normalized_body, context_hints
-                    )
-                else:
-                    summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
-            except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
-                if stale is not None:
-                    return stale_fallback("orchestrator_failure", exc)
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
-                ) from exc
-            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-                if stale is not None:
-                    return stale_fallback("orchestrator_unexpected_failure", exc)
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
-                ) from exc
-            try:
-                payload = await persist_post_summary(
-                    conn,
-                    post_id,
-                    summary,
-                    post_body=normalized_body,
-                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                    verification_client=_relation_verification_client(),
-                )
-            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-                if stale is not None:
-                    return stale_fallback("summary_persist_failure", exc)
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
-                ) from exc
-        content_complete = await post_content_is_complete(
-            conn,
-            post_id,
-            require_embedding=bool(
-                load_settings().orchestrator_base_url
-                and load_settings().orchestrator_api_key
-            ),
-            require_structure=bool(
-                load_settings().orchestrator_base_url
-                and load_settings().orchestrator_api_key
-            ),
-        )
         async with conn.transaction():
-            job = await ensure_post_content_job(
-                conn,
-                post_id,
-                raw_body,
-                content_complete=content_complete,
+            post = await capture_visible_summary_source(
+                conn, account.corporate_entity_ids, account.process_unit_ids, post_id
             )
-        if job.should_publish:
-            queue_event = (job.post_id, job.source_body_sha256)
+            if post is None:
+                access_metadata = await fetch_eligible_summary_access_metadata(conn, post_id)
+                if access_metadata is not None and not _can_see_post(account, access_metadata):
+                    raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
+            try:
+                raw_body = require_summary_source_body(post["post_body"])
+            except ValueError as exc:
+                raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+            stored = await fetch_persisted_summary(conn, post_id)
+            stale = (
+                await fetch_persisted_summary(conn, post_id, allow_stale=True)
+                if stored is None else None
+            )
+            context_hints = (
+                await _load_post_semantic_hints(conn, post_id)
+                if stored is None else ""
+            )
+
+    async def authorized_response(
+        payload: dict[str, Any], reason: str | None = None,
+        error: BaseException | None = None,
+    ) -> dict[str, Any]:
+        """Construct every response branch under a fresh short source share lock."""
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await _lock_post_summary_source(conn, post, account)
+                if reason is not None:
+                    logger.warning(
+                        "post_summary_stale_fallback post_id=%s reason=%s error_type=%s",
+                        post_id, reason,
+                        type(error).__name__ if error is not None else "unavailable",
+                    )
+                return payload
+
+    if stored is not None:
+        return await authorized_response(stored)
+
+    with use_llm_metadata(build_post_llm_metadata(post_id, post)):
+        client = _post_summary_client()
+        if not client.available:
+            if stale is not None:
+                return await authorized_response(stale, "orchestrator_unavailable")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            )
+        summarize_with_hints = getattr(client, "summarize_with_hints", None)
+        try:
+            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
+            normalized_body = normalized.text
+            if callable(summarize_with_hints):
+                summary = await asyncio.to_thread(
+                    summarize_with_hints, post["post_title"], normalized_body, context_hints
+                )
+            else:
+                summary = await asyncio.to_thread(
+                    client.summarize, post["post_title"], normalized_body
+                )
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            if stale is not None:
+                return await authorized_response(stale, "orchestrator_failure", exc)
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        try:
+            prepared = await _prepare_post_summary_for_account(
+                pool, summary, post_body=normalized_body, account=account
+            )
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            if stale is not None:
+                return await authorized_response(stale, "summary_persist_failure", exc)
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+            ) from exc
+
+    queue_event: tuple[str, str] | None = None
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await _lock_post_summary_source(conn, post, account)
+                payload = await persist_prepared_post_summary(
+                    conn, post_id, summary, prepared,
+                    allow_catalog_enrichment=account.has_permission(_POST_ADMIN),
+                )
+                settings = load_settings()
+                content_complete = await post_content_is_complete(
+                    conn, post_id,
+                    require_embedding=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
+                    require_structure=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
+                )
+                job = await ensure_post_content_job(
+                    conn, post_id, raw_body, content_complete=content_complete,
+                )
+                if job.should_publish:
+                    queue_event = (job.post_id, job.source_body_sha256)
+    except HTTPException:
+        # Authorization conflicts cannot become successful stale fallbacks.
+        raise
+    except Exception as exc:  # noqa: BLE001 - retain the last good projection.
+        if stale is not None:
+            return await authorized_response(stale, "summary_persist_failure", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+        ) from exc
     if queue_event is not None:
         await publish_post_content_event(
-            valkey,
-            post_id=queue_event[0],
-            source_body_digest=queue_event[1],
+            valkey, post_id=queue_event[0], source_body_digest=queue_event[1],
         )
-    return payload
+    return await authorized_response(payload)
 
 
 @app.get("/api/posts/{post_id}/five-w1h")
@@ -3354,15 +3487,14 @@ async def read_post_chat(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Stored Ask exchanges for this post.
-
-    Seeded fixture answers (and any later live persist) so the popup is
-    not an empty Ask box when the orchestrator is off. Missing rows are
-    an empty list, not a fabricated transcript.
-    """
+    """Return only stored Ask exchanges whose replay evidence is authorized now."""
     await _load_visible_post(post_id, account, pool)
+    current_scope = PostChatAuthorizationScope.captured(
+        corporate_entity_ids=account.corporate_entity_ids,
+        process_unit_ids=account.process_unit_ids,
+    )
     async with pool.acquire() as conn:
-        exchanges = await fetch_persisted_chats(conn, post_id)
+        exchanges = await fetch_persisted_chats(conn, post_id, current_scope)
     return {"post_id": post_id, "exchanges": exchanges}
 
 
@@ -3374,34 +3506,30 @@ async def chat_about_post(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """In-popup chat: answers `request.question` using this post's own
-    content plus its Event-Lineage-linked posts (direct and Knowledge-
-    Graph-indirect) as context, and returns which source post(s) the
-    answer drew from -- the sliding evidence panel's citation data.
+    """Answer from authorized lineage evidence, revalidating any persisted replay first.
 
-    A persisted (seeded or previously live) row is returned first so
-    Ask works on the demo stack without an orchestrator. Live
-    reason-and-cite still runs only when no stored match exists and
-    the orchestrator is configured -- never a fabricated reply.
+    Cached derived text is replayed only when its generation scope is subsumed by
+    the current reader and every captured source remains visible. No database
+    transaction is held while the orchestrator performs LLM work.
     """
     question = request.question.strip()
     if not question:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required"
-        )
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    current_scope = PostChatAuthorizationScope.captured(
+        corporate_entity_ids=account.corporate_entity_ids,
+        process_unit_ids=account.process_unit_ids,
+    )
     async with pool.acquire() as conn:
-        stored = await fetch_persisted_chat(conn, post_id, question)
-        if stored is not None:
-            source_ids = [post_id]
-            source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+        stored = await fetch_persisted_chat(conn, post_id, question, current_scope)
+        if stored is not None and stored.get("_authorization_validated") is True:
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
-                "source_post_ids": source_ids,
+                "source_post_ids": list(stored.get("_source_post_ids", ())),
             }
     with use_llm_metadata(post_metadata):
         with traced(
@@ -3418,8 +3546,7 @@ async def chat_about_post(
                     )
                     raise HTTPException(
                         status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "Post chat is temporarily unavailable. "
-                        "Saved evidence is still available.",
+                        "Post chat is temporarily unavailable. Saved evidence is still available.",
                     )
                 async with pool.acquire() as conn:
                     sources = await gather_chat_sources(
@@ -3428,6 +3555,8 @@ async def chat_about_post(
                         lambda row: _can_see_post(account, row),
                         vision_client=_vision_client(),
                     )
+                if not sources or post_id not in {source.post_id for source in sources}:
+                    raise HTTPException(status.HTTP_409_CONFLICT, "Post chat evidence changed. Retry the question.")
                 answer = await asyncio.to_thread(client.answer, question, sources)
             except HTTPException:
                 raise
@@ -3442,19 +3571,36 @@ async def chat_about_post(
                 record_server_failure("post_chat", exc, outcome="provider_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    "Post chat is temporarily unavailable. Saved evidence is still available.",
                 ) from exc
             except Exception as exc:
                 record_server_failure("post_chat", exc, outcome="internal_error")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
+                    "Post chat is temporarily unavailable. Saved evidence is still available.",
                 ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_post_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
-        await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        async with conn.transaction():
+            visible_ids = await fetch_visible_eligible_source_post_ids_for_share(
+                conn, current_scope.corporate_entity_ids, current_scope.process_unit_ids,
+                source_post_ids,
+            )
+            if visible_ids != frozenset(source_post_ids):
+                raise HTTPException(status.HTTP_409_CONFLICT, "Post chat evidence changed. Retry the question.")
+            await persist_post_chat(
+                conn, post_id, question, answer.answer_text, cited_ids,
+                current_scope, source_post_ids,
+            )
+            response_payload = {
+                "post_id": post_id,
+                "answer_text": answer.answer_text,
+                "cited_post_ids": cited_ids,
+                "cited_posts": cited_post_summaries(sources, cited_ids),
+                "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+                "source_post_ids": source_post_ids,
+            }
     await publish_activity_event(
         valkey,
         post_id,
@@ -3462,13 +3608,7 @@ async def chat_about_post(
         account.user_account_id,
         f"Chat answered: {question}",
     )
-    return {
-        "post_id": post_id,
-        "answer_text": answer.answer_text,
-        "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
-    }
+    return response_payload
 
 
 @app.post("/api/ask", status_code=status.HTTP_202_ACCEPTED)
