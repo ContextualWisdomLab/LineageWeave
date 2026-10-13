@@ -4,8 +4,10 @@
 
 This section supersedes present-tense queue and delivery statements in the dated
 receipts below. The observed remote `main` is
-`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`; ready PR #1162 is
-`c5c0e42803528d178c77527bb29dfde2080f1118`. The isolated integration
+`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`; ready PR #1162 was
+`c5c0e42803528d178c77527bb29dfde2080f1118` before integration. The
+published code-integration head was
+`97776b6623942602b3c6fe329c956a609063d5f6`. The isolated integration
 merges that main into #1162's CSV repair while retaining both sides of the
 previously conflicting product documentation and the reader's current visible
 warning state. The candidate must receive new exact-head Checks and review.
@@ -39,8 +41,11 @@ authenticated customer session.
 
 The current repository ruleset read exposes only a no-force-push rule. The
 central approval/check policy is not confirmed as enforced for this repository.
-The observed #1162 head has failed hosted checks and no independent APPROVED
-review. Do not request merge or auto-merge until exact-head successful checks,
+At the observed code-integration head, four named Checks failed before starting;
+their annotations identify a GitHub account billing lock. CodeRabbit remained
+pending and no independent APPROVED review was recorded. This documentation
+update creates a later head, so those checks do not validate it. Do not request
+merge or auto-merge until exact-head successful checks,
 resolved threads, independent approval, and enforced protection are verified.
 No previous PR approval or check is transferred to the integration candidate.
 
