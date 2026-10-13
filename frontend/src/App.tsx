@@ -1900,7 +1900,12 @@ export function VoiceAssignmentForm({
   }
 
   if (available.length === 0) {
-    return saved ? <StatusNotice kind="success" message={t("Perspective connected.")} /> : null;
+    if (saved) return <StatusNotice kind="success" message={t("Perspective connected.")} />;
+    return error ? <StatusNotice
+      kind="unavailable"
+      message={t("Perspective could not be connected.")}
+      nextAction={t("Reopen this post to check your access and its recorded perspectives.")}
+    /> : null;
   }
   return (
     <section className="popup-section" aria-label={t("Connect another perspective")}>

@@ -21,17 +21,22 @@ category and explicit truth state for a transient retry, gives a sign-in or
 reopen action after access rejection, and never displays the caught response.
 It uses the existing notice and tokens. Merging current `main` into this
 candidate had no content conflicts and preserved the other agents' merged
-authorization and replay repairs. This candidate has no new Voice code, ADR,
-API field, schema migration, mathematical rule, or release number beyond
-#1169 and current `main`.
+authorization and replay repairs. The combined-tree regression exposed one
+remaining failure state: if another update consumes the final available
+Voice while this save is pending, a rejected save could leave no form and no
+next action. The minimal form change keeps the existing unavailable notice
+visible and asks the reviewer to reopen the Post. It adds one synthetic
+regression and one Storybook state. No ADR, API field, schema migration,
+mathematical rule, or release number was added.
 
-On the combined local tree, **109 focused frontend tests**, lint, production
+On the combined local tree, **110 focused frontend tests**, lint, production
 build, Storybook build, and **44 focused backend tests** passed. The backend
 run treated `DeprecationWarning` as an error. The production build still warns
-about a 554.22 kB application chunk; that warning is not a load measurement.
-Synthetic Storybook's sign-in-required state was rendered and visually checked
-at **1440×900** and **390×844**: the rejected action stays disabled, the
-next step is readable, and neither image contains private error details.
+about a 554.39 kB application chunk; that warning is not a load measurement.
+Synthetic Storybook's sign-in-required and final-Voice rejection states were
+rendered and visually checked at **1440×900** and **390×844**: the rejected
+action stays disabled or disappears when no option remains, the next step is
+readable, and none of the images contains private error details.
 This is rendered component evidence, not an authenticated customer session.
 
 At the observed #1169 head, six hosted application/security Checks completed

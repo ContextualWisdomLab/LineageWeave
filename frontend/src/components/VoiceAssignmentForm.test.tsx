@@ -75,6 +75,27 @@ describe("VoiceAssignmentForm", () => {
     expect(screen.queryByRole("button", { name: "Connect perspective" })).not.toBeInTheDocument();
   });
 
+  it("keeps a recovery action when the last perspective becomes unavailable during a failed save", async () => {
+    let rejectSave!: (reason: unknown) => void;
+    const onSave = vi.fn(() => new Promise<void>((_, reject) => { rejectSave = reject; }));
+    const options = [{ code: "vops", label: "Voice of Process" }];
+    const { rerender } = render(<VoiceAssignmentForm voices={[]} options={options} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("Perspective"), { target: { value: "vops" } });
+    fireEvent.change(screen.getByLabelText("Evidence status"), { target: { value: "truth_observed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Connect perspective" }));
+    await act(async () => {
+      rerender(<VoiceAssignmentForm voices={[{
+        code: "vops", label: "Voice of Process", is_primary: false,
+        truth_status_code: "truth_observed", evidence_available: true,
+      }]} options={options} onSave={onSave} />);
+      rejectSave(new BackendError("/private-synthetic-path", 409, "private detail sentinel"));
+    });
+    const notice = await screen.findByRole("region", { name: /Unavailable:/ });
+    expect(notice).toHaveTextContent("Reopen this post to check your access and its recorded perspectives.");
+    expect(screen.queryByText(/private detail sentinel|private-synthetic-path/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect perspective" })).not.toBeInTheDocument();
+  });
+
   it("keeps the submitted values available after a failed save", async () => {
     render(
       <VoiceAssignmentForm
