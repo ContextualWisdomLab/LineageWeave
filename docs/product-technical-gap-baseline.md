@@ -11,9 +11,16 @@ protected delivery or authenticated product acceptance.
   PR #1169 is open and ready at
   `31640c5289888a5c83a1483a2b15b5036abcf288`, mergeable against that
   base. Its review decision is empty, review threads are resolved, auto-merge
-  is absent, and six named hosted jobs failed. GitHub's REST job endpoint was
-  rate-limited, so those failure causes are unverified. The earlier CodeRabbit
+  is absent, and six named hosted jobs failed. At that initial snapshot the
+  REST job endpoint was rate-limited. The earlier CodeRabbit
   setuptools finding is repaired at this head.
+- The focused implementation was pushed at `6dc4a8d976e60ac07fc727e8cc0ff7ab1b967789`.
+  Its current-head Full test suite, frontend, registry, ontology, and Analyze
+  jobs became terminal failures before running project steps. The Full test
+  suite check-run annotation explicitly says the account is locked due to a
+  billing issue. This is an external execution gate, not evidence of a failing
+  product assertion, and no workflow bypass or artificial green status is
+  justified. A later documentation commit needs its own exact-head checks.
 - The fetched inventory has 193 open PRs: 168 drafts, 25 ready, 117 with a
   non-`main` base, one with a nominal `APPROVED` decision, and none with
   auto-merge armed. There are 42 open issues. These are repository counts, not
