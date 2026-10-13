@@ -1,4 +1,4 @@
-import type { AnalysisRun } from "./api";
+import type { AnalysisRun, PeriodGroupReport } from "./api";
 import { t, tf } from "./i18n";
 
 /** Name a run by the customer task while retaining its governed kind in the API. */
@@ -42,4 +42,15 @@ export function analysisRunCorpusHint(run: AnalysisRun): string | null {
       return unexpected;
     }
   }
+}
+
+/** Give a report group its measured value without exposing the fitting model. */
+export function periodGroupMeasureCaption(
+  report: Pick<PeriodGroupReport, "grouping_key" | "grouping_label" | "mean_theta" | "fit_converged">,
+): string {
+  const label = report.grouping_label ?? report.grouping_key;
+  const measure = `${label}: mean θ ${report.mean_theta.toFixed(2)}`;
+  return report.fit_converged
+    ? measure
+    : `${measure} — ${t("Ask an administrator to review this report before using it.")}`;
 }

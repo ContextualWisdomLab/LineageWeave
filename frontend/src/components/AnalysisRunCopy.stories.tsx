@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
 import type { AnalysisRun } from "../api";
-import { analysisRunCaption, analysisRunCorpusHint } from "../analysisRunCopy";
+import { analysisRunCaption, analysisRunCorpusHint, periodGroupMeasureCaption } from "../analysisRunCopy";
 import "../App.css";
 
 function AnalysisRunCopyPreview({
@@ -50,5 +50,24 @@ export const PendingTopicHistory: Story = {
     const detail = within(canvasElement).getByRole("region", { name: "Analysis run detail" });
     await expect(detail).toHaveTextContent("Topic history · Pending");
     await expect(detail).toHaveTextContent("Start this run to request a result");
+  },
+};
+
+export const PeriodGroupNeedsReview: Story = {
+  args: { kind: "analysis_run_report", status: "analysis_status_succeeded" },
+  render: () => (
+    <section className="popup-section" aria-label="Period group summary">
+      <span className="ticket-title">{periodGroupMeasureCaption({
+        grouping_key: "demo-group",
+        grouping_label: "Demo group",
+        mean_theta: 0.42,
+        fit_converged: false,
+      })}</span>
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const summary = within(canvasElement).getByRole("region", { name: "Period group summary" });
+    await expect(summary).toHaveTextContent("Ask an administrator to review this report before using it.");
+    await expect(summary).not.toHaveTextContent(/grm|model|worker|provider|transport/i);
   },
 };

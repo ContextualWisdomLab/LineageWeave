@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AnalysisRun } from "./api";
-import { analysisRunCaption, analysisRunCorpusHint } from "./analysisRunCopy";
+import { analysisRunCaption, analysisRunCorpusHint, periodGroupMeasureCaption } from "./analysisRunCopy";
 import { getLocale, setLocale, type Locale } from "./i18n";
 
 function run(kind: AnalysisRun["run_kind_code"], status: AnalysisRun["status_code"]): AnalysisRun {
@@ -13,6 +13,41 @@ function run(kind: AnalysisRun["run_kind_code"], status: AnalysisRun["status_cod
 }
 
 describe("analysis run customer copy", () => {
+  it("keeps fitting details out of group captions and gives an unready result a next action", () => {
+    const report = {
+      grouping_key: "demo-group",
+      grouping_label: "Demo group",
+      mean_theta: 0.42,
+      fit_converged: true,
+      selected_model: "private-model-sentinel",
+    };
+    expect(periodGroupMeasureCaption(report)).toBe("Demo group: mean θ 0.42");
+    expect(periodGroupMeasureCaption({ ...report, fit_converged: false })).toBe(
+      "Demo group: mean θ 0.42 — Ask an administrator to review this report before using it.",
+    );
+  });
+
+  it("localizes the report review action in each supported locale", () => {
+    const original = getLocale();
+    const actions: Record<Locale, string> = {
+      en: "Ask an administrator to review this report before using it.",
+      ko: "이 보고서를 활용하기 전에 관리자에게 검토를 요청하세요.",
+      zh: "使用此报告前，请先请管理员审核。",
+      ja: "このレポートを利用する前に、管理者に確認を依頼してください。",
+      vi: "Trước khi dùng báo cáo này, hãy nhờ quản trị viên xem lại.",
+    };
+    try {
+      for (const [locale, action] of Object.entries(actions) as [Locale, string][]) {
+        setLocale(locale);
+        expect(periodGroupMeasureCaption({
+          grouping_key: "demo-group", mean_theta: 0.42, fit_converged: false,
+        })).toContain(action);
+      }
+    } finally {
+      setLocale(original);
+    }
+  });
+
   it("names governed run kinds by the task", () => {
     expect(analysisRunCaption(run("analysis_run_tepp", "analysis_status_failed"))).toBe(
       "Record measurement · Failed · Demo workspace",

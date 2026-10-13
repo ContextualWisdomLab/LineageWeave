@@ -1,4 +1,4 @@
-import { analysisRunCaption, analysisRunCorpusHint } from "./analysisRunCopy";
+import { analysisRunCaption, analysisRunCorpusHint, periodGroupMeasureCaption } from "./analysisRunCopy";
 import { focusedGraphMustReset } from "./focusedGraphSelection";
 import { canAuthorVoice, postPrimaryVoiceLabel } from "./voicePerspective";
 
@@ -3776,10 +3776,7 @@ function ReportsPanel({
                 : undefined
             }
           >
-            <span className="ticket-title">
-              {report.grouping_label ?? report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
-              {report.fit_converged ? ", converged" : ", not converged"})
-            </span>
+            <span className="ticket-title">{periodGroupMeasureCaption(report)}</span>
             <span className="post-badge">{report.post_count} posts</span>
             {report.link_method === "fipc" && report.anchor_period_code && report.delta_mean_theta != null && (
               <span className="post-badge">

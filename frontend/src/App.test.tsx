@@ -3665,6 +3665,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
     expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
     const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
+    expect(openedReport).not.toHaveTextContent(/\bgrm\b/i);
     expect(openedReport.textContent ?? "").toMatch(/Demo Corp: mean θ 0\.42[\s\S]*Other Corp: mean θ/);
     expect(
       within(openedReport).getByRole("button", { name: /open report post: public post/i }),

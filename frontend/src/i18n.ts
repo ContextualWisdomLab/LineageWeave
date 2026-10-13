@@ -21,6 +21,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
     "Record connections": "기록 연결",
     "Record measurement": "기록 측정",
+    "Ask an administrator to review this report before using it.": "이 보고서를 활용하기 전에 관리자에게 검토를 요청하세요.",
     "Topic history": "주제 이력",
     "Period report": "기간 보고서",
     "measurement": "측정",
@@ -640,6 +641,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   zh: {
     "Record connections": "记录关联",
     "Record measurement": "记录测量",
+    "Ask an administrator to review this report before using it.": "使用此报告前，请先请管理员审核。",
     "Topic history": "主题历史",
     "Period report": "期间报告",
     "measurement": "测量",
@@ -1250,6 +1252,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ja: {
     "Record connections": "記録のつながり",
     "Record measurement": "記録の測定",
+    "Ask an administrator to review this report before using it.": "このレポートを利用する前に、管理者に確認を依頼してください。",
     "Topic history": "トピックの履歴",
     "Period report": "期間レポート",
     "measurement": "測定",
@@ -1864,6 +1867,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   vi: {
     "Record connections": "Liên kết bản ghi",
     "Record measurement": "Đo lường bản ghi",
+    "Ask an administrator to review this report before using it.": "Trước khi dùng báo cáo này, hãy nhờ quản trị viên xem lại.",
     "Topic history": "Lịch sử chủ đề",
     "Period report": "Báo cáo kỳ",
     "measurement": "đo lường",
