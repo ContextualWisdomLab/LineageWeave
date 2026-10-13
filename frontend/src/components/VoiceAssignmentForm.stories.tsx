@@ -103,3 +103,23 @@ export const LastPerspectiveRejected: Story = {
     await expect(canvas.getByRole("region", { name: /Unavailable:/ })).toHaveTextContent("Reopen this post");
   },
 };
+
+export const LastPerspectiveSignInRequired: Story = {
+  render: function LastPerspective(args) {
+    const [voices, setVoices] = useState(args.voices);
+    return <VoiceAssignmentForm {...args} voices={voices}
+      options={[{ code: "vops", label: "Voice of Process" }]}
+      onSave={async () => {
+        setVoices([...voices, { code: "vops", label: "Voice of Process", is_primary: false,
+          truth_status_code: "truth_observed", evidence_available: true }]);
+        throw new BackendError("/synthetic", 401);
+      }} />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(canvas.getByLabelText("Perspective"), "vops");
+    await userEvent.selectOptions(canvas.getByLabelText("Evidence status"), "truth_observed");
+    await userEvent.click(canvas.getByRole("button", { name: "Connect perspective" }));
+    await expect(canvas.getByRole("region", { name: /Unavailable:/ })).toHaveTextContent("Sign in again, then reopen this post.");
+  },
+};

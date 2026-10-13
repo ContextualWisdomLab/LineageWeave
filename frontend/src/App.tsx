@@ -1904,7 +1904,9 @@ export function VoiceAssignmentForm({
     return error ? <StatusNotice
       kind="unavailable"
       message={t("Perspective could not be connected.")}
-      nextAction={t("Reopen this post to check your access and its recorded perspectives.")}
+      nextAction={t(error === "sign_in"
+        ? "Sign in again, then reopen this post."
+        : "Reopen this post to check your access and its recorded perspectives.")}
     /> : null;
   }
   return (
