@@ -26,13 +26,19 @@ At that exact head, the Full test suite and Frontend lint/test/build checks
 were terminal failures, and the only recorded review was `COMMENTED`, not an
 independent approval. GitHub recorded the merge actor as the PR author.
 This is a review-control incident, not evidence that the requested protected
-merge conditions passed. Do not repeat a merge or auto-merge request on a PR
-without first verifying that the live ruleset enforces independent approval
-and successful required checks for that actor. The ruleset detail endpoint was
-rate-limited during this audit, so the precise live bypass entry and the
-reason GitHub admitted the merge remain unverified. The central `.github`
-ruleset audit and actor configuration own that repair; the pending governance
-work in #1170 and central `.github` #2596 does not itself prove a fixed policy.
+merge conditions passed. The authenticated GitHub settings page for central
+ruleset 18156473 shows `Active` and includes LineageWeave among its targets,
+but states that organization rulesets **will not be enforced until the
+organization upgrades to GitHub Team**. It also shows an `Organization admin`
+actor with `Always allow` bypass, `Require status checks to pass` unchecked,
+and `Require workflows to pass before merging` checked. GraphQL returned no
+classic branch-protection rule; the publicly readable repository ruleset
+21065108 blocks force pushes only. These live controls explain why a configured
+review rule did not stop #1173. No further merge or auto-merge request is safe
+until an enforced repository or organization policy requires independent
+approval and successful exact-head checks for the merge actor. The central
+`.github` audit and live ruleset configuration own that repair; pending #1170
+and central `.github` #2596 do not themselves activate enforcement.
 
 The open inventory returned 192 PRs, including 168 drafts and 117 with a
 non-`main` base; 42 issues were open. One PR had an `APPROVED` rollup, and
