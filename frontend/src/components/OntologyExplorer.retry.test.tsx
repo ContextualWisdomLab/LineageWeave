@@ -74,4 +74,17 @@ describe("OntologyExplorer request recovery", () => {
     await screen.findByText("Related information is unavailable for this record. Open a visible post next.");
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
+
+  it.each([403, 404])("does not offer pagination after continuation is denied (%s)", async (status) => {
+    const first = { ...evidence, truncated: true, next_cursor: "src.v2.synthetic-cursor" };
+    const fetchMock = vi.fn().mockResolvedValueOnce(success(first))
+      .mockResolvedValueOnce(failure(status));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<OntologyExplorer accessToken="synthetic-token" focusNodeType="node_post" focusNodeId={postId} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+    await screen.findByText("Related information is unavailable for this record. Open a visible post next.");
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
