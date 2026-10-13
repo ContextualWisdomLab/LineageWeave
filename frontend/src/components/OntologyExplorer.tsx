@@ -200,10 +200,10 @@ export function OntologyExplorer({
     () => filterNeighborhood(status === "authentication_required" ? null : loaded, query),
     [loaded, query, status],
   );
-  const visibleStatus = loaded?.edges.some((edge) => edge.truth_status_code === "truth_rejected")
-    && (status === "ready" || status === "empty" || status === "truncated" || status === "stale")
-    ? "rejected"
-    : status;
+  const visibleStatus = visible && (
+    status === "ready" || status === "empty" || status === "truncated"
+    || status === "stale" || status === "rejected"
+  ) ? statusFromPayload(visible, knowledgeCutoff) : status;
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;

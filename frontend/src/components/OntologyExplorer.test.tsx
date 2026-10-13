@@ -903,9 +903,12 @@ describe("OntologyExplorer", () => {
     render(<OntologyExplorer accessToken="synthetic-reader" focusNodeType="node_post" focusNodeId={POST_ID} />);
     expect(await screen.findByText("This suggestion was not accepted. Open the evidence to review it.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
-    await waitFor(() => expect(fetchOntologyNeighborhood).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("button", { name: /Select edge: affiliated with/ })).toBeInTheDocument();
     expect(screen.getByText("This suggestion was not accepted. Open the evidence to review it.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select edge: mentions from node_post:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1 to node_person:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1" })).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "affiliated with");
+    expect(screen.queryByText("This suggestion was not accepted. Open the evidence to review it.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Select edge: affiliated with/ })).toBeInTheDocument();
   });
 
   it("does not promise paging for a static truncated neighborhood", () => {

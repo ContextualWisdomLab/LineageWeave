@@ -47,9 +47,10 @@ The observed reader gap is that a rejected relation on an earlier ontology
 page remains in the accumulated graph but its warning disappears after a later
 ordinary page returns. The page result overwrote the warning state even though
 the reader still sees the rejected relation. The candidate derives the warning
-from the accumulated authorized edges after successful reads and keeps the
-existing retry, access-denial, and cutoff handling. A synthetic two-page
-regression asserts that the warning and earlier relation remain visible. This
+from the accumulated, locally visible edges after successful reads and keeps
+the existing retry, access-denial, and cutoff handling. A synthetic two-page
+regression asserts that the warning and both pages' relations remain visible,
+then removes the warning when local search hides the rejected edge. This
 is a correctness gap in the inspected surface; there is no measured basis to
 rank its frequency or customer impact above every other open gap.
 
@@ -72,6 +73,12 @@ Its synthetic rejected-relation scene was visually inspected at 1440×900 and
 exact-value table retains horizontal scrolling. These screenshots remain
 outside git. They prove the rendered state, not the authenticated two-page
 browser flow or a private-runtime acceptance.
+An exact-head automated review identified the search-status mismatch and an
+assertion that did not wait for page two to render. Both findings were valid;
+the candidate now derives status from the filtered view and waits for the
+second relation in its regression. The 37 component tests passed again after
+that repair. All hosted checks and reviews on the predecessor candidate head
+must be re-evaluated on the amended head.
 
 ### Integration and measurement limits
 
