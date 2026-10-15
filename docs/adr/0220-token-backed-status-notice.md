@@ -37,6 +37,17 @@ The first migrated product flow is the Calendar Naruon fail-closed path.
 Do not copy closed-branch exception classes or Storybook inventories from
 PR #490. Later unavailable flows migrate one at a time.
 
+## Amendment: announce newly loaded analysis failures
+
+The Dashboard learns the failed-analysis count after an asynchronous read.
+When the count is positive, its unavailable notice conveys a newly arrived
+failure result and next action. That caller may request alert semantics so
+assistive technology receives the result without a focus move (WCAG 2.2
+4.1.3). The option defaults off: ordinary success and unavailable notices
+remain named regions, and retry retains its existing alert role. The caller
+still supplies customer-facing copy without provider details or a retry
+control for operator-only reanalysis.
+
 ## Consequences
 
 - Calendar names the missing Naruon projection and the next action in one

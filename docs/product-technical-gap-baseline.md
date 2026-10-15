@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Current-head Dashboard candidate — 2026-10-15 KST
+
+The fetched `main` is `51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`.
+GitHub reports 193 open PRs and 42 open issues. These are workflow counts,
+not customer or population evidence. Ready PR #1167 was read at
+`51b15bcc94faa8181cf8f457ca29345cd9f5190a`: its base had moved,
+it had no independent approval or auto-merge request, and its named hosted
+checks were terminal failures. A Full test suite check annotation on another
+current ready head says jobs did not start because the account is locked for
+billing. That observation does not turn #1167's failed checks into passes.
+The only confirmed active repository ruleset blocks force pushes; the
+organization ruleset is unavailable on the current plan. Given the recorded
+#1173 merge-control incident, no further merge or auto-merge request is safe
+until independent approval and exact-head checks are enforced for the actor.
+
+The selected customer gap is the Dashboard's failed-analysis state. ADR 0115
+makes reanalysis an operator action, while the reader can inspect the source
+Post and ask an operator to retry. PR #1167 supplies that next action and an
+announced notice under ADR 0220, with regression tests. Its prior review
+findings about count wording and announcement semantics were addressed on the
+fetched head. This integration brings current `main` into that owner branch;
+the only textual conflict was this baseline, and both dated sections are
+retained. No new inference, score, Voice code, API field, schema migration,
+or release identity is introduced by #1167. The twelve atomic Voices and
+evidence-bearing combinations remain governed by ADR 0246/0256. Authenticated
+PostgreSQL/API and rendered Voice acceptance remain unverified.
+
+On the combined tree, five documentation-hygiene tests and the four focused
+Dashboard component tests passed; frontend lint passed. An initial broad
+Vitest invocation could not start its fork workers under host load and did
+not execute tests. A second bounded attempt passed the Dashboard file but
+could not start workers for the StatusNotice and OntologyExplorer files.
+Those failed invocations are not product-test evidence.
+The combined head's Storybook build succeeded. The `AnalysisFailed` story was
+rendered and visually inspected at 1440×900 and 390×844: one alert is present,
+its next action is readable, no retry button is offered, and neither viewport
+has page-level horizontal overflow. The screenshots contain synthetic data
+and stay outside git. Storybook's isolated preview used its English locale
+for the shared notice heading; this does not prove an authenticated customer
+screen or spoken screen-reader output.
+
+The current PRD repeats FR-2A/2B/2C under different meanings (issue #807),
+and migration `0233` is duplicated (issue #1048). #1167 adds no competing
+ordinal. Other ready PRs and draft stacks still require parent-first
+integration and fresh head checks. No diagnostic convenience sample is
+promoted to population inference; the Rust-owned terminal artifact required
+for that claim is unavailable. Previous synthetic k6 observations remain
+dated observations, and this UI integration did not measure a running-job
+capacity envelope or justify a new bottleneck repair.
+
 ## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
 
 This section supersedes dated queue statements below. It distinguishes the
@@ -91,6 +141,123 @@ must be re-evaluated on the amended head.
   capacity result was collected for this candidate, so no bottleneck or
   population-level capacity claim follows. Probability-sample inference
   remains unavailable without the full Rust-owned terminal artifact.
+## Dashboard failure announcement continuation — 2026-10-13 19:28 KST
+
+Remote `main` is `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`.
+#1167's observed head before this integration is
+`08ff77868465a6ca3eba7c98d1e18d1d3132a724`. Its review found a
+valid accessibility gap: the failed-analysis result arrives after a read,
+but its passive named region would not announce the failure without a focus
+move. ADR 0220 was amended first. The existing shared notice now accepts an
+explicit announcement request only for this Dashboard result; other success
+and unavailable notices remain named regions, while retry remains an alert.
+The Dashboard keeps its operator next action and does not offer the reader an
+unavailable reanalysis control. This is a presentation repair, not a new
+analysis or measurement policy.
+
+The #1167 and current-`main` gap-baseline edits conflicted. Both dated
+evidence records were retained; no product or workflow file was removed.
+On the combined candidate, **11 focused frontend tests**, lint, production
+build, and Storybook build passed. The built `AnalysisFailed` story was
+rendered and visually inspected at **1440×900** and **390×844** with
+synthetic data. The notice has alert semantics in the DOM and remains
+readable at both widths. Screen-reader spoken output and authenticated
+customer UI were not measured. The inherited 559.50 kB production chunk
+warning remains, without a new performance claim.
+
+This candidate changes no API, schema migration, release number, model
+selection, weight, or inference engine. Current `main` contributes
+migrations 0249/0250 and ADRs 0373–0375; #1167 amends ADR 0220, so there
+is no new ordinal conflict. Historical duplicate migration 0233 and
+repeated PRD FR-2 labels remain issues #1048 and #807. The twelve atomic
+Voices and evidence-bearing combinations stay under ADR 0246/0256.
+Authenticated PostgreSQL/API and rendered Voice acceptance remain
+unavailable at this candidate head. Checks and independent approval must
+be re-read after this integration before any protected merge; no
+auto-merge is armed on the observed #1167 head.
+
+## Exact-head Dashboard failure next-action loop — 2026-10-07 05:05 KST
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The paged
+inventory contains **189 open PRs**, **168 drafts**, **117 non-main bases**,
+and **42 open issues**. These are repository workflow counts, not corpus or
+population estimates.
+
+### Checks, reviews, and protection
+
+Every ready PR head re-read in this loop (#1166 through #1128) has terminal
+CodeQL/test failures whose annotations state that the job was not started
+because the account is locked due to a billing issue; the jobs have no
+executed steps. This is a GitHub account condition, not an application test
+result, and no gate or scanner was weakened. No ready PR has an APPROVED
+review on its current head, and no ready PR has an unresolved review thread.
+Live rules still expose only no-force-push ruleset **21065108**; classic
+branch protection is absent. Auto-merge stays unarmed because it would merge
+an unapproved head immediately. No self-approval, bypass, force push, retarget,
+or run cancellation occurred.
+
+Local exact-head evidence: #1165's conflict-marker regression passes
+(**2 tests**) at `80f24209e75891f0b2a419eae7ddd42590f7593f`, and current
+`main` still contains the unresolved marker in ADR 0245; #1164's App suite
+passes (**102 tests**) at `0289942d194c45d6e1012c082dfa401d3a2ba59e`.
+Neither is merged by this loop.
+
+### Cross-PR integration
+
+Pairwise merge-tree checks of the ready main-based heads find only textual
+conflicts: gap-baseline overlays across the documentation PRs,
+`OntologyExplorer` stories/component between #1162/#1159/#1157/#1153, and
+`App.tsx` between #1135 and #1130. #1156, #1151, #1141, #1137, and #1136
+already conflict with `main`. No ready PR adds an ADR or migration file, and
+none changes a package version, so the ready set introduces no new ordinal or
+release collision. Earlier draft-stack collision groups remain as recorded
+below. Draft #774 and #983 also edit the Dashboard component; they are not
+certified here.
+
+### Largest observed user-visible gap
+
+An authenticated synthetic `demo.admin` session on the formal `lineageweave`
+Compose stack opens the Dashboard and reports every visible Post as
+analysis-failed. Aggregate ledger state: **43,171** post-content jobs are
+terminal `attempt_limit` failures last updated between 2026-08-30 and
+2026-09-01, dominated by provider HTTP 500, 429, and `unknown_fields`
+responses at the operations-case stage; **132** case classifications exist.
+The Dashboard told readers to reprocess failures, but ADR 0115 makes
+reanalysis an operator-only command with no public route, so the reader had
+no way to act on it.
+
+The minimal change keeps the count and replaces the alert with ADR 0220's
+`unavailable` notice: failed Posts stay in the post total, classified Events
+and case cards update only after reanalysis, the source remains openable from
+the Board, and reanalysis is requested from an operations administrator. No
+retry control is offered. A review finding on the first wording was valid
+(the backend counts failed Posts in `total_post_count`) and is fixed at
+`b892a9fa1`. The Dashboard
+regression fails on the previous copy and passes now; frontend lint,
+**60 files / 570 tests**, build, and Storybook build pass. The
+`AnalysisFailed` story was rendered at **1440×900** and **390×844** without
+horizontal overflow. Screenshots are synthetic and stay outside git.
+
+One failed job was requeued through the ADR 0115 operator command for
+diagnosis only. It completed without a case analysis because the running
+`backend` container has no orchestrator URL or key: it was created from a
+since-removed temporary PR #1120 checkout whose Compose file left those
+values empty, while the dedicated worker has them. A job claimed by that
+container therefore succeeds with the orchestrator channels dropped. This is
+deployment drift from current `main`'s Compose contract, not a defect on
+`main`; recreating the formal services from `main` is required before any
+bulk reanalysis. Bulk requeue is not performed: it is an operator cost
+decision and the provider failures have not been re-verified.
+
+### Authenticated runtime boundary
+
+The rendered sign-in path works through the authorization-code flow with the
+synthetic realm user; the direct password grant is refused
+(`unauthorized_client`), as intended. Authenticated additional-Voice
+acceptance, owned k6 token issuance, and PostgreSQL/worker/Valkey/gateway
+saturation remain **unavailable** in this loop. The backend logs repeated
+Valkey `xread` timeouts; they are recorded as an observation and left
+unchanged without a k6 measurement.
 
 ## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
 

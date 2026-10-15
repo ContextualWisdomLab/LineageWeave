@@ -44,6 +44,20 @@ describe("StatusNotice", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("announces only an explicitly requested unavailable result", () => {
+    const { rerender } = render(<StatusNotice kind="unavailable" message="No evidence yet." />);
+    expect(screen.getByRole("region", { name: /^Unavailable:/ })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    rerender(<StatusNotice kind="unavailable" announce message="Analysis failed." />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Analysis failed.");
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+
+    rerender(<StatusNotice kind="success" announce message="Evidence ready." />);
+    expect(screen.getByRole("region", { name: /^Ready:/ })).toHaveTextContent("Evidence ready.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("shows the next action without inventing evidence", () => {
     render(
       <StatusNotice

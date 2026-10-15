@@ -27,6 +27,7 @@ export type StatusNoticeProps = {
   nextAction?: string;
   retryLabel?: string;
   onRetry?: () => void;
+  announce?: boolean;
 };
 
 /**
@@ -36,8 +37,8 @@ export type StatusNoticeProps = {
  * visible label. Callers pass already-localized message text and must not
  * interpolate provider payloads (ADR 0123).
  *
- * Success and unavailable are a named region, not `role="status"`, so they
- * do not collide with App live-region uniqueness. Retry is `role="alert"`.
+ * Success and unavailable are named regions by default, avoiding App
+ * live-region collisions. Retry and explicitly announced results are alerts.
  */
 export function StatusNotice({
   kind,
@@ -45,16 +46,17 @@ export function StatusNotice({
   nextAction,
   retryLabel,
   onRetry,
+  announce = false,
 }: StatusNoticeProps) {
   const label = t(KIND_LABEL_KEY[kind]);
   const description = t(KIND_DESCRIPTION_KEY[kind]);
   const showRetry = kind === "retry" && typeof onRetry === "function";
-  const isRetry = kind === "retry";
+  const isAlert = kind === "retry" || (kind === "unavailable" && announce);
   return (
     <section
       className={`status-notice status-notice-kind-${kind}`}
-      role={isRetry ? "alert" : "region"}
-      aria-label={isRetry ? undefined : `${label}: ${description}`}
+      role={isAlert ? "alert" : "region"}
+      aria-label={isAlert ? undefined : `${label}: ${description}`}
     >
       <p className="status-notice-heading">
         <span className="status-notice-glyph" aria-hidden="true">
