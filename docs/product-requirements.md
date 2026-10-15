@@ -69,6 +69,10 @@ the exact-value table and downloadable CSV identify the carrying Post and its
 authorized derivation evidence separately; the table opens both as distinct
 actions. The authoring form has explicit selections, permission/cutoff gating,
 retryable feedback, keyboard labels, and desktop/mobile Storybook evidence.
+Voice authoring failures use the shared ADR 0220 notice without exception
+text. A transient failure retains the explicit selections for retry; expired
+authentication asks the reader to sign in again, while lost access or a changed
+assignment asks them to reopen the Post before another save (ADR 0123).
 
 ### PRD-FR-2A — Worker-function taxonomy
 
