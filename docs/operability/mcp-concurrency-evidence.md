@@ -5,8 +5,8 @@ It reports an observation, not an SLO or production capacity claim.
 
 ## Authentication for new synthetic observations
 
-When the identity client disallows password grants, supply an audience-correct
-token through `K6_ACCESS_TOKEN_FILE`, an absolute path to a private runtime
+Supply an audience-correct token through `K6_ACCESS_TOKEN_FILE`, an absolute
+path to a private runtime
 file outside git. Obtain it through the identity owner's authorized flow;
 do not enable a disabled grant. The script reads the opaque token at
 initialization. Use local `k6 run` only; do not archive or upload a script
@@ -61,5 +61,5 @@ claim.
 
 Remote observation targets require HTTPS. HTTP is allowed only on the exact
 loopback hosts `localhost`, `127.0.0.1`, and `[::1]`. Every credential-bearing
-request disables redirects; synthetic identity authentication follows the same
-transport rule. File-supplied tokens are never automatically renewed.
+request disables redirects. File-supplied tokens are never automatically
+renewed.

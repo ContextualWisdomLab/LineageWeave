@@ -7,17 +7,14 @@ import { Counter, Trend } from "k6/metrics";
 import { credentialTarget } from "./k6_target.js";
 
 const mcpUrl = credentialTarget(__ENV.MCP_URL || "http://localhost:18001/mcp", "MCP_URL");
-const keycloakUrl = __ENV.K6_ACCESS_TOKEN_FILE !== undefined ? null
-  : credentialTarget(__ENV.KEYCLOAK_URL || "http://localhost:18080", "KEYCLOAK_URL").replace(/\/$/, "");
-const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
-const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
-const username = __ENV.K6_USERNAME || "demo.analyst";
-const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
-const suppliedToken = __ENV.K6_ACCESS_TOKEN_FILE !== undefined
-  ? open(__ENV.K6_ACCESS_TOKEN_FILE).trim()
-  : null;
-const keycloakHost = __ENV.KEYCLOAK_HOST;
+if (!__ENV.K6_ACCESS_TOKEN_FILE) {
+  throw new Error("K6_ACCESS_TOKEN_FILE is required for an authorized synthetic load run");
+}
+const suppliedToken = open(__ENV.K6_ACCESS_TOKEN_FILE).trim();
+if (!suppliedToken) {
+  throw new Error("K6_ACCESS_TOKEN_FILE is empty; obtain a fresh authorized token");
+}
 const protocolVersion = "2025-11-25";
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
@@ -28,23 +25,6 @@ const jobStateObservations = new Counter("lineageweave_mcp_job_state_observation
 
 let vuToken;
 let vuSession;
-
-function authenticate(renew = false) {
-  if (suppliedToken !== null) {
-    if (!suppliedToken || renew) {
-      exec.test.abort("Supplied access token is unavailable; obtain a fresh authorized token and rerun");
-    }
-    return suppliedToken;
-  }
-  const headers = keycloakHost ? { Host: keycloakHost } : {};
-  const response = http.post(
-    `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
-    { grant_type: "password", client_id: clientId, username, password },
-    { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout, redirects: 0 },
-  );
-  if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
-  return response.json("access_token");
-}
 
 function result(response) {
   const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
@@ -106,7 +86,7 @@ function structured(response) {
 export function setup() {
   if (!requestTimeout) fail("REQUEST_TIMEOUT is required");
   if (unitlessDuration.test(requestTimeout)) fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
-  const token = authenticate();
+  const token = suppliedToken;
   const session = initialize(token);
   const response = callTool(token, session, 2, "submit_global_ask", {
     question: "Summarize the authorized synthetic evidence.",
@@ -119,11 +99,9 @@ export function setup() {
 export default function (data) {
   vuToken ||= data.token;
   vuSession ||= initialize(vuToken);
-  let response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
+  const response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
   if (response.status === 401) {
-    vuToken = authenticate(true);
-    vuSession = initialize(vuToken);
-    response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
+    exec.test.abort("Authorized access token expired; obtain a fresh token and rerun");
   }
   readDuration.add(response.timings.duration);
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });

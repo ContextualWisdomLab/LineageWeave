@@ -13,16 +13,14 @@ import { Counter, Trend } from "k6/metrics";
 import { credentialTarget } from "./k6_target.js";
 
 const backendUrl = credentialTarget(__ENV.BACKEND_URL || "http://localhost:18420", "BACKEND_URL").replace(/\/$/, "");
-const keycloakUrl = __ENV.K6_ACCESS_TOKEN_FILE !== undefined ? null
-  : credentialTarget(__ENV.KEYCLOAK_URL || "http://localhost:18080", "KEYCLOAK_URL").replace(/\/$/, "");
-const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
-const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
-const username = __ENV.K6_USERNAME || "demo.analyst";
-const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
-const suppliedToken = __ENV.K6_ACCESS_TOKEN_FILE !== undefined
-  ? open(__ENV.K6_ACCESS_TOKEN_FILE).trim()
-  : null;
+if (!__ENV.K6_ACCESS_TOKEN_FILE) {
+  throw new Error("K6_ACCESS_TOKEN_FILE is required for an authorized synthetic load run");
+}
+const suppliedToken = open(__ENV.K6_ACCESS_TOKEN_FILE).trim();
+if (!suppliedToken) {
+  throw new Error("K6_ACCESS_TOKEN_FILE is empty; obtain a fresh authorized token");
+}
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
@@ -31,29 +29,6 @@ const askPollDuration = new Trend("lineageweave_ask_poll_duration", true);
 const askStateObservations = new Counter("lineageweave_ask_state_observations");
 
 let vuToken;
-
-function authenticate(renew = false) {
-  if (suppliedToken !== null) {
-    if (!suppliedToken || renew) {
-      exec.test.abort("Supplied access token is unavailable; obtain a fresh authorized token and rerun");
-    }
-    return suppliedToken;
-  }
-  const response = http.post(
-    `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
-    {
-      grant_type: "password",
-      client_id: clientId,
-      username,
-      password,
-    },
-    { tags: { endpoint: "oidc_token" }, timeout: requestTimeout, redirects: 0 },
-  );
-  if (response.status !== 200) {
-    fail(`synthetic OIDC login failed with HTTP ${response.status}`);
-  }
-  return response.json("access_token");
-}
 
 function readBatch(token, askJobId) {
   const params = { headers: { Authorization: `Bearer ${token}` }, redirects: 0 };
@@ -86,7 +61,7 @@ export function setup() {
   if (unitlessDuration.test(requestTimeout)) {
     fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
   }
-  const token = authenticate();
+  const token = suppliedToken;
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const submitted = http.post(
     `${backendUrl}/api/ask`,
@@ -102,10 +77,9 @@ export function setup() {
 
 export default function (data) {
   vuToken ||= data.token;
-  let responses = readBatch(vuToken, data.askJobId);
+  const responses = readBatch(vuToken, data.askJobId);
   if (responses.some((response) => response.status === 401)) {
-    vuToken = authenticate(true);
-    responses = readBatch(vuToken, data.askJobId);
+    exec.test.abort("Authorized access token expired; obtain a fresh token and rerun");
   }
 
   readDuration.add(responses[0].timings.duration, { endpoint: "posts" });
