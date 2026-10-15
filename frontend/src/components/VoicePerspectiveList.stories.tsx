@@ -70,3 +70,19 @@ export const EvidenceAction: Story = {
     await expect(args.onViewEvidence).toHaveBeenCalledOnce();
   },
 };
+
+export const UnavailableEvidence: Story = {
+  args: {
+    onViewEvidence: fn(),
+    voices: [
+      meta.args.voices[0],
+      { ...meta.args.voices[1], evidence_available: false },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Voice of Process (Observed)")).toBeVisible();
+    await expect(canvas.getByText("Evidence unavailable. Ask an administrator to check this perspective.")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "View evidence" })).not.toBeInTheDocument();
+  },
+};

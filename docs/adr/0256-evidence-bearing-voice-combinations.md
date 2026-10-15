@@ -92,6 +92,10 @@ repair of old intervals is rejected because the overwritten evidence is absent.
   the popup's knowledge cutoff. The reader can inspect the carrying Post and
   separately open its derivation-evidence Post there. The action does not
   treat an unavailable or hidden evidence Post as the carrying Post.
+  A stored assignment without a derivation reference is labeled unavailable
+  in the popup and offers no evidence action by itself. A derivation reference
+  permits opening the reader but does not prove that the reader may see its
+  Post; the reader still applies its own authorization and cutoff checks.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value

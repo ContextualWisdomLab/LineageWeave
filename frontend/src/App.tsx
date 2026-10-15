@@ -1845,15 +1845,19 @@ export function VoicePerspectiveList({
       <h3>{t("Recorded perspectives")}</h3>
       <ul className="ticket-list">
         {voices.map((voice) => (
-          <li key={voice.code} className="ticket-list-item">
+          <li key={voice.code} className="ticket-list-item voice-perspective-item">
             <span className="ticket-title">{voiceDisplayLabel(voice)}</span>
             <span className="post-meta">
-              {t(voice.is_primary ? "Imported from source" : "Evidence connected")}
+              {t(voice.is_primary
+                ? "Imported from source"
+                : voice.evidence_available
+                  ? "Evidence connected"
+                  : "Evidence unavailable. Ask an administrator to check this perspective.")}
             </span>
           </li>
         ))}
       </ul>
-      {onViewEvidence && voices.some((voice) => !voice.is_primary) ? (
+      {onViewEvidence && voices.some((voice) => !voice.is_primary && voice.evidence_available) ? (
         <button type="button" className="keyman-select" onClick={onViewEvidence} aria-expanded={evidenceOpen}>
           {t("View evidence")}
         </button>
