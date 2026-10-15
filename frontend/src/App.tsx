@@ -1974,7 +1974,7 @@ function PostDetailPopup({
   focusEventLineage?: boolean;
   leftoverFocus?: { pairKind: "closest" | "farthest"; criterionCode: string } | null;
   onClose: () => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
   onSearch?: (query: string) => void;
   voiceOptions?: PostFilterOption[];
 }) {
@@ -2313,8 +2313,22 @@ function PostDetailPopup({
                       focusNodeType={NODE_POST}
                       focusNodeId={postId}
                       knowledgeCutoff={knowledgeCutoff ?? undefined}
-                      onSelectPost={onSelectPost}
-                      onOpenEvidence={onSelectPost}
+                      onSelectPost={(nextPostId) =>
+                        onSelectPost?.(
+                          nextPostId,
+                          knowledgeCutoff
+                            ? { liveAfterCutoff: true, knowledgeCutoff }
+                            : undefined,
+                        )
+                      }
+                      onOpenEvidence={(nextPostId) =>
+                        onSelectPost?.(
+                          nextPostId,
+                          knowledgeCutoff
+                            ? { liveAfterCutoff: true, knowledgeCutoff }
+                            : undefined,
+                        )
+                      }
                     />
                   </SurfaceBoundary>
                 ) : null}

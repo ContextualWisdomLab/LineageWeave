@@ -2899,3 +2899,31 @@ proof, and retain multi-Voice properties across paged JSON-LD. Synthetic API
 fixtures and a rendered Storybook scene do not satisfy the authenticated
 PostgreSQL/API or authenticated rendered-UI acceptance conditions. No
 population, customer, or runtime conclusion is inferred from current evidence.
+
+### Current-head Voice review and delivery snapshot — 2026-10-15 11:48 UTC
+
+Protected `main` was `51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183` at this
+read. GitHub returned 195 open PRs (27 ready) and 42 open issues; these are
+workflow counts, not product or population measurements. The current PRD is a
+supporting product contract; ADR 0246/0251/0256 governs atomic Voices,
+open-ended composition, evidence, and cutoff. RankWeave architecture,
+ThreadWeave PRD, TEPP's approved v0.4 PRD, disksage's product authority, and
+contextual-orchestrator architecture were read before this loop. Remote
+repository metadata confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`.
+
+| Evidence tier | Current observation | Remaining acceptance |
+| --- | --- | --- |
+| Normative ADR / research | ADR 0256 requires distinct carrying and derivation-evidence Posts under the same cutoff; stakeholder sources do not define a closed combination catalog | Preserve the 12 atomic types and provenance for every additional type |
+| Implemented candidate | PR #1175 at observed head `fb62ac32959903adfe31c04fa6ff260c097811f8` exposes the two actions, but its popup selection drops the cutoff; the current-head review thread identifies this user-visible defect | Repair and test both actions on a new head, then re-read checks and review threads |
+| Product authority candidate | PR #1176 at `7b1740ed0c4ddd47a38cf8fc90398ff5daa02117` updates duplicate occupational requirement identifiers in the supporting PRD | Its documentation has no shared changed file with #1175; it is unmerged and cannot supersede the current PRD yet |
+| Documentation integration | PR #1174 at `32081438511e7a48bae4156a1b1db9580abe1ce1` also changes this baseline | Preserve both audits when either PR lands; recheck the live base before any merge |
+| Hosted delivery | #1175 and #1176 jobs ended before any runner step; the exact-head annotation says the account is locked for billing, with `runner_id: 0` | Restore the owning GitHub Actions account and obtain terminal exact-head checks plus independent approval; no local pass substitutes for them |
+| Runtime acceptance | No authenticated PostgreSQL API, desktop/mobile rendered screenshot, or synthetic authenticated k6 saturation evidence was established in this pass | Keep Voice provenance, JSON-LD paging, UI, and capacity acceptance unverified until those observations exist |
+
+The immediate user-facing gap selected for minimal repair is cutoff continuity
+when a reader follows either Voice evidence action from a historical Post.
+This changes no ADR policy, API, schema, migration ordinal, model selection,
+weight, psychometric implementation, or release number. PR #1175's observed
+head is a pre-repair snapshot; its next push invalidates all old checks and
+review outcomes. No CI run or container was cancelled or removed.
