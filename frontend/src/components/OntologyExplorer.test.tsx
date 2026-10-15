@@ -927,6 +927,42 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
   });
 
+  it("continues a live refocus opened from a provided neighborhood", async () => {
+    const firstPage = neighborhood({
+      focus_node_type_code: "node_person",
+      focus_node_id: PERSON_ID,
+      truncated: true,
+      next_cursor: "person-page-2",
+    });
+    vi.mocked(fetchOntologyNeighborhood).mockReset()
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce(neighborhood({
+        focus_node_type_code: "node_person",
+        focus_node_id: PERSON_ID,
+        edges: [{ ...firstPage.edges[1], edge_id: "person-page-2-edge" }],
+      }));
+
+    render(<OntologyExplorer
+      accessToken="synthetic-reader"
+      focusNodeType="node_post"
+      focusNodeId={POST_ID}
+      neighborhood={neighborhood()}
+    />);
+    expect(fetchOntologyNeighborhood).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Person Test Person" }));
+    await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
+    await waitFor(() => expect(fetchOntologyNeighborhood).toHaveBeenCalledWith("synthetic-reader", {
+      focusNodeType: "node_person", focusNodeId: PERSON_ID, knowledgeCutoff: undefined,
+      cursor: undefined,
+    }));
+    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+    await waitFor(() => expect(fetchOntologyNeighborhood).toHaveBeenLastCalledWith("synthetic-reader", {
+      focusNodeType: "node_person", focusNodeId: PERSON_ID, knowledgeCutoff: undefined,
+      cursor: "person-page-2",
+    }));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Select edge: affiliated with/ })).toHaveLength(2));
+  });
+
   it("searches the loaded graph without inventing omitted counts", async () => {
     render(
       <OntologyExplorer

@@ -1,5 +1,72 @@
 # Product & Technical Gap Baseline
 
+## Exact-head reader continuation audit — 2026-10-16 KST
+
+This overlay supersedes older present-tense queue statements. The fetched
+protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3` (merged
+#1175). The public REST inventory returned **195 open PRs**, including **168
+drafts**, **117 non-`main` bases**, and **27 ready PRs based on `main`**. These
+are workflow counts, not usage or population estimates. The current PRD is a
+supporting product contract; ADR 0184 governs the bounded ontology reader,
+ADR 0246 the twelve extensible atomic Voices, ADR 0251 the separate
+I/O-psychology taxonomy, and ADR 0256 evidence-bearing combinations. The
+current ThreadWeave PRD, TEPP approved PRD, disksage PRD, RankWeave
+architecture, and contextual-orchestrator product planning were read before
+using their owner boundaries. Remote canonical names are
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+`TEPP`, and `contextual-orchestrator`; `DiskSage` is a local spelling, not the
+remote repository name.
+
+### Exact-head review and protected delivery
+
+- Ready #1169 at `bc395edced35e5a943e2a0a4d222461fbc6ce001` has seven
+  terminal failing or skipped check runs on that SHA and no independent
+  approving review in the public review list. Ready #1177 at
+  `090bce95f34cd7f98c83c297e175069a50ad2b0d` has four terminal failing
+  check runs and no independent approving review. Neither is a protected merge
+  candidate on this evidence. No auto-merge or merge was requested.
+- #1177's automated comment asks for public repository names to be removed
+  from this baseline. ADR 0001 prohibits identifying *real source records*;
+  public repository identity is necessary for the requested canonical-name
+  audit and is not a source record. The comment therefore requires no data
+  mutation. Other threads and the full ruleset were not audited in this
+  rate-limited pass, so no approval or mergeability claim follows.
+- #1162 edits the same reader component to suppress paging after access
+  denial. The candidate below changes a separate paging eligibility
+  condition. #1169 also edits the reader tests. Their current diffs require
+  integration review when either head changes; local success is not a combined
+  exact-head check. No API, schema, migration, ADR number, model policy,
+  or release number changes in this candidate. Existing PRD requirement-id
+  duplication, migration ordinal duplication, and version authority remain
+  separately owned issues, not silently resolved here.
+
+### Selected observable product gap
+
+The reader can open a supplied neighborhood, select another visible node, and
+fetch that node's live first page. If that page has a continuation cursor, the
+UI still hides the next-page action merely because the original neighborhood
+was supplied. This blocks inspection of further authorized relations and
+their exact-value evidence. No measured customer-impact ranking is available;
+this is a directly reproduced navigation failure in the current reader.
+
+The minimal candidate permits continuation once the reader has moved to a
+live refocus, while retaining the existing static supplied-neighborhood rule
+and authorization, cutoff, cursor, and page-accumulation contracts. A focused
+regression reproduces supplied → live refocus → second page and checks that
+the cursor-bound request and additional relation are visible. The candidate
+does not assign a Voice, substitute hidden evidence, invent a relationship,
+or alter JSON-LD merging. The three related component test files pass **50
+tests**; frontend lint and production build pass. The existing large-chunk
+build warning remains. Synthetic Storybook rendering of the live-refocus
+state was inspected at 1440×900 and 390×844: the continuation action remains
+visible and neither viewport has page overflow. Screenshots stay outside git.
+This proves the local synthetic reader path, not authenticated PostgreSQL/API
+acceptance, private-corpus behavior, or a protected release.
+
+The current `main` k6 harness remains unsuitable for credential-bearing load
+until owner #1156's token and response-body repair is integrated. No new load,
+gateway saturation, or population claim is made from this UI regression.
+
 ## Exact-head review and evidence-action candidate — 2026-10-15 KST
 
 This section supersedes earlier present-tense queue claims. The protected

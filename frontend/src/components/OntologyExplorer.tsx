@@ -207,7 +207,7 @@ export function OntologyExplorer({
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
-  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !provided);
+  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && (!provided || liveFocus));
 
   function resetFocus() {
     setRequestScope((scope) => ({ ...scope, generation: scope.generation + 1 }));
