@@ -1,5 +1,135 @@
 # Product & Technical Gap Baseline
 
+## Current-head Board excerpt candidate — 2026-10-15 KST
+
+The fetched `main` is `51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`.
+GitHub reports 193 open PRs and 42 open issues, which describe the work
+queue rather than customer usage or a sampled population. Ready #1168 was
+reviewed at `ccd3d0ef7ce6f9e9294ee5e49e8f5312a948aaae`; it had no
+independent approval or auto-merge request. Its earlier inline finding about
+exposing a configured PostgreSQL DSN through a test skip reason is fixed by
+the constant reason and privacy regression at that head. Hosted application
+jobs cannot start while the account's billing lock persists. The currently
+confirmed repository rule blocks force pushes only, and the organization
+ruleset is unavailable on the current plan. Because the #1173 merge-control
+incident showed that ordinary auto-merge can admit an unapproved failed head,
+no merge or auto-merge request is safe until approval and exact-head checks
+are enforced for the merge actor.
+
+The Board excerpt is the selected measured reader-performance gap in this
+owner PR. ADR 0053 and the existing prefix contract govern the small SQL
+repair. The prior authenticated synthetic four-VU k6 run identified
+PostgreSQL CPU and excerpt normalization as one observed cost, and its
+before/after numbers remain a dated diagnostic comparison below. They are
+not an SLO, current saturation ceiling, or population estimate. This
+integration brings current `main` into #1168; only this baseline conflicted,
+so both dated evidence records were retained. The merged candidate passed
+24 focused PostgreSQL excerpt, skip-privacy, docstring, and documentation
+tests with `DeprecationWarning` treated as an error. The throwaway test
+database fixture removed its own database. No new authenticated load test
+was performed on this merge head, so the remaining Board counts and filter
+scan are still observations to measure before another repair.
+
+Migration 0252 and ADR 0053 remain #1168's owner delta; current `main` adds
+no competing 0252 migration. The duplicate historical `0233` migration and
+repeated PRD FR-2 labels remain issues #1048 and #807. #1168 changes no API
+field or release number, and it does not compute a weight, classification,
+or psychometric result. Voice-of-X, TEPP, fast-mlsirm, and gateway authority
+remain with their recorded owners. Authenticated PostgreSQL/API and rendered
+Voice acceptance is unverified on this candidate, and no diagnostic sample
+establishes population inference without the Rust-owned terminal artifact.
+
+## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
+
+This section supersedes dated queue statements below. It distinguishes the
+protected `main` snapshot, open PR heads, a local candidate, and acceptance
+that still needs authenticated runtime evidence.
+
+### Authority and delivery state
+
+- Protected `main` fetched at `bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`.
+  The product PRD is supporting authority; ADR 0184 governs the ontology
+  reader, ADR 0246 the twelve atomic Voices, ADR 0251 the separate
+  I/O-psychology taxonomy, and ADR 0256 evidence-bearing Voice combinations.
+  The implementation inspected is `OntologyExplorer` and its page accumulator.
+- GitHub's current open inventory returned 192 PRs: 168 drafts, 117 with a
+  non-`main` base, 24 ready PRs, and 42 open issues. One PR carried an
+  `APPROVED` review decision; no open PR had auto-merge armed in that snapshot.
+  These are workflow counts, not a sample of users or records. Per-PR approval
+  validity, all review threads, and required ruleset checks were not audited
+  across the full inventory, so none of those counts establishes mergeability.
+- Ready #1169 was checked at exact head
+  `7915fe3613a66fb410acf3490f826fe6bfd264c4`: its latest review was a
+  comment, not an independent approval; seven named hosted checks were
+  terminal failures and auto-merge was absent. Ready #1170 was checked at
+  `c47e358e3a37222f272919436b7293d7874eba54`: review decision was empty,
+  named checks failed, and auto-merge was absent. Neither may be merged on
+  local evidence. The reason for these current failures was not established
+  from job annotations; the 2026-10-04 billing observation below is historical.
+  #1169's CodeRabbit comment asked for a `setuptools>=77.0.0` build floor;
+  that exact requirement is already present at its fetched current head, so
+  the finding does not justify a second edit.
+- The remote canonical repositories are `ContextualWisdomLab/LineageWeave`,
+  `RankWeave`, `ThreadWeave`, `disksage`, `TEPP`, `contextual-orchestrator`,
+  and `fast-mlsirm`. Current remote product authorities were read at their
+  fetched `main` heads: RankWeave architecture, ThreadWeave PRD, TEPP approved
+  v0.4 PRD, contextual-orchestrator product planning, and fast-mlsirm PRD.
+  `disksage` has no `docs/PRD.md` on current `main`; its README is the current
+  product authority. Its local working-tree PRD is not a protected-main claim.
+  Fetched authority heads, in that order, were `92323cb8b55b`,
+  `0fda6e60c2c8`, `0555fe9168f8`, `c226f48db69d`, and `d72ad5e7f739`;
+  `disksage` README was read at `67a511303b51`.
+
+### Selected reader gap and candidate
+
+The observed reader gap is that a rejected relation on an earlier ontology
+page remains in the accumulated graph but its warning disappears after a later
+ordinary page returns. The page result overwrote the warning state even though
+the reader still sees the rejected relation. The candidate derives the warning
+from the accumulated, locally visible edges after successful reads and keeps
+the existing retry, access-denial, and cutoff handling. A synthetic two-page
+regression asserts that the warning and both pages' relations remain visible,
+then removes the warning when local search hides the rejected edge. This
+is a correctness gap in the inspected surface; there is no measured basis to
+rank its frequency or customer impact above every other open gap.
+
+This change adds no Voice code, weight, model rule, provider call, numerical
+implementation, API field, migration, ADR ordinal, or release number. Voice
+derivation and hidden-evidence authorization stay at the existing server
+boundary. The existing tests for distinct carrying and derivation Post IDs in
+CSV and for paged JSON-LD property and multi-Voice unions remain the contract.
+Authenticated PostgreSQL/API acceptance for this candidate is pending;
+Voice-of-X release acceptance is not complete.
+The focused new regression passed; the complete `OntologyExplorer` component
+file passed 37 tests with a single worker, frontend lint passed, and the
+production and Storybook builds passed with their existing large-chunk warning. Two earlier
+full-file attempts could not start a Vitest worker under host load, and one
+default-timeout run had three timeout failures; those attempts are not counted
+as passing evidence. A Storybook development iframe returned only its loading
+spinner, so the deterministic built Storybook artifact was served instead.
+Its synthetic rejected-relation scene was visually inspected at 1440×900 and
+390×844: the warning and rejected truth label remain readable, and the narrow
+exact-value table retains horizontal scrolling. These screenshots remain
+outside git. They prove the rendered state, not the authenticated two-page
+browser flow or a private-runtime acceptance.
+An exact-head automated review identified the search-status mismatch and an
+assertion that did not wait for page two to render. Both findings were valid;
+the candidate now derives status from the filtered view and waits for the
+second relation in its regression. The 37 component tests passed again after
+that repair. All hosted checks and reviews on the predecessor candidate head
+must be re-evaluated on the amended head.
+
+### Integration and measurement limits
+
+- The current PRD contains repeated FR-2A, FR-2B, and FR-2C headings with
+  incompatible titles. The migration directory also retains two `0233`
+  files. These are authority/integration conflicts, not resolved by this
+  reader candidate; a stacked PR cannot inherit its parent's old checks.
+- The previous small synthetic k6 observation below is retained as a dated
+  observation. No current authenticated running-job saturation or gateway
+  capacity result was collected for this candidate, so no bottleneck or
+  population-level capacity claim follows. Probability-sample inference
+  remains unavailable without the full Rust-owned terminal artifact.
 ## Board excerpt continuation — 2026-10-13 19:14 KST
 
 The observed remote `main` is
