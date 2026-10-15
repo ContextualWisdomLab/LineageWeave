@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation verification — 2026-10-16 07:03 KST
+
+The current protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
+The public inventory has 196 open PRs (168 drafts, 117 with non-`main` bases)
+and 42 open issues. These count repository work, not customer records or a
+probability sample. The current PRD and ADR 0184 define the bounded reader;
+ADR 0246 defines twelve atomic Voices, ADR 0251 the distinct occupational
+layer, and ADR 0256 the evidence, truth, and cutoff contract for open-ended
+Voice combinations. The remote canonical storage repository is `disksage`.
+The applicable RankWeave, ThreadWeave, TEPP, contextual-orchestrator, and
+fast-mlsirm product or architecture authorities were read before this audit.
+
+PR #1178 at exact head `4192439b3cf81114d2b9c6432c5bcf1daa3baafb`
+contains the minimal live-refocus continuation and the authenticated static
+supplied-page regression. On that head, 69 focused frontend tests passed,
+frontend lint passed, and the production build passed with its existing
+large-chunk warning. The initially broad Vitest command unintentionally ran
+the whole suite under concurrent host load and produced UI timeouts; it was
+stopped and is not counted as a suite pass. This verification did not repeat
+the earlier synthetic desktop/mobile screenshot audit or establish an
+authenticated PostgreSQL/API Voice flow. Carrying Post, derivation Post,
+truth/cutoff, and paged JSON-LD acceptance remain unproven at that boundary.
+
+All four named GitHub test and analysis jobs on this exact head are terminal
+failures with no runner steps; a check annotation says the Actions account is
+locked by a billing issue. Formal reviews contain bot comments only, with no
+independent approval, and auto-merge is not armed. The effective `main` rules
+endpoint returned only a no-force-push rule; classic branch protection
+returned 404, and the organization rules endpoint returned 403. Required
+independent review and current-head Checks therefore cannot be treated as
+enforced or satisfied. No merge or auto-merge request was made because it
+could complete without the requested protections.
+
+The #1178 and #1176 trees merge without a file conflict; #1178 with #1177 or
+#1162 conflicts in this baseline document, while #1162 also edits the reader.
+These are integration observations, not combined-head acceptance. #1178 adds
+no ADR, API, schema, migration, or release number. #1176 owns the duplicate
+occupational PRD identities; issue #1048 owns the migration ordinal collision,
+and issue #1056 owns release identity. No TEPP or fast-mlsirm arithmetic,
+model rule, or population estimate was added locally.
+
 ## Review repair and current authority — 2026-10-16 KST
 
 At this audit, protected `main` is
