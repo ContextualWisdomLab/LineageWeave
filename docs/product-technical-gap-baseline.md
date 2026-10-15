@@ -18,6 +18,24 @@ inspected at 1440×900 and 390×844. Both Voice labels and the evidence action
 were visible without horizontal page overflow; screenshots remain outside git.
 This scene does not establish the authenticated cutoff navigation behavior.
 
+A local synthetic authenticated k6 HTTP diagnostic against the existing
+`lineageweave` Compose project submitted one asynchronous Ask job per run and
+read Posts, Event Lineage, and that job concurrently. At 2, 4, and 8 virtual
+users, the observed request rates were 0.87, 3.82, and 7.19 requests/s;
+HTTP failures were 0/14, 0/83, and 0/209. The respective p95 request
+durations were 7.44, 5.20, and 5.24 seconds; p95 Post/lineage read durations
+were 7.44, 5.49, and 6.05 seconds. All 4, 27, and 69 iterations completed,
+with no interrupted iteration. During the 8-user run, two instantaneous
+container samples showed PostgreSQL at 418% and 364% CPU on a four-vCPU VM,
+the backend at 30% and 68%, Valkey at 47% and 4%, the gateway at 2% and 22%,
+and the Ask worker below 1%; PostgreSQL memory remained below 300 MiB of the
+3.813 GiB VM limit. A PostgreSQL activity sample showed 13 client-waiting
+sessions and one running session. These samples show transient PostgreSQL
+CPU pressure but do not identify a slow query, sustained saturation, an
+approved SLO, or a capacity limit. No performance code was changed on this
+evidence. The diagnostic produced aggregate metrics only; no record,
+response body, credential, or identifying key was written to this repository.
+
 An ordinary `gh pr merge --auto --squash` request then merged #1175
 immediately at 2026-10-15 12:02:14 UTC, with `seonghobae` recorded as
 the merge actor. There was no independent `APPROVED` review: the only
