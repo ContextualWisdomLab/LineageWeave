@@ -1831,7 +1831,15 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
-export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
+export function VoicePerspectiveList({
+  voices,
+  onViewEvidence,
+  evidenceOpen = false,
+}: {
+  voices: PostVoiceType[];
+  onViewEvidence?: () => void;
+  evidenceOpen?: boolean;
+}) {
   return (
     <section className="popup-section" aria-label={t("Recorded perspectives")}>
       <h3>{t("Recorded perspectives")}</h3>
@@ -1845,6 +1853,11 @@ export function VoicePerspectiveList({ voices }: { voices: PostVoiceType[] }) {
           </li>
         ))}
       </ul>
+      {onViewEvidence && voices.some((voice) => !voice.is_primary) ? (
+        <button type="button" className="keyman-select" onClick={onViewEvidence} aria-expanded={evidenceOpen}>
+          {t("View evidence")}
+        </button>
+      ) : null}
     </section>
   );
 }
@@ -1961,11 +1974,12 @@ function PostDetailPopup({
   focusEventLineage?: boolean;
   leftoverFocus?: { pairKind: "closest" | "farthest"; criterionCode: string } | null;
   onClose: () => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
   onSearch?: (query: string) => void;
   voiceOptions?: PostFilterOption[];
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [voiceEvidenceOpen, setVoiceEvidenceOpen] = useState(false);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
   const [structureUnits, setStructureUnits] = useState<PostContentUnit[]>([]);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
@@ -2012,6 +2026,7 @@ function PostDetailPopup({
   }, []);
 
   useEffect(() => {
+    setVoiceEvidenceOpen(false);
     dialogRef.current?.focus();
   }, [postId]);
 
@@ -2284,7 +2299,41 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
-            {post.voice_types?.length ? <VoicePerspectiveList voices={post.voice_types} /> : null}
+            {post.voice_types?.length ? (
+              <>
+                <VoicePerspectiveList
+                  voices={post.voice_types}
+                  onViewEvidence={() => setVoiceEvidenceOpen((open) => !open)}
+                  evidenceOpen={voiceEvidenceOpen}
+                />
+                {voiceEvidenceOpen ? (
+                  <SurfaceBoundary>
+                    <OntologyExplorer
+                      accessToken={accessToken}
+                      focusNodeType={NODE_POST}
+                      focusNodeId={postId}
+                      knowledgeCutoff={knowledgeCutoff ?? undefined}
+                      onSelectPost={(nextPostId) =>
+                        onSelectPost?.(
+                          nextPostId,
+                          knowledgeCutoff
+                            ? { liveAfterCutoff: true, knowledgeCutoff }
+                            : undefined,
+                        )
+                      }
+                      onOpenEvidence={(nextPostId) =>
+                        onSelectPost?.(
+                          nextPostId,
+                          knowledgeCutoff
+                            ? { liveAfterCutoff: true, knowledgeCutoff }
+                            : undefined,
+                        )
+                      }
+                    />
+                  </SurfaceBoundary>
+                ) : null}
+              </>
+            ) : null}
             {canAuthorVoice(canExtract, knowledgeCutoff) ? (
               <VoiceAssignmentForm
                 voices={post.voice_types ?? []}
