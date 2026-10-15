@@ -914,6 +914,7 @@ describe("OntologyExplorer", () => {
   it("does not promise paging for a static truncated neighborhood", () => {
     render(
       <OntologyExplorer
+        accessToken="synthetic-reader"
         focusNodeType="node_post"
         focusNodeId={POST_ID}
         neighborhood={neighborhood({ truncated: true, next_cursor: "page-2" })}
