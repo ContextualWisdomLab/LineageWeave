@@ -71,6 +71,17 @@ export const EvidenceAction: Story = {
   },
 };
 
+export const ExpandedEvidence: Story = {
+  args: { onViewEvidence: fn(), evidenceOpen: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "View evidence" })).toHaveAttribute("aria-expanded", "true");
+    await expect(canvas.getByText(
+      "Only evidence you can open appears here. If support is missing, ask an administrator to check access.",
+    )).toBeVisible();
+  },
+};
+
 export const UnavailableEvidence: Story = {
   args: {
     onViewEvidence: fn(),

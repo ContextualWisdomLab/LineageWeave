@@ -96,6 +96,9 @@ repair of old intervals is rejected because the overwritten evidence is absent.
   in the popup and offers no evidence action by itself. A derivation reference
   permits opening the reader but does not prove that the reader may see its
   Post; the reader still applies its own authorization and cutoff checks.
+  The opened view tells the reader that only accessible support appears and
+  gives a next action when expected support is absent, without disclosing
+  hidden evidence or substituting the carrying Post.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value

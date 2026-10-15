@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Current-head review and Voice evidence availability candidate — 2026-10-15 13:43 UTC
+## Current-head review and Voice evidence availability candidate — 2026-10-15 13:49 UTC
 
 This overlay supersedes earlier present-tense queue statements. Fetched
 protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, the
@@ -59,24 +59,33 @@ owner. The local `DiskSage` spelling is not the remote case; its protected
 
 ### Buyer-visible candidate and evidence limits
 
-The newly delivered Post popup offered `View evidence` whenever any additional
-Voice existed, even when that assignment's API value explicitly said no
-derivation reference was available. It also labeled that state `Evidence
-connected`. The selected bounded repair keeps the recorded Voice and truth
-state visible, gives the reader an administrator next action, and offers the
-evidence view only when a derivation reference exists. That flag does not
-grant access: the existing ontology reader still independently checks source
-eligibility, ABAC, snapshot, and cutoff, omitting hidden support without
-substituting the carrying Post. No combination code, weight, heuristic,
-measurement calculation, provider route, API field, migration, or release
-number was introduced. There is no measured customer-impact ranking across
-all gaps; this is a directly reproducible reader error in the selected scope.
+The newly delivered Post popup opens the authorized ontology reader for an
+additional Voice. The detail API's `evidence_available` flag records whether
+a derivation reference exists; it does not prove that this reader can open the
+supporting Post. If the support is hidden, the ontology reader correctly omits
+the assignment, but the open view gave no specific next action for a reader
+who expected that evidence. The selected bounded repair explains that only
+accessible support appears and directs the reader to ask an administrator to
+check access. A defensive unavailable state also avoids claiming `Evidence
+connected` if an incomplete assignment ever reaches the UI; the current
+`source_post_voice` check constraint normally prohibits that stored state.
+The recorded Voice and truth state remain visible. The existing ontology
+reader still independently checks source eligibility, ABAC, snapshot, and
+cutoff, omitting hidden support without substituting the carrying Post. No
+combination code, weight, heuristic, measurement calculation, provider route,
+API field, migration, or release number was introduced. There is no measured
+customer-impact ranking across all gaps; this is a directly reproducible
+reader-guidance gap in the selected scope.
 
 The focused Voice/i18n tests passed (103 tests); frontend lint, production
 build, and Storybook build passed locally. The existing large-bundle warning
 remains. Synthetic `UnavailableEvidence` Storybook renderings at 1440×900 and
 390×844 were inspected outside git; the unavailable guidance wraps on the
 narrow viewport without page overflow and no evidence action is rendered.
+The `ExpandedEvidence` scene was also inspected at 1440×900 and 390×844:
+the next action remained readable, the control reported expanded state, and
+neither viewport overflowed. These component scenes do not prove an
+authenticated hidden-support Post flow.
 These are candidate tests and rendered synthetic evidence. Authenticated
 PostgreSQL/API and live customer UI acceptance for the unavailable state remain
 unverified. The current `main` Voice export's carrying-Post/derivation-Post

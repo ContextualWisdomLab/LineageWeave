@@ -67,6 +67,18 @@ describe("VoicePerspectiveList", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(button);
     expect(onViewEvidence).toHaveBeenCalledOnce();
+
+    rerender(
+      <VoicePerspectiveList
+        voices={[primary, { ...primary, code: "vops", is_primary: false, evidence_available: true }]}
+        onViewEvidence={onViewEvidence}
+        evidenceOpen
+      />,
+    );
+    expect(screen.getByRole("button", { name: "View evidence" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(
+      "Only evidence you can open appears here. If support is missing, ask an administrator to check access.",
+    )).toBeInTheDocument();
   });
 
   it("keeps an additional perspective visible without claiming absent derivation evidence", () => {

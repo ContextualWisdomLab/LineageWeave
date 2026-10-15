@@ -1862,6 +1862,11 @@ export function VoicePerspectiveList({
           {t("View evidence")}
         </button>
       ) : null}
+      {evidenceOpen ? (
+        <p className="post-meta">
+          {t("Only evidence you can open appears here. If support is missing, ask an administrator to check access.")}
+        </p>
+      ) : null}
     </section>
   );
 }
