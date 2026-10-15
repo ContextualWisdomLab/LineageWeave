@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR 0272](0272-stateless-mcp-protocol-dual-era.md) for
+the current stateless protocol revision beside the legacy handshake era.
 
 ## Context
 
