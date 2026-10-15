@@ -13,17 +13,23 @@ implementation and local tests below remain candidate evidence. Authenticated
 PostgreSQL/API acceptance, hosted checks, independent approval, and protected
 merge are separate, unproven acceptance conditions.
 
-PR #1178 was reviewed at `290faa170da8aab97e42ef4044f265972d37e024`.
+PR #1178 was reviewed at audit head
+`11b27bae7be3ad03359a1bd5e00aa44bfe86067b`.
 The automated review identified a valid regression gap: the static supplied
 neighborhood test lacked an access token, so it could not detect an accidental
 page button for an authenticated reader. Product-code test commit
 `ef03927bb6906599712339ba65fa1ab609b9b0fc` adds that token to the
 existing bounded-page assertion. The full frontend suite passed **600 tests**
-across **60 files**; lint and production build passed. The previously recorded
+across **60 files** on the earlier product-code head. The focused reader file
+passed **38 tests** on the audited head. A fresh broad run overlapped the build,
+hit several five-second UI timeouts, and was stopped; it is not a full-suite
+pass. Lint and production build passed. Documentation hygiene passed five
+tests. The previously recorded
 synthetic desktop/mobile render audit applies to the unchanged UI. The build
-still reports its existing large-chunk warning. Hosted jobs on the reviewed
-predecessor head failed before execution under the account billing lock; they
-cannot validate this new commit. No independent approval or merge is claimed.
+still reports its existing large-chunk warning. The four audited-head hosted
+test and analysis jobs failed before any step ran; the job annotation identifies
+an account billing lock. The review-thread query returned zero threads. No
+independent approval, armed auto-merge, or merge is claimed.
 
 PR #1178's reader continuation remains the selected reproduced user gap:
 after a reader refocuses from a supplied neighborhood, an authorized next
@@ -31,7 +37,12 @@ relation page can be opened. The test repair protects the distinct static
 supplied-page limit. It changes no ADR, API, schema, migration, release number,
 provider routing, or Voice inference. PR #1162 owns access-denial paging and
 #1169 edits related reader tests; combined behavior needs new exact-head review
-when those branches meet. Issues #1048, #1056, and #807 continue to own the
+when those branches meet. Ready #1177 (`090bce95f34cd7f98c83c297e175069a50ad2b0d`)
+and #1176 (`cf2990395ba06af7c7d8cde44cb92bf68840915c`) also have
+terminal failing hosted jobs and no independent approving review. #1177's
+request to remove public repository names from this baseline does not apply to
+the ADR 0001 ban on identifying source records; no source record is included.
+Issues #1048, #1056, and #807 continue to own the
 migration ordinal, release identity, and duplicated PRD requirement identities.
 No new authenticated load or population inference is asserted.
 
