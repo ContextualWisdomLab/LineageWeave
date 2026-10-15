@@ -87,6 +87,11 @@ repair of old intervals is rejected because the overwritten evidence is absent.
   which covers a single record that contains several perspectives without
   asking the user for an internal identifier. Historical-cutoff views and
   accounts without `post_admin` do not expose this write control.
+- When the Post popup lists an additional Voice, its evidence action opens the
+  existing authorized ontology neighborhood focused on that Post, retaining
+  the popup's knowledge cutoff. The reader can inspect the carrying Post and
+  separately open its derivation-evidence Post there. The action does not
+  treat an unavailable or hidden evidence Post as the carrying Post.
 - The authorized ontology neighborhood projects each association as a
   qualified assignment in JSON-LD and the exact-value CSV. SHACL requires its
   atomic voice concept, primary flag, and source-post evidence. The exact-value
