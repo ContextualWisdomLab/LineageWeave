@@ -1,5 +1,26 @@
 # Product & Technical Gap Baseline
 
+## Current-head delivery check — 2026-10-16 KST
+
+Protected `main` remains `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
+The reader-continuation candidate was reviewed at PR #1178 head
+`3dfef42bd311c7c1c8b6c5d48cdc72077359d434`: no review thread or
+independent approval was present. Its four hosted test and analysis jobs were
+terminal failures; the public job page says the jobs did not start because
+the account is locked due to a billing issue. The successful automated review
+statuses are not independent approval. This is an external CI execution
+blocker, not a passing check or evidence that the candidate failed its tests.
+
+At that head, the new supplied-neighborhood to live-refocus continuation
+regression passed locally. Frontend lint and production build passed. A run of
+the broader `OntologyExplorer` file had 37 passing tests and one timeout while
+the shared host was busy; the timed-out access-denial cases passed when run
+alone. The earlier desktop and mobile synthetic screenshots were inspected
+again: the next-page action is visible at both widths. These observations do
+not establish authenticated PostgreSQL/API or protected-main acceptance. No
+merge or auto-merge was requested while the hosted gates and independent
+approval remained unsatisfied.
+
 ## Exact-head reader continuation audit — 2026-10-16 KST
 
 This overlay supersedes older present-tense queue statements. The fetched
