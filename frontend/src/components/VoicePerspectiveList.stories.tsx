@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 
 import { VoicePerspectiveList } from "../App";
 import "../App.css";
@@ -58,5 +58,15 @@ export const RejectedEvidence: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Voice of Regulator (Rejected)")).toBeVisible();
+  },
+};
+
+export const EvidenceAction: Story = {
+  args: { onViewEvidence: fn(), evidenceOpen: false },
+  play: async ({ args, canvasElement }) => {
+    const button = within(canvasElement).getByRole("button", { name: "View evidence" });
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(button);
+    await expect(args.onViewEvidence).toHaveBeenCalledOnce();
   },
 };

@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import { VoicePerspectiveList } from "../App";
 
@@ -39,5 +40,32 @@ describe("VoicePerspectiveList", () => {
     expect(within(perspectives).getByText("Voice of Regulator (Rejected)")).toBeInTheDocument();
     expect(within(perspectives).getByText("Imported from source")).toBeInTheDocument();
     expect(within(perspectives).getAllByText("Evidence connected")).toHaveLength(2);
+  });
+
+  it("offers the authorized evidence view only for an additional perspective", async () => {
+    const onViewEvidence = vi.fn();
+    const primary = {
+      code: "voc",
+      label: "Voice of Customer",
+      is_primary: true,
+      truth_status_code: "truth_observed",
+      evidence_available: false,
+    };
+    const { rerender } = render(
+      <VoicePerspectiveList voices={[primary]} onViewEvidence={onViewEvidence} />,
+    );
+    expect(screen.queryByRole("button", { name: "View evidence" })).not.toBeInTheDocument();
+
+    rerender(
+      <VoicePerspectiveList
+        voices={[primary, { ...primary, code: "vops", is_primary: false, evidence_available: true }]}
+        onViewEvidence={onViewEvidence}
+        evidenceOpen={false}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "View evidence" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(button);
+    expect(onViewEvidence).toHaveBeenCalledOnce();
   });
 });
