@@ -29,3 +29,21 @@ large source-post heap into every lookup.
 Related navigation is evidence-bearing without duplicating full source bodies.
 The 20-row navigation bound is intentional; users can search the board or open
 the detail view for the complete authorized record set.
+
+## Amendment (2026-10-07): bounded excerpt normalization
+
+Synthetic authenticated k6 observation of the formal Compose stack found
+PostgreSQL CPU saturated by Board reads. Building each 420-character excerpt
+ran three regular expressions over the complete source body, so a page of 50
+large bodies normalized megabytes to return kilobytes.
+
+- `source_post_excerpt_text(body, max_chars)` normalizes only the first 16,384
+  source characters (the existing search-prefix bound), after dropping an
+  unterminated trailing tag. When that prefix yields at least `max_chars`
+  normalized characters, its leading excerpt is returned; otherwise the
+  function falls back to normalizing the whole body. The returned excerpt is
+  therefore identical to `btrim(left(source_post_search_text(body), max_chars))`;
+  the prefix bound changes cost, never content.
+- Board, lineage, related-post, and knowledge-graph excerpts use the function.
+  A search-hit excerpt still locates the term in the complete normalized body.
+- `post_body_truncated` keeps its existing source-length meaning.

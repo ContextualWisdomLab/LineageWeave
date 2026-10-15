@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+## Current-head Board excerpt candidate — 2026-10-15 KST
+
+The fetched `main` is `51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`.
+GitHub reports 193 open PRs and 42 open issues, which describe the work
+queue rather than customer usage or a sampled population. Ready #1168 was
+reviewed at `ccd3d0ef7ce6f9e9294ee5e49e8f5312a948aaae`; it had no
+independent approval or auto-merge request. Its earlier inline finding about
+exposing a configured PostgreSQL DSN through a test skip reason is fixed by
+the constant reason and privacy regression at that head. Hosted application
+jobs cannot start while the account's billing lock persists. The currently
+confirmed repository rule blocks force pushes only, and the organization
+ruleset is unavailable on the current plan. Because the #1173 merge-control
+incident showed that ordinary auto-merge can admit an unapproved failed head,
+no merge or auto-merge request is safe until approval and exact-head checks
+are enforced for the merge actor.
+
+The Board excerpt is the selected measured reader-performance gap in this
+owner PR. ADR 0053 and the existing prefix contract govern the small SQL
+repair. The prior authenticated synthetic four-VU k6 run identified
+PostgreSQL CPU and excerpt normalization as one observed cost, and its
+before/after numbers remain a dated diagnostic comparison below. They are
+not an SLO, current saturation ceiling, or population estimate. This
+integration brings current `main` into #1168; only this baseline conflicted,
+so both dated evidence records were retained. The merged candidate passed
+24 focused PostgreSQL excerpt, skip-privacy, docstring, and documentation
+tests with `DeprecationWarning` treated as an error. The throwaway test
+database fixture removed its own database. No new authenticated load test
+was performed on this merge head, so the remaining Board counts and filter
+scan are still observations to measure before another repair.
+
+Migration 0252 and ADR 0053 remain #1168's owner delta; current `main` adds
+no competing 0252 migration. The duplicate historical `0233` migration and
+repeated PRD FR-2 labels remain issues #1048 and #807. #1168 changes no API
+field or release number, and it does not compute a weight, classification,
+or psychometric result. Voice-of-X, TEPP, fast-mlsirm, and gateway authority
+remain with their recorded owners. Authenticated PostgreSQL/API and rendered
+Voice acceptance is unverified on this candidate, and no diagnostic sample
+establishes population inference without the Rust-owned terminal artifact.
+
 ## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
 
 This section supersedes dated queue statements below. It distinguishes the
@@ -91,6 +130,133 @@ must be re-evaluated on the amended head.
   capacity result was collected for this candidate, so no bottleneck or
   population-level capacity claim follows. Probability-sample inference
   remains unavailable without the full Rust-owned terminal artifact.
+## Board excerpt continuation — 2026-10-13 19:14 KST
+
+The observed remote `main` is
+`bc6a63ee9b827c9d57e8152380e2a25fa3f1a8f2`. The observed #1168 head
+before this integration is
+`d7e19aa25a16379183b24383eb583830055b78da`. GitHub lists **192 open
+PRs**, including **168 drafts** and **117** based outside `main`, plus **42
+open issues**. These are repository counts, not a corpus sample. #1168's
+CodeRabbit finding about an administrative DSN in a test skip reason is
+already corrected at that head with a fixed reason and a privacy regression.
+Its hosted application Checks fail before job steps and it has no independent
+approval or armed auto-merge. Merging the current `main` into the candidate
+had no content conflict; this paragraph does not carry old Checks onto the
+new head.
+
+The customer gap remains slow Board reading of large Posts. ADR 0053 owns
+the 420-character excerpt contract and the existing search-prefix bound.
+#1168 consumes that bound and falls back to whole-body normalization when
+necessary, preserving the excerpt instead of introducing a score or a new
+semantic rule. Its earlier four-VU synthetic k6 measurement is a dated
+diagnostic observation, not current-main throughput or a population
+estimate. On the combined tree, the isolated live PostgreSQL excerpt and
+privacy and public-docstring regressions passed **19 tests** with
+`DeprecationWarning` as an error;
+the throwaway test database was dropped by the fixture. No new authenticated
+load measurement or saturation correction is claimed for this integration.
+
+The current LineageWeave PRD and ADR 0053 remain the product authority;
+TEPP and fast-mlsirm still own measurement. Current `main` has migrations
+0249 and 0250 and ADRs 0373–0375; #1168 adds replay-safe migration 0252
+and amends ADR 0053, without sharing an ordinal or changing an API or release
+number. The duplicate historical `0233` migration and repeated PRD FR-2
+labels remain issues #1048 and #807. #1169 independently owns Voice save
+recovery, and the dated baseline overlays in both PRs must be retained when
+either integrates. The canonical remote spelling remains lowercase
+`ContextualWisdomLab/disksage`; the other linked owner names are
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+`contextual-orchestrator`.
+
+## Exact-head Voice acceptance and Board load loop — 2026-10-07 07:45 KST
+
+Remote `main` is `8be55f0306015a1a8deda02fa9131e165254d239`. The paged
+inventory contains **190 open PRs**, **168 drafts**, **117 non-main bases**,
+and **42 open issues**; these are repository workflow counts, not corpus or
+population estimates.
+
+### Checks, reviews, and protection
+
+Every ready PR head re-read in this loop (#1167 through #1130) still has
+terminal CodeQL/test failures whose annotation states that the job was not
+started because the account is locked due to a billing issue. A failed-job
+rerun of #1167 at `08ff77868465a6ca3eba7c98d1e18d1d3132a724` failed the same
+way, so reruns cannot clear it. No ready PR has an approval on its current head
+or an unresolved review thread. The live rule set is still only no-force-push
+ruleset **21065108**. No self-approval, bypass, force push, or cancellation
+occurred, and auto-merge stays unarmed.
+
+After this snapshot, #1168 received a valid CodeRabbit finding: the live
+PostgreSQL excerpt test could echo a configured administrative DSN in a skip
+reason when PostgreSQL was unavailable. The branch now uses a fixed,
+actionable skip reason and adds a synthetic regression that proves the DSN,
+username, password, host, and database name stay out of pytest collection
+output. This receipt advances #1168 and requires a fresh exact-head Checks and
+review read before lifecycle action.
+
+### Formal stack drift repaired
+
+The formal `lineageweave` Compose services ran from four deleted temporary
+checkouts; `backend` had no orchestrator URL or key. The services in
+`main`'s default profile were recreated from an isolated `main` worktree with
+named volumes preserved. The live demo realm also refused the password grant
+that `main`'s realm export and integration tests declare; that client setting
+was restored to the export. `backend-ask-worker` and `mcp` remain from an
+earlier checkout because `main` does not define the worker service.
+
+### Voice acceptance on the authenticated PostgreSQL API
+
+Against the real Keycloak/PostgreSQL boundary, `main` passes hidden-evidence
+rejection and hidden-evidence omission but **fails** the round trip. The
+additional Voice persists with qualified derivation (HTTP 201), yet the
+immediate neighborhood read omits it. The cause is a clock mismatch:
+`snapshot_at` comes from the application clock, while assignments use
+PostgreSQL time, measured **~0.10 s** ahead. PR #1153 at
+`f18c736f4c51dea62d2f543134e077a3f9d9eb22` already carries the
+database-clock repair. At that exact head the same authenticated cases pass
+(**8**). So do **93** ontology, Voice-history, docstring, and acceptance tests,
+plus frontend lint, **571** tests, and the build. #1153 needs hosted checks and
+an independent approval; this loop does not certify rendered authenticated UI.
+
+### Board load bottleneck (observed, partly repaired)
+
+A synthetic authenticated k6 run (4 VUs, 20 s) on the formal stack had **0**
+failed requests, **16.0 req/s**, and **790 ms** p95. PostgreSQL used about
+**380%** CPU while every other service stayed under 13%. Sampled active queries
+were the Board page and its filter-options scan. Each 420-character excerpt
+regex-normalized the whole body (**5.6 GB** across **43,189** rows).
+
+The ADR 0053 amendment adds `source_post_excerpt_text`, which normalizes a
+bounded prefix and falls back to the full body when needed. It returned
+identical text for all **43,189** local rows. On the same 50 rows it took
+**85 ms**, where full normalization took **374–414 ms**. After the change,
+k6 recorded **17.2 req/s** and **762 ms** p95 with **0** failures.
+PostgreSQL stays CPU-bound on two measured costs that remain unchanged: the
+full-population `count(*) over()` window (~120 ms) and the filter-options
+scan (~260 ms) per Board read. Changing either needs a separate decision.
+Migration replay also rebuilds a GIN index in 0035 that 0036 then drops,
+which adds minutes to each formal restart. No SLO is set from these
+observations.
+
+The full authenticated API module passes **126** cases with this change and
+skips **5**. The same **7** failures occur on unchanged `main`. Four post-detail
+cases lack the occupational-extraction table in the test fixture, one lacks the
+TEPP receipt table (#1166 adds that migration), and two Global Ask cases fail
+because the orchestrator returned no complete evidence object. None of these
+is attributed to this change.
+
+The skip-privacy repair was verified with
+`tests/test_source_post_excerpt_skip_privacy.py` and
+`tests/test_source_post_excerpt_live.py`: **17 passed**. It does not change the
+excerpt SQL, migration ordinal, API surface, release number, or observed Board
+load bottleneck.
+
+### Cross-PR integration
+
+The new migration takes ordinal **0252**. Open drafts already use
+0246–0251; none uses 0252. The change adds no ADR ordinal, API field, or
+release number. Earlier draft-stack collision groups remain as recorded below.
 
 ## Exact-head acceptance and governance audit — 2026-10-04 02:30 KST
 

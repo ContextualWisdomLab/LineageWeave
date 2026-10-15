@@ -509,7 +509,7 @@ async def hydrate_related_nodes(
         # Safe SQL: the eligibility predicate is an immutable schema fragment; post ids are bound.
         for row in await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select post_id, post_title, "
-            "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
+            "source_post_excerpt_text(post_body, 420) as post_body_excerpt, "
             "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
             f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_ids,
