@@ -10,9 +10,13 @@ const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
 let mockAuth: Record<string, unknown>;
 
-vi.mock("react-oidc-context", () => ({
-  useAuth: () => mockAuth,
-}));
+vi.mock("react-oidc-context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-oidc-context")>();
+  return {
+    ...actual,
+    useAuth: () => mockAuth,
+  };
+});
 
 beforeEach(() => {
   setLocale("en");
@@ -1269,6 +1273,14 @@ describe("App, authenticated", () => {
             voc_type_label: "Voice of Customer",
             visibility_code: "public",
             visibility_label: "Public",
+            ...(options?.combinedVoices
+              ? { voice_types: [
+                  { code: "voc", label: "Voice of Customer", is_primary: true,
+                    truth_status_code: "truth_observed", evidence_available: false },
+                  { code: "vops", label: "Voice of Process", is_primary: false,
+                    truth_status_code: "truth_observed", evidence_available: true },
+                ] }
+              : {}),
             project_evidence: [
               {
                 project_key: "source-project",
@@ -1320,7 +1332,7 @@ describe("App, authenticated", () => {
           }),
         );
       }
-      if (url.endsWith("/api/posts/post-2")) {
+      if (postOneUrl.pathname === "/api/posts/post-2") {
         if (options?.evidenceUnavailable) {
           return Promise.resolve(new Response("unavailable", { status: 503 }));
         }
@@ -1582,9 +1594,38 @@ describe("App, authenticated", () => {
                 evidence_count: 0,
                 shape_code: "rectangle",
               },
+              ...(options?.combinedVoices ? [{
+                node_id: "post-2",
+                node_type_code: "node_post",
+                ontology_class_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Post",
+                display_label: "Linked post",
+                truth_status_code: "truth_observed",
+                valid_from: null,
+                valid_to: null,
+                recorded_at: "2026-01-10T12:00:00+00:00",
+                evidence_count: 0,
+                shape_code: "rectangle",
+              }] : []),
             ],
             edges: [],
-            exact_value_rows: [],
+            exact_value_rows: options?.combinedVoices ? [{
+              edge_id: "voice-assignment:post-1:vops",
+              source_node_id: "post-1",
+              source_label: "Public post",
+              source_type_code: "node_post",
+              property_code: "hasVoiceAssignment",
+              property_label: "Voice carried by this post",
+              ontology_property_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#hasVoiceAssignment",
+              target_node_id: "vops",
+              target_label: "Voice of Process",
+              target_type_code: "node_voice_type",
+              truth_status_code: "truth_observed",
+              recorded_at: "2026-01-10T12:00:00+00:00",
+              valid_from: "",
+              valid_to: "",
+              evidence_count: "1",
+              evidence_post_id: "post-2",
+            }] : [],
             jsonld: { "@graph": [] },
           }),
         );
@@ -2050,6 +2091,33 @@ describe("App, authenticated", () => {
       await screen.findByText("Voice of Customer (Observed) + Voice of Process (Observed)"),
     ).toBeInTheDocument();
   });
+
+  it("keeps a run cutoff when opening either Voice carrying or derivation evidence", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
+    await userEvent.click(await within(screen.getByRole("region", { name: "Recorded perspectives" })).findByRole("button", { name: "View evidence" }));
+    await waitFor(
+      () => expect(screen.getByRole("region", { name: "View related information" })).toHaveTextContent("Voice carried by this post"),
+      { timeout: 5000 },
+    );
+
+    await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", { name: "Open post: Public post" }));
+    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
+    await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", { name: "Open evidence: Linked post" }));
+    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+  }, 15000);
 
   it("keeps a post whose additional voice matches the board filter", async () => {
     stubBackend({ combinedVoices: true });

@@ -45,7 +45,7 @@ def _dsn_for_database(admin_dsn: str, database_name: str) -> str:
 
 pytestmark = pytest.mark.skipif(
     not _postgres_available(),
-    reason=f"no reachable PostgreSQL server at {_ADMIN_DSN}",
+    reason="requires the configured disposable PostgreSQL admin endpoint",
 )
 
 

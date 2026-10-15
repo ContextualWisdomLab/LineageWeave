@@ -196,7 +196,9 @@ def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeyp
         return {}
 
     class FocusConnection:
-        async def fetchval(self, _sql: str, *_args: object) -> str:
+        async def fetchval(self, _sql: str, *_args: object) -> str | datetime:
+            if _sql == "select clock_timestamp()":
+                return T0
             return "Focus"
 
     monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_exists)
@@ -290,7 +292,9 @@ def test_skos_parent_requires_own_visible_post_evidence(monkeypatch: Any) -> Non
         return {}
 
     class FocusConnection:
-        async def fetchval(self, _sql: str, *_args: object) -> str:
+        async def fetchval(self, _sql: str, *_args: object) -> str | datetime:
+            if _sql == "select clock_timestamp()":
+                return T0
             return "Plant"
 
     monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_exists)

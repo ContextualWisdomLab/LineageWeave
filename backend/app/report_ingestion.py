@@ -18,7 +18,7 @@ from lineageweave.period_report import (
 from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 from .knowledge_graph import labels_for_codes
-from .post_eligibility import source_context_present_sql
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_context_present_sql
 
 GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group", "team", "project"})
 SHARED_METRIC_KIND = "shared_metric"
@@ -26,6 +26,7 @@ SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
 _MONTH_PERIOD = re.compile(r"^(\d{4})-(\d{2})$")
 _SOURCE_CONTEXT_PRESENT_SQL = source_context_present_sql("p")
+_SOURCE_POST_ELIGIBILITY_SQL = SOURCE_POST_ELIGIBILITY_SQL.format(alias="p")
 
 
 def parse_period_code(period_code: str) -> tuple[str, int, int]:
@@ -604,15 +605,16 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
-    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    # Safe SQL: canonical source-context/eligibility fragments are immutable; report keys are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id, p.process_unit_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
+               (p.post_id is not null and ({_SOURCE_POST_ELIGIBILITY_SQL})) as source_eligible,
                t.due_date as ticket_due_date, t.ticket_title, t.ticket_status_code
         from report_member_score m
-        join source_post p on p.post_id = m.post_id
+        left join source_post p on p.post_id = m.post_id
         left join lateral (
             select issue_ticket.due_date, issue_ticket.ticket_title,
                    issue_ticket.ticket_status_code
@@ -654,7 +656,7 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
-    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    # Safe SQL: canonical source-context/eligibility fragments are immutable; report keys are bound.
     leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
@@ -666,9 +668,10 @@ async def fetch_period_reports(
                lp.leftover_map_person_axis_2, lp.leftover_map_item_axis_1,
                lp.leftover_map_item_axis_2, p.post_title,
                p.visibility_code, p.corporate_entity_id, p.process_unit_id,
-               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
+               (p.post_id is not null and ({_SOURCE_POST_ELIGIBILITY_SQL})) as source_eligible
         from report_leftover_pair lp
-        join source_post p on p.post_id = lp.post_id
+        left join source_post p on p.post_id = lp.post_id
         where lp.grouping_kind = $1 and lp.period_code = $2 and lp.rubric_version = $3
         order by lp.grouping_key,
                  case lp.pair_kind when 'closest' then 0 else 1 end,
@@ -753,11 +756,14 @@ async def fetch_period_reports(
                         "theta_eap": float(row["theta_eap"]),
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
-                        "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "corporate_entity_id": (
+                            None if row["corporate_entity_id"] is None else str(row["corporate_entity_id"])
+                        ),
                         "process_unit_id": (
                             None if row["process_unit_id"] is None else str(row["process_unit_id"])
                         ),
                         "has_real_source_context": bool(row["has_real_source_context"]),
+                        "source_eligible": row["source_eligible"] is True,
                         "ticket_due_date": (
                             None
                             if row["ticket_due_date"] is None
@@ -852,11 +858,14 @@ async def fetch_period_reports(
                             else float(row["leftover_map_item_axis_2"])
                         ),
                         "visibility_code": row["visibility_code"],
-                        "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "corporate_entity_id": (
+                            None if row["corporate_entity_id"] is None else str(row["corporate_entity_id"])
+                        ),
                         "process_unit_id": (
                             None if row["process_unit_id"] is None else str(row["process_unit_id"])
                         ),
                         "has_real_source_context": bool(row["has_real_source_context"]),
+                        "source_eligible": row["source_eligible"] is True,
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
                 ],
@@ -909,14 +918,25 @@ async def list_period_report_summaries(
         grouping_kind,
         RUBRIC_VERSION,
     )
-    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    # Safe SQL: canonical source-context/eligibility fragments are immutable; report keys are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id,
-               p.process_unit_id, ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
+        select m.grouping_key, m.period_code, m.post_id, p.visibility_code, p.corporate_entity_id,
+               p.process_unit_id, ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
+               (p.post_id is not null and ({_SOURCE_POST_ELIGIBILITY_SQL})) as source_eligible,
+               'member' as contributor_kind
         from report_member_score m
-        join source_post p on p.post_id = m.post_id
+        left join source_post p on p.post_id = m.post_id
         where m.grouping_kind = $1 and m.rubric_version = $2
+        union all
+        select lp.grouping_key, lp.period_code, lp.post_id,
+               p.visibility_code, p.corporate_entity_id, p.process_unit_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
+               (p.post_id is not null and ({_SOURCE_POST_ELIGIBILITY_SQL})) as source_eligible,
+               'leftover' as contributor_kind
+        from report_leftover_pair lp
+        left join source_post p on p.post_id = lp.post_id
+        where lp.grouping_kind = $1 and lp.rubric_version = $2
         """,
         grouping_kind,
         RUBRIC_VERSION,
@@ -931,8 +951,10 @@ async def list_period_report_summaries(
         RUBRIC_VERSION,
     )
     members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
-    for row in members:
-        members_by_key[(row["grouping_key"], row["period_code"])].append(row)
+    leftover_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for contributor in members:
+        target = members_by_key if contributor["contributor_kind"] == "member" else leftover_by_key
+        target[(contributor["grouping_key"], contributor["period_code"])].append(contributor)
     top_by_key = {
         (row["grouping_key"], row["period_code"]): row for row in top_items
     }
@@ -962,16 +984,35 @@ async def list_period_report_summaries(
             ),
             "members": [
                 {
+                    "post_id": str(member["post_id"]),
                     "visibility_code": member["visibility_code"],
-                    "corporate_entity_id": str(member["corporate_entity_id"]),
+                    "corporate_entity_id": (
+                        None if member["corporate_entity_id"] is None else str(member["corporate_entity_id"])
+                    ),
                     "process_unit_id": (
                         None
                         if member["process_unit_id"] is None
                         else str(member["process_unit_id"])
                     ),
                     "has_real_source_context": bool(member["has_real_source_context"]),
+                    "source_eligible": member["source_eligible"] is True,
                 }
                 for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])
+            ],
+            "leftover_pairs": [
+                {
+                    "post_id": str(pair["post_id"]),
+                    "visibility_code": pair["visibility_code"],
+                    "corporate_entity_id": (
+                        None if pair["corporate_entity_id"] is None else str(pair["corporate_entity_id"])
+                    ),
+                    "process_unit_id": (
+                        None if pair["process_unit_id"] is None else str(pair["process_unit_id"])
+                    ),
+                    "has_real_source_context": bool(pair["has_real_source_context"]),
+                    "source_eligible": pair["source_eligible"] is True,
+                }
+                for pair in leftover_by_key.get((row["grouping_key"], row["period_code"]), [])
             ],
         }
         for row in rows
@@ -1033,10 +1074,11 @@ async def fetch_period_comparison(
     # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id,
-               p.process_unit_id, ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
+        select m.grouping_kind, m.grouping_key, m.post_id, p.visibility_code, p.corporate_entity_id,
+               p.process_unit_id, ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
+               (p.post_id is not null and ({_SOURCE_POST_ELIGIBILITY_SQL})) as source_eligible
         from report_member_score m
-        join source_post p on p.post_id = m.post_id
+        left join source_post p on p.post_id = m.post_id
         where m.period_code = $1 and m.rubric_version = $2
           and m.grouping_kind = any($3::text[])
         """,
@@ -1054,9 +1096,11 @@ async def fetch_period_comparison(
                lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
                lp.leftover_map_reconstruction,
                p.post_title, p.visibility_code, p.corporate_entity_id,
-               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
+               p.process_unit_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
+               (p.post_id is not null and ({_SOURCE_POST_ELIGIBILITY_SQL})) as source_eligible
         from report_leftover_pair lp
-        join source_post p on p.post_id = lp.post_id
+        left join source_post p on p.post_id = lp.post_id
         where lp.period_code = $1 and lp.rubric_version = $2
           and lp.grouping_kind = any($3::text[])
         order by lp.grouping_kind, lp.grouping_key,
@@ -1083,14 +1127,18 @@ async def fetch_period_comparison(
                 "link_method": row["link_method"],
                 "members": [
                     {
+                        "post_id": str(member["post_id"]),
                         "visibility_code": member["visibility_code"],
-                        "corporate_entity_id": str(member["corporate_entity_id"]),
+                        "corporate_entity_id": (
+                            None if member["corporate_entity_id"] is None else str(member["corporate_entity_id"])
+                        ),
                         "process_unit_id": (
                             None
                             if member["process_unit_id"] is None
                             else str(member["process_unit_id"])
                         ),
                         "has_real_source_context": bool(member["has_real_source_context"]),
+                        "source_eligible": member["source_eligible"] is True,
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],
@@ -1108,8 +1156,16 @@ async def fetch_period_comparison(
                             else float(pair["leftover_map_reconstruction"])
                         ),
                         "visibility_code": pair["visibility_code"],
-                        "corporate_entity_id": str(pair["corporate_entity_id"]),
+                        "corporate_entity_id": (
+                            None if pair["corporate_entity_id"] is None else str(pair["corporate_entity_id"])
+                        ),
+                        "process_unit_id": (
+                            None
+                            if pair["process_unit_id"] is None
+                            else str(pair["process_unit_id"])
+                        ),
                         "has_real_source_context": bool(pair["has_real_source_context"]),
+                        "source_eligible": pair["source_eligible"] is True,
                     }
                     for pair in leftover_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],
