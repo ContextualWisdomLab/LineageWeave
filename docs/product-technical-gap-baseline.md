@@ -37,7 +37,7 @@ evidence. The diagnostic produced aggregate metrics only; no record,
 response body, credential, or identifying key was written to this repository.
 
 An ordinary `gh pr merge --auto --squash` request then merged #1175
-immediately at 2026-10-15 12:02:14 UTC, with `seonghobae` recorded as
+immediately at 2026-10-15 12:02:14 UTC. GitHub recorded the PR author as
 the merge actor. There was no independent `APPROVED` review: the only
 formal review was CodeRabbit `COMMENTED` on the preceding head. Exact-head
 Full test suite and frontend jobs ended before any runner step; the Full
@@ -120,9 +120,10 @@ built synthetic Storybook scene was rendered and visually inspected at
 These checks do not prove authenticated PostgreSQL/API or production UI
 acceptance, and the screenshots remain outside git.
 
-The current PRD still duplicates FR-2A/2B/2C identifiers with different
-descriptions, and the migration tree still has two `0233` filenames. Those
-cross-PR authority and schema-ordinal conflicts remain open; this audit does
+The current PRD repeats FR-2A with the same declaration and reuses FR-2B and
+FR-2C for different declarations. The migration tree still has two `0233`
+filenames. These cross-PR authority and schema-ordinal conflicts remain open;
+this audit does
 not choose a new policy, migration number, API contract, or release number.
 #1169 changes buyer copy and its supporting PRD, plus the package build floor;
 #1174 changes only this baseline. Their inspected deltas add no ADR, API field,
