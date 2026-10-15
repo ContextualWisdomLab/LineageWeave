@@ -1,5 +1,84 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review and evidence-action candidate — 2026-10-15 KST
+
+This section supersedes earlier present-tense queue claims. The protected
+`main` fetched for this candidate is
+`51cc3ebeacfaa0c8327c5d4d1d4cebfb02981183`. GitHub returned 193 open
+PRs, including 168 drafts and 117 with a non-`main` base. One open PR had an
+`APPROVED` review decision; none had auto-merge armed. These are workflow
+counts, not a record sample or customer-impact measure. Review validity and
+all threads have not been established for every open PR.
+
+The current PRD and applicable ADR 0256 were read before changing the Voice
+reader. Remote repository identities were checked as
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+`TEPP`, `contextual-orchestrator`, and `fast-mlsirm`. Their respective product
+PRD or current architecture authority was consulted. `DiskSage` is not the
+organization repository's canonical case. Research and ADR claims remain
+separate from candidate code and runtime acceptance.
+
+### Exact-head PR review
+
+- #1169 at `169ec850773b65421223147156f31223a4f654f0` has terminal
+  failing hosted checks, no independent approval, and no auto-merge. Its
+  CodeRabbit `setuptools` floor finding is already addressed on that head.
+- #1168 at `ca2a793d4449327ef25bd5434c643fb97aed4792` has terminal
+  failing hosted checks, no independent approval, and no auto-merge. The
+  reviewed test's PostgreSQL skip reason is now constant text and does not
+  include its connection string.
+- #1167 at `d772ca686fbbd31de8694802fc0d9ba367d21363` has terminal
+  failing hosted checks, no independent approval, and no auto-merge. The
+  misleading Dashboard count copy reported by review was corrected and the
+  reviewer acknowledged that correction.
+- #1130 has an `APPROVED` decision at
+  `fa38004c72dd656c1dd14cff7089a082fa2e8ffd`, but four named required
+  checks failed on that head. Its approval alone cannot authorize merging.
+  The current failure cause was not established from job annotations; the
+  earlier billing-lock diagnosis below is historical. No merge or auto-merge
+  was initiated without terminal success and a fresh protection audit.
+
+### Selected customer evidence gap
+
+The Post popup listed additional Voices and their truth states but offered no
+adjacent action to inspect the separate derivation Post. The selected bounded
+gap is evidence discoverability for a reader already looking at a Post;
+there is no measured customer-impact ranking for open gaps. The candidate adds
+a `View evidence` action only when an additional Voice is present and reuses
+the authorized ontology neighborhood focused on the carrying Post. It passes
+the popup's knowledge cutoff, leaves pagination and retry with that existing
+reader, and opens the carrying and derivation Posts as distinct actions. It
+does not mint a Voice combination, infer evidence, substitute a hidden Post,
+or add an API field, migration, numerical rule, model route, or release number.
+ADR 0256 and the Storybook inventory now state that reader contract.
+
+The focused component regression, frontend lint, production build, and
+Storybook build passed locally. The builds retain their existing large-chunk
+warning. Synthetic `EvidenceAction` Storybook screenshots at 1440×900 and
+390×844 were inspected: the action and focus outline are visible and neither
+viewport has page overflow. The images remain outside git. They do not prove
+the authenticated expanded reader, separate evidence-Post navigation, or
+cutoff behavior in a running UI. Authenticated PostgreSQL/API acceptance and a
+synthetic authenticated running-job k6 observation remain unclaimed. The
+current `main` k6 harness still
+uses a password grant and may print a failed response body; it is not suitable
+for a credential-bearing run. The separate #1156 repair is unmerged. No
+private data or token was used to manufacture load evidence.
+The broader Voice/ontology frontend run had 69 passing tests and one
+`OntologyExplorer` timeout while the shared host was busy. The timed-out
+case passed alone on retry. Neither result is a full green suite claim.
+
+### Integration conflicts
+
+This candidate touches `frontend/src/App.tsx` and ADR 0256, which also appear
+in open Voice and analysis-run PRs. Re-read their live diffs before any merge;
+their checks and approvals do not transfer to a combined head. The PRD still
+duplicates FR-2A/2B/2C with conflicting titles (issue #807), the migration
+stream retains two `0233` filenames (issue #1048), and several open PRs edit
+version or shared API surfaces (issue #1056). No shipped migration was
+renumbered and no conflicting release number was introduced here. Stacked
+children remain on their parents until each parent is protected and merged.
+
 ## Current-head candidate audit — 2026-10-13 to 2026-10-14 KST
 
 This section supersedes dated queue statements below. It distinguishes the
