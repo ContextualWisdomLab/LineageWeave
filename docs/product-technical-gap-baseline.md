@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Voice save recovery integration — 2026-10-15 KST
+## Voice save recovery integration — 2026-10-16 KST
 
 This candidate combines the existing #1169 save-recovery work at
 `169ec850773b65421223147156f31223a4f654f0` with protected `main` at
@@ -33,8 +33,10 @@ Open #1176 owns the duplicate occupational PRD requirement IDs and ADR
 misattributions; #1174 owns the separate governance audit. The two `0233`
 migration filenames remain issue #1048. No shipped schema file was renumbered
 here. #1169's review finding on the setuptools floor is already repaired on
-its fetched head. Its hosted checks failed on that earlier head and cannot
-validate this integration. Independent current-head approval is absent. The
+its fetched head. Hosted checks on the first combined head
+`f9114b9327156501532a1e2c3b22e81577b7456c` all ended in failure and
+cannot validate this later documentation head. Independent current-head
+approval is absent. The
 central organization ruleset could not be read through the current API plan;
 the earlier authenticated settings audit records that it was unenforced.
 Protected merging and auto-merge stay unavailable until enforced checks and
