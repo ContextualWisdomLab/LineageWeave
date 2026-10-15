@@ -3050,3 +3050,29 @@ This changes no ADR policy, API, schema, migration ordinal, model selection,
 weight, psychometric implementation, or release number. PR #1175's observed
 head is a pre-repair snapshot; its next push invalidates all old checks and
 review outcomes. No CI run or container was cancelled or removed.
+
+### Exact-head continuation audit — 2026-10-16 KST
+
+This snapshot follows the current product PRD and the linked owners' product or
+architecture authorities. Protected `main` is
+`df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`. GitHub REST returned 196 open
+PRs (28 ready; 117 based on a branch other than `main`) and 42 open issues.
+These are workflow counts, not sampled product or population estimates. The
+canonical remote is `ContextualWisdomLab/LineageWeave`; the storage-policy
+repository is lowercase `ContextualWisdomLab/disksage`.
+
+| Authority or evidence | Current exact observation | Acceptance boundary |
+| --- | --- | --- |
+| ADR 0246/0251/0256 and cited sources | Twelve governed atomic Voices, open-ended combinations, distinct occupational constructs, qualified evidence and cutoff | No fixed combination catalog, inferred weight, or hidden-evidence substitution |
+| Protected implementation | `main` above; PR #1175 merged before this snapshot | A merged change proves delivery only at its merge SHA, not authenticated Voice runtime acceptance |
+| User-facing repair candidate | PR #1178 at `aacb0bf41da324300e256a179c9e1b93b9c570ed` keeps a supplied neighborhood bounded while permitting a live refocus to load its next relation page; the authenticated static-limit regression from review is present | Local OntologyExplorer test: 38 passed on this head; authenticated PostgreSQL/API and rendered desktop/mobile acceptance remain unverified in this audit |
+| Adjacent ready candidates | #1177 `090bce95f34cd7f98c83c297e175069a50ad2b0d`; #1176 `cf2990395ba06af7c7d8cde44cb92bf68840915c`; #1174 `0cd07ef45a47d587a54ce0feeb43351d7e2255c7` | Their baseline edits overlap #1178 and require content reconciliation after the first protected merge; no shared API, schema, migration ordinal, or release-number change was found in #1178's file list |
+| Hosted checks and review | #1178's two test jobs and two CodeQL jobs failed before runner steps; the exact-head job annotation says the GitHub account is locked by a billing issue. Its latest formal review is a bot comment, with no independent approval. | No normal protected merge or auto-merge completion is established. Restore the account, rerun checks on the then-current head, and obtain independent approval. |
+
+The remaining high-impact Voice gap is authenticated PostgreSQL/API and rendered
+UI proof that carrying Post and derivation-evidence Post remain distinct across
+truth changes, cutoff, hidden evidence, and paged JSON-LD. Existing synthetic
+tests and candidate screens cannot close that acceptance condition. The
+refocus continuation in #1178 is the bounded customer-facing repair advanced
+while hosted checks cannot start. No live source records, credentials, or
+provider-rendered Compose configuration were read for this snapshot.
