@@ -33,9 +33,13 @@ Vitest invocation could not start its fork workers under host load and did
 not execute tests. A second bounded attempt passed the Dashboard file but
 could not start workers for the StatusNotice and OntologyExplorer files.
 Those failed invocations are not product-test evidence.
-The previous #1167 head's synthetic desktop/mobile Storybook screenshots
-remain previous-head evidence; no authenticated customer screenshot is
-claimed for this integration.
+The combined head's Storybook build succeeded. The `AnalysisFailed` story was
+rendered and visually inspected at 1440×900 and 390×844: one alert is present,
+its next action is readable, no retry button is offered, and neither viewport
+has page-level horizontal overflow. The screenshots contain synthetic data
+and stay outside git. Storybook's isolated preview used its English locale
+for the shared notice heading; this does not prove an authenticated customer
+screen or spoken screen-reader output.
 
 The current PRD repeats FR-2A/2B/2C under different meanings (issue #807),
 and migration `0233` is duplicated (issue #1048). #1167 adds no competing
