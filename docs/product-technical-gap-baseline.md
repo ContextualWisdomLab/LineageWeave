@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+## Review repair and current authority — 2026-10-16 KST
+
+At this audit, protected `main` is
+`df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`. GitHub returned **196 open
+PRs** (**168 drafts**, **28 ready**, **117 non-`main` bases**) and **42 open
+issues**. These are repository workflow counts, not customer or population
+measurements. The PRD describes the product outcome; ADR 0184 governs the
+ontology reader, and ADRs 0246/0251/0256 keep atomic Voices, the separate
+occupational layer, and evidence-bearing Voice combinations distinct. Current
+implementation and local tests below remain candidate evidence. Authenticated
+PostgreSQL/API acceptance, hosted checks, independent approval, and protected
+merge are separate, unproven acceptance conditions.
+
+PR #1178 was reviewed at `290faa170da8aab97e42ef4044f265972d37e024`.
+The automated review identified a valid regression gap: the static supplied
+neighborhood test lacked an access token, so it could not detect an accidental
+page button for an authenticated reader. Product-code test commit
+`ef03927bb6906599712339ba65fa1ab609b9b0fc` adds that token to the
+existing bounded-page assertion. The full frontend suite passed **600 tests**
+across **60 files**; lint and production build passed. The previously recorded
+synthetic desktop/mobile render audit applies to the unchanged UI. The build
+still reports its existing large-chunk warning. Hosted jobs on the reviewed
+predecessor head failed before execution under the account billing lock; they
+cannot validate this new commit. No independent approval or merge is claimed.
+
+PR #1178's reader continuation remains the selected reproduced user gap:
+after a reader refocuses from a supplied neighborhood, an authorized next
+relation page can be opened. The test repair protects the distinct static
+supplied-page limit. It changes no ADR, API, schema, migration, release number,
+provider routing, or Voice inference. PR #1162 owns access-denial paging and
+#1169 edits related reader tests; combined behavior needs new exact-head review
+when those branches meet. Issues #1048, #1056, and #807 continue to own the
+migration ordinal, release identity, and duplicated PRD requirement identities.
+No new authenticated load or population inference is asserted.
+
 ## Current-head delivery check — 2026-10-16 KST
 
 Protected `main` remains `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
