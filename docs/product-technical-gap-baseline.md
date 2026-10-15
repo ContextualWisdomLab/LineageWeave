@@ -13,6 +13,10 @@ full App component run had 101 passes and two failures under shared-host
 load, one in the new evidence test and one in an existing DAG test. The
 new test passed alone; this is not a full-suite pass or authenticated UI
 acceptance.
+The synthetic Storybook evidence-action scene was rendered and visually
+inspected at 1440×900 and 390×844. Both Voice labels and the evidence action
+were visible without horizontal page overflow; screenshots remain outside git.
+This scene does not establish the authenticated cutoff navigation behavior.
 
 An ordinary `gh pr merge --auto --squash` request then merged #1175
 immediately at 2026-10-15 12:02:14 UTC, with `seonghobae` recorded as
