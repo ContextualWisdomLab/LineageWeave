@@ -1,10 +1,10 @@
 # Product & Technical Gap Baseline
 
-## Current-head review and Voice evidence availability candidate — 2026-10-15 13:34 UTC
+## Current-head review and Voice evidence availability candidate — 2026-10-15 13:43 UTC
 
 This overlay supersedes earlier present-tense queue statements. Fetched
 protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, the
-squash delivery of #1175. GitHub returned 194 open PRs: 168 drafts, 117
+squash delivery of #1175. GitHub returned 195 open PRs: 168 drafts, 117
 with a non-`main` base, one with an `APPROVED` rollup, and none with
 auto-merge armed; 42 issues were open. These are repository workflow counts,
 not a sample of customer records or evidence of product acceptance. Review
@@ -48,6 +48,14 @@ owner. The local `DiskSage` spelling is not the remote case; its protected
   policy are recorded in #1174. Until current policy and independent approval
   are proven, another auto-merge request could merge immediately without the
   requested gates; none was armed here.
+- A live ruleset read exposed only active repository rule 21065108, which
+  forbids force pushes; the classic `main` branch-protection endpoint returned
+  404. The organization rule was not returned by that repository endpoint.
+  These observations do not establish enforced review or check requirements.
+  On this candidate's first head `9d6bce74573c84379355932a8640a073c086dd4c`,
+  the exact-head Full test suite and frontend
+  jobs had zero steps and annotations that the Actions account was locked for
+  billing. That external gate cannot be replaced by local tests.
 
 ### Buyer-visible candidate and evidence limits
 
