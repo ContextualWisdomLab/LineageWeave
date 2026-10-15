@@ -13,8 +13,9 @@ token file before network traffic and abort the observation when that token
 is rejected. No identity grant is enabled or changed.
 
 The real k6 executable rejected both HTTP and MCP scripts with absent and
-empty token files before any HTTP request. Six focused load-contract tests and
-five documentation-hygiene tests passed. No authorized token file was present,
+empty token files before any HTTP request. Six focused load-contract tests,
+41 frontend harness tests, five documentation-hygiene tests, frontend lint,
+and production build passed. No authorized token file was present,
 so there is no new authenticated k6 concurrency, latency, error-rate,
 throughput, PostgreSQL, worker, Valkey, or gateway saturation measurement.
 The earlier synthetic observations lower in this file remain historical and

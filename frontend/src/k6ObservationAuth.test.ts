@@ -15,14 +15,15 @@ function harness(kind: "http" | "mcp", token: string | null, env: Record<string,
   ).replace(/^import .*;$/gm, "")
     .replace("export default function", "function run")
     .replaceAll("export function", "function");
-  const post = vi.fn<(url: string, body: unknown, params: { headers: Record<string, string> }) => { status: number; body: string; timings: { duration: number } }>(() => ({
+  const post = vi.fn<(url: string, body: unknown, params: { headers: Record<string, string> }) => { status: number; body: string; timings: { duration: number }; headers?: Record<string, string> }>(() => ({
     status: 401,
     body: sensitiveResponse,
     timings: { duration: 1 },
   }));
+  const batch = vi.fn(() => [{ status: 401 }, { status: 200 }, { status: 200 }]);
   const open = vi.fn(() => token);
   const abort = vi.fn((message: string) => { throw new Error(message); });
-  const api = runInNewContext(`${targetSource}\n${source}\n({ authenticate, setup, run${kind === "mcp" ? ", result, structured" : ""} });`, {
+  const api = runInNewContext(`${targetSource}\n${source}\n({ setup, run${kind === "mcp" ? ", result, structured" : ""} });`, {
     __ENV: {
       REQUEST_TIMEOUT: "20s",
       ...(token === null ? {} : { K6_ACCESS_TOKEN_FILE: "/synthetic/runtime-token" }),
@@ -30,19 +31,18 @@ function harness(kind: "http" | "mcp", token: string | null, env: Record<string,
     },
     open,
     exec: { test: { abort } },
-    http: { post },
+    http: { post, batch },
     fail: (message: string) => { throw new Error(message); },
     check: () => false,
     Counter: class { add() {} },
     Trend: class { add() {} },
   });
-  return { api, post, open, abort };
+  return { api, post, open, abort, batch };
 }
 
 describe.each(["http", "mcp"] as const)("%s k6 authentication", (kind) => {
   it("uses an operator-supplied token without a password-grant request", () => {
     const { api, post, open } = harness(kind, ` ${syntheticToken}\n`);
-    expect(api.authenticate()).toBe(syntheticToken);
     expect(open).toHaveBeenCalledTimes(1);
     expect(post).not.toHaveBeenCalled();
     expect(() => api.setup()).toThrow(/HTTP 401/);
@@ -53,24 +53,26 @@ describe.each(["http", "mcp"] as const)("%s k6 authentication", (kind) => {
   });
 
   it("rejects an empty supplied token before any authenticated request", () => {
-    const { api, post } = harness(kind, " \n");
-    expect(() => api.setup()).toThrow(/obtain a fresh authorized token/);
-    expect(post).not.toHaveBeenCalled();
+    expect(() => harness(kind, " \n")).toThrow(/obtain a fresh authorized token/);
   });
 
   it("does not fall back to a password grant after a supplied token expires", () => {
-    const { api, post, abort } = harness(kind, syntheticToken);
-    expect(() => api.authenticate(true)).toThrow(/obtain a fresh authorized token/);
+    const { api, post, abort, batch } = harness(kind, syntheticToken);
+    if (kind === "mcp") {
+      const response = { status: 200, body: 'data: {"result":{}}\n', timings: { duration: 1 }, headers: { "Mcp-Session-Id": "synthetic-session" } };
+      post.mockReturnValueOnce(response)
+        .mockReturnValueOnce({ ...response, status: 202 })
+        .mockReturnValueOnce({ ...response, status: 401 });
+    }
+    expect(() => api.run({ token: syntheticToken, askJobId: "synthetic-job" }))
+      .toThrow(/obtain a fresh token and rerun/);
     expect(abort).toHaveBeenCalledTimes(1);
-    expect(post).not.toHaveBeenCalled();
+    expect(post.mock.calls.every(([url]) => !url.includes("openid-connect/token"))).toBe(true);
+    if (kind === "http") expect(batch).toHaveBeenCalledTimes(1);
   });
 
-  it("retains the explicit synthetic realm authentication path", () => {
-    const { api, post, open } = harness(kind, null);
-    expect(() => api.authenticate()).toThrow(/HTTP 401/);
-    expect(post.mock.calls[0][0]).toContain("openid-connect/token");
-    expect(open).not.toHaveBeenCalled();
-    expect(post.mock.calls[0][2]).toHaveProperty("redirects", 0);
+  it("requires an owned token before any network I/O", () => {
+    expect(() => harness(kind, null)).toThrow(/K6_ACCESS_TOKEN_FILE is required/);
   });
 
   it.each([
@@ -94,15 +96,10 @@ describe.each(["http", "mcp"] as const)("%s k6 authentication", (kind) => {
     },
   );
 
-  it("rejects remote HTTP identity authentication before network I/O", () => {
-    expect(() => harness(kind, null, { KEYCLOAK_URL: "http://remote.example.test" }))
-      .toThrow(/KEYCLOAK_URL requires HTTPS/);
-  });
-
   it("ignores an unused identity endpoint when a runtime token is supplied", () => {
     const { api, post } = harness(kind, syntheticToken, { KEYCLOAK_URL: "http://remote.example.test" });
-    expect(api.authenticate()).toBe(syntheticToken);
-    expect(post).not.toHaveBeenCalled();
+    expect(() => api.setup()).toThrow(/HTTP 401/);
+    expect(post.mock.calls[0][0]).not.toContain("openid-connect/token");
   });
 
   it("keeps rejection diagnostics free of response content and bearer tokens", () => {
