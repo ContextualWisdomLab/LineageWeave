@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation verification — 2026-10-16 07:03 KST
+## Exact-head continuation verification — 2026-10-16 08:10 KST
 
 The current protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
 The public inventory has 196 open PRs (168 drafts, 117 with non-`main` bases)
@@ -12,20 +12,23 @@ Voice combinations. The remote canonical storage repository is `disksage`.
 The applicable RankWeave, ThreadWeave, TEPP, contextual-orchestrator, and
 fast-mlsirm product or architecture authorities were read before this audit.
 
-PR #1178 at exact head `4192439b3cf81114d2b9c6432c5bcf1daa3baafb`
+The reviewed product-code head of PR #1178,
+`6869286960c21bff4798172969fc1602dcb0e7dd`,
 contains the minimal live-refocus continuation and the authenticated static
-supplied-page regression. On that head, 69 focused frontend tests passed,
-frontend lint passed, and the production build passed with its existing
-large-chunk warning. The initially broad Vitest command unintentionally ran
-the whole suite under concurrent host load and produced UI timeouts; it was
-stopped and is not counted as a suite pass. This verification did not repeat
-the earlier synthetic desktop/mobile screenshot audit or establish an
-authenticated PostgreSQL/API Voice flow. Carrying Post, derivation Post,
+supplied-page regression. On that head, the focused reader file passed 38
+tests, frontend lint, production build, Storybook build, and five documentation
+hygiene tests passed. The production build retains its existing large-chunk
+warning. Synthetic Storybook screenshots of the combined-Voice ontology
+neighborhood were rendered and inspected at 1440×900 and 390×844; the page
+has no horizontal viewport overflow, and the narrow exact-value table remains
+horizontally scrollable. The screenshots remain outside git. These checks do
+not establish a full frontend suite pass, a live refocus interaction in the
+browser, or an authenticated PostgreSQL/API Voice flow. Carrying Post, derivation Post,
 truth/cutoff, and paged JSON-LD acceptance remain unproven at that boundary.
 
 All four named GitHub test and analysis jobs on this exact head are terminal
-failures with no runner steps; a check annotation says the Actions account is
-locked by a billing issue. Formal reviews contain bot comments only, with no
+failures. The earlier job annotation identified an Actions billing lock; its
+cause was not re-established from current annotations. Formal reviews contain bot comments only, with no
 independent approval, and auto-merge is not armed. The effective `main` rules
 endpoint returned only a no-force-push rule; classic branch protection
 returned 404, and the organization rules endpoint returned 403. Required
