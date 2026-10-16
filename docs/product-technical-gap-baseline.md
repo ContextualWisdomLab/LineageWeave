@@ -28,8 +28,8 @@ is justified. The incident does not supply authenticated k6 measurements:
 concurrency, latency, error rate, throughput, and PostgreSQL, worker, Valkey,
 and gateway saturation remain unmeasured on this head.
 
-The directly reproduced reader gap remains PR #1178 at remote head
-`b096016511787caef10ae2f5597154a7210b2a86`: a supplied ontology
+The directly reproduced reader gap remains PR #1178 at reviewed remote head
+`9ceb033f6ee97596e6c2a3f3b729c0aef0226445`: a supplied ontology
 neighborhood can refocus to a live node, but the current `main` hides that
 live page's continuation action. The candidate permits continuation only
 after live refocus and has a synthetic regression for the cursor-bound second
@@ -46,7 +46,7 @@ the next-page button is visible and neither viewport overflows horizontally.
 Those screenshots remain outside git. This is rendered synthetic evidence,
 not an authenticated PostgreSQL/API read. The changes add no ADR, API,
 schema, migration, release number, Voice code, score, or provider boundary.
-At the remote head, four hosted jobs are terminal failures, no independent
+At that reviewed head, four hosted jobs are terminal failures, no independent
 approval or review thread exists, and auto-merge is off. Authenticated
 PostgreSQL/API and rendered multi-Voice acceptance, including hidden evidence,
 truth/cutoff, carrying versus derivation evidence, and paged JSON-LD union,
@@ -58,6 +58,41 @@ identity. PR #1178 overlaps #1162's reader and several gap-baseline edits;
 their checks and reviews cannot transfer to a combined head. No stale run was
 cancelled, no formal Compose volume was touched, and no private record or
 credential was copied into this artifact.
+
+### Fresh verification of the reviewed #1178 head
+
+The open inventory at the same observation returned 195 PRs: 168 drafts,
+117 with a non-`main` base, one with an `APPROVED` decision, and none with
+auto-merge enabled. These counts do not establish review validity or
+mergeability. #1178 is ready against `main@da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`.
+Its 78 focused ontology reader/layout tests, frontend lint, production build,
+and Storybook build passed locally at the reviewed head. The production and
+Storybook builds retain the existing large-chunk warning. Synthetic Storybook
+scenes were rendered and inspected at 1440×900 and 390×844; the reader controls
+remain visible on both viewports, while the narrow exact-value table begins
+within its horizontal-scroll region. The screenshots remain outside git.
+They do not establish a live browser pagination interaction or authenticated
+PostgreSQL/API acceptance. Existing synthetic layout regressions preserve a
+single JSON-LD subject's properties and multi-Voice relations across pages,
+including singleton/array forms; the CSV regression distinguishes the
+carrying Post from its derivation evidence. These are contract checks, not a
+private-runtime Voice acceptance claim.
+
+The exact-head frontend and full-suite jobs ended after roughly two seconds
+without a runner (`runner_id: 0`); a current job annotation says the account
+was locked due to a billing issue. Thus the hosted failures are execution
+failures, not evidence of a product-test assertion failure. The bot's request
+to remove the public GitHub repository owner name from this baseline was
+rejected after comparison with ADR 0001's prohibition on identifiable *real
+source records*: canonical repository identity is required for this audit and
+does not identify a source Post or a customer's organization. No independent
+approval or exact-head hosted success exists, so no normal merge or auto-merge
+request was made. The active effective repository rule prohibits force pushes;
+classic branch protection returned 404, and organization rules were not
+readable through this account. The earlier #1156 merge-control incident is
+still unresolved. PRD requirement duplication (#1176/#807), the duplicate
+`0233` migration ordinal (#1048), and release identity (#1056) remain separate
+owners; #1178 introduces none of those identifiers.
 
 ## Exact-head continuation verification — 2026-10-16 08:10 KST
 
