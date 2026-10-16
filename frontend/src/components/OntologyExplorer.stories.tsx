@@ -356,6 +356,12 @@ type Story = StoryObj<typeof meta>;
 
 export const DesktopNeighborhood: Story = {};
 
+export const LiveRefocusContinuation: Story = {
+  args: {
+    accessToken: "synthetic-reader",
+  },
+};
+
 export const SameDayVoiceInterval: Story = {
   args: {
     neighborhood: {

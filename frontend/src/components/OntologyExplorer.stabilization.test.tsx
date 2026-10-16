@@ -150,7 +150,7 @@ describe("OntologyExplorer stabilization contracts", () => {
 
     expect(
       await screen.findByText(
-        "Some related information is not shown. Open a source post to continue.",
+        "Some related information is not shown. Load the next relation page.",
       ),
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
