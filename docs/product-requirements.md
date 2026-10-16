@@ -124,8 +124,8 @@ validates the disjoint SHACL shapes.
 - A complete four-level 2018 SOC hierarchy and the complete O*NET 31.0
   Content Model Reference tree remain product targets. They require their
   own accepted ADR and exact source-bound tests before becoming available;
-  ADR 0252 governs temporal primary Voice history, not SOC, and no ADR 0264
-  exists on this protected head. Treat any future outline classes as
+  ADR 0252 governs temporal primary Voice history, not SOC, and no accepted
+  Content Model ADR exists on this protected head. Treat any future outline classes as
   navigation, never ratings, traits, scores, or weights.
 - Declare typed derivation properties from classifications to
   characteristics but assert no instance binding; binding requires a
