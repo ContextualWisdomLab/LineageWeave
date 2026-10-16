@@ -12,7 +12,7 @@ O*NET concept, but they cannot start from a catalog label. A raw catalog
 lookup would become a vocabulary oracle: it would disclose official membership
 and descriptions even when the reviewer has no supporting Post.
 
-PRD-FR-2B therefore left catalog search unavailable until this increment.
+PRD-FR-2C therefore left catalog search unavailable until this increment.
 
 ## Decision
 
