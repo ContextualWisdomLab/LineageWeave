@@ -1,5 +1,29 @@
 # Product & Technical Gap Baseline
 
+## Owned-token load admission candidate — 2026-10-16 KST
+
+The protected `main` used for this integration is
+`df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`. PR #1156's reviewed
+product-code parent is `cf70eeb1c` before this main merge. The current PRD
+requires synthetic authenticated end-to-end observation before a capacity
+claim; ADRs 0204, 0213, and 0218 govern asynchronous Ask and MCP work.
+The earlier #1156 token-file path still fell back to a password grant when
+the token path was absent. Both k6 entry points now require a nonempty owned
+token file before network traffic and abort the observation when that token
+is rejected. No identity grant is enabled or changed.
+
+The real k6 executable rejected both HTTP and MCP scripts with absent and
+empty token files before any HTTP request. Six focused load-contract tests,
+41 frontend harness tests, five documentation-hygiene tests, frontend lint,
+and production build passed. No authorized token file was present,
+so there is no new authenticated k6 concurrency, latency, error-rate,
+throughput, PostgreSQL, worker, Valkey, or gateway saturation measurement.
+The earlier synthetic observations lower in this file remain historical and
+cannot establish current-head capacity. The repair changes the harness and
+its operator instructions, with no ADR, product API, schema, migration,
+release number, mathematical rule, or Voice classification change. Hosted
+Checks, independent approval, and protected merge remain separate gates.
+
 ## Exact-head review and evidence-action candidate — 2026-10-15 KST
 
 This section supersedes earlier present-tense queue claims. The protected
