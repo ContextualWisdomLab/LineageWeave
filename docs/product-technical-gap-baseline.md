@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-16 15:37–16:23 KST
+## Exact-head continuation — 2026-10-16 15:37–16:31 KST
 
 Remote `main` is still `c06911c01cc165fd0b20acb249503342c3c4685f`.
 The current product PRD was checked against the protected-main product or
@@ -24,6 +24,16 @@ that successful status is not an independent review. The previous audit
 found that requesting auto-merge could merge immediately without enforced
 review or check gates. No normal merge or auto-merge request is justified
 until the effective protection is repaired and rechecked.
+
+At follow-up head `48d36b1e9a01433a072a6e718e6b336b9f7a79e7`, the
+exact-head Tests jobs again failed before any steps ran. The Full test suite
+job annotation says the Actions account is locked for a billing issue;
+the same head's four named hosted jobs are terminal failures. The only active
+default-branch ruleset is `LineageWeave: no force pushes`, containing just
+`non_fast_forward`; the classic `main` branch-protection endpoint returned
+404. Thus neither independent approval nor successful Checks are enforced
+by current protection. This confirms why an auto-merge request could bypass
+the user's intended gates; it is not a reason to call that merge normal.
 
 The selected user-facing gap remains the unavailable-evidence action in the
 Post reader, owned by #1177 at exact head
