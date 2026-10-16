@@ -1,5 +1,28 @@
 # Product & Technical Gap Baseline
 
+## Voice availability candidate after current-main integration — 2026-10-16 KST
+
+The fetched `main` is `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`.
+PR #1177's product-code head before this integration is
+`090bce95f34cd7f98c83c297e175069a50ad2b0d`. The candidate keeps an
+additional Voice and its truth state visible when its separate derivation
+evidence cannot be opened, and gives an administrator action instead of
+claiming that support is present. It adds no fixed Voice combination, hidden
+Post substitution, API, schema, migration, numerical rule, or release number.
+The main integration preserves both this candidate's earlier audit and the
+owned-token observation section below. The #1156 merge on this main head
+occurred without passing exact-head Checks or an independent approval;
+therefore it is not protected delivery evidence. PR #1177 still needs new
+hosted Checks, independent approval, and authenticated PostgreSQL/API plus
+rendered UI acceptance before any release claim. No synthetic load result or
+population inference follows from this documentation integration.
+On the combined local tree, three focused Voice-list tests, frontend lint and
+build, and eleven documentation/load-contract tests passed. The synthetic
+`UnavailableEvidence` scene was rendered at 1440×900 and 390×844: the
+unavailable Voice remains visible with its truth state and next action, and
+neither viewport has horizontal overflow. Screenshots remain outside git;
+they are layout evidence, not authenticated product acceptance.
+
 ## Current-head review and Voice evidence availability candidate — 2026-10-15 13:49 UTC
 
 This overlay supersedes earlier present-tense queue statements. Fetched
@@ -104,6 +127,29 @@ The duplicate `0233` migration ordinal remains with issue #1048 and owner
 #1049; this candidate adds no migration. Shared API and release-number changes
 in other open stacks remain unaccepted until their parents merge to protected
 `main` and each child is retargeted and rechecked at its exact new head.
+## Owned-token load admission candidate — 2026-10-16 KST
+
+The protected `main` used for this integration is
+`df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`. PR #1156's reviewed
+product-code parent is `cf70eeb1c` before this main merge. The current PRD
+requires synthetic authenticated end-to-end observation before a capacity
+claim; ADRs 0204, 0213, and 0218 govern asynchronous Ask and MCP work.
+The earlier #1156 token-file path still fell back to a password grant when
+the token path was absent. Both k6 entry points now require a nonempty owned
+token file before network traffic and abort the observation when that token
+is rejected. No identity grant is enabled or changed.
+
+The real k6 executable rejected both HTTP and MCP scripts with absent and
+empty token files before any HTTP request. Six focused load-contract tests,
+41 frontend harness tests, five documentation-hygiene tests, frontend lint,
+and production build passed. No authorized token file was present,
+so there is no new authenticated k6 concurrency, latency, error-rate,
+throughput, PostgreSQL, worker, Valkey, or gateway saturation measurement.
+The earlier synthetic observations lower in this file remain historical and
+cannot establish current-head capacity. The repair changes the harness and
+its operator instructions, with no ADR, product API, schema, migration,
+release number, mathematical rule, or Voice classification change. Hosted
+Checks, independent approval, and protected merge remain separate gates.
 
 ## Exact-head review and evidence-action candidate — 2026-10-15 KST
 
