@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Exact-head delivery and Voice reader audit — 2026-10-16 13:37 KST
+
+The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub returned 194 open PRs (168 drafts, 77 based on `main`, 26 ready
+against `main`) and 42 open issues. These are repository counts, not a
+sample of customer records or a population estimate. The current PRD is a
+supporting product contract; ADRs 0246, 0252, and 0256 govern atomic Voice
+types, cutoff history, and evidence-bearing composition. W3C PROV-O supplies
+derivation vocabulary, not authorization or truth. The RankWeave,
+ThreadWeave, `disksage`, TEPP, contextual-orchestrator, and fast-mlsirm
+product or architecture authorities were checked before this loop. GitHub
+confirmed those canonical repository names; `DiskSage` is not the remote
+repository's case.
+
+PR #1176's reviewed head `234584dc92defa377264ac3ab9fdc692518deb3f`
+had a valid ADR 0265 reference finding. Commit
+`1b3051fd0e1339744598b37ab547c0fca6953478` changes that reference
+from the classification requirement to the evidence-bound construct
+requirement. Six documentation-hygiene tests and `git diff --check` passed
+locally. An `--auto --squash` request then merged #1176 immediately as this
+section's `main` SHA. GitHub recorded only a `COMMENTED` bot review on the
+previous head and no independent approval. No terminal passing Checks were
+established on the merge head. One reviewed-head job's annotation said the
+Actions account was locked for billing. The effective branch-rule API returned only the active
+no-force-push rule; classic `main` protection returned 404. This merge is a
+delivery fact, **not** evidence that the requested review/check gates passed.
+No further auto-merge should be requested until the independent-approval and
+required-check rules are enforceable; otherwise it may merge immediately.
+The governance repair is separately owned by #1174/#1170.
+
+The selected customer-facing gap remains evidence availability in the Post
+reader. #1177 at `e810f96707558eea4a3077519f88c894357d444d` supplies a
+bounded next action when an additional perspective's support is unavailable,
+preserves its atomic Voice and truth status, and keeps the carrying Post
+distinct from derivation evidence. The three exact-head Voice-list regression
+tests passed locally. Its existing synthetic Storybook screenshots were
+inspected at 1440×900 and 390×844: unavailable and expanded states wrap and
+show the action without horizontal overflow. Those images do not prove the
+authenticated PostgreSQL/API, cutoff, or live rendered navigation acceptance.
+#1177 has no independent approval or auto-merge; its hosted checks are
+failing, with no fresh all-job annotation audit on that head. #1178 at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e` separately owns relation
+pagination. Both are still based on the preceding `main` SHA, so any later
+head integration needs fresh checks and review. Neither candidate changes
+the twelve Voice atoms, API/schema, release number, or measurement rules.
+Their gap-baseline edits overlap this file and must be reconciled on the
+actual merge base; no predecessor check or approval transfers.
+
+The live Compose services were observed running under project
+`lineageweave`, but no authorized synthetic k6 token file or current-head
+load result was established here. Concurrency, latency, error rate,
+throughput, and PostgreSQL/worker/Valkey/gateway saturation remain
+unavailable. No bottleneck or population claim follows from diagnostic
+convenience data.
+
 ## Owned-token load admission candidate — 2026-10-16 KST
 
 The protected `main` used for this integration is
