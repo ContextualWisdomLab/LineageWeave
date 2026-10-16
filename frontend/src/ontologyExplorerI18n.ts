@@ -5,7 +5,7 @@ const ONTOLOGY_EXPLORER_COPY = {
     "Sign in again to view related information.": "Sign in again to view related information.",
     "Load next relation page": "Load next relation page",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
-      "Some related information is not shown. Open a source post to continue.",
+      "Some related information is not shown. Load the next relation page.",
     "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.":
       "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
     "No direct evidence post is attached. Review the provenance reference above.":
@@ -17,7 +17,7 @@ const ONTOLOGY_EXPLORER_COPY = {
     "Sign in again to view related information.": "관련 정보를 보려면 다시 로그인하세요.",
     "Load next relation page": "다음 관계 페이지 불러오기",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
-      "일부 관련 정보가 표시되지 않습니다. 계속하려면 원본 글을 여세요.",
+      "일부 관련 정보가 표시되지 않습니다. 다음 관계 페이지를 불러오세요.",
     "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.":
       "권한 범위의 조회 한도에 도달했습니다. 관계 속성 필터를 좁히거나 탐색 깊이를 줄이세요.",
     "No direct evidence post is attached. Review the provenance reference above.":
@@ -29,7 +29,7 @@ const ONTOLOGY_EXPLORER_COPY = {
     "Sign in again to view related information.": "请重新登录以查看相关信息。",
     "Load next relation page": "加载下一页关系",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
-      "部分相关信息未显示。请打开来源文章继续。",
+      "部分相关信息尚未显示。请加载下一页关系。",
     "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.":
       "已达到授权查询上限。请缩小属性筛选范围或降低遍历深度。",
     "No direct evidence post is attached. Review the provenance reference above.":
@@ -41,7 +41,7 @@ const ONTOLOGY_EXPLORER_COPY = {
     "Sign in again to view related information.": "関連情報を見るには、もう一度ログインしてください。",
     "Load next relation page": "次の関係ページを読み込む",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
-      "一部の関連情報は表示されません。続けるには元の投稿を開いてください。",
+      "一部の関連情報はまだ表示されていません。次の関係ページを読み込んでください。",
     "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.":
       "認可されたクエリ上限に達しました。プロパティの絞り込みを強めるか、探索深度を下げてください。",
     "No direct evidence post is attached. Review the provenance reference above.":
@@ -53,7 +53,7 @@ const ONTOLOGY_EXPLORER_COPY = {
     "Sign in again to view related information.": "Đăng nhập lại để xem thông tin liên quan.",
     "Load next relation page": "Tải trang quan hệ tiếp theo",
     "Neighborhood truncated. Load the next relation page or inspect one edge.":
-      "Một số thông tin liên quan không được hiển thị. Hãy mở bài viết nguồn để tiếp tục.",
+      "Một số thông tin liên quan chưa được hiển thị. Hãy tải trang quan hệ tiếp theo.",
     "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.":
       "Đã đạt giới hạn truy vấn được cấp quyền. Hãy thu hẹp bộ lọc thuộc tính hoặc giảm độ sâu duyệt.",
     "No direct evidence post is attached. Review the provenance reference above.":

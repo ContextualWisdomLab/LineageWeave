@@ -337,6 +337,10 @@ export function OntologyExplorer({
           <OntologyExactValueTable
             payload={visible}
             selectedEdgeId={selectedEdgeId}
+            onSelectNode={(node) => {
+              setSelectedNodeKey(nodeKey(node));
+              setSelectedEdgeId(null);
+            }}
             onSelectEdge={(edgeId) => {
               setSelectedEdgeId(edgeId);
               setSelectedNodeKey(null);
@@ -581,12 +585,14 @@ function OntologyShape({ shape }: { shape: string }) {
 function OntologyExactValueTable({
   payload,
   selectedEdgeId,
+  onSelectNode,
   onSelectEdge,
   onOpenPost,
   onOpenEvidence,
 }: {
   payload: OntologyNeighborhoodPayload;
   selectedEdgeId: string | null;
+  onSelectNode: (node: OntologyGraphNodePayload) => void;
   onSelectEdge: (edgeId: string) => void;
   onOpenPost: (postId: string) => void;
   onOpenEvidence: (postId: string) => void;
@@ -622,46 +628,61 @@ function OntologyExactValueTable({
             </tr>
           </thead>
           <tbody>
-            {payload.exact_value_rows.map((row) => (
-              <tr key={row.edge_id} className={row.edge_id === selectedEdgeId ? "is-selected" : undefined}>
-                <td>
-                  <button
-                    type="button"
-                    aria-label={
-                      row.property_code === "hasVoiceAssignment"
-                        ? tf("Open post: {label}", { label: row.source_label })
-                        : undefined
-                    }
-                    onClick={() =>
-                      row.property_code === "hasVoiceAssignment"
-                        ? onOpenPost(row.source_node_id)
-                        : onSelectEdge(row.edge_id)
-                    }
-                  >
-                    {row.source_label}
-                  </button>
-                </td>
-                <td>{row.property_label}</td>
-                <td>{row.target_label}</td>
-                <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
-                <td>{row.valid_from || t("Unknown")}</td>
-                <td>{row.valid_to || t("Unknown")}</td>
-                <td>
-                  {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
+            {payload.exact_value_rows.map((row) => {
+              const target = payload.nodes.find(
+                (node) => node.node_type_code === row.target_type_code && node.node_id === row.target_node_id,
+              );
+              return (
+                <tr key={row.edge_id} className={row.edge_id === selectedEdgeId ? "is-selected" : undefined}>
+                  <td>
                     <button
                       type="button"
-                      aria-label={postLabels.has(row.evidence_post_id)
-                        ? tf("Open evidence: {title}", { title: postLabels.get(row.evidence_post_id)! })
-                        : t("Open evidence post")}
-                      onClick={() => onOpenEvidence(row.evidence_post_id as string)}
+                      aria-label={
+                        row.property_code === "hasVoiceAssignment"
+                          ? tf("Open post: {label}", { label: row.source_label })
+                          : undefined
+                      }
+                      onClick={() =>
+                        row.property_code === "hasVoiceAssignment"
+                          ? onOpenPost(row.source_node_id)
+                          : onSelectEdge(row.edge_id)
+                      }
                     >
-                      {postLabels.get(row.evidence_post_id) ?? t("Open evidence post")}
+                      {row.source_label}
                     </button>
-                  ) : row.evidence_count}
-                </td>
-                <td>{row.recorded_at || t("Unknown")}</td>
-              </tr>
-            ))}
+                  </td>
+                  <td>{row.property_label}</td>
+                  <td>
+                    {target ? (
+                      <button
+                        type="button"
+                        aria-label={tf("Select node: {label}", { label: row.target_label })}
+                        onClick={() => onSelectNode(target)}
+                      >
+                        {row.target_label}
+                      </button>
+                    ) : row.target_label}
+                  </td>
+                  <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
+                  <td>{row.valid_from || t("Unknown")}</td>
+                  <td>{row.valid_to || t("Unknown")}</td>
+                  <td>
+                    {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
+                      <button
+                        type="button"
+                        aria-label={postLabels.has(row.evidence_post_id)
+                          ? tf("Open evidence: {title}", { title: postLabels.get(row.evidence_post_id)! })
+                          : t("Open evidence post")}
+                        onClick={() => onOpenEvidence(row.evidence_post_id as string)}
+                      >
+                        {postLabels.get(row.evidence_post_id) ?? t("Open evidence post")}
+                      </button>
+                    ) : row.evidence_count}
+                  </td>
+                  <td>{row.recorded_at || t("Unknown")}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
