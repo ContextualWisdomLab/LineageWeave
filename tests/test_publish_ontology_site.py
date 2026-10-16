@@ -54,6 +54,9 @@ def _repository_fixture(tmp_path: Path) -> Path:
         "lineageweave-kg-shapes.ttl",
     ):
         (ontology_dir / name).write_bytes((ROOT / "docs" / "ontology" / name).read_bytes())
+    (repository / "docs" / "index.html").write_bytes(
+        (ROOT / "docs" / "index.html").read_bytes()
+    )
     (scripts_dir / "build_ontology_site.py").write_bytes(
         (ROOT / "scripts" / "build_ontology_site.py").read_bytes()
     )
