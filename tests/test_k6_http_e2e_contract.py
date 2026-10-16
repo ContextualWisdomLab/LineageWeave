@@ -13,8 +13,8 @@ def test_k6_harness_aborts_expired_auth_and_discloses_job_state() -> None:
     """An expired owned token stops observation while job states remain visible."""
     source = SCRIPT.read_text(encoding="utf-8")
 
-    assert "responses.some((response) => response.status === 401)" in source
-    assert "Authorized access token expired; obtain a fresh token and rerun" in source
+    assert "responses.some((response) => response.status === 401 || response.status === 403)" in source
+    assert "Authorized access was rejected; obtain a fresh token and rerun" in source
     assert source.count("responses = readBatch(vuToken, data.askJobId)") == 1
     assert "lineageweave_ask_state_observations" in source
     assert 'job_status: String(responses[2].json("job_status_code")' in source
@@ -63,3 +63,7 @@ def test_mcp_k6_harness_measures_current_authenticated_contract() -> None:
     assert "Mcp-Session-Id" in source
     assert "thresholds" not in source
     assert "REQUEST_TIMEOUT must include a duration unit" in source
+    assert "vuSession ||= initialize(vuToken, true)" in source
+    assert "abortOnAuthRejection && (response.status === 401 || response.status === 403)" in source
+    assert "abortOnAuthRejection && (initialized.status === 401 || initialized.status === 403)" in source
+    assert "if (response.status === 401 || response.status === 403)" in source

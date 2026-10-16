@@ -57,18 +57,24 @@ function request(token, session, id, method, params) {
   );
 }
 
-function initialize(token) {
+function initialize(token, abortOnAuthRejection = false) {
   const response = request(token, null, 1, "initialize", {
     protocolVersion,
     capabilities: {},
     clientInfo: { name: "lineageweave-k6", version: "1" },
   });
   initializeDuration.add(response.timings.duration);
+  if (abortOnAuthRejection && (response.status === 401 || response.status === 403)) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
+  }
   if (response.status !== 200) fail(`MCP initialize failed with HTTP ${response.status}`);
   result(response);
   const session = response.headers["Mcp-Session-Id"];
   if (!session) fail("MCP initialize omitted Mcp-Session-Id");
   const initialized = request(token, session, null, "notifications/initialized", undefined);
+  if (abortOnAuthRejection && (initialized.status === 401 || initialized.status === 403)) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
+  }
   if (initialized.status !== 202) fail(`MCP initialized notification failed with HTTP ${initialized.status}`);
   return session;
 }
@@ -98,10 +104,10 @@ export function setup() {
 
 export default function (data) {
   vuToken ||= data.token;
-  vuSession ||= initialize(vuToken);
+  vuSession ||= initialize(vuToken, true);
   const response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
-  if (response.status === 401) {
-    exec.test.abort("Authorized access token expired; obtain a fresh token and rerun");
+  if (response.status === 401 || response.status === 403) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
   }
   readDuration.add(response.timings.duration);
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });

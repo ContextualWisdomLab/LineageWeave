@@ -78,8 +78,8 @@ export function setup() {
 export default function (data) {
   vuToken ||= data.token;
   const responses = readBatch(vuToken, data.askJobId);
-  if (responses.some((response) => response.status === 401)) {
-    exec.test.abort("Authorized access token expired; obtain a fresh token and rerun");
+  if (responses.some((response) => response.status === 401 || response.status === 403)) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
   }
 
   readDuration.add(responses[0].timings.duration, { endpoint: "posts" });
