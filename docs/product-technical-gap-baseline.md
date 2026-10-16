@@ -39,6 +39,10 @@ canonical-name verification and the repository's ban on identifying *source
 records*; it does not identify a private record. Their shared edits to this
 baseline still require reconciliation before integration. Neither candidate
 changes an API, schema, ADR number, release number, or numerical policy.
+Cross-PR authority issues #807 (PRD occupational requirement identities),
+#1048 (migration ordinals), and #1056 (package/runtime release version) remain
+open. Their open status alone does not establish that every cited conflict is
+still present in code. This candidate changes none of those contracts.
 Three focused synthetic authenticated PostgreSQL/API tests passed locally
 against the running `lineageweave` stack: assignment round-trip, hidden
 evidence rejection, and removal of an additional Voice when its evidence
