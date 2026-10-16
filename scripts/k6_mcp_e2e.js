@@ -1,17 +1,20 @@
 /** Measure authenticated MCP responsiveness against synthetic durable Ask data. */
 
 import http from "k6/http";
+import exec from "k6/execution";
 import { check, fail } from "k6";
 import { Counter, Trend } from "k6/metrics";
+import { credentialTarget } from "./k6_target.js";
 
-const mcpUrl = __ENV.MCP_URL || "http://localhost:18001/mcp";
-const keycloakUrl = (__ENV.KEYCLOAK_URL || "http://localhost:18080").replace(/\/$/, "");
-const realm = __ENV.KEYCLOAK_REALM || "lineageweave-demo";
-const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
-const username = __ENV.K6_USERNAME || "demo.analyst";
-const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
+const mcpUrl = credentialTarget(__ENV.MCP_URL || "http://localhost:18001/mcp", "MCP_URL");
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
-const keycloakHost = __ENV.KEYCLOAK_HOST;
+if (!__ENV.K6_ACCESS_TOKEN_FILE) {
+  throw new Error("K6_ACCESS_TOKEN_FILE is required for an authorized synthetic load run");
+}
+const suppliedToken = open(__ENV.K6_ACCESS_TOKEN_FILE).trim();
+if (!suppliedToken) {
+  throw new Error("K6_ACCESS_TOKEN_FILE is empty; obtain a fresh authorized token");
+}
 const protocolVersion = "2025-11-25";
 const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
@@ -23,22 +26,16 @@ const jobStateObservations = new Counter("lineageweave_mcp_job_state_observation
 let vuToken;
 let vuSession;
 
-function authenticate() {
-  const headers = keycloakHost ? { Host: keycloakHost } : {};
-  const response = http.post(
-    `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
-    { grant_type: "password", client_id: clientId, username, password },
-    { headers, tags: { endpoint: "oidc_token" }, timeout: requestTimeout },
-  );
-  if (response.status !== 200) fail(`synthetic OIDC login failed with HTTP ${response.status}`);
-  return response.json("access_token");
-}
-
 function result(response) {
   const line = response.body.split("\n").find((entry) => entry.startsWith("data: "));
   if (!line) fail(`MCP response omitted a data event: HTTP ${response.status}`);
-  const envelope = JSON.parse(line.slice(6));
-  if (envelope.error) fail(`MCP returned ${JSON.stringify(envelope.error)}`);
+  let envelope;
+  try {
+    envelope = JSON.parse(line.slice(6));
+  } catch {
+    fail(`MCP returned malformed JSON: HTTP ${response.status}`);
+  }
+  if (envelope.error) fail(`MCP returned an error: HTTP ${response.status}`);
   return envelope.result;
 }
 
@@ -56,22 +53,28 @@ function request(token, session, id, method, params) {
   return http.post(
     mcpUrl,
     JSON.stringify(envelope),
-    { headers, tags: { endpoint: method }, timeout: requestTimeout },
+    { headers, tags: { endpoint: method }, timeout: requestTimeout, redirects: 0 },
   );
 }
 
-function initialize(token) {
+function initialize(token, abortOnAuthRejection = false) {
   const response = request(token, null, 1, "initialize", {
     protocolVersion,
     capabilities: {},
     clientInfo: { name: "lineageweave-k6", version: "1" },
   });
   initializeDuration.add(response.timings.duration);
+  if (abortOnAuthRejection && (response.status === 401 || response.status === 403)) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
+  }
   if (response.status !== 200) fail(`MCP initialize failed with HTTP ${response.status}`);
   result(response);
   const session = response.headers["Mcp-Session-Id"];
   if (!session) fail("MCP initialize omitted Mcp-Session-Id");
   const initialized = request(token, session, null, "notifications/initialized", undefined);
+  if (abortOnAuthRejection && (initialized.status === 401 || initialized.status === 403)) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
+  }
   if (initialized.status !== 202) fail(`MCP initialized notification failed with HTTP ${initialized.status}`);
   return session;
 }
@@ -82,14 +85,14 @@ function callTool(token, session, id, name, args) {
 
 function structured(response) {
   const toolResult = result(response);
-  if (toolResult.isError) fail(`MCP tool failed: ${response.body}`);
+  if (toolResult.isError) fail(`MCP tool failed: HTTP ${response.status}`);
   return toolResult.structuredContent;
 }
 
 export function setup() {
   if (!requestTimeout) fail("REQUEST_TIMEOUT is required");
   if (unitlessDuration.test(requestTimeout)) fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
-  const token = authenticate();
+  const token = suppliedToken;
   const session = initialize(token);
   const response = callTool(token, session, 2, "submit_global_ask", {
     question: "Summarize the authorized synthetic evidence.",
@@ -101,12 +104,10 @@ export function setup() {
 
 export default function (data) {
   vuToken ||= data.token;
-  vuSession ||= initialize(vuToken);
-  let response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
-  if (response.status === 401) {
-    vuToken = authenticate();
-    vuSession = initialize(vuToken);
-    response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
+  vuSession ||= initialize(vuToken, true);
+  const response = callTool(vuToken, vuSession, 3, "read_global_ask_job", { ask_job_id: data.askJobId });
+  if (response.status === 401 || response.status === 403) {
+    exec.test.abort("Authorized access was rejected; obtain a fresh token and rerun");
   }
   readDuration.add(response.timings.duration);
   const ok = check(response, { "MCP Ask read succeeds": (item) => item.status === 200 });
