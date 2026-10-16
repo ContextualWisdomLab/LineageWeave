@@ -106,6 +106,16 @@ describe("i18n", () => {
     expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
   });
 
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "gives calendar load failures a localized next action in %s",
+    (locale) => {
+      setLocale(locale);
+      expect(t("Calendar could not be loaded. Try again later.")).not.toBe(
+        "Calendar could not be loaded. Try again later.",
+      );
+    },
+  );
+
   it.each([
     ["en", "Workspace navigation"],
     ["ko", "워크스페이스 메뉴"],

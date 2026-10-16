@@ -3,6 +3,7 @@ import {
   occupationalConstructText as text,
   type OccupationalConstructCopyKey,
 } from "../occupationalConstructI18n";
+import { safeHttpUrl } from "../safeHttpUrl";
 import { EvidenceStatusMark } from "./EvidenceStatusMark";
 
 export type OccupationalConstructEvidenceStatus =
@@ -57,14 +58,16 @@ export function OccupationalConstructEvidence({
                 <span className="post-meta">{text("Source evidence")}: </span>
                 <q>{assertion.evidence_text}</q>
               </p>
-              <a
-                className="citation-chip"
-                href={assertion.construct_iri}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {text("Open catalog definition")}
-              </a>
+              {safeHttpUrl(assertion.construct_iri) ? (
+                <a
+                  className="citation-chip"
+                  href={safeHttpUrl(assertion.construct_iri)!}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {text("Open catalog definition")}
+                </a>
+              ) : null}
               <details className="semantic-provenance">
                 <summary>{text("Evidence details")}</summary>
                 <EvidenceStatusMark status="inference" />

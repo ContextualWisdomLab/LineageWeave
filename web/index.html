@@ -25,7 +25,9 @@
 <body>
 <h1>LineageWeave</h1>
 <p class="sub">Reconstructed record lineage, git-branch style. Orange nodes are branch points (two or more threads growing out of one record).</p>
-<div id="root"></div>
+<div id="root" aria-live="polite">
+  <p id="status">Loading reconstructed lineage…</p>
+</div>
 <div class="tooltip" id="tooltip"></div>
 <script>
 const NODE_R = 6;
@@ -101,6 +103,9 @@ function renderGroup(container, groupKey, nodes, edges) {
     const isBranch = (children[n.id] || []).length >= 2;
     const g = document.createElementNS(svgNS, "g");
     g.setAttribute("class", "node" + (isBranch ? " branch" : ""));
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("role", "img");
+    g.setAttribute("aria-label", `${n.label}, ${n.occurred_at.slice(0, 10)}${isBranch ? ", branch point" : ""}`);
     g.setAttribute("transform", `translate(${pos.x}, ${pos.y})`);
     const circle = document.createElementNS(svgNS, "circle");
     circle.setAttribute("r", NODE_R);
@@ -110,13 +115,24 @@ function renderGroup(container, groupKey, nodes, edges) {
     text.setAttribute("y", 3);
     text.textContent = n.label.length > 26 ? n.label.slice(0, 25) + "…" : n.label;
     g.appendChild(text);
-    g.addEventListener("mousemove", (ev) => {
+    const title = document.createElementNS(svgNS, "title");
+    title.textContent = `${n.label} — ${n.occurred_at.slice(0, 10)}`;
+    g.appendChild(title);
+    const showTooltip = (left, top) => {
       tooltip.style.display = "block";
-      tooltip.style.left = ev.clientX + 12 + "px";
-      tooltip.style.top = ev.clientY + 12 + "px";
+      tooltip.style.left = left + "px";
+      tooltip.style.top = top + "px";
       tooltip.textContent = `${n.label} — ${n.occurred_at.slice(0, 10)}`;
+    };
+    g.addEventListener("mousemove", (ev) => {
+      showTooltip(ev.clientX + 12, ev.clientY + 12);
+    });
+    g.addEventListener("focus", () => {
+      const bounds = g.getBoundingClientRect();
+      showTooltip(bounds.right + 12, bounds.top + 12);
     });
     g.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+    g.addEventListener("blur", () => { tooltip.style.display = "none"; });
     svg.appendChild(g);
   }
 
@@ -124,19 +140,35 @@ function renderGroup(container, groupKey, nodes, edges) {
   container.appendChild(wrap);
 }
 
+const root = document.getElementById("root");
+const status = document.getElementById("status");
+
 fetch("/api/lineage")
-  .then((r) => r.json())
+  .then((r) => {
+    if (!r.ok) throw new Error(`Lineage request failed (${r.status})`);
+    return r.json();
+  })
   .then((graph) => {
+    status.remove();
+    if (!graph.nodes.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "No reconstructed lineage is available yet.";
+      root.appendChild(empty);
+      return;
+    }
     const byGroup = {};
     for (const n of graph.nodes) (byGroup[n.group] ||= { nodes: [], edges: [] }).nodes.push(n);
     for (const e of graph.edges) {
       const sourceNode = graph.nodes.find((n) => n.id === e.source);
       if (sourceNode) byGroup[sourceNode.group].edges.push(e);
     }
-    const root = document.getElementById("root");
     for (const [groupKey, { nodes, edges }] of Object.entries(byGroup)) {
       renderGroup(root, groupKey, nodes, edges);
     }
+  })
+  .catch(() => {
+    status.textContent = "Lineage is temporarily unavailable. Refresh to try again.";
+    status.setAttribute("role", "alert");
   });
 </script>
 </body>

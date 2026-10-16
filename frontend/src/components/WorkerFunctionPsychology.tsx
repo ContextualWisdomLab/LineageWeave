@@ -4,6 +4,7 @@ import type {
   WorkerFunctionProfilePayload,
 } from "../api";
 import { workerFunctionPsychologyText } from "../workerFunctionPsychologyI18n";
+import { safeHttpUrl } from "../safeHttpUrl";
 
 /** One psychological demand slot inside a worker-function profile. */
 export interface WorkerFunctionPsychologySlot {
@@ -67,8 +68,8 @@ export function WorkerFunctionPsychology({
               <details className="semantic-provenance" key={slot.heading} open>
                 <summary>{slot.heading}</summary>
                 <ul className="post-evidence-list">
-                  {slot.constructs.map((construct) => (
-                    <li key={construct.iri}>
+                  {slot.constructs.map((construct, constructIndex) => (
+                    <li key={`${slot.heading}:${construct.iri}:${constructIndex}`}>
                       <strong>{construct.label}</strong>{" "}
                       <span className="post-badge">{slotLabelFor(construct.dimension)}</span>
                       <p>{construct.definition}</p>
@@ -99,11 +100,15 @@ export function WorkerFunctionPsychology({
                 <strong>{group.heading}</strong>{" "}
                 <span className="post-badge">{group.constructs.length}</span>
                 <ul className="post-evidence-list">
-                  {group.constructs.slice(0, 12).map((construct) => (
-                    <li key={construct.iri}>
-                      <a className="citation-chip" href={construct.iri} target="_blank" rel="noreferrer">
-                        {construct.label}
-                      </a>
+                  {group.constructs.slice(0, 12).map((construct, constructIndex) => (
+                    <li key={`${group.heading}:${construct.iri}:${constructIndex}`}>
+                      {safeHttpUrl(construct.iri) ? (
+                        <a className="citation-chip" href={safeHttpUrl(construct.iri)!} target="_blank" rel="noreferrer">
+                          {construct.label}
+                        </a>
+                      ) : (
+                        <span>{construct.label}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
