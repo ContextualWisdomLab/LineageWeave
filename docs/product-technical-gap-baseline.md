@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+## Exact-head recheck — 2026-10-16
+
+The fetched `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub lists 195 open PRs: 168 drafts, 117 based on another PR, and 27
+ready against `main`. One has an `APPROVED` review decision and none has
+auto-merge armed. These are workflow counts, not product usage or population
+evidence. The current PRD remains a supporting contract; ADR 0246 defines
+the 12 atomic Voice classes, ADR 0256 governs evidence-bearing combinations,
+and the PROV-O derivation relation does not itself grant evidence access.
+
+The customer-facing evidence-availability repair is still owned by #1177 at
+`e810f96707558eea4a3077519f88c894357d444d`. Its review comment asks
+to remove the public repository owner name; the synthetic-only rule instead
+prohibits identifying source records and production organizations. The comment
+does not identify a defect in the Voice reader. #1178 at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e` already adds an
+authenticated token to the static-neighborhood pagination test requested in
+review. Both candidates remain without independent approval and have terminal
+failing hosted jobs. Their customer-visible behavior is candidate work, not
+protected-main acceptance.
+
+The documentation candidate #1179 is at
+`a542e6d13d6eec247324128c26aa8d66c64af7a8` before this update. Its
+exact-head Tests and CodeQL jobs failed before running steps. The Full test
+suite and Actions CodeQL annotations identify an Actions billing lock;
+CodeRabbit and Devin success statuses are not independent approval. The
+current rule read shows only a no-force-push ruleset and no classic `main`
+protection. Because
+review and successful Checks are not currently enforced, requesting normal
+auto-merge could merge without those gates. This candidate leaves auto-merge
+unarmed while the policy and hosted CI blockers remain. No new API, schema,
+ADR, or release identifier is introduced here; #807, #1048, and #1056 still
+track distinct cross-PR identity conflicts. Authenticated rendered Voice
+navigation and a synthetic authenticated k6 saturation result remain
+unavailable, so neither is a release or capacity claim.
+
+The documentation-hygiene suite passed locally (6 tests). Fresh focused
+frontend attempts for #1177 and #1178 did not start test workers on this
+busy host; they provide no new passing assertion evidence.
+
 ## Exact-head continuation — 2026-10-16 15:37–16:31 KST
 
 Remote `main` is still `c06911c01cc165fd0b20acb249503342c3c4685f`.
