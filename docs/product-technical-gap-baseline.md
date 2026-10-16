@@ -12,9 +12,10 @@ governs the Voice derivation and authorized evidence boundary. The current
 open-issue count is 43; it is a workflow count, not customer or population
 evidence.
 
-The documentation candidate #1179 is open at exact head
+The documentation candidate #1179 was reviewed at
 `61898ab6bfd726ef07f0db34ea967b1a1a656e4d`, based on that `main`.
-Its current-head CodeRabbit report found no actionable issue. Formal
+That head's CodeRabbit report found no actionable issue. This continuation
+changes the head, so the earlier report and checks do not transfer. Formal
 independent approval is absent. Four hosted jobs ended in failure within
 three seconds; job annotations were unavailable because the GitHub REST
 quota was exhausted, so their current cause is **unverified**. The Devin
