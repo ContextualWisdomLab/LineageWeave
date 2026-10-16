@@ -1,5 +1,41 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-16 19:08 KST
+
+The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+At the time of this read GitHub lists 195 open PRs (168 drafts, 27 ready
+against `main`) and 43 open issues. PR #1179 is at
+`49d79c2842b0f3ebf1a41d5752f43f4cb01e4264`, based on that `main`.
+Its latest CodeRabbit report identifies no actionable change, but there is
+no formal independent approval. Four exact-head hosted jobs failed before
+running; the Full test suite and CodeQL job annotations identify an Actions
+billing lock. The effective `main` rules contain only `non_fast_forward`,
+and classic branch protection returns 404. A normal auto-merge request could
+therefore merge without the requested review and Checks. It remains unarmed.
+
+The selected customer gap is still the unavailable-evidence next action in
+the Post reader, owned by PR #1177 at
+`e810f96707558eea4a3077519f88c894357d444d`. The requested removal of
+the public repository owner name from the gap baseline does not identify a
+source record or production organization and is not a valid defect under
+ADR 0001. On #1177's exact head, 44 focused Voice and load-authentication
+frontend tests passed. A fresh Storybook build rendered its synthetic
+unavailable-evidence state at 1440×900 and 390×844; both screenshots were
+visually inspected, and neither viewport had horizontal overflow. This is
+candidate UI evidence, not authenticated customer-flow acceptance. The six
+documentation-hygiene tests on #1179's exact head passed.
+
+PR #1178's relation-page candidate remains separate at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Neither #1177 nor #1178
+has independent approval or passing hosted Tests on its current head.
+They introduce no new API, schema, ADR number, or release identity in their
+current diffs, while open issues #807, #1048, and #1056 retain the distinct
+PRD, migration-ordinal, and release-identity audits. No authorized k6 token
+file was configured in this session, so current-head authenticated load,
+PostgreSQL/worker/Valkey/gateway saturation, and any bottleneck claim remain
+unavailable. Authenticated PostgreSQL/API and rendered customer UI acceptance
+for the complete Voice composition flow also remain open.
+
 ## Exact-head recheck — 2026-10-16
 
 The fetched `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
