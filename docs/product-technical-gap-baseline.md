@@ -1,5 +1,132 @@
 # Product & Technical Gap Baseline
 
+## Voice availability candidate after current-main integration — 2026-10-16 KST
+
+The fetched `main` is `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`.
+PR #1177's product-code head before this integration is
+`090bce95f34cd7f98c83c297e175069a50ad2b0d`. The candidate keeps an
+additional Voice and its truth state visible when its separate derivation
+evidence cannot be opened, and gives an administrator action instead of
+claiming that support is present. It adds no fixed Voice combination, hidden
+Post substitution, API, schema, migration, numerical rule, or release number.
+The main integration preserves both this candidate's earlier audit and the
+owned-token observation section below. The #1156 merge on this main head
+occurred without passing exact-head Checks or an independent approval;
+therefore it is not protected delivery evidence. PR #1177 still needs new
+hosted Checks, independent approval, and authenticated PostgreSQL/API plus
+rendered UI acceptance before any release claim. No synthetic load result or
+population inference follows from this documentation integration.
+On the combined local tree, three focused Voice-list tests, frontend lint and
+build, and eleven documentation/load-contract tests passed. The synthetic
+`UnavailableEvidence` scene was rendered at 1440×900 and 390×844: the
+unavailable Voice remains visible with its truth state and next action, and
+neither viewport has horizontal overflow. Screenshots remain outside git;
+they are layout evidence, not authenticated product acceptance.
+
+## Current-head review and Voice evidence availability candidate — 2026-10-15 13:49 UTC
+
+This overlay supersedes earlier present-tense queue statements. Fetched
+protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, the
+squash delivery of #1175. GitHub returned 195 open PRs: 168 drafts, 117
+with a non-`main` base, one with an `APPROVED` rollup, and none with
+auto-merge armed; 42 issues were open. These are repository workflow counts,
+not a sample of customer records or evidence of product acceptance. Review
+validity and all threads have not been established across the queue.
+
+The current LineageWeave PRD was read before this candidate. ADR 0246 governs
+the twelve atomic Voices, ADR 0251 the separate I/O-Psychology taxonomy,
+ADR 0252 primary Voice history, and ADR 0256 evidence-bearing combinations.
+W3C PROV-O supplies the derivation vocabulary; it does not validate an
+assignment or authorize a Post. The current remote product/architecture
+authorities were read at `RankWeave@92323cb8b55b`,
+`ThreadWeave@0fda6e60c2c8`, `disksage@67a511303b51`,
+`TEPP@4156aff81383`, `contextual-orchestrator@c226f48db69d`, and
+`fast-mlsirm@bd6a5a40be32`. GitHub identified the canonical repository
+names as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+`disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm` under that
+owner. The local `DiskSage` spelling is not the remote case; its protected
+`main` exposes a README product authority rather than a standalone PRD.
+
+### Exact-head PR review and protected delivery
+
+- #1176 at `cf2990395ba06af7c7d8cde44cb92bf68840915c` repairs PRD
+  requirement-identity and ADR-number collisions. Its inspected delta adds no
+  runtime API, schema migration, or release number. It has no formal approval
+  or review thread, and named hosted checks are terminal failures. It remains
+  an unmerged candidate, so the duplicated PRD identifiers on `main` remain
+  unresolved.
+- #1174 had two valid review findings and one partly invalid privacy finding.
+  A minimal successor at `0cd07ef45a47d587a54ce0feeb43351d7e2255c7`
+  distinguishes the identical FR-2A repetition from conflicting FR-2B/2C
+  declarations and removes the merge actor's login. Canonical repository
+  names remain because they are required public integration identities, not
+  source-organization records. All retrieved review threads are now resolved;
+  the new head has no independent approval and its named hosted checks are
+  failures. `git diff --check` passed. No normal merge or auto-merge was
+  requested.
+- #1175 has merge SHA `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, but
+  its recorded reviews were `COMMENTED` and its required checks failed or
+  skipped. Its delivery therefore does not establish the requested protected
+  acceptance. The merge-control incident and missing enforceable review/check
+  policy are recorded in #1174. Until current policy and independent approval
+  are proven, another auto-merge request could merge immediately without the
+  requested gates; none was armed here.
+- A live ruleset read exposed only active repository rule 21065108, which
+  forbids force pushes; the classic `main` branch-protection endpoint returned
+  404. The organization rule was not returned by that repository endpoint.
+  These observations do not establish enforced review or check requirements.
+  On this candidate's first head `9d6bce74573c84379355932a8640a073c086dd4c`,
+  the exact-head Full test suite and frontend
+  jobs had zero steps and annotations that the Actions account was locked for
+  billing. That external gate cannot be replaced by local tests.
+
+### Buyer-visible candidate and evidence limits
+
+The newly delivered Post popup opens the authorized ontology reader for an
+additional Voice. The detail API's `evidence_available` flag records whether
+a derivation reference exists; it does not prove that this reader can open the
+supporting Post. If the support is hidden, the ontology reader correctly omits
+the assignment, but the open view gave no specific next action for a reader
+who expected that evidence. The selected bounded repair explains that only
+accessible support appears and directs the reader to ask an administrator to
+check access. A defensive unavailable state also avoids claiming `Evidence
+connected` if an incomplete assignment ever reaches the UI; the current
+`source_post_voice` check constraint normally prohibits that stored state.
+The recorded Voice and truth state remain visible. The existing ontology
+reader still independently checks source eligibility, ABAC, snapshot, and
+cutoff, omitting hidden support without substituting the carrying Post. No
+combination code, weight, heuristic, measurement calculation, provider route,
+API field, migration, or release number was introduced. There is no measured
+customer-impact ranking across all gaps; this is a directly reproducible
+reader-guidance gap in the selected scope.
+
+The focused Voice/i18n tests passed (103 tests); frontend lint, production
+build, and Storybook build passed locally. The existing large-bundle warning
+remains. Synthetic `UnavailableEvidence` Storybook renderings at 1440×900 and
+390×844 were inspected outside git; the unavailable guidance wraps on the
+narrow viewport without page overflow and no evidence action is rendered.
+The `ExpandedEvidence` scene was also inspected at 1440×900 and 390×844:
+the next action remained readable, the control reported expanded state, and
+neither viewport overflowed. These component scenes do not prove an
+authenticated hidden-support Post flow.
+These are candidate tests and rendered synthetic evidence. Authenticated
+PostgreSQL/API and live customer UI acceptance for the unavailable state remain
+unverified. The current `main` Voice export's carrying-Post/derivation-Post
+separation and paged JSON-LD multi-value union were not changed; their
+authenticated end-to-end acceptance also remains unverified. No new k6 run,
+gateway saturation claim, or probability-sample population inference follows
+from this frontend-only change. The historical synthetic k6 observations
+below remain bounded to their stated workloads.
+
+### Cross-PR collision check
+
+#1176 owns the duplicated PRD identities; this candidate adds no new PRD
+identifier. ADR 0256 is shared with existing Voice PRs, so integration must
+preserve their distinct accepted intervals and revalidate the combined head.
+The duplicate `0233` migration ordinal remains with issue #1048 and owner
+#1049; this candidate adds no migration. Shared API and release-number changes
+in other open stacks remain unaccepted until their parents merge to protected
+`main` and each child is retargeted and rechecked at its exact new head.
 ## Owned-token load admission candidate — 2026-10-16 KST
 
 The protected `main` used for this integration is

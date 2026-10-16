@@ -67,5 +67,46 @@ describe("VoicePerspectiveList", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(button);
     expect(onViewEvidence).toHaveBeenCalledOnce();
+
+    rerender(
+      <VoicePerspectiveList
+        voices={[primary, { ...primary, code: "vops", is_primary: false, evidence_available: true }]}
+        onViewEvidence={onViewEvidence}
+        evidenceOpen
+      />,
+    );
+    expect(screen.getByRole("button", { name: "View evidence" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(
+      "Only evidence you can open appears here. If support is missing, ask an administrator to check access.",
+    )).toBeInTheDocument();
+  });
+
+  it("keeps an additional perspective visible without claiming absent derivation evidence", () => {
+    const onViewEvidence = vi.fn();
+    const unavailable = {
+      code: "vops",
+      label: "Voice of Process",
+      is_primary: false,
+      truth_status_code: "truth_proposed",
+      evidence_available: false,
+    };
+    const primary = { ...unavailable, code: "voc", label: "Voice of Customer", is_primary: true };
+    const { rerender } = render(
+      <VoicePerspectiveList voices={[primary, unavailable]} onViewEvidence={onViewEvidence} />,
+    );
+    const perspectives = screen.getByRole("region", { name: "Recorded perspectives" });
+    expect(within(perspectives).getByText("Voice of Process (Proposed)")).toBeInTheDocument();
+    expect(within(perspectives).getByText("Evidence unavailable. Ask an administrator to check this perspective.")).toBeInTheDocument();
+    expect(within(perspectives).queryByRole("button", { name: "View evidence" })).not.toBeInTheDocument();
+
+    rerender(
+      <VoicePerspectiveList
+        voices={[primary, unavailable, { ...unavailable, code: "vor", label: "Voice of Regulator", evidence_available: true }]}
+        onViewEvidence={onViewEvidence}
+      />,
+    );
+    expect(within(perspectives).getByText("Evidence unavailable. Ask an administrator to check this perspective.")).toBeInTheDocument();
+    expect(within(perspectives).getByText("Evidence connected")).toBeInTheDocument();
+    expect(within(perspectives).getByRole("button", { name: "View evidence" })).toBeInTheDocument();
   });
 });
