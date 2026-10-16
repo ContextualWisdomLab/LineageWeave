@@ -8,8 +8,10 @@ on:
       - "lineageweave/prov_o.py"
       - "tests/test_prov_o.py"
       - "tests/test_prov_o_schema.py"
+      - "tests/test_postgres_locale_contract.py"
       - "migrations/0017_prov_o_standard_relations.sql"
       - "docs/ontology/prov-o-support-profile.ttl"
+      - "docker/postgres-init/Dockerfile"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/prov-o-contract.yml"
@@ -19,8 +21,10 @@ on:
       - "lineageweave/prov_o.py"
       - "tests/test_prov_o.py"
       - "tests/test_prov_o_schema.py"
+      - "tests/test_postgres_locale_contract.py"
       - "migrations/0017_prov_o_standard_relations.sql"
       - "docs/ontology/prov-o-support-profile.ttl"
+      - "docker/postgres-init/Dockerfile"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/prov-o-contract.yml"
@@ -39,9 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        image: postgres:16.15-bookworm@sha256:bb3e1a57e5407e0a5280b4211980a5e537f4abd234a87014ac979849a78dd825
         env:
           POSTGRES_PASSWORD: postgres
+          LANG: en_US.utf8
+          POSTGRES_INITDB_ARGS: "--locale=en_US.utf8"
         ports:
           - 5432:5432
         options: >-
@@ -89,8 +95,17 @@ jobs:
           echo "PostgreSQL service is unreachable; the schema contract would silently skip." >&2
           exit 1
 
+      - name: Verify PostgreSQL locale contract
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          locale_row="$(psql -h localhost -U postgres -d postgres -AtF '|' \
+            -c 'select datcollate, datctype from pg_database where datname = current_database()')"
+          test "$locale_row" = "en_US.utf8|en_US.utf8"
+
       - name: Verify normalized PostgreSQL contracts
-        run: uv run --frozen python -m pytest -q tests/test_prov_o_schema.py
+        run: uv run --frozen python -m pytest -q tests/test_prov_o_schema.py tests/test_postgres_locale_contract.py
 
       - name: Compile owned Python surface
-        run: uv run --frozen python -m compileall -q lineageweave/prov_o.py tests/test_prov_o.py tests/test_prov_o_schema.py
+        run: uv run --frozen python -m compileall -q lineageweave/prov_o.py tests/test_prov_o.py tests/test_prov_o_schema.py tests/test_postgres_locale_contract.py
