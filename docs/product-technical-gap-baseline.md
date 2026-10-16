@@ -1,5 +1,64 @@
 # Product & Technical Gap Baseline
 
+## Current-head delivery and reader gap — 2026-10-16 09:30 KST
+
+This entry supersedes earlier present-tense delivery claims. The fetched
+`main` head is `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`. GitHub reports
+195 open PRs and 42 open issues; these are workflow counts, not observations
+of customer records or a probability sample. The current PRD is a supporting
+product contract. ADR 0184 governs bounded ontology exploration; ADRs
+0246/0251/0256 separately govern the twelve atomic Voices, occupational
+constructs, and evidence-bearing combinations. The current RankWeave,
+ThreadWeave, TEPP, disksage, and contextual-orchestrator product or
+architecture authorities were read. The remote storage repository is
+`ContextualWisdomLab/disksage`, despite the local `DiskSage` path.
+
+PR #1156 was repaired at exact head
+`c9bc87e1e561944d2bf0e8710c26120d9199b218`: its HTTP and MCP k6
+observation paths now abort the entire run on a 401 or 403, including MCP
+session initialization. Six focused local contract tests passed. The reviewer
+thread was resolved. A normal `gh pr merge --auto --squash` request immediately
+merged it as `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`, although four
+hosted jobs were failing and no independent approving review existed. This is
+a **merge-control incident**, not protected delivery or release acceptance.
+GitHub GraphQL currently exposes only an active no-force-push ruleset and no
+classic branch-protection rule. Until independent approval and exact-head
+Checks are enforceable and satisfied, no further merge or auto-merge request
+is justified. The incident does not supply authenticated k6 measurements:
+concurrency, latency, error rate, throughput, and PostgreSQL, worker, Valkey,
+and gateway saturation remain unmeasured on this head.
+
+The directly reproduced reader gap remains PR #1178 at remote head
+`b096016511787caef10ae2f5597154a7210b2a86`: a supplied ontology
+neighborhood can refocus to a live node, but the current `main` hides that
+live page's continuation action. The candidate permits continuation only
+after live refocus and has a synthetic regression for the cursor-bound second
+page; static supplied pages remain bounded. This follow-up found that the
+graph is hidden on narrow screens, leaving no way to select a related node
+for refocus there. The exact-value target now opens the same node details,
+from which the reader can refocus and load its next authorized page. A focused
+regression covers that path. The available-page notice now points to the page
+action in all five product locales. The product-code commit is
+`39b2e1a11eeafa105f08c88e40767f8bdab28d09`. The new Storybook scene was
+driven with a synthetic authorized response and visually inspected at 1440×900
+and 390×844:
+the next-page button is visible and neither viewport overflows horizontally.
+Those screenshots remain outside git. This is rendered synthetic evidence,
+not an authenticated PostgreSQL/API read. The changes add no ADR, API,
+schema, migration, release number, Voice code, score, or provider boundary.
+At the remote head, four hosted jobs are terminal failures, no independent
+approval or review thread exists, and auto-merge is off. Authenticated
+PostgreSQL/API and rendered multi-Voice acceptance, including hidden evidence,
+truth/cutoff, carrying versus derivation evidence, and paged JSON-LD union,
+also remain unavailable.
+
+The open #1176 PR owns the duplicated occupational PRD requirement identities.
+Issue #1048 owns the migration ordinal collision, and issue #1056 owns release
+identity. PR #1178 overlaps #1162's reader and several gap-baseline edits;
+their checks and reviews cannot transfer to a combined head. No stale run was
+cancelled, no formal Compose volume was touched, and no private record or
+credential was copied into this artifact.
+
 ## Exact-head continuation verification — 2026-10-16 08:10 KST
 
 The current protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
