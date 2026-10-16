@@ -1,5 +1,47 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-16 15:37 KST
+
+Remote `main` is still `c06911c01cc165fd0b20acb249503342c3c4685f`.
+The current product PRD was checked against the protected-main product or
+architecture authorities of RankWeave, ThreadWeave, `disksage`, TEPP,
+contextual-orchestrator, and fast-mlsirm. The remote repository list confirms
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`, and
+`TEPP` as the canonical spellings. The PRD is a supporting contract; ADR 0256
+governs the Voice derivation and authorized evidence boundary. The current
+open-issue count is 43; it is a workflow count, not customer or population
+evidence.
+
+The documentation candidate #1179 is open at exact head
+`61898ab6bfd726ef07f0db34ea967b1a1a656e4d`, based on that `main`.
+Its current-head CodeRabbit report found no actionable issue. Formal
+independent approval is absent. Four hosted jobs ended in failure within
+three seconds; job annotations were unavailable because the GitHub REST
+quota was exhausted, so their current cause is **unverified**. The Devin
+status says its full review was skipped because the trial had no credits;
+that successful status is not an independent review. The previous audit
+found that requesting auto-merge could merge immediately without enforced
+review or check gates. No normal merge or auto-merge request is justified
+until the effective protection is repaired and rechecked.
+
+The selected user-facing gap remains the unavailable-evidence action in the
+Post reader, owned by #1177 at exact head
+`e810f96707558eea4a3077519f88c894357d444d`. Its minimal implementation
+and synthetic regression tests already live in that PR; all three focused
+Voice-list tests passed again on that exact head. This documentation candidate
+does not duplicate that code. #1177 and the separate relation-page
+candidate #1178 (`cc467459a92a0f4f9ebbc5adb42311552c98d39e`) are both
+open, have no independent approval or auto-merge, and have terminal failing
+hosted jobs on their respective heads. Their reviewer request to remove the
+public repository owner from this audit conflicts with the requested
+canonical-name verification and the repository's ban on identifying *source
+records*; it does not identify a private record. Their shared edits to this
+baseline still require reconciliation before integration. Neither candidate
+changes an API, schema, ADR number, release number, or numerical policy.
+Authenticated PostgreSQL/API acceptance and live desktop/mobile UI evidence
+for the Voice flow remain unproven; synthetic Storybook views do not establish
+those conditions.
+
 ## Exact-head delivery and Voice reader audit — 2026-10-16 13:37 KST
 
 The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
