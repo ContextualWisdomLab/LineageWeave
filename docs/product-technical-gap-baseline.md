@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-16 15:37 KST
+## Exact-head continuation — 2026-10-16 15:37–16:23 KST
 
 Remote `main` is still `c06911c01cc165fd0b20acb249503342c3c4685f`.
 The current product PRD was checked against the protected-main product or
@@ -39,9 +39,15 @@ canonical-name verification and the repository's ban on identifying *source
 records*; it does not identify a private record. Their shared edits to this
 baseline still require reconciliation before integration. Neither candidate
 changes an API, schema, ADR number, release number, or numerical policy.
-Authenticated PostgreSQL/API acceptance and live desktop/mobile UI evidence
-for the Voice flow remain unproven; synthetic Storybook views do not establish
-those conditions.
+Three focused synthetic authenticated PostgreSQL/API tests passed locally
+against the running `lineageweave` stack: assignment round-trip, hidden
+evidence rejection, and removal of an additional Voice when its evidence
+becomes hidden. All 31 local ontology-layout tests passed, including the
+separate carrying/derivation CSV columns and singleton/array JSON-LD relation
+unions across pages. These tests do not establish the complete Voice flow in
+the rendered UI. Live desktop/mobile UI navigation and cutoff evidence remain
+unproven; synthetic Storybook views do not establish those conditions. Overall Voice
+acceptance therefore remains open.
 
 ## Exact-head delivery and Voice reader audit — 2026-10-16 13:37 KST
 
