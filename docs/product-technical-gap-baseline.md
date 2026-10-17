@@ -33,10 +33,13 @@ action when a recorded additional perspective has unavailable support.
 #1177 contains the minimal UI and synthetic regression test: it keeps the
 atomic Voice and truth state visible, withholds the evidence action when no
 derivation reference exists, and gives a next action without substituting the
-carrying Post for hidden evidence. This is candidate behavior. Authenticated
-PostgreSQL/API plus rendered customer-flow evidence for the complete Voice
-composition and cutoff contract is still unavailable; no acceptance claim
-follows from a Storybook state alone. Current-head authenticated synthetic
+carrying Post for hidden evidence. Three focused Voice UI tests and three
+synthetic authenticated PostgreSQL/API tests passed on #1177's unchanged
+head. Its existing desktop and mobile Storybook screenshots were inspected:
+the unavailable state wraps without horizontal overflow. This is candidate
+behavior. Rendered authenticated customer-flow evidence for the complete
+Voice composition and cutoff contract is still unavailable; no acceptance
+claim follows from a Storybook state alone. Current-head authenticated synthetic
 k6 saturation and a measured bottleneck are also unavailable. These PRs add
 no competing API, schema, ADR identifier, or release number, but their
 baseline edits overlap and need reconciliation on the eventual merge base.
