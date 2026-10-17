@@ -26,7 +26,11 @@ ontology pagination candidate #1178 is open at
 `cc467459a92a0f4f9ebbc5adb42311552c98d39e`, with no unresolved thread
 or independent approval. None has auto-merge armed. The governance candidates
 #1170 and #1174 are still open; protection and hosted CI must be rechecked
-before any normal merge request. No merge SHA is established for these PRs.
+before any normal merge request. The live repository policy read found no
+classic branch-protection rule and one active branch ruleset containing only
+`NON_FAST_FORWARD`. It does not enforce independent approval or passing
+Checks, so arming auto-merge now could merge immediately against the requested
+gates. No merge SHA is established for these PRs.
 
 The selected customer gap in this slice remains the Post reader's
 action when a recorded additional perspective has unavailable support.
