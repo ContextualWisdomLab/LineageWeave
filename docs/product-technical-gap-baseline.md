@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-18 06:15 KST
+
+Fetched `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub reports 195 open PRs and 43 open issues. These are workflow counts,
+not observations of customer records or a population estimate. The current
+LineageWeave PRD was read alongside the protected-main product or architecture
+authorities of `RankWeave`, `ThreadWeave`, `disksage`, `TEPP`,
+`contextual-orchestrator`, and `fast-mlsirm`. Remote refs confirmed the
+canonical repository case; the product brand `DiskSage` is hosted as
+`ContextualWisdomLab/disksage`. ADRs, rather than these supporting PRDs or
+this snapshot, remain normative for architecture and measurement.
+
+Before this audit edit, documentation PR #1179 was open at snapshot head
+`7b74d2cba5844e5d2c194f7dd671b11955623d33`, based on the fetched
+`main`. It has no formal independent approval or unresolved review thread.
+That head's Full test suite, frontend, and two CodeQL jobs are terminal
+failures; a successful automated review status is not an approval. The
+customer evidence-availability candidate #1177 remains open at
+`e810f96707558eea4a3077519f88c894357d444d` with the same four failed
+hosted jobs, no independent approval, and no unresolved review thread. Its
+single reviewer comment requests removing public repository names, which
+does not identify a source-record disclosure under ADR 0001. The separate
+ontology pagination candidate #1178 is open at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`, with no unresolved thread
+or independent approval. None has auto-merge armed. The governance candidates
+#1170 and #1174 are still open; protection and hosted CI must be rechecked
+before any normal merge request. No merge SHA is established for these PRs.
+
+The selected customer gap in this slice remains the Post reader's
+action when a recorded additional perspective has unavailable support.
+#1177 contains the minimal UI and synthetic regression test: it keeps the
+atomic Voice and truth state visible, withholds the evidence action when no
+derivation reference exists, and gives a next action without substituting the
+carrying Post for hidden evidence. This is candidate behavior. Authenticated
+PostgreSQL/API plus rendered customer-flow evidence for the complete Voice
+composition and cutoff contract is still unavailable; no acceptance claim
+follows from a Storybook state alone. Current-head authenticated synthetic
+k6 saturation and a measured bottleneck are also unavailable. These PRs add
+no competing API, schema, ADR identifier, or release number, but their
+baseline edits overlap and need reconciliation on the eventual merge base.
+
 ## Exact-head continuation — 2026-10-16 19:08 KST
 
 The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
