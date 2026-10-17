@@ -1,5 +1,41 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-18 08:25 KST
+
+The remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub currently reports 195 open PRs and 43 open issues. The live branch
+ruleset contains only `NON_FAST_FORWARD`, and no classic branch-protection
+rule is returned. Therefore review and passing Checks are not enforced by
+the current repository policy. An auto-merge request could merge without the
+independent approval and terminal Checks required for this product, so none
+was armed in this continuation.
+
+The documentation candidate #1179 was read at exact head
+`3169c71b63fcb03c6854023b401af8796ea87245` before this update. Its
+four hosted jobs are terminal failures, it has no independent approval or
+unresolved review thread, and automated review success is not an approval.
+The Voice reader repair #1177 remains at
+`e810f96707558eea4a3077519f88c894357d444d`; the relation-page repair
+#1178 remains at `cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Their
+four hosted jobs each failed and neither has an independent approval. The
+single #1177 review thread is resolved; #1178 has no review thread. No
+protected merge SHA exists for these candidates.
+
+The selected customer-facing gap remains #1177's unavailable Voice-support
+state. Its exact-head focused UI regression passed again (3 tests). The
+existing synthetic Storybook captures were visually checked at desktop
+1440×900 and mobile 390×844: the next action is legible and the narrow view
+wraps without horizontal overflow. Six documentation-hygiene tests passed on
+#1179's pre-update head. The candidate preserves the recorded Voice and truth
+state while withholding an unavailable evidence action; it does not substitute
+the carrying Post for derivation evidence. This is local, synthetic evidence.
+Authenticated PostgreSQL/API plus rendered customer-flow acceptance for the
+full multi-Voice and cutoff contract, and authenticated synthetic k6 capacity
+evidence, remain unavailable. No observed bottleneck or population inference
+is claimed. These three diffs introduce no competing ADR, API, schema,
+migration ordinal, or release identity; they overlap this baseline and must
+retain each other's evidence when integrated.
+
 ## Exact-head verification — 2026-10-18 KST
 
 The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
