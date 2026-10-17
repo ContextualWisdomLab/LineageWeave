@@ -1,5 +1,31 @@
 # Product & Technical Gap Baseline
 
+## Exact-head verification — 2026-10-18 KST
+
+The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub lists 195 open PRs, including 168 drafts. The selected reader-action
+repair remains PR #1177 at `e810f96707558eea4a3077519f88c894357d444d`;
+the separate relation-page repair remains #1178 at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Both have no independent
+approval or auto-merge request. Documentation PR #1179 was at
+`ac03b3b37a2ba372ed0e81bd6386d04604c422b3` before this edit. Its four
+hosted jobs failed before runner steps; the exact-head Full test suite
+annotation confirms the Actions account is locked for billing. The active
+default-branch ruleset still contains only `non_fast_forward`, and classic
+branch protection returns 404. A normal protected merge cannot be claimed or
+safely requested until required Checks and independent approval are enforced.
+
+On #1177's unchanged head, 641 frontend tests and lint passed. The focused
+ontology and Voice checks passed locally, including eight synthetic live
+PostgreSQL history tests and the separate carrying/evidence Post projections.
+The existing 1440×900 and 390×844 Storybook screenshots of unavailable Voice
+support were visually rechecked; the action remains readable at both sizes.
+This is local candidate evidence. The complete authenticated customer UI flow,
+cutoff navigation, and authenticated synthetic k6 saturation are still
+unverified. No measured bottleneck or population estimate is inferred. The
+three PRs overlap this baseline but introduce no competing ADR, API, schema,
+migration ordinal, or release identity in their current diffs.
+
 ## Exact-head audit — 2026-10-18 06:15 KST
 
 Fetched `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
