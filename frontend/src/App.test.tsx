@@ -2128,6 +2128,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", {
       name: "Open live post (updated after cutoff): Public post",
     }));
+    expect(screen.getByText("Only relationships supported by this date appear here. Open a post to inspect its available history.")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", {
       name: "View related information",
     }));
@@ -2135,6 +2136,7 @@ describe("App, authenticated", () => {
       expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
       expect.anything(),
     ));
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
     await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", {
       name: "Open evidence: Linked post",
     }));

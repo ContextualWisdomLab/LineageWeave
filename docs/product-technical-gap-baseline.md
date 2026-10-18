@@ -33,23 +33,23 @@ normal auto-merge would not preserve the requested governance. No merge or
 auto-merge is claimed here.
 
 The selected user-visible gap was a historical Post's **Related information**
-path dropping its knowledge cutoff. The Voice-specific evidence path already
-kept that cutoff, but the adjacent related-information path could fetch later
-relations and open a later Post as if it belonged to the historical view. This
-candidate passes the same cutoff to the related graph and keeps it when opening
-its carrying or evidence Post. A focused rendered-component regression passed;
-172 related frontend tests, lint, and production build passed on this candidate.
-The build still reports its existing large application chunk warning; this
-navigation change did not establish a measured performance bottleneck.
-Synthetic Storybook **Separate Voice Evidence** and **Narrow Exact Value**
-were rendered and visually inspected at 1440×900 and 390×844. The desktop
-graph remains legible; the mobile action row wraps and the exact-value table
-retains its horizontal scroll cue. These screenshots are local audit artifacts,
-not authenticated customer-flow acceptance. Three existing
-authenticated synthetic PostgreSQL/API Voice tests passed against the running
-`lineageweave` stack: distinct carrying and evidence Posts, stored provenance,
-and hidden-evidence denial. Those tests do not prove the new UI path in a
-browser or a protected-main release.
+path dropping its knowledge cutoff. The initial candidate passed the cutoff
+only to the ontology graph. Exact-head review on #1183 at
+`ceafc0593e2b82a4b174e79b3254811e38ea7df4` found that adjacent Keyman,
+organization, team, and role-history reads still returned current relations.
+ADR 0216 excludes current-only Keyman projections from as-of claims. The
+corrective candidate now renders only the cutoff-aware ontology neighborhood
+in the historical panel, retains the cutoff when opening a carrying or
+evidence Post, and gives the reader a next action. Its regression proves that
+current-only related endpoints receive no request. Frontend lint, all 641
+tests, production build, and Storybook build passed locally. The existing
+large application chunk warning is not a measured bottleneck. Synthetic
+Storybook rendered at 1440×900 and 390×844; the message and action remained
+legible in `docs/screenshots/historical-related-cutoff-desktop.png` and
+`docs/screenshots/historical-related-cutoff-mobile.png`. These are local UI artifacts, not authenticated
+customer-flow acceptance. Earlier synthetic PostgreSQL/API Voice tests covered
+distinct carrying and evidence Posts, stored provenance, and hidden-evidence
+denial on their tested implementation; they do not prove this new UI path.
 
 The selected implementation changes no ADR policy, API, schema, migration,
 release number, Voice vocabulary, or inference arithmetic. #1177 and #1178
@@ -58,6 +58,13 @@ own adjacent Voice and ontology UI files; #1181 also edits this baseline; and
 base reconciliation before integration. Separate open issues #807, #1048,
 and #1056 track existing PRD, migration ordinal, and release identity
 conflicts. The current candidate does not declare them resolved.
+
+#1183's four exact-head hosted jobs failed before their first step. The Full
+test job had runner id zero and an annotation that the Actions account was
+locked for billing, so none is a completed code check. The active `main`
+ruleset forbids force pushes only; classic protection is absent. No formal
+independent approval exists. Under the requested governance contract, this
+candidate is not eligible for normal merge or auto-merge yet.
 
 No authenticated synthetic k6 run or PostgreSQL, worker, Valkey, and gateway
 saturation observation was established in this pass. No observed bottleneck,

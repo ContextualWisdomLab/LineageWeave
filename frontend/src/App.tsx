@@ -893,6 +893,40 @@ function VerificationBadge({
   );
 }
 
+export function HistoricalRelatedPanel({ postId, accessToken, knowledgeCutoff, onSelectPost }: {
+  postId: string;
+  accessToken: string;
+  knowledgeCutoff: string;
+  onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const openPost = (nextPostId: string) => onSelectPost?.(nextPostId, {
+    liveAfterCutoff: true,
+    knowledgeCutoff,
+  });
+  return (
+    <section className="popup-section">
+      <h3>{t("Related information")}</h3>
+      <p className="popup-placeholder">{t("Only relationships supported by this date appear here. Open a post to inspect its available history.")}</p>
+      <button type="button" className="keyman-select" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        {t("View related information")}
+      </button>
+      {open ? (
+        <SurfaceBoundary>
+          <OntologyExplorer
+            accessToken={accessToken}
+            focusNodeType={NODE_POST}
+            focusNodeId={postId}
+            knowledgeCutoff={knowledgeCutoff}
+            onSelectPost={openPost}
+            onOpenEvidence={openPost}
+          />
+        </SurfaceBoundary>
+      ) : null}
+    </section>
+  );
+}
+
 function KeymanPanel({
   postId,
   accessToken,
@@ -2813,7 +2847,10 @@ function PostDetailPopup({
               />
             </section>
 
-            {focusEventLineage && (
+            {focusEventLineage && knowledgeCutoff && (
+              <HistoricalRelatedPanel postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
+            )}
+            {focusEventLineage && !knowledgeCutoff && (
               <KeymanPanel
                 postId={postId}
                 accessToken={accessToken}
@@ -2876,7 +2913,10 @@ function PostDetailPopup({
               )}
             </section>
 
-            {!focusEventLineage && (
+            {!focusEventLineage && knowledgeCutoff && (
+              <HistoricalRelatedPanel postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
+            )}
+            {!focusEventLineage && !knowledgeCutoff && (
               <KeymanPanel
                 postId={postId}
                 accessToken={accessToken}
