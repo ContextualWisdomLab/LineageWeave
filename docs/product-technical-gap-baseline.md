@@ -29,7 +29,10 @@ The selected reader Gap is already implemented on #1177's exact head: an
 additional Voice with unavailable support retains its atomic label and truth
 state, omits the evidence action, and tells the reader to ask an administrator
 to check access. The current candidate passed 61 frontend test files (641
-tests), including its Voice regression. This remains candidate evidence:
+tests), including its Voice regression. Its synthetic Storybook
+unavailable-support state was rendered and inspected
+at 1440×900 and 390×844, with readable next-action copy and no horizontal
+overflow; screenshots remain outside git. This remains candidate evidence:
 authenticated PostgreSQL/API and rendered desktop/mobile customer-flow proof
 for cutoff, distinct carrying and derivation Posts, and paged JSON-LD are not
 complete. #1182 separately addresses an observed Board filter-query delay;
