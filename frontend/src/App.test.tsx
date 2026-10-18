@@ -2132,7 +2132,7 @@ describe("App, authenticated", () => {
       name: "View related information",
     }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("knowledge_cutoff=2026-01-12T12%3A00%3A00Z"),
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
       expect.anything(),
     ));
     await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", {
