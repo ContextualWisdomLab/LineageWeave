@@ -2147,6 +2147,26 @@ describe("App, authenticated", () => {
     ));
   }, 15000);
 
+  it("keeps the run cutoff for an unchanged post's related information", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post: Private post",
+    }));
+    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", {
+      name: "View related information",
+    }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
+      expect.anything(),
+    ));
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
+  }, 15000);
+
   it("keeps a post whose additional voice matches the board filter", async () => {
     stubBackend({ combinedVoices: true });
     render(<App />);

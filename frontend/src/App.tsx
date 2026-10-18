@@ -4715,7 +4715,7 @@ function PostList({
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
-          knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
+          knowledgeCutoff={openedCutoffIso}
           focusEventLineage={openedFromReportMember}
           leftoverFocus={openedLeftoverPair}
           onClose={closeSelectedPost}

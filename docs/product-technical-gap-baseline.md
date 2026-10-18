@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-19 KST
+
+The LineageWeave PRD and the current product/architecture authorities for
+TEPP, contextual-orchestrator, fast-mlsirm, RankWeave, ThreadWeave, and
+disksage were read before this pass. GitHub confirms the canonical repository
+names, including lowercase `disksage`. ADR 0246 supplies twelve atomic Voices;
+ADR 0256 governs evidence-bearing combinations and historical intervals.
+ADR 0251 is occupational semantic authority, not a Voice combination catalog.
+
+Remote `main` was `91c3e1c7411f56408e4ce61417479ace36ff40cb` and the
+pre-repair #1183 head was `93ab92a432da771a1eb6cd47f319ddb838c735e3`.
+GitHub listed 197 open PRs (168 drafts, 29 ready against `main`, 117 targeting
+another branch) and 43 open issues. #1183's exact-head review found that an
+unchanged Post opened from a historical run lost the cutoff before Related
+information loaded. The minimal correction passes the recorded cutoff
+independently of the live-body warning. A new synthetic regression asserts the
+cutoff on the ontology request for that unchanged Post and asserts that the
+current-only related endpoints receive no request. All 105 App tests, frontend
+lint, and the production build passed locally. This is candidate evidence;
+authenticated PostgreSQL/API and rendered customer-flow acceptance for Voice
+provenance, carrying versus evidence Posts, cutoff, and paged JSON-LD remain
+unproven on this head.
+
+#1183's four hosted jobs failed before any step ran. The Full test job had
+runner id zero; its exact-head annotation says the Actions account was locked
+for billing. Neither failure establishes a code-test result. There is no
+formal independent approval or auto-merge request. The current `main` ruleset
+only prohibits force pushes and classic branch protection returns 404, so
+the requested independent-approval and Checks contract is not enforced by
+GitHub. Normal merge remains ineligible under the requested governance.
+
+The correction adds no ADR policy, API, schema, migration, release identity,
+weight, or inference rule. #1177 and #1178 own adjacent Voice and ontology UI
+work; #1181 also edits this baseline. Their diffs need base reconciliation
+before integration. Issues #807, #1048, and #1056 still track PRD, migration
+ordinal, and release identity conflicts. No authenticated synthetic k6 run or
+PostgreSQL, worker, Valkey, and gateway saturation evidence was established;
+there is no observed bottleneck or population-inference claim.
+
 ## Exact-head cutoff navigation and delivery audit — 2026-10-19 KST
 
 The current LineageWeave PRD was read before this loop. Linked authorities were
