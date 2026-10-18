@@ -475,6 +475,18 @@ function OntologyGraph({
   onSelectNode: (node: OntologyGraphNodePayload) => void;
   onSelectEdge: (edge: OntologyGraphEdgePayload) => void;
 }) {
+  const parallelEdges = new Map<string, string[]>();
+  for (const edge of layout.edges) {
+    const endpoints = [
+      nodeKey({ node_type_code: edge.source_node_type_code, node_id: edge.source_node_id }),
+      nodeKey({ node_type_code: edge.target_node_type_code, node_id: edge.target_node_id }),
+    ].sort().join("|");
+    const siblings = parallelEdges.get(endpoints) ?? [];
+    siblings.push(edge.edge_id);
+    parallelEdges.set(endpoints, siblings);
+  }
+  for (const siblings of parallelEdges.values()) siblings.sort();
+
   return (
     <svg
       className="ontology-graph"
@@ -486,13 +498,20 @@ function OntologyGraph({
       {layout.edges.map((edge) => {
         const midX = (edge.fromX + edge.toX) / 2;
         const midY = (edge.fromY + edge.toY) / 2;
-        const labelY = midY + Math.sign(edge.toY - edge.fromY) * 28 - 18;
+        const endpoints = [
+          nodeKey({ node_type_code: edge.source_node_type_code, node_id: edge.source_node_id }),
+          nodeKey({ node_type_code: edge.target_node_type_code, node_id: edge.target_node_id }),
+        ].sort().join("|");
+        const siblings = parallelEdges.get(endpoints) ?? [edge.edge_id];
+        const offset = (siblings.indexOf(edge.edge_id) - (siblings.length - 1) / 2) * 40;
+        const curveMidY = midY + offset * 0.75;
+        const labelY = curveMidY + Math.sign(edge.toY - edge.fromY) * 28 - 18;
         const selected = edge.edge_id === selectedEdgeId;
         return (
           <g key={edge.edge_id}>
             <path
               className={selected ? "ontology-edge ontology-edge-selected" : "ontology-edge"}
-              d={`M ${edge.fromX} ${edge.fromY} C ${midX} ${edge.fromY}, ${midX} ${edge.toY}, ${edge.toX} ${edge.toY}`}
+              d={`M ${edge.fromX} ${edge.fromY} C ${midX} ${edge.fromY + offset}, ${midX} ${edge.toY + offset}, ${edge.toX} ${edge.toY}`}
             />
             <text
               className="ontology-edge-label"
@@ -505,7 +524,7 @@ function OntologyGraph({
             <circle
               className="ontology-edge-hit"
               cx={midX}
-              cy={midY}
+              cy={curveMidY}
               r={14}
               role="button"
               tabIndex={0}

@@ -1,5 +1,59 @@
 # Product & Technical Gap Baseline
 
+## Exact-head reader audit — 2026-10-18 20:39 KST
+
+The current LineageWeave PRD was read before this continuation, followed by
+the protected product or architecture authorities in TEPP, ThreadWeave,
+RankWeave, contextual-orchestrator, and disksage. GitHub confirms the canonical
+remote spelling `ContextualWisdomLab/disksage`; `DiskSage` is its product name.
+ADRs 0246 and 0256 govern the twelve atomic, extensible Voices and their
+evidence-bearing combinations. ADR 0251 governs the separate occupational
+semantic layer. Those authorities supply no fixed Voice combination list,
+calibrated weight, or population estimate.
+
+Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the
+confirmed merge commit of documentation PR #1179. The fresh inventory has
+194 open PRs (168 drafts, 26 ready against `main`, 117 stacked) and 43 open
+issues. Before this update, reader PR #1178 was at
+`dfd258dfacb165f053b69ecaf01af8d244b9b42c`; Voice-support PR #1177
+was at `e810f96707558eea4a3077519f88c894357d444d`. These are workflow
+counts, not product usage or population data. The current `main` ruleset has
+only `non_fast_forward`; classic branch protection returns 404. Neither
+successful Checks nor independent approval is enforced. #1178 has no inline
+review comment or independent formal approval. Its four test/analysis jobs
+failed with zero executed steps on that head, so they establish no code-test
+result. Normal merge and auto-merge remain unsafe under this live policy;
+neither was requested. #1177's automated repository-name privacy comment
+misreads ADR 0001, which prohibits identifiable source records, not public
+repository names.
+
+The selected reader gap remains #1178's directly reproduced supplied-page to
+live-refocus continuation. Its minimal code path permits a reader to fetch the
+next authorized relation page after refocus while a static supplied page stays
+bounded. The focused frontend run passed 53 tests across three files; lint,
+the production build, and six documentation checks passed. Synthetic
+Storybook rendering was inspected at
+1440×900 and 390×844 after a browser-mocked first and second relation page:
+both exact-value rows were readable, and mobile kept the wide table within
+its horizontal scroll area. The first screenshot exposed overlapping graphic
+labels when two relation types share endpoints. The same candidate now gives
+those parallel paths and labels separate positions, with a regression that
+keeps both relation actions selectable; the rendered scene was captured again
+at both widths. Screenshots and the synthetic browser response remain outside
+git. This is local UI evidence for the two-relation case, not authenticated
+PostgreSQL/API or protected-main acceptance.
+
+#1178 and #1162 both edit the ontology reader; #1177 edits the separate Voice
+support flow. Their changes require integration review on a shared exact
+head. The selected diffs introduce no competing migration, schema, API, ADR,
+or release number. The wider PRD requirement-ID, migration-ordinal, and
+release-identity conflicts remain open in #807, #1048, and #1056.
+The `lineageweave` Compose stack has nine running services, but no
+operator-owned access-token file was supplied in this session. Authenticated
+synthetic k6 concurrency, latency, error, throughput, and PostgreSQL/worker/
+Valkey/gateway saturation therefore remain unmeasured. No bottleneck repair
+or population inference is claimed.
+
 ## Delivery-control and reader recheck — 2026-10-18 10:27 UTC
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the merge

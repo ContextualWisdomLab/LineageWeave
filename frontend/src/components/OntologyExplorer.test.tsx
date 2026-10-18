@@ -1003,6 +1003,33 @@ describe("OntologyExplorer", () => {
     expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
   });
 
+  it("keeps two relations between the same nodes separately readable and selectable", async () => {
+    const firstPage = neighborhood();
+    const otherRelation = {
+      ...firstPage.edges[1],
+      edge_id: "related:person-corp",
+      property_code: "relatedTo",
+      property_label: "related to",
+    };
+    render(<OntologyExplorer
+      focusNodeType="node_post"
+      focusNodeId={POST_ID}
+      neighborhood={{ ...firstPage, edges: [...firstPage.edges, otherRelation] }}
+    />);
+
+    const graph = document.querySelector(".ontology-graph") as SVGElement;
+    const labels = [...graph.querySelectorAll(".ontology-edge-label")];
+    const parallelLabels = labels.filter((label) =>
+      label.textContent?.includes("affiliated with") || label.textContent?.includes("related to"),
+    );
+    expect(parallelLabels).toHaveLength(2);
+    expect(parallelLabels[0].getAttribute("y")).not.toBe(parallelLabels[1].getAttribute("y"));
+    const paths = [...graph.querySelectorAll(".ontology-edge")];
+    expect(paths[1].getAttribute("d")).not.toBe(paths[2].getAttribute("d"));
+    await userEvent.click(screen.getByRole("button", { name: /Select edge: related to/ }));
+    expect(screen.getByRole("heading", { name: "related to" })).toBeInTheDocument();
+  });
+
   it("keeps JSON-LD aligned with the filtered graph", () => {
     const filtered = filterNeighborhood(
       neighborhood({
