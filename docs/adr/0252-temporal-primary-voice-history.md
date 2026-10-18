@@ -6,11 +6,12 @@ Accepted (2026-08-27). Extends ADR 0256 and closes issue #748.
 
 ## Context
 
-ADR 0256 records when a Voice assignment starts, but migration 0237 deletes
-the former imported primary when `source_post.voc_type_code` changes. The live
-value is honest, yet an authorized knowledge-cutoff read after that update can
-no longer recover the primary that was effective at the cutoff. The existing
-`(post_id, voice_type_code)` key also cannot represent A → B → A.
+ADR 0256 records when a Voice assignment starts. Migration 0237 now closes
+the former imported primary by setting `effective_to` when
+`source_post.voc_type_code` changes, retaining that row in `source_post_voice`.
+The original deletion behavior prevented an authorized knowledge-cutoff read
+from recovering the primary effective at the cutoff. The original
+`(post_id, voice_type_code)` key also could not represent A → B → A.
 
 OWL-Time distinguishes instants from intervals and gives an interval explicit
 beginning and end bounds. PostgreSQL range types and exclusion constraints are
