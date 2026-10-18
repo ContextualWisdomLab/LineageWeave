@@ -1,5 +1,51 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-18 15:56 KST
+
+The current supporting PRD and the linked product authorities were read before
+the PR review. GitHub confirms the canonical repository names
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`,
+`contextual-orchestrator`, and lowercase `disksage`. ADR 0246 governs the
+twelve atomic Voice codes and ADR 0256 governs evidence-bearing combinations;
+ADR 0251 governs a separate occupational semantic layer. None supplies a
+fixed combination vocabulary, calibrated weight, or population estimate.
+
+Remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub reports 195 open PRs (168 drafts, 27 ready against `main`) and 43 open
+issues. The exact heads are documentation #1179
+`ad284c0076cc53eaf97a2ba3392d13babb0af04f`, Voice reader #1177
+`e810f96707558eea4a3077519f88c894357d444d`, and relation continuation
+#1178 `cc467459a92a0f4f9ebbc5adb42311552c98d39e`. All three have four
+terminal failed hosted jobs and no formal independent approval or auto-merge.
+The #1179 Full test job ran zero steps; its exact-head annotation says the
+Actions account is locked for billing. CodeRabbit's #1177 comment treats
+public repository names as private source records; ADR 0001 does not support
+that reading. The thread is resolved. #1178 and #1179 have no inline review
+comments. The active `main` ruleset only prohibits force pushes and classic
+branch protection returns 404. Therefore successful Checks and independent
+approval are not currently enforced, and arming auto-merge could merge without
+them. No protected merge is claimed.
+
+The selected reader gap has a minimal candidate in #1177: an unavailable
+additional-Voice derivation leaves the recorded Voice and truth state visible,
+withholds its evidence action, and gives the reader an access-check next
+action. Its three focused frontend regressions passed again on the unchanged
+head. Synthetic Storybook screenshots at 1440×900 and 390×844 were visually
+inspected: the next action remains readable and the mobile text wraps. Six
+documentation-hygiene tests passed on #1179's pre-update head. This remains
+candidate evidence; authenticated PostgreSQL/API plus rendered customer-flow
+acceptance, including cutoff, distinct carrying/evidence Posts, and paged
+JSON-LD, is not complete. #1177, #1178, and #1179 overlap this baseline but
+introduce no competing ADR, API, schema, migration ordinal, or release
+identity. Open issues #807, #1048, and #1056 separately track the existing
+PRD, migration-identity, and release-identity conflicts.
+
+The canonical `lineageweave` Compose services are running. No new
+authenticated synthetic k6 run or saturation evidence was established in this
+review, so there is no observed bottleneck to repair or capacity claim to
+make. These repository counts are workflow aggregates, not a sample of
+customer records or a basis for population inference.
+
 ## Exact-head continuation — 2026-10-18 14:53 KST
 
 The supporting LineageWeave PRD, ADRs 0246/0251/0256, and current product or
