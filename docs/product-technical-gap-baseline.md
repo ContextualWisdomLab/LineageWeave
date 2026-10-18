@@ -1,5 +1,32 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-19 01:32 KST
+
+The current LineageWeave PRD, linked TEPP, ThreadWeave, and fast-mlsirm
+PRDs, and RankWeave, lowercase `disksage`, and contextual-orchestrator
+product/architecture authorities were read before the loop. The remote
+organization confirmed their canonical repository case. Protected `main`
+is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the merge SHA of #1179.
+The current queue has 196 open PRs and 43 open issues. These are workflow
+counts, not a sample of customer records.
+
+| Evidence authority | Current observation | Limit |
+| --- | --- | --- |
+| Accepted ADR and cited research | ADR 0246 defines twelve atomic Voices; ADR 0256 defines open-ended, evidence-bearing composition and cutoff history; ADR 0251 governs a separate occupational semantic layer. ADR 0212 governs one authorized Board filter query and is amended on candidate #1182. | No cited source supplies fixed Voice combinations, arbitrary weights, or a population estimator. |
+| Protected implementation | `main` has the authorized Voice write and ontology export paths. Three authenticated PostgreSQL/API tests passed for a distinct carrying and derivation Post and for hidden evidence. | These focused results do not prove a rendered Voice journey, cutoff behavior, or paged JSON-LD acceptance on current `main`. |
+| Current runtime aggregate | The canonical `lineageweave` stack has nine running services and 43,189 aggregate source Posts. Authenticated synthetic-workload k6 completed 322 requests at 4 VUs and 379 requests at up to 12 VUs, with zero HTTP failures. Throughput was 15.58 and 17.81 requests/s; p95 request latency was 906 ms and 2.38 s, respectively. At the higher load, sampled PostgreSQL CPU was about 406%, while backend, worker, Valkey, and gateway were about 9%, 0.4%, 3%, and 0.01%. | The running image was not tied to this candidate head. No production SLO, population inference, or candidate-wide performance gain follows. |
+| Observed Board bottleneck and owned repair | An authorized Board read took about 936 ms versus about 67 ms for Lineage. The current filter-option query took 226–238 ms in three direct database observations. Candidate #1182 reused one scoped Post set and returned identical option codes and labels in 92–144 ms in three local observations. | #1168 owns the separate excerpt repair. Candidate #1182 needs exact-head hosted and deployed-image verification before any end-to-end speed claim. |
+| Open PR and issue delivery | #1177 is `f950e5922e1c1d65989c9c571df247e51963d5f0`, #1178 is `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, #1182 is `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, and this baseline #1181 was `e4175ac8b2944dcab76a94b0afc8c04e5c3163a3` before this edit. Each had four failed hosted jobs and no independent approval. #1181 has one unresolved delivery-gate review thread. Issues #807, #1048, and #1056 remain open. | The only active ruleset requires no force pushes; it requires neither successful checks nor independent review. Auto-merge could merge immediately, so it remains unset. The failure rollups are not test assertion evidence. |
+
+#1177 remains the owner of the unavailable-support reader action, and #1178
+owns relation-page continuation. #1182 changes ADR 0212 and the Board query
+but introduces no API, schema, migration ordinal, release number, or Voice
+combination code. Its backend edits merge cleanly with #1168; the existing
+baseline conflict between #1168 and `main` must be reconciled by that owner.
+The largest remaining Voice acceptance gap is still authenticated rendered
+desktop/mobile evidence plus PostgreSQL/API cutoff and paged JSON-LD proof.
+No real record, credential, or identifying runtime value is retained here.
+
 ## Exact-head continuation — 2026-10-19 00:11 KST
 
 The current LineageWeave PRD and the linked TEPP, ThreadWeave, and
