@@ -1,5 +1,50 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-18 14:53 KST
+
+The supporting LineageWeave PRD, ADRs 0246/0251/0256, and current product or
+architecture authorities in ThreadWeave, RankWeave, TEPP, fast-mlsirm,
+contextual-orchestrator, and disksage were read before this review. GitHub
+confirms those repository names, including lowercase `disksage`. Research
+anchors in the ADRs govern their stated semantic scope; neither the PRD nor
+an open PR establishes a calibrated weight or completed measurement.
+
+Remote `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`. The queue
+has 195 open PRs (168 drafts, 27 ready against `main`) and 43 open issues.
+These are repository aggregates, not customer-record or population estimates.
+Before this edit, documentation PR #1179 was open at
+`691dceac7b19cf59ebf839f6d421ec03ee69099e`; #1177 and #1178 remain
+open at `e810f96707558eea4a3077519f88c894357d444d` and
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`. The three are based on
+the same `main`. Their four hosted jobs per head are terminal failures, and
+none has a formal independent approval. #1177's single review thread is
+resolved; #1178 and #1179 have none. The #1179 Full test job ran zero steps,
+and its exact-head annotation says the Actions account is locked for billing.
+The active default-branch ruleset contains only `non_fast_forward`, while
+classic protection returns 404. It cannot enforce the product's required
+independent approval and successful Checks; no merge or auto-merge was armed.
+
+The largest selected reader gap remains #1177's unavailable Voice-support
+action. Its minimal candidate preserves the atomic Voice and truth state,
+withholds a missing evidence action, and tells the reader to ask an
+administrator. Three focused frontend regressions passed again on that exact
+head. Its synthetic 1440×900 and 390×844 rendered screenshots were inspected:
+the action is visible and the mobile text wraps. Six documentation-hygiene
+tests passed in #1179's checkout. These local results do not establish the
+complete authenticated PostgreSQL/API and customer UI acceptance for
+multi-Voice cutoff, carrying Post versus derivation evidence, or paged JSON-LD.
+#1178 owns relation-page continuation separately. The three candidate diffs
+share this baseline document but introduce no competing ADR, API, schema,
+migration ordinal, or release identity; their baseline edits need
+reconciliation on integration. Existing issues #807, #1048, and #1056 track
+the wider PRD, migration-identity, and release-identity conflicts.
+
+The canonical `lineageweave` services are running. No authenticated synthetic
+k6 token was available in this continuation, so current-head latency,
+concurrency, error, throughput, and PostgreSQL/worker/Valkey/gateway
+saturation remain unmeasured. No bottleneck repair, accepted measurement,
+population inference, or protected merge is claimed.
+
 ## Exact-head continuation — 2026-10-18 13:47 KST
 
 The current supporting LineageWeave PRD and the linked product authorities
