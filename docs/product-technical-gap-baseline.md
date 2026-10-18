@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-18 18:08 KST
+## Exact-head continuation — 2026-10-18 21:50 KST
 
 The current LineageWeave PRD was read before this pass. The linked product
 authorities were checked at their owned repositories; the remote repository
@@ -13,37 +13,46 @@ The local `disksage` checkout contains a PRD candidate, but protected
 `main` does not contain that path; its protected product authority remains
 the README. Research cited in those ADRs supports only their stated scope.
 
-At the pre-update read, remote `main` was
-`c06911c01cc165fd0b20acb249503342c3c4685f`. GitHub listed 195 open
-PRs (168 drafts, 27 ready against `main`) and 43 open issues. The selected
-open heads were #1177 `e810f96707558eea4a3077519f88c894357d444d`,
-#1178 `cc467459a92a0f4f9ebbc5adb42311552c98d39e`, and this baseline's
-#1179 `0ea48098cad86d060956db3730994ec111ba3636`. None had an independent
-formal approval or an auto-merge request. Each had four terminal failed
-hosted jobs on its head. A #1179 Full test job had zero steps and its
-annotation said the account was locked for billing; this is an external
-Checks failure, not evidence that the tests ran. #1179 had no formal review
-or inline comments. The active default-branch ruleset prohibited force
-pushes only, and classic branch protection returned 404. It did not enforce
-independent approval or successful Checks, so no normal protected merge or
-auto-merge was attempted. Issue #807 tracks PRD conflicts, #1048 migration
-ordinal identity, and #1056 release identity; all three remained open.
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the
+confirmed merge SHA of #1179. Its recorded completion is a merge fact, not
+proof that independent review or hosted tests passed. GitHub now lists 194
+open PRs (168 drafts, 26 ready against `main`) and 43 open issues. The selected
+open heads are Voice reader #1177
+`f950e5922e1c1d65989c9c571df247e51963d5f0` and relation continuation
+#1178 `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`. Neither has a formal
+independent approval or auto-merge request. Each has four terminal failed
+hosted jobs on its own head. The #1177 Full test job ran zero steps; its
+exact-head annotation says the Actions account is locked for billing, so it
+provides no test result. The #1178 static-page review finding was addressed
+in its current code; the remaining repository-name privacy suggestion
+misreads ADR 0001's source-record boundary. #1177's repository-name finding
+has the same problem. The active `main` ruleset prohibits force pushes only,
+and classic branch protection returns 404. It does not enforce independent
+approval or successful Checks; an auto-merge request could merge immediately,
+so neither candidate was armed. Issues #807, #1048, and #1056 remain open.
 
-The largest selected reader gap remains the unavailable Voice-support action
-owned by #1177. Its candidate keeps the atomic Voice and truth state visible,
-shows an access-check next action, and exposes the evidence action only when
-an additional Voice has derivation evidence. The change has a focused
-regression test and synthetic Storybook states. #1178 owns relation-page
-continuation separately; #1179 changes only this baseline. Their feature
-diffs add no competing API, schema, migration, release number, or fixed
-combination vocabulary. Baseline edits overlap and need reconciliation when
-integrated. This is candidate implementation, not protected product
+The selected reader gap remains the unavailable Voice-support action owned
+by #1177. Its minimal candidate keeps the atomic Voice and truth state
+visible, gives an administrator access-check next action, and exposes the
+evidence action only when an additional Voice has a derivation reference.
+Seven focused frontend tests, lint, and a production build pass on that
+head. Synthetic desktop and mobile Storybook captures were visually inspected:
+the next action is readable, wraps on the narrow viewport, and offers no
+evidence button when support is unavailable. #1178
+owns relation-page continuation separately. Neither feature diff introduces
+a competing API, schema, migration, release number, or fixed combination
+vocabulary; their baseline edits overlap and need reconciliation on
+integration. This is candidate implementation, not protected product
 acceptance: authenticated PostgreSQL/API proof, rendered customer-flow proof
 for carrying versus evidence Posts and cutoff, and paged JSON-LD acceptance
-remain outstanding.
+remain outstanding. ADR 0251 governs occupational semantics; it cannot be
+used to infer a Voice combination. #1176 has merged, while the separate
+migration-ordinal and release-identity conflicts remain open under #1048 and
+#1056.
 
 The canonical `lineageweave` Compose project reported nine running services.
-No authenticated synthetic k6 capacity run or PostgreSQL, worker, Valkey,
+The k6 harness is present, but no authorized synthetic token file was
+available for this pass. No authenticated synthetic k6 capacity run or PostgreSQL, worker, Valkey,
 and gateway saturation observation was established in this pass. No
 capacity, bottleneck fix, calibrated measurement, or population inference is
 claimed. Counts here describe repository workflow state only.
