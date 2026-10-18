@@ -1,12 +1,13 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-19 02:40 KST
+## Exact-head continuation — 2026-10-19 03:47 KST
 
 The supporting LineageWeave PRD and the linked ecosystem product or
 architecture authorities were read before this pass. GitHub confirmed the
 canonical repository names, including lowercase `disksage`. Accepted ADR 0246
 governs twelve atomic Voices, ADR 0256 governs evidence-bearing, extensible
-combinations and cutoff history, and ADR 0251 governs occupational semantics.
+combinations, ADR 0252 governs imported-primary cutoff history, and ADR 0251
+governs occupational semantics.
 The cited research supplies no fixed Voice combination, local weight, or
 population estimate.
 
@@ -16,7 +17,7 @@ as #1179's merge SHA. GitHub lists 196 open PRs (168 drafts, 28 ready against
 `06d64a96442ba61aec35216e1ce295629035b462`, #1178
 `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, #1182
 `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, and this documentation
-PR #1181 `f81f665285d6ab948589de63549f5a915323da9f` before this edit.
+PR #1181 `81383b03677a6b04284cc0c1a39df9d70ea36087` before this edit.
 The four hosted jobs on each selected head are terminal failures, none has a
 formal independent approval or auto-merge request, and #1181 has one unresolved
 delivery-gate review thread. A #1177 Full test job had no runner or steps; its
@@ -25,14 +26,18 @@ The active default-branch ruleset only prevents force pushes; classic branch
 protection is absent. It cannot enforce successful Checks or independent
 approval, so normal protected auto-merge remains unavailable.
 
-The selected reader Gap is already implemented on #1177's exact head: an
+The selected reader Gap is implemented as a candidate on #1177's exact head: an
 additional Voice with unavailable support retains its atomic label and truth
 state, omits the evidence action, and tells the reader to ask an administrator
 to check access. The current candidate passed 61 frontend test files (641
 tests), including its Voice regression. Its synthetic Storybook
 unavailable-support state was rendered and inspected
 at 1440×900 and 390×844, with readable next-action copy and no horizontal
-overflow; screenshots remain outside git. This remains candidate evidence:
+overflow; screenshots remain outside git. A fresh exact-head check passed 48
+focused Python tests, four Voice frontend tests, lint, and the production build.
+The unavailable-support Storybook state was rendered again at both viewport
+sizes; its next action remains legible and no evidence button appears. These
+synthetic screenshots remain outside git. This remains candidate evidence:
 authenticated PostgreSQL/API and rendered desktop/mobile customer-flow proof
 for cutoff, distinct carrying and derivation Posts, and paged JSON-LD are not
 complete. #1182 separately addresses an observed Board filter-query delay;
