@@ -533,6 +533,30 @@ export class BackendError extends Error {
   }
 }
 
+/** A bounded, deliberately user-facing message produced by the client itself
+ * (not by an HTTP response). Callers may render `.message`; arbitrary
+ * exception text must never be shown. */
+export class UserFacingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UserFacingError";
+  }
+}
+
+/** The safe, user-presentable message for an error, or null when the error is
+ * an arbitrary exception whose text must be replaced by a call-site fallback. */
+export function userFacingMessage(err: unknown): string | null {
+  if (err instanceof UserFacingError ||
+      (err instanceof BackendError && (err.status === 0 || err.status >= 500))) {
+    return err.message;
+  }
+  return null;
+}
+
+function pathSegment(value: string): string {
+  return encodeURIComponent(value);
+}
+
 export function fetchProjectHistory(
   accessToken: string,
   projectKey: string,
@@ -577,7 +601,11 @@ async function backendFetch<T>(
     }
     throw new BackendError(path, response.status, detail);
   }
-  return response.json() as Promise<T>;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new BackendError(path, 502);
+  }
 }
 
 export interface LineageGraphNode {
@@ -815,7 +843,7 @@ export function fetchPost(
   asOf?: string,
 ): Promise<PostDetail> {
   const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
-  return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
+  return backendFetch<PostDetail>(`/api/posts/${pathSegment(postId)}${query}`, accessToken);
 }
 
 export function createPostVoiceAssignment(
@@ -824,7 +852,7 @@ export function createPostVoiceAssignment(
   voiceTypeCode: string,
   truthStatusCode: string,
 ): Promise<PostVoiceType> {
-  return backendFetch(`/api/posts/${postId}/voice-assignments`, accessToken, {
+  return backendFetch(`/api/posts/${pathSegment(postId)}/voice-assignments`, accessToken, {
     method: "POST",
     body: JSON.stringify({
       voice_type_code: voiceTypeCode,
@@ -835,7 +863,7 @@ export function createPostVoiceAssignment(
 }
 
 export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {
-  return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
+  return backendFetch<PostContentResponse>(`/api/posts/${pathSegment(postId)}/content`, accessToken);
 }
 
 export interface PostBookmark {
@@ -844,7 +872,7 @@ export interface PostBookmark {
 }
 
 export function fetchPostBookmark(accessToken: string, postId: string): Promise<PostBookmark> {
-  return backendFetch(`/api/posts/${postId}/bookmark`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/bookmark`, accessToken);
 }
 
 export function setPostBookmark(
@@ -852,7 +880,7 @@ export function setPostBookmark(
   postId: string,
   bookmarked: boolean,
 ): Promise<PostBookmark> {
-  return backendFetch(`/api/posts/${postId}/bookmark`, accessToken, {
+  return backendFetch(`/api/posts/${pathSegment(postId)}/bookmark`, accessToken, {
     method: "POST",
     body: JSON.stringify({ bookmarked }),
   });
@@ -862,25 +890,25 @@ export function fetchPostKeymen(
   accessToken: string,
   postId: string,
 ): Promise<{ keymen: Keyman[]; source_author_context?: SourceAuthorContext | null }> {
-  return backendFetch(`/api/posts/${postId}/keymen`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/keymen`, accessToken);
 }
 
 export function fetchPostCounterparties(
   accessToken: string,
   postId: string,
 ): Promise<{ counterparties: Counterparty[] }> {
-  return backendFetch(`/api/posts/${postId}/counterparties`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/counterparties`, accessToken);
 }
 
 export function fetchPostAffiliateTree(
   accessToken: string,
   postId: string,
 ): Promise<{ trees: AffiliateNode[] }> {
-  return backendFetch(`/api/posts/${postId}/affiliate-tree`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/affiliate-tree`, accessToken);
 }
 
 export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
-  return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/voc-evidence`, accessToken);
 }
 
 export interface SimilarVocItem {
@@ -900,7 +928,7 @@ export function fetchSimilarVoc(
   offset = 0,
 ): Promise<{ items: SimilarVocItem[]; next_offset: number | null }> {
   const query = offset ? `?offset=${offset}` : "";
-  return backendFetch(`/api/posts/${postId}/similar-voc${query}`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/similar-voc${query}`, accessToken);
 }
 
 export interface PersonRoleHistoryEntry {
@@ -921,21 +949,21 @@ export function fetchRelatedKeymen(
   related: RelatedNode[];
   role_history?: PersonRoleHistoryEntry[];
 }> {
-  return backendFetch(`/api/keymen/${personId}/related`, accessToken);
+  return backendFetch(`/api/keymen/${pathSegment(personId)}/related`, accessToken);
 }
 
 export function fetchRelatedEntity(
   accessToken: string,
   entityId: string,
 ): Promise<{ corporate_entity_id: string; entity_name: string; related: RelatedNode[] }> {
-  return backendFetch(`/api/corporate-entities/${entityId}/related`, accessToken);
+  return backendFetch(`/api/corporate-entities/${pathSegment(entityId)}/related`, accessToken);
 }
 
 export function fetchRelatedTeam(
   accessToken: string,
   teamId: string,
 ): Promise<{ team_id: string; team_name: string; related: RelatedNode[] }> {
-  return backendFetch(`/api/teams/${teamId}/related`, accessToken);
+  return backendFetch(`/api/teams/${pathSegment(teamId)}/related`, accessToken);
 }
 
 export interface OntologyGraphNodePayload {
@@ -1086,7 +1114,7 @@ export function fetchWorkerFunctionProfile(
   domain: string,
   rank: number,
 ): Promise<WorkerFunctionProfilePayload> {
-  return backendFetch(`/api/ontology/worker-functions/${domain}/${rank}`, accessToken);
+  return backendFetch(`/api/ontology/worker-functions/${pathSegment(domain)}/${rank}`, accessToken);
 }
 
 export function fetchWorkerFunctionConstructCatalog(
@@ -1138,7 +1166,7 @@ export function extractPostKeymen(
   accessToken: string,
   postId: string,
 ): Promise<{ extracted_count: number }> {
-  return backendFetch(`/api/posts/${postId}/extract-keymen`, accessToken, { method: "POST" });
+  return backendFetch(`/api/posts/${pathSegment(postId)}/extract-keymen`, accessToken, { method: "POST" });
 }
 
 export interface VerifiedRelation {
@@ -1152,7 +1180,7 @@ export function verifyPostRelations(
   accessToken: string,
   postId: string,
 ): Promise<{ verified: VerifiedRelation[] }> {
-  return backendFetch(`/api/posts/${postId}/verify-relations`, accessToken, { method: "POST" });
+  return backendFetch(`/api/posts/${pathSegment(postId)}/verify-relations`, accessToken, { method: "POST" });
 }
 
 export interface EvaluationResponse {
@@ -1169,11 +1197,11 @@ export interface PostEvaluation {
 }
 
 export function fetchPostEvaluation(accessToken: string, postId: string): Promise<PostEvaluation> {
-  return backendFetch(`/api/posts/${postId}/evaluation`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/evaluation`, accessToken);
 }
 
 export function evaluatePost(accessToken: string, postId: string): Promise<PostEvaluation> {
-  return backendFetch(`/api/posts/${postId}/evaluate`, accessToken, { method: "POST" });
+  return backendFetch(`/api/posts/${pathSegment(postId)}/evaluate`, accessToken, { method: "POST" });
 }
 
 export interface ReportMember {
@@ -1320,23 +1348,23 @@ export function rebuildPeriodReports(
 }
 
 export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {
-  return backendFetch(`/api/posts/${postId}/summary`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/summary`, accessToken);
 }
 
 export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<PostFiveW1H> {
-  return backendFetch(`/api/posts/${postId}/five-w1h`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/five-w1h`, accessToken);
 }
 
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
-  return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/lineage`, accessToken);
 }
 
 export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {
-  return backendFetch(`/api/posts/${postId}/chat`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/chat`, accessToken);
 }
 
 export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {
-  return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
+  return backendFetch(`/api/posts/${pathSegment(postId)}/chat`, accessToken, {
     method: "POST",
     body: JSON.stringify({ question }),
   });
@@ -1399,17 +1427,17 @@ export async function askAgent(
       return job.answer;
     }
     if (job.job_status_code === "failed") {
-      throw new Error(job.failure_detail || "Ask Agent could not answer this question.");
+      throw new UserFacingError("The request could not be completed. Try again later.");
     }
     if (Date.now() > deadline) {
-      throw new Error("Ask Agent timed out waiting for an answer. Try again.");
+      throw new UserFacingError("Ask Agent timed out waiting for an answer. Try again.");
     }
     await new Promise((resolve) => setTimeout(resolve, ASK_POLL_INTERVAL_MS));
   }
 }
 
 export function fetchPostTickets(accessToken: string, postId: string): Promise<{ tickets: IssueTicket[] }> {
-  return backendFetch(`/api/posts/${postId}/tickets`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/tickets`, accessToken);
 }
 
 export function createPostTicket(
@@ -1419,7 +1447,7 @@ export function createPostTicket(
   ticketStatusCode: string,
   dueDate?: string,
 ): Promise<IssueTicket> {
-  return backendFetch(`/api/posts/${postId}/tickets`, accessToken, {
+  return backendFetch(`/api/posts/${pathSegment(postId)}/tickets`, accessToken, {
     method: "POST",
     body: JSON.stringify({
       ticket_title: ticketTitle,
@@ -1434,7 +1462,7 @@ export function updateTicketStatus(
   issueTicketId: string,
   ticketStatusCode: string,
 ): Promise<IssueTicket> {
-  return backendFetch(`/api/tickets/${issueTicketId}`, accessToken, {
+  return backendFetch(`/api/tickets/${pathSegment(issueTicketId)}`, accessToken, {
     method: "PATCH",
     body: JSON.stringify({ ticket_status_code: ticketStatusCode }),
   });
@@ -1543,11 +1571,11 @@ export function fetchPostActivity(
   accessToken: string,
   postId: string,
 ): Promise<{ events: ActivityEvent[] }> {
-  return backendFetch(`/api/posts/${postId}/activity`, accessToken);
+  return backendFetch(`/api/posts/${pathSegment(postId)}/activity`, accessToken);
 }
 
 export function deriveCommitment(accessToken: string, postId: string): Promise<DerivedCommitment> {
-  return backendFetch(`/api/posts/${postId}/derive-commitment`, accessToken, { method: "POST" });
+  return backendFetch(`/api/posts/${pathSegment(postId)}/derive-commitment`, accessToken, { method: "POST" });
 }
 
 export function fetchCalendar(accessToken: string): Promise<CalendarResponse> {
@@ -1643,7 +1671,7 @@ export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs:
 }
 
 export function fetchAnalysisRun(accessToken: string, analysisRunId: string): Promise<AnalysisRun> {
-  return backendFetch(`/api/analysis-runs/${analysisRunId}`, accessToken);
+  return backendFetch(`/api/analysis-runs/${pathSegment(analysisRunId)}`, accessToken);
 }
 
 export interface CreateAnalysisRunRequest {
@@ -1668,7 +1696,7 @@ export function startAnalysisRun(
   accessToken: string,
   analysisRunId: string,
 ): Promise<AnalysisRun> {
-  return backendFetch(`/api/analysis-runs/${analysisRunId}/start`, accessToken, {
+  return backendFetch(`/api/analysis-runs/${pathSegment(analysisRunId)}/start`, accessToken, {
     method: "POST",
   });
 }

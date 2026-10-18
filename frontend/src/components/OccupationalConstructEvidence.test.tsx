@@ -60,4 +60,14 @@ describe("OccupationalConstructEvidence", () => {
     render(<OccupationalConstructEvidence status="unavailable" assertions={[]} />);
     expect(screen.getByRole("status")).toHaveTextContent("관리자에게 기록 분석 재시도를 요청하세요");
   });
+
+  it("does not turn an unsafe catalog IRI into a link", () => {
+    render(
+      <OccupationalConstructEvidence
+        status="complete"
+        assertions={[{ ...ASSERTION, construct_iri: "javascript:alert(1)" }]}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Open catalog definition" })).not.toBeInTheDocument();
+  });
 });

@@ -148,8 +148,8 @@ export function AskEvidenceLayerPopup({
           <section className="popup-section">
             <h3 id={imagesHeadingId}>{t("Image evidence")}</h3>
             <ul className="post-evidence-list" aria-labelledby={`${headingId} ${imagesHeadingId}`}>
-              {images.map((image) => (
-                <li key={image.unit_index}>
+                {images.map((image, imageIndex) => (
+                <li key={`${image.unit_index}:${image.caption ?? ""}:${imageIndex}`}>
                   <span>{image.caption?.trim() ? image.caption : t("Untitled image")}</span>
                   {image.extracted_text ? <span> · {image.extracted_text}</span> : null}
                   {image.tags.length ? <span> · {t("Image tags")}: {image.tags.join(", ")}</span> : null}
