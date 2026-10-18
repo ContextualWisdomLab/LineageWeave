@@ -364,6 +364,44 @@ throughput, and PostgreSQL/worker/Valkey/gateway saturation remain
 unavailable. No bottleneck or population claim follows from diagnostic
 convenience data.
 
+### Exact-head continuation — 2026-10-18 KST
+
+The current supporting LineageWeave PRD and the available product or
+architecture documents of RankWeave, ThreadWeave, `disksage`, TEPP,
+fast-mlsirm, and contextual-orchestrator were read before this pass. Remote
+repository metadata confirmed the canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `disksage`, `TEPP`, `fast-mlsirm`, and
+`contextual-orchestrator` spellings. ADRs remain normative. The remote
+`main` is `c06911c01cc165fd0b20acb249503342c3c4685f`; the open queue
+contains 195 PRs (168 drafts, 78 with base `main`) and 43 issues. These are
+workflow counts, not customer measurements or population estimates.
+
+| Candidate | Exact head and review | Delivery and ownership |
+| --- | --- | --- |
+| #1177, unavailable Voice support action | `e810f96707558eea4a3077519f88c894357d444d`; no independent approval or unresolved review threads | Three synthetic component regressions cover the bounded next action; four hosted jobs failed. It remains an open candidate. |
+| #1178, ontology relation continuation | `cc467459a92a0f4f9ebbc5adb42311552c98d39e`; no independent approval or unresolved review threads | Its static authorized-page regression includes an access token; four hosted jobs failed. It remains an open candidate. |
+| #1179, this supporting baseline | `b05b23c1699889b504cdb869d341b97fc0ce8123` before this edit; no formal review or unresolved threads | Six documentation-hygiene tests passed locally; four hosted jobs failed. This edit creates a new head and invalidates that check snapshot. |
+
+The live ruleset query returned only active ruleset 21065108, enforcing
+`NON_FAST_FORWARD`. It did not return a required independent approval or
+required successful Checks. A normal auto-merge request might therefore merge
+without the user's required gates; leave it unarmed until governance is
+restored and re-read. CodeRabbit and Devin success contexts do not count as
+approval. The earlier Actions billing-lock annotation is historical; the
+current failures' root cause could not be rechecked because the REST Actions
+endpoint was rate-limited. No stale run was cancelled.
+
+The largest directly actionable reader gap remains the unavailable-support
+path owned by #1177. Its minimal UI action and regression tests exist in that
+PR, but they are not protected-main behavior. The local PostgreSQL/API and
+ontology assertions recorded above do not prove a complete authenticated,
+rendered desktop/mobile Voice flow. No new authenticated UI screenshots or
+synthetic k6 saturation artifact was obtained in this pass. Acceptance for
+cutoff, hidden evidence, multi-Voice JSON-LD paging and sustained web capacity
+therefore stays open at the product level. No new ADR, API, schema, migration
+ordinal, release identity, weight, or measurement rule is introduced here;
+issues #807, #1048 and #1056 remain separate cross-PR authority checks.
+
 ## Owned-token load admission candidate — 2026-10-16 KST
 
 The protected `main` used for this integration is
