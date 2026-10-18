@@ -2127,6 +2127,40 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
 
 
+def test_post_filters_include_visible_additional_voice_only(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A visible additional Voice appears until its carrying Post leaves scope."""
+    _grant_post_admin(seeded_db["dsn"])
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    carrying_post_id = seeded_db["own_private_post_id"]
+    created = client.post(
+        f"/api/posts/{carrying_post_id}/voice-assignments",
+        json={
+            "voice_type_code": "vops",
+            "truth_status_code": "truth_observed",
+            "evidence_post_id": seeded_db["public_post_id"],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+
+    visible = client.get("/api/posts", headers=headers)
+    assert visible.status_code == 200, visible.text
+    assert {option["code"] for option in visible.json()["voc_type_options"]} == {"voc", "vops"}
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            "update source_post set corporate_entity_id = %s where post_id = %s",
+            (seeded_db["other_corp_id"], carrying_post_id),
+        )
+        conn.commit()
+
+    hidden = client.get("/api/posts", headers=headers)
+    assert hidden.status_code == 200, hidden.text
+    assert {option["code"] for option in hidden.json()["voc_type_options"]} == {"voc"}
+
+
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         "/api/posts?limit=1&offset=1",

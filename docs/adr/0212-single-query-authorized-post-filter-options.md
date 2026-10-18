@@ -39,3 +39,34 @@ property of a named environment and workload.
 - Runtime comparison still requires an exact-head application image and the
   synthetic k6 procedure; older-image observations cannot establish the
   improvement's latency effect.
+
+## Amendment candidate — 2026-10-19: reuse the authorized source set
+
+### Context
+
+An authenticated k6 observation on the canonical local Compose stack found
+PostgreSQL near four busy CPU cores as read latency rose with concurrency.
+An isolated post-list read took about 936 ms, while the filter-option query
+alone took 226–238 ms in three direct observations. The original lateral
+projection still satisfies the one-query contract, but its scan and deduplication
+work is material at the observed 43,189-row local size. These are diagnostic
+measurements, not a production capacity threshold.
+
+### Decision
+
+Materialize the same ABAC- and eligibility-filtered Post identity, visibility,
+and primary Voice once within the existing database query. Union the visibility
+codes with current Voice codes, retaining the primary code when no current
+association exists. Keep the category-qualified lookup join, deterministic
+ordering, bound scope parameters, and one database round trip. This replaces
+the lateral two-row projection; it does not change the API or Voice policy.
+
+### Consequences and alternatives
+
+The candidate returned the same option codes and labels in the local comparison
+and took 92–144 ms in three observations. The materialized relation uses memory
+proportional to the authorized Post count and may spill at a larger deployment;
+its exact-head application latency remains unverified. Keeping the lateral
+projection preserves behavior but retains the measured cost. Per-code existence
+queries were rejected for this slice because they would repeat the scoped Post
+predicate without comparative evidence.
