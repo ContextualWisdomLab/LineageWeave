@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-18 09:29 KST
+## Exact-head continuation — 2026-10-18 10:34 KST
 
 The remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
 GitHub currently reports 195 open PRs and 43 open issues. The live branch
@@ -11,7 +11,7 @@ independent approval and terminal Checks required for this product, so none
 was armed in this continuation.
 
 The documentation candidate #1179 was read at exact head
-`3ef64edb2e469f08f12dd0e51eef93d8348bc9bf` before this update. Its
+`d0cd335364fa78da46e20269ef8605d4459cdc87` before this update. Its
 four hosted jobs are terminal failures with no runner steps; the exact-head
 Full test suite annotation says the Actions account is locked for billing.
 It has no independent approval or unresolved review thread, and automated
@@ -24,16 +24,18 @@ single #1177 review thread is resolved; #1178 has no review thread. No
 protected merge SHA exists for these candidates.
 
 The selected customer-facing gap remains #1177's unavailable Voice-support
-state. Its exact-head focused UI regression passed again (3 tests) at this
-read. Earlier synthetic Storybook captures were visually checked at desktop
+state. Its exact-head frontend suite passed again (641 tests in 61 files) at
+this read. Earlier synthetic Storybook captures were visually checked at desktop
 1440×900 and mobile 390×844: the next action is legible and the narrow view
 wraps without horizontal overflow. Six documentation-hygiene tests passed on
 #1179's pre-update head. The candidate preserves the recorded Voice and truth
 state while withholding an unavailable evidence action; it does not substitute
 the carrying Post for derivation evidence. This is local, synthetic evidence.
 Authenticated PostgreSQL/API plus rendered customer-flow acceptance for the
-full multi-Voice and cutoff contract, and authenticated synthetic k6 capacity
-evidence, remain unavailable. No observed bottleneck or population inference
+full multi-Voice and cutoff contract remain unavailable. The canonical
+`lineageweave` stack is running and k6 is installed, but no authorized k6 token
+file is configured; authenticated synthetic capacity evidence is unavailable.
+No observed bottleneck or population inference
 is claimed. These three diffs introduce no competing ADR, API, schema,
 migration ordinal, or release identity; they overlap this baseline and must
 retain each other's evidence when integrated.
