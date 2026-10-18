@@ -781,24 +781,32 @@ async def _post_filter_options(
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
     options_sql = f"""
-        select distinct option.lookup_category, option.code,
+        with visible_posts as materialized (
+            select post.post_id, post.visibility_code, post.voc_type_code
+              from source_post post
+             where (post.visibility_code = 'public'
+                or (post.corporate_entity_id::text = any($1::text[])
+                    and (cardinality($2::text[]) = 0
+                         or post.process_unit_id::text = any($2::text[]))))
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+        ), option as (
+            select 'post_visibility'::text as lookup_category,
+                   post.visibility_code as code
+              from visible_posts post
+            union
+            select 'voc_type'::text as lookup_category,
+                   coalesce(voice.voice_type_code, post.voc_type_code) as code
+              from visible_posts post
+              left join source_post_voice voice
+                on voice.post_id = post.post_id and voice.effective_to is null
+        )
+        select option.lookup_category, option.code,
                coalesce(lookup.lookup_label, option.code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
-          from source_post post
-          left join source_post_voice voice
-            on voice.post_id = post.post_id and voice.effective_to is null
-         cross join lateral (
-               values ('post_visibility', post.visibility_code),
-                      ('voc_type', coalesce(voice.voice_type_code, post.voc_type_code))
-         ) as option(lookup_category, code)
+          from option
           left join common_lookup_value lookup
             on lookup.lookup_category = option.lookup_category
            and lookup.lookup_code = option.code
-         where (post.visibility_code = 'public'
-            or (post.corporate_entity_id::text = any($1::text[])
-                and (cardinality($2::text[]) = 0
-                     or post.process_unit_id::text = any($2::text[]))))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by option.lookup_category, display_order, option.code
     """
     # Safe SQL: this is a closed lookup statement; entity ids remain asyncpg parameters.
