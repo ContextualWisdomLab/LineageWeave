@@ -13,7 +13,7 @@ composition and cutoff history. ADR 0251 governs occupational semantics, not
 Voice combination codes. These authorities supply no new weights, fixed
 combination vocabulary, or population estimator.
 
-At this read, protected `main` was
+At this read, remote `main` was
 `91c3e1c7411f56408e4ce61417479ace36ff40cb`, containing the merge of
 #1179 at that SHA. GitHub returned 196 open PRs (168 drafts, 28 ready against
 `main`, 117 targeting another branch) and 43 open issues. Selected ready PRs
