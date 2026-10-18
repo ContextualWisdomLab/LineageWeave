@@ -70,3 +70,30 @@ export const EvidenceAction: Story = {
     await expect(args.onViewEvidence).toHaveBeenCalledOnce();
   },
 };
+
+export const ExpandedEvidence: Story = {
+  args: { onViewEvidence: fn(), evidenceOpen: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "View evidence" })).toHaveAttribute("aria-expanded", "true");
+    await expect(canvas.getByText(
+      "Only evidence you can open appears here. If support is missing, ask an administrator to check access.",
+    )).toBeVisible();
+  },
+};
+
+export const UnavailableEvidence: Story = {
+  args: {
+    onViewEvidence: fn(),
+    voices: [
+      meta.args.voices[0],
+      { ...meta.args.voices[1], evidence_available: false },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Voice of Process (Observed)")).toBeVisible();
+    await expect(canvas.getByText("Evidence unavailable. Ask an administrator to check this perspective.")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "View evidence" })).not.toBeInTheDocument();
+  },
+};

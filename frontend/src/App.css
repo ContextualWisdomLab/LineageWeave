@@ -939,6 +939,12 @@
   text-decoration: underline;
 }
 
+.voice-evidence-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch-target);
+}
+
 .lineage-link-button {
   background: none;
   border: none;
@@ -1015,6 +1021,14 @@
   align-items: center;
   padding: 0.4rem 0;
   gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .voice-perspective-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
 }
 
 .ranking-hit {

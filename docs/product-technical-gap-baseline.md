@@ -1,5 +1,33 @@
 # Product & Technical Gap Baseline
 
+## Voice availability candidate after current-main integration — 2026-10-18 20:45 KST
+
+The fetched `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`,
+the confirmed merge SHA for #1179. Its missing exact-head Checks and
+independent approval are a delivery-control incident, not protected product
+acceptance. The fresh inventory has 194 open PRs (168 drafts, 26 ready on
+`main`, 117 stacked) and 43 open issues. PR #1178's separate reader candidate
+is at `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a` with four failed
+zero-step hosted jobs and no independent approval. These are repository
+workflow counts, not customer or population evidence.
+PR #1177's product-code head before this integration is
+`e810f96707558eea4a3077519f88c894357d444d`. The candidate keeps an
+additional Voice and its truth state visible when its separate derivation
+evidence cannot be opened, and gives an administrator action instead of
+claiming that support is present. It adds no fixed Voice combination, hidden
+Post substitution, API, schema, migration, numerical rule, or release number.
+The main integration preserves this candidate's Voice-specific audit and the
+newer baseline on `main`. PR #1177 still needs new
+hosted Checks, independent approval, and authenticated PostgreSQL/API plus
+rendered UI acceptance before any release claim. No synthetic load result or
+population inference follows from this documentation integration.
+On the combined local tree, three focused Voice-list tests, frontend lint and
+build, and eleven documentation/load-contract tests passed. The synthetic
+`UnavailableEvidence` scene was rendered at 1440×900 and 390×844: the
+unavailable Voice remains visible with its truth state and next action, and
+neither viewport has horizontal overflow. Screenshots remain outside git;
+they are layout evidence, not authenticated product acceptance.
+
 ## Exact-head continuation — 2026-10-18 18:08 KST
 
 The current LineageWeave PRD was read before this pass. The linked product
