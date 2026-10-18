@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-18 11:38 KST
+## Exact-head continuation — 2026-10-18 13:47 KST
 
 The current supporting LineageWeave PRD and the linked product authorities
 were re-read before the PR review: ThreadWeave and fast-mlsirm PRDs, TEPP's
@@ -22,18 +22,21 @@ enforce. No normal merge or auto-merge is requested while those gates can be
 bypassed by an immediate merge.
 
 Before this update, documentation PR #1179 was open at
-`3c49b5d28946ab25a90a22bb27b6c78c2716afad`. Its four hosted jobs on
-that head failed before runner steps; the Full test suite
-annotation says the Actions account is locked for billing. It has no formal
-independent approval or unresolved review thread. CodeRabbit's latest review
-is paused after an earlier commit, so its success status is not a current-head
-review. Six documentation-hygiene tests pass locally on that head.
+`85231f16edb4c6f5c2393ecce084a83788e7a219`. Its four hosted jobs on
+that head are terminal failures. The Full test suite and frontend jobs ran
+zero steps; the exact-head annotation says the Actions account is locked for
+billing. It has no formal independent approval or review comment. An automated
+review status is not current-head approval. The live repository ruleset still
+only rejects force pushes, and classic branch protection returns 404. An
+auto-merge request could merge without the required review and Checks, so none
+was armed. Six documentation-hygiene tests and `git diff --check` passed
+locally for this update.
 
 The selected customer gap remains the unavailable-support action in PR #1177,
 at `e810f96707558eea4a3077519f88c894357d444d`. Its minimal UI change
 retains the recorded atomic Voice and truth status, hides an unavailable
-evidence action, and tells the reader whom to ask. Its focused three-test
-frontend regression passes on the unchanged exact head. The existing synthetic
+evidence action, and tells the reader whom to ask. Forty-four focused frontend
+tests passed on the unchanged exact head at this read. The existing synthetic
 1440×900 and 390×844 screenshots were inspected again: the next action is
 readable, and the mobile text wraps within the viewport. This is candidate UI
 evidence, not a completed authenticated customer flow. Eight synthetic live
@@ -41,11 +44,15 @@ PostgreSQL Voice-history tests and three focused authenticated API tests pass;
 31 frontend export tests pass, including paged JSON-LD subject merging and
 distinct carrying/evidence Post CSV fields. PR #1178 remains at
 `cc467459a92a0f4f9ebbc5adb42311552c98d39e` for separate relation-page
-continuation. Neither product PR has independent approval or passing hosted
-Checks. The three current diffs have no new API, schema, migration ordinal,
-release identity, or competing ADR; their baseline edits overlap and require
-reconciliation when the candidates integrate. Issues #807, #1048, and #1056
-still own the distinct PRD, migration-identity, and release-identity conflicts.
+continuation. Its current-head Full test suite and frontend jobs also ran zero
+steps and failed. Neither product PR has independent approval or passing hosted
+Checks. CodeRabbit's organization-name finding on #1177 is invalid: ADR 0001
+protects source-organization records, while this document names public
+repository authorities required by the PRD. The three current diffs have no
+new API, schema, migration ordinal, release identity, or competing ADR; their
+baseline edits overlap and require reconciliation when the candidates
+integrate. Issues #807, #1048, and #1056 still own the distinct PRD,
+migration-identity, and release-identity conflicts.
 
 The canonical `lineageweave` Compose services are running. No configured
 authenticated k6 token was found, so current-head synthetic end-to-end
