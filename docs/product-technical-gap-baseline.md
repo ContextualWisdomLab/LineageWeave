@@ -1,5 +1,49 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-18 17:02 KST
+
+The LineageWeave PRD and the linked local product/architecture authorities
+were read before this review. GitHub's organization listing confirms the
+canonical names `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, `contextual-orchestrator`, and lowercase `disksage`. ADR 0246
+owns the twelve atomic Voice types; ADR 0256 owns evidence-bearing,
+open-ended combinations. ADR 0251 governs a separate occupational semantic
+layer. These authorities do not supply combination codes, calibration
+weights, or population estimates.
+
+At this read, remote `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+Documentation PR #1179 is open at `e58089be6ca1ff7ed28f831897fa20225af569a1`;
+the selected Voice reader candidate #1177 remains at
+`e810f96707558eea4a3077519f88c894357d444d`; relation continuation
+#1178 remains at `cc467459a92a0f4f9ebbc5adb42311552c98d39e`.
+Each has four failed hosted jobs on its current head, no formal independent
+approval, and no auto-merge request. The earlier exact-head annotation for
+#1179 attributes its zero-step Full test job to an Actions billing lock;
+the REST job and ruleset endpoints are currently rate limited, so that
+annotation and the previously observed non-fast-forward-only ruleset have
+not been reverified at this timestamp. CodeRabbit's #1178 static-page test
+finding is already addressed on its current head: the test supplies an
+authenticated synthetic token. Its 39 focused tests pass locally. The #1177
+public-repository-name privacy finding is inapplicable to ADR 0001's source
+record rule; its three focused Voice UI tests pass locally.
+
+The selected customer gap has a minimal implementation in #1177: a missing
+derivation leaves the recorded Voice and truth state visible, withholds the
+evidence action, and directs the reader to ask an administrator. Existing
+synthetic Storybook captures were visually inspected at 1440×900 and
+390×844; the message is legible and wraps on mobile. Six documentation
+tests pass on #1179's pre-update head. This is candidate evidence only.
+Authenticated PostgreSQL/API and rendered end-to-end acceptance for cutoff,
+distinct carrying and evidence Posts, and paged JSON-LD remain unavailable.
+The three diffs overlap this baseline but add no competing ADR, API, schema,
+migration ordinal, or release identity. The broader PRD, migration, and
+release conflicts remain tracked in #807, #1048, and #1056.
+
+No current authenticated synthetic k6 run or PostgreSQL, worker, Valkey, and
+gateway saturation evidence was established, so no bottleneck, capacity,
+protected merge, or population claim follows. These PR and issue numbers
+are workflow references, not customer-record observations.
+
 ## Exact-head continuation — 2026-10-18 15:56 KST
 
 The current supporting PRD and the linked product authorities were read before
