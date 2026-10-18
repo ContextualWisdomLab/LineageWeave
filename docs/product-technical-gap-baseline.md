@@ -395,7 +395,12 @@ The largest directly actionable reader gap remains the unavailable-support
 path owned by #1177. Its minimal UI action and regression tests exist in that
 PR, but they are not protected-main behavior. The local PostgreSQL/API and
 ontology assertions recorded above do not prove a complete authenticated,
-rendered desktop/mobile Voice flow. No new authenticated UI screenshots or
+rendered desktop/mobile Voice flow. On #1177's exact head, all three focused
+component tests passed. Its synthetic unavailable-support Storybook scene was
+rendered and visually checked at 1440×900 and 390×844; the next action wraps
+within the narrow view. On the current baseline checkout, three focused
+authenticated PostgreSQL/API tests and 37 ontology-neighborhood tests passed.
+These checks still do not establish authenticated rendered UI navigation. No
 synthetic k6 saturation artifact was obtained in this pass. Acceptance for
 cutoff, hidden evidence, multi-Voice JSON-LD paging and sustained web capacity
 therefore stays open at the product level. No new ADR, API, schema, migration
