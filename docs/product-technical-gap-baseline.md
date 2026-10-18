@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-18 23:02 KST
+
+The supporting LineageWeave PRD and the current TEPP, ThreadWeave, and
+fast-mlsirm PRDs, plus RankWeave, disksage, and contextual-orchestrator
+product/architecture authorities, were read before this pass. GitHub's
+organization listing confirms their canonical repository case, including
+lowercase `disksage`. ADR 0246's twelve atomic Voices and ADR 0256's
+evidence-bearing, extensible composition remain separate from ADR 0251's
+occupational semantic layer. The cited research supplies no fixed Voice
+combination code, numeric weight, or population inference.
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the
+confirmed merge SHA of #1179. The open queue has 195 PRs at this read.
+Voice reader #1177 is at `f950e5922e1c1d65989c9c571df247e51963d5f0`;
+relation continuation #1178 is at
+`ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`. This documentation PR
+#1181 was at `eb2329862546da5a79228f57d6fe3db9682f7b1f` before this
+update. All three lack formal independent approval and auto-merge. #1177
+and #1181 each have four failed hosted jobs on their exact heads. #1181's
+Full test job ran zero steps and GitHub annotated an Actions billing lock;
+it is no test result. The only active repository ruleset on `main` forbids
+force pushes, while classic branch protection returns 404. It does not
+enforce independent approval or successful Checks, so arming auto-merge
+could immediately merge without the product's required gates. No protected
+merge is claimed for these candidates.
+
+The reader gap's minimal implementation remains owned by #1177. Its current
+code retains an additional atomic Voice and truth state when derivation
+support is unavailable, withholds the evidence action, and gives an access
+check next action. The focused synthetic UI regression passes on its exact
+head. Desktop and mobile Storybook screenshots were inspected again: the
+action is legible and wraps on mobile. This is candidate behavior.
+Authenticated PostgreSQL/API and rendered customer-flow acceptance for
+cutoff, distinct carrying and derivation Posts, and paged JSON-LD remain
+separate gates; the full acceptance condition is still open. #1177, #1178,
+and #1181 overlap this baseline but introduce no competing ADR, API,
+schema, migration ordinal, release number, or fixed combination code.
+Issues #807, #1048, and #1056 still track broader PRD, migration, and
+release identity conflicts. No new authenticated synthetic k6 run or
+PostgreSQL, worker, Valkey, and gateway saturation observation was obtained,
+so there is no observed bottleneck or capacity claim. These workflow counts
+are not customer-record observations or a population sample.
+
 ## Exact-head continuation — 2026-10-18 21:50 KST
 
 The current LineageWeave PRD was read before this pass. The linked product
