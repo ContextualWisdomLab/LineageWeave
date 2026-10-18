@@ -3548,3 +3548,53 @@ This changes no ADR policy, API, schema, migration ordinal, model selection,
 weight, psychometric implementation, or release number. PR #1175's observed
 head is a pre-repair snapshot; its next push invalidates all old checks and
 review outcomes. No CI run or container was cancelled or removed.
+
+### Exact-head authority and delivery recheck — 2026-10-18 10:19 UTC
+
+This is a new observation, not an amendment of the historical snapshots above.
+Remote `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`. PR #1175
+is **merged** at `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, and that
+merge commit is an ancestor of current `main`; the historical Voice evidence
+navigation gap recorded above is therefore delivered. Its authenticated
+PostgreSQL/API and desktop/mobile rendered acceptance still need a fresh
+current-main observation before they can be marked complete.
+
+The current PRD is supporting product authority, while accepted ADRs govern
+architecture. ADR 0246 governs the twelve atomic Voice codes; ADR 0256 governs
+open-ended, evidence-bearing combinations; ADR 0252 governs the imported
+primary's cutoff history. ADR 0251 concerns the FJA I/O-psychology semantic
+layer and is not a Voice taxonomy authority. The cited stakeholder literature
+does not supply fixed combination codes, classification weights, or a
+population estimator. No such rule is added here.
+
+The live GitHub listing returned **195 open PRs**, of which **27 are ready**
+and **117 target a non-`main` base**, plus **43 open issues**. These are
+repository queue counts only. The nearest independent candidates are:
+
+| PR | Exact head before this documentation update | Review and delivery observation |
+| ---: | --- | --- |
+| #1179 | `b849466a8347e6880c71b489495c37ba7864d3db` | Baseline-only change; no unresolved review thread or formal approval; four completed jobs failed. The code-review bot reviewed an older commit and then paused. |
+| #1178 | `cc467459a92a0f4f9ebbc5adb42311552c98d39e` | Ontology refocus/UI candidate; no unresolved review thread or formal approval; four completed jobs failed. Its baseline and UI files overlap other open candidates. |
+| #1177 | `e810f96707558eea4a3077519f88c894357d444d` | Voice unavailable-state UI candidate; no unresolved review thread or formal approval; four completed jobs failed. Its ADR, baseline, and UI files require reconciliation before integration. |
+| #1162 | `e15d093eaa2c8cf86dcd8caf38878cfb912e4812` | Owns the existing CSV source-label boundary repair, including leading control and full-width formula prefixes. Do not duplicate that change in a new branch. |
+
+GitHub Actions job detail and current ruleset REST reads returned authenticated
+rate-limit errors during this observation. A failed rollup is not a diagnosis
+of application code or proof of a billing incident; exact failure causes and
+current ruleset fields remain **unverified**. Earlier ruleset observations are
+historical. No check, approval, merge SHA, or runtime acceptance from a prior
+head is transferred to these heads. No self-approval, bypass, force push, or
+stale-run cancellation was performed. The next protected action is to inspect
+the failed job annotations and applicable live rulesets when GitHub permits,
+repair an owned root cause if present, and obtain terminal exact-head checks
+and independent approval before normal merge or auto-merge.
+
+The largest unresolved buyer acceptance gap remains an authenticated,
+current-main proof of the Voice evidence journey: distinct carrying and
+derivation Posts, truth/cutoff behavior, hidden-evidence denial, and paged
+JSON-LD union in PostgreSQL/API and rendered desktop/mobile UI. Existing
+synthetic unit tests and historical screenshots do not establish that runtime
+claim. The canonical `lineageweave` Compose services were observed running
+with healthy PostgreSQL, worker, orchestrator, and Valkey status, but this
+health observation is not authenticated acceptance or a k6 capacity result.
+No new throughput, latency, population, or release assertion is inferred.
