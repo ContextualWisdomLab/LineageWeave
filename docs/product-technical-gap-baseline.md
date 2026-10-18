@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-19 00:11 KST
+
+The current LineageWeave PRD and the linked TEPP, ThreadWeave, and
+fast-mlsirm PRDs, plus the RankWeave, disksage, and contextual-orchestrator
+product authorities, were read before this loop. The remote organization
+confirms the canonical repository case, including lowercase `disksage`.
+Accepted ADR 0246 governs twelve atomic Voices and ADR 0256 governs
+evidence-bearing, extensible combinations and cutoff history. ADR 0251
+governs occupational semantics. Their research does not supply a fixed
+combination code, a measurement weight, or a population estimate.
+
+Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the
+confirmed merge SHA of #1179. The live open queue has 195 PRs (168 drafts,
+27 ready against `main`) and 43 issues. The selected ready heads are Voice
+reader #1177 `f950e5922e1c1d65989c9c571df247e51963d5f0`, relation
+continuation #1178 `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, and
+this baseline #1181 `8af2a1411d3bb3828e89faec43829945ed536f49`
+before this edit. Each has four terminal failed hosted jobs and no formal
+independent approval or auto-merge request. #1181's Full test job had no
+runner or steps; its exact-head annotation attributes the failure to an
+Actions billing lock. This is an execution failure, not a failed test
+assertion. Devin's #1181 review correctly warns that delivery gates remain
+open; it identifies no baseline-content defect. CodeRabbit's #1177 request
+to anonymize public repository names misapplies ADR 0001's prohibition on
+identifying source records. The active default-branch ruleset contains only
+`non_fast_forward`; classic branch protection returns 404. It cannot
+enforce independent approval or successful Checks, so auto-merge could
+merge immediately without the product's delivery gates. No protected merge
+or acceptance is claimed for these candidates.
+
+#1177 owns the selected reader gap: its minimal candidate retains a recorded
+additional Voice and truth state when support is unavailable, hides the
+evidence action, and gives an administrator access-check next action. Its
+focused synthetic regression and Storybook states are candidate evidence.
+The accepted ADR requires authenticated PostgreSQL/API and rendered UI proof
+for cutoff, distinct carrying and derivation Posts, and paged JSON-LD before
+the broader Voice acceptance condition closes. #1178 owns relation-page
+continuation. The selected diffs overlap this baseline but add no competing
+API, schema, migration, release number, or fixed Voice combination code;
+#1177's ADR clarification stays within ADR 0256. Issues #807, #1048, and
+#1056 retain the broader PRD, migration-ordinal, and release-identity
+conflicts. The canonical `lineageweave` Compose project has nine running
+services. No fresh authenticated synthetic k6 observation of latency,
+concurrency, errors, throughput, or PostgreSQL, worker, Valkey, and gateway
+saturation is available; no bottleneck or capacity claim follows. These are
+workflow aggregates, not observations of a customer-record population.
+
 ## Exact-head continuation — 2026-10-18 23:02 KST
 
 The supporting LineageWeave PRD and the current TEPP, ThreadWeave, and
