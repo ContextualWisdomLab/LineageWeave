@@ -9,6 +9,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 _ADR_DIRECTORY = _ROOT / "docs" / "adr"
 _PRODUCT_GAP_BASELINE = _ROOT / "docs" / "product-technical-gap-baseline.md"
+_PRODUCT_REQUIREMENTS = _ROOT / "docs" / "product-requirements.md"
 _ROLE_CATALOG_COLUMNS = (
     "cataloged_team_id",
     "cataloged_corporate_entity_id",
@@ -68,6 +69,30 @@ def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
 
     match = _PRIVATE_POST_IDENTIFIER.search(baseline)
     assert match is None, f"private post identifier in product-gap baseline: {match.group(0)!r}"
+
+
+def test_product_requirements_have_unique_ids_and_existing_adr_references() -> None:
+    """A requirement has one identity and cites only committed local ADRs."""
+    prd = _PRODUCT_REQUIREMENTS.read_text(encoding="utf-8")
+    headings = re.findall(r"^###\s+PRD-FR-", prd, flags=re.MULTILINE)
+    requirement_ids = re.findall(
+        r"^###\s+(PRD-FR-[A-Z0-9-]+)\s+—", prd, flags=re.MULTILINE
+    )
+    assert requirement_ids and len(requirement_ids) == len(headings)
+    duplicate_ids = sorted(
+        requirement_id
+        for requirement_id, count in Counter(requirement_ids).items()
+        if count > 1
+    )
+    assert duplicate_ids == [], f"duplicate PRD requirement IDs: {duplicate_ids}"
+
+    existing_adrs = {
+        match.group("number")
+        for path in _ADR_DIRECTORY.glob("*.md")
+        if (match := _ADR_NAME.fullmatch(path.name)) is not None
+    }
+    missing_adrs = sorted(set(re.findall(r"\bADR\s+([0-9]{4})\b", prd)) - existing_adrs)
+    assert missing_adrs == [], f"PRD cites missing ADRs: {missing_adrs}"
 
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:

@@ -1,18 +1,23 @@
 # Product & Technical Gap Baseline
 
-## Voice availability candidate after current-main integration — 2026-10-16 KST
+## Voice availability candidate after current-main integration — 2026-10-18 20:45 KST
 
-The fetched `main` is `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`.
+The fetched `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`,
+the confirmed merge SHA for #1179. Its missing exact-head Checks and
+independent approval are a delivery-control incident, not protected product
+acceptance. The fresh inventory has 194 open PRs (168 drafts, 26 ready on
+`main`, 117 stacked) and 43 open issues. PR #1178's separate reader candidate
+is at `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a` with four failed
+zero-step hosted jobs and no independent approval. These are repository
+workflow counts, not customer or population evidence.
 PR #1177's product-code head before this integration is
-`090bce95f34cd7f98c83c297e175069a50ad2b0d`. The candidate keeps an
+`e810f96707558eea4a3077519f88c894357d444d`. The candidate keeps an
 additional Voice and its truth state visible when its separate derivation
 evidence cannot be opened, and gives an administrator action instead of
 claiming that support is present. It adds no fixed Voice combination, hidden
 Post substitution, API, schema, migration, numerical rule, or release number.
-The main integration preserves both this candidate's earlier audit and the
-owned-token observation section below. The #1156 merge on this main head
-occurred without passing exact-head Checks or an independent approval;
-therefore it is not protected delivery evidence. PR #1177 still needs new
+The main integration preserves this candidate's Voice-specific audit and the
+newer baseline on `main`. PR #1177 still needs new
 hosted Checks, independent approval, and authenticated PostgreSQL/API plus
 rendered UI acceptance before any release claim. No synthetic load result or
 population inference follows from this documentation integration.
@@ -23,110 +28,603 @@ unavailable Voice remains visible with its truth state and next action, and
 neither viewport has horizontal overflow. Screenshots remain outside git;
 they are layout evidence, not authenticated product acceptance.
 
-## Current-head review and Voice evidence availability candidate — 2026-10-15 13:49 UTC
+## Exact-head continuation — 2026-10-18 18:08 KST
 
-This overlay supersedes earlier present-tense queue statements. Fetched
-protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, the
-squash delivery of #1175. GitHub returned 195 open PRs: 168 drafts, 117
-with a non-`main` base, one with an `APPROVED` rollup, and none with
-auto-merge armed; 42 issues were open. These are repository workflow counts,
-not a sample of customer records or evidence of product acceptance. Review
-validity and all threads have not been established across the queue.
+The current LineageWeave PRD was read before this pass. The linked product
+authorities were checked at their owned repositories; the remote repository
+names are `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, `contextual-orchestrator`, and lowercase `disksage`.
+The accepted ADR 0246 defines twelve atomic Voice types, while ADR 0256
+governs evidence-bearing combinations and cutoff history. ADR 0251 governs
+occupational semantics, not a Voice combination code or measurement weight.
+The local `disksage` checkout contains a PRD candidate, but protected
+`main` does not contain that path; its protected product authority remains
+the README. Research cited in those ADRs supports only their stated scope.
 
-The current LineageWeave PRD was read before this candidate. ADR 0246 governs
-the twelve atomic Voices, ADR 0251 the separate I/O-Psychology taxonomy,
-ADR 0252 primary Voice history, and ADR 0256 evidence-bearing combinations.
-W3C PROV-O supplies the derivation vocabulary; it does not validate an
-assignment or authorize a Post. The current remote product/architecture
-authorities were read at `RankWeave@92323cb8b55b`,
-`ThreadWeave@0fda6e60c2c8`, `disksage@67a511303b51`,
-`TEPP@4156aff81383`, `contextual-orchestrator@c226f48db69d`, and
-`fast-mlsirm@bd6a5a40be32`. GitHub identified the canonical repository
-names as `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
-`disksage`, `TEPP`, `contextual-orchestrator`, and `fast-mlsirm` under that
-owner. The local `DiskSage` spelling is not the remote case; its protected
-`main` exposes a README product authority rather than a standalone PRD.
+At the pre-update read, remote `main` was
+`c06911c01cc165fd0b20acb249503342c3c4685f`. GitHub listed 195 open
+PRs (168 drafts, 27 ready against `main`) and 43 open issues. The selected
+open heads were #1177 `e810f96707558eea4a3077519f88c894357d444d`,
+#1178 `cc467459a92a0f4f9ebbc5adb42311552c98d39e`, and this baseline's
+#1179 `0ea48098cad86d060956db3730994ec111ba3636`. None had an independent
+formal approval or an auto-merge request. Each had four terminal failed
+hosted jobs on its head. A #1179 Full test job had zero steps and its
+annotation said the account was locked for billing; this is an external
+Checks failure, not evidence that the tests ran. #1179 had no formal review
+or inline comments. The active default-branch ruleset prohibited force
+pushes only, and classic branch protection returned 404. It did not enforce
+independent approval or successful Checks, so no normal protected merge or
+auto-merge was attempted. Issue #807 tracks PRD conflicts, #1048 migration
+ordinal identity, and #1056 release identity; all three remained open.
 
-### Exact-head PR review and protected delivery
+The largest selected reader gap remains the unavailable Voice-support action
+owned by #1177. Its candidate keeps the atomic Voice and truth state visible,
+shows an access-check next action, and exposes the evidence action only when
+an additional Voice has derivation evidence. The change has a focused
+regression test and synthetic Storybook states. #1178 owns relation-page
+continuation separately; #1179 changes only this baseline. Their feature
+diffs add no competing API, schema, migration, release number, or fixed
+combination vocabulary. Baseline edits overlap and need reconciliation when
+integrated. This is candidate implementation, not protected product
+acceptance: authenticated PostgreSQL/API proof, rendered customer-flow proof
+for carrying versus evidence Posts and cutoff, and paged JSON-LD acceptance
+remain outstanding.
 
-- #1176 at `cf2990395ba06af7c7d8cde44cb92bf68840915c` repairs PRD
-  requirement-identity and ADR-number collisions. Its inspected delta adds no
-  runtime API, schema migration, or release number. It has no formal approval
-  or review thread, and named hosted checks are terminal failures. It remains
-  an unmerged candidate, so the duplicated PRD identifiers on `main` remain
-  unresolved.
-- #1174 had two valid review findings and one partly invalid privacy finding.
-  A minimal successor at `0cd07ef45a47d587a54ce0feeb43351d7e2255c7`
-  distinguishes the identical FR-2A repetition from conflicting FR-2B/2C
-  declarations and removes the merge actor's login. Canonical repository
-  names remain because they are required public integration identities, not
-  source-organization records. All retrieved review threads are now resolved;
-  the new head has no independent approval and its named hosted checks are
-  failures. `git diff --check` passed. No normal merge or auto-merge was
-  requested.
-- #1175 has merge SHA `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, but
-  its recorded reviews were `COMMENTED` and its required checks failed or
-  skipped. Its delivery therefore does not establish the requested protected
-  acceptance. The merge-control incident and missing enforceable review/check
-  policy are recorded in #1174. Until current policy and independent approval
-  are proven, another auto-merge request could merge immediately without the
-  requested gates; none was armed here.
-- A live ruleset read exposed only active repository rule 21065108, which
-  forbids force pushes; the classic `main` branch-protection endpoint returned
-  404. The organization rule was not returned by that repository endpoint.
-  These observations do not establish enforced review or check requirements.
-  On this candidate's first head `9d6bce74573c84379355932a8640a073c086dd4c`,
-  the exact-head Full test suite and frontend
-  jobs had zero steps and annotations that the Actions account was locked for
-  billing. That external gate cannot be replaced by local tests.
+The canonical `lineageweave` Compose project reported nine running services.
+No authenticated synthetic k6 capacity run or PostgreSQL, worker, Valkey,
+and gateway saturation observation was established in this pass. No
+capacity, bottleneck fix, calibrated measurement, or population inference is
+claimed. Counts here describe repository workflow state only.
 
-### Buyer-visible candidate and evidence limits
+## Exact-head continuation — 2026-10-18 17:02 KST
 
-The newly delivered Post popup opens the authorized ontology reader for an
-additional Voice. The detail API's `evidence_available` flag records whether
-a derivation reference exists; it does not prove that this reader can open the
-supporting Post. If the support is hidden, the ontology reader correctly omits
-the assignment, but the open view gave no specific next action for a reader
-who expected that evidence. The selected bounded repair explains that only
-accessible support appears and directs the reader to ask an administrator to
-check access. A defensive unavailable state also avoids claiming `Evidence
-connected` if an incomplete assignment ever reaches the UI; the current
-`source_post_voice` check constraint normally prohibits that stored state.
-The recorded Voice and truth state remain visible. The existing ontology
-reader still independently checks source eligibility, ABAC, snapshot, and
-cutoff, omitting hidden support without substituting the carrying Post. No
-combination code, weight, heuristic, measurement calculation, provider route,
-API field, migration, or release number was introduced. There is no measured
-customer-impact ranking across all gaps; this is a directly reproducible
-reader-guidance gap in the selected scope.
+The LineageWeave PRD and the linked local product/architecture authorities
+were read before this review. GitHub's organization listing confirms the
+canonical names `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, `contextual-orchestrator`, and lowercase `disksage`. ADR 0246
+owns the twelve atomic Voice types; ADR 0256 owns evidence-bearing,
+open-ended combinations. ADR 0251 governs a separate occupational semantic
+layer. These authorities do not supply combination codes, calibration
+weights, or population estimates.
 
-The focused Voice/i18n tests passed (103 tests); frontend lint, production
-build, and Storybook build passed locally. The existing large-bundle warning
-remains. Synthetic `UnavailableEvidence` Storybook renderings at 1440×900 and
-390×844 were inspected outside git; the unavailable guidance wraps on the
-narrow viewport without page overflow and no evidence action is rendered.
-The `ExpandedEvidence` scene was also inspected at 1440×900 and 390×844:
-the next action remained readable, the control reported expanded state, and
-neither viewport overflowed. These component scenes do not prove an
-authenticated hidden-support Post flow.
-These are candidate tests and rendered synthetic evidence. Authenticated
-PostgreSQL/API and live customer UI acceptance for the unavailable state remain
-unverified. The current `main` Voice export's carrying-Post/derivation-Post
-separation and paged JSON-LD multi-value union were not changed; their
-authenticated end-to-end acceptance also remains unverified. No new k6 run,
-gateway saturation claim, or probability-sample population inference follows
-from this frontend-only change. The historical synthetic k6 observations
-below remain bounded to their stated workloads.
+At this read, remote `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+Documentation PR #1179 is open at `e58089be6ca1ff7ed28f831897fa20225af569a1`;
+the selected Voice reader candidate #1177 remains at
+`e810f96707558eea4a3077519f88c894357d444d`; relation continuation
+#1178 remains at `cc467459a92a0f4f9ebbc5adb42311552c98d39e`.
+Each has four failed hosted jobs on its current head, no formal independent
+approval, and no auto-merge request. The earlier exact-head annotation for
+#1179 attributes its zero-step Full test job to an Actions billing lock;
+the REST job and ruleset endpoints are currently rate limited, so that
+annotation and the previously observed non-fast-forward-only ruleset have
+not been reverified at this timestamp. CodeRabbit's #1178 static-page test
+finding is already addressed on its current head: the test supplies an
+authenticated synthetic token. Its 39 focused tests pass locally. The #1177
+public-repository-name privacy finding is inapplicable to ADR 0001's source
+record rule; its three focused Voice UI tests pass locally.
 
-### Cross-PR collision check
+The selected customer gap has a minimal implementation in #1177: a missing
+derivation leaves the recorded Voice and truth state visible, withholds the
+evidence action, and directs the reader to ask an administrator. Existing
+synthetic Storybook captures were visually inspected at 1440×900 and
+390×844; the message is legible and wraps on mobile. Six documentation
+tests pass on #1179's pre-update head. This is candidate evidence only.
+Authenticated PostgreSQL/API and rendered end-to-end acceptance for cutoff,
+distinct carrying and evidence Posts, and paged JSON-LD remain unavailable.
+The three diffs overlap this baseline but add no competing ADR, API, schema,
+migration ordinal, or release identity. The broader PRD, migration, and
+release conflicts remain tracked in #807, #1048, and #1056.
 
-#1176 owns the duplicated PRD identities; this candidate adds no new PRD
-identifier. ADR 0256 is shared with existing Voice PRs, so integration must
-preserve their distinct accepted intervals and revalidate the combined head.
-The duplicate `0233` migration ordinal remains with issue #1048 and owner
-#1049; this candidate adds no migration. Shared API and release-number changes
-in other open stacks remain unaccepted until their parents merge to protected
-`main` and each child is retargeted and rechecked at its exact new head.
+No current authenticated synthetic k6 run or PostgreSQL, worker, Valkey, and
+gateway saturation evidence was established, so no bottleneck, capacity,
+protected merge, or population claim follows. These PR and issue numbers
+are workflow references, not customer-record observations.
+
+## Exact-head continuation — 2026-10-18 15:56 KST
+
+The current supporting PRD and the linked product authorities were read before
+the PR review. GitHub confirms the canonical repository names
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`,
+`contextual-orchestrator`, and lowercase `disksage`. ADR 0246 governs the
+twelve atomic Voice codes and ADR 0256 governs evidence-bearing combinations;
+ADR 0251 governs a separate occupational semantic layer. None supplies a
+fixed combination vocabulary, calibrated weight, or population estimate.
+
+Remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub reports 195 open PRs (168 drafts, 27 ready against `main`) and 43 open
+issues. The exact heads are documentation #1179
+`ad284c0076cc53eaf97a2ba3392d13babb0af04f`, Voice reader #1177
+`e810f96707558eea4a3077519f88c894357d444d`, and relation continuation
+#1178 `cc467459a92a0f4f9ebbc5adb42311552c98d39e`. All three have four
+terminal failed hosted jobs and no formal independent approval or auto-merge.
+The #1179 Full test job ran zero steps; its exact-head annotation says the
+Actions account is locked for billing. CodeRabbit's #1177 comment treats
+public repository names as private source records; ADR 0001 does not support
+that reading. The thread is resolved. #1178 and #1179 have no inline review
+comments. The active `main` ruleset only prohibits force pushes and classic
+branch protection returns 404. Therefore successful Checks and independent
+approval are not currently enforced, and arming auto-merge could merge without
+them. No protected merge is claimed.
+
+The selected reader gap has a minimal candidate in #1177: an unavailable
+additional-Voice derivation leaves the recorded Voice and truth state visible,
+withholds its evidence action, and gives the reader an access-check next
+action. Its three focused frontend regressions passed again on the unchanged
+head. Synthetic Storybook screenshots at 1440×900 and 390×844 were visually
+inspected: the next action remains readable and the mobile text wraps. Six
+documentation-hygiene tests passed on #1179's pre-update head. This remains
+candidate evidence; authenticated PostgreSQL/API plus rendered customer-flow
+acceptance, including cutoff, distinct carrying/evidence Posts, and paged
+JSON-LD, is not complete. #1177, #1178, and #1179 overlap this baseline but
+introduce no competing ADR, API, schema, migration ordinal, or release
+identity. Open issues #807, #1048, and #1056 separately track the existing
+PRD, migration-identity, and release-identity conflicts.
+
+The canonical `lineageweave` Compose services are running. No new
+authenticated synthetic k6 run or saturation evidence was established in this
+review, so there is no observed bottleneck to repair or capacity claim to
+make. These repository counts are workflow aggregates, not a sample of
+customer records or a basis for population inference.
+
+## Exact-head continuation — 2026-10-18 14:53 KST
+
+The supporting LineageWeave PRD, ADRs 0246/0251/0256, and current product or
+architecture authorities in ThreadWeave, RankWeave, TEPP, fast-mlsirm,
+contextual-orchestrator, and disksage were read before this review. GitHub
+confirms those repository names, including lowercase `disksage`. Research
+anchors in the ADRs govern their stated semantic scope; neither the PRD nor
+an open PR establishes a calibrated weight or completed measurement.
+
+Remote `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`. The queue
+has 195 open PRs (168 drafts, 27 ready against `main`) and 43 open issues.
+These are repository aggregates, not customer-record or population estimates.
+Before this edit, documentation PR #1179 was open at
+`691dceac7b19cf59ebf839f6d421ec03ee69099e`; #1177 and #1178 remain
+open at `e810f96707558eea4a3077519f88c894357d444d` and
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`. The three are based on
+the same `main`. Their four hosted jobs per head are terminal failures, and
+none has a formal independent approval. #1177's single review thread is
+resolved; #1178 and #1179 have none. The #1179 Full test job ran zero steps,
+and its exact-head annotation says the Actions account is locked for billing.
+The active default-branch ruleset contains only `non_fast_forward`, while
+classic protection returns 404. It cannot enforce the product's required
+independent approval and successful Checks; no merge or auto-merge was armed.
+
+The largest selected reader gap remains #1177's unavailable Voice-support
+action. Its minimal candidate preserves the atomic Voice and truth state,
+withholds a missing evidence action, and tells the reader to ask an
+administrator. Three focused frontend regressions passed again on that exact
+head. Its synthetic 1440×900 and 390×844 rendered screenshots were inspected:
+the action is visible and the mobile text wraps. Six documentation-hygiene
+tests passed in #1179's checkout. These local results do not establish the
+complete authenticated PostgreSQL/API and customer UI acceptance for
+multi-Voice cutoff, carrying Post versus derivation evidence, or paged JSON-LD.
+#1178 owns relation-page continuation separately. The three candidate diffs
+share this baseline document but introduce no competing ADR, API, schema,
+migration ordinal, or release identity; their baseline edits need
+reconciliation on integration. Existing issues #807, #1048, and #1056 track
+the wider PRD, migration-identity, and release-identity conflicts.
+
+The canonical `lineageweave` services are running. No authenticated synthetic
+k6 token was available in this continuation, so current-head latency,
+concurrency, error, throughput, and PostgreSQL/worker/Valkey/gateway
+saturation remain unmeasured. No bottleneck repair, accepted measurement,
+population inference, or protected merge is claimed.
+
+## Exact-head continuation — 2026-10-18 13:47 KST
+
+The current supporting LineageWeave PRD and the linked product authorities
+were re-read before the PR review: ThreadWeave and fast-mlsirm PRDs, TEPP's
+approved v0.4 PRD, contextual-orchestrator product planning and architecture,
+and RankWeave and disksage architecture/product authorities. The remote names
+retain their canonical case, including the lowercase repository name
+`disksage` for the DiskSage product. Accepted ADR 0246 owns the 12 atomic
+Voice categories; ADR 0256 owns evidence-bearing combinations and cutoff
+behavior. ADR 0251 governs a separate occupational semantic layer and supplies
+no Voice combination codes or measurement weights.
+
+At this read, `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`;
+GitHub lists 195 open PRs (168 drafts, 27 ready against `main`) and 43 open
+issues. These are workflow aggregates, not a sample of customer records.
+The active default-branch ruleset contains only `non_fast_forward`; classic
+branch protection returns 404. Independent approval and successful Checks
+are product delivery requirements that the live repository policy does not
+enforce. No normal merge or auto-merge is requested while those gates can be
+bypassed by an immediate merge.
+
+Before this update, documentation PR #1179 was open at
+`85231f16edb4c6f5c2393ecce084a83788e7a219`. Its four hosted jobs on
+that head are terminal failures. The Full test suite and frontend jobs ran
+zero steps; the exact-head annotation says the Actions account is locked for
+billing. It has no formal independent approval or review comment. An automated
+review status is not current-head approval. The live repository ruleset still
+only rejects force pushes, and classic branch protection returns 404. An
+auto-merge request could merge without the required review and Checks, so none
+was armed. Six documentation-hygiene tests and `git diff --check` passed
+locally for this update.
+
+The selected customer gap remains the unavailable-support action in PR #1177,
+at `e810f96707558eea4a3077519f88c894357d444d`. Its minimal UI change
+retains the recorded atomic Voice and truth status, hides an unavailable
+evidence action, and tells the reader whom to ask. Forty-four focused frontend
+tests passed on the unchanged exact head at this read. The existing synthetic
+1440×900 and 390×844 screenshots were inspected again: the next action is
+readable, and the mobile text wraps within the viewport. This is candidate UI
+evidence, not a completed authenticated customer flow. Eight synthetic live
+PostgreSQL Voice-history tests and three focused authenticated API tests pass;
+31 frontend export tests pass, including paged JSON-LD subject merging and
+distinct carrying/evidence Post CSV fields. PR #1178 remains at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e` for separate relation-page
+continuation. Its current-head Full test suite and frontend jobs also ran zero
+steps and failed. Neither product PR has independent approval or passing hosted
+Checks. CodeRabbit's organization-name finding on #1177 is invalid: ADR 0001
+protects source-organization records, while this document names public
+repository authorities required by the PRD. The three current diffs have no
+new API, schema, migration ordinal, release identity, or competing ADR; their
+baseline edits overlap and require reconciliation when the candidates
+integrate. Issues #807, #1048, and #1056 still own the distinct PRD,
+migration-identity, and release-identity conflicts.
+
+The canonical `lineageweave` Compose services are running. No configured
+authenticated k6 token was found, so current-head synthetic end-to-end
+latency, concurrency, error, throughput, and saturation evidence is unavailable;
+there is no observed bottleneck to repair. Full Voice acceptance still needs
+the complete authenticated PostgreSQL/API and rendered customer flow together,
+including cutoff navigation and the carrying Post versus derivation-evidence
+actions. Focused tests alone do not establish that end-to-end behavior.
+No protected merge SHA or population inference is claimed.
+
+## Exact-head continuation — 2026-10-18 10:34 KST
+
+The remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub currently reports 195 open PRs and 43 open issues. The live branch
+ruleset contains only `NON_FAST_FORWARD`, and no classic branch-protection
+rule is returned. Therefore review and passing Checks are not enforced by
+the current repository policy. An auto-merge request could merge without the
+independent approval and terminal Checks required for this product, so none
+was armed in this continuation.
+
+The documentation candidate #1179 was read at exact head
+`d0cd335364fa78da46e20269ef8605d4459cdc87` before this update. Its
+four hosted jobs are terminal failures with no runner steps; the exact-head
+Full test suite annotation says the Actions account is locked for billing.
+It has no independent approval or unresolved review thread, and automated
+review success is not an approval.
+The Voice reader repair #1177 remains at
+`e810f96707558eea4a3077519f88c894357d444d`; the relation-page repair
+#1178 remains at `cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Their
+four hosted jobs each failed and neither has an independent approval. The
+single #1177 review thread is resolved; #1178 has no review thread. No
+protected merge SHA exists for these candidates.
+
+The selected customer-facing gap remains #1177's unavailable Voice-support
+state. Its exact-head frontend suite passed again (641 tests in 61 files) at
+this read. Earlier synthetic Storybook captures were visually checked at desktop
+1440×900 and mobile 390×844: the next action is legible and the narrow view
+wraps without horizontal overflow. Six documentation-hygiene tests passed on
+#1179's pre-update head. The candidate preserves the recorded Voice and truth
+state while withholding an unavailable evidence action; it does not substitute
+the carrying Post for derivation evidence. This is local, synthetic evidence.
+Authenticated PostgreSQL/API plus rendered customer-flow acceptance for the
+full multi-Voice and cutoff contract remain unavailable. The canonical
+`lineageweave` stack is running and k6 is installed, but no authorized k6 token
+file is configured; authenticated synthetic capacity evidence is unavailable.
+No observed bottleneck or population inference
+is claimed. These three diffs introduce no competing ADR, API, schema,
+migration ordinal, or release identity; they overlap this baseline and must
+retain each other's evidence when integrated.
+
+## Exact-head verification — 2026-10-18 KST
+
+The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub lists 195 open PRs, including 168 drafts. The selected reader-action
+repair remains PR #1177 at `e810f96707558eea4a3077519f88c894357d444d`;
+the separate relation-page repair remains #1178 at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Both have no independent
+approval or auto-merge request. Documentation PR #1179 was at
+`ac03b3b37a2ba372ed0e81bd6386d04604c422b3` before this edit. Its four
+hosted jobs failed before runner steps; the exact-head Full test suite
+annotation confirms the Actions account is locked for billing. The active
+default-branch ruleset still contains only `non_fast_forward`, and classic
+branch protection returns 404. A normal protected merge cannot be claimed or
+safely requested until required Checks and independent approval are enforced.
+
+On #1177's unchanged head, 641 frontend tests and lint passed. The focused
+ontology and Voice checks passed locally, including eight synthetic live
+PostgreSQL history tests and the separate carrying/evidence Post projections.
+The existing 1440×900 and 390×844 Storybook screenshots of unavailable Voice
+support were visually rechecked; the action remains readable at both sizes.
+This is local candidate evidence. The complete authenticated customer UI flow,
+cutoff navigation, and authenticated synthetic k6 saturation are still
+unverified. No measured bottleneck or population estimate is inferred. The
+three PRs overlap this baseline but introduce no competing ADR, API, schema,
+migration ordinal, or release identity in their current diffs.
+
+## Exact-head audit — 2026-10-18 06:15 KST
+
+Fetched `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub reports 195 open PRs and 43 open issues. These are workflow counts,
+not observations of customer records or a population estimate. The current
+LineageWeave PRD was read alongside the protected-main product or architecture
+authorities of `RankWeave`, `ThreadWeave`, `disksage`, `TEPP`,
+`contextual-orchestrator`, and `fast-mlsirm`. Remote refs confirmed the
+canonical repository case; the product brand `DiskSage` is hosted as
+`ContextualWisdomLab/disksage`. ADRs, rather than these supporting PRDs or
+this snapshot, remain normative for architecture and measurement.
+
+Before this audit edit, documentation PR #1179 was open at snapshot head
+`7b74d2cba5844e5d2c194f7dd671b11955623d33`, based on the fetched
+`main`. It has no formal independent approval or unresolved review thread.
+That head's Full test suite, frontend, and two CodeQL jobs are terminal
+failures; a successful automated review status is not an approval. The
+customer evidence-availability candidate #1177 remains open at
+`e810f96707558eea4a3077519f88c894357d444d` with the same four failed
+hosted jobs, no independent approval, and no unresolved review thread. Its
+single reviewer comment requests removing public repository names, which
+does not identify a source-record disclosure under ADR 0001. The separate
+ontology pagination candidate #1178 is open at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`, with no unresolved thread
+or independent approval. None has auto-merge armed. The governance candidates
+#1170 and #1174 are still open; protection and hosted CI must be rechecked
+before any normal merge request. The live repository policy read found no
+classic branch-protection rule and one active branch ruleset containing only
+`NON_FAST_FORWARD`. It does not enforce independent approval or passing
+Checks, so arming auto-merge now could merge immediately against the requested
+gates. No merge SHA is established for these PRs.
+
+The selected customer gap in this slice remains the Post reader's
+action when a recorded additional perspective has unavailable support.
+#1177 contains the minimal UI and synthetic regression test: it keeps the
+atomic Voice and truth state visible, withholds the evidence action when no
+derivation reference exists, and gives a next action without substituting the
+carrying Post for hidden evidence. Three focused Voice UI tests and three
+synthetic authenticated PostgreSQL/API tests passed on #1177's unchanged
+head. Its existing desktop and mobile Storybook screenshots were inspected:
+the unavailable state wraps without horizontal overflow. This is candidate
+behavior. Rendered authenticated customer-flow evidence for the complete
+Voice composition and cutoff contract is still unavailable; no acceptance
+claim follows from a Storybook state alone. Current-head authenticated synthetic
+k6 saturation and a measured bottleneck are also unavailable. These PRs add
+no competing API, schema, ADR identifier, or release number, but their
+baseline edits overlap and need reconciliation on the eventual merge base.
+
+## Exact-head continuation — 2026-10-16 19:08 KST
+
+The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+At the time of this read GitHub lists 195 open PRs (168 drafts, 27 ready
+against `main`) and 43 open issues. PR #1179 is at
+`49d79c2842b0f3ebf1a41d5752f43f4cb01e4264`, based on that `main`.
+Its latest CodeRabbit report identifies no actionable change, but there is
+no formal independent approval. Four exact-head hosted jobs failed before
+running; the Full test suite and CodeQL job annotations identify an Actions
+billing lock. The effective `main` rules contain only `non_fast_forward`,
+and classic branch protection returns 404. A normal auto-merge request could
+therefore merge without the requested review and Checks. It remains unarmed.
+
+The selected customer gap is still the unavailable-evidence next action in
+the Post reader, owned by PR #1177 at
+`e810f96707558eea4a3077519f88c894357d444d`. The requested removal of
+the public repository owner name from the gap baseline does not identify a
+source record or production organization and is not a valid defect under
+ADR 0001. On #1177's exact head, 44 focused Voice and load-authentication
+frontend tests passed. A fresh Storybook build rendered its synthetic
+unavailable-evidence state at 1440×900 and 390×844; both screenshots were
+visually inspected, and neither viewport had horizontal overflow. This is
+candidate UI evidence, not authenticated customer-flow acceptance. The six
+documentation-hygiene tests on #1179's exact head passed.
+
+PR #1178's relation-page candidate remains separate at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Neither #1177 nor #1178
+has independent approval or passing hosted Tests on its current head.
+They introduce no new API, schema, ADR number, or release identity in their
+current diffs, while open issues #807, #1048, and #1056 retain the distinct
+PRD, migration-ordinal, and release-identity audits. No authorized k6 token
+file was configured in this session, so current-head authenticated load,
+PostgreSQL/worker/Valkey/gateway saturation, and any bottleneck claim remain
+unavailable. Authenticated PostgreSQL/API and rendered customer UI acceptance
+for the complete Voice composition flow also remain open.
+
+## Exact-head recheck — 2026-10-16
+
+The fetched `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub lists 195 open PRs: 168 drafts, 117 based on another PR, and 27
+ready against `main`. One has an `APPROVED` review decision and none has
+auto-merge armed. These are workflow counts, not product usage or population
+evidence. The current PRD remains a supporting contract; ADR 0246 defines
+the 12 atomic Voice classes, ADR 0256 governs evidence-bearing combinations,
+and the PROV-O derivation relation does not itself grant evidence access.
+
+The customer-facing evidence-availability repair is still owned by #1177 at
+`e810f96707558eea4a3077519f88c894357d444d`. Its review comment asks
+to remove the public repository owner name; the synthetic-only rule instead
+prohibits identifying source records and production organizations. The comment
+does not identify a defect in the Voice reader. #1178 at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e` already adds an
+authenticated token to the static-neighborhood pagination test requested in
+review. Both candidates remain without independent approval and have terminal
+failing hosted jobs. Their customer-visible behavior is candidate work, not
+protected-main acceptance.
+
+The documentation candidate #1179 is at
+`a542e6d13d6eec247324128c26aa8d66c64af7a8` before this update. Its
+exact-head Tests and CodeQL jobs failed before running steps. The Full test
+suite and Actions CodeQL annotations identify an Actions billing lock;
+CodeRabbit and Devin success statuses are not independent approval. The
+current rule read shows only a no-force-push ruleset and no classic `main`
+protection. Because
+review and successful Checks are not currently enforced, requesting normal
+auto-merge could merge without those gates. This candidate leaves auto-merge
+unarmed while the policy and hosted CI blockers remain. No new API, schema,
+ADR, or release identifier is introduced here; #807, #1048, and #1056 still
+track distinct cross-PR identity conflicts. Authenticated rendered Voice
+navigation and a synthetic authenticated k6 saturation result remain
+unavailable, so neither is a release or capacity claim.
+
+The documentation-hygiene suite passed locally (6 tests). Fresh focused
+frontend attempts for #1177 and #1178 did not start test workers on this
+busy host; they provide no new passing assertion evidence.
+
+## Exact-head continuation — 2026-10-16 15:37–16:31 KST
+
+Remote `main` is still `c06911c01cc165fd0b20acb249503342c3c4685f`.
+The current product PRD was checked against the protected-main product or
+architecture authorities of RankWeave, ThreadWeave, `disksage`, TEPP,
+contextual-orchestrator, and fast-mlsirm. The remote repository list confirms
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`, and
+`TEPP` as the canonical spellings. The PRD is a supporting contract; ADR 0256
+governs the Voice derivation and authorized evidence boundary. The current
+open-issue count is 43; it is a workflow count, not customer or population
+evidence.
+
+The documentation candidate #1179 was reviewed at
+`61898ab6bfd726ef07f0db34ea967b1a1a656e4d`, based on that `main`.
+That head's CodeRabbit report found no actionable issue. This continuation
+changes the head, so the earlier report and checks do not transfer. Formal
+independent approval is absent. Four hosted jobs ended in failure within
+three seconds; job annotations were unavailable because the GitHub REST
+quota was exhausted, so their current cause is **unverified**. The Devin
+status says its full review was skipped because the trial had no credits;
+that successful status is not an independent review. The previous audit
+found that requesting auto-merge could merge immediately without enforced
+review or check gates. No normal merge or auto-merge request is justified
+until the effective protection is repaired and rechecked.
+
+At follow-up head `48d36b1e9a01433a072a6e718e6b336b9f7a79e7`, the
+exact-head Tests jobs again failed before any steps ran. The Full test suite
+job annotation says the Actions account is locked for a billing issue;
+the same head's four named hosted jobs are terminal failures. The only active
+default-branch ruleset is `LineageWeave: no force pushes`, containing just
+`non_fast_forward`; the classic `main` branch-protection endpoint returned
+404. Thus neither independent approval nor successful Checks are enforced
+by current protection. This confirms why an auto-merge request could bypass
+the user's intended gates; it is not a reason to call that merge normal.
+
+The selected user-facing gap remains the unavailable-evidence action in the
+Post reader, owned by #1177 at exact head
+`e810f96707558eea4a3077519f88c894357d444d`. Its minimal implementation
+and synthetic regression tests already live in that PR; all three focused
+Voice-list tests passed again on that exact head. This documentation candidate
+does not duplicate that code. #1177 and the separate relation-page
+candidate #1178 (`cc467459a92a0f4f9ebbc5adb42311552c98d39e`) are both
+open, have no independent approval or auto-merge, and have terminal failing
+hosted jobs on their respective heads. Their reviewer request to remove the
+public repository owner from this audit conflicts with the requested
+canonical-name verification and the repository's ban on identifying *source
+records*; it does not identify a private record. Their shared edits to this
+baseline still require reconciliation before integration. Neither candidate
+changes an API, schema, ADR number, release number, or numerical policy.
+Cross-PR authority issues #807 (PRD occupational requirement identities),
+#1048 (migration ordinals), and #1056 (package/runtime release version) remain
+open. Their open status alone does not establish that every cited conflict is
+still present in code. This candidate changes none of those contracts.
+Three focused synthetic authenticated PostgreSQL/API tests passed locally
+against the running `lineageweave` stack: assignment round-trip, hidden
+evidence rejection, and removal of an additional Voice when its evidence
+becomes hidden. All 31 local ontology-layout tests passed, including the
+separate carrying/derivation CSV columns and singleton/array JSON-LD relation
+unions across pages. These tests do not establish the complete Voice flow in
+the rendered UI. Live desktop/mobile UI navigation and cutoff evidence remain
+unproven; synthetic Storybook views do not establish those conditions. Overall Voice
+acceptance therefore remains open.
+
+## Exact-head delivery and Voice reader audit — 2026-10-16 13:37 KST
+
+The fetched `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`.
+GitHub returned 194 open PRs (168 drafts, 77 based on `main`, 26 ready
+against `main`) and 42 open issues. These are repository counts, not a
+sample of customer records or a population estimate. The current PRD is a
+supporting product contract; ADRs 0246, 0252, and 0256 govern atomic Voice
+types, cutoff history, and evidence-bearing composition. W3C PROV-O supplies
+derivation vocabulary, not authorization or truth. The RankWeave,
+ThreadWeave, `disksage`, TEPP, contextual-orchestrator, and fast-mlsirm
+product or architecture authorities were checked before this loop. GitHub
+confirmed those canonical repository names; `DiskSage` is not the remote
+repository's case.
+
+PR #1176's reviewed head `234584dc92defa377264ac3ab9fdc692518deb3f`
+had a valid ADR 0265 reference finding. Commit
+`1b3051fd0e1339744598b37ab547c0fca6953478` changes that reference
+from the classification requirement to the evidence-bound construct
+requirement. Six documentation-hygiene tests and `git diff --check` passed
+locally. An `--auto --squash` request then merged #1176 immediately as this
+section's `main` SHA. GitHub recorded only a `COMMENTED` bot review on the
+previous head and no independent approval. No terminal passing Checks were
+established on the merge head. One reviewed-head job's annotation said the
+Actions account was locked for billing. The effective branch-rule API returned only the active
+no-force-push rule; classic `main` protection returned 404. This merge is a
+delivery fact, **not** evidence that the requested review/check gates passed.
+No further auto-merge should be requested until the independent-approval and
+required-check rules are enforceable; otherwise it may merge immediately.
+The governance repair is separately owned by #1174/#1170.
+
+The selected customer-facing gap remains evidence availability in the Post
+reader. #1177 at `e810f96707558eea4a3077519f88c894357d444d` supplies a
+bounded next action when an additional perspective's support is unavailable,
+preserves its atomic Voice and truth status, and keeps the carrying Post
+distinct from derivation evidence. The three exact-head Voice-list regression
+tests passed locally. Its existing synthetic Storybook screenshots were
+inspected at 1440×900 and 390×844: unavailable and expanded states wrap and
+show the action without horizontal overflow. Those images do not prove the
+authenticated PostgreSQL/API, cutoff, or live rendered navigation acceptance.
+#1177 has no independent approval or auto-merge; its hosted checks are
+failing, with no fresh all-job annotation audit on that head. #1178 at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e` separately owns relation
+pagination. Both are still based on the preceding `main` SHA, so any later
+head integration needs fresh checks and review. Neither candidate changes
+the twelve Voice atoms, API/schema, release number, or measurement rules.
+Their gap-baseline edits overlap this file and must be reconciled on the
+actual merge base; no predecessor check or approval transfers.
+
+The live Compose services were observed running under project
+`lineageweave`, but no authorized synthetic k6 token file or current-head
+load result was established here. Concurrency, latency, error rate,
+throughput, and PostgreSQL/worker/Valkey/gateway saturation remain
+unavailable. No bottleneck or population claim follows from diagnostic
+convenience data.
+
+### Exact-head continuation — 2026-10-18 KST
+
+The current supporting LineageWeave PRD and the available product or
+architecture documents of RankWeave, ThreadWeave, `disksage`, TEPP,
+fast-mlsirm, and contextual-orchestrator were read before this pass. Remote
+repository metadata confirmed the canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `disksage`, `TEPP`, `fast-mlsirm`, and
+`contextual-orchestrator` spellings. ADRs remain normative. The remote
+`main` is `c06911c01cc165fd0b20acb249503342c3c4685f`; the open queue
+contains 195 PRs (168 drafts, 78 with base `main`) and 43 issues. These are
+workflow counts, not customer measurements or population estimates.
+
+| Candidate | Exact head and review | Delivery and ownership |
+| --- | --- | --- |
+| #1177, unavailable Voice support action | `e810f96707558eea4a3077519f88c894357d444d`; no independent approval or unresolved review threads | Three synthetic component regressions cover the bounded next action; four hosted jobs failed. It remains an open candidate. |
+| #1178, ontology relation continuation | `cc467459a92a0f4f9ebbc5adb42311552c98d39e`; no independent approval or unresolved review threads | Its static authorized-page regression includes an access token; four hosted jobs failed. It remains an open candidate. |
+| #1179, this supporting baseline | `b05b23c1699889b504cdb869d341b97fc0ce8123` before this edit; no formal review or unresolved threads | Six documentation-hygiene tests passed locally; four hosted jobs failed. This edit creates a new head and invalidates that check snapshot. |
+
+The live ruleset query returned only active ruleset 21065108, enforcing
+`NON_FAST_FORWARD`. It did not return a required independent approval or
+required successful Checks. A normal auto-merge request might therefore merge
+without the user's required gates; leave it unarmed until governance is
+restored and re-read. CodeRabbit and Devin success contexts do not count as
+approval. The earlier Actions billing-lock annotation is historical; the
+current failures' root cause could not be rechecked because the REST Actions
+endpoint was rate-limited. No stale run was cancelled.
+
+The largest directly actionable reader gap remains the unavailable-support
+path owned by #1177. Its minimal UI action and regression tests exist in that
+PR, but they are not protected-main behavior. The local PostgreSQL/API and
+ontology assertions recorded above do not prove a complete authenticated,
+rendered desktop/mobile Voice flow. On #1177's exact head, all three focused
+component tests passed. Its synthetic unavailable-support Storybook scene was
+rendered and visually checked at 1440×900 and 390×844; the next action wraps
+within the narrow view. On the current baseline checkout, three focused
+authenticated PostgreSQL/API tests and 37 ontology-neighborhood tests passed.
+These checks still do not establish authenticated rendered UI navigation. No
+synthetic k6 saturation artifact was obtained in this pass. Acceptance for
+cutoff, hidden evidence, multi-Voice JSON-LD paging and sustained web capacity
+therefore stays open at the product level. No new ADR, API, schema, migration
+ordinal, release identity, weight, or measurement rule is introduced here;
+issues #807, #1048 and #1056 remain separate cross-PR authority checks.
+
 ## Owned-token load admission candidate — 2026-10-16 KST
 
 The protected `main` used for this integration is
@@ -3078,3 +3576,53 @@ This changes no ADR policy, API, schema, migration ordinal, model selection,
 weight, psychometric implementation, or release number. PR #1175's observed
 head is a pre-repair snapshot; its next push invalidates all old checks and
 review outcomes. No CI run or container was cancelled or removed.
+
+### Exact-head authority and delivery recheck — 2026-10-18 10:19 UTC
+
+This is a new observation, not an amendment of the historical snapshots above.
+Remote `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`. PR #1175
+is **merged** at `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`, and that
+merge commit is an ancestor of current `main`; the historical Voice evidence
+navigation gap recorded above is therefore delivered. Its authenticated
+PostgreSQL/API and desktop/mobile rendered acceptance still need a fresh
+current-main observation before they can be marked complete.
+
+The current PRD is supporting product authority, while accepted ADRs govern
+architecture. ADR 0246 governs the twelve atomic Voice codes; ADR 0256 governs
+open-ended, evidence-bearing combinations; ADR 0252 governs the imported
+primary's cutoff history. ADR 0251 concerns the FJA I/O-psychology semantic
+layer and is not a Voice taxonomy authority. The cited stakeholder literature
+does not supply fixed combination codes, classification weights, or a
+population estimator. No such rule is added here.
+
+The live GitHub listing returned **195 open PRs**, of which **27 are ready**
+and **117 target a non-`main` base**, plus **43 open issues**. These are
+repository queue counts only. The nearest independent candidates are:
+
+| PR | Exact head before this documentation update | Review and delivery observation |
+| ---: | --- | --- |
+| #1179 | `b849466a8347e6880c71b489495c37ba7864d3db` | Baseline-only change; no unresolved review thread or formal approval; four completed jobs failed. The code-review bot reviewed an older commit and then paused. |
+| #1178 | `cc467459a92a0f4f9ebbc5adb42311552c98d39e` | Ontology refocus/UI candidate; no unresolved review thread or formal approval; four completed jobs failed. Its baseline and UI files overlap other open candidates. |
+| #1177 | `e810f96707558eea4a3077519f88c894357d444d` | Voice unavailable-state UI candidate; no unresolved review thread or formal approval; four completed jobs failed. Its ADR, baseline, and UI files require reconciliation before integration. |
+| #1162 | `e15d093eaa2c8cf86dcd8caf38878cfb912e4812` | Owns the existing CSV source-label boundary repair, including leading control and full-width formula prefixes. Do not duplicate that change in a new branch. |
+
+GitHub Actions job detail and current ruleset REST reads returned authenticated
+rate-limit errors during this observation. A failed rollup is not a diagnosis
+of application code or proof of a billing incident; exact failure causes and
+current ruleset fields remain **unverified**. Earlier ruleset observations are
+historical. No check, approval, merge SHA, or runtime acceptance from a prior
+head is transferred to these heads. No self-approval, bypass, force push, or
+stale-run cancellation was performed. The next protected action is to inspect
+the failed job annotations and applicable live rulesets when GitHub permits,
+repair an owned root cause if present, and obtain terminal exact-head checks
+and independent approval before normal merge or auto-merge.
+
+The largest unresolved buyer acceptance gap remains an authenticated,
+current-main proof of the Voice evidence journey: distinct carrying and
+derivation Posts, truth/cutoff behavior, hidden-evidence denial, and paged
+JSON-LD union in PostgreSQL/API and rendered desktop/mobile UI. Existing
+synthetic unit tests and historical screenshots do not establish that runtime
+claim. The canonical `lineageweave` Compose services were observed running
+with healthy PostgreSQL, worker, orchestrator, and Valkey status, but this
+health observation is not authenticated acceptance or a k6 capacity result.
+No new throughput, latency, population, or release assertion is inferred.
