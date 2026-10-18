@@ -106,21 +106,21 @@ def test_local_keycloak_discovery_uses_backend_reachable_base_url(monkeypatch) -
     assert settings.keyverse_claim_binding_required is False
 
 
-def test_naruon_calendar_audience_defaults_empty_and_is_not_caldav(monkeypatch) -> None:
-    """Missing Naruon settings keep the observed-event channel dropped."""
+def test_naruon_calendar_audience_defaults_empty_and_ignores_legacy_caldav_env(monkeypatch) -> None:
+    """Only the audience-scoped Naruon consumer can configure calendar observations."""
     monkeypatch.delenv("NARUON_CALENDAR_BASE_URL", raising=False)
     monkeypatch.delenv("NARUON_CALENDAR_SERVICE_TOKEN", raising=False)
     monkeypatch.setenv("CALDAV_BASE_URL", "https://calendar.example/caldav/")
     settings = load_settings()
     assert settings.naruon_calendar_base_url == ""
     assert settings.naruon_calendar_service_token == ""
-    assert settings.caldav_base_url == "https://calendar.example/caldav/"
+    assert not hasattr(settings, "caldav_base_url")
     monkeypatch.setenv("NARUON_CALENDAR_BASE_URL", "https://naruon.example/projection")
     monkeypatch.setenv("NARUON_CALENDAR_SERVICE_TOKEN", "service-secret")
     wired = load_settings()
     assert wired.naruon_calendar_base_url == "https://naruon.example/projection"
     assert wired.naruon_calendar_service_token == "service-secret"
-    assert wired.naruon_calendar_service_token != wired.caldav_base_url
+    assert not hasattr(wired, "caldav_base_url")
 
 
 def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
