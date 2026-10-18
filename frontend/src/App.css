@@ -808,6 +808,44 @@
   font-style: italic;
 }
 
+.customer-master-tree,
+.customer-master-tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.customer-master-tree-children {
+  margin-top: var(--space-control-gap);
+}
+
+.customer-entity-button {
+  display: grid;
+  gap: var(--space-control-gap);
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-chip-inline);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-background);
+  color: var(--color-text-heading);
+  font: inherit;
+  text-align: start;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.customer-entity-button:hover,
+.customer-entity-button:focus-visible {
+  border-color: var(--color-focus-border);
+  outline: 2px solid var(--color-focus-ring);
+}
+
+.customer-ancestry-note {
+  color: var(--color-text);
+  font-size: var(--font-size-badge);
+}
+
 .verification-badge {
   font-size: 0.8rem;
   padding: 0.1rem 0.5rem;
