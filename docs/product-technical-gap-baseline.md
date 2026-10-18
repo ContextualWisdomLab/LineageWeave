@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-19 01:32 KST
+## Exact-head continuation — 2026-10-19 01:39 KST
 
 The current LineageWeave PRD, linked TEPP, ThreadWeave, and fast-mlsirm
 PRDs, and RankWeave, lowercase `disksage`, and contextual-orchestrator
@@ -16,10 +16,15 @@ counts, not a sample of customer records.
 | Protected implementation | `main` has the authorized Voice write and ontology export paths. Three authenticated PostgreSQL/API tests passed for a distinct carrying and derivation Post and for hidden evidence. | These focused results do not prove a rendered Voice journey, cutoff behavior, or paged JSON-LD acceptance on current `main`. |
 | Current runtime aggregate | The canonical `lineageweave` stack has nine running services and 43,189 aggregate source Posts. Authenticated synthetic-workload k6 completed 322 requests at 4 VUs and 379 requests at up to 12 VUs, with zero HTTP failures. Throughput was 15.58 and 17.81 requests/s; p95 request latency was 906 ms and 2.38 s, respectively. At the higher load, sampled PostgreSQL CPU was about 406%, while backend, worker, Valkey, and gateway were about 9%, 0.4%, 3%, and 0.01%. | The running image was not tied to this candidate head. No production SLO, population inference, or candidate-wide performance gain follows. |
 | Observed Board bottleneck and owned repair | An authorized Board read took about 936 ms versus about 67 ms for Lineage. The current filter-option query took 226–238 ms in three direct database observations. Candidate #1182 reused one scoped Post set and returned identical option codes and labels in 92–144 ms in three local observations. | #1168 owns the separate excerpt repair. Candidate #1182 needs exact-head hosted and deployed-image verification before any end-to-end speed claim. |
-| Open PR and issue delivery | #1177 is `f950e5922e1c1d65989c9c571df247e51963d5f0`, #1178 is `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, #1182 is `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, and this baseline #1181 was `e4175ac8b2944dcab76a94b0afc8c04e5c3163a3` before this edit. Each had four failed hosted jobs and no independent approval. #1181 has one unresolved delivery-gate review thread. Issues #807, #1048, and #1056 remain open. | The only active ruleset requires no force pushes; it requires neither successful checks nor independent review. Auto-merge could merge immediately, so it remains unset. The failure rollups are not test assertion evidence. |
+| Open PR and issue delivery | #1177 is `06d64a96442ba61aec35216e1ce295629035b462`, #1178 is `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, #1182 is `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, and this baseline #1181 was `4b15fa418dade0a997244b8a228066550ff59c03` before this edit. Each had four failed hosted jobs and no independent approval. #1181 has one unresolved delivery-gate review thread. Issues #807, #1048, and #1056 remain open. | The only active ruleset requires no force pushes; it requires neither successful checks nor independent review. Auto-merge could merge immediately, so it remains unset. The failure rollups are not test assertion evidence. |
 
-#1177 remains the owner of the unavailable-support reader action, and #1178
-owns relation-page continuation. #1182 changes ADR 0212 and the Board query
+#1177 remains the owner of the unavailable-support reader action. A fresh
+synthetic Storybook audit found its mobile evidence button 21 px high. Its new
+head uses the existing 44 px touch-target token; focused tests, lint, build,
+and Storybook build passed, and desktop/mobile renders show no overflow.
+Screenshots remain outside git, and this does not close authenticated rendered
+customer acceptance. #1178 owns relation-page continuation. #1182 changes
+ADR 0212 and the Board query
 but introduces no API, schema, migration ordinal, release number, or Voice
 combination code. Its backend edits merge cleanly with #1168; the existing
 baseline conflict between #1168 and `main` must be reconciled by that owner.
