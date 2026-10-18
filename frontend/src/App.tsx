@@ -1858,7 +1858,7 @@ export function VoicePerspectiveList({
         ))}
       </ul>
       {onViewEvidence && voices.some((voice) => !voice.is_primary && voice.evidence_available) ? (
-        <button type="button" className="keyman-select" onClick={onViewEvidence} aria-expanded={evidenceOpen}>
+        <button type="button" className="keyman-select voice-evidence-action" onClick={onViewEvidence} aria-expanded={evidenceOpen}>
           {t("View evidence")}
         </button>
       ) : null}

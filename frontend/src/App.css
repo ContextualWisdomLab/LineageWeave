@@ -939,6 +939,12 @@
   text-decoration: underline;
 }
 
+.voice-evidence-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch-target);
+}
+
 .lineage-link-button {
   background: none;
   border: none;
