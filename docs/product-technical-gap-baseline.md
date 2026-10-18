@@ -43,18 +43,21 @@ owns relation-page continuation separately. Neither feature diff introduces
 a competing API, schema, migration, release number, or fixed combination
 vocabulary; their baseline edits overlap and need reconciliation on
 integration. This is candidate implementation, not protected product
-acceptance: authenticated PostgreSQL/API proof, rendered customer-flow proof
-for carrying versus evidence Posts and cutoff, and paged JSON-LD acceptance
-remain outstanding. ADR 0251 governs occupational semantics; it cannot be
+acceptance. Eight synthetic live PostgreSQL Voice-history tests and three
+authenticated PostgreSQL/API regressions passed on #1177's head: the API
+tests preserve distinct carrying and derivation Posts and omit newly hidden
+evidence. Rendered authenticated customer-flow proof for cutoff and carrying
+versus evidence Posts, plus paged JSON-LD end-to-end acceptance, remain
+outstanding. ADR 0251 governs occupational semantics; it cannot be
 used to infer a Voice combination. #1176 has merged, while the separate
 migration-ordinal and release-identity conflicts remain open under #1048 and
 #1056.
 
 The canonical `lineageweave` Compose project reported nine running services.
 The k6 harness is present, but no authorized synthetic token file was
-available for this pass. No authenticated synthetic k6 capacity run or PostgreSQL, worker, Valkey,
-and gateway saturation observation was established in this pass. No
-capacity, bottleneck fix, calibrated measurement, or population inference is
+available for this pass. No authenticated synthetic k6 capacity run or
+PostgreSQL, worker, Valkey, and gateway saturation observation was established.
+No capacity, bottleneck fix, calibrated measurement, or population inference is
 claimed. Counts here describe repository workflow state only.
 
 ## Exact-head continuation — 2026-10-18 17:02 KST
