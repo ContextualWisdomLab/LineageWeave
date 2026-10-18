@@ -1381,6 +1381,12 @@
   border-radius: var(--radius-control);
 }
 
+.ontology-exact-values h4 {
+  position: sticky;
+  left: 0;
+  width: fit-content;
+}
+
 .ontology-exact-values table {
   width: 100%;
   border-collapse: collapse;

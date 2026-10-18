@@ -388,6 +388,13 @@ export const CombinedVoiceEvidence: Story = {
     );
     if (!evidence) throw new Error("Voice assignment evidence control was not rendered");
     evidence.focus();
+    const region = evidence.closest<HTMLElement>(".ontology-exact-values");
+    const heading = region?.querySelector("h4");
+    if (!region || !heading ||
+      (region.scrollLeft > 0 && heading.getBoundingClientRect().left < region.getBoundingClientRect().left)
+    ) {
+      throw new Error("Exact values heading must remain visible while evidence is focused");
+    }
   },
 };
 

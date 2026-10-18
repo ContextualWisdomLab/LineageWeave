@@ -614,7 +614,7 @@ function OntologyExactValueTable({
         <p>{t("No related information is available. Open a visible post next.")}</p>
       ) : (
         <table>
-          <caption>{t("Exact values")}</caption>
+          <caption className="visually-hidden">{t("Exact values")}</caption>
           <thead>
             <tr>
               <th>{t("Source")}</th>
