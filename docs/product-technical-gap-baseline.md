@@ -1,5 +1,70 @@
 # Product & Technical Gap Baseline
 
+## Exact-head cutoff navigation and delivery audit — 2026-10-19 KST
+
+The current LineageWeave PRD was read before this loop. Linked authorities were
+read at their repositories: ThreadWeave's PRD, TEPP's approved PRD, RankWeave's
+architecture, contextual-orchestrator's product planning and architecture, and
+disksage's protected README. The remote names preserve canonical case:
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`,
+`contextual-orchestrator`, and lowercase `disksage`. Accepted ADR 0246 governs
+the twelve atomic Voices; ADR 0256 governs evidence-bearing, open-ended
+composition and cutoff history. ADR 0251 governs occupational semantics, not
+Voice combination codes. These authorities supply no new weights, fixed
+combination vocabulary, or population estimator.
+
+At this read, protected `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`, containing the merge of
+#1179 at that SHA. GitHub returned 196 open PRs (168 drafts, 28 ready against
+`main`, 117 targeting another branch) and 43 open issues. Selected ready PRs
+were #1177 `06d64a96442ba61aec35216e1ce295629035b462`, #1178
+`ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, #1181
+`96adabce83784e05ebb4e2a932da9a02e93952e5`, and #1182
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`. Each had four terminal
+failed hosted jobs on its exact head, no formal independent approval, and no
+auto-merge request. #1182's review reported no code issue, but reviewed an
+older commit; #1181's review requested delivery-gate verification and did not
+approve. The exact #1182 Full test job had zero steps, runner id zero, and a
+failure annotation that the Actions account was locked for billing. This is
+external execution failure, not a failed application test. The active `main`
+ruleset only rejects force pushes; classic branch protection returned 404.
+It currently enforces neither passing Checks nor independent approval, so
+normal auto-merge would not preserve the requested governance. No merge or
+auto-merge is claimed here.
+
+The selected user-visible gap was a historical Post's **Related information**
+path dropping its knowledge cutoff. The Voice-specific evidence path already
+kept that cutoff, but the adjacent related-information path could fetch later
+relations and open a later Post as if it belonged to the historical view. This
+candidate passes the same cutoff to the related graph and keeps it when opening
+its carrying or evidence Post. A focused rendered-component regression passed;
+172 related frontend tests, lint, and production build passed on this candidate.
+The build still reports its existing large application chunk warning; this
+navigation change did not establish a measured performance bottleneck.
+Synthetic Storybook **Separate Voice Evidence** and **Narrow Exact Value**
+were rendered and visually inspected at 1440×900 and 390×844. The desktop
+graph remains legible; the mobile action row wraps and the exact-value table
+retains its horizontal scroll cue. These screenshots are local audit artifacts,
+not authenticated customer-flow acceptance. Three existing
+authenticated synthetic PostgreSQL/API Voice tests passed against the running
+`lineageweave` stack: distinct carrying and evidence Posts, stored provenance,
+and hidden-evidence denial. Those tests do not prove the new UI path in a
+browser or a protected-main release.
+
+The selected implementation changes no ADR policy, API, schema, migration,
+release number, Voice vocabulary, or inference arithmetic. #1177 and #1178
+own adjacent Voice and ontology UI files; #1181 also edits this baseline; and
+#1182 changes the API test file. Their current diffs therefore need ordinary
+base reconciliation before integration. Separate open issues #807, #1048,
+and #1056 track existing PRD, migration ordinal, and release identity
+conflicts. The current candidate does not declare them resolved.
+
+No authenticated synthetic k6 run or PostgreSQL, worker, Valkey, and gateway
+saturation observation was established in this pass. No observed bottleneck,
+capacity threshold, population inference, or measurement completion is
+claimed. The stack's nine running services and local regression results are
+availability evidence only.
+
 ## Exact-head continuation — 2026-10-18 18:08 KST
 
 The current LineageWeave PRD was read before this pass. The linked product

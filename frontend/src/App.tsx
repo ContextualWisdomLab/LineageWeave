@@ -901,6 +901,7 @@ function KeymanPanel({
   canExtract,
   onExtracted,
   onSelectPost,
+  knowledgeCutoff,
   focusPerson,
   focusEntity,
   focusTeam,
@@ -914,7 +915,8 @@ function KeymanPanel({
   sourceAuthorContext?: SourceAuthorContext | null;
   canExtract: boolean;
   onExtracted: () => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
+  knowledgeCutoff?: string | null;
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
   focusTeam?: { teamId: string; teamName: string } | null;
@@ -937,6 +939,13 @@ function KeymanPanel({
   const [error, setError] = useState<string | null>(null);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
   const relatedRequest = useRef(0);
+
+  function openRelatedPost(nextPostId: string) {
+    onSelectPost?.(
+      nextPostId,
+      knowledgeCutoff ? { liveAfterCutoff: true, knowledgeCutoff } : undefined,
+    );
+  }
 
   useEffect(() => {
     setOrchestratorOff(false);
@@ -1168,7 +1177,7 @@ function KeymanPanel({
                       type="button"
                       className="related-post-card"
                       aria-label={tf("Open related post: {label}", { label: node.label ?? node.node_id })}
-                      onClick={() => onSelectPost(node.node_id)}
+                      onClick={() => openRelatedPost(node.node_id)}
                     >
                       <span className="related-post-kind">{t("Graph relation")}</span>
                       <strong>{node.label ?? node.node_id}</strong>
@@ -1394,8 +1403,9 @@ function KeymanPanel({
             accessToken={accessToken}
             focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
             focusNodeId={selectedFocus?.nodeId ?? postId}
-            onSelectPost={onSelectPost}
-            onOpenEvidence={onSelectPost}
+            knowledgeCutoff={knowledgeCutoff ?? undefined}
+            onSelectPost={openRelatedPost}
+            onOpenEvidence={openRelatedPost}
           />
         </SurfaceBoundary>
       ) : null}
@@ -2812,6 +2822,7 @@ function PostDetailPopup({
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
+                knowledgeCutoff={knowledgeCutoff}
                 focusPerson={focusPerson}
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
@@ -2874,6 +2885,7 @@ function PostDetailPopup({
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
+                knowledgeCutoff={knowledgeCutoff}
                 focusPerson={focusPerson}
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}

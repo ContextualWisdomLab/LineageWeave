@@ -2119,6 +2119,32 @@ describe("App, authenticated", () => {
     ));
   }, 15000);
 
+  it("keeps the run cutoff in related information and its evidence action", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "View related information",
+    }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("knowledge_cutoff=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+    await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", {
+      name: "Open evidence: Linked post",
+    }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+  }, 15000);
+
   it("keeps a post whose additional voice matches the board filter", async () => {
     stubBackend({ combinedVoices: true });
     render(<App />);
