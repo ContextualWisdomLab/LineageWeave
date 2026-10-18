@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-18 11:38 KST
+
+The current supporting LineageWeave PRD and the linked product authorities
+were re-read before the PR review: ThreadWeave and fast-mlsirm PRDs, TEPP's
+approved v0.4 PRD, contextual-orchestrator product planning and architecture,
+and RankWeave and disksage architecture/product authorities. The remote names
+retain their canonical case, including the lowercase repository name
+`disksage` for the DiskSage product. Accepted ADR 0246 owns the 12 atomic
+Voice categories; ADR 0256 owns evidence-bearing combinations and cutoff
+behavior. ADR 0251 governs a separate occupational semantic layer and supplies
+no Voice combination codes or measurement weights.
+
+At this read, `main` is `c06911c01cc165fd0b20acb249503342c3c4685f`;
+GitHub lists 195 open PRs (168 drafts, 27 ready against `main`) and 43 open
+issues. These are workflow aggregates, not a sample of customer records.
+The active default-branch ruleset contains only `non_fast_forward`; classic
+branch protection returns 404. Independent approval and successful Checks
+are product delivery requirements that the live repository policy does not
+enforce. No normal merge or auto-merge is requested while those gates can be
+bypassed by an immediate merge.
+
+Before this update, documentation PR #1179 was open at
+`3c49b5d28946ab25a90a22bb27b6c78c2716afad`. Its four hosted jobs on
+that head failed before runner steps; the Full test suite
+annotation says the Actions account is locked for billing. It has no formal
+independent approval or unresolved review thread. CodeRabbit's latest review
+is paused after an earlier commit, so its success status is not a current-head
+review. Six documentation-hygiene tests pass locally on that head.
+
+The selected customer gap remains the unavailable-support action in PR #1177,
+at `e810f96707558eea4a3077519f88c894357d444d`. Its minimal UI change
+retains the recorded atomic Voice and truth status, hides an unavailable
+evidence action, and tells the reader whom to ask. Its focused three-test
+frontend regression passes on the unchanged exact head. The existing synthetic
+1440×900 and 390×844 screenshots were inspected again: the next action is
+readable, and the mobile text wraps within the viewport. This is candidate UI
+evidence, not a completed authenticated customer flow. Eight synthetic live
+PostgreSQL Voice-history tests and three focused authenticated API tests pass;
+31 frontend export tests pass, including paged JSON-LD subject merging and
+distinct carrying/evidence Post CSV fields. PR #1178 remains at
+`cc467459a92a0f4f9ebbc5adb42311552c98d39e` for separate relation-page
+continuation. Neither product PR has independent approval or passing hosted
+Checks. The three current diffs have no new API, schema, migration ordinal,
+release identity, or competing ADR; their baseline edits overlap and require
+reconciliation when the candidates integrate. Issues #807, #1048, and #1056
+still own the distinct PRD, migration-identity, and release-identity conflicts.
+
+The canonical `lineageweave` Compose services are running. No configured
+authenticated k6 token was found, so current-head synthetic end-to-end
+latency, concurrency, error, throughput, and saturation evidence is unavailable;
+there is no observed bottleneck to repair. Full Voice acceptance still needs
+the complete authenticated PostgreSQL/API and rendered customer flow together,
+including cutoff navigation and the carrying Post versus derivation-evidence
+actions. Focused tests alone do not establish that end-to-end behavior.
+No protected merge SHA or population inference is claimed.
+
 ## Exact-head continuation — 2026-10-18 10:34 KST
 
 The remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
