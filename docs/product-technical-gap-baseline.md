@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-19 04:52 KST
+
+The current LineageWeave PRD and the linked ecosystem product authorities were
+read before this continuation. The remote organization confirms canonical
+`LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP`, and lowercase
+`disksage`. ADR 0246 owns the twelve atomic Voices; ADR 0256 owns
+evidence-bearing, open-ended composition and cutoff history. ADR 0251 is the
+separate occupational semantic authority. Their cited research supplies no
+fixed compound Voice code, local weight, or population inference.
+
+Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`,
+the verified #1179 merge SHA. GitHub currently lists 196 open PRs (168
+drafts and 28 ready against `main`) and 43 open issues. The selected exact
+heads are #1177 `06d64a96442ba61aec35216e1ce295629035b462`,
+#1178 `ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a`, #1182
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, and this baseline
+#1181 `fe6719306722cdebd742071fc814f5b85c61303b` before this update.
+The selected heads have four failed hosted jobs each, no independent formal
+approval, and no auto-merge request. #1181 still has an unresolved review
+thread about delivery gates. #1182's Full test job had no runner or steps;
+its exact check annotation says Actions did not start it because the account
+was locked for billing. This failure is not a test result. The active
+default-branch ruleset only prohibits force pushes, and classic branch
+protection returns 404. It cannot enforce independent approval or passing
+Checks; auto-merge could execute without either, so it remains unset.
+
+The highest selected reader gap remains the unavailable Voice-support action.
+#1177 contains the minimal candidate and its synthetic regression: retain
+the recorded atomic Voice and truth state, offer an evidence action only for
+a derivation reference, and ask the reader to have an administrator check
+access when support is unavailable. Its desktop and mobile Storybook renders
+were inspected on that exact head in the prior pass. This continuation did
+not establish authenticated rendered customer-flow acceptance for cutoff,
+distinct carrying and derivation Posts, or paged JSON-LD. Those conditions
+remain open. #1182 separately contains the measured Board filter-query repair;
+its focused source-scan contract passed locally here (one test, warnings as
+errors). Documentation hygiene passed here (six tests). Neither local result
+substitutes for hosted exact-head Checks or a candidate-image k6 run.
+
+The selected feature diffs add no competing API, schema, migration ordinal,
+release number, or fixed Voice combination code. #1182 amends ADR 0212;
+#1177 amends ADR 0256. Their baseline-document edits overlap #1181 and
+require owner-aware reconciliation. Issues #807, #1048, and #1056 retain the
+broader PRD, migration-identity, and release-identity conflicts. The earlier
+synthetic k6 and PostgreSQL saturation observations below identify a local
+Board bottleneck; they do not prove candidate-image improvement, a capacity
+SLO, or population inference. No identifying source row or credential is
+recorded in this baseline.
+
 ## Exact-head continuation — 2026-10-19 03:47 KST
 
 The supporting LineageWeave PRD and the linked ecosystem product or
