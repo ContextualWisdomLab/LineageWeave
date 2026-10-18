@@ -56,4 +56,6 @@ token-backed status notices (ADR 0220),
 migration replay (ADR 0166), docstring coverage, and the measurement
 boundary are all stated in [AGENTS.md](AGENTS.md) -- read it before
 changing code, tests, or runtime policy rather than restating anything
-here.
+here. The agent loop discipline for PRs and Issues (nested-loop
+ledger, wait scoping, single-writer branches, measurement journals,
+merge exceptions) likewise lives only in AGENTS.md.
