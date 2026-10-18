@@ -1,4 +1,5 @@
-FROM postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+FROM postgres:16.15-bookworm@sha256:bb3e1a57e5407e0a5280b4211980a5e537f4abd234a87014ac979849a78dd825
+ENV LANG=en_US.utf8
 # Build context is the repo root (see docker-compose.yml) so both the
 # Keycloak-database bootstrap and the product schema can be copied from
 # their single sources of truth.
