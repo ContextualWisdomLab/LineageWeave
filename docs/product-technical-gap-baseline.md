@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-18 08:25 KST
+## Exact-head continuation — 2026-10-18 09:29 KST
 
 The remote `main` remains `c06911c01cc165fd0b20acb249503342c3c4685f`.
 GitHub currently reports 195 open PRs and 43 open issues. The live branch
@@ -11,9 +11,11 @@ independent approval and terminal Checks required for this product, so none
 was armed in this continuation.
 
 The documentation candidate #1179 was read at exact head
-`3169c71b63fcb03c6854023b401af8796ea87245` before this update. Its
-four hosted jobs are terminal failures, it has no independent approval or
-unresolved review thread, and automated review success is not an approval.
+`3ef64edb2e469f08f12dd0e51eef93d8348bc9bf` before this update. Its
+four hosted jobs are terminal failures with no runner steps; the exact-head
+Full test suite annotation says the Actions account is locked for billing.
+It has no independent approval or unresolved review thread, and automated
+review success is not an approval.
 The Voice reader repair #1177 remains at
 `e810f96707558eea4a3077519f88c894357d444d`; the relation-page repair
 #1178 remains at `cc467459a92a0f4f9ebbc5adb42311552c98d39e`. Their
@@ -22,8 +24,8 @@ single #1177 review thread is resolved; #1178 has no review thread. No
 protected merge SHA exists for these candidates.
 
 The selected customer-facing gap remains #1177's unavailable Voice-support
-state. Its exact-head focused UI regression passed again (3 tests). The
-existing synthetic Storybook captures were visually checked at desktop
+state. Its exact-head focused UI regression passed again (3 tests) at this
+read. Earlier synthetic Storybook captures were visually checked at desktop
 1440×900 and mobile 390×844: the next action is legible and the narrow view
 wraps without horizontal overflow. Six documentation-hygiene tests passed on
 #1179's pre-update head. The candidate preserves the recorded Voice and truth
