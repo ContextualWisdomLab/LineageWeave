@@ -1,5 +1,90 @@
 # Product & Technical Gap Baseline
 
+## Exact-head reader audit — 2026-10-18 20:39 KST
+
+The current LineageWeave PRD was read before this continuation, followed by
+the protected product or architecture authorities in TEPP, ThreadWeave,
+RankWeave, contextual-orchestrator, and disksage. GitHub confirms the canonical
+remote spelling `ContextualWisdomLab/disksage`; `DiskSage` is its product name.
+ADRs 0246 and 0256 govern the twelve atomic, extensible Voices and their
+evidence-bearing combinations. ADR 0251 governs the separate occupational
+semantic layer. Those authorities supply no fixed Voice combination list,
+calibrated weight, or population estimate.
+
+Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the
+confirmed merge commit of documentation PR #1179. The fresh inventory has
+194 open PRs (168 drafts, 26 ready against `main`, 117 stacked) and 43 open
+issues. Before this update, reader PR #1178 was at
+`dfd258dfacb165f053b69ecaf01af8d244b9b42c`; Voice-support PR #1177
+was at `e810f96707558eea4a3077519f88c894357d444d`. These are workflow
+counts, not product usage or population data. The current `main` ruleset has
+only `non_fast_forward`; classic branch protection returns 404. Neither
+successful Checks nor independent approval is enforced. #1178 has no inline
+review comment or independent formal approval. Its four test/analysis jobs
+failed with zero executed steps on that head, so they establish no code-test
+result. Normal merge and auto-merge remain unsafe under this live policy;
+neither was requested. #1177's automated repository-name privacy comment
+misreads ADR 0001, which prohibits identifiable source records, not public
+repository names.
+
+The selected reader gap remains #1178's directly reproduced supplied-page to
+live-refocus continuation. Its minimal code path permits a reader to fetch the
+next authorized relation page after refocus while a static supplied page stays
+bounded. The focused frontend run passed 53 tests across three files; lint,
+the production build, and six documentation checks passed. Synthetic
+Storybook rendering was inspected at
+1440×900 and 390×844 after a browser-mocked first and second relation page:
+both exact-value rows were readable, and mobile kept the wide table within
+its horizontal scroll area. The first screenshot exposed overlapping graphic
+labels when two relation types share endpoints. The same candidate now gives
+those parallel paths and labels separate positions, with a regression that
+keeps both relation actions selectable; the rendered scene was captured again
+at both widths. Screenshots and the synthetic browser response remain outside
+git. This is local UI evidence for the two-relation case, not authenticated
+PostgreSQL/API or protected-main acceptance.
+
+#1178 and #1162 both edit the ontology reader; #1177 edits the separate Voice
+support flow. Their changes require integration review on a shared exact
+head. The selected diffs introduce no competing migration, schema, API, ADR,
+or release number. The wider PRD requirement-ID, migration-ordinal, and
+release-identity conflicts remain open in #807, #1048, and #1056.
+The `lineageweave` Compose stack has nine running services, but no
+operator-owned access-token file was supplied in this session. Authenticated
+synthetic k6 concurrency, latency, error, throughput, and PostgreSQL/worker/
+Valkey/gateway saturation therefore remain unmeasured. No bottleneck repair
+or population inference is claimed.
+
+## Delivery-control and reader recheck — 2026-10-18 10:27 UTC
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the merge
+commit for #1179. Its exact head was
+`eca35e8644ac7ec74454d68c0d0368bc468424b7`. GitHub records zero formal
+approvals and failed Full suite, frontend, and CodeQL jobs on that head.
+The ordinary `--auto --squash` request merged it immediately, rather than
+waiting for the user's independent-approval and terminal-Checks conditions.
+The repository's public effective-rules endpoint returned only active ruleset
+21065108 (`non_fast_forward`) for `main`; no required review or successful
+Check rule appeared. This is a delivery-control incident. Neither the normal
+GitHub merge mechanism nor its merge SHA establishes protected acceptance.
+No further merge or auto-merge request is justified until the missing gates
+are restored and verified on the then-current head.
+
+PR #1178's reader candidate exposed one more narrow-screen defect in a
+synthetic Storybook scene: focusing the Voice derivation-evidence action
+horizontally scrolled the exact-value table and hid its heading. The focused
+fix keeps the visible heading in view and retains a screen-reader table
+caption. The `CombinedVoiceEvidence` scene now checks the focused state.
+At implementation commit `0f970b7e5fcbb7635d3906987b21d37f48a1c83e`,
+frontend lint, 52 related component tests, application build, and Storybook
+build passed. Chromium screenshots at 1440×900 and 390×844 were inspected;
+the mobile region scrolled to the evidence action without clipping the
+heading or overflowing the document. Screenshots contain only synthetic
+Storybook content and stay outside git. This is local rendered evidence, not
+authenticated PostgreSQL/API or a protected merge claim. The PR branch is
+being synchronized with the above `main`; the synchronization creates a new
+head and requires fresh review/Checks evidence. No ADR, API, schema, migration,
+release number, scoring rule, or owner-engine contract changes in this fix.
+
 ## Exact-head continuation — 2026-10-18 18:08 KST
 
 The current LineageWeave PRD was read before this pass. The linked product
@@ -597,6 +682,277 @@ therefore stays open at the product level. No new ADR, API, schema, migration
 ordinal, release identity, weight, or measurement rule is introduced here;
 issues #807, #1048 and #1056 remain separate cross-PR authority checks.
 
+## Current-head delivery and reader gap — 2026-10-16 09:30 KST
+
+This entry supersedes earlier present-tense delivery claims. The fetched
+`main` head is `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`. GitHub reports
+195 open PRs and 42 open issues; these are workflow counts, not observations
+of customer records or a probability sample. The current PRD is a supporting
+product contract. ADR 0184 governs bounded ontology exploration; ADRs
+0246/0251/0256 separately govern the twelve atomic Voices, occupational
+constructs, and evidence-bearing combinations. The current RankWeave,
+ThreadWeave, TEPP, disksage, and contextual-orchestrator product or
+architecture authorities were read. The remote storage repository is
+`ContextualWisdomLab/disksage`, despite the local `DiskSage` path.
+
+PR #1156 was repaired at exact head
+`c9bc87e1e561944d2bf0e8710c26120d9199b218`: its HTTP and MCP k6
+observation paths now abort the entire run on a 401 or 403, including MCP
+session initialization. Six focused local contract tests passed. The reviewer
+thread was resolved. A normal `gh pr merge --auto --squash` request immediately
+merged it as `da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`, although four
+hosted jobs were failing and no independent approving review existed. This is
+a **merge-control incident**, not protected delivery or release acceptance.
+GitHub GraphQL currently exposes only an active no-force-push ruleset and no
+classic branch-protection rule. Until independent approval and exact-head
+Checks are enforceable and satisfied, no further merge or auto-merge request
+is justified. The incident does not supply authenticated k6 measurements:
+concurrency, latency, error rate, throughput, and PostgreSQL, worker, Valkey,
+and gateway saturation remain unmeasured on this head.
+
+The directly reproduced reader gap remains PR #1178 at reviewed remote head
+`9ceb033f6ee97596e6c2a3f3b729c0aef0226445`: a supplied ontology
+neighborhood can refocus to a live node, but the current `main` hides that
+live page's continuation action. The candidate permits continuation only
+after live refocus and has a synthetic regression for the cursor-bound second
+page; static supplied pages remain bounded. This follow-up found that the
+graph is hidden on narrow screens, leaving no way to select a related node
+for refocus there. The exact-value target now opens the same node details,
+from which the reader can refocus and load its next authorized page. A focused
+regression covers that path. The available-page notice now points to the page
+action in all five product locales. The product-code commit is
+`39b2e1a11eeafa105f08c88e40767f8bdab28d09`. The new Storybook scene was
+driven with a synthetic authorized response and visually inspected at 1440×900
+and 390×844:
+the next-page button is visible and neither viewport overflows horizontally.
+Those screenshots remain outside git. This is rendered synthetic evidence,
+not an authenticated PostgreSQL/API read. The changes add no ADR, API,
+schema, migration, release number, Voice code, score, or provider boundary.
+At that reviewed head, four hosted jobs are terminal failures, no independent
+approval or review thread exists, and auto-merge is off. Authenticated
+PostgreSQL/API and rendered multi-Voice acceptance, including hidden evidence,
+truth/cutoff, carrying versus derivation evidence, and paged JSON-LD union,
+also remain unavailable.
+
+The open #1176 PR owns the duplicated occupational PRD requirement identities.
+Issue #1048 owns the migration ordinal collision, and issue #1056 owns release
+identity. PR #1178 overlaps #1162's reader and several gap-baseline edits;
+their checks and reviews cannot transfer to a combined head. No stale run was
+cancelled, no formal Compose volume was touched, and no private record or
+credential was copied into this artifact.
+
+### Fresh verification of the reviewed #1178 head
+
+The open inventory at the same observation returned 195 PRs: 168 drafts,
+117 with a non-`main` base, one with an `APPROVED` decision, and none with
+auto-merge enabled. These counts do not establish review validity or
+mergeability. #1178 is ready against `main@da0f6e391e4f103921c9dfb75d10bfb6bbdc3876`.
+Its 78 focused ontology reader/layout tests, frontend lint, production build,
+and Storybook build passed locally at the reviewed head. The production and
+Storybook builds retain the existing large-chunk warning. Synthetic Storybook
+scenes were rendered and inspected at 1440×900 and 390×844; the reader controls
+remain visible on both viewports, while the narrow exact-value table begins
+within its horizontal-scroll region. The screenshots remain outside git.
+They do not establish a live browser pagination interaction or authenticated
+PostgreSQL/API acceptance. Existing synthetic layout regressions preserve a
+single JSON-LD subject's properties and multi-Voice relations across pages,
+including singleton/array forms; the CSV regression distinguishes the
+carrying Post from its derivation evidence. These are contract checks, not a
+private-runtime Voice acceptance claim.
+
+The exact-head frontend and full-suite jobs ended after roughly two seconds
+without a runner (`runner_id: 0`); a current job annotation says the account
+was locked due to a billing issue. Thus the hosted failures are execution
+failures, not evidence of a product-test assertion failure. The bot's request
+to remove the public GitHub repository owner name from this baseline was
+rejected after comparison with ADR 0001's prohibition on identifiable *real
+source records*: canonical repository identity is required for this audit and
+does not identify a source Post or a customer's organization. No independent
+approval or exact-head hosted success exists, so no normal merge or auto-merge
+request was made. The active effective repository rule prohibits force pushes;
+classic branch protection returned 404, and organization rules were not
+readable through this account. The earlier #1156 merge-control incident is
+still unresolved. PRD requirement duplication (#1176/#807), the duplicate
+`0233` migration ordinal (#1048), and release identity (#1056) remain separate
+owners; #1178 introduces none of those identifiers.
+
+## Exact-head continuation verification — 2026-10-16 08:10 KST
+
+The current protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
+The public inventory has 196 open PRs (168 drafts, 117 with non-`main` bases)
+and 42 open issues. These count repository work, not customer records or a
+probability sample. The current PRD and ADR 0184 define the bounded reader;
+ADR 0246 defines twelve atomic Voices, ADR 0251 the distinct occupational
+layer, and ADR 0256 the evidence, truth, and cutoff contract for open-ended
+Voice combinations. The remote canonical storage repository is `disksage`.
+The applicable RankWeave, ThreadWeave, TEPP, contextual-orchestrator, and
+fast-mlsirm product or architecture authorities were read before this audit.
+
+The reviewed product-code head of PR #1178,
+`6869286960c21bff4798172969fc1602dcb0e7dd`,
+contains the minimal live-refocus continuation and the authenticated static
+supplied-page regression. On that head, the focused reader file passed 38
+tests, frontend lint, production build, Storybook build, and five documentation
+hygiene tests passed. The production build retains its existing large-chunk
+warning. Synthetic Storybook screenshots of the combined-Voice ontology
+neighborhood were rendered and inspected at 1440×900 and 390×844; the page
+has no horizontal viewport overflow, and the narrow exact-value table remains
+horizontally scrollable. The screenshots remain outside git. These checks do
+not establish a full frontend suite pass, a live refocus interaction in the
+browser, or an authenticated PostgreSQL/API Voice flow. Carrying Post, derivation Post,
+truth/cutoff, and paged JSON-LD acceptance remain unproven at that boundary.
+
+All four named GitHub test and analysis jobs on this exact head are terminal
+failures. The earlier job annotation identified an Actions billing lock; its
+cause was not re-established from current annotations. Formal reviews contain bot comments only, with no
+independent approval, and auto-merge is not armed. The effective `main` rules
+endpoint returned only a no-force-push rule; classic branch protection
+returned 404, and the organization rules endpoint returned 403. Required
+independent review and current-head Checks therefore cannot be treated as
+enforced or satisfied. No merge or auto-merge request was made because it
+could complete without the requested protections.
+
+The #1178 and #1176 trees merge without a file conflict; #1178 with #1177 or
+#1162 conflicts in this baseline document, while #1162 also edits the reader.
+These are integration observations, not combined-head acceptance. #1178 adds
+no ADR, API, schema, migration, or release number. #1176 owns the duplicate
+occupational PRD identities; issue #1048 owns the migration ordinal collision,
+and issue #1056 owns release identity. No TEPP or fast-mlsirm arithmetic,
+model rule, or population estimate was added locally.
+
+## Review repair and current authority — 2026-10-16 KST
+
+At this audit, protected `main` is
+`df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`. GitHub returned **196 open
+PRs** (**168 drafts**, **28 ready**, **117 non-`main` bases**) and **42 open
+issues**. These are repository workflow counts, not customer or population
+measurements. The PRD describes the product outcome; ADR 0184 governs the
+ontology reader, and ADRs 0246/0251/0256 keep atomic Voices, the separate
+occupational layer, and evidence-bearing Voice combinations distinct. Current
+implementation and local tests below remain candidate evidence. Authenticated
+PostgreSQL/API acceptance, hosted checks, independent approval, and protected
+merge are separate, unproven acceptance conditions.
+
+PR #1178 was reviewed at audit head
+`11b27bae7be3ad03359a1bd5e00aa44bfe86067b`.
+The automated review identified a valid regression gap: the static supplied
+neighborhood test lacked an access token, so it could not detect an accidental
+page button for an authenticated reader. Product-code test commit
+`ef03927bb6906599712339ba65fa1ab609b9b0fc` adds that token to the
+existing bounded-page assertion. The full frontend suite passed **600 tests**
+across **60 files** on the earlier product-code head. The focused reader file
+passed **38 tests** on the audited head. A fresh broad run overlapped the build,
+hit several five-second UI timeouts, and was stopped; it is not a full-suite
+pass. Lint and production build passed. Documentation hygiene passed five
+tests. The previously recorded
+synthetic desktop/mobile render audit applies to the unchanged UI. The build
+still reports its existing large-chunk warning. The four audited-head hosted
+test and analysis jobs failed before any step ran; the job annotation identifies
+an account billing lock. The review-thread query returned zero threads. No
+independent approval, armed auto-merge, or merge is claimed.
+
+PR #1178's reader continuation remains the selected reproduced user gap:
+after a reader refocuses from a supplied neighborhood, an authorized next
+relation page can be opened. The test repair protects the distinct static
+supplied-page limit. It changes no ADR, API, schema, migration, release number,
+provider routing, or Voice inference. PR #1162 owns access-denial paging and
+#1169 edits related reader tests; combined behavior needs new exact-head review
+when those branches meet. Ready #1177 (`090bce95f34cd7f98c83c297e175069a50ad2b0d`)
+and #1176 (`cf2990395ba06af7c7d8cde44cb92bf68840915c`) also have
+terminal failing hosted jobs and no independent approving review. #1177's
+request to remove public repository names from this baseline does not apply to
+the ADR 0001 ban on identifying source records; no source record is included.
+Issues #1048, #1056, and #807 continue to own the
+migration ordinal, release identity, and duplicated PRD requirement identities.
+No new authenticated load or population inference is asserted.
+
+## Current-head delivery check — 2026-10-16 KST
+
+Protected `main` remains `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`.
+The reader-continuation candidate was reviewed at PR #1178 head
+`3dfef42bd311c7c1c8b6c5d48cdc72077359d434`: no review thread or
+independent approval was present. Its four hosted test and analysis jobs were
+terminal failures; the public job page says the jobs did not start because
+the account is locked due to a billing issue. The successful automated review
+statuses are not independent approval. This is an external CI execution
+blocker, not a passing check or evidence that the candidate failed its tests.
+
+At that head, the new supplied-neighborhood to live-refocus continuation
+regression passed locally. Frontend lint and production build passed. A run of
+the broader `OntologyExplorer` file had 37 passing tests and one timeout while
+the shared host was busy; the timed-out access-denial cases passed when run
+alone. The earlier desktop and mobile synthetic screenshots were inspected
+again: the next-page action is visible at both widths. These observations do
+not establish authenticated PostgreSQL/API or protected-main acceptance. No
+merge or auto-merge was requested while the hosted gates and independent
+approval remained unsatisfied.
+
+## Exact-head reader continuation audit — 2026-10-16 KST
+
+This overlay supersedes older present-tense queue statements. The fetched
+protected `main` is `df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3` (merged
+#1175). The public REST inventory returned **195 open PRs**, including **168
+drafts**, **117 non-`main` bases**, and **27 ready PRs based on `main`**. These
+are workflow counts, not usage or population estimates. The current PRD is a
+supporting product contract; ADR 0184 governs the bounded ontology reader,
+ADR 0246 the twelve extensible atomic Voices, ADR 0251 the separate
+I/O-psychology taxonomy, and ADR 0256 evidence-bearing combinations. The
+current ThreadWeave PRD, TEPP approved PRD, disksage PRD, RankWeave
+architecture, and contextual-orchestrator product planning were read before
+using their owner boundaries. Remote canonical names are
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `disksage`,
+`TEPP`, and `contextual-orchestrator`; `DiskSage` is a local spelling, not the
+remote repository name.
+
+### Exact-head review and protected delivery
+
+- Ready #1169 at `bc395edced35e5a943e2a0a4d222461fbc6ce001` has seven
+  terminal failing or skipped check runs on that SHA and no independent
+  approving review in the public review list. Ready #1177 at
+  `090bce95f34cd7f98c83c297e175069a50ad2b0d` has four terminal failing
+  check runs and no independent approving review. Neither is a protected merge
+  candidate on this evidence. No auto-merge or merge was requested.
+- #1177's automated comment asks for public repository names to be removed
+  from this baseline. ADR 0001 prohibits identifying *real source records*;
+  public repository identity is necessary for the requested canonical-name
+  audit and is not a source record. The comment therefore requires no data
+  mutation. Other threads and the full ruleset were not audited in this
+  rate-limited pass, so no approval or mergeability claim follows.
+- #1162 edits the same reader component to suppress paging after access
+  denial. The candidate below changes a separate paging eligibility
+  condition. #1169 also edits the reader tests. Their current diffs require
+  integration review when either head changes; local success is not a combined
+  exact-head check. No API, schema, migration, ADR number, model policy,
+  or release number changes in this candidate. Existing PRD requirement-id
+  duplication, migration ordinal duplication, and version authority remain
+  separately owned issues, not silently resolved here.
+
+### Selected observable product gap
+
+The reader can open a supplied neighborhood, select another visible node, and
+fetch that node's live first page. If that page has a continuation cursor, the
+UI still hides the next-page action merely because the original neighborhood
+was supplied. This blocks inspection of further authorized relations and
+their exact-value evidence. No measured customer-impact ranking is available;
+this is a directly reproduced navigation failure in the current reader.
+
+The minimal candidate permits continuation once the reader has moved to a
+live refocus, while retaining the existing static supplied-neighborhood rule
+and authorization, cutoff, cursor, and page-accumulation contracts. A focused
+regression reproduces supplied → live refocus → second page and checks that
+the cursor-bound request and additional relation are visible. The candidate
+does not assign a Voice, substitute hidden evidence, invent a relationship,
+or alter JSON-LD merging. The three related component test files pass **50
+tests**; frontend lint and production build pass. The existing large-chunk
+build warning remains. Synthetic Storybook rendering of the live-refocus
+state was inspected at 1440×900 and 390×844: the continuation action remains
+visible and neither viewport has page overflow. Screenshots stay outside git.
+This proves the local synthetic reader path, not authenticated PostgreSQL/API
+acceptance, private-corpus behavior, or a protected release.
+
+The current `main` k6 harness remains unsuitable for credential-bearing load
+until owner #1156's token and response-body repair is integrated. No new load,
+gateway saturation, or population claim is made from this UI regression.
 ## Owned-token load admission candidate — 2026-10-16 KST
 
 The protected `main` used for this integration is
@@ -3598,3 +3954,29 @@ claim. The canonical `lineageweave` Compose services were observed running
 with healthy PostgreSQL, worker, orchestrator, and Valkey status, but this
 health observation is not authenticated acceptance or a k6 capacity result.
 No new throughput, latency, population, or release assertion is inferred.
+
+### Exact-head continuation audit — 2026-10-16 KST
+
+This snapshot follows the current product PRD and the linked owners' product or
+architecture authorities. Protected `main` is
+`df7a9c0db4e1ed3b6ff7d2da16fafb27bafa37e3`. GitHub REST returned 196 open
+PRs (28 ready; 117 based on a branch other than `main`) and 42 open issues.
+These are workflow counts, not sampled product or population estimates. The
+canonical remote is `ContextualWisdomLab/LineageWeave`; the storage-policy
+repository is lowercase `ContextualWisdomLab/disksage`.
+
+| Authority or evidence | Current exact observation | Acceptance boundary |
+| --- | --- | --- |
+| ADR 0246/0251/0256 and cited sources | Twelve governed atomic Voices, open-ended combinations, distinct occupational constructs, qualified evidence and cutoff | No fixed combination catalog, inferred weight, or hidden-evidence substitution |
+| Protected implementation | `main` above; PR #1175 merged before this snapshot | A merged change proves delivery only at its merge SHA, not authenticated Voice runtime acceptance |
+| User-facing repair candidate | PR #1178 at `aacb0bf41da324300e256a179c9e1b93b9c570ed` keeps a supplied neighborhood bounded while permitting a live refocus to load its next relation page; the authenticated static-limit regression from review is present | Local OntologyExplorer test: 38 passed on this head; authenticated PostgreSQL/API and rendered desktop/mobile acceptance remain unverified in this audit |
+| Adjacent ready candidates | #1177 `090bce95f34cd7f98c83c297e175069a50ad2b0d`; #1176 `cf2990395ba06af7c7d8cde44cb92bf68840915c`; #1174 `0cd07ef45a47d587a54ce0feeb43351d7e2255c7` | Their baseline edits overlap #1178 and require content reconciliation after the first protected merge; no shared API, schema, migration ordinal, or release-number change was found in #1178's file list |
+| Hosted checks and review | #1178's two test jobs and two CodeQL jobs failed before runner steps; the exact-head job annotation says the GitHub account is locked by a billing issue. Its latest formal review is a bot comment, with no independent approval. | No normal protected merge or auto-merge completion is established. Restore the account, rerun checks on the then-current head, and obtain independent approval. |
+
+The remaining high-impact Voice gap is authenticated PostgreSQL/API and rendered
+UI proof that carrying Post and derivation-evidence Post remain distinct across
+truth changes, cutoff, hidden evidence, and paged JSON-LD. Existing synthetic
+tests and candidate screens cannot close that acceptance condition. The
+refocus continuation in #1178 is the bounded customer-facing repair advanced
+while hosted checks cannot start. No live source records, credentials, or
+provider-rendered Compose configuration were read for this snapshot.

@@ -207,7 +207,7 @@ export function OntologyExplorer({
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
-  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && !provided);
+  const canLoadNextPage = Boolean(visible?.next_cursor && accessToken && (!provided || liveFocus));
 
   function resetFocus() {
     setRequestScope((scope) => ({ ...scope, generation: scope.generation + 1 }));
@@ -337,6 +337,10 @@ export function OntologyExplorer({
           <OntologyExactValueTable
             payload={visible}
             selectedEdgeId={selectedEdgeId}
+            onSelectNode={(node) => {
+              setSelectedNodeKey(nodeKey(node));
+              setSelectedEdgeId(null);
+            }}
             onSelectEdge={(edgeId) => {
               setSelectedEdgeId(edgeId);
               setSelectedNodeKey(null);
@@ -471,6 +475,18 @@ function OntologyGraph({
   onSelectNode: (node: OntologyGraphNodePayload) => void;
   onSelectEdge: (edge: OntologyGraphEdgePayload) => void;
 }) {
+  const parallelEdges = new Map<string, string[]>();
+  for (const edge of layout.edges) {
+    const endpoints = [
+      nodeKey({ node_type_code: edge.source_node_type_code, node_id: edge.source_node_id }),
+      nodeKey({ node_type_code: edge.target_node_type_code, node_id: edge.target_node_id }),
+    ].sort().join("|");
+    const siblings = parallelEdges.get(endpoints) ?? [];
+    siblings.push(edge.edge_id);
+    parallelEdges.set(endpoints, siblings);
+  }
+  for (const siblings of parallelEdges.values()) siblings.sort();
+
   return (
     <svg
       className="ontology-graph"
@@ -482,13 +498,20 @@ function OntologyGraph({
       {layout.edges.map((edge) => {
         const midX = (edge.fromX + edge.toX) / 2;
         const midY = (edge.fromY + edge.toY) / 2;
-        const labelY = midY + Math.sign(edge.toY - edge.fromY) * 28 - 18;
+        const endpoints = [
+          nodeKey({ node_type_code: edge.source_node_type_code, node_id: edge.source_node_id }),
+          nodeKey({ node_type_code: edge.target_node_type_code, node_id: edge.target_node_id }),
+        ].sort().join("|");
+        const siblings = parallelEdges.get(endpoints) ?? [edge.edge_id];
+        const offset = (siblings.indexOf(edge.edge_id) - (siblings.length - 1) / 2) * 40;
+        const curveMidY = midY + offset * 0.75;
+        const labelY = curveMidY + Math.sign(edge.toY - edge.fromY) * 28 - 18;
         const selected = edge.edge_id === selectedEdgeId;
         return (
           <g key={edge.edge_id}>
             <path
               className={selected ? "ontology-edge ontology-edge-selected" : "ontology-edge"}
-              d={`M ${edge.fromX} ${edge.fromY} C ${midX} ${edge.fromY}, ${midX} ${edge.toY}, ${edge.toX} ${edge.toY}`}
+              d={`M ${edge.fromX} ${edge.fromY} C ${midX} ${edge.fromY + offset}, ${midX} ${edge.toY + offset}, ${edge.toX} ${edge.toY}`}
             />
             <text
               className="ontology-edge-label"
@@ -501,7 +524,7 @@ function OntologyGraph({
             <circle
               className="ontology-edge-hit"
               cx={midX}
-              cy={midY}
+              cy={curveMidY}
               r={14}
               role="button"
               tabIndex={0}
@@ -581,12 +604,14 @@ function OntologyShape({ shape }: { shape: string }) {
 function OntologyExactValueTable({
   payload,
   selectedEdgeId,
+  onSelectNode,
   onSelectEdge,
   onOpenPost,
   onOpenEvidence,
 }: {
   payload: OntologyNeighborhoodPayload;
   selectedEdgeId: string | null;
+  onSelectNode: (node: OntologyGraphNodePayload) => void;
   onSelectEdge: (edgeId: string) => void;
   onOpenPost: (postId: string) => void;
   onOpenEvidence: (postId: string) => void;
@@ -608,7 +633,7 @@ function OntologyExactValueTable({
         <p>{t("No related information is available. Open a visible post next.")}</p>
       ) : (
         <table>
-          <caption>{t("Exact values")}</caption>
+          <caption className="visually-hidden">{t("Exact values")}</caption>
           <thead>
             <tr>
               <th>{t("Source")}</th>
@@ -622,46 +647,61 @@ function OntologyExactValueTable({
             </tr>
           </thead>
           <tbody>
-            {payload.exact_value_rows.map((row) => (
-              <tr key={row.edge_id} className={row.edge_id === selectedEdgeId ? "is-selected" : undefined}>
-                <td>
-                  <button
-                    type="button"
-                    aria-label={
-                      row.property_code === "hasVoiceAssignment"
-                        ? tf("Open post: {label}", { label: row.source_label })
-                        : undefined
-                    }
-                    onClick={() =>
-                      row.property_code === "hasVoiceAssignment"
-                        ? onOpenPost(row.source_node_id)
-                        : onSelectEdge(row.edge_id)
-                    }
-                  >
-                    {row.source_label}
-                  </button>
-                </td>
-                <td>{row.property_label}</td>
-                <td>{row.target_label}</td>
-                <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
-                <td>{row.valid_from || t("Unknown")}</td>
-                <td>{row.valid_to || t("Unknown")}</td>
-                <td>
-                  {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
+            {payload.exact_value_rows.map((row) => {
+              const target = payload.nodes.find(
+                (node) => node.node_type_code === row.target_type_code && node.node_id === row.target_node_id,
+              );
+              return (
+                <tr key={row.edge_id} className={row.edge_id === selectedEdgeId ? "is-selected" : undefined}>
+                  <td>
                     <button
                       type="button"
-                      aria-label={postLabels.has(row.evidence_post_id)
-                        ? tf("Open evidence: {title}", { title: postLabels.get(row.evidence_post_id)! })
-                        : t("Open evidence post")}
-                      onClick={() => onOpenEvidence(row.evidence_post_id as string)}
+                      aria-label={
+                        row.property_code === "hasVoiceAssignment"
+                          ? tf("Open post: {label}", { label: row.source_label })
+                          : undefined
+                      }
+                      onClick={() =>
+                        row.property_code === "hasVoiceAssignment"
+                          ? onOpenPost(row.source_node_id)
+                          : onSelectEdge(row.edge_id)
+                      }
                     >
-                      {postLabels.get(row.evidence_post_id) ?? t("Open evidence post")}
+                      {row.source_label}
                     </button>
-                  ) : row.evidence_count}
-                </td>
-                <td>{row.recorded_at || t("Unknown")}</td>
-              </tr>
-            ))}
+                  </td>
+                  <td>{row.property_label}</td>
+                  <td>
+                    {target ? (
+                      <button
+                        type="button"
+                        aria-label={tf("Select node: {label}", { label: row.target_label })}
+                        onClick={() => onSelectNode(target)}
+                      >
+                        {row.target_label}
+                      </button>
+                    ) : row.target_label}
+                  </td>
+                  <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
+                  <td>{row.valid_from || t("Unknown")}</td>
+                  <td>{row.valid_to || t("Unknown")}</td>
+                  <td>
+                    {row.property_code === "hasVoiceAssignment" && row.evidence_post_id ? (
+                      <button
+                        type="button"
+                        aria-label={postLabels.has(row.evidence_post_id)
+                          ? tf("Open evidence: {title}", { title: postLabels.get(row.evidence_post_id)! })
+                          : t("Open evidence post")}
+                        onClick={() => onOpenEvidence(row.evidence_post_id as string)}
+                      >
+                        {postLabels.get(row.evidence_post_id) ?? t("Open evidence post")}
+                      </button>
+                    ) : row.evidence_count}
+                  </td>
+                  <td>{row.recorded_at || t("Unknown")}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

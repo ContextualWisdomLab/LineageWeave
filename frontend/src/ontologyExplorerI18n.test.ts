@@ -15,6 +15,11 @@ afterEach(() => {
 });
 
 describe("ontologyExplorerText", () => {
+  it("directs readers to the available continuation action", () => {
+    expect(ontologyExplorerText("Neighborhood truncated. Load the next relation page or inspect one edge."))
+      .toBe("Some related information is not shown. Load the next relation page.");
+  });
+
   it.each(["ko", "zh", "ja", "vi"] as const)(
     "translates paging and evidence guidance in %s",
     (locale) => {
