@@ -34,7 +34,14 @@ GitHub. Normal merge remains ineligible under the requested governance.
 The correction adds no ADR policy, API, schema, migration, release identity,
 weight, or inference rule. #1177 and #1178 own adjacent Voice and ontology UI
 work; #1181 also edits this baseline. Their diffs need base reconciliation
-before integration. Issues #807, #1048, and #1056 still track PRD, migration
+before integration. A file-level scan of the 29 ready `main` PRs found shared
+ADR 0256 edits in #1177, #1155, and #1130: #1155 and #1130 propose the
+same diagram correction, while #1177 adds the unavailable-support contract.
+These changes are compatible in meaning but need textual reconciliation.
+#1169, #1137, and #1133 touch different `pyproject.toml` fields; none changes
+the `2.28.0` version in its examined diff. The scan found no competing new
+migration ordinal among those ready PRs; it does not clear the older repository
+wide identity issues. Issues #807, #1048, and #1056 still track PRD, migration
 ordinal, and release identity conflicts. No authenticated synthetic k6 run or
 PostgreSQL, worker, Valkey, and gateway saturation evidence was established;
 there is no observed bottleneck or population-inference claim.
