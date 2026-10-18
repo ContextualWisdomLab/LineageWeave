@@ -35,8 +35,11 @@ were inspected on that exact head in the prior pass. This continuation did
 not establish authenticated rendered customer-flow acceptance for cutoff,
 distinct carrying and derivation Posts, or paged JSON-LD. Those conditions
 remain open. #1182 separately contains the measured Board filter-query repair;
-its focused source-scan contract passed locally here (one test, warnings as
-errors). Documentation hygiene passed here (six tests). Neither local result
+its focused source-scan contract and one authenticated PostgreSQL/API
+regression passed locally here with warnings treated as errors. The latter
+confirmed that an additional Voice enters the filter only while its carrying
+Post remains authorized. Documentation hygiene passed here (six tests). None
+of these local results
 substitutes for hosted exact-head Checks or a candidate-image k6 run.
 
 The selected feature diffs add no competing API, schema, migration ordinal,
