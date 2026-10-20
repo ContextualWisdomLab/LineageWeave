@@ -2167,7 +2167,7 @@ function PostDetailPopup({
     setFocusTeam(null);
     let disposed = false;
     let contentPollTimer: number | undefined;
-    const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
+    const asOf = knowledgeCutoff ?? undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)

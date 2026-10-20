@@ -2174,6 +2174,10 @@ describe("App, authenticated", () => {
       name: "Open live post: Private post",
     }));
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
     await userEvent.click(await screen.findByRole("button", {
       name: "View related information",
     }));
