@@ -738,7 +738,7 @@ function VocEvidenceSection({
 }: {
   evidence: VocEvidence | null;
   affiliateTrees: AffiliateNode[] | null;
-  onSelectPerson: (personId: string, personName: string) => void;
+  onSelectPerson?: (personId: string, personName: string) => void;
 }) {
   if (!evidence) return <p role="status">{t("Loading VOC evidence...")}</p>;
   const assignedExcerpts = new Set(
@@ -771,7 +771,7 @@ function VocEvidenceSection({
         return (
           <div key={row.counterparty_entity_name} className="voc-counterparty">
             <p>
-              {person ? (
+              {person && onSelectPerson ? (
                 <button
                   className="keyman-select"
                   aria-label={tf("VOC Keyman: {name}", { name: row.counterparty_entity_name })}
@@ -2657,7 +2657,7 @@ function PostDetailPopup({
                           const catalogId = rr.catalog_node_id;
                           const catalogType = rr.catalog_node_type_code;
                           let actorName: ReactNode = <strong>{rr.actor_name}</strong>;
-                          if (catalogType === NODE_PERSON && catalogId) {
+                          if (!knowledgeCutoff && catalogType === NODE_PERSON && catalogId) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2674,7 +2674,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (person) {
+                          } else if (!knowledgeCutoff && person) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2691,7 +2691,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (catalogType === NODE_TEAM && catalogId) {
+                          } else if (!knowledgeCutoff && catalogType === NODE_TEAM && catalogId) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2705,7 +2705,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (catalogType === NODE_CORPORATE_ENTITY && catalogId) {
+                          } else if (!knowledgeCutoff && catalogType === NODE_CORPORATE_ENTITY && catalogId) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2782,7 +2782,7 @@ function PostDetailPopup({
             <VocEvidenceSection
               evidence={vocEvidence}
               affiliateTrees={affiliateTrees}
-              onSelectPerson={(personId, personName) => {
+              onSelectPerson={knowledgeCutoff ? undefined : (personId, personName) => {
                 setFocusEntity(null);
                 setFocusTeam(null);
                 setFocusPerson({ personId, personName });
@@ -2890,12 +2890,12 @@ function PostDetailPopup({
                     <AffiliateTreeNode
                       key={node.entity_id ?? node.entity_name}
                       node={node}
-                      onSelectPerson={(personId, personName) => {
+                      onSelectPerson={knowledgeCutoff ? undefined : (personId, personName) => {
                         setFocusEntity(null);
                         setFocusTeam(null);
                         setFocusPerson({ personId, personName });
                       }}
-                      onSelectEntity={(entityId, entityName) => {
+                      onSelectEntity={knowledgeCutoff ? undefined : (entityId, entityName) => {
                         setFocusPerson(null);
                         setFocusTeam(null);
                         setFocusEntity({ entityId, entityName });
@@ -2932,8 +2932,8 @@ function PostDetailPopup({
                 counterparties={counterparties}
                 canExtract={canExtract}
                 onVerified={reloadCounterparties}
-                onSelectPost={onSelectPost}
-                onSelectEntity={(entityId, entityName) => {
+                onSelectPost={openPostInCurrentView}
+                onSelectEntity={knowledgeCutoff ? undefined : (entityId, entityName) => {
                   setFocusPerson(null);
                   setFocusTeam(null);
                   setFocusEntity({ entityId, entityName });

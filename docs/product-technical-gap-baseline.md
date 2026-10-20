@@ -1,5 +1,49 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-20 KST, historical navigation repair
+
+The current LineageWeave PRD and accepted ADR 0246/0256 were checked against
+the linked product and architecture authorities for TEPP, fast-mlsirm,
+ThreadWeave, RankWeave, contextual-orchestrator, and disksage. GitHub confirms
+the repository names `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, `contextual-orchestrator`, and lowercase `disksage`. These are
+product and architecture contracts; none makes a pending PR a released
+capability or supplies a weight, occupation binding, or population estimator.
+
+Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The reviewed #1183 head was
+`31148e87f461fd150b916ea999c3d59acac072c8`. Its latest review found two
+valid gaps: an internal-evidence Post action lost the historical cutoff, and
+person, team, and organization actions stayed clickable when the historical
+view had no cutoff-aware target. The candidate now preserves the cutoff for
+that evidence action and renders those unavailable navigation controls as
+text. A synthetic regression exercises the historical Post action and checks
+the absent controls. Frontend lint, the focused regression, and production
+build and all 643 frontend tests passed locally. An initial concurrent suite
+run timed out once in an unrelated ontology test; the focused retry and the
+complete serial rerun passed. Six documentation-hygiene tests also passed. These are
+candidate results until the new commit has its own hosted checks and review.
+
+The current #1183 hosted checks on its prior head show four failures, no
+formal independent approval, and no auto-merge request. The opened PR list
+also shows #1182 as an independent API/ADR performance lane and #1181 as a
+competing edit of this baseline. #1177/#1178 overlap Voice and ontology UI
+files. No new schema, migration ordinal, release number, Voice combination
+code, or inference arithmetic is introduced by this #1183 correction; those
+other PRs need their own exact-head conflict and delivery checks. The 12
+atomic Voice codes remain ADR 0246's product vocabulary, while ADR 0256
+allows evidence-bearing combinations without a fixed compound-code list.
+Authenticated PostgreSQL/API Voice evidence and actual desktop/mobile
+rendering of this new historical-control state have not been established,
+so those acceptance conditions remain unavailable.
+
+The canonical `lineageweave` stack is running, but PostgreSQL, Valkey,
+orchestrator, and SearXNG report unhealthy, the frontend endpoint returned
+HTTP 500, and no authorized k6 token file was present. Accordingly the
+synthetic authenticated load run, saturation measurements, and capacity
+claim remain unavailable. No diagnostic sample is promoted to population
+inference without the Rust-owned terminal design artifact.
+
 ## Exact-head continuation — 2026-10-20 KST
 
 The current LineageWeave PRD and the linked ThreadWeave and TEPP PRDs,

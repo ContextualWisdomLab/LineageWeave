@@ -143,6 +143,7 @@ describe("App, authenticated", () => {
     evidenceUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
+    verificationEvidencePost?: boolean;
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
@@ -1764,6 +1765,7 @@ describe("App, authenticated", () => {
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
+                verification_evidence_post_id: options?.verificationEvidencePost ? "post-2" : null,
                 corporate_entity_id: "corp-1",
                 ...demoOrgAlias,
               },
@@ -2120,7 +2122,7 @@ describe("App, authenticated", () => {
   }, 15000);
 
   it("keeps the run cutoff in related information and its evidence action", async () => {
-    const fetchMock = stubBackend({ combinedVoices: true });
+    const fetchMock = stubBackend({ combinedVoices: true, verificationEvidencePost: true });
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", {
       name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
@@ -2132,11 +2134,26 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", {
       name: "View related information",
     }));
+    await waitFor(() => expect(screen.getByText("Demo Corp")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "R&R Keyman: Ada West" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Counterparty org: Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "VOC Keyman: Northridge Grid" })).not.toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
       expect.anything(),
     ));
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
+    await userEvent.click(await screen.findByRole("button", { name: "View internal evidence" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+    await userEvent.click(await screen.findByRole("button", { name: "Close" }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    await userEvent.click(await screen.findByRole("button", { name: "View related information" }));
     await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", {
       name: "Open evidence: Linked post",
     }));
