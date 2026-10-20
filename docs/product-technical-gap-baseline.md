@@ -6,15 +6,15 @@ The supporting [product requirements](product-requirements.md) and normative
 ADR 0246/0256 distinguish twelve atomic Voices from open-ended,
 evidence-bearing composition. ADR 0251 governs occupational semantics. The
 current protected-main head is `91c3e1c7411f56408e4ce61417479ace36ff40cb`;
-the open #1183 candidate head is
+the reviewed #1183 implementation head before this documentation update was
 `967e2e7b13497464d13c7a8f522c43583bec38eb`. GitHub confirms the
 canonical ecosystem names `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
 `contextual-orchestrator`, and lowercase `disksage`. Their product authorities
 do not authorize local measurement arithmetic, heuristic weights, or a
 population estimate.
 
-The selected reader gap is historical evidence navigation. On #1183's exact
-head, the cutoff follows related Posts and internal-evidence Post actions;
+The selected reader gap is historical evidence navigation. On that reviewed
+implementation head, the cutoff follows related Posts and internal-evidence Post actions;
 controls whose destinations cannot preserve the cutoff render as text. Three
 focused synthetic frontend regressions and frontend lint passed locally. The
 existing desktop and mobile Storybook screenshots show the historical related
@@ -22,7 +22,7 @@ panel, but do not establish an authenticated customer flow. Authenticated
 PostgreSQL/API Voice evidence, rendered end-to-end navigation, and the full
 multi-Voice cutoff/JSON-LD/CSV acceptance remain unverified.
 
-Four hosted jobs on #1183's current head failed before any step ran
+Four hosted jobs on that reviewed implementation head failed before any step ran
 (`runner_id: 0` for the inspected test job); these are failed Checks, not
 passing code evidence. GitHub shows no unresolved review threads, no formal
 independent approval, and no auto-merge request. The active repository
