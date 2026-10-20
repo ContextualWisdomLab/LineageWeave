@@ -2167,6 +2167,25 @@ describe("App, authenticated", () => {
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
   }, 15000);
 
+  it("keeps the run cutoff when following an Event Lineage post", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open related post: Linked post",
+    }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+  }, 15000);
+
   it("keeps a post whose additional voice matches the board filter", async () => {
     stubBackend({ combinedVoices: true });
     render(<App />);
@@ -3660,7 +3679,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(

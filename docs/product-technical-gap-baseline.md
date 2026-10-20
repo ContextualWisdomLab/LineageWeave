@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-20 KST
+
+The current LineageWeave PRD and the linked ThreadWeave and TEPP PRDs,
+RankWeave architecture, fast-mlsirm PRD, contextual-orchestrator product and
+architecture documents, and disksage protected product authority were read
+before this pass. GitHub's repository objects confirm canonical names
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`,
+`contextual-orchestrator`, and lowercase `disksage`; a local remote URL using
+`DiskSage` is not its canonical casing. ADR 0246 governs twelve atomic Voices,
+ADR 0256 governs open-ended evidence-bearing combinations and cutoff history,
+and ADR 0251 governs occupational semantics. The cited research does not
+authorize fixed combination codes, guessed weights, or population estimates.
+
+Before this correction, remote `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and #1183 was
+`b287ce7c1acad77ed3789a087f47a55d9379937e`. GitHub reported 197 open
+PRs and 43 open issues. #1183 had two resolved review threads, no formal
+independent approval, no auto-merge request, and four failed hosted jobs on
+that head. The latest review identified an additional reader gap: following
+an Event Lineage or related-post link from a cutoff view dropped the cutoff.
+The candidate now carries the recorded cutoff through those post navigation
+paths and has a synthetic regression for the resulting historical Post read.
+All 643 frontend tests, frontend lint, production build, and six documentation
+hygiene tests passed locally. It
+changes no ADR, API, schema, migration, release number, Voice vocabulary, or
+inference arithmetic. The existing 1440×900 and 390×844 Storybook screenshots
+were visually inspected: the historical panel text and action remain visible
+at both widths. That panel's rendering is unchanged by this navigation repair;
+authenticated rendered navigation and PostgreSQL/API Voice acceptance remain
+unverified for this candidate.
+
+Hosted Checks remain failed, not passing evidence. GitHub currently lists no
+classic branch protection and one active ruleset that prohibits force pushes;
+it does not enforce the requested independent approval or Checks. Under the
+requested governance contract, #1183 cannot be merged or auto-merged yet.
+Adjacent ready PRs #1182 and #1181 still need their own current-head review;
+#1181 edits this same baseline, while #1177 also overlaps App, translations,
+Storybook inventory, and the baseline. #1178 overlaps the baseline and
+Storybook inventory. #1182 changes a different API/ADR lane. The current
+selected file sets introduce no competing migration file or release-number
+edit; #1177's ADR 0256 edit needs reconciliation against current authority.
+Existing issue-tracked PRD, migration, and release identity conflicts remain
+open. The canonical `lineageweave` Compose services are running, but the
+PostgreSQL, Valkey, orchestrator, and SearXNG health probes report unhealthy,
+and no authorized k6 token file was supplied. The authenticated synthetic k6
+run and component saturation measurements are therefore unavailable; no
+unmeasured bottleneck fix or capacity claim follows. No Rust terminal
+population-inference artifact was established in this pass.
+
 ## Exact-head continuation — 2026-10-19 KST
 
 The LineageWeave PRD and the current product/architecture authorities for

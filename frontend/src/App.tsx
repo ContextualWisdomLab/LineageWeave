@@ -2138,6 +2138,13 @@ function PostDetailPopup({
       .catch(() => setCounterparties([]));
   }
 
+  function openPostInCurrentView(nextPostId: string) {
+    onSelectPost?.(
+      nextPostId,
+      knowledgeCutoff ? { liveAfterCutoff: true, knowledgeCutoff } : undefined,
+    );
+  }
+
   useEffect(() => {
     setPost(null);
     setStructureUnits([]);
@@ -2357,22 +2364,8 @@ function PostDetailPopup({
                       focusNodeType={NODE_POST}
                       focusNodeId={postId}
                       knowledgeCutoff={knowledgeCutoff ?? undefined}
-                      onSelectPost={(nextPostId) =>
-                        onSelectPost?.(
-                          nextPostId,
-                          knowledgeCutoff
-                            ? { liveAfterCutoff: true, knowledgeCutoff }
-                            : undefined,
-                        )
-                      }
-                      onOpenEvidence={(nextPostId) =>
-                        onSelectPost?.(
-                          nextPostId,
-                          knowledgeCutoff
-                            ? { liveAfterCutoff: true, knowledgeCutoff }
-                            : undefined,
-                        )
-                      }
+                      onSelectPost={openPostInCurrentView}
+                      onOpenEvidence={openPostInCurrentView}
                     />
                   </SurfaceBoundary>
                 ) : null}
@@ -2801,7 +2794,7 @@ function PostDetailPopup({
                 sourcePostId={postId}
                 items={similarVoc}
                 error={similarVocError}
-                onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+                onOpenPost={openPostInCurrentView}
                 loadingMore={similarVocLoadingMore}
                 onRetry={() => setSimilarVocRetry((attempt) => attempt + 1)}
                 onLoadMore={similarVocNextOffset === null ? null : () => {
@@ -2830,7 +2823,7 @@ function PostDetailPopup({
               />
             </SurfaceBoundary>
 
-            <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
+            <RelatedPostsSection lineage={lineage} onSelectPost={openPostInCurrentView} />
 
             <section className="popup-section">
                 <h3 id="post-event-lineage" tabIndex={-1}>
@@ -2840,7 +2833,7 @@ function PostDetailPopup({
                 lineage={lineage}
                 graph={graph}
                 postId={postId}
-                onSelectPost={onSelectPost}
+                onSelectPost={openPostInCurrentView}
                 currentNextAction={
                   focusEventLineage ? eventLineageCurrentNextAction(post.post_title) : null
                 }
