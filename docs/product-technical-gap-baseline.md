@@ -1,5 +1,56 @@
 # Product & Technical Gap Baseline
 
+## Exact-head delivery recheck — 2026-10-20 21:34 KST
+
+The current #1183 head before this documentation update is
+`19e05086d5ba03a8808fccc4abb5da87b6c0101a` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The supporting LineageWeave PRD and the current TEPP, ThreadWeave, and
+fast-mlsirm PRDs, plus RankWeave, contextual-orchestrator, and `disksage`
+product/architecture authorities were read before the review. Remote
+repository objects confirm their canonical case, including lowercase
+`disksage`. Accepted ADR 0246 defines twelve atomic Voices; ADR 0256
+governs open-ended evidence-bearing combinations; ADR 0252 governs primary
+Voice cutoff history. ADR 0251 governs occupational semantics, not Voice
+composition. These authorities do not supply a compound Voice catalog,
+weight, or population estimator.
+
+The selected reader gap is historical Post navigation losing the run cutoff
+when the Post body is unchanged but its evidence has changed. The #1183
+candidate sends `as_of` on every historical Post detail read and routes
+historical related information through the cutoff-aware ontology neighborhood.
+Seven focused frontend cutoff regressions, frontend lint, and the production
+build passed locally on this head. The two review comments were checked against
+the current call path: the historical view does not mount the live
+Keyman/organization/team relation fetches, and the neighborhood regression
+matches its endpoint and cutoff specifically. No unresolved review thread was
+reported. Existing desktop (1440×900) and mobile (390×844) Storybook images
+were visually inspected; both show the collapsed panel only. Authenticated
+navigation and expanded-panel rendering remain unverified.
+
+Four exact-head Actions jobs failed before runner assignment. The test job has
+`runner_id: 0`, no steps, and a GitHub annotation saying the account is locked
+for billing. The CodeRabbit and Devin statuses are not independent approval.
+The live ruleset only blocks force pushes; classic `main` protection returns
+404, and no formal independent approval exists. With those controls absent,
+auto-merge could merge prematurely, so it was not enabled. No merge SHA or
+protected release is claimed.
+
+GitHub search lists 197 open PRs and 43 open issues at this observation. Among
+the nearby ready PRs, #1182 owns its Post-filter API and ADR 0212 change;
+#1181, #1178, and #1177 all overlap this baseline, while #1177 also overlaps
+the Voice UI, styles, localization, and ADR 0256. No competing migration
+ordinal or release-number edit was found in those five candidate diffs.
+Their recorded heads still have no independent approval and four failed
+Actions jobs each. Those candidates need fresh exact-head review after any
+base change. The canonical Compose project has nine running services;
+PostgreSQL, Valkey, orchestrator, and SearXNG report unhealthy. This is not
+authenticated API or rendered UI acceptance. Synthetic authenticated k6
+latency, concurrency, error, throughput, and saturation evidence remains
+unmeasured, as does a Rust-owned probability-design terminal artifact. Voice
+PostgreSQL/API, hidden-evidence, carrying-versus-derivation, and paged JSON-LD
+acceptance remain unverified.
+
 ## Exact-head review — 2026-10-20 20:21 KST
 
 The supporting [LineageWeave PRD](product-requirements.md), accepted ADR 0246
