@@ -47,6 +47,14 @@ No competing API, schema, migration ordinal, or release number was found
 among these five heads. Stacked PRs retain their own bases until their parent
 merges and require fresh exact-head evidence after retargeting.
 
+After the cutoff fix and this baseline update were pushed, #1183 was observed
+at `810bff7fcf3677516ca6cb1f6668b2caf93518dd` against the same `main`.
+Its new four Actions jobs again failed before a runner started; the exact
+test-job annotation repeats the billing lock. It still has zero unresolved
+review threads, no independent approval, and no auto-merge request. This
+documentation follow-up creates another head, so those job results remain
+historical evidence and must be rechecked for the resulting head.
+
 The canonical `lineageweave` Compose project has nine running services. Its
 PostgreSQL, Valkey, orchestrator, and SearXNG containers report unhealthy;
 the worker reports healthy. This observation is not authenticated API or UI
