@@ -1,5 +1,58 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-20 19:07 KST
+
+The supporting LineageWeave PRD was checked against accepted ADR 0246 (twelve
+atomic Voices), ADR 0256 (open-ended, evidence-bearing composition and cutoff),
+and ADR 0251 (occupational semantics). The linked TEPP, ThreadWeave, and
+fast-mlsirm PRDs and the current RankWeave, contextual-orchestrator, and
+`disksage` product/architecture authorities were read. GitHub repository
+objects confirm those canonical names, including lowercase `disksage`. None
+authorizes a local heuristic, inferred measurement, or population estimate.
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`. The reviewed
+#1183 head before this documentation edit is
+`19b5b608f7680a6b566c8d778f823b84a7e1ba74`; it carries the historical
+related-Post cutoff repair and synthetic frontend regressions. Its current
+historical popup renders the cutoff-aware ontology panel and does not mount
+the live Keyman/organization/team relation fetches. The Devin finding about
+later Posts entering through those live relation endpoints therefore does not
+reproduce on this head. The cutoff regression asserts a request to the
+ontology neighborhood specifically, so the review's broad-assertion concern
+also does not reproduce. The desktop and mobile Storybook screenshots were
+visually inspected at 1440×900 and 390×844; they show the collapsed historical
+panel at both widths, not an authenticated navigation journey.
+
+On this checkout, the three focused cutoff regressions, frontend lint,
+production build, and six documentation-hygiene checks passed. The build
+still reports a 554.03 kB application chunk warning; this is not a measured
+runtime latency or saturation result.
+
+GitHub records zero unresolved #1183 review threads and no independent
+approval. Four exact-head Actions jobs failed before any step: the inspected
+job has `runner_id: 0` and a billing-lock annotation. This is an external
+execution failure, not a passed check or a code failure. The only active
+repository ruleset prohibits force pushes; classic `main` branch protection
+returns 404. Because GitHub would not enforce the requested independent
+approval before merging, normal auto-merge is not yet safe to enable. No
+merge or release claim follows.
+
+The adjacent ready heads are #1182 `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`
+(post-filter query and ADR 0212), #1181
+`96adabce83784e05ebb4e2a932da9a02e93952e5` (this baseline), #1178
+`ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a` (ontology UI), and #1177
+`06d64a96442ba61aec35216e1ce295629035b462` (Voice UI and ADR 0256).
+#1182 has no file overlap or competing API/schema/release ordinal with #1183;
+the others overlap the baseline and some UI files and must be reconciled by
+their owners before integration. No active head in this set adds a competing
+migration ordinal or release number. The canonical Compose project has
+running services, while PostgreSQL, Valkey, orchestrator, and SearXNG health
+checks report unhealthy. Authenticated PostgreSQL/API Voice acceptance,
+rendered end-to-end desktop/mobile navigation, and synthetic authenticated
+k6 saturation evidence remain unavailable. These diagnostic observations
+cannot be promoted to population inference without the Rust-owned terminal
+design artifact.
+
 ## Exact-head review — 2026-10-20 18:00 KST
 
 The supporting [product requirements](product-requirements.md) and normative
