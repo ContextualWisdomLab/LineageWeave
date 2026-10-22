@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review and delivery boundary — 2026-10-23 KST
+
+The reviewed #1183 source head is
+`0c604e0ff2cabdd3bcd19d9539c8a4fc9edd6658` against remote `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+This note itself creates a later documentation head, whose checks and reviews
+must be read again. The LineageWeave PRD remains a supporting product contract;
+ADRs 0216, 0246, 0252, and 0256 govern cutoff evidence, twelve atomic Voice
+types, primary history, and evidence-bearing open-ended composition. ADR 0251
+governs FJA/I/O psychology, not Voice. The current TEPP, ThreadWeave, and
+fast-mlsirm PRDs and RankWeave, contextual-orchestrator, and `disksage`
+product/architecture authorities preserve those owner boundaries. The
+canonical GitHub repository is lowercase `ContextualWisdomLab/disksage`.
+
+#1183's historical-Post repair remains a candidate implementation of the
+reader gap: current-only related and derived evidence is withheld at a run
+cutoff, while authorized cutoff-aware ontology evidence and Post revisions
+remain reachable. Its two inline review threads are resolved on this head.
+The later review observations about lost cutoff, inactive historical navigation,
+and a broad request assertion were checked against the current source: the
+tested historical Post opens pass `as_of`, live-only panels and their controls are
+absent, and the regression matches the ontology endpoint and cutoff. Four
+focused frontend tests passed locally on this source head. The synthetic
+Storybook screenshots cover the collapsed panel at desktop and mobile sizes;
+an authenticated expanded Post journey is still unverified.
+
+Exact-head Tests run `39864985331` failed before either job received a runner:
+both have `runner_id: 0` and zero steps, and the test-job annotation names an
+account billing lock. CodeQL jobs failed on this head as well. Automated
+COMMENTED reviews are not independent approval. The sole active main ruleset
+`21065108` prohibits force pushes; classic branch protection is absent.
+Accordingly no normal merge or auto-merge is armed, and there is no merge SHA.
+The current repository inventory is 197 open PRs and 43 open issues. These are
+non-identifying repository counts, not source-record or population estimates.
+
+Nearby ready #1182 changes the Post-filter API and ADR 0212; #1181 changes
+this baseline; #1178 changes ontology navigation and Storybook; #1177 changes
+Voice UI and ADR 0256. Their changed-file lists show no competing schema
+migration or release-number edit in this bounded comparison. Shared baseline,
+frontend, localization, and Storybook files need owner-aware reconciliation.
+Voice acceptance remains unavailable without authenticated PostgreSQL/API
+evidence and desktop/mobile rendered proof for carrying versus derivation
+Posts, hidden support, truth/cutoff history, and paged JSON-LD union. The
+canonical `lineageweave` Compose project is running, but PostgreSQL, Valkey,
+orchestrator, and SearXNG are unhealthy. Synthetic authenticated k6 concurrency,
+latency, errors, throughput, and component saturation were not measured; no
+performance or population conclusion follows.
+
 ## Current candidate and protected-delivery boundary — 2026-10-23 KST
 
 The reviewed #1183 head is `bec9b1e73647661f7524e5ca7201f20c384999d5`
