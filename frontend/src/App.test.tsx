@@ -2201,6 +2201,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Event Lineage", level: 3 })).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "View related information" })).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/posts\/post-1\/lineage(?:\?|$)/.test(String(url)))).toBe(false);
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/lineage\?post_id=post-1(?:&|$)/.test(String(url)))).toBe(false);
   }, 15000);
 
   it("keeps a post whose additional voice matches the board filter", async () => {

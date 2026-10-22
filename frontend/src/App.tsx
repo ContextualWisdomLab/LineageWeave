@@ -4355,7 +4355,7 @@ function PostList({
   }, [accessToken]);
 
   useEffect(() => {
-    if (!selectedPostId) {
+    if (!selectedPostId || openedCutoffIso) {
       setFocusedGraph(null);
       return;
     }
@@ -4371,7 +4371,7 @@ function PostList({
     return () => {
       active = false;
     };
-  }, [accessToken, selectedPostId]);
+  }, [accessToken, selectedPostId, openedCutoffIso]);
 
   async function handleRebuild() {
     setRebuilding(true);

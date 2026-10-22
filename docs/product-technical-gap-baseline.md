@@ -20,22 +20,24 @@ The highest bounded reader defect found on this candidate was a live Event
 Lineage endpoint in the historical Post popup. That endpoint returns current
 links and body excerpts without a cutoff parameter. The popup sent the
 run cutoff when opening one of those current links, which could make later
-content look like run-time evidence. The candidate now omits that request and
-its Related posts and Event Lineage displays whenever the popup has a
-knowledge cutoff. The existing cutoff-aware Related information panel remains
-the route to authorized historical relationships. A regression checks
+content look like run-time evidence. The candidate now omits both current-only
+lineage requests and their Related posts and Event Lineage displays whenever
+the popup has a knowledge cutoff. The existing cutoff-aware Related
+information panel remains the route to authorized historical relationships.
+A regression checks
 the absence of the live request and controls. This is a fail-closed reader
 repair under the existing cutoff and revision policy, not a new historical
 lineage reconstruction. The affected App suite passed (106 tests), frontend
 lint and production build passed, six documentation-hygiene tests passed,
-and `git diff --check` passed locally. The 554.03 kB build-chunk warning is
+and `git diff --check` passed locally. The 554.04 kB build-chunk warning is
 not an observed browser latency or saturation measurement.
 
-At the reviewed #1183 head, the current Tests run is terminal failure and
-the only returned reviews are COMMENTED by automated reviewers. No formal
-independent approval or merge SHA is present. Previous billing-lock
-diagnosis belongs to earlier heads; the current run's root cause needs a
-fresh job annotation before attribution. The active main ruleset currently
+At #1183 head `2c262e8d60944afe0c0d51468b377a8cf3a577cd`, Tests run
+`39837047566` is terminal failure: both jobs have `runner_id: 0`, zero
+steps, and the inspected test-job annotation names an account billing lock.
+The only returned reviews are COMMENTED by automated reviewers. No formal
+independent approval or merge SHA is present. This follow-up changes the
+head again and therefore needs fresh hosted Checks. The active main ruleset currently
 contains only `non_fast_forward`, with no independent-approval or
 successful-check rule, so
 auto-merge remains unsafe to arm. In the adjacent ready candidates, #1182
