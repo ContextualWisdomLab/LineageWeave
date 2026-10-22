@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review and historical evidence gap — 2026-10-23 05:14 KST
+
+The reviewed #1183 source head is `e1803bc721818c6229df4e0280d62b8606c0271d`
+against protected `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The LineageWeave PRD is supporting product authority; ADR 0216 governs
+historical body and current-only derived evidence, ADRs 0246/0256/0252 govern
+atomic and evidence-bearing Voice history, and ADR 0251 governs occupational
+semantics. The current RankWeave and contextual-orchestrator architecture/product
+documents and the ThreadWeave, TEPP, fast-mlsirm, and `disksage` PRDs were read
+before this repair. Remote repository objects confirm canonical case, including
+lowercase `ContextualWisdomLab/disksage`. None authorizes inferred Voice
+combinations, weights, an ungrounded sampling estimator, or a second inference
+engine in LineageWeave.
+
+The largest remaining bounded reader defect on #1183 was that an earlier-run
+Post popup still fetched and displayed current summaries, semantic/image units,
+Keymen, affiliations, VOC comparisons, evaluations, current source metadata,
+and other derived panels.
+Those endpoints have no knowledge-cutoff contract, so a reader could mistake
+later evidence for what the run knew. This candidate omits those current-only
+requests and panels at a cutoff, clears retained image state, and keeps the
+authorized cutoff-aware Post and ontology neighborhood. It guards the Post
+response against a stale navigation result. A synthetic regression asserts
+that the current-only requests and sections are absent; all 106 App tests,
+frontend lint/build, and six documentation-hygiene tests passed locally.
+The 554.16 kB build-chunk warning is not a measured browser bottleneck.
+
+The existing historical-related Storybook scene was freshly rendered and
+visually inspected at 1440×900 and 390×844. It proves the collapsed synthetic
+panel only; authenticated full-popup desktop/mobile acceptance remains
+unverified. The canonical Compose services are running, but PostgreSQL,
+Valkey, orchestrator, and SearXNG report unhealthy, and this shell has no
+configured authenticated k6 token file. No new concurrency, latency, error,
+throughput, or component-saturation measurement is claimed. Voice carrying
+versus derivation Post, hidden-evidence denial, truth/cutoff history, and
+multi-Voice JSON-LD page union still need authenticated PostgreSQL/API and
+rendered UI evidence before acceptance.
+
+At the reviewed head, Tests run `39837574904` has two failed jobs with
+`runner_id: 0` and zero steps; the test-job annotation names an account
+billing lock. The formal reviews are COMMENTED automated reviews, with no
+independent approval. The active repository ruleset `21065108` contains only
+`non_fast_forward`; classic `main` branch protection returns 404. Because
+the required independent approval and successful Checks are not enforced,
+normal auto-merge is not armed and no merge SHA is claimed. This edit creates
+a new candidate head and therefore requires fresh exact-head hosted evidence.
+
+Adjacent ready PRs #1182, #1181, #1178, and #1177 retain their own heads.
+#1182 owns the Post-filter API and ADR 0212; #1181 and #1178 overlap this
+baseline; #1177 also overlaps App, localization, Storybook, and ADR 0256.
+Their current file lists show no competing migration ordinal or release-number
+edit in this bounded comparison. Reconcile shared files with those owners
+before integration, and retarget stacked children only after their parent
+merges. Open issues are separate targets, not proof of implemented behavior.
+
 ## Exact-head continuation — 2026-10-23, current candidate
 
 The last source-change head before this documentation-only update is

@@ -2147,6 +2147,7 @@ function PostDetailPopup({
 
   useEffect(() => {
     setPost(null);
+    setImageContent([]);
     setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
@@ -2168,7 +2169,9 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = knowledgeCutoff ?? undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPost(accessToken, postId, asOf)
+      .then((value) => { if (!disposed) setPost(value); })
+      .catch((err) => { if (!disposed) setError(String(err)); });
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -2188,19 +2191,19 @@ function PostDetailPopup({
           setStructureUnits([]);
         });
     contentReloadRef.current = reloadContent;
-    reloadContent();
+    if (!knowledgeCutoff) reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
       .catch(() => {
         setBookmarked(null);
       });
-    fetchPostEvaluation(accessToken, postId)
+    if (!knowledgeCutoff) fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
-    fetchPostFiveW1H(accessToken, postId)
+    if (!knowledgeCutoff) fetchPostFiveW1H(accessToken, postId)
       .then(setFiveW1H)
       .catch(() => setFiveW1H(null));
-    fetchPostKeymen(accessToken, postId)
+    if (!knowledgeCutoff) fetchPostKeymen(accessToken, postId)
       .then((r) => {
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
@@ -2209,17 +2212,17 @@ function PostDetailPopup({
         setKeymen([]);
         setSourceAuthorContext(null);
       });
-    fetchPostCounterparties(accessToken, postId)
+    if (!knowledgeCutoff) fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
     // This endpoint has no cutoff contract; its excerpts and links are current state.
     if (!knowledgeCutoff) {
       fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
     }
-    fetchPostAffiliateTree(accessToken, postId)
+    if (!knowledgeCutoff) fetchPostAffiliateTree(accessToken, postId)
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    if (!knowledgeCutoff) fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2236,6 +2239,7 @@ function PostDetailPopup({
     setSimilarVocNextOffset(null);
     setSimilarVocLoadingMore(false);
     similarVocLoadingMoreRef.current = false;
+    if (knowledgeCutoff) return;
     fetchSimilarVoc(accessToken, postId)
       .then((result) => {
         if (disposed) return;
@@ -2250,12 +2254,13 @@ function PostDetailPopup({
     return () => {
       disposed = true;
     };
-  }, [postId, accessToken, similarVocRetry]);
+  }, [postId, accessToken, similarVocRetry, knowledgeCutoff]);
 
   useEffect(() => {
     let disposed = false;
     setSummary(null);
     setSummaryError(null);
+    if (knowledgeCutoff) return;
     fetchPostSummary(accessToken, postId)
       .then((value) => {
         if (!disposed) {
@@ -2271,7 +2276,7 @@ function PostDetailPopup({
     return () => {
       disposed = true;
     };
-  }, [postId, accessToken, summaryRetry]);
+  }, [postId, accessToken, summaryRetry, knowledgeCutoff]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2432,7 +2437,7 @@ function PostDetailPopup({
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
               {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
+                <PostBody body={post.post_body} imageContent={knowledgeCutoff ? [] : imageContent} structureUnits={knowledgeCutoff ? [] : structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
                   {t(
@@ -2441,7 +2446,7 @@ function PostDetailPopup({
                 </p>
               )}
             </section>
-            {(post.source_stage_code ||
+            {!knowledgeCutoff && (post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
               post.source_deleted_flag ||
@@ -2575,9 +2580,9 @@ function PostDetailPopup({
               </section>
             )}
 
-					<FiveW1H slots={fiveW1H?.slots ?? null} />
+					{!knowledgeCutoff && <FiveW1H slots={fiveW1H?.slots ?? null} />}
 
-				{post.project_evidence && post.project_evidence.length > 0 ? (
+				{!knowledgeCutoff && post.project_evidence && post.project_evidence.length > 0 ? (
               <section className="popup-section" aria-label={t("Related projects")}>
                 <h3>{t("Related projects")}</h3>
                 <ul>
@@ -2615,7 +2620,7 @@ function PostDetailPopup({
               </section>
             ) : null}
 
-            <section className="popup-section">
+            {!knowledgeCutoff && <section className="popup-section">
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
@@ -2769,9 +2774,9 @@ function PostDetailPopup({
               ) : (
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
-            </section>
+            </section>}
 
-            {!focusEventLineage && (
+            {!knowledgeCutoff && !focusEventLineage && (
               <EvaluationPanel
                 postId={postId}
                 accessToken={accessToken}
@@ -2782,7 +2787,7 @@ function PostDetailPopup({
               />
             )}
 
-            <VocEvidenceSection
+            {!knowledgeCutoff && <VocEvidenceSection
               evidence={vocEvidence}
               affiliateTrees={affiliateTrees}
               onSelectPerson={knowledgeCutoff ? undefined : (personId, personName) => {
@@ -2790,9 +2795,9 @@ function PostDetailPopup({
                 setFocusTeam(null);
                 setFocusPerson({ personId, personName });
               }}
-            />
+            />}
 
-            <SurfaceBoundary>
+            {!knowledgeCutoff && <SurfaceBoundary>
               <SimilarVocPanel
                 sourcePostId={postId}
                 items={similarVoc}
@@ -2824,7 +2829,7 @@ function PostDetailPopup({
                     });
                 }}
               />
-            </SurfaceBoundary>
+            </SurfaceBoundary>}
 
             {!knowledgeCutoff && (
               <RelatedPostsSection lineage={lineage} onSelectPost={openPostInCurrentView} />
@@ -2885,7 +2890,7 @@ function PostDetailPopup({
               />
             )}
 
-            <section className="popup-section">
+            {!knowledgeCutoff && <section className="popup-section">
               <h3>{t("Affiliate tree")}</h3>
               {affiliateTrees === null ? (
                 <p role="status">{t("Loading affiliate tree...")}</p>
@@ -2911,7 +2916,7 @@ function PostDetailPopup({
                   ))}
                 </ul>
               )}
-            </section>
+            </section>}
 
             {!focusEventLineage && knowledgeCutoff && (
               <HistoricalRelatedPanel postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
@@ -2932,7 +2937,7 @@ function PostDetailPopup({
               />
             )}
 
-            {counterparties && counterparties.length > 0 && (
+            {!knowledgeCutoff && counterparties && counterparties.length > 0 && (
               <CounterpartyPanel
                 postId={postId}
                 accessToken={accessToken}
@@ -2948,11 +2953,11 @@ function PostDetailPopup({
               />
             )}
 
-            <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />
+            {!knowledgeCutoff && <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />}
 
-            <ActivityPanel postId={postId} accessToken={accessToken} />
+            {!knowledgeCutoff && <ActivityPanel postId={postId} accessToken={accessToken} />}
 
-            {!focusEventLineage && (
+            {!knowledgeCutoff && !focusEventLineage && (
               <ChatPanel postId={postId} accessToken={accessToken} />
             )}
           </>

@@ -2134,7 +2134,10 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", {
       name: "View related information",
     }));
-    await waitFor(() => expect(screen.getByText("Demo Corp")).toBeInTheDocument());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
+      expect.anything(),
+    ));
     expect(screen.queryByRole("button", { name: "R&R Keyman: Ada West" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Counterparty org: Demo Corp" })).not.toBeInTheDocument();
@@ -2144,11 +2147,6 @@ describe("App, authenticated", () => {
       expect.anything(),
     ));
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
-    await userEvent.click(await screen.findByRole("button", { name: "View internal evidence" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
-      expect.anything(),
-    ));
     await userEvent.click(await screen.findByRole("button", { name: "Close" }));
     await userEvent.click(await screen.findByRole("button", {
       name: "Open live post (updated after cutoff): Public post",
@@ -2202,6 +2200,10 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("button", { name: "View related information" })).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/posts\/post-1\/lineage(?:\?|$)/.test(String(url)))).toBe(false);
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/lineage\?post_id=post-1(?:&|$)/.test(String(url)))).toBe(false);
+    expect(screen.queryByRole("heading", { name: "Summary", level: 3 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Affiliate tree", level: 3 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Earlier source version" })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/posts\/post-1\/(content|keymen|counterparties|affiliate-tree|voc-evidence|similar-voc|summary|five-w-one-h|evaluation)(?:\?|$)/.test(String(url)))).toBe(false);
   }, 15000);
 
   it("keeps a post whose additional voice matches the board filter", async () => {
