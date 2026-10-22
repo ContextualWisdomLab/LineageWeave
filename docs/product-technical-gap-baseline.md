@@ -2,8 +2,10 @@
 
 ## Exact-head review and historical evidence gap — 2026-10-23 05:14 KST
 
-The reviewed #1183 source head is `e1803bc721818c6229df4e0280d62b8606c0271d`
-against protected `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The reviewed #1183 source head before repair was
+`e1803bc721818c6229df4e0280d62b8606c0271d`; the repair was pushed as
+`d698344bd984496e571ee29da0462401c2389df1` against remote `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`.
 The LineageWeave PRD is supporting product authority; ADR 0216 governs
 historical body and current-only derived evidence, ADRs 0246/0256/0252 govern
 atomic and evidence-bearing Voice history, and ADR 0251 governs occupational
@@ -38,14 +40,16 @@ versus derivation Post, hidden-evidence denial, truth/cutoff history, and
 multi-Voice JSON-LD page union still need authenticated PostgreSQL/API and
 rendered UI evidence before acceptance.
 
-At the reviewed head, Tests run `39837574904` has two failed jobs with
-`runner_id: 0` and zero steps; the test-job annotation names an account
-billing lock. The formal reviews are COMMENTED automated reviews, with no
+At repair head `d698344bd984496e571ee29da0462401c2389df1`, Tests run
+`39847391596` has two failed jobs with `runner_id: 0` and zero steps; the
+test-job annotation names an account billing lock. The two review threads
+are resolved. The formal reviews are COMMENTED automated reviews, with no
 independent approval. The active repository ruleset `21065108` contains only
 `non_fast_forward`; classic `main` branch protection returns 404. Because
 the required independent approval and successful Checks are not enforced,
-normal auto-merge is not armed and no merge SHA is claimed. This edit creates
-a new candidate head and therefore requires fresh exact-head hosted evidence.
+normal auto-merge is not armed and no merge SHA is claimed. This documentation
+follow-up creates a later candidate head and requires fresh exact-head hosted
+evidence.
 
 Adjacent ready PRs #1182, #1181, #1178, and #1177 retain their own heads.
 #1182 owns the Post-filter API and ADR 0212; #1181 and #1178 overlap this
