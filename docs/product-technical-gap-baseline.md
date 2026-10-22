@@ -1,5 +1,58 @@
 # Product & Technical Gap Baseline
 
+## Current candidate and protected-delivery boundary — 2026-10-23 06:21 KST
+
+The current #1183 head is `91f2b20526d75cca658b5693d2bb6b4aed5dca6b`
+against remote `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+This snapshot precedes the documentation commit that records it; that commit
+requires a new exact-head check and review read. The LineageWeave PRD is the
+supporting product contract; ADR 0216 governs historical body evidence, ADR
+0246 the twelve atomic Voices, ADR 0256 evidence-bearing open-ended Voice
+composition, and ADR 0252 primary-Voice history. ADR 0251 governs FJA/I/O
+psychology, not the Voice vocabulary. The current TEPP, ThreadWeave, and
+fast-mlsirm PRDs,
+RankWeave and contextual-orchestrator architecture authorities, and `disksage`
+README were read. GitHub confirms the canonical repository names
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`.
+
+The buyer-visible historical Post gap selected for repair is current-only
+related evidence appearing under a run cutoff. #1183's implementation omits
+current-only Event Lineage, Related posts, and derived panels at a cutoff while
+retaining the cutoff-aware Related information path. Its regression passed all
+106 App tests on this head; 40 synthetic ontology-neighborhood tests also
+passed. The two returned review threads are resolved. The already committed
+synthetic Storybook scene was visually inspected at desktop 1440×900 and mobile
+390×844; it does not prove an authenticated Post journey.
+
+All four current-head hosted jobs failed before running a step. The test-job
+annotation says the GitHub account is locked for billing, so those jobs provide
+no code verdict. CodeRabbit and Devin reported successful review automation,
+but the formal reviews are COMMENTED, with no independent approval. The only
+active main ruleset `21065108` prohibits force pushes; classic branch
+protection is absent. Normal merge or auto-merge would bypass the requested
+independent-approval and successful-check conditions, so neither is claimed or
+armed. There is no merge SHA.
+
+Adjacent ready heads are #1182 `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`
+(Post-filter API and ADR 0212), #1181
+`96adabce83784e05ebb4e2a932da9a02e93952e5` (this baseline), #1178
+`ac3a9f60c6f84a1005a3f322fcc3348bf4ea247a` (ontology UI and Storybook),
+and #1177 `06d64a96442ba61aec35216e1ce295629035b462` (Voice UI and ADR 0256).
+Their current changed-file lists show no competing API, schema migration, or
+release-number edit in this comparison. The baseline, App, localization, and
+Storybook files overlap and require owner-aware reconciliation before merge.
+Open issues are targets, not implemented or released behavior.
+
+The canonical `lineageweave` Compose stack is running, but PostgreSQL, Valkey,
+orchestrator, and SearXNG are unhealthy; inspected container health attempts
+return runtime input/output errors before an application-level verdict.
+Authenticated PostgreSQL/API Voice acceptance, rendered authenticated desktop
+and mobile evidence, and synthetic authenticated k6 concurrency, latency,
+error, throughput, and component-saturation measurements remain unavailable.
+No convenience sample supports population inference without the required
+Rust-owned probability-design terminal artifact.
+
 ## Exact-head review and historical evidence gap — 2026-10-23 05:14 KST
 
 The reviewed #1183 source head before repair was
