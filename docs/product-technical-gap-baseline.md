@@ -2,6 +2,23 @@
 
 ## Exact-head continuation — 2026-10-23, current candidate
 
+The last source-change head before this documentation-only update is
+`02678bbaaa706ab9b9ad4d108629e13ced8f4566`. Its exact-head Tests run
+`39837419615` is terminal failure before runner assignment: both jobs have
+`runner_id: 0` and zero steps, and the test-job failure annotation names the
+account billing lock. CodeRabbit and Devin statuses are successful review
+automation, not formal independent approval; all returned formal reviews are
+COMMENTED and no review thread is unresolved. This documentation update
+creates another head and requires fresh hosted evidence. The local final
+source validation is 106 App tests, frontend lint and production build, 45
+synthetic ontology/Voice-history tests, three isolated Voice API tests, six
+documentation-hygiene tests, and `git diff --check`. Two selected
+authenticated Voice API cases self-skipped;
+they are not acceptance evidence. The canonical Compose project has running
+services, but PostgreSQL, Valkey, orchestrator, and SearXNG report unhealthy.
+No authorized k6 token file is configured for this shell, so no new synthetic
+authenticated load or saturation claim is made.
+
 The protected remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
 The #1183 head reviewed before this repair is
 `94654b5144ee132e54b6a0044a007e0a6f46d991`; this section and the
