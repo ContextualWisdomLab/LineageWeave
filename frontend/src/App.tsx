@@ -2212,7 +2212,10 @@ function PostDetailPopup({
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+    // This endpoint has no cutoff contract; its excerpts and links are current state.
+    if (!knowledgeCutoff) {
+      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+    }
     fetchPostAffiliateTree(accessToken, postId)
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
@@ -2823,9 +2826,12 @@ function PostDetailPopup({
               />
             </SurfaceBoundary>
 
-            <RelatedPostsSection lineage={lineage} onSelectPost={openPostInCurrentView} />
+            {!knowledgeCutoff && (
+              <RelatedPostsSection lineage={lineage} onSelectPost={openPostInCurrentView} />
+            )}
 
-            <section className="popup-section">
+            {!knowledgeCutoff && (
+              <section className="popup-section">
                 <h3 id="post-event-lineage" tabIndex={-1}>
                 {t("Event Lineage")}
               </h3>
@@ -2838,7 +2844,8 @@ function PostDetailPopup({
                   focusEventLineage ? eventLineageCurrentNextAction(post.post_title) : null
                 }
               />
-            </section>
+              </section>
+            )}
 
             {focusEventLineage && knowledgeCutoff && (
               <HistoricalRelatedPanel postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />

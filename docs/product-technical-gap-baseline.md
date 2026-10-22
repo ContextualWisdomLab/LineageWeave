@@ -1,5 +1,64 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23, current candidate
+
+The protected remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The #1183 head reviewed before this repair is
+`94654b5144ee132e54b6a0044a007e0a6f46d991`; this section and the
+repair create a later candidate head, so hosted Checks must be collected
+again for that exact SHA. The [LineageWeave PRD](product-requirements.md),
+TEPP, ThreadWeave, and fast-mlsirm PRDs, and the current RankWeave,
+contextual-orchestrator, and `disksage` product authorities were checked
+before implementation. Remote repository metadata confirms canonical
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage`.
+ADR 0246's twelve atomic Voices, ADR 0256's evidence-bearing open-ended
+composition, and ADR 0252's cutoff history remain the Voice authority;
+ADR 0251 governs occupational semantics. None supplies a new weight,
+fixed compound code, or population estimator.
+
+The highest bounded reader defect found on this candidate was a live Event
+Lineage endpoint in the historical Post popup. That endpoint returns current
+links and body excerpts without a cutoff parameter. The popup sent the
+run cutoff when opening one of those current links, which could make later
+content look like run-time evidence. The candidate now omits that request and
+its Related posts and Event Lineage displays whenever the popup has a
+knowledge cutoff. The existing cutoff-aware Related information panel remains
+the route to authorized historical relationships. A regression checks
+the absence of the live request and controls. This is a fail-closed reader
+repair under the existing cutoff and revision policy, not a new historical
+lineage reconstruction. The affected App suite passed (106 tests), frontend
+lint and production build passed, six documentation-hygiene tests passed,
+and `git diff --check` passed locally. The 554.03 kB build-chunk warning is
+not an observed browser latency or saturation measurement.
+
+At the reviewed #1183 head, the current Tests run is terminal failure and
+the only returned reviews are COMMENTED by automated reviewers. No formal
+independent approval or merge SHA is present. Previous billing-lock
+diagnosis belongs to earlier heads; the current run's root cause needs a
+fresh job annotation before attribution. The active main ruleset currently
+contains only `non_fast_forward`, with no independent-approval or
+successful-check rule, so
+auto-merge remains unsafe to arm. In the adjacent ready candidates, #1182
+owns the Post-filter API and ADR 0212; #1181 overlaps only this baseline;
+#1178 overlaps the baseline and Storybook inventory; #1177 overlaps this
+baseline, App, localization, and ADR 0256. Their current file lists show no
+competing migration ordinal or release-number edit. Reconcile those shared
+files with each PR owner before integration. Stacked descendants require
+their parent on protected `main` and fresh child head evidence after retarget.
+
+The historical Related information scene was rendered at 1440×900 and
+390×844 and visually inspected in both collapsed and expanded states.
+The expanded synthetic scene shows a retry state because its service request
+has no authenticated backend. Authenticated browser acceptance of the
+repaired popup remains
+unverified. Voice acceptance still requires authenticated PostgreSQL/API and
+rendered UI evidence for carrying versus derivation Posts, truth/cutoff
+history, hidden-evidence denial, and multi-Voice JSON-LD page union.
+Synthetic authenticated k6 concurrency, latency, error, throughput, and
+component-saturation evidence is not established by this repair. Diagnostic
+or convenience samples do not support population inference without the
+specified Rust-owned probability-design terminal artifact.
+
 ## Exact-head continuation — 2026-10-23 KST
 
 The current remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.

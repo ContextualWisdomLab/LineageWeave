@@ -2188,7 +2188,7 @@ describe("App, authenticated", () => {
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
   }, 15000);
 
-  it("keeps the run cutoff when following an Event Lineage post", async () => {
+  it("omits current-only related posts and Event Lineage at a run cutoff", async () => {
     const fetchMock = stubBackend({ combinedVoices: true });
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", {
@@ -2197,14 +2197,10 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", {
       name: "Open live post (updated after cutoff): Public post",
     }));
-    await userEvent.click(await screen.findByRole("button", {
-      name: "Open related post: Linked post",
-    }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
-      expect.anything(),
-    ));
-    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open related post: Linked post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Event Lineage", level: 3 })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "View related information" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/posts\/post-1\/lineage(?:\?|$)/.test(String(url)))).toBe(false);
   }, 15000);
 
   it("keeps a post whose additional voice matches the board filter", async () => {
@@ -3695,11 +3691,8 @@ describe("App, authenticated", () => {
     expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
     expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
 
-    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
-    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
+    expect(screen.queryByLabelText("Open post: Linked post")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View related information" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
