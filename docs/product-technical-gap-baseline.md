@@ -1,11 +1,13 @@
 # Product & Technical Gap Baseline
 
-## Current candidate and protected-delivery boundary — 2026-10-23 06:21 KST
+## Current candidate and protected-delivery boundary — 2026-10-23 KST
 
-The current #1183 head is `91f2b20526d75cca658b5693d2bb6b4aed5dca6b`
+The reviewed #1183 head is `bec9b1e73647661f7524e5ca7201f20c384999d5`
 against remote `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
-This snapshot precedes the documentation commit that records it; that commit
-requires a new exact-head check and review read. The LineageWeave PRD is the
+This snapshot precedes its documentation follow-up; that commit requires a
+new exact-head check and review read. There are 197 open PRs (29 ready and
+117 stacked) and 43 open issues in the current bounded GitHub inventory.
+The LineageWeave PRD is the
 supporting product contract; ADR 0216 governs historical body evidence, ADR
 0246 the twelve atomic Voices, ADR 0256 evidence-bearing open-ended Voice
 composition, and ADR 0252 primary-Voice history. ADR 0251 governs FJA/I/O
@@ -25,10 +27,12 @@ passed. The two returned review threads are resolved. The already committed
 synthetic Storybook scene was visually inspected at desktop 1440×900 and mobile
 390×844; it does not prove an authenticated Post journey.
 
-All four current-head hosted jobs failed before running a step. The test-job
+All four reviewed-head hosted jobs failed before running a step. The test-job
 annotation says the GitHub account is locked for billing, so those jobs provide
-no code verdict. CodeRabbit and Devin reported successful review automation,
-but the formal reviews are COMMENTED, with no independent approval. The only
+no code verdict. CodeRabbit is paused and Devin says its review trial has no
+credits; their successful status contexts are not independent approval. The
+formal reviews remain COMMENTED, with no independent approval or unresolved
+review thread. The only
 active main ruleset `21065108` prohibits force pushes; classic branch
 protection is absent. Normal merge or auto-merge would bypass the requested
 independent-approval and successful-check conditions, so neither is claimed or
