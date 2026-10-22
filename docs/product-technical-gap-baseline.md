@@ -1,5 +1,56 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 KST
+
+The current remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The reviewed #1183 head before this note is
+`8c40d2cafc636309c368813f905fda56064fd318`. This is a candidate,
+not a protected-main capability. The supporting [PRD](product-requirements.md)
+and current ecosystem authorities were read first: TEPP and ThreadWeave have
+PRDs; RankWeave, contextual-orchestrator, and lowercase `disksage` use their
+current product/architecture documents. GitHub confirms canonical repository
+case for all five and LineageWeave. Accepted ADR 0246 governs twelve atomic
+Voices, ADR 0256 governs open-ended evidence-bearing combinations, ADR 0252
+governs primary-Voice history, and ADR 0251 governs occupational semantics.
+No fixed compound code, weight, heuristic, or population inference follows.
+
+The largest bounded reader repair already owned by #1183 is historical related
+navigation: the candidate keeps the run cutoff for an unchanged Post and for
+related/evidence actions, while historical relations use the cutoff-aware
+ontology endpoint. Its two inline review findings were rechecked on the
+current call path. The historical panel does not mount the live Keyman,
+organization, or team relation requests, and the regression asserts the
+specific neighborhood request. Three focused frontend cutoff tests, frontend
+lint, and the production build pass locally. The existing desktop/mobile
+screenshots show only the collapsed Storybook panel; expanded and authenticated
+rendering remain unverified. The build still warns on the 554.02 kB main chunk;
+that warning is not measured latency or saturation.
+
+The exact-head Tests and CodeQL jobs failed before runner assignment; the test
+job has `runner_id: 0`, zero steps, and a billing-lock annotation. There is no
+formal independent approval. Live repository rules expose only the
+no-force-push rule, and classic `main` protection returns 404. Normal
+auto-merge is not enabled because those controls do not presently enforce the
+required independent approval. No merge SHA or protected release is claimed.
+The queue contains 197 open PRs and 32 open issues in this observation; these
+are repository counts, not source-record or population statistics. Nearby
+#1182 owns its Post-filter API and ADR 0212; #1181, #1178, and #1177 overlap
+this baseline, while #1177 also overlaps Voice UI and ADR 0256. Their files
+show no competing migration ordinal or release-number change in this bounded
+comparison. Reconcile each owner's branch before a shared-file merge.
+
+The next Voice acceptance gap remains authenticated PostgreSQL/API and rendered
+desktop/mobile evidence for distinct carrying and derivation Posts, truth and
+cutoff history, hidden-evidence denial, and multi-Voice JSON-LD across pages.
+Eight live PostgreSQL Voice-history tests pass locally. Three focused
+authenticated API cases self-skip because the required local PostgreSQL,
+Keycloak, and Valkey stack is not reachable as a healthy whole. Four canonical
+Compose services report unhealthy; their health probes fail with container
+input/output errors. Existing synthetic JSON-LD pagination tests do not
+replace authenticated API evidence. Synthetic authenticated k6 latency,
+concurrency, error, throughput, and component saturation remain unmeasured;
+no bottleneck repair or population claim is inferred from these diagnostics.
+
 ## Exact-head delivery recheck — 2026-10-20 21:34 KST
 
 The current #1183 head before this documentation update is
