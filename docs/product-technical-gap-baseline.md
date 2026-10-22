@@ -22,9 +22,10 @@ The later review observations about lost cutoff, inactive historical navigation,
 and a broad request assertion were checked against the current source: the
 tested historical Post opens pass `as_of`, live-only panels and their controls are
 absent, and the regression matches the ontology endpoint and cutoff. Four
-focused frontend tests passed locally on this source head. The synthetic
-Storybook screenshots cover the collapsed panel at desktop and mobile sizes;
-an authenticated expanded Post journey is still unverified.
+focused frontend tests passed locally on this source head. Synthetic
+Storybook screenshots cover the collapsed panel and the expanded unavailable
+state at desktop 1440×900 and mobile 390×844. The expanded captures show no
+horizontal overflow; an authenticated expanded Post journey is still unverified.
 
 Exact-head Tests run `39864985331` failed before either job received a runner:
 both have `runner_id: 0` and zero steps, and the test-job annotation names an
