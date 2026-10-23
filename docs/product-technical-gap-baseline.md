@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Current source-head audit — 2026-10-23 20:23 UTC
+
+The current ready PR #1183 source head is
+`24225a1cf475af684fbf6a88ca78e03a1b4d3a45`, based on `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. The PRD's dated-Post
+journey and ADR 0025/0216 remain the selected buyer gap. This PR's candidate
+implementation keeps the cutoff in authorized related evidence and catalog
+search, separates retained text from live text, and makes a reader explicitly
+open the current view before sharing. Its focused regression now checks the
+ontology-neighborhood request itself. The two formal review threads are
+resolved; the bot comments are not independent approval.
+
+All four reported Actions jobs on that head failed before a runner step. The
+Full test job annotation says the account is locked due to a billing issue;
+`runner_id` is 0. This is an external CI execution failure, not a project-test
+failure. The currently active ruleset 21065108 only forbids non-fast-forward
+updates to the default branch; classic branch protection is absent. The
+user's independent-approval and passing-Checks requirements therefore remain
+unmet, and normal merge/auto-merge is not armed. No merge SHA or release is
+claimed. The documentation change following this observation is a new head
+whose hosted evidence must be collected again.
+
+ADR 0246 defines 12 atomic Voices, ADR 0256 governs open-ended evidence-bearing
+composition, ADR 0252 governs primary history, and ADR 0251 governs
+occupational semantics. Existing synthetic tests cover distinct carrying and
+derivation evidence, hidden-evidence rejection, and same-subject JSON-LD page
+union. Authenticated PostgreSQL/API and rendered desktop/mobile acceptance
+remain unavailable: the named `lineageweave` Compose project's PostgreSQL,
+Valkey, orchestrator, and search health checks are unhealthy. No synthetic
+authenticated k6 saturation result or observed bottleneck repair is claimed.
+The current remote inventory contains 43 open issues; the PR listing has at
+least 29 ready items in its first 150 results and is not a complete count.
+Ready #1182 at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes
+ADR 0212 and Post filters without colliding with #1183's ADR, API, schema,
+or release number. #1177 overlaps the App, style, translation, Storybook,
+and baseline files and needs a combined review before delivery. The remotes
+confirm canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`; their current PRD or
+product/architecture authority was read before this audit. These queue and
+health observations are operational diagnostics, not population evidence.
+
 ## Current source-head audit — 2026-10-23 19:17 UTC
 
 The [PRD](product-requirements.md) and accepted ADR 0025/0216 set the
