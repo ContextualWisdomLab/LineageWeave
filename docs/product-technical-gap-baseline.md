@@ -2,7 +2,7 @@
 
 ## Exact-head recheck — 2026-10-23 05:31 UTC
 
-The current open #1183 source head is
+The reviewed #1183 source head before this documentation update was
 `fab17939e0054f9e03591d46c7e90ba6f6de2259` against `main`
 `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two review threads
 remain resolved. The exact-head Full test suite, frontend, and CodeQL jobs
@@ -12,6 +12,8 @@ passed, but the only formal reviews are automated comments. There is no
 independent approval or protected merge SHA. The active ruleset only forbids
 force pushes, so arming auto-merge now would not enforce the requested review
 and Checks boundary.
+This documentation update creates a later PR head; its hosted status must
+be read again before any merge decision.
 
 On that source head, the 106 focused App tests, frontend lint, and production
 build pass locally. The existing desktop and mobile Storybook captures for
