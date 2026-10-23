@@ -1,5 +1,56 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-23 14:38 UTC
+
+The source reviewed here is ready PR #1183 at
+`d603e6d4c8307d8c5d87abe02bf6907ceea23d71` against protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. The remote branch and local
+checkout agree on that head. Its two formal review threads are resolved;
+submitted reviews are bot comments, with no independent approval. Four GitHub
+Actions checks are terminal failures on this head. CodeRabbit and Devin status
+contexts are green, but neither is a test result or independent approval. The
+repository rules endpoint is rate-limited in this pass; the most recent
+successful read exposed only a non-force-push rule. Normal auto-merge remains
+unarmed because successful Checks and independent approval are not presently
+enforced by the observed controls. There is no merge SHA or release claim.
+
+The current [PRD](product-requirements.md) and ADR 0025/0216 govern dated
+Post evidence. ADR 0246 defines twelve atomic Voices, ADR 0252 governs
+imported-primary history, and ADR 0256 governs evidence-bearing, open-ended
+combinations. ADR 0251 concerns occupational semantics. The linked TEPP and
+ThreadWeave PRDs, RankWeave architecture, and lowercase `disksage` README
+were read before this PR pass; GitHub repository metadata confirms the
+canonical `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and `disksage`
+case. The 197 open PRs (29 ready) and 43 open issues are workflow counts, not
+population evidence.
+
+The largest selected reader gap is dated Post navigation. #1183's candidate
+keeps the requested cutoff on related information and evidence Posts, hides
+current-only panels, and makes opening the current view an explicit action
+before sharing. The latest two CodeRabbit observations concern current-only
+Counterparty and R&R/Affiliate controls; this head hides those controls in a
+cutoff view, and focused regressions check that they are absent. On this source
+head, 60 ontology, SHACL, and docstring tests and 106 App tests passed
+locally; frontend lint and production build passed. Desktop and mobile
+expanded-state Storybook screenshots were inspected at their actual rendered
+widths. They show a retry
+state, not a loaded relation or authenticated customer journey. Authenticated
+PostgreSQL/API and rendered Voice acceptance remain unverified, including
+distinct carrying and derivation Posts and same-subject paged JSON-LD.
+
+Ready #1182 is still at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`.
+It owns ADR 0212 and the Post-filter API; #1183 changes neither that ADR nor
+an API, schema migration, or release number. Ready #1177 at
+`06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183 in App/style
+files and proposes an ADR 0256 change, so their combined result needs review
+after protected integration. Both ready heads have terminal failed Actions
+checks and no independent approval. Stacked children remain on their parent
+bases until a protected parent merge is verified. No authenticated synthetic
+k6 saturation or observed bottleneck repair is claimed: the named
+`lineageweave` stack currently reports unhealthy PostgreSQL, Valkey,
+orchestrator, and search services. This documentation commit creates a later
+#1183 head and needs a fresh hosted read.
+
 ## Exact-head continuation — 2026-10-23 13:35 UTC
 
 The reviewed source is ready PR #1183 at
