@@ -93,6 +93,7 @@ import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
+import { StatusNotice } from "./components/StatusNotice";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
@@ -2427,6 +2428,12 @@ function PostDetailPopup({
                 body={post.known_at.post_body}
                 writtenAt={post.known_at.written_at}
                 cutoff={post.known_at.as_of}
+              />
+            ) : knowledgeCutoff ? (
+              <StatusNotice
+                kind="unavailable"
+                message={t("Earlier body unavailable for this date.")}
+                nextAction={t("Read the current body below, then ask the source owner for the earlier version before citing it.")}
               />
             ) : null}
             {liveBodyWarning ? (

@@ -47,6 +47,19 @@ export const Unavailable: Story = {
   },
 };
 
+export const HistoricalBodyUnavailable: Story = {
+  args: {
+    kind: "unavailable",
+    message: "Earlier body unavailable for this date.",
+    nextAction: "Read the current body below, then ask the source owner for the earlier version before citing it.",
+  },
+  play: async ({ canvasElement }) => {
+    const notice = within(canvasElement).getByRole("region", { name: /^Unavailable:/ });
+    await expect(notice).toHaveTextContent("Earlier body unavailable for this date.");
+    await expect(notice).toHaveTextContent("before citing it");
+  },
+};
+
 export const Retry: Story = {
   args: {
     kind: "retry",

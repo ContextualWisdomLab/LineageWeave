@@ -2360,6 +2360,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
 /** Customer-facing labels keep implementation vocabulary out of the reader UI. */
 const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
   en: {
+    "Earlier body unavailable for this date.": "Earlier body unavailable for this date.",
+    "Read the current body below, then ask the source owner for the earlier version before citing it.": "Read the current body below, then ask the source owner for the earlier version before citing it.",
     "View related information": "View related information",
     "Related information": "Related information",
     "Only relationships supported by this date appear here. Open a post to inspect its available history.": "Only relationships supported by this date appear here. Open a post to inspect its available history.",
@@ -2374,6 +2376,8 @@ const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
     "Close record details": "Close record details",
   },
   ko: {
+    "Earlier body unavailable for this date.": "이 날짜의 이전 본문을 확인할 수 없습니다.",
+    "Read the current body below, then ask the source owner for the earlier version before citing it.": "아래 현재 본문을 읽고, 이 날짜의 근거로 인용하기 전에 원천 담당자에게 이전 버전을 요청하세요.",
     "View related information": "관련 정보 보기",
     "Related information": "관련 정보",
     "Only relationships supported by this date appear here. Open a post to inspect its available history.": "이 날짜까지 근거가 확인된 관계만 표시합니다. 글을 열어 당시 확인할 수 있는 기록을 살펴보세요.",
@@ -2394,14 +2398,20 @@ const CUSTOMER_COPY: Record<Locale, Record<string, string>> = {
     "Related information is unavailable. Open a visible post next.": "관련 정보를 사용할 수 없습니다. 다음으로 표시되는 글을 여세요.",
   },
   zh: {
+    "Earlier body unavailable for this date.": "无法查看该日期的较早正文。",
+    "Read the current body below, then ask the source owner for the earlier version before citing it.": "请阅读下方当前正文；将其作为该日期的证据引用前，先向来源负责人索取较早版本。",
     "Only relationships supported by this date appear here. Open a post to inspect its available history.": "这里只显示截至该日期有证据支持的关系。打开记录查看当时可用的历史内容。",
     "View related information": "查看相关信息", "Related information": "相关信息", "Author context": "作者背景", "Record details": "记录详情", "Related projects": "相关项目", "Why this item is listed": "显示此项目的原因", "Category": "分类", "How this item was found": "此项目的发现方式", "Earlier source version": "较早的记录版本", "Loading related information...": "正在加载相关信息…", "Close record details": "关闭记录详情", "No related information is available. Open a visible post next.": "暂无相关信息。接下来打开一条可见记录。", "Some related information is not shown. Open a source post to continue.": "部分相关信息未显示。请打开来源文章继续。", "Related information is unavailable for this record. Open a visible post next.": "此记录的暂无信息。请打开一条可见的记录。", "This information reflects an earlier view. Compare it with the current record next.": "此信息反映较早的视图。请与当前记录进行比较。", "This suggestion was not accepted. Open the evidence to review it.": "此建议未被接受。请打开证据进行复核。", "Related information is unavailable. Open a visible post next.": "相关信息不可用。请打开一条可见的记录。",
   },
   ja: {
+    "Earlier body unavailable for this date.": "この日時点の本文を確認できません。",
+    "Read the current body below, then ask the source owner for the earlier version before citing it.": "下の現在の本文を読み、この日時点の根拠として引用する前に元データの担当者に以前の版を確認してください。",
     "Only relationships supported by this date appear here. Open a post to inspect its available history.": "この日付までに根拠が確認できた関係だけを表示します。投稿を開いて当時利用できた履歴を確認してください。",
     "View related information": "関連情報を見る", "Related information": "関連情報", "Author context": "作成者の背景", "Record details": "記録の詳細", "Related projects": "関連プロジェクト", "Why this item is listed": "この項目が表示される理由", "Category": "分類", "How this item was found": "この項目の見つけ方", "Earlier source version": "以前の記録バージョン", "Loading related information...": "関連情報を読み込んでいます…", "Close record details": "記録の詳細を閉じる", "No related information is available to open a visible post next.": "関連情報はありません。次に表示される投稿を開いてください。", "Some related information is not shown. Open a source post to continue.": "一部の関連情報は表示されません。続けるには元の投稿を開いてください。", "Related information is unavailable for this record. Open a visible post next.": "この記録の関連情報を利用できません。次に表示される投稿を開いてください。", "This information reflects an earlier view. Compare it with the current record next.": "この情報は以前の基準を反映しています。次に現在の記録と比較してください。", "This suggestion was not accepted. Open the evidence to review it.": "この提案は受け入れられませんでした。証拠を開いて確認してください。", "Related information is unavailable. Open a visible post next.": "関連情報を利用できません。次に表示される投稿を開いてください。",
   },
   vi: {
+    "Earlier body unavailable for this date.": "Không thể xem nội dung cũ tại ngày này.",
+    "Read the current body below, then ask the source owner for the earlier version before citing it.": "Hãy đọc nội dung hiện tại bên dưới và xin phiên bản cũ từ người phụ trách nguồn trước khi trích dẫn làm bằng chứng cho ngày này.",
     "Only relationships supported by this date appear here. Open a post to inspect its available history.": "Chỉ những mối liên hệ có bằng chứng đến ngày này mới xuất hiện. Mở bài viết để xem lịch sử có sẵn khi đó.",
     "View related information": "Xem thông tin liên quan", "Related information": "Thông tin liên quan", "Author context": "Bối cảnh tác giả", "Record details": "Chi tiết bản ghi", "Related projects": "Dự án liên quan", "Why this item is listed": "Lý do mục này được hiển thị", "Category": "Phân loại", "How this item was found": "Cách tìm thấy mục này", "Earlier source version": "Phiên bản bản ghi trước đó", "Loading related information...": "Đang tải thông tin liên quan…", "Close record details": "Đóng chi tiết bản ghi", "No related information is available to open a visible post next.": "Chưa có thông tin liên quan. Hãy mở bài viết hiển thị tiếp theo.", "Related information is unavailable for this record. Open a visible post next.": "Không có thông tin liên quan cho bản ghi này. Hãy mở bài viết hiển thị tiếp theo.", "This information reflects an earlier view. Compare it with the current record next.": "Thông tin này phản ánh chế độ xem trước đó. Hãy so sánh với bản ghi hiện tại tiếp theo.", "This suggestion was not accepted. Open the evidence to review it.": "Đề xuất này chưa được chấp nhận. Hãy mở bằng chứng để xem lại.", "Related information is unavailable. Open a visible post next.": "Không có thông tin liên quan. Hãy mở bài viết hiển thị tiếp theo.",
   },

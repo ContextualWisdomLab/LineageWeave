@@ -2172,6 +2172,12 @@ describe("App, authenticated", () => {
       name: "Open live post: Private post",
     }));
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    const popup = screen.getByRole("dialog");
+    const missingHistory = await within(popup).findByRole("region", { name: /^Unavailable:/ });
+    expect(missingHistory).toHaveTextContent("Earlier body unavailable for this date.");
+    expect(missingHistory).toHaveTextContent("ask the source owner for the earlier version before citing it");
+    expect(within(popup).getByRole("region", { name: "Post body" })).toHaveTextContent("The evidence panel should show exactly this text.");
+    expect(within(popup).queryByRole("region", { name: "Body this run knew" })).not.toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
       expect.anything(),
