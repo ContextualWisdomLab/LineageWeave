@@ -1,5 +1,51 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 10:06 UTC
+
+The reviewed source is ready PR #1183 at
+`3aa91ed941eaa865b50eba326e7739cf370ccaf3`, based on protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both review threads are
+resolved. Its formal reviews are automated `COMMENTED` reviews, with no
+independent approval. The four exact-head Actions jobs failed before executing
+steps: the test job has `runner_id: 0` and GitHub annotates it as an account
+billing lock. CodeRabbit is paused and Devin review credits are exhausted;
+their status contexts do not certify this head. The current rules API exposes
+only `non_fast_forward`, and classic branch protection returns 404. Arming
+auto-merge under this configuration could merge without the independent
+approval and terminal successful Checks requested for this work, so it is not
+armed. No protected merge SHA or release is claimed.
+
+The buyer gap under repair is dated Post navigation and sharing. #1183 keeps
+the knowledge cutoff on supported related evidence, excludes current-only
+relations, and offers **Open current view** before a reader shares a post.
+Its synthetic regression passed on this exact local head: 106 App tests, 31
+ontology layout/export tests, 43 ontology and SHACL tests, frontend lint, and
+frontend production build. Existing desktop and mobile Storybook screenshots
+of the dated sharing action were visually inspected. These prove a candidate
+rendered state, not an authenticated end-to-end journey. The build still
+reports a 558.29 kB application chunk; issue #994 owns that separate
+performance gap, and no bottleneck claim follows without an authenticated
+synthetic k6 run.
+
+The current [PRD](product-requirements.md), ADR 0025/0216 for cutoff evidence,
+and ADR 0246/0252/0256 for twelve atomic Voices, open-ended composition,
+interval history, and derivation were checked. The remote repositories use
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`. Their current PRD or product/architecture authority was
+read before this continuation. No cited research supplies a new weight or
+population inference. Exact-value/CSV and same-subject paged JSON-LD
+regressions passed locally, but authenticated PostgreSQL/API and rendered
+Voice acceptance remain unverified. No source record or credential is
+included in this artifact.
+
+Ready #1182 is separately at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`
+and changes ADR 0212, the Post-filter API, and related tests. It has no changed
+file overlap with #1183 and no independent approval; its four Actions jobs are
+also terminal failures. Ready #1177 overlaps #1183's App/styles and edits ADR
+0256, so those changes need a fresh combined review. The examined #1182 and
+#1183 heads share no schema migration or release-number change. Stacked PRs
+retain their parent target until that parent has a protected merge SHA.
+
 ## Exact-head continuation — 2026-10-23 08:58 UTC
 
 The source reviewed in this pass is open PR #1183 at
