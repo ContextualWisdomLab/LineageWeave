@@ -1,5 +1,57 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-23 22:41 UTC
+
+The [current PRD](product-requirements.md) and accepted ADR 0025/0216 govern
+the selected reader gap: dated Post navigation must keep the knowledge cutoff,
+show retained text only when a recorded revision covers it, and withhold later
+relations. Ready PR #1183 is the candidate repair at exact source head
+`47a29abcf73b3719f6dd28dbcfe1a7e60f5546b9`, based on `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its current code carries
+the cutoff into the authorized related-information neighborhood, the
+occupational-construct search, and separate carrying-Post and derivation-Post
+navigation. It hides current-only relationship and Event Lineage controls at a
+cutoff and requires an explicit current view before sharing. These are
+PR-candidate behaviors, not protected-main or authenticated rendered-UI
+acceptance. Three focused App regressions and 31 ontology/documentation tests
+passed locally on this head. Existing synthetic Storybook desktop and mobile
+captures were inspected at 1440×900 and 390×844; they show readable closed
+states but do not prove an authenticated loaded relationship.
+
+Both formal #1183 review threads are resolved. Its submitted reviews are bot
+comments, not independent approval. The four exact-head Actions jobs are
+terminal failures after 3–4 seconds; CodeRabbit says review paused and Devin
+says its full review was skipped. The latest successfully observed repository
+rule prohibits force pushes but does not require successful Checks or
+independent approval; a fresh ruleset REST read hit rate limiting. Thus
+the user's required merge conditions are not established. Auto-merge remains
+unarmed, and no merge SHA or release is claimed. This documentation edit
+creates a successor head whose Checks and reviews require a new read.
+
+ADR 0246 governs twelve atomic Voices, ADR 0256 their open-ended,
+evidence-bearing combinations, ADR 0252 imported-primary history, and ADR
+0251 occupational semantics. Earlier authenticated synthetic PostgreSQL/API
+Voice checks on this PR were reported as passing for distinct carrying and
+evidence Posts, persisted provenance, and hidden-evidence denial; they were
+not rerun in this audit. Same-subject paged JSON-LD union has synthetic
+regression evidence. The named `lineageweave` stack currently has unhealthy
+PostgreSQL, Valkey, orchestrator, and search services, so current authenticated
+PostgreSQL/API and rendered Voice acceptance remain unverified. No new k6
+saturation result or population inference is asserted.
+
+The remote inventory contains 197 open PRs (29 ready, 117 stacked) and 43
+open issues; these are workflow counts. Ready #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` owns the separate Post-filter
+query and ADR 0212, with no direct ADR, API, schema, or release-number collision
+with #1183. Ready #1177 overlaps #1183's App, translations, Storybook, and
+baseline files, requiring combined review after integration. Ready #1130
+already owns the customer-facing analysis-run wording gap; no duplicate edit
+is made here. Stacked children retain their parent bases until a verified
+protected parent merge. The canonical remotes are
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`; their product or architecture authorities, together
+with fast-mlsirm and contextual-orchestrator, were read before this pass.
+
 ## Current source-head audit — 2026-10-23 21:29 UTC
 
 The [current PRD](product-requirements.md) and ADR 0025/0216 govern the
