@@ -15,7 +15,7 @@ governs open-ended, evidence-bearing combinations; ADR 0252 governs primary
 Voice history. ADR 0251 governs occupational semantics, not Voice
 composition. The current ThreadWeave and TEPP PRDs and RankWeave,
 `disksage`, and contextual-orchestrator product/architecture authorities
-were read before this review. GitHub confirms the canonical repository names
+were consulted in this cycle. GitHub confirms the canonical repository names
 `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
 `fast-mlsirm`, and lowercase `disksage`. No source supplies a fixed compound
 Voice code, arbitrary weight, or local replacement for an owning engine.
