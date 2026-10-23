@@ -1,33 +1,40 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-23 11:12 UTC
+## Exact-head continuation — 2026-10-23 12:22 UTC
 
 The source reviewed for this update is ready PR #1183 at
-`a5532f19272198166ad1e51de734781f34c64480` against protected `main`
+`f9fa62cc39d0fac806952785af02c3e515c37a12` against protected `main`
 `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two inline review
 threads are resolved; the submitted reviews are automated comments, with no
-independent approval. The four Actions jobs on this head are terminal failures
-with no executed test steps. The active ruleset exposed by GitHub only bars
-force pushes, so auto-merge is not armed: it could merge before the independent
-approval and successful exact-head Checks required by the PRD. No merge or
-release is claimed. This documentation edit creates a newer head and requires
-new hosted evidence.
+independent approval. All four Actions jobs on this head failed before running
+steps; the Full test job has `runner_id: 0`, and GitHub's job annotation says
+the account is locked by a billing issue. The active ruleset only bars force
+pushes, and classic branch protection is absent. Auto-merge is not armed:
+under these current controls it could merge without the requested independent
+approval or successful Checks. No merge SHA or release is claimed. This edit
+creates a newer source head and requires a fresh hosted read.
 
 The largest buyer-visible gap selected for this PR remains dated Post
 navigation and sharing. The candidate implementation keeps supported related
 information at the requested cutoff, withholds current-only sections, and
-offers **Open current view** before sharing. The reviewed head passed the
-local frontend suite (61 files, 643 tests). Synthetic Storybook desktop and
-mobile captures of both the closed and expanded related-information states
-were inspected; the expanded captures show the unavailable/retry state, not a
+offers **Open current view** before sharing. A previous source head passed the
+full frontend suite (61 files, 643 tests). On this reviewed head, frontend
+lint, five focused dated-view regressions, 55 ontology/SHACL tests, and eight
+documentation/docstring checks passed. A concurrent full frontend run passed
+641 of 643 tests; two unrelated Ask/activity tests failed under that run and
+both passed when rerun alone. This pass does not claim a green full suite.
+Synthetic Storybook desktop and mobile captures of both the closed and
+expanded related-information states were inspected; the expanded captures
+show the unavailable/retry state, not a
 loaded relation or an authenticated Post journey. The formal review findings
 about later related Posts and a broad cutoff assertion were fixed earlier in
 this PR and are covered by focused regression tests. Authenticated PostgreSQL
 API and rendered Voice acceptance remain unverified. The formal k6 concurrency,
-latency, error-rate, throughput, and saturation run is also unavailable: the
-current named Compose stack has unhealthy PostgreSQL, Valkey, gateway, and
-other services, and its frontend returns HTTP 500. No bottleneck or capacity
-claim follows from that state.
+latency, error-rate, throughput, and saturation run remains unavailable: the
+named `lineageweave` Compose stack reports unhealthy PostgreSQL, Valkey,
+gateway, and search services, and its frontend returns HTTP 500. One idle
+container CPU/memory snapshot does not identify a load bottleneck or capacity
+envelope.
 
 The supporting [PRD](product-requirements.md) and accepted ADRs 0025/0216
 govern cutoff evidence; ADRs 0246/0252/0256 govern twelve atomic Voices,
@@ -38,12 +45,15 @@ authorities for ThreadWeave, TEPP, RankWeave, contextual-orchestrator, and
 remote names `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
 `TEPP`, and lowercase `disksage`. Research supplies no new local weighting,
 selection heuristic, or population estimate. The current inventory is 197
-open PRs (29 ready, 117 stacked) and 43 open issues. Ready #1182 has an
-independent Post-filter/ADR 0212 change and no file overlap with #1183; ready
-#1177 overlaps App/styles and proposes an ADR 0256 change. These require
-combined review after a protected merge. The examined #1182/#1183 heads add
-no competing schema migration or release number. Stacked PRs retain their
-parent base until its protected merge SHA is verified.
+open PRs (29 ready) and 43 open issues. Ready #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` has an independent
+Post-filter/ADR 0212 change and no file overlap with #1183; ready #1177
+overlaps App/styles and proposes an ADR 0256 change. #1182 has no unresolved
+threads or independent approval; its four Actions jobs also failed without
+running steps. These changes require combined review after a protected merge.
+The examined #1182/#1183 heads add no competing schema migration or release
+number. Stacked PRs retain their parent base until its protected merge SHA is
+verified.
 
 ## Exact-head continuation — 2026-10-23 10:06 UTC
 
