@@ -4733,6 +4733,7 @@ function PostList({
       )}
       {selectedPostId && (
         <PostDetailPopup
+          key={`${selectedPostId}:${openedCutoffIso ?? ""}`}
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}

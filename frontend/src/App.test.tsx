@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { SurfaceBoundary } from "./App";
@@ -2163,6 +2163,26 @@ describe("App, authenticated", () => {
       expect.anything(),
     ));
   }, 15000);
+
+  it("discards a late response from the previous post after related navigation", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseSummary = () => {};
+    const summaryGate = new Promise<void>((resolve) => { releaseSummary = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/api/posts/post-1/summary")
+        ? summaryGate.then(() => backendFetch(input, init))
+        : backendFetch(input, init),
+    ));
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const relatedPosts = (await screen.findByRole("heading", { name: "Related posts" })).closest(".related-posts-section");
+    await userEvent.click(within(relatedPosts as HTMLElement).getByRole("button", { name: "Open related post: Linked post" }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    await act(async () => { releaseSummary(); });
+    expect(screen.queryByText("첫 번째 이벤트")).not.toBeInTheDocument();
+  });
 
   it("keeps the run cutoff for an unchanged post's related information", async () => {
     const fetchMock = stubBackend({ combinedVoices: true });
