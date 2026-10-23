@@ -2402,9 +2402,11 @@ function PostDetailPopup({
               />
             ) : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
-              <button type="button" onClick={() => void sharePost()}>
-                {t("Share")}
-              </button>
+              {!knowledgeCutoff ? (
+                <button type="button" onClick={() => void sharePost()}>
+                  {t("Share")}
+                </button>
+              ) : null}
               <button type="button" onClick={() => window.print()}>
                 {t("Print")}
               </button>
@@ -2417,6 +2419,13 @@ function PostDetailPopup({
                 {bookmarked ? t("Bookmarked") : t("Bookmark")}
               </button>
             </div>
+            {knowledgeCutoff ? (
+              <StatusNotice
+                kind="unavailable"
+                message={t("This dated view has no shareable link.")}
+                nextAction={t("To share this post, open its current view first.")}
+              />
+            ) : null}
             {postActionStatus && (
               <p className="post-action-status" role="status">
                 {postActionStatus}

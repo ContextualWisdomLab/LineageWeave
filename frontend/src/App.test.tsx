@@ -3699,6 +3699,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
     expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
     expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+    expect(screen.getByText("This dated view has no shareable link.")).toBeInTheDocument();
+    expect(screen.getByText("To share this post, open its current view first.")).toBeInTheDocument();
 
     expect(screen.queryByLabelText("Open post: Linked post")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View related information" })).toBeInTheDocument();
@@ -3719,6 +3722,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });

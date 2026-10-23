@@ -60,6 +60,19 @@ export const HistoricalBodyUnavailable: Story = {
   },
 };
 
+export const HistoricalShareUnavailable: Story = {
+  args: {
+    kind: "unavailable",
+    message: "This dated view has no shareable link.",
+    nextAction: "To share this post, open its current view first.",
+  },
+  play: async ({ canvasElement }) => {
+    const notice = within(canvasElement).getByRole("region", { name: /^Unavailable:/ });
+    await expect(notice).toHaveTextContent("This dated view has no shareable link.");
+    await expect(notice).toHaveTextContent("To share this post, open its current view first.");
+  },
+};
+
 export const Retry: Story = {
   args: {
     kind: "retry",

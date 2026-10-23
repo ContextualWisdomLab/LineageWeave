@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Historical sharing candidate — 2026-10-23 KST
+
+The current review started from open PR #1183 at exact source head
+`33e9b7e4a1681e47b1ee9006082cf5f0f8950323` against remote `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. The LineageWeave PRD is
+supporting product authority; ADR 0025 governs retained Post revisions and
+ADR 0216 forbids presenting a live body as cutoff evidence. ADRs 0246, 0252,
+and 0256 govern twelve atomic Voices, historical primary assignments, and
+evidence-bearing open-ended composition; ADR 0251 governs occupational
+semantics. The current ThreadWeave, TEPP, and fast-mlsirm PRDs, RankWeave and
+contextual-orchestrator architecture, and `disksage` PRD were read before this
+cycle. Remote repository metadata confirmed the canonical names
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, and `contextual-orchestrator`; the canonical DiskSage name
+is lowercase `ContextualWisdomLab/disksage`.
+
+The bounded buyer gap selected here is historical sharing: the Post popup's
+Share action built a current-only Post link even while showing a dated view.
+The candidate hides Share in that dated view, uses the existing unavailable
+notice to direct the reader to the current view, and keeps Share in the live
+view. A synthetic regression checks both states. The existing token-backed
+Storybook notice was rendered and visually inspected at 1440×900 and 390×844;
+neither capture overflowed horizontally. These renders do not establish an
+authenticated customer journey. No API, schema, migration, release number,
+Voice inference, model, or measurement contract changes in this slice.
+
+On the reviewed #1183 head, the two inline threads are resolved and the
+formal reviews are automated COMMENTED observations; no independent approval
+is present. The four hosted jobs failed before useful execution, while the
+review status contexts are not approval. The last confirmed main ruleset
+prohibits force pushes without enforcing the requested Checks and independent
+approval; the current REST ruleset read hit GitHub's rate limit. The candidate
+edit in this section creates a new head that needs fresh hosted Checks and
+review. No merge or merge SHA is claimed. Nearby open #1182 owns the
+Post-filter API and ADR 0212; #1177 owns Voice UI and ADR 0256. #1183 and
+#1177 both touch App, localization, and Storybook, so integration must recheck
+those shared files. No authenticated PostgreSQL/API plus rendered UI acceptance
+for Voice provenance or paged JSON-LD union is claimed. No authenticated
+synthetic k6 or component-saturation evidence was obtained; no bottleneck or
+population conclusion follows.
+
 ## Current exact-head review — 2026-10-23 KST
 
 Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
