@@ -1,5 +1,51 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-23 17:03 UTC
+
+The reviewed candidate is ready PR #1183 at
+`934b125bcf3f3e54c706f7ad0a451fe4c377a8fb`, based on protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal review
+threads are resolved; the only submitted reviews are bot comments, and no
+independent approval is recorded. Four exact-head Actions checks are terminal
+failures after 2–9 seconds; CodeRabbit is paused and Devin review was skipped.
+These contexts do not prove a passing test or approval. The active repository
+ruleset forbids force pushes but does not require successful checks or approval.
+Normal auto-merge is therefore unarmed under the user's stricter delivery
+conditions. No merge SHA or protected release is claimed. This documentation
+edit creates a later candidate head, requiring fresh hosted evidence.
+
+The current [PRD](product-requirements.md) and accepted ADR 0025/0216 govern
+the largest selected reader gap: navigating a dated Post without presenting
+later relations or sharing its current body as historical evidence. #1183
+contains the minimal candidate: a cutoff-aware related view, an explicit
+current-view action before sharing, and a popup remount that discards a late
+response from the preceding Post. On the reviewed source head, all 644
+frontend tests, lint, and production build passed locally; the build still
+reports a large main chunk. The synthetic expanded Storybook captures were
+visually inspected at 1440×900 and 390×844. They show an actionable retry
+state, not loaded relations or an authenticated journey. Authenticated
+PostgreSQL/API and rendered Voice acceptance remain unverified.
+
+ADR 0246 owns the twelve atomic Voices, ADR 0256 owns open-ended,
+evidence-bearing combinations, and ADR 0252 owns imported-primary history;
+ADR 0251 concerns occupational semantics. Existing synthetic tests cover
+carrying versus derivation evidence and same-subject paged JSON-LD merging,
+but no authenticated runtime acceptance was obtained here. The current remote
+inventory is 197 open PRs and 43 open issues. The canonical remotes are
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`; their current local PRD or architecture authorities,
+plus contextual-orchestrator's authority, were read before this pass.
+Ready #1182 at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes
+ADR 0212 and the Post-filter API without an ADR/API/schema/release-number
+collision with #1183. Ready #1177 at
+`06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183 in
+App, styles, Storybook inventory, translations, and this baseline; combined
+review is required before integration. Both have failed Actions checks and
+no independent approval. No stacked child was retargeted or stale run
+cancelled. The named `lineageweave` stack has unhealthy PostgreSQL, Valkey,
+orchestrator, and search services; no authenticated synthetic k6 capacity,
+population estimate, or observed bottleneck repair is claimed.
+
 ## Exact-head continuation — 2026-10-23 15:51 UTC
 
 The reviewed remote source is ready PR #1183 at
