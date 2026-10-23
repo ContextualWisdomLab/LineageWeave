@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+## Exact-head recheck — 2026-10-23 05:31 UTC
+
+The current open #1183 source head is
+`fab17939e0054f9e03591d46c7e90ba6f6de2259` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two review threads
+remain resolved. The exact-head Full test suite, frontend, and CodeQL jobs
+failed before a runner was assigned; the Full test suite job reports an
+account billing lock with zero steps. CodeRabbit and Devin status contexts
+passed, but the only formal reviews are automated comments. There is no
+independent approval or protected merge SHA. The active ruleset only forbids
+force pushes, so arming auto-merge now would not enforce the requested review
+and Checks boundary.
+
+On that source head, the 106 focused App tests, frontend lint, and production
+build pass locally. The existing desktop and mobile Storybook captures for
+the **Open current view** action were inspected; they show the dated-view
+notice and action without horizontal overflow. They do not prove an
+authenticated Post journey. The already implemented sharing repair and its
+regression test remain this candidate's bounded user-facing gap slice; this
+documentation recheck changes no product behavior. The current inventory is
+197 open PRs (29 ready, 117 stacked) and 43 open issues. These are workflow
+counts, not population evidence.
+
+Adjacent ready #1182 was read at source head
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`: its single-query Post
+filter change is owned by ADR 0212, has no open review threads, and touches
+no #1183 API, schema, migration, or release-number file. Its hosted jobs
+also fail before useful execution and it has no independent approval.
+The two PRs still need integration review after either merges. This recheck
+read the current remote-main product/architecture authorities for RankWeave,
+ThreadWeave, TEPP, fast-mlsirm, contextual-orchestrator, and `disksage`;
+several local ecosystem checkouts are behind remote `main`. Canonical remote
+metadata confirms lowercase `ContextualWisdomLab/disksage`; its protected-main
+product authority is README, while a local `DiskSage` PRD is not a
+protected-main claim. The exact-head authenticated PostgreSQL/API,
+Voice rendering, and synthetic k6 acceptance remain unavailable because the
+local PostgreSQL, Valkey, gateway, and search health probes are failing.
+No bottleneck repair or population inference follows from that state.
+
 ## Current candidate — 2026-10-23 04:19 UTC
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
