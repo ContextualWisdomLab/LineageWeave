@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 08:58 UTC
+
+The source reviewed in this pass is open PR #1183 at
+`1e2966d606e871de27d3dbeb4527301a4dfdb1dc`, based on protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two review threads
+are resolved, including the finding that live Keyman relations could enter a
+dated view; the candidate uses a cutoff-aware ontology neighborhood there.
+The four exact-head Actions jobs are terminal failures, and the only formal
+reviews are automated `COMMENTED` reviews. CodeRabbit is paused and Devin's
+review status says its trial expired. Neither status is an independent
+approval. The REST rules endpoint was rate-limited in this pass; the last
+successful read exposed only `non_fast_forward`. Auto-merge is unarmed because
+the requested Checks and independent-approval conditions are not enforceable
+from the available ruleset evidence. No merge SHA or release is claimed.
+
+The current inventory is 197 open PRs, including 29 ready and 117 stacked,
+and 43 open issues. These are workflow counts, not customer-population data.
+Ready #1182 remains at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`,
+also with terminal failed Actions, no independent approval, and no review
+threads. It changes the ADR 0212 Post-filter API and tests, with no direct
+file overlap with #1183's frontend cutoff repair. #1177/#1178 share frontend
+surfaces with #1183, so their merged result still needs review. This examined
+set has no shared migration or release-number edit; stacked children retain
+their parent base until a protected parent merge.
+
+The bounded buyer gap addressed by #1183 is dated Post navigation: the reader
+can follow only cutoff-supported related evidence and can open the current
+authorized view before sharing. Focused local validation passed: 143 frontend
+App/ontology tests, frontend lint, and nine documentation/cutoff tests.
+The committed desktop and mobile Storybook captures were visually inspected;
+the dated action and unavailable state remain legible at both widths. These
+candidate checks do not replace hosted Checks or an authenticated journey.
+The twelve atomic Voices and open-ended, evidence-bearing composition remain
+governed by ADR 0246/0256; ADR 0251 governs occupational semantics. The
+current PRD and linked ecosystem product/architecture authorities were read.
+Authenticated PostgreSQL/API plus rendered Voice acceptance, same-subject
+paged JSON-LD acceptance, and synthetic authenticated k6 saturation evidence
+remain unavailable. No heuristic weight, bottleneck repair, or population
+inference is inferred from this diagnostic pass.
+
 ## Exact-head gate audit — 2026-10-23 07:50 UTC
 
 The reviewed source is ready PR #1183 at
