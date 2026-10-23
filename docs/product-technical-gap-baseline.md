@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head audit — 2026-10-23 18:08 UTC
+
+The ready #1183 candidate is `0f7600697dc6674645a7e43da58c08bf87d22ed0`
+against `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Both formal review threads are resolved; four submitted reviews are bot
+comments, with no independent approval. Four Actions jobs failed before a
+runner step. The Full test job's annotation identifies an account billing
+lock. These are terminal hosted failures on this exact head, not product-test
+results. The only active repository ruleset prohibits force pushes; classic
+branch protection is absent. Normal auto-merge is unarmed because those
+observed controls do not enforce successful checks and independent approval.
+No merge SHA or protected release is claimed.
+
+The [PRD](product-requirements.md), ADR 0025/0216, and current #1183
+implementation identify dated Post navigation as the selected reader gap.
+The candidate keeps the cutoff in related-information and evidence navigation,
+withholds current-only panels, isolates an in-flight response when the opened
+Post changes, and requires an explicit current-view action before sharing.
+The exact-head code passed 43 focused ontology/documentation tests, all 644
+frontend tests, frontend lint, and a production build locally in this audit.
+The production build reports a large main chunk. The synthetic desktop/mobile Storybook
+captures already attached to #1183 show an unavailable/retry state, not an
+authenticated loaded relation. Authenticated PostgreSQL/API and rendered
+Voice acceptance, including carrying versus derivation evidence and
+same-subject paged JSON-LD, remain unverified.
+
+ADR 0246 governs the twelve atomic Voices; ADR 0256 governs extensible,
+evidence-bearing composition; ADR 0252 governs imported-primary history.
+ADR 0251 governs occupational semantics. The remote confirms the canonical
+names `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+and lowercase `disksage`. Their current PRDs or product/architecture
+authorities, plus those of fast-mlsirm and contextual-orchestrator, were read
+before this audit. The open inventory is 197 PRs (29 ready, 117 stacked) and
+43 issues; these are workflow counts, not a probability sample. Ready #1182
+remains at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`; its ADR 0212 and
+Post-filter API changes do not collide with #1183's ADR, API, schema, or
+release numbering. Ready #1177 overlaps #1183's frontend and ADR 0256
+surface, so its combined result needs a fresh review. No stacked child was
+retargeted. PostgreSQL, Valkey, orchestrator, and search health checks on the
+named `lineageweave` stack are unhealthy; authenticated synthetic k6 capacity
+and bottleneck evidence are unavailable. This documentation edit will create
+a new #1183 head; hosted checks and reviews must be re-read on that head.
+
 ## Exact-head audit — 2026-10-23 17:03 UTC
 
 The reviewed candidate is ready PR #1183 at
