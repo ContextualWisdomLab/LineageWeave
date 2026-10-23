@@ -2173,7 +2173,7 @@ describe("App, authenticated", () => {
     }));
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
     const popup = screen.getByRole("dialog");
-    const missingHistory = await within(popup).findByRole("region", { name: /^Unavailable:/ });
+    const missingHistory = (await within(popup).findByText("Earlier body unavailable for this date.")).closest("[role='region']");
     expect(missingHistory).toHaveTextContent("Earlier body unavailable for this date.");
     expect(missingHistory).toHaveTextContent("ask the source owner for the earlier version before citing it");
     expect(within(popup).getByRole("region", { name: "Post body" })).toHaveTextContent("The evidence panel should show exactly this text.");
@@ -3679,7 +3679,7 @@ describe("App, authenticated", () => {
   });
 
   it("warns that a cutoff-rewritten title opens the live body, not a snapshot", async () => {
-    stubBackend();
+    const fetchMock = stubBackend();
     render(<App showLabPanels />);
 
     await userEvent.click(
@@ -3702,10 +3702,15 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
     expect(screen.getByText("This dated view has no shareable link.")).toBeInTheDocument();
     expect(screen.getByText("To share this post, open its current view first.")).toBeInTheDocument();
-
     expect(screen.queryByLabelText("Open post: Linked post")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View related information" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open current view" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument());
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/api/posts/post-1"))).toBe(true);
+    expect(screen.queryByText("This dated view has no shareable link.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(

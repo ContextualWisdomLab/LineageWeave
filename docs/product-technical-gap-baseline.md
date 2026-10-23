@@ -1,5 +1,66 @@
 # Product & Technical Gap Baseline
 
+## Current candidate — 2026-10-23 04:19 UTC
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 was reviewed at exact head
+`f1c36dbd8682958e1ca62b0cad35760945e9083f`; the change below will
+create a later head, so its hosted checks and reviews need a new read. The
+current inventory is 197 open PRs (29 ready, 117 stacked) and 43 open issues.
+Those counts describe the workflow queue, not a customer population.
+
+The [PRD](product-requirements.md) is supporting product authority. ADR 0025
+governs the retained Post body, ADR 0216 forbids live derived evidence in a
+cutoff answer, and ADRs 0246, 0252, and 0256 govern the twelve atomic Voices,
+primary history, and open-ended evidence-bearing composition. ADR 0251 covers
+occupational semantics, not Voice composition. The present checkout matches
+remote `main` for the ThreadWeave, TEPP, and fast-mlsirm PRDs and RankWeave
+architecture. The current contextual-orchestrator product plan and remote
+`main` architecture, plus the `disksage` README, were read before this loop.
+Remote metadata confirms canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`,
+`contextual-orchestrator`, and lowercase `disksage`.
+
+The bounded reader gap addressed by this candidate is that a dated Post
+explains that sharing needs its current view but offers no direct way to open
+that view. The Post actions now offer **Open current view** in place of Share
+at a cutoff. It reopens the same authorized Post without `as_of`, clears the
+dated notice, and restores Share. A synthetic App regression checks that
+transition and the current Post request. The existing StatusNotice and
+design tokens remain in use; a Storybook visual scene was captured at desktop
+and mobile sizes with no horizontal overflow and a 44px action target.
+The focused App regressions, lint, production build, and Storybook build passed
+locally. This is candidate UI evidence, not an authenticated Post
+journey. No API, schema, migration, release number, measurement, model policy,
+or inference rule changes in this slice.
+
+#1183 has two resolved inline threads and only automated COMMENTED reviews;
+there is no independent approval. Its exact-head Tests jobs ended with
+`runner_id: 0`, zero steps, and an account-billing-lock annotation, so they
+did not exercise the candidate. The active main ruleset `21065108` forbids
+force pushes but does not require passing checks or approval; classic branch
+protection is absent. Auto-merge is therefore unarmed because it could merge
+without the independently requested evidence. No merge SHA is claimed.
+
+Nearby #1182 owns the Post-filter API and ADR 0212; #1177 owns Voice UI and
+ADR 0256. #1168 alone adds migration ordinal 0252 in the examined ready
+heads. #1183, #1178, #1177, and #1169 overlap frontend, Storybook, or
+localization files; #1181, #1178, #1177, #1168, and #1169 overlap this
+baseline. These are merge-integration risks requiring exact merged-file
+review, not evidence of a schema or release-number conflict. Stacked PRs
+must retain their parent base until it merges, then retarget and collect
+new exact-head evidence.
+
+Voice acceptance still lacks authenticated PostgreSQL/API and rendered
+desktop/mobile proof that carrying and derivation Posts remain distinct,
+hidden support is excluded, truth/cutoff history survives, and paged JSON-LD
+unions same-subject values. Synthetic screenshots do not close that gap.
+No authenticated synthetic k6 run measured latency, errors, throughput,
+concurrency, or PostgreSQL/worker/Valkey/gateway saturation here; no
+bottleneck repair or capacity claim follows. Convenience, sequential, or
+time-layer diagnostics do not support population inference without the
+Rust-owned terminal design and estimator artifact.
+
 ## Historical sharing candidate — 2026-10-23 KST
 
 The current review started from open PR #1183 at exact source head

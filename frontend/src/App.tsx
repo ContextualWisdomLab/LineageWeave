@@ -2406,7 +2406,11 @@ function PostDetailPopup({
                 <button type="button" onClick={() => void sharePost()}>
                   {t("Share")}
                 </button>
-              ) : null}
+              ) : (
+                <button type="button" onClick={() => onSelectPost?.(postId)}>
+                  {t("Open current view")}
+                </button>
+              )}
               <button type="button" onClick={() => window.print()}>
                 {t("Print")}
               </button>
