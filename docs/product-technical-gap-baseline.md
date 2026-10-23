@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 13:35 UTC
+
+The reviewed source is ready PR #1183 at
+`6ccd49a6f468838a5739af96094a492e854095eb` against protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both review threads are
+resolved. The two Devin inline findings refer to the earlier Keyman path and
+an earlier broad assertion: this head hides the live Keyman relation endpoints
+in cutoff views and its regression targets the ontology neighborhood URL.
+There is no formal independent approval. All four Actions jobs on this exact
+head failed before a runner step; the test job has `runner_id: 0` and an
+account billing-lock annotation. The current repository ruleset prohibits
+force pushes, classic branch protection returns 404, and the organization
+ruleset endpoint is unavailable to this account. Auto-merge is not armed
+because the observed controls cannot enforce the requested independent
+approval and successful Checks. No merge SHA or release is claimed.
+
+The buyer-visible dated-Post navigation gap has a candidate minimal repair in
+#1183: its cutoff view uses only the cutoff-aware ontology neighborhood,
+retains the cutoff through evidence navigation, and makes the current view an
+explicit action before sharing. On the reviewed source head, 106 App tests and
+49 ontology, SHACL, and documentation tests passed locally. The existing
+desktop and mobile expanded-state screenshots were inspected at their actual
+rendered widths: both show an actionable retry state, but neither shows a
+loaded relation or an authenticated Post journey. Authenticated PostgreSQL API
+and rendered Voice acceptance, including distinct carrying and derivation
+Posts and same-subject paged JSON-LD, remain unverified. The canonical
+`lineageweave` Compose stack currently reports unhealthy PostgreSQL, Valkey,
+orchestrator, and search services, so no authenticated synthetic k6 capacity
+result or observed bottleneck repair is claimed.
+
+The current [PRD](product-requirements.md) and accepted ADRs 0025/0216,
+0246/0252/0256 remain the cutoff and Voice authorities; ADR 0251 concerns
+occupational semantics. The linked TEPP and ThreadWeave PRDs and the current
+RankWeave, contextual-orchestrator, and lowercase `disksage` product or
+architecture authorities were read before the PR loop. GitHub confirms the
+canonical repository case. The live inventory is 197 open PRs, 29 ready PRs,
+117 stacked PRs, and 43 open issues; these are queue counts, not population
+estimates. Ready #1182 remains at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, with no independent approval
+and the same pre-run Actions failure. Its one-scan Post-filter candidate passed
+its focused local contract test. The examined #1182/#1183 heads do not compete
+for an ADR, API, schema migration, or release number; #1177 overlaps #1183's
+frontend and Voice ADR and needs combined review before integration. No
+stacked child is retargeted before its parent's protected merge. This
+documentation edit will create a newer #1183 head, so its Checks and review
+state must be read again before any merge decision.
+
 ## Exact-head continuation — 2026-10-23 12:22 UTC
 
 The source reviewed for this update is ready PR #1183 at
