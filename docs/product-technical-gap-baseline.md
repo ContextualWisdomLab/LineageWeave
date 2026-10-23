@@ -1,5 +1,50 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 11:12 UTC
+
+The source reviewed for this update is ready PR #1183 at
+`a5532f19272198166ad1e51de734781f34c64480` against protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two inline review
+threads are resolved; the submitted reviews are automated comments, with no
+independent approval. The four Actions jobs on this head are terminal failures
+with no executed test steps. The active ruleset exposed by GitHub only bars
+force pushes, so auto-merge is not armed: it could merge before the independent
+approval and successful exact-head Checks required by the PRD. No merge or
+release is claimed. This documentation edit creates a newer head and requires
+new hosted evidence.
+
+The largest buyer-visible gap selected for this PR remains dated Post
+navigation and sharing. The candidate implementation keeps supported related
+information at the requested cutoff, withholds current-only sections, and
+offers **Open current view** before sharing. The reviewed head passed the
+local frontend suite (61 files, 643 tests). Synthetic Storybook desktop and
+mobile captures of both the closed and expanded related-information states
+were inspected; the expanded captures show the unavailable/retry state, not a
+loaded relation or an authenticated Post journey. The formal review findings
+about later related Posts and a broad cutoff assertion were fixed earlier in
+this PR and are covered by focused regression tests. Authenticated PostgreSQL
+API and rendered Voice acceptance remain unverified. The formal k6 concurrency,
+latency, error-rate, throughput, and saturation run is also unavailable: the
+current named Compose stack has unhealthy PostgreSQL, Valkey, gateway, and
+other services, and its frontend returns HTTP 500. No bottleneck or capacity
+claim follows from that state.
+
+The supporting [PRD](product-requirements.md) and accepted ADRs 0025/0216
+govern cutoff evidence; ADRs 0246/0252/0256 govern twelve atomic Voices,
+history, open-ended combination, and evidence-preserving derivation. ADR 0251
+governs occupational semantics. The current linked product/architecture
+authorities for ThreadWeave, TEPP, RankWeave, contextual-orchestrator, and
+`disksage` were read before this continuation. GitHub confirms the canonical
+remote names `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+`TEPP`, and lowercase `disksage`. Research supplies no new local weighting,
+selection heuristic, or population estimate. The current inventory is 197
+open PRs (29 ready, 117 stacked) and 43 open issues. Ready #1182 has an
+independent Post-filter/ADR 0212 change and no file overlap with #1183; ready
+#1177 overlaps App/styles and proposes an ADR 0256 change. These require
+combined review after a protected merge. The examined #1182/#1183 heads add
+no competing schema migration or release number. Stacked PRs retain their
+parent base until its protected merge SHA is verified.
+
 ## Exact-head continuation — 2026-10-23 10:06 UTC
 
 The reviewed source is ready PR #1183 at
