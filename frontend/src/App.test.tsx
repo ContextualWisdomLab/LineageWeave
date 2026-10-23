@@ -2138,6 +2138,12 @@ describe("App, authenticated", () => {
       expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
       expect.anything(),
     ));
+    await userEvent.type(screen.getByLabelText("Catalog label"), "Oral");
+    await userEvent.click(screen.getByRole("button", { name: "Find matching records" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/occupational-constructs\/search\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
+      expect.anything(),
+    ));
     expect(screen.queryByRole("button", { name: "R&R Keyman: Ada West" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Counterparty org: Demo Corp" })).not.toBeInTheDocument();

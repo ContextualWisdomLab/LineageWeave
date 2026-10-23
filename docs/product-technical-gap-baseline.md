@@ -1,5 +1,63 @@
 # Product & Technical Gap Baseline
 
+## Current source-head audit — 2026-10-23 19:17 UTC
+
+The [PRD](product-requirements.md) and accepted ADR 0025/0216 set the
+reader requirement: a dated Post must keep its cutoff when navigating
+relations and must distinguish the current body from a retained revision.
+Ready PR #1183 at `5c673304a3d3ce0ea8cd28ea56c0eb59eadcf181` against
+`main` `91c3e1c7411f56408e4ce61417479ace36ff40cb` is the selected
+minimal candidate for that gap. Its code sends the cutoff to the authorized
+ontology neighborhood and catalog search, hides current-only Post panels,
+separates the retained body from the live body, and requires opening the
+current view before sharing. Synthetic regression tests cover cutoff
+navigation, evidence actions, unavailable history, and late-response
+isolation. This is candidate behavior, not a protected-main claim.
+
+Both formal review threads on #1183 are resolved. Its four submitted reviews
+are comments from bots; independent approval is absent. The four exact-head
+Actions jobs failed before running project steps, while CodeRabbit review was
+paused and Devin review skipped. Hosted tests and approval therefore remain
+unproved. The latest successfully observed ruleset read (2026-10-23 18:08
+UTC) reported only a force-push prohibition; a fresh REST ruleset read hit
+GitHub rate limiting, so that older observation is not asserted as current.
+No normal merge or auto-merge can establish the user's stronger independent
+approval and passing-Checks conditions yet. No merge SHA is claimed.
+
+Local verification on that source head passed frontend lint, production build,
+and 108 focused tests. A concurrent full frontend run passed 643 of 644 tests;
+one Ask-panel test timed out at five seconds. The same test passed when rerun
+with the affected App tests under two workers. After adding a regression that
+checks the dated work-evidence search request, the App suite passed 107 tests,
+the focused ontology/Voice suite passed 57 tests, and a two-worker full
+frontend run passed all 644 tests. The build still warns about a 558.33 kB
+main chunk. The checked-in Storybook screenshots were visually
+audited at desktop and mobile widths: the expanded related view offers Retry
+in its unavailable state, but they do not prove an authenticated loaded
+relation. The canonical `lineageweave` Compose services are running;
+PostgreSQL, Valkey, orchestrator, and search report unhealthy. Authenticated
+PostgreSQL/API and rendered Voice acceptance, including separate carrying and
+derivation evidence and same-subject paged JSON-LD, remain unverified.
+Synthetic authenticated k6 capacity, saturation, and bottleneck evidence are
+also unavailable; no population inference follows from these diagnostic
+observations.
+
+The current remote inventory is 197 open PRs (29 ready, 117 stacked) and 43
+open issues. Ready #1182 at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`
+changes ADR 0212 and the Post-filter query without an API, schema, or release
+number collision with #1183. Ready #1177 at
+`06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183's App,
+styles, translations, Storybook inventory, and baseline; its ADR 0256 Voice
+contract needs combined review before integration. ADR 0246 governs the
+twelve atomic Voices, ADR 0256 their evidence-bearing open composition, ADR
+0252 primary history, and ADR 0251 occupational semantics. The remotes use
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`. Their PRDs or current product/architecture authorities,
+plus those of fast-mlsirm and contextual-orchestrator, were read before this
+audit. A stacked child remains on its parent until a protected parent merge
+SHA is verified. This baseline edit creates a successor to the audited source
+head; its own hosted Checks and reviews require fresh collection.
+
 ## Current exact-head audit — 2026-10-23 18:08 UTC
 
 The ready #1183 candidate is `0f7600697dc6674645a7e43da58c08bf87d22ed0`
