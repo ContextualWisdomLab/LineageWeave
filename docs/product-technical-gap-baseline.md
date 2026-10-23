@@ -43,8 +43,15 @@ population estimates. Ready #1182 owns the Post-filter API and ADR 0212;
 #1181 and #1178 overlap this baseline; #1177 overlaps App, localization,
 Storybook, and ADR 0256. Their compared changed-file lists expose no
 competing schema migration or release-number edit. Shared files require
-owner-aware reconciliation. Parent PRs must merge before retargeting any
-stacked child. The current Compose project is `lineageweave`, with
+owner-aware reconciliation. Across the 29 ready PRs, #1168 alone adds
+migration ordinal 0252; no other ready head changes that ordinal or the
+`2.28.0` package version. #1169, #1137, and #1133 each touch
+`pyproject.toml` for different license/build, security-floor, and RankWeave
+dependency changes, so their final merged file and lock state need a fresh
+exact-head check. The ready ADR edits to 0184, 0252, and 0256 also require
+semantic reconciliation rather than treating separate PR heads as a single
+accepted contract. Parent PRs must merge before retargeting any stacked
+child. The current Compose project is `lineageweave`, with
 PostgreSQL, Valkey, orchestrator, and SearXNG unhealthy. Authenticated
 PostgreSQL/API Voice acceptance, a rendered authenticated Post journey,
 and synthetic authenticated k6 concurrency and saturation evidence remain
