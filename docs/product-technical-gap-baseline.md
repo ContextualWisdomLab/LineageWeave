@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Exact-head gate audit — 2026-10-23 07:50 UTC
+
+The reviewed source is ready PR #1183 at
+`d14046e37e172e71e8966a9c5fa75175b6f27ccf` against protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. This section is a
+review of that source head; the documentation commit containing this section
+creates a later head and requires a fresh hosted read. The two formal review
+threads are resolved. The only submitted reviews are automated `COMMENTED`
+reviews on earlier commits, so independent approval is absent. Four Actions
+jobs failed on the reviewed head; the Full test job had zero executed steps
+and reports `runner_id: 0`. CodeRabbit and Devin status contexts succeeded, but
+neither is an independent approval or a completed test run. The current main
+rules endpoint exposes `non_fast_forward` only. Because it does not enforce
+the requested independent approval and successful Checks, auto-merge remains
+unarmed. No protected merge SHA or release is claimed.
+The current remote inventory contains 197 open PRs and 43 open issues; these
+are workflow counts, not a sampled customer population.
+
+The supporting [PRD](product-requirements.md) and ADR 0025/0216 govern the
+dated Post experience; ADR 0246/0252/0256 govern the twelve atomic Voices,
+their history, and evidence-bearing open-ended combinations. ADR 0251 is
+occupational semantics. TEPP and fast-mlsirm remain the measurement owners;
+RankWeave and ThreadWeave retain fusion and threading; contextual-orchestrator
+retains all model traffic. Their product or architecture authorities were
+read for this pass. Remote metadata confirms the repository-case names
+`LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP`, and lowercase
+`disksage`. The local DiskSage PRD is not a protected-main product claim;
+the remote-main README is its current authority. Paper sources named by the
+PRD do not supply a new weight, routing heuristic, or population estimate.
+
+The buyer-facing gap addressed by #1183 remains dated Post navigation and
+sharing. Its current implementation carries the cutoff through authorized
+related evidence, withholds current-only panels, offers **Open current view**
+before sharing, and keeps an unavailable historical body explicit. The
+reviewed branch has a synthetic regression for the cutoff request and
+sharing transition. This pass ran 37 ontology projection tests and 137
+frontend App/JSON-LD pagination tests; frontend lint passed. Desktop and
+mobile Storybook captures of the dated sharing action were inspected and
+show the action and notice without horizontal overflow. These are candidate
+checks, not an authenticated customer journey.
+
+The exact-value and CSV tests keep the carrying Post distinct from its
+derivation Post; unit tests union repeated JSON-LD subjects and multi-Voice
+relations across pages. Authenticated PostgreSQL/API and rendered Voice
+acceptance are still unverified: the current `lineageweave` Compose stack
+reports PostgreSQL, Valkey, gateway, and search unhealthy. No authenticated
+synthetic k6 saturation run or population inference follows. Current-ready
+#1182 owns ADR 0212/Post-filter API and has no changed-file overlap with
+#1183's API, schema, migration, or release contract. #1177 overlaps #1183
+in App and style files and owns a proposed ADR 0256 edit; #1178/#1181 also
+overlap this baseline or styles. Those integrations require fresh merged-file
+review. #1168 alone adds migration ordinal 0252 among these reviewed ready
+heads; it is a migration filename, not a replacement for Voice-history ADR
+0252. No PR in this reviewed set changes #1183's release number.
+
 ## Exact-head continuation — 2026-10-23 06:37 UTC
 
 The current LineageWeave PRD and the linked ecosystem product and architecture
