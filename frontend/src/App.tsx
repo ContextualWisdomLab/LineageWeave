@@ -2873,7 +2873,7 @@ function PostDetailPopup({
             )}
 
             {focusEventLineage && knowledgeCutoff && (
-              <HistoricalRelatedPanel postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
+              <HistoricalRelatedPanel key={`${postId}:${knowledgeCutoff}`} postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
             )}
             {focusEventLineage && !knowledgeCutoff && (
               <KeymanPanel
@@ -2939,7 +2939,7 @@ function PostDetailPopup({
             </section>}
 
             {!focusEventLineage && knowledgeCutoff && (
-              <HistoricalRelatedPanel postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
+              <HistoricalRelatedPanel key={`${postId}:${knowledgeCutoff}`} postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
             )}
             {!focusEventLineage && !knowledgeCutoff && (
               <KeymanPanel

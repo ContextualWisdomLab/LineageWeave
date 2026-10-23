@@ -2156,6 +2156,8 @@ describe("App, authenticated", () => {
       name: "Open evidence: Linked post",
     }));
     expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View related information" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("table", { name: "Exact values" })).not.toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
       expect.anything(),

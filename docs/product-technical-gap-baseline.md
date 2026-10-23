@@ -27,13 +27,17 @@ population evidence.
 The largest selected reader gap is dated Post navigation. #1183's candidate
 keeps the requested cutoff on related information and evidence Posts, hides
 current-only panels, and makes opening the current view an explicit action
-before sharing. The latest two CodeRabbit observations concern current-only
+before sharing. A follow-up on this branch remounts the dated related panel
+when the Post or cutoff changes, so the previous Post's open graph cannot
+remain on the newly opened Post; a navigation regression covers the reset.
+The latest two CodeRabbit observations concern current-only
 Counterparty and R&R/Affiliate controls; this head hides those controls in a
 cutoff view, and focused regressions check that they are absent. On this source
 head, 60 ontology, SHACL, and docstring tests and 106 App tests passed
 locally; frontend lint and production build passed. Desktop and mobile
 expanded-state Storybook screenshots were inspected at their actual rendered
-widths. They show a retry
+widths; the current closed state was rendered and inspected again at 1440×900
+and 390×844 after the navigation fix. The expanded captures show a retry
 state, not a loaded relation or authenticated customer journey. Authenticated
 PostgreSQL/API and rendered Voice acceptance remain unverified, including
 distinct carrying and derivation Posts and same-subject paged JSON-LD.
