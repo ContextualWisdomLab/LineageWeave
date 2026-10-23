@@ -936,7 +936,6 @@ function KeymanPanel({
   canExtract,
   onExtracted,
   onSelectPost,
-  knowledgeCutoff,
   focusPerson,
   focusEntity,
   focusTeam,
@@ -951,7 +950,6 @@ function KeymanPanel({
   canExtract: boolean;
   onExtracted: () => void;
   onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
-  knowledgeCutoff?: string | null;
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
   focusTeam?: { teamId: string; teamName: string } | null;
@@ -976,10 +974,7 @@ function KeymanPanel({
   const relatedRequest = useRef(0);
 
   function openRelatedPost(nextPostId: string) {
-    onSelectPost?.(
-      nextPostId,
-      knowledgeCutoff ? { liveAfterCutoff: true, knowledgeCutoff } : undefined,
-    );
+    onSelectPost?.(nextPostId);
   }
 
   useEffect(() => {
@@ -1438,7 +1433,6 @@ function KeymanPanel({
             accessToken={accessToken}
             focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
             focusNodeId={selectedFocus?.nodeId ?? postId}
-            knowledgeCutoff={knowledgeCutoff ?? undefined}
             onSelectPost={openRelatedPost}
             onOpenEvidence={openRelatedPost}
           />
@@ -2884,7 +2878,6 @@ function PostDetailPopup({
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
-                knowledgeCutoff={knowledgeCutoff}
                 focusPerson={focusPerson}
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
@@ -2950,7 +2943,6 @@ function PostDetailPopup({
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
-                knowledgeCutoff={knowledgeCutoff}
                 focusPerson={focusPerson}
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}

@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 23:48 UTC
+
+The [current PRD](product-requirements.md), ADR 0025/0216, and the dated-Post
+journey identify historical related evidence as the selected user-visible gap.
+Ready PR #1183 was reviewed at source head
+`fe8a968e5a82f98e475f08f0a79f3de5da10ea59` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two same-head bot
+threads are resolved. The claimed Keyman cutoff leak does not reach the dated
+Post view: that view renders `HistoricalRelatedPanel`, while the Keyman,
+organization, and team panels are current-only. The claimed broad request
+assertion already names the ontology neighborhood URL and separately names
+the occupational search URL. The small follow-up removes the unused cutoff
+input from the current-only Keyman panel, making that ownership boundary
+explicit. The existing synthetic regression asserts both cutoff-bearing
+requests and absence of current-only related API calls. This is PR-candidate
+behavior until protected integration and authenticated rendered acceptance.
+
+On the reviewed head, all four Actions jobs failed before establishing a
+successful hosted test; the Full test job has no runner steps and a GitHub
+account billing-lock annotation. The CodeRabbit and Devin statuses were success
+without an independent approval. Classic branch protection returned 404; the
+active repository ruleset only prohibits force pushes. Since those controls
+do not enforce the requested passing Checks and independent approval,
+auto-merge cannot safely be armed. A new commit requires a fresh exact-head
+read. No merge SHA or release is claimed.
+
+Local ontology/documentation tests passed (39), the focused dated-related
+frontend regression passed, and frontend lint and production build passed.
+The build retains a 558.19 kB main-chunk warning. The synthetic related-panel
+desktop and mobile captures were inspected; both show a retryable unavailable
+state, not an authenticated loaded relationship. The named `lineageweave`
+Compose project has unhealthy PostgreSQL, Valkey, orchestrator, and search
+services, so authenticated PostgreSQL/API, rendered Voice acceptance, and
+synthetic authenticated k6 saturation evidence remain unavailable. ADR
+0246/0256 preserve twelve atomic Voices and open-ended evidence-bearing
+combinations; no finite-population claim follows from these diagnostic
+observations. Ready #1182 remains a separate Post-filter/ADR 0212 change with
+no direct ADR, API, schema, or release-number collision; #1177 overlaps the
+App and Storybook files and needs combined review after integration. Canonical
+remote case was checked for `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+and lowercase `disksage`; their current product/architecture authorities were
+read before this continuation.
+
 ## Exact-head review — 2026-10-23 22:41 UTC
 
 The [current PRD](product-requirements.md) and accepted ADR 0025/0216 govern
