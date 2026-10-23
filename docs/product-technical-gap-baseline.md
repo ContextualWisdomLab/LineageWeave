@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-23 06:37 UTC
+
+The current LineageWeave PRD and the linked ecosystem product and architecture
+authorities were read before this review. Remote repository metadata confirms
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, `contextual-orchestrator`, and lowercase `disksage`. GitHub
+served the RankWeave, ThreadWeave, and TEPP authorities; its REST rate limit
+then prevented refreshing the other remote documents, so their local
+`origin/main` copies are the latest available authority in this pass. This
+does not establish that those copies match remote `main` today.
+
+Ready PR #1183 was reviewed at source head
+`63c4a89408f8e75b153c1bdb5b98b45d84d4757c` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both inline threads are
+resolved and their original findings were addressed on this branch. The only
+formal reviews are four automated comments on earlier commits; there is no
+independent approval on this head. Its four Actions Checks are terminal
+failures, while CodeRabbit and Devin status contexts succeeded. The earlier
+zero-step billing-lock diagnosis is not refreshed here because the REST job
+endpoint is rate limited. The active ruleset read in this pass returns only
+the no-force-push rule, without Checks or independent approval enforcement.
+Auto-merge remains unarmed because it could merge before the requested
+evidence exists. There is no protected merge SHA. This documentation update
+will create a new head and invalidate the hosted evidence above.
+
+The largest bounded buyer gap carried by #1183 is dated Post sharing: the
+reader can now open the current authorized view directly from the dated-view
+notice before sharing. The same candidate also prevents current-only related
+content from appearing as historical evidence. At the reviewed head, 106
+focused App tests, six documentation tests, frontend lint, and production
+build pass locally.
+The synthetic Storybook desktop and mobile captures were visually inspected:
+the next action and unavailable notice are legible at both sizes without
+horizontal overflow. These checks do not establish an authenticated Post
+journey or protected delivery.
+
+Adjacent ready #1182 is at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`,
+has no unresolved threads or independent approval, and owns ADR 0212 plus
+the Post-filter API. Its changed-file list does not overlap #1183's API,
+schema, migration, or release-number files. #1183 overlaps #1177 and #1178
+in frontend and Storybook surfaces, and #1181 in this baseline; integration
+must review the merged result. ADR 0246's twelve atomic Voices and ADR 0256's
+open-ended, evidence-bearing combination contract remain separate from ADR
+0251's occupational semantic layer. Authenticated PostgreSQL/API, rendered
+Voice evidence and cutoff behavior, and paged JSON-LD same-subject union
+remain unverified. No synthetic authenticated k6 run or component saturation
+measurement was completed, so no performance bottleneck or population claim
+is made.
+
 ## Exact-head recheck — 2026-10-23 05:31 UTC
 
 The reviewed #1183 source head before this documentation update was
