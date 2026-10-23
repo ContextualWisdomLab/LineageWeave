@@ -1,5 +1,66 @@
 # Product & Technical Gap Baseline
 
+## Current exact-head review — 2026-10-23 KST
+
+Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The reviewed #1183 head is `0254f4b23e6985864d1e366296b5d2153960e4cf`;
+this documentation edit will create a later candidate head, so its hosted
+Checks and reviews must be collected again. The repository has 197 open PRs
+(29 non-draft, 117 based on another branch) and 43 open issues. These are
+workflow counts, not counts of customer records or a population sample.
+
+The [PRD](product-requirements.md) is supporting product authority. ADR 0216
+governs cutoff evidence; ADR 0246 governs twelve atomic Voices; ADR 0256
+governs open-ended, evidence-bearing combinations; ADR 0252 governs primary
+Voice history. ADR 0251 governs occupational semantics, not Voice
+composition. The current ThreadWeave and TEPP PRDs and RankWeave,
+`disksage`, and contextual-orchestrator product/architecture authorities
+were read before this review. GitHub confirms the canonical repository names
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, and lowercase `disksage`. No source supplies a fixed compound
+Voice code, arbitrary weight, or local replacement for an owning engine.
+
+The largest bounded buyer gap addressed by #1183 is that a run-cutoff Post
+could display current-only relationships and derived content as if the run
+knew them. Its candidate implementation withholds those panels and requests,
+keeps the authorized cutoff-aware ontology path, requests `as_of` for both
+changed and unchanged Posts, and explains when no retained earlier body is
+available. The synthetic regressions cover the cutoff request, distinct
+carrying and derivation-evidence Post actions, and absence of current-only
+requests. On this reviewed head, 643 frontend tests and 48 focused backend
+tests pass locally. Synthetic desktop/mobile Storybook captures are present;
+they do not prove an authenticated customer journey.
+
+Both #1183 inline review threads are resolved on the reviewed head. Its four
+Actions jobs failed before runner assignment; the Full test suite job has
+`runner_id: 0`, zero steps, and an account-billing-lock annotation. Automated
+COMMENTED reviews and bot status contexts are not independent approval.
+The active ruleset `21065108` prohibits force pushes but does not enforce the
+requested approval and passing-check conditions; classic branch protection
+is absent. Therefore neither a protected merge nor a merge SHA is claimed,
+and auto-merge remains unarmed rather than permitting an unreviewed merge.
+
+The adjacent ready heads have distinct owners: #1182 changes the Post-filter
+API and ADR 0212; #1181 changes this baseline; #1178 changes ontology UI and
+Storybook; #1177 changes Voice UI and ADR 0256. Those reviewed changed-file
+lists contain no competing schema migration ordinal or release-number edit.
+Their shared baseline, App, localization, and Storybook files require
+owner-aware reconciliation. #1168 separately proposes migration ordinal
+0252 and shares backend files with #1182; #1169 shares App, Storybook, and
+`pyproject.toml`. Stacked children remain on their parent until that parent
+merges, then require retargeting and fresh exact-head evidence.
+
+The canonical `lineageweave` Compose services are running, but PostgreSQL,
+Valkey, orchestrator, and SearXNG report unhealthy; the frontend returned
+HTTP 500 during this observation. Authenticated PostgreSQL/API and rendered
+desktop/mobile Voice acceptance remain unavailable for carrying versus
+derivation Posts, hidden evidence, truth/cutoff history, and paged JSON-LD
+union. No authenticated synthetic k6 concurrency, latency, error,
+throughput, or component-saturation result was obtained, so no bottleneck
+change or capacity claim follows. No diagnostic convenience sample is
+promoted to population inference without the Rust-owned terminal design
+artifact.
+
 ## Current source and delivery boundary — 2026-10-23 KST
 
 The reviewed #1183 source head is
