@@ -1,5 +1,47 @@
 # Product & Technical Gap Baseline
 
+## Exact-head verification — 2026-10-24 15:43 UTC
+
+**Authority and repository identity.** The current LineageWeave PRD and the
+linked TEPP, ThreadWeave, and fast-mlsirm PRDs, plus RankWeave,
+contextual-orchestrator, and `disksage` product or architecture authorities,
+were re-read before this loop. GitHub repository metadata confirms canonical
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`. Accepted ADRs govern policy; this baseline records
+implementation and delivery evidence, not new authority.
+
+**Product gap and candidate.** The current #1183 head keeps a delayed Customer
+master response from an earlier access scope from replacing the current
+account's evidence. Its synthetic delayed-response regression passes. This
+is a reader-visible authorization-scope repair with no new weight, Voice
+combination code, API, schema, migration, or release number. Local frontend
+lint, 110 focused App tests, production build, and 27 ontology/docstring
+tests passed on `5a540d538f7fdfbbcfed35879818aa09c0b4d678`.
+The build retains the tracked large-chunk warning. Desktop and mobile
+synthetic Storybook captures were inspected; they show the related-information
+cutoff entry point, not a loaded authenticated Customer or Voice journey.
+
+**Protected delivery.** Remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`; ready #1183 is open at
+`5a540d538f7fdfbbcfed35879818aa09c0b4d678`. Its formal reviews are
+`COMMENTED` on earlier commits, with no independent approval or auto-merge.
+The four current-head Actions checks are terminal failures; the two external
+status contexts are successful. The previously observed Actions billing lock
+is the likely admission cause, but current REST job details could not be
+re-read because the API core quota was exhausted. These failures are not
+passing hosted tests. Auto-merge remains off because the observed protection
+does not enforce the PRD's independent-approval requirement and could merge
+the unapproved head immediately. No merge SHA exists.
+
+Ready #1182 changes ADR 0212 and the Post-filter API/tests; #1181 edits this
+baseline. They have no direct schema, API, or release-number collision with
+this frontend repair at the checked heads, but integration remains unproved.
+The existing broader migration and release-identity issues remain open.
+Authenticated PostgreSQL/API Voice acceptance, loaded desktop/mobile Voice
+evidence, paged JSON-LD identity preservation, and synthetic authenticated
+k6 capacity/saturation evidence remain unavailable. No population inference
+is claimed without the Rust-owned terminal design artifact.
+
 ## Exact-head continuation — 2026-10-24 14:36 UTC
 
 **Authority and scope.** The current LineageWeave PRD and accepted ADR 0246,
