@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-24 05:38 UTC
+
+**Authority and scope.** The current PRD requires cutoff-safe evidence
+navigation. Accepted ADR 0025 and ADR 0216 distinguish a retained source
+revision from a current body or current-only projection; ADR 0246 and ADR
+0256 govern twelve atomic Voices and open-ended, evidence-bearing combinations.
+ADR 0251 governs occupational psychology semantics, not Voice classification.
+The cited PROV-O and OWL-Time standards ground provenance and time intervals;
+they do not supply a local weight, classifier, or population estimator.
+The selected reader gap is the dated Post's related-evidence journey. PR #1183
+implements a cutoff-aware ontology view and omits current-only relation
+panels. This pass strengthens the regression so its request must target the
+ontology neighborhood of the carrying Post at the exact cutoff; an unrelated
+cutoff-bearing search request cannot satisfy it. The candidate's exact-value
+actions continue to distinguish carrying and derivation-evidence Posts. The
+focused App regression passed (1 selected; 106 skipped); the focused ontology,
+cutoff, and documentation checks passed (46). These are local results only.
+
+**Observed state before this edit.** Remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR #1183 is at
+`1a1c86b39be3bf4b105d6df0e8ab7c6b7d678645` with two resolved formal
+threads, comment-only reviews, no independent approval, and no auto-merge.
+Its four GitHub Actions jobs failed before acquiring a runner; the Full test
+job annotation explicitly says the account is locked due to a billing issue.
+Those jobs provide no code-test result. The active repository rule
+`21065108` prohibits force pushes; classic branch protection is absent. The
+requested independent approval and passing exact-head Checks remain unmet, so
+normal merge and auto-merge cannot safely be armed. The remote inventory has
+197 open PRs (29 ready, 117 stacked) and 43 open issues. Ready #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes ADR 0212 and the
+Post-filter API, with no direct ADR, API, schema, or release-number collision
+with #1183; its hosted jobs also fail before runner start and it has no
+independent approval. #1177 overlaps the App, translations, Storybook
+inventory, and this baseline; #1178 overlaps ontology exploration, styles,
+Storybook inventory, and this baseline; #1181 edits this baseline. Integration
+needs a combined review. No new migration, API, or release identifier is
+introduced by #1183; no direct identifier collision with those nearby PRs
+was found, but shared UI and documentation files still require reconciliation.
+
+**Acceptance limits.** The checked-in synthetic desktop and mobile expanded
+views visibly show a retryable unavailable relationship state. They do not
+show an authenticated loaded relation. PostgreSQL/API and rendered Voice
+acceptance, including hidden-evidence exclusion and same-subject paged JSON-LD
+union, remain unverified on this head. The named `lineageweave` Compose project
+has running services, but PostgreSQL, Valkey, orchestrator, and search report
+unhealthy. There is no authenticated synthetic k6 result for latency,
+concurrency, errors, throughput, or component saturation. No bottleneck fix,
+population claim, or release claim follows from these diagnostics. This edit
+creates a successor head that needs fresh local and hosted evidence.
+
 ## Exact-head review — 2026-10-24 04:26 UTC
 
 **Authority and selected gap.** The current [PRD](product-requirements.md)

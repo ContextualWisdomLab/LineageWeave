@@ -2135,7 +2135,7 @@ describe("App, authenticated", () => {
       name: "View related information",
     }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?focus_node_type=node_post&focus_node_id=post-1&knowledge_cutoff=2026-01-12T12%3A00%3A00Z(?:&|$)/),
       expect.anything(),
     ));
     await userEvent.type(screen.getByLabelText("Catalog label"), "Oral");
@@ -2148,10 +2148,6 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Counterparty org: Demo Corp" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "VOC Keyman: Northridge Grid" })).not.toBeInTheDocument();
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
-      expect.anything(),
-    ));
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
     await userEvent.click(await screen.findByRole("button", { name: "Close" }));
     await userEvent.click(await screen.findByRole("button", {
