@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 20:29 UTC
+
+The authority for this continuation is the current PRD and accepted ADRs
+0025/0216 (historical evidence) and 0246/0252/0256 (atomic Voices, temporal
+history, and evidence-bearing composition). ADR 0251 governs the separate
+occupational psychology layer. The linked TEPP, ThreadWeave, fast-mlsirm,
+Keyverse, and scoped Naruon PRDs, RankWeave README/architecture,
+contextual-orchestrator product/architecture authority, and `disksage`
+protected-main README were read before the PR review. Live repository metadata
+confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+`TEPP`, and lowercase `disksage`; `DiskSage` is the product display name.
+Those authorities do not support a new weight, Voice combination code, model
+ranking, or population inference.
+
+The latest reviewed #1183 source head is
+`5aba2739daab203f9e5a971f94e16dc1def11963`, based on protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its dated-Post related
+information implementation is the bounded buyer gap under repair: the cutoff
+follows authorized ontology navigation while current-only relationships and
+controls stay out of that view. Both formal review threads are resolved and
+outdated; the two later CodeRabbit outside-diff observations are also covered
+by the current cutoff gating. No independent formal approval exists. Four
+exact-head Actions jobs failed with no runner steps, and the test job's current
+annotation states that the account is locked for billing. The two external
+review statuses are not approval or test evidence. The live ruleset exposes
+only `non_fast_forward`, and classic branch protection returns 404. Normal
+auto-merge is not armed because it could merge without the PRD's independent
+approval and successful exact-head Checks. No merge SHA or release is claimed.
+
+Local synthetic regression checks pass on this head: 115 App tests and 37
+OntologyExplorer tests. The three authenticated PostgreSQL Voice tests skipped
+because the local PostgreSQL/Keycloak/Valkey acceptance stack was not fully
+reachable. The canonical `lineageweave` services exist, but PostgreSQL,
+Valkey, orchestrator, and search currently report unhealthy; runtime health
+is not acceptance. Existing dated-related-information Storybook screenshots
+were visually inspected at desktop and mobile sizes. They show the retry
+state without horizontal clipping and do not show an authenticated, loaded
+Voice evidence journey. No authorized synthetic k6 token file or declared
+observation bounds are present, so latency, error, throughput, and saturation
+claims remain unavailable.
+
+The biggest outstanding Voice acceptance gap remains an authenticated
+PostgreSQL/API and rendered-UI observation proving distinct carrying and
+derivation Posts, hidden-evidence exclusion, cutoff truth, and paged JSON-LD
+union. Synthetic projector/UI tests cover the code paths, but this acceptance
+condition is **unverified**. Current independent #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes ADR 0212 and Post
+filter API/tests, with no direct file or schema overlap with #1183. #1181
+changes this baseline, and #1177 at
+`06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183's UI,
+translations, Storybook inventory, and the Voice ADR; these need a combined
+review before integration. Separate #1168 and #1125 propose migration
+ordinals 0252 and 0251, while #1049 repairs an earlier ordinal collision.
+#1183 adds no migration, public API, ADR decision, or release number. Stacked
+PRs remain on their parent until a protected parent merge SHA exists.
+
 ## Exact-head continuation — 2026-10-24 19:15 UTC
 
 **Authority and scope.** The current LineageWeave PRD and accepted ADRs
@@ -6045,59 +6101,3 @@ claim. The canonical `lineageweave` Compose services were observed running
 with healthy PostgreSQL, worker, orchestrator, and Valkey status, but this
 health observation is not authenticated acceptance or a k6 capacity result.
 No new throughput, latency, population, or release assertion is inferred.
-
-### Exact-head continuation — 2026-10-24 20:29 UTC
-
-The authority for this continuation is the current PRD and accepted ADRs
-0025/0216 (historical evidence) and 0246/0252/0256 (atomic Voices, temporal
-history, and evidence-bearing composition). ADR 0251 governs the separate
-occupational psychology layer. The linked TEPP, ThreadWeave, fast-mlsirm,
-Keyverse, and scoped Naruon PRDs, RankWeave README/architecture,
-contextual-orchestrator product/architecture authority, and `disksage`
-protected-main README were read before the PR review. Live repository metadata
-confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
-`TEPP`, and lowercase `disksage`; `DiskSage` is the product display name.
-Those authorities do not support a new weight, Voice combination code, model
-ranking, or population inference.
-
-The latest reviewed #1183 source head is
-`5aba2739daab203f9e5a971f94e16dc1def11963`, based on protected `main`
-`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its dated-Post related
-information implementation is the bounded buyer gap under repair: the cutoff
-follows authorized ontology navigation while current-only relationships and
-controls stay out of that view. Both formal review threads are resolved and
-outdated; the two later CodeRabbit outside-diff observations are also covered
-by the current cutoff gating. No independent formal approval exists. Four
-exact-head Actions jobs failed with no runner steps, and the test job's current
-annotation states that the account is locked for billing. The two external
-review statuses are not approval or test evidence. The live ruleset exposes
-only `non_fast_forward`, and classic branch protection returns 404. Normal
-auto-merge is not armed because it could merge without the PRD's independent
-approval and successful exact-head Checks. No merge SHA or release is claimed.
-
-Local synthetic regression checks pass on this head: 115 App tests and 37
-OntologyExplorer tests. The three authenticated PostgreSQL Voice tests skipped
-because the local PostgreSQL/Keycloak/Valkey acceptance stack was not fully
-reachable. The canonical `lineageweave` services exist, but PostgreSQL,
-Valkey, orchestrator, and search currently report unhealthy; runtime health
-is not acceptance. Existing dated-related-information Storybook screenshots
-were visually inspected at desktop and mobile sizes. They show the retry
-state without horizontal clipping and do not show an authenticated, loaded
-Voice evidence journey. No authorized synthetic k6 token file or declared
-observation bounds are present, so latency, error, throughput, and saturation
-claims remain unavailable.
-
-The biggest outstanding Voice acceptance gap remains an authenticated
-PostgreSQL/API and rendered-UI observation proving distinct carrying and
-derivation Posts, hidden-evidence exclusion, cutoff truth, and paged JSON-LD
-union. Synthetic projector/UI tests cover the code paths, but this acceptance
-condition is **unverified**. Current independent #1182 at
-`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes ADR 0212 and Post
-filter API/tests, with no direct file or schema overlap with #1183. #1181
-changes this baseline, and #1177 at
-`06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183's UI,
-translations, Storybook inventory, and the Voice ADR; these need a combined
-review before integration. Separate #1168 and #1125 propose migration
-ordinals 0252 and 0251, while #1049 repairs an earlier ordinal collision.
-#1183 adds no migration, public API, ADR decision, or release number. Stacked
-PRs remain on their parent until a protected parent merge SHA exists.
