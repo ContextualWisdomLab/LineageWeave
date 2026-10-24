@@ -2562,6 +2562,47 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Northridge Grid")).not.toBeInTheDocument();
   });
 
+  it("clears the open post and board evidence while a new account loads", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseNext = () => {};
+    const nextGate = new Promise<void>((resolve) => { releaseNext = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/settings") {
+        if ((init?.headers as Record<string, string> | undefined)?.Authorization === "Bearer next-access-token") {
+          return nextGate.then(() => jsonResponse({ brandName: "Next workspace" }));
+        }
+        return Promise.resolve(jsonResponse({ brandName: "Prior workspace" }));
+      }
+      if (
+        url.pathname === "/api/posts" &&
+        (init?.headers as Record<string, string> | undefined)?.Authorization === "Bearer next-access-token"
+      ) {
+        return nextGate.then(() => jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    const view = render(<App />);
+    expect(await screen.findByRole("heading", { name: "Prior workspace" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+
+    mockAuth = {
+      ...mockAuth,
+      user: { ...(mockAuth.user as object), access_token: "next-access-token" },
+    };
+    view.rerender(<App />);
+    expect(screen.queryByRole("heading", { name: "Prior workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(screen.queryByText("The full body text.")).not.toBeInTheDocument();
+
+    await act(async () => { releaseNext(); });
+    expect(await screen.findByRole("heading", { name: "Next workspace" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+  });
+
   it("lets a post_admin account resolve an unresolved customer hint into a real name", async () => {
     // Feature (2026-08-19): a Customer Master hint (an opaque customer
     // code with no name) previously had no action at all -- a dead end

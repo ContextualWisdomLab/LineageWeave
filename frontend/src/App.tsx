@@ -5418,7 +5418,7 @@ export function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
-  const [brandName, setBrandName] = useState("LineageWeave");
+  const [brand, setBrand] = useState<{ accessToken: string; name: string } | null>(null);
   const auth = useAuth();
   const [destination, setDestination] = useState<WorkspaceDestination>(() =>
     initialWorkspaceDestination(
@@ -5436,12 +5436,18 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+  const brandName = brand && brand.accessToken === accessToken ? brand.name : "LineageWeave";
+  const setBrandName = (name: string) => {
+    if (accessToken) setBrand({ accessToken, name });
+  };
 
   useEffect(() => {
     if (accessToken) {
+      let active = true;
       fetchTenantConfig(accessToken).then((config) => {
-        if (config.brandName) setBrandName(config.brandName);
+        if (active && config.brandName) setBrand({ accessToken, name: config.brandName });
       }).catch(console.error);
+      return () => { active = false; };
     }
   }, [accessToken]);
 
@@ -5527,7 +5533,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
-      <main>
+      <main key={accessToken}>
         {destination === "dashboard" ? (
           <SurfaceBoundary>
             <OperationsDashboard

@@ -1,5 +1,62 @@
 # Product & Technical Gap Baseline
 
+## Exact-head verification — 2026-10-24 16:49 UTC
+
+**Authority.** The current LineageWeave PRD and accepted ADR 0246, 0252,
+and 0256 were read with the connected ThreadWeave, TEPP, and fast-mlsirm
+PRDs and the RankWeave, `disksage`, and contextual-orchestrator product or
+architecture authorities. Remote repository identity confirms
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`. ADR 0251 governs occupational psychology, not Voice
+composition. This baseline records current implementation and delivery
+evidence; it does not establish a new policy or infer quality from a sample.
+
+**Selected user gap.** On the ready #1183 source head, the Post board and an
+open Post could remain visible after the access token changed while the new
+account's Post request was pending; the prior workspace name could also remain
+in the header. A synthetic account-switch regression
+reproduced the old Post card on the new account's screen before the repair.
+The minimal candidate remounts the authorized product panels when the access
+scope changes, clearing displayed Post evidence and in-flight panel state at
+that boundary. Workspace branding is bound to the same scope. The regression
+passes after the change; all 111 App tests,
+frontend lint, production build, and Storybook build pass locally. The build
+still reports the existing large-chunk warning. Fresh synthetic Storybook
+screenshots at 1440×900 and 390×844 were visually inspected; they show the
+historical related-information entry point without clipping. They do not
+exercise an authenticated account switch or loaded Voice evidence. This
+candidate introduces no weight, inference heuristic, Voice combination code,
+API, schema, migration, ADR, or release number.
+
+**Protected delivery.** Remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`; ready #1183 is open at
+`190a48f530950e3351ea7bb1c9f61abe2a19ce10` before this local candidate.
+Its two formal threads are resolved and outdated. No independent approval or
+auto-merge request exists. Four exact-head Actions checks are terminal
+failures; the Full test suite job has no runner or steps and carries GitHub's
+account billing-lock annotation. The CodeRabbit and Devin status contexts are
+successful, but neither is an independent approval. Ruleset 21065108 blocks
+force pushes; the classic `main` protection endpoint returns 404. Because
+GitHub does not currently enforce the PRD's approval requirement, enabling
+auto-merge now could merge without independent approval. No merge SHA or
+hosted test pass is claimed.
+
+**Cross-PR and runtime boundary.** At the sampled current heads, #1182 changes
+the Post-filter API and ADR 0212 without a direct file or contract collision
+with this UI repair. #1181 and several other open PRs edit this baseline;
+#1177, #1169, #1130, and #1135 overlap `App.tsx` or its tests and require
+owner-aware composition before merge. #1130 and #1155 touch the Voice ADRs;
+#1168 and #1125 add migration ordinals while #1049 repairs a shipped ordinal
+collision; #841 and #1137 edit release identity. Issues #807, #1048, and
+#1056 remain open, so the full stack has no collision-free delivery claim.
+The named `lineageweave` Compose project is running, but PostgreSQL, Valkey,
+orchestrator, and search report unhealthy. No authorized synthetic k6 token
+file is available; authenticated concurrency, latency, error rate,
+throughput, and component saturation remain unmeasured. Authenticated
+PostgreSQL/API Voice acceptance, loaded desktop/mobile Voice evidence, and a
+live paged JSON-LD multi-Voice union check remain unavailable. No population
+inference is claimed without the declared Rust-owned terminal artifact.
+
 ## Exact-head verification — 2026-10-24 15:43 UTC
 
 **Authority and repository identity.** The current LineageWeave PRD and the
