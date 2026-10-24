@@ -2188,9 +2188,9 @@ function PostDetailPopup({
     contentReloadRef.current = reloadContent;
     if (!knowledgeCutoff) reloadContent();
     fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
+      .then((r) => { if (!disposed) setBookmarked(r.bookmarked); })
       .catch(() => {
-        setBookmarked(null);
+        if (!disposed) setBookmarked(null);
       });
     if (!knowledgeCutoff) fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))

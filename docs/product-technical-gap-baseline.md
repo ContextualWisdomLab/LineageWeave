@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 10:04 UTC
+
+The current LineageWeave PRD, ADR 0246/0256, and the connected repositories'
+product or architecture authorities were read before this continuation. GitHub
+confirmed the canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, `fast-mlsirm`, and `contextual-orchestrator` names; the
+storage repository is lowercase `disksage`. These authorities do not transfer
+measurement, ranking, threading, or provider ownership into LineageWeave.
+
+**Selected reader gap and candidate.** In #1183, a slow bookmark response from
+the previously opened Post could overwrite the bookmark state of the Post just
+opened from related evidence. That could lead a reader to act on the wrong
+state. The minimal candidate ignores the earlier response after the Post or
+access scope changes. A synthetic delayed-response regression reproduces the
+navigation order and proves the newly opened Post keeps its own state. The
+frontend suite passed 645 tests in 61 files; lint and build passed. The build
+still reports its existing large application chunk warning. No scoring,
+sampling, provider, schema, API, ADR, or release policy changed. The existing
+1440×900 and 390×844 Storybook screenshots of the related-evidence panel were
+visually inspected; they show the dated entry point at both widths, not an
+authenticated loaded relation or the bookmark race itself.
+
+**Exact-head review boundary.** Before this candidate, #1183 was open at
+`1f18699e4e307b39ee67ad21727c10eae8861efd` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal threads were
+resolved, but no independent approval or auto-merge request existed. Four
+hosted jobs were terminal failures, so local success is not a merge gate.
+#1182 changes ADR 0212 and Post-filter API/tests without direct collision;
+#1181 edits this baseline, while #1177 and #1178 overlap frontend or Storybook
+files and need composition review if they land first. Those sampled heads do
+not establish collision freedom for every open PR. The GitHub REST ruleset
+endpoint was rate-limited during this pass; current rulesets and complete
+approval/check admission remain unverified. Keep #1183 open until fresh
+exact-head hosted checks, independent approval, resolved threads, and current
+ruleset evidence support normal auto-merge. No protected merge SHA is claimed.
+
+Authenticated PostgreSQL/API and loaded desktop/mobile Voice evidence, paged
+JSON-LD identity preservation, synthetic k6 capacity and component saturation,
+and a Rust-owned population-inference terminal artifact remain unavailable.
+No current-only or hidden evidence is promoted to historical truth.
+
 ## Exact-head continuation — 2026-10-24 08:56 UTC
 
 **Authority and ownership.** The current [PRD](product-requirements.md),

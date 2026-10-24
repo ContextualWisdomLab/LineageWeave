@@ -2186,6 +2186,34 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("첫 번째 이벤트")).not.toBeInTheDocument();
   });
 
+  it("does not apply a previous post's late bookmark to the opened post", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseBookmark = () => {};
+    const bookmarkGate = new Promise<void>((resolve) => { releaseBookmark = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/posts/post-1/bookmark")) {
+        return bookmarkGate.then(() => jsonResponse({ post_id: "post-1", bookmarked: true }));
+      }
+      if (url.endsWith("/api/posts/post-2/bookmark")) {
+        return Promise.resolve(jsonResponse({ post_id: "post-2", bookmarked: false }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const relatedPosts = (await screen.findByRole("heading", { name: "Related posts" })).closest(".related-posts-section");
+    await userEvent.click(within(relatedPosts as HTMLElement).getByRole("button", { name: "Open related post: Linked post" }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    const bookmark = await screen.findByRole("button", { name: "Bookmark" });
+    await waitFor(() => expect(bookmark).toBeEnabled());
+    await act(async () => { releaseBookmark(); });
+    expect(bookmark).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: "Bookmarked" })).not.toBeInTheDocument();
+  });
+
   it("keeps the run cutoff for an unchanged post's related information", async () => {
     const fetchMock = stubBackend({ combinedVoices: true });
     render(<App showLabPanels />);
