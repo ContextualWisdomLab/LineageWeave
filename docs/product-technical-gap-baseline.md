@@ -15,7 +15,8 @@ panels. The current regression requires the ontology neighborhood request to
 name the carrying Post and exact cutoff; an unrelated cutoff-bearing search
 request cannot satisfy it. The candidate's exact-value actions distinguish
 carrying and derivation-evidence Posts. On this head, two focused App cutoff
-tests and 57 ontology, SHACL, and public-docstring tests passed locally. A
+tests, 68 ontology export and exploration tests, and 57 ontology, SHACL, and
+public-docstring tests passed locally. A
 mistyped App test filter selected zero tests and is not counted as evidence.
 
 **Observed state before this edit.** Remote `main` is
@@ -35,12 +36,16 @@ Ready #1182 remains at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`.
 Its current formal thread list is empty and its only submitted review is a
 comment; its hosted jobs are also terminal failures. The source diff changes
 ADR 0212 and the Post-filter query/test within the existing API and introduces
-no migration or release number. It has no direct ADR, API, schema, or release
-identifier collision with #1183. #1177 overlaps the App, translations,
+no migration or release number. Its focused unit test passed on the exact
+source head (1 test); PostgreSQL integration remains unverified. It has no
+direct ADR, API, schema, or release identifier collision with #1183. #1177
+overlaps the App, translations,
 Storybook inventory, and this baseline; #1178 overlaps ontology exploration,
 styles, Storybook inventory, and this baseline; #1181 edits this baseline.
 Those shared files still require integration review. No new migration, API, or
-release identifier is introduced by #1183.
+release identifier is introduced by #1183. The live inventory contains 197
+open PRs and 43 open issues; the older issue inventory below remains a dated
+snapshot, not a claim that individual issues are still open.
 
 **Acceptance limits.** The checked-in synthetic 1440×900 desktop and 390×844
 mobile expanded views were inspected on this head. Both show a retryable
@@ -50,8 +55,9 @@ exclusion and same-subject paged JSON-LD union, remain unverified. The named
 `lineageweave` Compose project has running services, but PostgreSQL, Valkey,
 orchestrator, and search report unhealthy. There is no authenticated synthetic
 k6 result for latency, concurrency, errors, throughput, or component
-saturation. No bottleneck fix, population claim, or release claim follows from
-these diagnostics. This documentation edit creates a successor head that needs
+saturation; the authorized k6 token file is absent in this session. No
+bottleneck fix, population claim, or release claim follows from these
+diagnostics. This documentation edit creates a successor head that needs
 fresh hosted checks and independent review.
 
 ## Exact-head review — 2026-10-24 04:26 UTC
