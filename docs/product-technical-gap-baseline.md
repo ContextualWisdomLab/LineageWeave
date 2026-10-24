@@ -1,5 +1,58 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 07:50 UTC
+
+**Authority.** The current LineageWeave PRD and accepted ADR 0025/0216 govern
+the dated-record reader journey. ADR 0246/0256 retains twelve atomic Voices
+with evidence-bearing, open-ended composition; ADR 0251 concerns occupational
+psychology semantics. The RankWeave architecture, ThreadWeave PRD, TEPP
+approved PRD, and DiskSage protected-main README were read before this loop.
+The local DiskSage PRD is not present on its protected main. The remote
+canonical repository name for that project is
+`ContextualWisdomLab/disksage`, even though this machine's checkout is named
+`DiskSage`. Those ecosystem documents supply ownership boundaries, not a
+reason to copy their inference or measurement work into LineageWeave.
+
+**Selected reader gap and implementation.** The largest scoped gap remains
+opening related evidence from a dated Post without silently showing a current
+relationship. Ready PR #1183 at source head
+`2ed66bd4ee1e9a3c86e29519444a3e24e19eb7b6` carries the exact cutoff into
+the authorized ontology request, withholds current-only relation panels, and
+offers distinct carrying-Post and derivation-evidence actions. This pass
+strengthened the unchanged-Post regression so it requires the exact Post focus
+and cutoff on the ontology request; an unrelated cutoff-bearing request can no
+longer satisfy that assertion. Locally, 175 focused frontend tests and 67
+ontology/Voice backend tests passed, as did frontend lint. The synthetic
+desktop and mobile expanded-view screenshots were visually inspected. They
+show a retryable unavailable state, not an authenticated loaded relation.
+Authenticated PostgreSQL/API and rendered Voice acceptance, including hidden
+evidence and paged JSON-LD union, remain unverified.
+
+**Delivery snapshot before this edit.** Remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both #1183 formal review
+threads are resolved; all submitted reviews are comments, with no independent
+approval or auto-merge request. Its four exact-head Actions jobs are terminal
+failures with no executed steps. The Full test check annotation says the job
+was not started because the account is locked due to a billing issue. This is
+an external CI admission failure, not evidence of a source-test failure or a
+passing hosted test. The active repository ruleset `21065108` prohibits force
+pushes; classic branch protection is absent. The user-required independent
+approval and passing exact-head Checks are still unmet, so normal merge and
+auto-merge cannot safely run under the observed protection configuration.
+This edit creates a successor head and needs fresh hosted checks and review.
+
+**Adjacent PR and issue state.** The inventory still has 197 open PRs and 43
+open issues. Ready #1182 retains head
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`; its changed files are the
+Post-filter API, one test pair, and ADR 0212. Its only formal review is a bot
+comment on an older commit and its exact-head jobs also failed before running.
+There is no direct ADR, API, schema, or release-number collision with #1183.
+Ready #1177 overlaps the App and translation files; #1178 overlaps ontology
+exploration and style files; #1181 overlaps this baseline. These are integration
+review risks, not evidence that either branch has been delivered. No
+authenticated synthetic k6 run or component saturation observation is
+available, so no performance bottleneck or population claim is inferred.
+
 ## Exact-head review — 2026-10-24 06:44 UTC
 
 **Authority and scope.** The current PRD requires cutoff-safe evidence

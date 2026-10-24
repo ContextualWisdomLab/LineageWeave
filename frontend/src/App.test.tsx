@@ -2210,7 +2210,7 @@ describe("App, authenticated", () => {
       name: "View related information",
     }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringMatching(/\/api\/ontology\/neighborhood\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?focus_node_type=node_post&focus_node_id=post-2&knowledge_cutoff=2026-01-12T12%3A00%3A00Z(?:&|$)/),
       expect.anything(),
     ));
     expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
