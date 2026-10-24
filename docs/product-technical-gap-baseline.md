@@ -7,10 +7,12 @@ Ready PR #1183 is `4b7afb31dd7a9511afc4d3b88f4f1bc4df131998` before
 this documentation edit. Its two formal threads are resolved and outdated;
 the four exact-head GitHub jobs all failed before a runner started because
 GitHub annotated the Actions account as locked for billing. There is no
-independent approval or auto-merge request. The only returned active ruleset
-is 21065108, which prohibits force pushes; passing Checks and independent
-approval are not enforced on `main`. Those PRD delivery gates therefore remain
-unmet, and a normal merge or auto-merge is not safe to arm yet.
+independent approval or auto-merge request. The public ruleset listing returns
+only active ruleset 21065108, which prohibits force pushes. The current classic
+branch-protection read returned HTTP 401; the preceding authenticated read
+found no classic protection. Passing Checks and independent approval are
+therefore unmet and cannot be presumed enforced by GitHub. A normal merge or
+auto-merge is not safe to arm yet.
 
 The selected reader gap is a late response from a previously opened Post
 appearing in a newly opened Post's evidence. #1183's current candidate guards
