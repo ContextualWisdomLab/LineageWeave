@@ -1,5 +1,46 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 11:09 UTC
+
+The current LineageWeave PRD and ADR 0246/0256/0252 remain the product and
+Voice authorities for this candidate. The connected TEPP, ThreadWeave, and
+fast-mlsirm PRDs and RankWeave, `disksage`, and contextual-orchestrator
+architecture/product authorities were checked before work. GitHub confirms
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP` with
+that case; the storage repository is `ContextualWisdomLab/disksage`.
+
+**Reader gap and local candidate.** PR #1183 already prevents a late bookmark
+read from changing the newly opened Post. The same navigation still permitted
+late people, organization, evaluation, and lineage responses from the previous
+Post to populate the new Post's panels. The local candidate guards the remaining
+Post-scoped reads at the existing effect cleanup boundary. A synthetic delayed
+people-evidence regression opens a related Post before the earlier response
+arrives and verifies that the earlier person's action never appears there.
+This changes no Voice code, weight, inference, provider, API, schema, ADR, or
+release number. The existing desktop and mobile Storybook screenshots of the
+related-evidence panel were visually audited; they show layout and retry
+behavior, not an authenticated loaded Voice relation or the response race.
+
+**Delivery evidence.** Before this edit, #1183 was open at
+`eaf0c4cccd6e1070c1a9c051f0128d0601547022` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both formal review threads
+are resolved and outdated, but no independent approval or auto-merge request
+exists. Its four exact-head Actions jobs failed before runner assignment
+(`runner_id: 0`, no steps); this is no hosted code-test result. The current
+active ruleset 21065108 prohibits force pushes; the classic branch-protection
+endpoint reports no protection rule. Independent approval and successful
+exact-head hosted checks remain delivery requirements under this PRD even
+without a GitHub approval rule. Ready #1182 changes ADR 0212 and the Post-filter
+API/tests without a direct schema, release, or API overlap with #1183; #1181
+edits this baseline and must be composed after its owning implementation PR.
+These sampled PRs do not establish collision freedom for the full open stack.
+
+Authenticated PostgreSQL/API and loaded desktop/mobile Voice evidence, paged
+JSON-LD identity preservation in a live response, synthetic authenticated k6
+capacity with component saturation, and a Rust-owned population-inference
+terminal artifact remain unavailable. Local candidate tests and static
+screenshots do not promote any of those acceptance conditions.
+
 ## Exact-head continuation — 2026-10-24 10:04 UTC
 
 The current LineageWeave PRD, ADR 0246/0256, and the connected repositories'

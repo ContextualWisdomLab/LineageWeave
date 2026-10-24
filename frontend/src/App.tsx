@@ -2193,31 +2193,37 @@ function PostDetailPopup({
         if (!disposed) setBookmarked(null);
       });
     if (!knowledgeCutoff) fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
+      .then((r) => { if (!disposed) setEvaluation(r.responses); })
+      .catch(() => { if (!disposed) setEvaluation([]); });
     if (!knowledgeCutoff) fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
+      .then((r) => { if (!disposed) setFiveW1H(r); })
+      .catch(() => { if (!disposed) setFiveW1H(null); });
     if (!knowledgeCutoff) fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (disposed) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (disposed) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     if (!knowledgeCutoff) fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
+      .then((r) => { if (!disposed) setCounterparties(r.counterparties); })
+      .catch(() => { if (!disposed) setCounterparties([]); });
     // This endpoint has no cutoff contract; its excerpts and links are current state.
     if (!knowledgeCutoff) {
-      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      fetchPostLineage(accessToken, postId)
+        .then((r) => { if (!disposed) setLineage(r); })
+        .catch(() => { if (!disposed) setLineage(null); });
     }
     if (!knowledgeCutoff) fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    if (!knowledgeCutoff) fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => { if (!disposed) setAffiliateTrees(r.trees); })
+      .catch(() => { if (!disposed) setAffiliateTrees([]); });
+    if (!knowledgeCutoff) fetchPostVocEvidence(accessToken, postId)
+      .then((r) => { if (!disposed) setVocEvidence(r); })
+      .catch(() => { if (!disposed) setVocEvidence(null); });
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);

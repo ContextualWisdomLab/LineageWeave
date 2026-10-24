@@ -2214,6 +2214,26 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Bookmarked" })).not.toBeInTheDocument();
   });
 
+  it("does not show a previous post's late people evidence after related navigation", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseKeymen = () => {};
+    const keymenGate = new Promise<void>((resolve) => { releaseKeymen = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/api/posts/post-1/keymen")
+        ? keymenGate.then(() => backendFetch(input, init))
+        : backendFetch(input, init),
+    ));
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const relatedPosts = (await screen.findByRole("heading", { name: "Related posts" })).closest(".related-posts-section");
+    await userEvent.click(within(relatedPosts as HTMLElement).getByRole("button", { name: "Open related post: Linked post" }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    await act(async () => { releaseKeymen(); });
+    expect(screen.queryByRole("button", { name: "R&R Keyman: Ada West" })).not.toBeInTheDocument();
+  });
+
   it("keeps the run cutoff for an unchanged post's related information", async () => {
     const fetchMock = stubBackend({ combinedVoices: true });
     render(<App showLabPanels />);
