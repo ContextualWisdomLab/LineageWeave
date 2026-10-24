@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 02:08 UTC
+
+The current [PRD](product-requirements.md), ADR 0025/0216, and source-head
+implementation identify dated Post evidence as the selected reader gap. Ready
+PR #1183 is at `59a1df1d6e1ac2576f4e56397966d029113b3484` against
+`main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`. This candidate
+keeps a cutoff on related ontology and occupational evidence, omits current-only
+relationship and Event Lineage panels, and labels the live body **Current body**
+when an earlier body is unavailable. Its synthetic regressions cover cutoff
+requests, separate carrying-Post and derivation-Post actions, and missing
+history. Local ontology and SHACL tests passed (43); the App suite passed
+107 tests, and frontend lint and production build passed. The build retains
+the existing 558.36 kB main-chunk warning.
+The desktop and mobile synthetic unavailable-body screenshots were inspected:
+both show the missing-history next action without claiming a historical body.
+These observations do not establish authenticated rendered or PostgreSQL/API
+acceptance.
+
+Both formal #1183 review threads are resolved, but its bot comments are not
+independent approval. Four exact-head Actions jobs failed before runner steps;
+the Full test annotation names a GitHub account billing lock, so these failures
+do not establish a source-test defect or passing checks. CodeRabbit reports a
+paused review and Devin a skipped full review. The current active ruleset
+`21065108` prohibits force pushes only; it supplies neither successful-check
+nor independent-approval enforcement. With no verified independent approval,
+passing exact-head checks, or auto-merge request, protected delivery and a merge
+SHA remain unavailable.
+
+The same remote inventory has 197 open PRs (29 ready, 117 stacked) and 43 open
+issues. Ready #1182 at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`
+changes ADR 0212, the Post-filter API, and its tests, with no direct ADR, API,
+schema, or release-number collision with #1183; its four Actions jobs also
+failed before useful test evidence and it has no formal review thread. Ready
+#1177 at `06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183 in
+the App, translations, Storybook inventory, and this baseline; those changes
+need a combined review after integration. Ready #1181 at
+`96adabce83784e05ebb4e2a932da9a02e93952e5` also edits this baseline and
+needs a deliberate evidence-preserving merge. The named `lineageweave` Compose
+project has unhealthy PostgreSQL, Valkey, orchestrator, and search services,
+so authenticated k6 concurrency, latency, error, throughput, and saturation
+evidence remains unavailable. No population inference follows from these
+diagnostic observations. DeepWiki has no indexed wiki for this repository;
+the checked-in PRD and ADRs remain the authority. Canonical remote names are
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage`.
+This documentation edit creates a successor head requiring fresh hosted checks
+and review evidence.
+
 ## Exact-head continuation — 2026-10-24 00:59 UTC
 
 The current [PRD](product-requirements.md) and accepted ADR 0025/0216 set the
