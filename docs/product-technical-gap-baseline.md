@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-24 04:26 UTC
+
+**Authority and selected gap.** The current [PRD](product-requirements.md)
+sets evidence-bearing, cutoff-safe navigation as a reader outcome. Accepted
+ADR 0025 and ADR 0216 require a retained revision for historical text and
+exclude current-only projections from dated answers; ADR 0246 and ADR 0256
+govern twelve atomic Voices and evidence-bearing combinations without a fixed
+combination list. Their cited PROV-O and time-ontology sources support the
+provenance and interval distinction, not a local inference weight. The largest
+selected reader gap remains opening related evidence from a dated Post without
+silently crossing into current evidence. PR #1183 contains the minimal UI
+candidate: its dated view carries the cutoff into the authorized ontology and
+work-evidence requests, hides current-only relation and Event Lineage panels,
+and labels a live body as current when no retained body covers the date. Its
+regressions exercise carrying-Post and derivation-Post actions separately.
+These are candidate implementation claims, not protected-main delivery.
+
+**Current evidence.** Ready #1183 was read at exact source head
+`05c3e5b30dd6697907ee61cacf472ab84b513660` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both formal review threads
+are resolved. Its submitted reviews are comments, not independent approvals;
+there is no auto-merge request. All four exact-head Actions jobs are terminal
+failures. The Full test job annotation says the account billing lock prevented
+the job from starting, so it supplies no project-test result. Locally, 48
+focused ontology, SHACL, cutoff, and docstring tests, 55 Voice/history and
+neighborhood tests, 111 frontend App and retry tests, and 31 ontology-layout
+tests passed; frontend lint and build passed. The layout tests cover paged
+JSON-LD subject-property and multi-Voice union plus distinct carrying and
+derivation identities in CSV. The build still reports a
+558.36 kB main chunk. Synthetic 1440×900 and 390×844 expanded-view screenshots
+were visually checked: both show an actionable retry state, not an authorized
+loaded relation. Authenticated PostgreSQL/API and rendered Voice acceptance
+remain unavailable. The `lineageweave` Compose services for PostgreSQL,
+Valkey, orchestrator, and search are unhealthy, and no authorized k6 token
+file is available. Accordingly no concurrency, latency, error, throughput,
+saturation, or population result is claimed.
+
+**Delivery and adjacent work.** The currently active repository ruleset
+`21065108` prohibits force pushes but requires neither successful checks nor
+independent approval; classic branch protection is absent. Normal merge and
+auto-merge are therefore withheld until the requested safeguards can be
+verified and pass. Ready #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes the Post-filter API,
+ADR 0212, and related tests, with no direct ADR, API, schema, or release-number
+collision with #1183; its four Actions jobs also failed, and its Full test job
+has the same billing-lock annotation rather than project-test evidence. It has
+no independent approval. Ready #1177 overlaps
+the App, translations, Storybook inventory, and this baseline, so those files
+need combined review after integration. The current remote inventory has 197
+open PRs, including 29 ready and 117 stacked, and 43 open issues. The Issue
+inventory still includes authenticated end-to-end coverage (#1057), release
+identity (#1056), and provider-bound pool isolation (#1080); none is closed by
+the synthetic UI checks above. Parent PRs must merge before stacked children
+move to `main`. This documentation edit creates a successor head whose hosted
+checks, review, and merge state require a fresh exact-head read.
+
 ## Exact-head continuation — 2026-10-24 03:15 UTC
 
 The current [PRD](product-requirements.md), ADR 0025/0216, and source-head
