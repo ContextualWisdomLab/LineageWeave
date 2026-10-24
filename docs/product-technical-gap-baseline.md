@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 08:56 UTC
+
+**Authority and ownership.** The current [PRD](product-requirements.md),
+accepted ADR 0025/0216, and ADR 0246/0256 govern the dated Post and Voice
+reader contract. ADR 0251 governs occupational psychology, not the Voice code
+list. The current TEPP, ThreadWeave, and fast-mlsirm PRDs and the RankWeave,
+`disksage`, and contextual-orchestrator product/architecture documents were
+read before this pass. Their measurement, threading, ranking, storage, and
+provider decisions remain at their owning repositories. Remote canonical
+names were confirmed as `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`.
+
+**Selected customer gap.** A reader opening related evidence from a dated
+Post must retain its knowledge cutoff and distinguish the carrying Post from
+the derivation-evidence Post. Ready PR #1183 contains the minimal candidate
+implementation and synthetic regressions at source head
+`d872a027102e9a0d5da402cfc50134f9e8dd95b4` against `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. It carries the cutoff on
+related-evidence navigation, withholds current-only panels, and checks the
+exact Post focus and cutoff together. The existing frontend JSON-LD regression
+unions properties and multiple Voice references for a subject across pages;
+the CSV regression keeps carrying and derivation identities distinct. These
+tests establish candidate behavior, not authenticated browser acceptance.
+Desktop 1440×900 and mobile 390×844 Storybook screenshots were inspected in
+this pass. Both render an actionable retry state; neither displays a loaded,
+authorized Voice relation.
+
+**Review and delivery.** The current #1183 head has two resolved formal
+threads. Four submitted reviews are comments, with no independent approval or
+auto-merge request. Its four Actions jobs are terminal failures; the earlier
+Full-suite job annotation attributes admission failure to an account billing
+lock before execution. No passing hosted test or merge SHA follows. The
+repository's REST API rate limit is exhausted, so the prior observation that
+ruleset `21065108` prohibits force pushes without requiring Checks or approval
+is historical, not a freshly verified policy. Do not arm normal merge or
+auto-merge until current rulesets, passing exact-head Checks, and independent
+approval are established. #1182 changes ADR 0212 and Post-filter API/tests,
+with no direct ADR, API, schema, or release-number collision with #1183;
+#1177 and #1178 overlap frontend and Storybook files, while #1181 overlaps
+this baseline. Review those overlaps after parent delivery rather than treating
+any open branch as protected-main capability.
+
+**Runtime and inference limits.** The named `lineageweave` Compose project is
+running, but PostgreSQL, Valkey, orchestrator, and search report unhealthy.
+The PostgreSQL health probe currently fails with a container I/O error, and
+the Valkey probe cannot start its configured CLI. No authorized synthetic k6
+token was available, so concurrency, latency, error rate, throughput, and
+PostgreSQL/worker/Valkey/gateway saturation remain unmeasured; no bottleneck
+repair or capacity claim follows. Authenticated PostgreSQL/API and loaded
+desktop/mobile UI evidence for Voice provenance, hidden evidence, and paged
+JSON-LD remain unverified. Diagnostic convenience and temporal samples here
+support no population inference. This documentation edit creates a successor
+head requiring fresh Checks and review; the SHA above identifies the reviewed
+implementation before this edit.
+
 ## Exact-head continuation — 2026-10-24 07:50 UTC
 
 **Authority.** The current LineageWeave PRD and accepted ADR 0025/0216 govern
