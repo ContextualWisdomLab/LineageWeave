@@ -2204,7 +2204,7 @@ describe("App, authenticated", () => {
     const missingHistory = (await within(popup).findByText("Earlier body unavailable for this date.")).closest("[role='region']");
     expect(missingHistory).toHaveTextContent("Earlier body unavailable for this date.");
     expect(missingHistory).toHaveTextContent("ask the source owner for the earlier version before citing it");
-    expect(within(popup).getByRole("region", { name: "Post body" })).toHaveTextContent("The evidence panel should show exactly this text.");
+    expect(within(popup).getByRole("region", { name: "Current body" })).toHaveTextContent("The evidence panel should show exactly this text.");
     expect(within(popup).queryByRole("region", { name: "Body this run knew" })).not.toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
@@ -3726,6 +3726,7 @@ describe("App, authenticated", () => {
     );
     expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
     expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Current body" })).toHaveTextContent("The full body text.");
     expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
     expect(screen.getByText("This dated view has no shareable link.")).toBeInTheDocument();

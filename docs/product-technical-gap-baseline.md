@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 00:59 UTC
+
+The current [PRD](product-requirements.md) and accepted ADR 0025/0216 set the
+reader gap: a dated Post must distinguish the retained body from its current
+body and keep the knowledge cutoff on related evidence. Ready PR #1183 was
+reviewed at exact head `ab33a118aed21d9d29703ef7f3f1392f5d31a43f`
+against `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal
+review threads are resolved, but the submitted bot comments are not an
+independent approval. The four Actions checks on that head failed after about
+three seconds before establishing project test results; CodeRabbit reported a
+paused review and Devin a skipped full review. The current GraphQL PR state is
+`UNSTABLE`, with no review decision and no auto-merge request. A fresh REST
+ruleset read was rate-limited, so its current policy cannot be asserted. A
+normal merge or auto-merge remains unarmed until passing exact-head checks,
+independent approval, and the current ruleset can be verified. No merge SHA or
+release is claimed.
+
+The minimal follow-up in this candidate labels the live body **Current body**
+in dated views, including when a retained revision is unavailable; ordinary
+views keep **Post body**. Its regression checks both the rewritten and
+missing-history cases. The App suite passed 107 tests locally; frontend lint
+and production build passed, with the existing 558.36 kB main-chunk warning.
+The branch already keeps dated related navigation on
+the cutoff-aware ontology and work-evidence APIs, while current-only panels
+remain absent. These are implementation and synthetic-test claims until
+protected integration and authenticated PostgreSQL/API and desktop/mobile
+rendered acceptance are demonstrated. Prior synthetic screenshots show a
+retryable unavailable related view; they do not show loaded authorized
+relations. The named Compose runtime has not supplied authenticated k6
+concurrency, latency, error, throughput, or saturation evidence, so no
+bottleneck or population inference is asserted.
+
+Remote inventory at this observation contains 197 open PRs (29 ready, 117
+stacked) and 43 open issues. Ready #1182 changes ADR 0212 and Post-filter
+query/tests without direct ADR, API, schema, or release-number overlap with
+#1183. Ready #1177 overlaps the App, translations, Storybook inventory, and
+this baseline; it requires a combined review after integration. The current
+LineageWeave PRD, ThreadWeave and `disksage` PRDs, TEPP's approved PRD, and
+RankWeave and contextual-orchestrator product/architecture authorities were
+read before this pass. Remote inventory spells the canonical repositories
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`; an older local `DiskSage` remote differs and is not used
+as naming authority. ADR 0246/0256 keep twelve atomic Voices and open-ended
+evidence-bearing compositions; no hidden evidence is substituted for a
+carrying Post. This edit creates a successor head requiring fresh hosted
+checks and review evidence.
+
 ## Exact-head continuation — 2026-10-23 23:48 UTC
 
 The [current PRD](product-requirements.md), ADR 0025/0216, and the dated-Post

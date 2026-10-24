@@ -2448,8 +2448,8 @@ function PostDetailPopup({
                 {liveBodyWarning}
               </p>
             ) : null}
-            <section className="popup-section post-source-body" aria-label={t("Post body")}>
-              <h3>{t("Post body")}</h3>
+            <section className="popup-section post-source-body" aria-label={t(knowledgeCutoff ? "Current body" : "Post body")}>
+              <h3>{t(knowledgeCutoff ? "Current body" : "Post body")}</h3>
               {post.post_body.trim() ? (
                 <PostBody body={post.post_body} imageContent={knowledgeCutoff ? [] : imageContent} structureUnits={knowledgeCutoff ? [] : structureUnits} />
               ) : (
