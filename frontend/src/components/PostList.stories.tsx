@@ -59,3 +59,29 @@ export const NarrowViewport: Story = {
   ...SearchPending,
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
+
+export const SearchFailure: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("button", { name: "View post: Synthetic source record" });
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.pathname === "/api/posts" && url.searchParams.has("search")) {
+        throw new Error("synthetic provider diagnostic");
+      }
+      return previousFetch(input, init);
+    };
+    await userEvent.type(canvas.getByRole("searchbox", { name: "Search semantic evidence" }), "different evidence");
+    await userEvent.click(canvas.getByRole("button", { name: "Search" }));
+    const alert = await canvas.findByRole("alert");
+    await expect(alert).toHaveTextContent("Source posts could not be loaded.");
+    await expect(alert).not.toHaveTextContent("synthetic provider diagnostic");
+    await expect(canvas.queryByRole("button", { name: "View post: Synthetic source record" })).not.toBeInTheDocument();
+  },
+};
+
+export const SearchFailureNarrowViewport: Story = {
+  ...SearchFailure,
+  parameters: { viewport: { defaultViewport: "mobile1" } },
+};

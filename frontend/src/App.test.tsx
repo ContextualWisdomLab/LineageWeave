@@ -2756,6 +2756,107 @@ describe("App, authenticated", () => {
     expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
   });
 
+  it("keeps board controls and retries the failed search without showing stale posts", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let attempts = 0;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts" && url.searchParams.get("search") === "different evidence") {
+        attempts += 1;
+        return attempts === 1
+          ? Promise.reject(new Error("synthetic provider diagnostic"))
+          : Promise.resolve(jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(await within(board).findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "different evidence");
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+
+    const alert = await within(board).findByRole("alert");
+    expect(alert).toHaveTextContent("Source posts could not be loaded.");
+    expect(alert).not.toHaveTextContent("synthetic provider diagnostic");
+    expect(within(board).getByRole("searchbox", { name: "Search semantic evidence" })).toHaveValue("different evidence");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(within(board).queryByText(/Posts shown:/)).not.toBeInTheDocument();
+
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
+    expect(attempts).toBe(2);
+  });
+
+  it("recovers the board when the first post request fails", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let attempts = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts" && !url.searchParams.has("search")) {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new Error("synthetic provider diagnostic"));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    const alert = await within(board).findByRole("alert");
+    expect(alert).toHaveTextContent("Source posts could not be loaded.");
+    expect(alert).not.toHaveTextContent("synthetic provider diagnostic");
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    expect(await within(board).findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(attempts).toBe(2);
+  });
+
+  it("retries the requested board page after a failed continuation", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let secondPageAttempts = 0;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts") {
+        if (url.searchParams.get("offset") === "50") {
+          secondPageAttempts += 1;
+          if (secondPageAttempts === 1) throw new Error("synthetic provider diagnostic");
+          return jsonResponse({
+            posts: [{
+              post_id: "last-page-post",
+              post_title: "Last page post",
+              post_body_excerpt: "Synthetic continuation evidence.",
+              created_at: "2026-01-01T00:00:00Z",
+              voc_type_code: "voc",
+              voc_type_label: "Voice of Customer",
+              visibility_code: "public",
+              visibility_label: "Public",
+            }],
+            total_count: 51,
+            limit: 50,
+            offset: 50,
+          });
+        }
+        const firstPage = await backendFetch(input, init);
+        return jsonResponse({ ...(await firstPage.json()), total_count: 51 });
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    await within(board).findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(within(board).getByRole("button", { name: "Page 2" }));
+    const alert = await within(board).findByRole("alert");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(within(board).queryByRole("navigation", { name: "Board pages" })).not.toBeInTheDocument();
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    expect(await within(board).findByRole("button", { name: "View post: Last page post" })).toBeInTheDocument();
+    expect(secondPageAttempts).toBe(2);
+  });
+
   it("opens a post from a DAG node click", async () => {
     stubBackend();
     render(<App showLabPanels />);

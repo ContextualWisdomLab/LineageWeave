@@ -1,5 +1,73 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 19:15 UTC
+
+**Authority and scope.** The current LineageWeave PRD and accepted ADRs
+0123, 0220, 0246, 0252, and 0256 govern this candidate. ADR 0251 governs the
+distinct occupational-psychology taxonomy, not Voice composition. The
+LineageWeave, ThreadWeave, TEPP, and fast-mlsirm PRDs and the current RankWeave,
+`disksage`, and contextual-orchestrator product or architecture authorities
+were read before the PR loop. GitHub repository metadata confirms canonical
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`; the local DiskSage remote URL uses different case and is
+not identity authority. The cited stakeholder literature supports extensible,
+evidence-bearing perspectives, not an exact universal twelve-code taxonomy.
+No sampled current records, rank constant, or convenience diagnostic is a
+population or calibrated-measurement claim.
+
+**Selected reader gap and implementation.** At the reviewed #1183 source head
+`b97abc1e1a8ee86fff4b9034b398ad816caedf45`, a failed Board search removed
+the search and filter controls and exposed its error text. The prior result
+list was hidden only while loading, leaving a reader without an in-place
+recovery action after failure. This candidate keeps the submitted controls,
+hides the old list, count, and pagination on failure, and retries the same
+requested page. Initial-load failure can also be retried. It uses the existing
+ADR 0220 `StatusNotice` and a fixed translated customer message; provider
+exception content is never rendered (ADR 0123). Three synthetic regressions
+cover failed search/retry, first-load/retry, and later-page retry. All 652 frontend tests, lint,
+production build, Storybook build, and 61 focused ontology/documentation tests
+pass locally. The existing large-chunk build warning remains. Synthetic
+Storybook `SearchFailure` scenes were rendered and visually audited at
+1440×900 and 390×844 in `board-search-failure-desktop.png` and
+`board-search-failure-mobile.png`: the retry action is visible, the prior Post
+is absent, and neither viewport overflows horizontally. These captures are
+not authenticated customer-session acceptance. This candidate changes no
+Voice code, inference weight, ADR policy, API, schema, migration, or release
+number.
+
+**Protected delivery and cross-PR ownership.** Remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready #1183 is open at
+`b97abc1e1a8ee86fff4b9034b398ad816caedf45` before this candidate commit.
+Its two formal review threads are resolved and outdated, but it has no
+independent approval; its CodeRabbit review is paused and Devin review was
+skipped. Four exact-head Actions checks are terminal failures. The Full test
+suite check annotation says the job did not start because the Actions account
+is locked for billing; `runner_id` is zero and no steps ran. External success
+contexts do not prove hosted tests or approval. The sole active `main` ruleset
+21065108 rejects force pushes; classic protection returns 404, so the
+independent-approval and Checks requirements in the PRD are currently not
+enforced. Auto-merge must stay off because it could merge an unapproved,
+unchecked head immediately. No protected merge SHA is claimed. After this
+candidate is pushed, its new head requires its own hosted Checks and review.
+
+Ready #1182 (`4e71264c60f4`) changes ADR 0212 and the Post-filter API; it
+does not edit this Board failure path. Ready #1181 (`96adabce8378`) edits this
+baseline. Ready #1177 (`06d64a96442b`) and approved #1130 (`fa38004c72dd`)
+overlap `App.tsx`/Voice ADRs; #1130 owns separate analysis-run customer copy,
+so this candidate does not duplicate that repair. The open migration work in
+#1168 (ordinal 0252), draft #1125 (ordinal 0251), and draft #1049 must be
+reconciled against shipped ordinals before replay or merge. Open issue #1056
+tracks release identity; this candidate changes no version. None of these
+open PRs is protected-main product evidence. The named `lineageweave` Compose
+stack reports unhealthy PostgreSQL, Valkey, orchestrator, and search;
+`K6_ACCESS_TOKEN_FILE` does not identify an available nonempty authorized
+synthetic token file. Authenticated
+PostgreSQL/API Voice acceptance, loaded desktop/mobile Voice evidence, live
+paged JSON-LD multi-Voice union, and authenticated k6 latency, error,
+throughput, and saturation evidence remain unverified on this candidate.
+No population inference is claimed without the complete Rust-owned terminal
+sampling artifact.
+
 ## Exact-head verification — 2026-10-24 18:04 UTC
 
 **Authority and identity.** The LineageWeave PRD and accepted ADRs 0246,

@@ -4254,6 +4254,7 @@ export function PostList({
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
+  const lastRequestedPage = useRef(1);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -4332,6 +4333,7 @@ export function PostList({
 
   const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
     const requestId = ++postsRequest.current;
+    lastRequestedPage.current = page;
     setLoadingPage(true);
     setError(null);
     try {
@@ -4351,9 +4353,9 @@ export function PostList({
       setVoiceTypeCatalog(response.voice_type_catalog ?? response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
-    } catch (err) {
+    } catch {
       if (requestId !== postsRequest.current) return;
-      setError(String(err));
+      setError("Source posts could not be loaded.");
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
@@ -4485,12 +4487,16 @@ export function PostList({
           </p>
         )}
       </header>
-      {error ? (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      ) : !posts ? (
-        <p role="status">{t("Loading posts...")}</p>
+      {!posts ? (
+        error ? (
+          <StatusNotice
+            kind="retry"
+            message={t(error)}
+            onRetry={() => void loadPostPage(lastRequestedPage.current)}
+          />
+        ) : (
+          <p role="status">{t("Loading posts...")}</p>
+        )
       ) : (
         <>
           <form
@@ -4573,7 +4579,13 @@ export function PostList({
               </button>
             )}
           </form>
-          {loadingPage ? (
+          {error ? (
+            <StatusNotice
+              kind="retry"
+              message={t(error)}
+              onRetry={() => void loadPostPage(lastRequestedPage.current)}
+            />
+          ) : loadingPage ? (
             <p role="status">{t("Loading posts...")}</p>
           ) : posts.length === 0 ? (
             <p className="board-empty" role="status">
@@ -4653,7 +4665,7 @@ export function PostList({
               ))}
             </ul>
           )}
-          {totalPages > 1 && (
+          {!error && totalPages > 1 && (
             <nav className="board-pagination" aria-label={t("Board pages")}>
               <button
                 type="button"
