@@ -1,5 +1,67 @@
 # Product & Technical Gap Baseline
 
+## Exact-head verification — 2026-10-24 18:04 UTC
+
+**Authority and identity.** The LineageWeave PRD and accepted ADRs 0246,
+0252, and 0256 govern this review; ADR 0251 governs occupational psychology,
+not Voice composition. The current local TEPP, ThreadWeave, and fast-mlsirm
+PRDs and RankWeave, `disksage`, and contextual-orchestrator product or
+architecture authorities were read before the PR loop. GitHub repository
+metadata confirms canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`. Local ecosystem checkouts
+were read as authority context, not as proof of their remote protected heads.
+No heuristic weight, measurement result, or population inference follows from
+this inventory.
+
+**Reader gap and candidate.** A submitted board search previously left the
+old result list and count visible while the new request was pending. A reader
+could open a record that did not match the search just submitted. The candidate
+keeps the existing search controls and loading copy visible while hiding the
+old result list and count. A synthetic delayed-response regression verifies
+both the pending state and the new empty result. All 649 frontend tests,
+frontend lint, production build, and Storybook build pass locally. The existing
+large-chunk build warning remains. Synthetic Storybook pending-search states
+were inspected at 1440×900 and 390×844 and captured as
+`board-search-pending-desktop.png` and `board-search-pending-mobile.png`.
+Both show the loading action without the stale result or horizontal clipping;
+they do not prove an authenticated live board. This candidate changes no
+Voice taxonomy, inference engine, API, schema, migration, ADR, or release
+number.
+
+**Protected delivery.** Remote `main` remains
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready #1183's verified
+source head before this candidate is
+`17617e89a2d6126b7b7f9122fa8ff49f5e5c83db`; its two formal threads are
+resolved and outdated. Formal reviews are `COMMENTED`, with no independent
+approval. CodeRabbit's latest comment says review is paused before the source
+head, and Devin's current status says its review was skipped. The four Actions
+checks on that head are terminal failures; the two external status contexts
+are successful but are neither hosted test passes nor independent approvals.
+The Actions job detail could not be refreshed because the GitHub REST core
+quota returned 403, so the earlier billing-lock annotation is historical
+evidence rather than a newly verified cause. Auto-merge stays off because
+the observed protection does not enforce the PRD's independent-approval
+requirement and could merge the unapproved head immediately. No merge SHA is
+claimed. A new candidate commit needs its own exact-head checks and review.
+
+**Cross-PR and runtime boundary.** Ready #1182 is at `4e71264c60f4` and
+changes ADR 0212 plus the Post-filter API/tests; it has no direct file or
+contract collision with the board render change. #1181 edits this baseline;
+#1177 overlaps `App.tsx`, styles, translations, Storybook inventory, and
+ADR 0256, so its owner changes must be reconciled before integration. #1168
+and #1125 allocate migration ordinals 0252 and 0251 respectively, while #1049
+repairs a prior ordinal collision; their order and replay contract still need
+protected-head verification. The candidate adds no release identity. Focused
+synthetic tests pass for JSON-LD/CSV Voice export evidence (8 tests) and
+paged-source evidence union (1 test). Authenticated PostgreSQL/API Voice
+acceptance, loaded desktop/mobile Voice evidence, and live paged JSON-LD
+multi-Voice union remain unverified. In the named `lineageweave` Compose
+project, PostgreSQL, Valkey, orchestrator, and search currently report
+unhealthy. No authorized nonempty synthetic k6 token file is present, so
+authenticated load, latency, error rate, throughput, and component saturation
+were not measured; no bottleneck change is justified. No population claim is
+made without the declared Rust-owned terminal design artifact.
+
 ## Exact-head verification — 2026-10-24 16:49 UTC
 
 **Authority.** The current LineageWeave PRD and accepted ADR 0246, 0252,

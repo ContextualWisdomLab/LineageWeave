@@ -4213,7 +4213,7 @@ function ReportsPanel({
 const POST_PAGE_SIZE = 50;
 type BoardSortOrder = PostSortOrder;
 
-function PostList({
+export function PostList({
   accessToken,
   showLabPanels = false,
   postIdToOpen = null,
@@ -4479,7 +4479,7 @@ function PostList({
           <h2 id="board-title">{t("Board")}</h2>
           <p>{t("Authorized posts in this board.")}</p>
         </div>
-        {posts && !error && (
+        {posts && !error && !loadingPage && (
           <p className="board-result-count" aria-live="polite">
             {t("Posts shown:")} {filteredPosts.length} / {totalPosts}
           </p>
@@ -4573,7 +4573,9 @@ function PostList({
               </button>
             )}
           </form>
-          {posts.length === 0 ? (
+          {loadingPage ? (
+            <p role="status">{t("Loading posts...")}</p>
+          ) : posts.length === 0 ? (
             <p className="board-empty" role="status">
               {hasBoardFilters
                 ? t("No posts match the current filters.")

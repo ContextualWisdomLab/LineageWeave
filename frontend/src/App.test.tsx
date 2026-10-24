@@ -2729,6 +2729,33 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
 
+  it("hides the previous result set while a new board search is pending", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let finishSearch = () => {};
+    const searchGate = new Promise<void>((resolve) => { finishSearch = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts" && url.searchParams.get("search") === "not found") {
+        return searchGate.then(() => jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(await within(board).findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "not found");
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+
+    expect(within(board).getByRole("status")).toHaveTextContent("Loading posts...");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(within(board).queryByText(/Posts shown:/)).not.toBeInTheDocument();
+
+    await act(async () => { finishSearch(); });
+    expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
+  });
+
   it("opens a post from a DAG node click", async () => {
     stubBackend();
     render(<App showLabPanels />);
