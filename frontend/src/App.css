@@ -225,6 +225,16 @@
   background: var(--color-btn-secondary-hover);
 }
 
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-control-gap);
+}
+
+.post-actions button {
+  min-height: var(--size-touch-target);
+}
+
 /* Language Switcher */
 .language-switcher {
   display: inline-flex;
