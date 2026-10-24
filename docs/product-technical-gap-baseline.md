@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head review — 2026-10-24 05:38 UTC
+## Exact-head review — 2026-10-24 06:44 UTC
 
 **Authority and scope.** The current PRD requires cutoff-safe evidence
 navigation. Accepted ADR 0025 and ADR 0216 distinguish a retained source
@@ -11,44 +11,48 @@ The cited PROV-O and OWL-Time standards ground provenance and time intervals;
 they do not supply a local weight, classifier, or population estimator.
 The selected reader gap is the dated Post's related-evidence journey. PR #1183
 implements a cutoff-aware ontology view and omits current-only relation
-panels. This pass strengthens the regression so its request must target the
-ontology neighborhood of the carrying Post at the exact cutoff; an unrelated
-cutoff-bearing search request cannot satisfy it. The candidate's exact-value
-actions continue to distinguish carrying and derivation-evidence Posts. The
-focused App regression passed (1 selected; 106 skipped); the focused ontology,
-cutoff, and documentation checks passed (46). These are local results only.
+panels. The current regression requires the ontology neighborhood request to
+name the carrying Post and exact cutoff; an unrelated cutoff-bearing search
+request cannot satisfy it. The candidate's exact-value actions distinguish
+carrying and derivation-evidence Posts. On this head, two focused App cutoff
+tests and 57 ontology, SHACL, and public-docstring tests passed locally. A
+mistyped App test filter selected zero tests and is not counted as evidence.
 
 **Observed state before this edit.** Remote `main` is
-`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR #1183 is at
-`1a1c86b39be3bf4b105d6df0e8ab7c6b7d678645` with two resolved formal
-threads, comment-only reviews, no independent approval, and no auto-merge.
-Its four GitHub Actions jobs failed before acquiring a runner; the Full test
-job annotation explicitly says the account is locked due to a billing issue.
-Those jobs provide no code-test result. The active repository rule
-`21065108` prohibits force pushes; classic branch protection is absent. The
-requested independent approval and passing exact-head Checks remain unmet, so
-normal merge and auto-merge cannot safely be armed. The remote inventory has
-197 open PRs (29 ready, 117 stacked) and 43 open issues. Ready #1182 at
-`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes ADR 0212 and the
-Post-filter API, with no direct ADR, API, schema, or release-number collision
-with #1183; its hosted jobs also fail before runner start and it has no
-independent approval. #1177 overlaps the App, translations, Storybook
-inventory, and this baseline; #1178 overlaps ontology exploration, styles,
-Storybook inventory, and this baseline; #1181 edits this baseline. Integration
-needs a combined review. No new migration, API, or release identifier is
-introduced by #1183; no direct identifier collision with those nearby PRs
-was found, but shared UI and documentation files still require reconciliation.
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR #1183 and this
+checkout are at `48a79c93353a8cf5ec301f25ae6c3624e51ac164`. Its two formal
+threads are resolved, but all submitted reviews are comments rather than an
+independent approval; no auto-merge is set. Four exact-head Actions jobs are
+terminal failures. The earlier Full test annotation reported an account billing
+lock before runner execution; current failures do not prove a source-test
+defect or a passing project test. Core API rate limiting prevented a fresh
+ruleset read in this pass, so the earlier observation of rule `21065108` is
+historical, not a current protection claim. Normal merge and auto-merge remain
+unarmed without passing exact-head checks, independent approval, and a fresh
+ruleset read.
 
-**Acceptance limits.** The checked-in synthetic desktop and mobile expanded
-views visibly show a retryable unavailable relationship state. They do not
-show an authenticated loaded relation. PostgreSQL/API and rendered Voice
-acceptance, including hidden-evidence exclusion and same-subject paged JSON-LD
-union, remain unverified on this head. The named `lineageweave` Compose project
-has running services, but PostgreSQL, Valkey, orchestrator, and search report
-unhealthy. There is no authenticated synthetic k6 result for latency,
-concurrency, errors, throughput, or component saturation. No bottleneck fix,
-population claim, or release claim follows from these diagnostics. This edit
-creates a successor head that needs fresh local and hosted evidence.
+Ready #1182 remains at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`.
+Its current formal thread list is empty and its only submitted review is a
+comment; its hosted jobs are also terminal failures. The source diff changes
+ADR 0212 and the Post-filter query/test within the existing API and introduces
+no migration or release number. It has no direct ADR, API, schema, or release
+identifier collision with #1183. #1177 overlaps the App, translations,
+Storybook inventory, and this baseline; #1178 overlaps ontology exploration,
+styles, Storybook inventory, and this baseline; #1181 edits this baseline.
+Those shared files still require integration review. No new migration, API, or
+release identifier is introduced by #1183.
+
+**Acceptance limits.** The checked-in synthetic 1440×900 desktop and 390×844
+mobile expanded views were inspected on this head. Both show a retryable
+unavailable relationship state, not an authenticated loaded relation.
+PostgreSQL/API and rendered Voice acceptance, including hidden-evidence
+exclusion and same-subject paged JSON-LD union, remain unverified. The named
+`lineageweave` Compose project has running services, but PostgreSQL, Valkey,
+orchestrator, and search report unhealthy. There is no authenticated synthetic
+k6 result for latency, concurrency, errors, throughput, or component
+saturation. No bottleneck fix, population claim, or release claim follows from
+these diagnostics. This documentation edit creates a successor head that needs
+fresh hosted checks and independent review.
 
 ## Exact-head review — 2026-10-24 04:26 UTC
 
