@@ -1,5 +1,47 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 22:40 UTC
+
+**Authority and current candidate.** The LineageWeave PRD and accepted ADRs
+0220, 0246, 0252, and 0256 remain the product and Voice authorities; ADR
+0251 governs the separate occupational layer. The linked TEPP, ThreadWeave,
+fast-mlsirm, and local DiskSage PRDs, RankWeave architecture, and
+contextual-orchestrator product authority were read before this continuation.
+Live GitHub metadata confirms the canonical repository is
+`ContextualWisdomLab/disksage`, despite the local directory's capitalization.
+At PR #1183 source head `4d550252db426bc009054874c08beca86fe0c88e`
+and base `91c3e1c7411f56408e4ce61417479ace36ff40cb`, the two formal review
+threads are resolved and outdated. Four exact-head Actions jobs failed before
+runner assignment; the Full test job has a billing-lock annotation. Bot review
+contexts are not independent approval. There is no merge SHA.
+
+**Reader gap and local repair.** A fresh desktop/mobile audit of the synthetic
+Board retry scene found that its search and filter labels ran into adjacent
+controls. The local candidate uses existing spacing and touch-target tokens to
+give each control a separate grid cell. Regenerated Storybook screenshots of
+both failed and pending searches at 1440 and 390 pixels show readable controls,
+the retry action, no stale result, and no horizontal overflow. This is rendered
+synthetic evidence, not an authenticated customer session. Local frontend lint,
+652 tests in 61 files, build, and 43 ontology/shapes tests pass; the 559.07 kB
+application-chunk warning persists. PR #1183 still needs exact-head hosted
+Checks and independent approval after this candidate is committed.
+
+**Next PR and acceptance limits.** Ready PR #1182 remains at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`; its filter-option change
+touches the Post API and ADR 0212, with no direct #1183 file overlap. Its
+formal review has no approval, and its Actions jobs also failed before runner
+assignment. The active `main` ruleset 21065108 enforces non-fast-forward only;
+classic branch protection returns 404. Auto-merge remains unarmed because
+those remote settings do not enforce the PRD's independent approval and
+terminal Checks. Draft stacked PRs stay on their parent until its protected
+merge SHA exists. The `lineageweave` Compose project's PostgreSQL, Valkey,
+orchestrator, and search services are currently unhealthy, and a nonempty
+authorized synthetic k6 token file is unavailable. Authenticated PostgreSQL
+Voice persistence, rendered Voice evidence, and load/saturation acceptance
+therefore remain unverified. No sampled current records are used for a
+population claim, and no new weights, Voice combination codes, or owner-side
+measurement operations are introduced.
+
 ## Exact-head continuation — 2026-10-24 21:34 UTC
 
 **Authority and repository identity.** The current LineageWeave PRD and
