@@ -2531,6 +2531,37 @@ describe("App, authenticated", () => {
     expect(within(soloRow as HTMLElement).queryByText("Multiple roles observed")).not.toBeInTheDocument();
   });
 
+  it("clears customer evidence when the authorized account changes", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releasePrior = () => {};
+    const priorGate = new Promise<void>((resolve) => { releasePrior = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/customer-master")) {
+        if ((init?.headers as Record<string, string> | undefined)?.Authorization === "Bearer test-access-token") {
+          return priorGate.then(() => backendFetch(input, init));
+        }
+        return Promise.resolve(jsonResponse({
+          corporate_entities: [], keymen: [], relationship_network: [],
+          source_customer_hints: [], source_author_hints: [],
+        }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    const view = render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "고객 마스터" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Loading customer master");
+    mockAuth = {
+      ...mockAuth,
+      user: { ...(mockAuth.user as object), access_token: "next-access-token" },
+    };
+    view.rerender(<App />);
+    expect(await screen.findByText("No customer entities are connected to this account.")).toBeInTheDocument();
+    await act(async () => { releasePrior(); });
+    expect(screen.queryByText("Northridge Grid")).not.toBeInTheDocument();
+  });
+
   it("lets a post_admin account resolve an unresolved customer hint into a real name", async () => {
     // Feature (2026-08-19): a Customer Master hint (an opaque customer
     // code with no name) previously had no action at all -- a dead end

@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 14:36 UTC
+
+**Authority and scope.** The current LineageWeave PRD and accepted ADR 0246,
+0252, and 0256 govern Voice evidence and cutoff. ADR 0251 governs the distinct
+occupational psychology layer. The current TEPP, ThreadWeave, fast-mlsirm, and
+Keyverse PRDs and RankWeave, `disksage`, and contextual-orchestrator product or
+architecture authorities were read before this pass. GitHub confirms the
+canonical repository names `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`. These authorities do not make
+LineageWeave the owner of ranking, threading, provider routing, storage policy,
+or measurement arithmetic.
+
+**Selected reader gap.** In the Customer master view, a delayed response for a
+previous access scope could replace the newly authorized account's evidence.
+The current candidate clears customer, related-record, open-Post, and action
+state when the access scope changes, and discards late customer/related/action
+responses from the prior scope. A synthetic regression reproduced the stale
+customer response before the fix and passes after it. Local frontend lint,
+all 110 App tests, and the production build pass. The existing application
+chunk-size warning is tracked by issue #1012. This is an access-scope display
+repair; it adds no Voice code, heuristic, API, schema, ADR, or release number.
+Desktop and mobile Storybook screenshots at 1440×900 and 390×844 were
+inspected; they show the dated related-information retry state. They do not
+prove the customer-scope transition or a loaded authorized Voice relation.
+
+**Exact-head delivery.** Before this candidate, remote `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 was
+`8ef64408f9436b18b0f4f0a3b57f81aa70279833`. Its two formal threads are
+resolved and outdated; there is no independent approval or auto-merge request.
+Four Actions jobs on that exact head failed before runner assignment. The
+frontend job annotation identifies an account billing lock, so it supplies no
+hosted code-test result. Current ruleset 21065108 prohibits force pushes; the
+classic `main` protection endpoint returns 404. Product delivery still
+requires passing exact-head hosted Checks and independent approval. Ready
+#1182 changes ADR 0212 and Post-filter API/tests without a direct file or
+contract collision with this frontend repair; #1181 edits this baseline, and
+#1177/#1178 overlap the App or related UI. They remain separate unmerged
+candidates. Issue-tracked migration and release identity conflicts (#1048,
+#1056) remain unresolved.
+
+The named `lineageweave` Compose project has running services, but PostgreSQL,
+Valkey, orchestrator, and search currently report unhealthy. Authenticated
+PostgreSQL/API Voice acceptance, loaded desktop/mobile Voice evidence, a live
+paged JSON-LD union check, and synthetic authenticated k6 capacity and
+saturation evidence remain unavailable. No population claim is made without
+the declared Rust-owned terminal design artifact.
+
 ## Exact-head review — 2026-10-24 13:26 UTC
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.

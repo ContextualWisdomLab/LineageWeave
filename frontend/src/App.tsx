@@ -4915,6 +4915,21 @@ function CustomerMasterPanel({
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
   const [canResolveHints, setCanResolveHints] = useState(false);
+  const accessScope = useRef(accessToken);
+
+  useLayoutEffect(() => {
+    accessScope.current = accessToken;
+    setMaster(null);
+    setError(null);
+    setExpandedEntityId(null);
+    setRelatedByEntity({});
+    setRelatedLoading(null);
+    setSelectedPostId(null);
+    setSelectedPostGraph(null);
+    setResolvingHint(null);
+    setResolveError(null);
+    setCanResolveHints(false);
+  }, [accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -4933,8 +4948,12 @@ function CustomerMasterPanel({
   const loadMaster = useCallback(() => {
     setError(null);
     return fetchCustomerMaster(accessToken)
-      .then(setMaster)
-      .catch(() => setError(t("Customer master could not be loaded.")));
+      .then((response) => {
+        if (accessScope.current === accessToken) setMaster(response);
+      })
+      .catch(() => {
+        if (accessScope.current === accessToken) setError(t("Customer master could not be loaded."));
+      });
   }, [accessToken]);
 
   useEffect(() => {
@@ -4970,11 +4989,13 @@ function CustomerMasterPanel({
     setResolveError(null);
     try {
       await resolveCustomerHint(accessToken, hintCode);
-      await loadMaster();
+      if (accessScope.current === accessToken) await loadMaster();
     } catch {
-      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      if (accessScope.current === accessToken) {
+        setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      }
     } finally {
-      setResolvingHint(null);
+      if (accessScope.current === accessToken) setResolvingHint(null);
     }
   }
 
@@ -4988,11 +5009,15 @@ function CustomerMasterPanel({
     setRelatedLoading(entityId);
     try {
       const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+      if (accessScope.current === accessToken) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+      }
     } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+      if (accessScope.current === accessToken) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+      }
     } finally {
-      setRelatedLoading(null);
+      if (accessScope.current === accessToken) setRelatedLoading(null);
     }
   }
 
