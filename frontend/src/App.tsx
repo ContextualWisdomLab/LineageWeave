@@ -4591,7 +4591,7 @@ export function PostList({
             <p className="board-empty" role="status">
               {hasBoardFilters
                 ? t("No posts match the current filters.")
-                : t("No posts visible to this account yet -- try `make seed`.")}
+                : t("No posts are available to this account yet. Ask an administrator to add records or check your access.")}
             </p>
           ) : filteredPosts.length === 0 ? (
             <p className="board-empty" role="status">

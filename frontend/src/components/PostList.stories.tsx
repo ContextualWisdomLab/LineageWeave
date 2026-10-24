@@ -85,3 +85,28 @@ export const SearchFailureNarrowViewport: Story = {
   ...SearchFailure,
   parameters: { viewport: { defaultViewport: "mobile1" } },
 };
+
+export const EmptyBoard: Story = {
+  beforeEach: () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.pathname === "/api/posts") {
+        return response({ posts: [], total_count: 0, limit: 50, offset: 0 });
+      }
+      return previousFetch(input, init);
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("status")).toHaveTextContent(
+      "Ask an administrator to add records or check your access.",
+    );
+    await expect(canvas.getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
+  },
+};
+
+export const EmptyBoardNarrowViewport: Story = {
+  ...EmptyBoard,
+  parameters: { viewport: { defaultViewport: "mobile1" } },
+};

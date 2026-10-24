@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-24 23:48 UTC
+
+**Authority and scope.** The current LineageWeave PRD and accepted ADRs 0220,
+0246, 0252, and 0256 govern this pass; ADR 0251 is the separate occupational
+layer. The linked ThreadWeave and fast-mlsirm PRDs, DiskSage PRD, and current
+RankWeave, TEPP, and contextual-orchestrator product or architecture documents
+were read first. Remote metadata confirms `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage`. ADR and cited
+research support evidence-bearing atomic Voice composition; they do not
+authorize compound codes, a new weight, or a population estimate. Open PRs and
+issues remain candidate work, not protected-main or runtime proof.
+
+**Review and protected delivery.** Ready PR #1183 is open at exact source head
+`e57e417fb61505fcf430f35ed699a3cd5ec3436a` over `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal review
+threads are resolved and outdated; no independent approval exists. The Full
+test, frontend, and two CodeQL Actions jobs are terminal failures on that
+head; the Full test job has `runner_id: 0` and no steps. Bot success contexts
+are not approval or hosted test evidence. Active ruleset 21065108 forbids
+non-fast-forward updates but does not require approval or successful Checks.
+Auto-merge is unarmed because it could immediately merge an unapproved and
+unchecked head. There is no merge SHA. Ready #1182 changes ADR 0212 and the
+Post-filter API without a direct #1183 file collision; ready #1181 edits this
+baseline. #1177 overlaps #1183's Voice UI, translations, Storybook inventory,
+and ADR 0256. Draft #1125 proposes migration 0251 and ready #1168 migration
+0252; #1049 concerns an existing duplicate ordinal. These schema identities
+must be reconciled before replay or merge. #1183's current candidate adds no
+ADR, API, schema, migration, or release-number change.
+
+**Customer gap and candidate repair.** On an empty authorized Board, the
+customer screen told the reader to run a developer command. The candidate
+replaces that with a request to an administrator to add records or check
+access; the translated empty state retains the existing Board layout and
+search control. A synthetic regression verifies the action and absence of the
+command. Storybook desktop (1280×720) and mobile (390×844) captures show the
+message and controls without horizontal overflow. Frontend lint, Storybook
+build, and all 653 tests in 61 files passed on the local candidate in a
+follow-up run; an earlier concurrent run had one unrelated popup timing
+failure. These are local and synthetic results; a new commit needs fresh
+exact-head hosted Checks and independent review.
+
+**Acceptance limits.** The named `lineageweave` Compose project has running
+services but PostgreSQL, Valkey, orchestrator, and search report unhealthy.
+No authenticated PostgreSQL/API plus rendered Voice proof or authorized
+synthetic k6 saturation result was obtained. The Voice acceptance condition
+remains unverified, including distinct carrying and derivation Posts, hidden
+evidence, cutoff truth, and paged JSON-LD multi-Voice union. Current-data
+diagnostics are not population inference without the complete Rust-owned
+terminal sampling artifact.
+
 ## Exact-head continuation — 2026-10-24 22:40 UTC
 
 **Authority and current candidate.** The LineageWeave PRD and accepted ADRs

@@ -2729,6 +2729,26 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
 
+  it("gives a reader an action when the authorized board is empty", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts") {
+        return Promise.resolve(jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(await within(board).findByRole("status")).toHaveTextContent(
+      "Ask an administrator to add records or check your access.",
+    );
+    expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
+    expect(within(board).queryByText(/make seed/)).not.toBeInTheDocument();
+  });
+
   it("hides the previous result set while a new board search is pending", async () => {
     stubBackend();
     const backendFetch = globalThis.fetch;
