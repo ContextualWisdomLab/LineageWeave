@@ -411,10 +411,12 @@ describe("OntologyExplorer", () => {
     );
   });
 
-  it("downloads every scalar relation after loading another authorized page", async () => {
+  it("unions same-subject properties and multiple Voice relations across authorized pages", async () => {
     const subject = `lw:node/node_post/${POST_ID}`;
     const person = { "@id": `lw:node/node_person/${PERSON_ID}` };
     const organization = { "@id": `lw:node/node_corporate_entity/${CORP_ID}` };
+    const primaryVoice = { "@id": `lw:voice-assignment/${POST_ID}/voc` };
+    const additionalVoice = { "@id": `lw:voice-assignment/${POST_ID}/vops` };
     vi.mocked(fetchOntologyNeighborhood)
       .mockResolvedValueOnce(neighborhood({
         truncated: true,
@@ -424,6 +426,7 @@ describe("OntologyExplorer", () => {
             "@id": subject,
             "rdfs:label": "Synthetic draft",
             "lw:mentions": person,
+            "lw:hasVoiceAssignment": primaryVoice,
           }],
         },
       }))
@@ -435,6 +438,7 @@ describe("OntologyExplorer", () => {
             "@id": subject,
             "rdfs:label": "Synthetic approved",
             "lw:mentions": organization,
+            "lw:hasVoiceAssignment": [additionalVoice],
           }],
         },
       }));
@@ -462,6 +466,7 @@ describe("OntologyExplorer", () => {
           "@id": subject,
           "rdfs:label": ["Synthetic draft", "Synthetic approved"],
           "lw:mentions": [person, organization],
+          "lw:hasVoiceAssignment": [primaryVoice, additionalVoice],
         },
       ]);
       expect(blob.type).toBe("application/ld+json");

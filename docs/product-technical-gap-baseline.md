@@ -35,6 +35,12 @@ not authenticated customer-session acceptance. This candidate changes no
 Voice code, inference weight, ADR policy, API, schema, migration, or release
 number.
 
+**Voice export check.** A synthetic continuation test now asserts that paged
+JSON-LD unions an imported and an additional Voice on the same Post subject,
+while preserving its other scalar relations. It passes locally. This does not
+replace an authenticated PostgreSQL/API and rendered UI check of actual
+persisted Voice evidence.
+
 **Protected delivery and cross-PR ownership.** Remote `main` is
 `91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready #1183 is open at
 `b97abc1e1a8ee86fff4b9034b398ad816caedf45` before this candidate commit.
