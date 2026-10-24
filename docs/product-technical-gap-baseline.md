@@ -1,27 +1,30 @@
 # Product & Technical Gap Baseline
 
-## Exact-head review — 2026-10-24 12:20 UTC
+## Exact-head review — 2026-10-24 13:26 UTC
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
-Ready PR #1183 is `4b7afb31dd7a9511afc4d3b88f4f1bc4df131998` before
-this documentation edit. Its two formal threads are resolved and outdated;
-the four exact-head GitHub jobs all failed before a runner started because
-GitHub annotated the Actions account as locked for billing. There is no
-independent approval or auto-merge request. The public ruleset listing returns
-only active ruleset 21065108, which prohibits force pushes. The current classic
-branch-protection read returned HTTP 401; the preceding authenticated read
-found no classic protection. Passing Checks and independent approval are
-therefore unmet and cannot be presumed enforced by GitHub. A normal merge or
-auto-merge is not safe to arm yet.
+Ready PR #1183 is `02a4deee09cdc303e36522a304765702e2095e1c` before
+this documentation edit. Its two formal threads are resolved and outdated.
+The exact-head Full test suite and frontend jobs failed before runner
+assignment (`runner_id: 0`, no steps); GitHub annotates the test job with an
+account billing lock. This is an Actions admission failure, not a code-test
+result. There is no independent approval or auto-merge request. Active ruleset
+21065108 prohibits force pushes; the current classic branch-protection read
+returns HTTP 404 (branch not protected). Passing hosted Checks and independent
+approval are still required by the product delivery contract. Arming
+auto-merge without them could merge immediately, so it remains off.
 
 The selected reader gap is a late response from a previously opened Post
 appearing in a newly opened Post's evidence. #1183's current candidate guards
 the Post-scoped response callbacks at the existing navigation cleanup boundary
 and adds a delayed-response regression. On this source head, frontend lint,
-the production build, all 646 frontend tests, and 43 focused Python ontology
-and documentation tests pass locally. The build still reports its existing
+the production build, and 45 focused Python ontology and documentation tests
+pass locally. The concurrent full frontend run timed out in three of 646
+tests. A single-worker rerun of the affected App and Ask panels passed all
+110 tests. The build still reports its existing
 large application chunk warning, owned by issue #1012/#995. Desktop and
-mobile synthetic Storybook screenshots were inspected; they show the dated
+mobile synthetic Storybook screenshots were inspected at 1440×900 and
+390×844; they show the dated
 related-information entry point, not an authenticated loaded Voice journey.
 No authenticated PostgreSQL/API or rendered buyer acceptance is claimed here.
 
