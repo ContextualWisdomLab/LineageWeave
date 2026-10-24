@@ -1,26 +1,29 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-24 02:08 UTC
+## Exact-head continuation — 2026-10-24 03:15 UTC
 
 The current [PRD](product-requirements.md), ADR 0025/0216, and source-head
 implementation identify dated Post evidence as the selected reader gap. Ready
-PR #1183 is at `59a1df1d6e1ac2576f4e56397966d029113b3484` against
+PR #1183 is at `b1a0d5edb0a66ad30ef9fb8178c039a93821a3ba` against
 `main` `91c3e1c7411f56408e4ce61417479ace36ff40cb`. This candidate
 keeps a cutoff on related ontology and occupational evidence, omits current-only
 relationship and Event Lineage panels, and labels the live body **Current body**
 when an earlier body is unavailable. Its synthetic regressions cover cutoff
 requests, separate carrying-Post and derivation-Post actions, and missing
-history. Local ontology and SHACL tests passed (43); the App suite passed
-107 tests, and frontend lint and production build passed. The build retains
-the existing 558.36 kB main-chunk warning.
-The desktop and mobile synthetic unavailable-body screenshots were inspected:
-both show the missing-history next action without claiming a historical body.
+history. Local ontology, SHACL, and public-docstring tests passed (45); the App
+suite passed 107 tests, and frontend lint and production build passed. The
+build retains the existing 558.36 kB main-chunk warning.
+The desktop and mobile synthetic related-information screenshots were inspected:
+both show a retryable unavailable state and a next action without claiming a
+loaded relationship. Earlier unavailable-body screenshots show missing-history
+copy without claiming a historical body.
 These observations do not establish authenticated rendered or PostgreSQL/API
 acceptance.
 
 Both formal #1183 review threads are resolved, but its bot comments are not
-independent approval. Four exact-head Actions jobs failed before runner steps;
-the Full test annotation names a GitHub account billing lock, so these failures
+independent approval. Four exact-head Actions jobs failed before establishing
+project test results. An earlier Full test annotation names a GitHub account
+billing lock, so these failures
 do not establish a source-test defect or passing checks. CodeRabbit reports a
 paused review and Devin a skipped full review. The current active ruleset
 `21065108` prohibits force pushes only; it supplies neither successful-check
@@ -28,11 +31,12 @@ nor independent-approval enforcement. With no verified independent approval,
 passing exact-head checks, or auto-merge request, protected delivery and a merge
 SHA remain unavailable.
 
-The same remote inventory has 197 open PRs (29 ready, 117 stacked) and 43 open
-issues. Ready #1182 at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`
+The next ready candidate, #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`,
 changes ADR 0212, the Post-filter API, and its tests, with no direct ADR, API,
 schema, or release-number collision with #1183; its four Actions jobs also
-failed before useful test evidence and it has no formal review thread. Ready
+failed without successful project test evidence; it has no unresolved formal
+review thread or independent approval. Ready
 #1177 at `06d64a96442ba61aec35216e1ce295629035b462` overlaps #1183 in
 the App, translations, Storybook inventory, and this baseline; those changes
 need a combined review after integration. Ready #1181 at
