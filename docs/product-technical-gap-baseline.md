@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 07:36 UTC
+
+The current LineageWeave PRD and the linked ThreadWeave, TEPP, and
+fast-mlsirm PRDs, RankWeave architecture, contextual-orchestrator product
+plan, and `disksage` product authority were checked against their canonical
+remotes before this pass. Accepted ADR 0246 defines the twelve extensible
+atomic Voices; ADR 0256 defines evidence-bearing composition, truth history,
+and the distinct carrying/evidence Post roles. ADR 0251 governs a separate
+occupational semantic layer. None authorizes a fixed compound Voice code,
+numeric weight, or population estimate.
+
+Ready PR #1183 was reviewed at exact head
+`e05602c1fbfe333d28db7b0f9dd1cc9c29ef0a7e` over
+`main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both formal review
+threads are resolved and outdated; the bot comments were checked against the
+current cutoff-aware navigation and dated-view controls. There is no
+independent approval. The full-suite, frontend, and two CodeQL Actions jobs
+are terminal failures on this head. The full-suite and frontend jobs had
+`runner_id: 0` and ran no steps, so they provide no application-test result.
+Active ruleset 21065108 forbids non-fast-forward pushes but requires no
+Checks or review; classic branch protection is absent. Auto-merge stays off
+because it could merge an unchecked, unapproved head. No merge SHA exists.
+
+The bounded customer gap on #1183 is the empty authorized Board: it now gives
+the reader an access or record-addition next action while preserving search
+and filters. The checked-in synthetic Storybook desktop and mobile captures
+were inspected at this head; both show the action and controls without
+horizontal clipping. This is rendered synthetic evidence, not authenticated
+acceptance. The 197 open PRs and 43 open issues remain proposals or tracking
+items. #1182 owns the Post-filter API and ADR 0212; #1181 also edits this
+baseline; #1178 and #1177 overlap #1183's Storybook, UI, or translations.
+#1168 proposes migration 0252 and draft #1125 proposes 0251; their distinct
+ordinals still require integration review against current `main`. #1183 adds
+no ADR, API, schema, or release identity. Authenticated current-head
+PostgreSQL/API and rendered Voice acceptance, and candidate-image synthetic
+k6 capacity evidence, remain unavailable. A diagnostic current-data sample
+cannot become population inference without the Rust-owned terminal sampling
+artifact and its declared design.
+
 ## Exact-head continuation — 2026-10-25 06:28 UTC
 
 The canonical remote is `ContextualWisdomLab/LineageWeave`, with
