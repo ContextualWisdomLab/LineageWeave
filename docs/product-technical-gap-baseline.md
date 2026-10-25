@@ -12,12 +12,14 @@ lowercase `disksage`. Open PRs and issues are candidates, not protected-main
 capabilities. The cited research supports evidence-bearing atomic perspectives,
 not a fixed combination vocabulary or inferred weight.
 
-**Current source head and review.** Ready PR #1183 is open at
-`58d15fdb4902166b088bb4cc8c8a59a5ceac96d8`, based on protected `main`
+**Reviewed implementation head and delivery.** Ready PR #1183's implementation
+was reviewed at `58d15fdb4902166b088bb4cc8c8a59a5ceac96d8`, based on protected `main`
 `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal review threads
 are resolved and outdated; neither bot comment is an independent approval.
-The exact-head Full suite, frontend, and two CodeQL Actions jobs ended in
-failure before runner assignment (`runner_id: 0` for the Full suite). No
+The Full suite, frontend, and two CodeQL Actions jobs on that head ended in
+failure before runner assignment (`runner_id: 0` for the Full suite). The
+subsequent baseline-only head `9a74832d083f6d492a1b17bdc8ccc473fd043b02`
+also has four terminal Actions failures before runner assignment. No
 terminal hosted test success or merge SHA exists. Active ruleset 21065108
 forbids non-fast-forward pushes but does not enforce approvals or successful
 Checks. Auto-merge is therefore unarmed: enabling it could merge this head
