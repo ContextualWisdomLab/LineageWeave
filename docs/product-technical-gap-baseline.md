@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-25 00:53 UTC
+
+**Authority.** The current LineageWeave PRD and accepted ADRs 0246, 0252,
+and 0256 govern the Voice contract; ADR 0251 governs the separate occupational
+layer. The linked ThreadWeave, TEPP, and fast-mlsirm PRDs and the RankWeave,
+`disksage`, and contextual-orchestrator product or architecture authorities
+were checked before this review. Live organization metadata confirms the
+canonical remote names `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`. Open PRs and issues are candidates, not protected-main
+capabilities. The cited research supports evidence-bearing atomic perspectives,
+not a fixed combination vocabulary or inferred weight.
+
+**Current source head and review.** Ready PR #1183 is open at
+`58d15fdb4902166b088bb4cc8c8a59a5ceac96d8`, based on protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal review threads
+are resolved and outdated; neither bot comment is an independent approval.
+The exact-head Full suite, frontend, and two CodeQL Actions jobs ended in
+failure before runner assignment (`runner_id: 0` for the Full suite). No
+terminal hosted test success or merge SHA exists. Active ruleset 21065108
+forbids non-fast-forward pushes but does not enforce approvals or successful
+Checks. Auto-merge is therefore unarmed: enabling it could merge this head
+before the PRD's independent approval and terminal exact-head Checks.
+
+**Customer gap.** The empty authorized Board previously instructed a customer
+to run a developer command. PR #1183 now asks the reader to contact an
+administrator to add records or check access. Its synthetic regression and
+Storybook scenes cover this next action. The checked-in 1280-pixel desktop and
+390-pixel mobile captures show the message and controls without horizontal
+clipping. At the reviewed source head, the focused App suite passes 116 tests,
+frontend lint passes, and the production build succeeds with a 559.48 kB
+application-chunk warning. This is local candidate evidence, not authenticated
+production UI acceptance. Any further commit to #1183 creates a new head that
+needs fresh hosted Checks and review.
+
+**Voice projection regression.** The focused synthetic ontology-neighborhood
+suite passes 13 Voice/JSON-LD cases, and the rendered explorer component suite
+passes 37 tests, including accumulation of one Post's singleton and array
+Voice relations across pages. These tests do not prove the authenticated
+PostgreSQL/API and rendered-UI acceptance condition.
+
+**Adjacent work and acceptance limits.** Ready #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes ADR 0212 and the
+Post-filter API, without a direct #1183 file overlap. #1181 edits this
+baseline; #1177 overlaps #1183's Voice UI, translations, Storybook inventory,
+and ADR 0256. Draft #1125 proposes migration 0251, ready #1168 proposes
+0252, and #1049 repairs an earlier duplicate ordinal. Resolve those schema
+identities before replay or integration. #1183 changes no API, migration, ADR
+decision, or release number. At this audit 197 PRs and 43 issues remain open.
+The named `lineageweave` Compose services are running, but PostgreSQL,
+Valkey, orchestrator, and search report unhealthy, and no authorized synthetic
+k6 token file is available. Authenticated PostgreSQL/API and rendered Voice
+acceptance, and concurrency/latency/error/throughput/saturation measurements,
+remain unverified. Current-data diagnostics cannot support population inference
+without the complete Rust-owned terminal sampling artifact.
+
 ## Exact-head continuation — 2026-10-24 23:48 UTC
 
 **Authority and scope.** The current LineageWeave PRD and accepted ADRs 0220,
