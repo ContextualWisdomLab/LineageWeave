@@ -1,5 +1,40 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 09:58 UTC
+
+The current LineageWeave PRD and the linked product or architecture authorities
+for RankWeave, ThreadWeave, TEPP, fast-mlsirm, contextual-orchestrator, and
+lowercase remote `disksage` were checked before this pass. ADR 0246 retains
+twelve extensible atomic Voices; ADR 0256 requires each additional Voice's
+authorized evidence Post, PROV-O derivation, truth state, and cutoff. ADR 0251
+governs the separate occupational semantic layer. These authorities provide no
+fixed combination code, inferred weight, or population estimate.
+
+Before this documentation change, ready PR #1183 was at
+`3335c827f6c91869fbafa2f56c5ec5dc8bb9d17e` over
+`main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal review
+threads are resolved; current source restricts the dated view to cutoff-aware
+ontology exploration and omits current-only related controls. There is no
+independent approval. Full-suite, frontend, and two CodeQL jobs failed before
+runner assignment (`runner_id: 0`); the full-suite annotation says the Actions
+account is locked by billing. These are no application-test results. Ruleset
+21065108 only prevents force pushes and classic branch protection is absent,
+so auto-merge remains off until exact-head checks and independent review can
+protect delivery. No merge SHA exists. This update will create a new head, so
+the observed check state cannot be carried forward.
+
+The empty authorized Board repair and synthetic regression remain on #1183.
+Its checked-in desktop and mobile captures were inspected again: search and
+filters remain usable, and the next action is visible without clipping. This
+does not establish authenticated Voice acceptance. The running `lineageweave`
+PostgreSQL, Valkey, and orchestrator services currently report unhealthy;
+candidate-image authenticated k6 saturation and latency evidence remains
+unavailable. Ready #1182 owns the filter-query API and ADR 0212 and has no
+formal review threads, but its exact-head Checks also failed before runner
+assignment. Ready #1181 overlaps this baseline. Draft migration proposals
+0251 and 0252 remain distinct; their integration against protected `main`
+still needs review. No ADR, API, schema, or release identity changes here.
+
 ## Exact-head review — 2026-10-25 08:45 UTC
 
 Authority was checked in the current LineageWeave PRD, accepted ADRs 0246,
