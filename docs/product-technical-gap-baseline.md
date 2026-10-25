@@ -1,5 +1,47 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 06:28 UTC
+
+The canonical remote is `ContextualWisdomLab/LineageWeave`, with
+`main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Remote repository
+metadata confirms `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase
+`disksage`; the current LineageWeave PRD and the linked owners' product or
+architecture authorities were read before the PR loop. Accepted ADR 0246
+governs twelve open-ended atomic Voices and ADR 0256 governs evidence-bearing
+combinations; ADR 0251 governs a separate occupational semantic layer.
+Their cited research supplies no combination weights or population estimate.
+
+Ready PR #1183 was observed at exact head
+`f1b549c202e15c982e9561c74499928906a6e494` before this documentation
+change. Its two formal review threads are resolved; the older bot comments
+were checked against the current source. Historical Post navigation now
+passes the cutoff to evidence links, while current-only Keyman, organization,
+and team controls are absent from dated views. No independent approval is
+recorded. Full-suite, frontend, and both CodeQL jobs failed on this head
+before any runner step. The current full-suite job annotation explicitly says
+the GitHub Actions account is locked due to a billing issue (`runner_id: 0`);
+this is a hosted execution blocker, not evidence of a failing application
+test. Active ruleset 21065108 forbids force pushes but requires no review or
+Checks. Auto-merge remains unarmed because it could merge this unchecked,
+unapproved head. No protected merge SHA exists for #1183.
+
+The bounded reader repair on #1183 gives a next action on an empty authorized
+Board, with a synthetic regression and desktop/mobile Storybook captures.
+Authenticated PostgreSQL/API and rendered Voice acceptance are still open:
+carrying Post and derivation evidence must remain distinct; hidden proof,
+truth status, cutoff, and paged JSON-LD multi-Voice union need live evidence.
+#1182 owns a diagnostic authenticated k6 run on the existing Compose image;
+it does not measure #1183's candidate image. These distinctions prevent
+candidate code, screenshots, or convenience samples from becoming runtime or
+population claims.
+
+Adjacent ready PRs #1182, #1181, #1178, and #1177 still overlap API,
+documentation, or UI delivery. #1168 and draft #1125 propose distinct
+migration ordinals; the older collision has its own repair issue. No schema,
+ADR, API, or release identity changed in this documentation refresh. The
+exact-head Checks and review state must be fetched again for the new commit;
+the snapshot above does not transfer to it.
+
 ## Exact-head continuation — 2026-10-25 05:23 UTC
 
 **Authority.** The current LineageWeave PRD, accepted ADRs 0246 and 0256,
