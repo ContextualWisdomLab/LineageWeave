@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-25 17:57 UTC
+
+The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 remain
+the product and Voice authorities. The linked ThreadWeave, TEPP, and
+fast-mlsirm PRDs and RankWeave, contextual-orchestrator, and disksage
+product/architecture documents were read before this continuation. Remote
+repository names were checked against the organization listing: the storage
+repository is `ContextualWisdomLab/disksage`. ADR 0246's twelve atomic Voices
+remain extensible; each additional assignment needs its own authorized Post
+evidence, derivation, truth state, and cutoff under ADR 0256. ADR 0251 governs
+a distinct occupational semantic layer. Neither open PRs nor diagnostic
+samples establish a released capability, fixed Voice combination, calibrated
+weight, or population estimate.
+
+At this observation, remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 is
+`325a7e94b4a5fd533e53c5a1fb432c7676dd2f7b`, matching the local head.
+Its two formal threads are resolved and outdated; four formal reviews are
+`COMMENTED`, with no independent approval. The exact-head full suite,
+frontend, and both CodeQL jobs are terminal failures. The inspected full-suite
+job had no assigned runner or steps and carries GitHub's account-billing-lock
+annotation, so it supplies no test result. The current `main` branch rule only
+prevents non-fast-forward pushes. It does not enforce the requested independent
+approval and successful Checks, so normal auto-merge cannot safely establish
+those conditions; there is no merge SHA. No protected-main delivery is claimed.
+
+The largest bounded buyer gap selected in #1183 is the empty authorized
+Board's next action. Its candidate preserves the add-record/access guidance
+while search text is drafted and distinguishes a submitted empty search. The
+focused synthetic regression passed (1/1), 61 ontology/SHACL/documentation
+tests passed, and frontend lint and build passed locally on this head. The
+build still warns about the existing large application chunk. The checked-in
+desktop and mobile Storybook screenshots were visually inspected: guidance,
+search, and filters remain visible without clipping. These captures do not
+establish authenticated customer acceptance.
+
+GitHub reports 197 open PRs and 43 open issues. #1181 edits this baseline;
+#1182 owns the authorized Board filter query and ADR 0212. #1177 overlaps
+#1183's UI and Voice ADR surface; #1178 overlaps its ontology test and
+baseline surfaces. #1125 and #1168 use distinct migration ordinals (0251
+and 0252) but both edit the shared backend API. These overlaps require
+integration review on new heads. #1183 changes no ADR, API, schema, or
+release identity. Authenticated PostgreSQL/API and rendered Voice evidence
+for distinct carrying and derivation Posts, hidden evidence, cutoff, and
+paged JSON-LD union remains unavailable. The canonical `lineageweave` stack
+has unhealthy PostgreSQL, Valkey, orchestrator, and search services. No
+authenticated synthetic k6 observation establishes concurrency, latency,
+error rate, throughput, or service saturation; no bottleneck change follows.
+
 ## Exact-head audit — 2026-10-25 16:47 UTC
 
 The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
