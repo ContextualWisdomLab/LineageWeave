@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 05:23 UTC
+
+**Authority.** The current LineageWeave PRD, accepted ADRs 0246 and 0256,
+and ADR 0251's separate occupational contract were re-read before this pass.
+The linked TEPP, ThreadWeave, and fast-mlsirm PRDs, RankWeave architecture,
+contextual-orchestrator product plan, and `disksage` README were also read.
+The remote organization lists `LineageWeave`, `RankWeave`, `ThreadWeave`,
+`TEPP`, and lowercase `disksage`. ADR decisions govern implementation;
+their cited research does not establish a fixed Voice combination, numeric
+weight, or population inference. Open PRs and issues are proposed delivery,
+not protected-main or authenticated runtime evidence.
+
+**Reviewed delivery.** Ready PR #1183 is open at exact source head
+`fa466eb5c9e886eff2f69c6688ec2e4b5bc2f51a` over
+`main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Both formal review
+threads are resolved and outdated. The historical relation concern is
+addressed by using the cutoff-aware ontology neighborhood in dated views and
+excluding live Keyman, organization, and team relation endpoints; the
+neighborhood regression names the exact API path and cutoff. Bot comments
+are not independent approval. The full-suite, frontend, and two CodeQL
+Actions checks are terminal failures on this head; the full-suite job has
+`runner_id: 0` and no executed steps. Local tests cannot replace them. The
+active ruleset 21065108 prevents non-fast-forward pushes but does not enforce
+review or Checks. Auto-merge is unarmed because it could integrate an
+unchecked, unapproved head. The open PR's provisional `merge_commit_sha` is
+not a protected-main merge SHA.
+
+**One bounded reader gap.** #1183's empty authorized Board now tells a reader
+to ask an administrator to add records or check access, and retains the search
+and filter controls. The synthetic component regression and desktop/mobile
+Storybook scenes are the minimum implementation evidence. Both checked-in
+captures were visually audited in this pass: the action and controls remain
+visible without horizontal clipping at 1280 and 390 pixels. This does not
+establish authenticated rendered acceptance.
+
+**Adjacent work and missing proof.** Ready #1182 owns the Post-filter API and
+ADR 0212 at `4e71264c60f4`; ready #1181 owns another baseline edit at
+`96adabce8378`; ready #1178 changes the ontology viewer at `ac3a9f60c6f8`;
+and ready #1177 overlaps #1183's Voice UI, i18n, and Storybook at
+`06d64a96442b`, so integration requires a fresh conflict review. #1168
+proposes migration 0252 while draft #1125 proposes 0251; #1049 repairs an
+older ordinal collision. No ADR, API, schema, or release identity is added
+by #1183. At this snapshot, 197 PRs and 43 issues are open. Authenticated
+PostgreSQL/API and rendered Voice proof for carrying versus derivation Posts,
+hidden evidence, temporal truth, and paged JSON-LD multi-Voice union remain
+unavailable. No authorized synthetic k6 run establishes latency, errors,
+throughput, or PostgreSQL, worker, Valkey, and gateway saturation. A current
+data sample cannot support population inference without the complete
+Rust-owned probability-sampling terminal artifact.
+
 ## Exact-head continuation — 2026-10-25 04:18 UTC
 
 **Authority and scope.** The current LineageWeave PRD and accepted ADRs 0246,
