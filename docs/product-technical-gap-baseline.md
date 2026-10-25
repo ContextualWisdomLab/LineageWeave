@@ -1,5 +1,57 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 02:04 UTC
+
+**Authority and identity.** The current PRD and accepted ADRs 0220, 0246,
+0252, and 0256 govern the Board and Voice reader; ADR 0251 governs the
+separate occupational layer. The linked ThreadWeave and TEPP PRDs and the
+RankWeave, `disksage`, and contextual-orchestrator product or architecture
+authorities were checked before this review. Live repository metadata confirms
+`LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage` as
+canonical names. Accepted decisions and their cited literature do not license
+compound Voice codes, inferred weights, or population estimates. Open PRs and
+issues remain candidate work rather than protected-main capabilities.
+
+**Exact reviewed head.** PR #1183 is open and ready at
+`6ada70d2266169e5fdfcdd4d24d6b9834cc9063a`, based on protected `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. The two formal inline review
+threads are resolved and outdated; no independent approval was submitted.
+Four GitHub check runs on this head are terminal failures, including the full
+suite and frontend jobs that did not reach test steps. Local results below do
+not convert those hosted failures into passing Checks. The active ruleset
+21065108 contains only `non_fast_forward`, and therefore does not enforce
+independent review or successful Checks. Enabling auto-merge under that policy
+could integrate an unchecked, unapproved head, so no merge or merge SHA is
+claimed. This documentation update itself requires fresh exact-head review
+and hosted checks.
+
+**Reader gap and validation.** #1183's minimum Board repair replaces a
+developer command in the empty authorized state with an action the reader can
+take: ask an administrator to add records or check access. Existing synthetic
+regression coverage and Storybook scenes exercise the message. The checked-in
+1280-pixel desktop and 390-pixel mobile captures were inspected again; the
+message and controls remain visible without horizontal clipping. The current
+source also preserves the historical cutoff on related navigation and unions
+multi-page JSON-LD relations for the same Voice-bearing Post. The local
+ontology/documentation suite passed 43 tests. A broad frontend run passed
+652 of 653 tests; one unrelated evidence-popup timing assertion failed under
+parallel load and passed on a focused rerun. This is local candidate evidence,
+not authenticated rendered acceptance on the current head.
+
+**Cross-PR and runtime limits.** #1182 owns the Board filter query and ADR
+0212, with no changed-file overlap with #1183. #1181 edits this baseline;
+#1177 overlaps #1183's Voice UI, translations, and Storybook inventory, so
+those heads require reconciliation before integration. Draft #1125 proposes
+migration 0251, ready #1168 proposes 0252, and draft #1049 repairs an already
+duplicated historical ordinal; no new migration or release identity is added
+here. The named Compose services are running, but PostgreSQL, Valkey,
+orchestrator, and search report unhealthy. No nonempty authorized synthetic k6
+token file is configured. Current-head authenticated Voice PostgreSQL/API plus
+rendered-UI acceptance, and concurrency, latency, error, throughput, and
+component-saturation evidence remain unavailable. Current-data diagnostics
+cannot establish population inference without the complete Rust-owned
+terminal sampling artifact.
+
 ## Exact-head review — 2026-10-25 00:53 UTC
 
 **Authority.** The current LineageWeave PRD and accepted ADRs 0246, 0252,
