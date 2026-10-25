@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-25 03:13 UTC
+
+**Authority.** The current LineageWeave PRD, accepted ADRs 0220, 0246,
+0252, and 0256, and the linked ThreadWeave, TEPP, and fast-mlsirm PRDs were
+read before this pass. RankWeave architecture, lowercase `disksage` product
+authority, and contextual-orchestrator planning were also checked against
+their canonical remote repositories. The PRD and ADRs govern behavior;
+research grounds those decisions; open PRs and issues are proposed delivery,
+not protected-main or runtime evidence. No local weight, fixed compound Voice
+code, or population estimate follows from this review.
+
+**Reviewed PR head and protection.** Ready PR #1183 was open at exact head
+`3a8aecafd8d89ca8a723c24b86f21b663d3cc6d7` over `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal inline
+threads were resolved and outdated, and it had no independent approval. The
+full suite, frontend, and two CodeQL jobs failed on this exact head before
+runner assignment; the full-suite annotation reports an account billing lock.
+The active repository ruleset 21065108 only forbids non-fast-forward updates.
+It does not enforce review or Checks, so enabling auto-merge could immediately
+merge an unapproved and unchecked head. No merge SHA or protected delivery is
+claimed. Pending Checks on other PRs do not prevent separate safe work.
+
+**Customer gap and local evidence.** PR #1183's Board empty state now tells
+the reader to ask an administrator to add records or check access. Its
+synthetic regression passed in a focused seven-test run, and frontend lint
+passed. The checked-in desktop and 390-pixel mobile Storybook captures were
+visually inspected: the message, search, and filters remain visible and do not
+clip horizontally. These are local and synthetic checks, not authenticated
+PostgreSQL/API or rendered production acceptance. The historical related-view
+review comments were addressed on the candidate branch; this pass found both
+threads resolved and no new actionable review comment.
+
+**Adjacent contracts and unverified work.** #1182 changes ADR 0212 and the
+Post-filter API without a changed-file collision with #1183. #1181 also edits
+this baseline; #1177 overlaps #1183's Voice UI and Storybook files, so their
+exact heads need reconciliation before integration. Draft #1125 proposes
+migration 0251, ready #1168 proposes 0252, and draft #1049 repairs an older
+ordinal collision. #1183 adds no new API, schema, ADR, or release identity.
+The named `lineageweave` Compose services are running, while PostgreSQL,
+Valkey, orchestrator, and search report unhealthy. No authorized nonempty
+synthetic k6 token was established in this pass; concurrency, latency, error,
+throughput, and component saturation remain unmeasured. Voice acceptance
+still requires authenticated PostgreSQL/API and rendered UI proof for distinct
+carrying and derivation Posts, hidden evidence, cutoff truth, and paged JSON-LD
+multi-Voice union. Population inference remains unavailable without the
+complete Rust-owned terminal sampling artifact.
+
 ## Exact-head continuation — 2026-10-25 02:04 UTC
 
 **Authority and identity.** The current PRD and accepted ADRs 0220, 0246,
