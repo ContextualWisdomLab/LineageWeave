@@ -1,5 +1,50 @@
 # Product & Technical Gap Baseline
 
+## Current candidate and delivery boundary — 2026-10-25 11:11 UTC
+
+The supporting [PRD](product-requirements.md) and accepted ADR 0025/0216
+govern dated Post evidence. ADR 0246 defines twelve extensible atomic Voices;
+ADR 0256 governs evidence-bearing combinations, while ADR 0251 governs a
+separate occupational semantic layer. The linked RankWeave architecture,
+ThreadWeave, TEPP, and fast-mlsirm PRDs, contextual-orchestrator product and
+architecture documents, and protected-main `disksage` README were read for
+their owner boundaries. The cited literature does not supply a Voice-combination
+catalog, reconstruction weight, or population estimator.
+
+At this observation, protected `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`; **197 PRs** and **43 issues**
+were open. Those are GitHub queue counts, not product or population evidence.
+Ready #1183 was at exact head `bee7da59fab902655afb8779c503f2e26c1afd3a`
+against that `main`. It had zero unresolved review threads, no independent
+approval, no auto-merge request, and four terminal failed Checks (Python and
+Actions CodeQL, full suite, frontend). Jobs ended in seconds; the REST job-log
+request returned HTTP 403 rate limit, so the current failure cause is
+**unverified**. Earlier billing annotations cannot be assigned to this head
+without its own job evidence. The last checked ruleset did not enforce review
+and Checks; leave auto-merge off while current policy is unavailable because
+it could merge before independent approval. No merge SHA exists.
+
+**Selected user gap and candidate repair.** On an empty authorized Board, merely
+typing an unsubmitted query changed the next action to a no-match result even
+though no search had run. #1183 now changes that state only after submission.
+A synthetic regression checks both states; the Post board Storybook scene and
+fresh Chromium desktop/mobile captures show the drafted query with the
+administrator action still visible. After the narrow change, focused
+App/Ontology tests passed 153/153, documentation hygiene passed 6/6, and lint,
+Storybook build, and the production frontend build passed. The full hosted
+suite must be rerun on the final pushed head. This repair changes no ADR,
+API, schema, inference owner, or release
+number. #1182 owns the server-side Board filter scan and #1181 also edits this
+baseline; their changes need reconciliation without replacing either owner.
+
+**Unmet acceptance.** The larger Voice journey still lacks current-head
+authenticated PostgreSQL/API and rendered UI evidence for distinct carrying
+and derivation Posts, truth/cutoff, hidden-evidence denial, and paged JSON-LD
+union. The canonical `lineageweave` PostgreSQL, Valkey, and orchestrator
+containers currently report unhealthy. No synthetic authorized k6 token file
+was supplied, so concurrency, latency, error-rate, throughput, and service
+saturation remain unmeasured; no capacity or population claim follows.
+
 ## Exact-head continuation — 2026-10-25 09:58 UTC
 
 The current LineageWeave PRD and the linked product or architecture authorities

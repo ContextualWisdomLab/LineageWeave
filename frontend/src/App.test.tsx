@@ -2747,6 +2747,12 @@ describe("App, authenticated", () => {
     );
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
     expect(within(board).queryByText(/make seed/)).not.toBeInTheDocument();
+    await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "draft query");
+    expect(within(board).getByRole("status")).toHaveTextContent(
+      "Ask an administrator to add records or check your access.",
+    );
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+    expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
   });
 
   it("hides the previous result set while a new board search is pending", async () => {
