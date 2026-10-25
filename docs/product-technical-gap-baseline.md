@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-25 20:08 UTC
+
+The supporting LineageWeave PRD and accepted ADRs 0246, 0252, and 0256
+remain the Voice authority: twelve atomic types compose through independent,
+authorized evidence, PROV-O derivation, truth status, and cutoff. ADR 0251
+governs occupational psychology instead. Current remote product authority was
+read for ThreadWeave and fast-mlsirm (PRDs) and RankWeave, TEPP,
+contextual-orchestrator, and `disksage` (architecture or product documents).
+GitHub confirms those canonical repository names under `ContextualWisdomLab`.
+Neither this documentation nor a diagnostic sample supplies an additional
+Voice code, calibrated weight, or population inference.
+
+At this read, `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`
+and ready PR #1183 is `0f6ac0182739ac97ab373204699f9f8208a76582`.
+Its two review threads are resolved and outdated. Four formal reviews are
+`COMMENTED`, with no independent approval. The full suite, frontend, and two
+CodeQL jobs failed at that exact head before a runner step; the full-suite
+annotation says the Actions account is locked for billing. These failures
+provide no application-test verdict. Current GraphQL and REST reads show only
+the active repository non-fast-forward ruleset and no classic `main` branch
+protection. Normal auto-merge cannot enforce the requested independent review
+and successful Checks under the observed controls, so it remains off. There
+is no merge SHA.
+
+The buyer-facing gap already implemented in #1183 is the empty authorized
+Board's next action. It keeps add-record/access guidance while a search is
+being drafted and distinguishes a submitted empty search. The focused
+synthetic regression covers that transition and pending/retry states. On this
+checkout frontend lint and build passed; the build still warns about a
+559.46 kB application chunk. Existing desktop and mobile Storybook captures
+were visually inspected at the same Board implementation commit: guidance and
+controls remain visible without clipping. These are synthetic UI observations,
+not authenticated customer acceptance.
+
+PR #1181 also edits this baseline; #1182 owns the authorized Board filter
+scan and ADR 0212. #1177 and #1178 overlap the Voice and ontology UI
+surfaces. None of these observed candidates changes #1183's ADR, API, schema,
+migration ordinal, or release number; overlapping files still require a fresh
+integration review after a merge. Authenticated PostgreSQL/API and rendered
+Voice proof for distinct carrying and derivation Posts, hidden evidence,
+cutoff, and paged JSON-LD union remains unavailable. The canonical
+`lineageweave` Compose services are running, but PostgreSQL, Valkey,
+orchestrator, and search report unhealthy. No authenticated synthetic k6
+observation supports a concurrency, latency, throughput, saturation, or
+bottleneck claim. This audit records the pre-edit PR head; this commit needs
+its own exact-head GitHub checks and independent review.
+
 ## Exact-head audit — 2026-10-25 19:02 UTC
 
 The current LineageWeave PRD, accepted Voice ADRs 0246/0256, and the
