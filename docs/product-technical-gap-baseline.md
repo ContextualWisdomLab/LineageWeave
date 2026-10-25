@@ -45,8 +45,10 @@ older ordinal collision. No ADR, API, schema, or release identity is added
 by #1183. At this snapshot, 197 PRs and 43 issues are open. Authenticated
 PostgreSQL/API and rendered Voice proof for carrying versus derivation Posts,
 hidden evidence, temporal truth, and paged JSON-LD multi-Voice union remain
-unavailable. No authorized synthetic k6 run establishes latency, errors,
-throughput, or PostgreSQL, worker, Valkey, and gateway saturation. A current
+unavailable. #1182 records an authenticated diagnostic k6 run on the
+existing Compose image; no k6 run on #1183's exact candidate image establishes
+its latency, errors, throughput, or PostgreSQL, worker, Valkey, and gateway
+saturation. A current
 data sample cannot support population inference without the complete
 Rust-owned probability-sampling terminal artifact.
 
