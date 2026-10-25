@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 04:18 UTC
+
+**Authority and scope.** The current LineageWeave PRD and accepted ADRs 0246,
+0251, 0252, and 0256 were checked before this pass. The linked ThreadWeave,
+TEPP, and fast-mlsirm PRDs, RankWeave architecture, contextual-orchestrator
+planning/architecture, and the protected `disksage` README were read.
+Remote metadata confirms `LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, and lowercase `disksage`; the DiskSage
+checkout's older remote spelling is not canonical. Its local PRD is not a
+protected-main product claim. ADRs govern behavior;
+research cited by them grounds the decisions; current implementation and open
+PRs are delivery evidence at different stages. No combination code, weight,
+heuristic, or population estimate is inferred from those sources.
+
+**Reviewed source and delivery.** Ready PR #1183 was open at exact source head
+`f10cc7e6326fa1f1ec43e8fd614645c6df095464` over `main`
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal inline
+threads are resolved and outdated; bot `COMMENTED` reviews provide no
+independent approval. The full suite, frontend, and two CodeQL Checks are
+terminal failures on this head. The prior ruleset snapshot showed only
+non-fast-forward protection; the REST API rate limit prevented a fresh
+ruleset read. Auto-merge and a merge SHA are therefore unavailable as
+protected-delivery evidence. A baseline-only commit after this review needs
+fresh exact-head checks and review.
+
+**Highest bounded reader gap.** The empty authorized Board previously ended
+with a developer action. This PR's smallest customer repair gives the reader
+an access or record-addition next step while retaining search and filter
+controls. Its synthetic regression is in `frontend/src/App.test.tsx`; the
+current source passed 153 focused frontend tests, frontend lint, and 14
+ontology/docstring tests. The checked-in 1280-pixel desktop and 390-pixel
+mobile Storybook captures were visually inspected: the message and controls
+remain visible without horizontal clipping. This is local rendered and
+synthetic evidence, not authenticated production acceptance.
+
+**Adjacent contracts and remaining acceptance.** #1182 owns ADR 0212 and
+the Post-filter API; #1181 edits this baseline. #1177 overlaps #1183's
+Voice UI, translations, and Storybook inventory and also edits ADR 0256.
+Ready #1168 proposes migration 0252, draft #1125 proposes 0251, and draft
+#1049 repairs an older ordinal collision; replay and integration require
+their owner branches to be reconciled. #1183 adds no API, schema, ADR, or
+release number. #1130 owns the separate analysis-run customer-copy repair
+and is currently conflict-blocked; do not duplicate it here. Authenticated
+PostgreSQL/API and rendered Voice proof for carrying versus derivation Posts,
+hidden evidence, truth/cutoff history, and paged JSON-LD multi-Voice union
+remain unavailable. No authorized synthetic k6 result establishes latency,
+errors, throughput, or component saturation. Current-data diagnostics remain
+non-population evidence without the complete Rust-owned sampling artifact.
+
 ## Exact-head review — 2026-10-25 03:13 UTC
 
 **Authority.** The current LineageWeave PRD, accepted ADRs 0220, 0246,
