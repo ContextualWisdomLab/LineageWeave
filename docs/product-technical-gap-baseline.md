@@ -1,5 +1,60 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-25 16:47 UTC
+
+The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
+read alongside the current ThreadWeave, fast-mlsirm, and TEPP PRDs and the
+RankWeave, contextual-orchestrator, and DiskSage product/architecture
+authorities. Each linked local authority file matches its current remote
+`main` Git blob. GitHub confirms the canonical remotes are
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+`fast-mlsirm`, `contextual-orchestrator`, and lowercase `disksage`.
+The twelve atomic Voices in ADR 0246 remain open to evidence-backed extension;
+ADR 0256 composes independent assignments with authorized derivation evidence,
+truth state, and cutoff. ADR 0251 governs a separate occupational semantic
+layer. No reviewed authority supports a fixed combination code, invented
+weight, or population estimate.
+
+At this observation, remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 is
+`3bdb96e00a2539378fece7161e2ac4afc3091749`; the local branch and remote
+head agree. Its two formal review threads are resolved and outdated. Four
+formal reviews are `COMMENTED`, with no independent approval. Its exact-head
+full suite, frontend gate, and two CodeQL jobs are terminal `FAILURE`; the
+GitHub check result alone gives no passing test evidence. The previous audit
+recorded billing-lock annotations on jobs at this same head, but the current
+REST job and ruleset queries hit GitHub's rate limit, so current annotations
+and ruleset enforcement could not be reverified. Auto-merge remains off: a
+normal merge cannot be claimed to satisfy independent approval and successful
+Checks. There is no merge SHA.
+
+The bounded buyer gap on #1183 remains the empty authorized Board's next
+action. Its candidate UI keeps add-record/access guidance while a query is
+only drafted, then reports no match after a submitted empty search. It has
+synthetic regression coverage for that distinction, pending and failed search
+states, and retry. The checked-in desktop and mobile captures were visually
+inspected at this head; controls and guidance are visible without clipping.
+These are Storybook evidence, not an authenticated customer acceptance run.
+On this checkout, the two focused empty/retry regressions passed with a
+20-second diagnostic test timeout after two initial 5-second timeouts during
+concurrent validation; the pending-search regression passed on its first run.
+Frontend lint and build passed; documentation hygiene passed 6/6. The build
+still reports an existing large application chunk, so this is not a
+warning-free performance result.
+
+GitHub GraphQL reports 197 open PRs and 43 open issues. #1182 owns the Board
+filter scan and ADR 0212; #1181 owns a competing baseline update. #1177 and
+#1178 overlap #1183's UI/ontology surfaces. #1125 and #1168 propose distinct
+migration ordinals but overlap shared API files, so integration needs an exact
+head review. #1183 changes no ADR, API, schema, or release identity. Current
+authenticated PostgreSQL/API and rendered Voice evidence remains unavailable
+for distinct carrying and derivation Posts, hidden-evidence denial, cutoff,
+and paged JSON-LD union. No authenticated synthetic k6 run or service
+saturation observation supports a bottleneck change or population claim. The
+canonical `lineageweave` services are running, but PostgreSQL, Valkey,
+orchestrator, and search report unhealthy; no load test was run against that
+state.
+
 ## Exact-head audit — 2026-10-25 15:38 UTC
 
 The current LineageWeave PRD and ADRs 0246/0251/0256 were compared with the
