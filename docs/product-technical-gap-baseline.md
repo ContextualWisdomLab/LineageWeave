@@ -8,8 +8,11 @@ documents, and `disksage` product README were checked before this pass.
 GitHub confirms the canonical repository spelling, including lowercase
 `ContextualWisdomLab/disksage`.
 
-Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
-Ready PR #1183 is at `39ec3f61e0e0fabd42109b54b845aa702cb09dd9`.
+At the pre-documentation observation, protected `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 was
+at `39ec3f61e0e0fabd42109b54b845aa702cb09dd9`. The subsequent commits
+on this branch edit this baseline only; hosted evidence must be collected
+again for the resulting head.
 Its review threads are resolved, but it has no independent formal approval
 or auto-merge request. All four hosted jobs on this exact head failed before
 starting: each inspected check annotation reports an account billing lock;
