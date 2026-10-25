@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-25 08:45 UTC
+
+Authority was checked in the current LineageWeave PRD, accepted ADRs 0246,
+0251, and 0256, and the canonical remote product or architecture documents for
+TEPP, fast-mlsirm, ThreadWeave, RankWeave, contextual-orchestrator, and
+`disksage`. The remote spells the latter repository in lowercase. The twelve
+atomic Voices are extensible; an additional Voice needs its own authorized
+evidence Post, derivation, truth status, and cutoff. Those authorities supply
+no fixed compound Voice, weight, or population estimate.
+
+Ready PR #1183 is open at `19bc1d321b3e0b66dce1c233d4dba7e624ca8086`
+over `main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal
+review comments are outdated; the current dated view omits live Keyman,
+organization, and team relations while the ontology path retains the cutoff.
+No independent approval exists. Full-suite, frontend, and two CodeQL checks
+are terminal failures on this exact head. Active ruleset 21065108 enforces
+non-fast-forward protection only, so auto-merge remains off: it could otherwise
+merge without successful Checks or an independent review. No merge SHA exists.
+
+The user-visible empty-Board gap is implemented on #1183 with an actionable
+access or record-addition message, a synthetic Storybook interaction, and
+desktop/mobile captures inspected at this head. The captures show retained
+search and filter controls without clipping; they are synthetic rendered
+evidence, not authenticated acceptance. Authenticated PostgreSQL/API and
+rendered Voice proof remains open for carrying versus derivation Posts,
+hidden evidence, truth history, cutoff, and paged JSON-LD multi-Voice union.
+The `lineageweave` services were running, but PostgreSQL, Valkey, and the
+orchestrator reported unhealthy; no authorized synthetic k6 token file was
+available. Latency, error, throughput, and saturation acceptance are therefore
+unavailable, and no bottleneck repair follows from this observation.
+
+Ready #1182 owns the Post-filter API and ADR 0212, while #1181 also edits this
+baseline; #1177 and #1178 overlap UI or ontology integration. Draft #1125
+proposes migration 0251 and #1168 proposes 0252; the identities are distinct
+but require integration review against `main`. #1183 changes no ADR, API,
+schema, or release identity. Open PRs and issues remain proposals. A
+convenience or sequential current-data sample is not population evidence;
+the complete Rust-owned probability-sampling terminal artifact remains absent.
+
 ## Exact-head continuation — 2026-10-25 07:36 UTC
 
 The current LineageWeave PRD and the linked ThreadWeave, TEPP, and
