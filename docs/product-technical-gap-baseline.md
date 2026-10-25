@@ -10,14 +10,17 @@ atomic Voices are extensible; an additional Voice needs its own authorized
 evidence Post, derivation, truth status, and cutoff. Those authorities supply
 no fixed compound Voice, weight, or population estimate.
 
-Ready PR #1183 is open at `19bc1d321b3e0b66dce1c233d4dba7e624ca8086`
-over `main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal
+Before this documentation update, ready PR #1183 was open at
+`19bc1d321b3e0b66dce1c233d4dba7e624ca8086` over
+`main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal
 review comments are outdated; the current dated view omits live Keyman,
 organization, and team relations while the ontology path retains the cutoff.
 No independent approval exists. Full-suite, frontend, and two CodeQL checks
 are terminal failures on this exact head. Active ruleset 21065108 enforces
 non-fast-forward protection only, so auto-merge remains off: it could otherwise
 merge without successful Checks or an independent review. No merge SHA exists.
+This documentation update creates a new source head; its hosted Checks and
+reviews must be checked again before any delivery claim.
 
 The user-visible empty-Board gap is implemented on #1183 with an actionable
 access or record-addition message, a synthetic Storybook interaction, and
