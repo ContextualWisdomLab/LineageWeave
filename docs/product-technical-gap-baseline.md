@@ -1,5 +1,52 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-25 22:24 UTC
+
+The remote `main` head is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 and this checkout share the observed head
+`1f3474ca515b271d42552beae8e8dcc838ae4197`. Its two review threads are
+resolved and outdated; four formal reviews are `COMMENTED`, with no independent
+approval. The full suite, frontend, and both CodeQL checks are terminal
+failures at that head. REST rate limiting prevented a fresh job-annotation read,
+so those failures do not establish a code-test verdict. GraphQL shows no
+branch-protection rule and only the active `LineageWeave: no force pushes`
+ruleset. Neither independent review nor successful checks is enforced; normal
+auto-merge remains off and there is no merge SHA.
+
+The current LineageWeave PRD and accepted ADRs 0246, 0252, and 0256 govern
+twelve atomic Voice types and extensible per-assignment composition with
+authorized Post evidence, PROV-O derivation, truth status, and cutoff. ADR 0251
+governs the separate occupational semantic layer. The linked product or
+architecture authorities were read locally for RankWeave, ThreadWeave, TEPP,
+fast-mlsirm, contextual-orchestrator, and DiskSage. Remote repository identity
+confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+and lowercase `disksage`; remote document-blob freshness could not be checked
+under the REST limit. Open PRs and a local diagnostic sample are not protected
+product or population evidence.
+
+The largest bounded reader gap addressed by #1183 is the empty authorized
+Board's next action. The candidate retains administrator/access guidance while
+a search is drafted and distinguishes a submitted empty search. On the observed
+head, the focused Board and historical-related regressions passed (2 tests),
+frontend lint passed, and `git diff --check` passed. Existing synthetic desktop
+and mobile Storybook captures were visually inspected: controls and guidance
+remain readable without clipping. Authenticated customer rendering is still
+unverified. The PR changes no ADR, API, schema, migration, or release identity.
+
+GitHub reports 197 open PRs and 43 open issues. PR #1182 owns the authorized
+Board-filter database scan and amends ADR 0212; its observed head is
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`. PR #1181 independently
+edits this baseline at `96adabce83784e05ebb4e2a932da9a02e93952e5`.
+Both target `main` and have the same terminal failing hosted jobs and no
+independent approval. #1182 changes no API, schema, migration, or release
+number; #1181 overlaps this file. Recheck integration after either head moves.
+The canonical `lineageweave` Compose project is running, while PostgreSQL,
+Valkey, orchestrator, and search report unhealthy. No authenticated synthetic
+k6 result on this candidate head or authenticated PostgreSQL/API plus rendered
+Voice acceptance proves the outstanding runtime, saturation, carrying-versus-
+derivation, hidden-evidence, cutoff, or paged JSON-LD conditions. No observed
+bottleneck repair or completion claim follows from those missing results.
+
 ## Exact-head audit — 2026-10-25 21:15 UTC
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb` and open,
