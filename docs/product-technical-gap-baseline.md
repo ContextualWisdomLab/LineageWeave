@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-25 23:30 UTC
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 is `ba588b81efee5c5db83dbbdf4dd0c9e4a731e37e` before
+this audit edit. Both review threads are resolved and outdated. Its four
+formal reviews are comments on older commits, with no independent approval.
+The exact-head full suite, frontend, and two CodeQL jobs failed before runner
+execution: each check's annotation says the GitHub Actions account is locked
+for billing. They give no code-test verdict. The current repository ruleset
+only prohibits force pushes; `main` has no branch-protection review or check
+requirement. Normal auto-merge therefore cannot enforce the requested
+independent approval and successful checks. It is off, and no merge SHA exists.
+
+The current LineageWeave PRD and accepted ADRs 0246, 0252, and 0256 govern
+the twelve atomic Voices and extensible, evidence-bearing assignments. Each
+additional Voice keeps its authorized evidence Post, PROV-O derivation, truth
+state, and cutoff. ADR 0251 governs the separate occupational semantic layer.
+Current product authority was read from the remote ThreadWeave, TEPP, and
+fast-mlsirm PRDs and the RankWeave, `disksage`, and contextual-orchestrator
+product/architecture documents. The remote organization lists the canonical
+names `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
+and lowercase `disksage`. Open PRs and diagnostic samples are not protected
+product claims or population evidence.
+
+PR #1183 already implements the bounded, user-visible empty-Board gap: it
+keeps the add-record/access action visible while a search is drafted and
+shows no-match only after submission. Its historical-related path uses the
+cutoff-aware ontology neighborhood; current-only relation endpoints stay out
+of that view. On this observed head, 153 focused frontend tests, 42 synthetic
+ontology/Voice tests, frontend lint, and the production build pass locally;
+the build retains its existing 559.46 kB application-chunk warning. The checked-in synthetic
+desktop and mobile Board screenshots show readable controls and the next
+action without clipping. These results do not establish authenticated runtime
+acceptance or hosted Checks. This PR changes no ADR, API, schema, migration,
+or release number.
+
+The remote lists 197 open PRs and 43 open issues. #1182 owns the authorized Board-filter scan
+and ADR 0212; #1181 edits this baseline; #1177 and #1178 overlap Voice or
+ontology UI and documentation. #1168 proposes migration 0252 and #1125
+proposes 0251, with both editing the shared backend API; the ordinals differ,
+but integration must be reviewed after either head changes. No sampled pair
+shares a new release identifier. The canonical `lineageweave` Compose project
+is running, while PostgreSQL, Valkey, orchestrator, and search report
+unhealthy. There is no authenticated synthetic k6 concurrency, latency,
+error-rate, throughput, or saturation result on this candidate; no observed
+bottleneck repair follows. Authenticated PostgreSQL/API and rendered Voice
+evidence for distinct carrying and derivation Posts, hidden evidence, cutoff,
+and paged JSON-LD union is still unavailable. This edit creates a new PR head
+that needs its own Checks and review.
+
 ## Exact-head audit — 2026-10-25 22:24 UTC
 
 The remote `main` head is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
