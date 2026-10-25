@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-25 12:17 UTC
+
+This audit began with the current LineageWeave PRD and accepted ADRs 0246,
+0251, and 0256. The linked ThreadWeave, TEPP, and fast-mlsirm PRDs, RankWeave
+architecture, contextual-orchestrator product/architecture authority, and the
+protected-main `disksage` README were read for ownership boundaries. GitHub confirms canonical
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP`;
+the storage repository is lowercase `ContextualWisdomLab/disksage`. ADR 0246
+governs twelve extensible atomic Voices; ADR 0256 governs each additional
+Voice's authorized evidence, derivation, truth state, and cutoff. ADR 0251
+governs the separate occupational semantic layer. No authority supplies a
+fixed Voice-combination code, invented weight, or population estimate.
+
+Before this documentation update, ready PR #1183 was at exact head
+`94c9952f5dc5c8f4a1cc991bf12779519097304f` over
+`main@91c3e1c7411f56408e4ce61417479ace36ff40cb`. Its two formal
+review threads were resolved and outdated; current code excludes live-only
+relations from dated views and retains the cutoff in ontology navigation.
+There was no independent approval or auto-merge request. The full suite,
+frontend, and two CodeQL checks were terminal failures on that head;
+the current failure cause could not be verified because the GitHub REST
+rate limit was exhausted. This is no hosted test success. The active ruleset
+could not be refreshed under that limit; the last verified rule only prevented
+non-fast-forward pushes. Auto-merge must remain off unless current rules
+enforce independent review and successful exact-head Checks. No merge SHA
+exists.
+
+The selected buyer gap is the empty authorized Board. #1183 now keeps the
+record-addition/access next action visible while a search is merely drafted;
+it changes to a no-match message only after submission. The synthetic
+regression covers both states. The checked-in Storybook desktop and mobile
+captures were visually inspected at this head: the action, search, and filter
+controls remain visible without clipping. This is candidate UI evidence,
+not authenticated Voice acceptance.
+Focused frontend App tests passed 116/116; lint, production build, six
+documentation hygiene tests, and 43 ontology/SHACL tests passed locally.
+
+PR #1182 owns the Board filter API and ADR 0212. PR #1181 edits this baseline;
+#1178 and #1177 overlap ontology or UI code and must be reconciled before
+merge. #1168 proposes migration 0252 for excerpts; draft #1125 proposes
+migration 0251 for Ask admission. Those ordinals are distinct, but both
+branches also touch the shared backend API and require integration review.
+#1183 changes no ADR, API, schema, or release number. The canonical Compose
+services are running, but PostgreSQL, Valkey, orchestrator, and search report
+unhealthy. Current-head authenticated PostgreSQL/API plus rendered Voice proof
+and synthetic authorized k6 capacity evidence remain unavailable. No
+convenience or sequential sample is promoted to population inference.
+
 ## Current candidate and delivery boundary — 2026-10-25 11:11 UTC
 
 The supporting [PRD](product-requirements.md) and accepted ADR 0025/0216
