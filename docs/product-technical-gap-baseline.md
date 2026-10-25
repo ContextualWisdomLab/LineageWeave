@@ -20,9 +20,14 @@ governs the separate occupational semantic layer. The linked product or
 architecture authorities were read locally for RankWeave, ThreadWeave, TEPP,
 fast-mlsirm, contextual-orchestrator, and DiskSage. Remote repository identity
 confirms `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`,
-and lowercase `disksage`; remote document-blob freshness could not be checked
-under the REST limit. Open PRs and a local diagnostic sample are not protected
-product or population evidence.
+and lowercase `disksage`. After the REST limit, remote Git fetch confirmed
+the read product-authority blobs match `origin/main` for those repositories.
+The contextual-orchestrator architecture had advanced beyond its local
+checkout; its current-main additions on same-worker tool continuation,
+context-window admission, and quota recovery were read from the remote Git
+blob. These are upstream controls, not LineageWeave model-selection policy.
+Open PRs and a local diagnostic sample are not protected product or population
+evidence.
 
 The largest bounded reader gap addressed by #1183 is the empty authorized
 Board's next action. The candidate retains administrator/access guidance while
