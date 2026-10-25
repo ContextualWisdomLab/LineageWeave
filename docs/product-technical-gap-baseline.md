@@ -1,5 +1,48 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-25 13:25 UTC
+
+The current PRD and the linked TEPP, fast-mlsirm, and ThreadWeave PRDs,
+RankWeave architecture, contextual-orchestrator product and architecture
+documents, and `disksage` product README were checked before this pass.
+GitHub confirms the canonical repository spelling, including lowercase
+`ContextualWisdomLab/disksage`.
+
+Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 is at `39ec3f61e0e0fabd42109b54b845aa702cb09dd9`.
+Its review threads are resolved, but it has no independent formal approval
+or auto-merge request. All four hosted jobs on this exact head failed before
+starting: each inspected check annotation reports an account billing lock;
+the jobs had no steps and no assigned runner. These failures establish no
+code or test result. The repository ruleset prevents force pushes; GitHub's
+organization ruleset endpoint currently returns an upgrade-required response,
+so the independent-review and required-check policy cannot be verified there.
+Enabling auto-merge without that protection could merge before approval and
+successful checks. No merge SHA exists.
+
+The largest bounded buyer gap selected on this branch remains the empty
+authorized Board's misleading search response. #1183 keeps the actionable
+access/add-record message while a search is only drafted; a submitted search
+can then report no match. Synthetic App tests cover the distinction. The
+checked-in desktop and mobile Storybook captures show the action and controls
+without clipping. Local ontology and SHACL tests passed 43/43 in this pass.
+The focused empty-Board regression passed; a separate full App-file run
+passed 115/116 with one unrelated activity-feed test timing out at five
+seconds. Frontend lint passed. Neither local run repairs the hosted billing
+failure or establishes a complete frontend gate.
+This is candidate UI evidence, not authenticated Voice acceptance.
+
+At this observation, 197 PRs and 43 issues are open. #1181 edits this same
+baseline and therefore needs a content merge. #1182 owns the Board filter API
+and ADR 0212; #1183 changes no API, schema, ADR, or release number. Other
+open PRs with overlapping frontend, ontology, migration, and release files
+still need pairwise exact-head review before protected merge. No current-head
+authenticated PostgreSQL/API and rendered UI proof establishes the Voice
+carrying-Post versus derivation-Post contract or paged JSON-LD union. No
+authenticated synthetic k6 observation establishes concurrency, latency,
+error rate, throughput, or service saturation; no capacity or population
+inference follows.
+
 ## Exact-head audit — 2026-10-25 12:17 UTC
 
 This audit began with the current LineageWeave PRD and accepted ADRs 0246,
