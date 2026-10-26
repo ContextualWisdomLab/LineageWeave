@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-26 11:30 UTC
+## Exact-head continuation — 2026-10-26 12:36 UTC
 
 The current PRD and ADRs 0246, 0251, and 0256 were checked against the
 protected-main product or architecture authorities for RankWeave, ThreadWeave,
@@ -11,23 +11,25 @@ constructs, and measurement separate. They supply no fixed compound Voice
 codes, inferred weights, or population estimate for convenience samples.
 
 At this review, remote `main` is
-`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 is
-`6cafc929667405757cb16b8114e28e9d1837c962`. Its two earlier review
-findings are addressed in the candidate code, but the formal reviews are
-older-head comments and no independent approval exists. Four Checks on this
-exact head failed. The Full suite annotation reports an
-account billing lock, with runner ID 0 and no steps. The live rules endpoint
-returns only `non_fast_forward`; classic branch protection returns 404.
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183's
+pre-documentation head is `6fe63e3187b191d6f62fe61bedecca4de2c55e92`.
+Its two formal threads are resolved and outdated; four formal reviews are
+older-head comments, with no independent approval. Four exact-head Checks
+failed before runner steps. The Full suite annotation reports an account
+billing lock, with runner ID 0. The live ruleset enforces only
+`non_fast_forward`; classic branch protection returns 404.
 Normal auto-merge is therefore off: these live controls cannot enforce the
 requested independent approval and successful Checks. The open PR's predicted
 merge commit is not delivery evidence.
 
 The selected buyer gap is still the empty Board's missing next action. #1183
-contains the minimal action copy and regression. On the reviewed head, two
-focused frontend tests and six documentation-hygiene tests passed locally.
-The existing synthetic 1440×900 and 390×844 screenshots were inspected again:
-the action is legible in both. This does not establish authenticated customer
-acceptance. Ready PR #1182 is still
+contains the minimal action copy and regression. On the reviewed head, the
+empty-Board and historical-related-evidence frontend tests (2/2) and six
+documentation-hygiene tests passed locally. The synthetic 1440×900 and
+390×844 screenshots were visually inspected again: the action is legible in
+both. This does not establish authenticated customer acceptance. The live
+queue has 197 open PRs, 29 ready and 117 based outside `main`; none has
+auto-merge enabled. Ready PR #1182 is still
 `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`; it edits ADR 0212 and a
 backend query, while #1183 edits the Board and this baseline. Their current
 diffs have no competing ADR, API, schema, migration, or release-number edit.
