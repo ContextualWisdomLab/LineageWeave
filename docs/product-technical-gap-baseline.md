@@ -1,5 +1,61 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 19:43 UTC
+
+The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
+read before this pass. The linked authorities were checked on their canonical
+remote `main` branches: ThreadWeave and fast-mlsirm PRDs, TEPP's approved
+v0.4 PRD, RankWeave architecture, contextual-orchestrator product context
+and architecture, and the README for lowercase
+`ContextualWisdomLab/disksage`. Remote repository metadata confirms the
+canonical case of `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+`fast-mlsirm`. ADR 0246 defines twelve atomic Voice codes; ADR 0256 permits
+evidence-bearing combinations without a fixed compound-code catalog. ADR
+0251 governs a separate occupational semantic layer. These authorities do
+not support invented weights or population claims from diagnostic samples.
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR
+#1183 is open at `8d6a343d09413dde0f9dafc09bc9c99048893445`. Both formal
+review threads are resolved and outdated; four formal reviews are older-head
+comments, and none is an independent approval. The two earlier outside-diff
+findings were checked against the current source and focused regression:
+current-only related posts and Event Lineage are withheld in cutoff views,
+and the ontology neighborhood request is asserted by its specific route.
+The four current-head Actions checks failed before runner steps; a current-head
+annotation states that the GitHub account is locked for billing. The only
+active repository ruleset is `21065108` (`non_fast_forward`, no bypass
+actors). The requested independent approval and successful Checks are still
+absent, so no merge or auto-merge is claimed. No merge SHA exists.
+
+The largest selected buyer-visible gap remains the empty Board's missing
+next action. PR #1183 carries the minimal action copy and its synthetic
+authorized-empty/search regression. Its 1440×900 and 390×844 rendered
+captures were inspected on this head: the action and search remain legible
+without horizontal clipping. Eight focused synthetic ontology Voice tests,
+five focused frontend Board/cutoff tests, and six documentation-hygiene tests
+passed locally. Neither a passing full suite nor authenticated UI acceptance
+is claimed. The two screenshots prove layout only, not a live authorized
+PostgreSQL response.
+
+The live queue contains 197 open PRs, 29 ready PRs, 117 non-`main` stacks,
+and 43 open issues. Ready PR #1182 remains at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, without independent
+approval or auto-merge. Its ADR 0212, Post-filter API, and tests do not
+overlap #1183's ADR, API, schema, migration, or release files. Issues #807,
+#1048, and #1056 still track the broader ADR/PRD identity, migration
+ordinal, and release identity conflicts; none is resolved by these PRs.
+Stacked PRs require parent-first protected merge, retargeting to `main`, and
+fresh exact-head evidence. No stale run was cancelled.
+
+The fixed `lineageweave` Compose inspection did not return a bounded service
+status in this pass and was interrupted. Authenticated synthetic k6 capacity
+evidence, PostgreSQL/API acceptance, and rendered desktop/mobile acceptance
+for Voice carrying versus derivation evidence, hidden evidence, truth and
+cutoff behavior, and paged JSON-LD union remain unavailable. No saturation,
+throughput, or population inference is asserted. This documentation change
+creates a new PR head; hosted checks, reviews, and base compatibility must be
+read again for that head.
+
 ## Exact-head continuation — 2026-10-26 18:36 UTC
 
 The current [PRD](product-requirements.md) and accepted ADRs 0246, 0251,
