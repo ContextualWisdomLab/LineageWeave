@@ -1,5 +1,63 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 01:50 UTC
+
+The current LineageWeave PRD was read before this pass. Current protected-main
+product authorities were checked for RankWeave, ThreadWeave, TEPP,
+fast-mlsirm, contextual-orchestrator, and lowercase `disksage`; the remote
+repository names match those spellings. Accepted ADR 0246 supplies twelve
+atomic Voices, ADRs 0252/0256 supply interval and evidence-bearing composition,
+and ADR 0251 governs a separate occupational semantic layer. The cited
+research does not define fixed Voice combinations, calibrated lineage weights,
+or a population estimator. Diagnostic local observations remain nonpopulation
+evidence.
+
+At the audit, remote `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`, and ready PR #1183 and this
+checkout were `2a47b6188d27a23abea7e0fac1fa2892d58563b4`. Its two review
+threads are resolved and outdated. Four formal reviews are comments on older
+heads; none is an independent approval. The four exact-head hosted jobs are
+terminal failures; a Full test annotation says Actions did not start the job
+because the account is locked for billing. The active ruleset only prohibits
+force pushes and no classic branch-protection rule requires review or checks.
+Normal auto-merge therefore cannot enforce this task's independent-approval and
+successful-check conditions; it remains off and there is no merge SHA. This
+documentation edit creates a new head that needs fresh Checks and review.
+
+The bounded buyer gap implemented in #1183 is the empty Board's next action:
+drafting a search keeps the administrator/access guidance visible, while a
+submitted no-match query has its own state. The same candidate keeps dated
+related-information navigation on the cutoff-aware neighborhood and labels a
+live body separately when earlier body evidence is unavailable. At the
+observed code head, 153 focused frontend tests, 46 synthetic ontology/SHACL
+tests, frontend lint, and the production build passed. The build retains its
+559.46 kB application-chunk warning. The synthetic desktop and mobile Board and
+dated-neighborhood screenshots were visually inspected: controls, guidance,
+and retry remain readable without clipping. The broad frontend run had
+multiple concurrent test timeouts; the focused two-file rerun passed. This is
+candidate validation, not authenticated customer acceptance.
+
+GitHub lists 197 open PRs and 43 open issues. PR #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` changes the authorized
+Board-filter query and ADR 0212; its focused local contract test passed, but
+its current hosted jobs failed before starting and it has no independent
+approval. PR #1181 changes this baseline, while #1177/#1178 overlap Voice or
+ontology UI files. #1183 and #1182 introduce no competing API, schema,
+migration ordinal, or release identity. Across older open proposals, migration
+ordinals 0248 and 0249 and release identities 2.28.0, 2.28.1, 2.29.0, 2.54.0,
+2.55.0, 2.56.0, 2.61.0, and 2.62.0 have competing files; their owners must
+reconcile them before parent-first integration. Shared ADR and API edits also
+need exact-head conflict review after any parent merges.
+
+The canonical `lineageweave` Compose project has nine running services, with
+PostgreSQL, Valkey, orchestrator, and search unhealthy. No authenticated,
+synthetic k6 run on this head proves concurrency, latency, errors, throughput,
+or PostgreSQL/worker/Valkey/gateway saturation, so no new bottleneck or capacity
+claim follows. Authenticated PostgreSQL/API and rendered Voice evidence for
+distinct carrying and derivation Posts, hidden evidence, cutoff, and paged
+JSON-LD union is still unavailable. Accepted and persisted provenance remains
+the only basis for a confirmed result.
+
 ## Exact-head audit — 2026-10-26 00:39 UTC
 
 Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
