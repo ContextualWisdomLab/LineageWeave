@@ -1,5 +1,59 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 03:00 UTC
+
+The supporting LineageWeave PRD and the protected-main product authorities for
+ThreadWeave, TEPP, fast-mlsirm, RankWeave, contextual-orchestrator, and
+`disksage` were checked before this pass. Remote repository metadata confirms
+the canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`,
+`TEPP`, and lowercase `disksage` names. ADR 0246 owns the twelve atomic Voice
+types, ADR 0256 owns evidence-bearing open-ended composition, ADR 0252 owns
+primary-Voice cutoff history, and ADR 0251 owns a separate occupational layer.
+None supplies a fixed combination code, lineage weight, or population estimate.
+
+At observation, protected `main` was
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`; ready PR #1183 and this
+checkout were `58dfef0670648314f57f6b5e271aa8100be81b69`. Its two formal
+threads are resolved and outdated, and four older-head review comments are not
+independent approval. All four exact-head Actions jobs failed before executing
+steps; the Full test annotation identifies an account billing lock. The only
+active `main` rule prohibits non-fast-forward pushes. Because review and
+successful Checks are not currently enforced, auto-merge remains off and no
+merge SHA exists. This documentation update will require new exact-head checks
+and review.
+
+PR #1183 already contains the selected buyer-facing repair: an empty Board
+keeps the add-record/access next action visible while a reader drafts a search,
+and a dated Post opens only cutoff-aware related information. The synthetic
+desktop and mobile Board and related-information screenshots were inspected;
+the guidance, controls, and retry action remain visible without clipping. In
+this pass, 51 focused synthetic ontology, Voice, and documentation tests and
+184 focused frontend tests passed.
+This candidate result does not prove an authenticated browser or PostgreSQL
+journey on protected `main`.
+
+The canonical `lineageweave` Compose services are running, but the PostgreSQL
+service reports unhealthy and an authenticated connection encountered a storage
+I/O error. The three existing authenticated synthetic Voice API checks therefore
+skipped at their service-availability gate. The database volume was not reset
+or removed. Authenticated carrying-Post versus derivation-evidence navigation,
+hidden-evidence denial, cutoff, paged JSON-LD union, and rendered UI acceptance
+remain open; no completion is inferred from synthetic fixtures. Likewise, no
+new k6 capacity or saturation claim follows from this pass.
+
+GitHub reports 197 open PRs and 43 open issues. PR #1182 is an independent
+Board-filter query candidate at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`;
+its review has no current-head finding or independent approval, and its hosted
+jobs share the pre-run failure. #1181 and #1183 both edit this baseline;
+#1177 overlaps #1183 in `App.tsx`, styles, and translations; #1178 overlaps its
+ontology tests. #1130 also edits `App.tsx` and the Voice ADR. These candidates
+must be reconciled against the parent merge head before retargeting or delivery.
+#1182 and #1183 add no competing API, schema, migration ordinal, or release
+number. Earlier open proposals with overlapping migration ordinals and release
+identities remain candidates, not protected-main decisions; the previous
+conflict inventory below remains historical and requires exact-head recheck
+before integration.
+
 ## Exact-head continuation — 2026-10-26 01:50 UTC
 
 The current LineageWeave PRD was read before this pass. Current protected-main
