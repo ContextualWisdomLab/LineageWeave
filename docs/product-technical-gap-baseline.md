@@ -1,5 +1,50 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-26 10:22 UTC
+
+The LineageWeave PRD, ADRs 0246/0251/0256, and the linked product or
+architecture authorities were read before this review. Remote repository
+metadata confirms the canonical names `LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`. The local disksage checkout
+has a PRD, but its cached `origin/main` does not; its protected-main product
+authority remains the README until a fresh remote read proves otherwise.
+The twelve atomic Voices and evidence-bearing, open-ended assignments are
+distinct from occupational constructs. No reviewed source licenses compound
+Voice codes, inferred weights, or population claims from diagnostic samples.
+
+Before this documentation change, remote LineageWeave `main` remains
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 is
+`b5235fcc7fbf3d98a92981905bdb03d8de416ace`. Both formal review threads
+are resolved and outdated; four formal reviews are older-head comments, with
+no independent approval. Four current-head Checks are terminal failures. The
+REST job endpoint is rate limited, so their cause is not freshly verified;
+the earlier billing annotation remains historical evidence. The latest live
+ruleset read was also rate limited. Normal auto-merge remains off because the
+requested independent approval and successful exact-head Checks are absent;
+there is no merge SHA.
+
+The selected buyer gap is the empty Board's missing next action. #1183 already
+implements it and its regression; two focused cutoff-navigation tests and six
+documentation-hygiene tests passed again on this code head. Its synthetic
+1440×900 and 390×844 Board screenshots were visually inspected here: the
+search and access action remain legible without horizontal clipping. This is
+candidate rendering evidence, not authenticated customer acceptance.
+
+Next ready PR #1182 remains `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`.
+Its focused query test passed in its isolated worktree (1/1). Its formal
+review is an older-head comment, with no unresolved thread or independent
+approval; four hosted Checks failed. #1182 changes ADR 0212 and the Post-filter
+query/tests; #1183 changes the Board UI and this baseline. Their diffs do not
+compete over an ADR, API, schema, migration ordinal, or release number.
+Earlier overlapping PRs still need exact-head reconciliation before merge.
+
+The canonical `lineageweave` project is running with unhealthy PostgreSQL,
+Valkey, orchestrator, and search services. No exact-head authenticated k6
+capacity or saturation result was obtained. Voice carrying-versus-derivation
+evidence, hidden evidence, cutoff, and paged JSON-LD union still lack
+authenticated PostgreSQL/API and rendered UI acceptance. No population or
+protected-delivery claim follows from these local checks.
+
 ## Exact-head continuation — 2026-10-26 09:14 UTC
 
 The current LineageWeave PRD, ADRs 0246 and 0256, and the linked repositories'
