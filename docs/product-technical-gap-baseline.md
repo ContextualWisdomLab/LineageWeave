@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head review — 2026-10-26 10:22 UTC
+## Exact-head review — 2026-10-26 10:25 UTC
 
 The LineageWeave PRD, ADRs 0246/0251/0256, and the linked product or
 architecture authorities were read before this review. Remote repository
@@ -14,14 +14,15 @@ Voice codes, inferred weights, or population claims from diagnostic samples.
 
 Before this documentation change, remote LineageWeave `main` remains
 `91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 is
-`b5235fcc7fbf3d98a92981905bdb03d8de416ace`. Both formal review threads
+`3df00c2264181391e9e59bfa47a742d85d43c382`. Both formal review threads
 are resolved and outdated; four formal reviews are older-head comments, with
 no independent approval. Four current-head Checks are terminal failures. The
-REST job endpoint is rate limited, so their cause is not freshly verified;
-the earlier billing annotation remains historical evidence. The latest live
-ruleset read was also rate limited. Normal auto-merge remains off because the
-requested independent approval and successful exact-head Checks are absent;
-there is no merge SHA.
+Full suite's current-head annotation says GitHub did not start the job because
+the account is locked for billing; its job has no runner or steps. The live
+`main` ruleset enforces only non-fast-forward protection, and classic branch
+protection is absent. Normal auto-merge would not enforce the requested
+independent approval or successful Checks, so it remains off. The open PR's
+predicted `merge_commit_sha` is not a completed merge SHA.
 
 The selected buyer gap is the empty Board's missing next action. #1183 already
 implements it and its regression; two focused cutoff-navigation tests and six
@@ -37,6 +38,8 @@ approval; four hosted Checks failed. #1182 changes ADR 0212 and the Post-filter
 query/tests; #1183 changes the Board UI and this baseline. Their diffs do not
 compete over an ADR, API, schema, migration ordinal, or release number.
 Earlier overlapping PRs still need exact-head reconciliation before merge.
+Issues #807, #1048, and #1056 remain open for PRD identity, migration-ordinal,
+and release-version conflicts respectively.
 
 The canonical `lineageweave` project is running with unhealthy PostgreSQL,
 Valkey, orchestrator, and search services. No exact-head authenticated k6
