@@ -2746,6 +2746,7 @@ describe("App, authenticated", () => {
       "Ask an administrator to add records or check your access.",
     );
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
+    expect(within(board).queryByRole("group", { name: "Filter by VOC type" })).not.toBeInTheDocument();
     expect(within(board).queryByText(/make seed/)).not.toBeInTheDocument();
     await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "draft query");
     expect(within(board).getByRole("status")).toHaveTextContent(

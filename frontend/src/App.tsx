@@ -4527,25 +4527,27 @@ export function PostList({
             </label>
             <button type="submit">{t("Search")}</button>
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
-            <fieldset className="board-voc-type-filter">
-              <legend>{t("Filter by VOC type")}</legend>
-              {vocTypeOptions.map((option) => (
-                <label key={option.code}>
-                  <input
-                    type="checkbox"
-                    checked={typeFilter.includes(option.code)}
-                    onChange={(event) =>
-                      setTypeFilter((current) =>
-                        event.target.checked
-                          ? [...current, option.code]
-                          : current.filter((code) => code !== option.code),
-                      )
-                    }
-                  />
-                  {t(option.label)}
-                </label>
-              ))}
-            </fieldset>
+            {vocTypeOptions.length > 0 ? (
+              <fieldset className="board-voc-type-filter">
+                <legend>{t("Filter by VOC type")}</legend>
+                {vocTypeOptions.map((option) => (
+                  <label key={option.code}>
+                    <input
+                      type="checkbox"
+                      checked={typeFilter.includes(option.code)}
+                      onChange={(event) =>
+                        setTypeFilter((current) =>
+                          event.target.checked
+                            ? [...current, option.code]
+                            : current.filter((code) => code !== option.code),
+                        )
+                      }
+                    />
+                    {t(option.label)}
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
             <label>
               {t("Filter by visibility")}
               <select

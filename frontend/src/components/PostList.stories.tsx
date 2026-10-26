@@ -103,6 +103,7 @@ export const EmptyBoard: Story = {
       "Ask an administrator to add records or check your access.",
     );
     await expect(canvas.getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
+    await expect(canvas.queryByRole("group", { name: "Filter by VOC type" })).not.toBeInTheDocument();
     await userEvent.type(canvas.getByRole("searchbox", { name: "Search semantic evidence" }), "draft query");
     await expect(canvas.getByRole("status")).toHaveTextContent(
       "Ask an administrator to add records or check your access.",

@@ -32,6 +32,13 @@ this pass, 51 focused synthetic ontology, Voice, and documentation tests and
 This candidate result does not prove an authenticated browser or PostgreSQL
 journey on protected `main`.
 
+The same empty-Board repair now omits its empty Voice filter fieldset when
+there is no authorized option. A focused regression and the existing populated
+Board test protect both states. Frontend lint, production build, and Storybook
+build passed; the production application chunk warning remains. New synthetic
+Storybook captures at 1440×900 and 390×844 were inspected and show the next
+action and search controls without an inert filter or horizontal clipping.
+
 The canonical `lineageweave` Compose services are running, but the PostgreSQL
 service reports unhealthy and an authenticated connection encountered a storage
 I/O error. The three existing authenticated synthetic Voice API checks therefore
