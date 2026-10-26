@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-26 20:52 UTC
+
+The current PRD and governing ADRs 0246, 0251, 0252, 0256, 0216, and 0184
+were checked before this audit. Remote product authorities were checked for
+TEPP, fast-mlsirm, ThreadWeave, RankWeave, contextual-orchestrator, Keyverse,
+Naruon, and lowercase `ContextualWisdomLab/disksage`. The organization API
+confirms the canonical case of `LineageWeave`, `RankWeave`, `ThreadWeave`, and
+`TEPP`. These authorities assign measurement arithmetic to TEPP/fast-mlsirm,
+ranking to RankWeave, threading to ThreadWeave, and all LLM/VISION/embedding
+traffic to contextual-orchestrator. No new local weight, model policy, or
+population inference is authorized.
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`. PR #1183
+was open and ready at exact head `ba60c0dcebad8cde0f21dc1974d4da6eeb8fca9f`.
+Its two formal threads are resolved and outdated; the four formal reviews are
+comments on older commits, with no independent approval. Four Actions checks
+on this head failed before starting runner steps: the Full test-suite check's
+annotation says the GitHub account is locked for billing. This is not a test
+failure. CodeRabbit and Devin statuses passed but are neither independent
+approval nor passing Actions evidence. The active default-branch ruleset
+`21065108` forbids force pushes and has no bypass actors; classic branch
+protection returns 404. Successful exact-head checks and independent approval
+required by this delivery loop are absent, so no merge SHA or auto-merge is
+claimed. Updating this document changes the branch head and invalidates its
+earlier hosted evidence again.
+
+The selected buyer-visible gap is the empty Board's missing next action.
+PR #1183 already carries the minimal customer action, an authorized-empty
+regression, and Storybook coverage. Its checked-in synthetic 1440×900 and
+390×844 renders were inspected in this audit: the action and search remain
+legible without horizontal clipping. The local ontology and public-docstring
+tests passed (27/27). These are candidate and layout evidence, not an
+authenticated PostgreSQL/API plus rendered UI Voice acceptance claim. The
+cutoff and Voice composition contracts remain open-ended: twelve atomic
+codes, additional authorized evidence Posts, distinct carrying versus
+derivation Posts, qualified PROV-O, truth status, and retained intervals.
+The paged same-subject JSON-LD union has a focused frontend regression, but
+its authenticated PostgreSQL and browser proof remains unavailable.
+
+The live queue has 197 open PRs, 29 ready and 117 stacked. Ready PR #1182 is
+still at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, with the same
+hosted billing failure and no independent approval. Its ADR 0212, filter API,
+and test changes do not overlap #1183's changed ADR, API, schema, migration,
+or release files. Broader ADR/PRD identity, migration ordinal, and release
+identity conflicts remain open as issues #807, #1048, and #1056. No parent
+was protected-merged, no child retargeted, and no stale run cancelled.
+Authenticated synthetic k6 saturation and capacity evidence remains
+unavailable; no throughput or latency improvement is claimed.
+
 ## Exact-head continuation — 2026-10-26 19:43 UTC
 
 The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
