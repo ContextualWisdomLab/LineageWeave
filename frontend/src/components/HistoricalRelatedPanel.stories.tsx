@@ -21,7 +21,9 @@ export const CutoffEvidence: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Only relationships supported by this date appear here. Open a post to inspect its available history.")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "View related information" })).toHaveAttribute("aria-expanded", "false");
+    const action = canvas.getByRole("button", { name: "View related information" });
+    await expect(action).toHaveAttribute("aria-expanded", "false");
+    await expect(action.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   },
 };
 

@@ -1,5 +1,45 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-26 23:10 UTC
+
+The current LineageWeave PRD and linked repository authorities were read
+before this loop. GitHub confirms canonical `ContextualWisdomLab/LineageWeave`,
+`RankWeave`, `ThreadWeave`, `TEPP`, `fast-mlsirm`, and lowercase `disksage`.
+The product contract remains supporting authority; accepted ADR 0246 defines
+the twelve atomic Voice types, ADR 0256 governs open-ended evidence-bearing
+combinations, and ADR 0252 governs cutoff history. Their cited stakeholder
+research supports distinguishing perspectives, not a fixed combination list
+or a classification weight. TEPP and fast-mlsirm own measurement arithmetic;
+RankWeave owns fusion, ThreadWeave owns threading, and contextual-orchestrator
+owns model, VISION, and embedding routing. No owner computation was copied.
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR
+#1183 is open at pre-edit head `a02d044ab6db17d2ffd36569785109cc91354718`.
+Its two review threads are resolved; the four formal reviews are comments on
+older commits, with no independent approval. The four exact-head Actions
+jobs failed before any runner step (`runner_id: 0`); the Full test job's
+annotation states that the GitHub Actions account is locked for billing.
+CodeRabbit/Devin statuses do not replace those checks or approval. The live
+applicable default-branch rule is only non-fast-forward protection, so normal
+auto-merge could bypass the requested checks and independent approval; it
+remains off. There is no merge SHA.
+
+| Evidence tier | Current observation | Limit |
+| --- | --- | --- |
+| Normative and external | ADRs above and [W3C WCAG 2.2 target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum) distinguish the governed Voice model and pointer target requirement | W3C's 24 px minimum is not a source of Voice classification or measurement policy; the product uses its existing 44 px control token |
+| Candidate implementation | #1183 preserves historical related-evidence cutoff and gives the empty Board an action. This edit expands the dated Related information action's text-height hit area to the existing 44 px touch target. | This documentation edit creates a new head, so earlier hosted receipts do not transfer |
+| Local and rendered evidence | 13 focused ontology tests and 153 frontend tests passed; lint, production build, Storybook build and diff check passed. Synthetic 1440×900 and 390×844 Chromium scenes measured the dated action at 44 px, with no horizontal overflow; collapsed and expanded screenshots were inspected. | Component scenes are not an authenticated customer journey |
+| Non-identifying live aggregate | 197 PRs are open, including 29 ready and 117 stacked; 43 issues are open. #1181 overlaps this baseline; #1177 and #1178 overlap frontend/Storybook files, while #1182 changes ADR 0212 and Post-filter API files without an ADR/API/schema/release-number overlap with #1183. | Queue counts are workflow observations, not a population sample or product metric |
+| Runtime acceptance | The canonical `lineageweave` Compose services exist, but PostgreSQL health reports an input/output error in `etc/passwd`, and the Docker image store also reports input/output errors. | Authenticated PostgreSQL Voice API/UI and synthetic k6 saturation evidence remain unavailable; no volume was deleted or population inference made |
+
+The high-impact Voice acceptance gap remains open: distinct carrying and
+derivation Posts, hidden-evidence denial, truth/cutoff history, and paged
+same-subject JSON-LD union require authenticated PostgreSQL and rendered UI
+proof on a healthy stack. The dated evidence action's touch-target repair is
+a bounded buyer-facing improvement within #1183, with a browser-size
+regression and current synthetic screenshots. It changes no ADR policy,
+endpoint, schema, release number, weight, or numerical method.
+
 ## Exact-head audit — 2026-10-26 21:59 UTC
 
 The current LineageWeave PRD and accepted ADRs 0246 and 0251 were read

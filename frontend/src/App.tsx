@@ -909,7 +909,7 @@ export function HistoricalRelatedPanel({ postId, accessToken, knowledgeCutoff, o
     <section className="popup-section">
       <h3>{t("Related information")}</h3>
       <p className="popup-placeholder">{t("Only relationships supported by this date appear here. Open a post to inspect its available history.")}</p>
-      <button type="button" className="keyman-select" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+      <button type="button" className="keyman-select historical-related-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
         {t("View related information")}
       </button>
       {open ? (
