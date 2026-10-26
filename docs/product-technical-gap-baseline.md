@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-26 16:19 UTC
+## Exact-head continuation — 2026-10-26 16:23 UTC
 
 The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
 checked before this pass. The linked remote authorities were read: TEPP's
@@ -15,14 +15,16 @@ classification weight or population inference from a diagnostic sample.
 
 Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
 Ready PR #1183's pre-documentation head is
-`4246356feb4016a35a2203ea95534099c1e6f602`: four Actions Checks are
-terminal failures, both bot status contexts succeed, both formal review
-threads are resolved, and all four formal reviews are older-head comments.
-There is no independent approval or auto-merge request. GitHub's REST core
-limit was exhausted during this observation, so current job annotations and
-ruleset fields were not re-established; historical billing and ruleset
-observations are not current-head proof. No normal merge or auto-merge is
-safe without the requested independent approval and successful Checks.
+`5e9d7de840e97d90c6e1791fe94ce657f572a04f`: four exact-head Actions
+Checks are terminal failures. Each job has runner ID 0, no steps, and a
+current-head annotation stating that GitHub did not start it because the
+account is locked for billing. The formal review threads are resolved, but
+all four formal reviews are older-head comments; there is no independent
+approval or auto-merge request. The live default-branch ruleset (21065108)
+enforces `non_fast_forward` only and has no bypass actors; classic branch
+protection returns 404. These controls do not enforce the requested
+independent approval and successful Checks, so normal merge and auto-merge
+remain off. The open PR's predicted merge commit is not a merge SHA.
 Publishing this snapshot will create a new PR head; its hosted Checks and
 reviews must be read again at that new head.
 
@@ -33,8 +35,9 @@ tests passed, frontend lint and production build passed, and six
 documentation-hygiene tests passed. The synthetic 1440×900 and 390×844
 screenshots were visually inspected: the action and search remain legible
 without horizontal clipping. A concurrent full frontend run produced failures
-in unrelated Ask and ontology tests and was stopped; full-suite success is
-not claimed. These results establish a local candidate, not authenticated
+in unrelated Ask and ontology tests and was stopped. The three failing tests
+then passed in isolated runs; full-suite success is not claimed. These
+results establish a local candidate, not authenticated
 customer acceptance or protected-main delivery.
 
 GitHub reports 197 open PRs and 43 open issues. Ready PR #1182 remains at
@@ -42,7 +45,8 @@ GitHub reports 197 open PRs and 43 open issues. Ready PR #1182 remains at
 Checks, no independent approval, no unresolved review thread, and no
 auto-merge request. Its ADR 0212, Post-filter API, and tests do not overlap
 #1183's changed ADR, API, schema, migration, or release-version files. The
-other ready UI/baseline branches and stacked branches still require
+focused one-query regression passed again on #1182's unchanged exact head.
+Other ready UI/baseline branches and stacked branches still require
 parent-first reconciliation at their own new heads. No stale run was
 cancelled and no current `main` or open-PR run was interrupted.
 
