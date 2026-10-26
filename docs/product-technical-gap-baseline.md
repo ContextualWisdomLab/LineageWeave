@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 09:14 UTC
+
+The current LineageWeave PRD, ADRs 0246 and 0256, and the linked repositories'
+product or architecture authorities were read before reviewing this head.
+The remote organization listing confirms `LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, `fast-mlsirm`, `contextual-orchestrator`, and lowercase
+`disksage`. ADR 0251 governs occupational semantics separately from the twelve
+atomic Voices and open-ended, evidence-bearing Voice assignments. No authority
+reviewed here supplies a fixed combination code, invented weight, or population
+estimate from a diagnostic sample.
+
+At this read, remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+The pre-update #1183 head is `82c29e17103cc5b77d22def9428ef7c99e783add`;
+its two formal threads are resolved, but all four formal reviews are older-head
+comments and none is an independent approval. Its four Actions jobs are
+terminal failures. The job endpoint is currently rate limited, so the earlier
+account-billing annotation is historical evidence, not a fresh job diagnosis.
+The latest verified ruleset inventory has only a no-force-push rule; a live
+ruleset read was also rate limited. Auto-merge is off because the requested
+independent approval and successful exact-head Checks would not guard it.
+No merge SHA is claimed.
+
+The selected buyer gap remains the empty Board's next action, already
+implemented with a focused regression in #1183. On this exact code head,
+three focused frontend tests, lint, and production build passed locally.
+The synthetic desktop and mobile captures show the next action without
+clipping. These are local candidate checks, not authenticated customer
+acceptance. The previously reported cutoff-navigation findings are addressed
+in the current source: the cutoff follows related/evidence Post navigation,
+and controls without a historical destination are withheld.
+
+Next ready PR #1182 is `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`.
+Its one-query filter projection passed its focused unit test in an isolated
+worktree; the PostgreSQL integration and exact-head load comparison remain
+unverified because the canonical Compose database is unhealthy. It has no
+unresolved review thread or independent approval, and its four hosted jobs
+failed. #1182 edits ADR 0212 and backend query/test files; #1183 edits the
+Board UI and this baseline. These exact diffs have no competing ADR, API,
+schema, migration ordinal, or release-number change. #1177 and #1178 overlap
+the UI or baseline and need reconciliation against their exact heads before
+any parent-first integration. Issues #807, #1048, and #1056 continue to track
+broader PRD, migration, and release-identity conflicts.
+
+The fixed `lineageweave` Compose project has four unhealthy dependencies:
+PostgreSQL, Valkey, orchestrator, and search. No authenticated synthetic k6
+capacity run or saturation comparison was completed on this head. Voice
+carrying-versus-derivation evidence, hidden evidence, cutoff, and paged JSON-LD
+still lack authenticated PostgreSQL/API plus rendered UI acceptance. No
+capacity, population, or protected-delivery claim follows.
+
 ## Exact-head review — 2026-10-26 07:58 UTC
 
 The current LineageWeave PRD and ADRs 0246/0251 were read before this pass,
