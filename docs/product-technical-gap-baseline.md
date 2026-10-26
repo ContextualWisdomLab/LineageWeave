@@ -1,12 +1,12 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-26 15:04 UTC
+## Exact-head continuation — 2026-10-26 15:09 UTC
 
 The LineageWeave PRD and ADRs 0246, 0251, and 0256 were read before this
 review. The linked TEPP, ThreadWeave, and fast-mlsirm PRDs and the
 RankWeave, contextual-orchestrator, and disksage product/architecture
-authorities were checked in local worktrees; GitHub's content API was rate
-limited, so those local copies are not fresh remote-main proof. Remote
+authorities were checked on freshly fetched remote `main` refs. GitHub's
+content API was rate limited, but Git fetch succeeded. Remote
 repository metadata confirmed the canonical `LineageWeave`, `RankWeave`,
 `ThreadWeave`, `TEPP`, `fast-mlsirm`, `contextual-orchestrator`, and lowercase
 `disksage` names. Accepted ADRs preserve twelve atomic Voices, open-ended
@@ -15,8 +15,8 @@ support no fixed compound code, inferred weight, or population claim from a
 diagnostic sample.
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR
-#1183's pre-documentation head is
-`1515d687de1251b4b8525ba67b215c412e4f502e`. Its four hosted Actions
+#1183's pre-update head is
+`1eaed4a35a8f187c4e8ca028afcee334bfe5e7e6`. Its four hosted Actions
 Checks are terminal failures, its current formal review decision has no
 approval, and auto-merge is off. The live ruleset endpoint is rate limited;
 the earlier ruleset observation cannot certify its present approval or Checks
@@ -32,10 +32,12 @@ desktop and mobile rendered captures: the action is legible and neither view
 clips horizontally. Six documentation-hygiene tests, frontend lint and build,
 and the focused empty-Board regression passed locally. A broader frontend
 test run showed failures in OperationsDashboard and OntologyExplorer tests
-before it was interrupted; full-suite success is unproven. These are
+before it was interrupted. Those two files then passed alone (41 tests);
+full-suite success is unproven. These are
 candidate checks, not authenticated runtime acceptance. Ready PR #1182 remains at
 `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` with four failed hosted
-Checks, no approval, and no auto-merge. Its ADR 0212 and Post-filter files do
+Checks, no approval, and no auto-merge. Its focused one-query regression passed
+in the isolated exact-head worktree. Its ADR 0212 and Post-filter files do
 not overlap #1183's changed ADR, API, schema, or release-number surface; other
 open branches still need reconciliation on their own exact heads.
 
