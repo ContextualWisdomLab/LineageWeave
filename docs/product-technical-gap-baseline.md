@@ -1,5 +1,63 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 18:36 UTC
+
+The current [PRD](product-requirements.md) and accepted ADRs 0246, 0251,
+0252, and 0256 were read before this review. Remote `main` remains
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. The linked product
+authorities were read on their canonical remote `main` branches: ThreadWeave
+and fast-mlsirm PRDs, TEPP's approved v0.4 PRD, RankWeave architecture,
+contextual-orchestrator's product plan and architecture, and the lowercase
+`ContextualWisdomLab/disksage` README. The remote repository listing confirms
+the canonical case of `LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP`.
+The cited stakeholder literature supports distinguishing perspectives, but
+does not define the product's exact twelve codes or a finite combination
+catalog. ADR 0251 governs occupational psychology separately. No weight,
+psychometric result, or population inference is inferred here.
+
+Ready PR #1183 is open at `419e821609f02368ae974d4eaa5d92f6cbe92772`
+against that `main` head. Its two formal review threads are resolved and
+outdated; four formal reviews are older-head comments, with no independent
+approval. The two latest outside-diff bot findings are not current defects:
+the Counterparty evidence action is excluded from cutoff views, and the
+R&R/Affiliate controls whose destination cannot retain a cutoff are likewise
+excluded. The current code passes the cutoff to the historical related view
+and keeps the live-body warning separate from the cutoff value. Its four
+exact-head Actions jobs failed before any runner step; current-head check
+annotations say the GitHub account is locked for billing. This is a hosted
+execution blocker, not a local test failure. The active branch ruleset only
+forbids non-fast-forward pushes, and classic branch protection returns 404.
+Because those controls do not enforce independent approval and successful
+Checks, neither a normal merge nor auto-merge is armed. No merge SHA exists.
+
+The selected user-visible gap is the empty Board's missing next action. PR
+#1183 contains the minimal action copy and its authorized-empty/search
+regression. On this head, the focused Board and cutoff frontend run passed
+11 tests, the scoped ontology and public-docstring run passed 39 tests,
+frontend lint passed, and the production build passed with the existing
+559.51 kB chunk warning tracked by issue #1012. Its synthetic 1440×900 and
+390×844 Board captures were inspected: the next action and search control are
+legible without horizontal clipping. This is a locally verified candidate,
+not authenticated customer acceptance or protected-main delivery.
+
+The live listing has 197 open PRs, including 29 ready and 117 based outside
+`main`. Ready PR #1182 is still at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`; its ADR 0212, Post-filter
+API, and test files do not overlap #1183's ADR, API, schema, migration, or
+release-number files. Other stacks require parent-first protected delivery
+and new exact-head evidence after retargeting. Issues #807, #1048, and #1056
+continue to track the broader PRD identity, migration ordinal, and release
+identity conflicts.
+
+The fixed `lineageweave` Compose services are running, but PostgreSQL,
+Valkey, orchestrator, and search currently report unhealthy. Authenticated
+synthetic k6 capacity measurements and PostgreSQL/API plus rendered UI
+acceptance of Voice carrying versus derivation Posts, truth/cutoff behavior,
+hidden evidence, and paged JSON-LD union remain unavailable. No current
+database, saturation, or population claim follows from local fixtures or
+screenshots. This documentation update creates a new PR head; hosted Checks,
+reviews, and base compatibility must be read again for that head.
+
 ## Exact-head continuation — 2026-10-26 17:27 UTC
 
 The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
