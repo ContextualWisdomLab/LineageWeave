@@ -1,5 +1,51 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-26 13:43 UTC
+
+The current LineageWeave PRD was read before this pass. Remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb`. The linked protected-main
+authorities are RankWeave's architecture, ThreadWeave's PRD, TEPP's
+architecture, contextual-orchestrator's architecture, and the README in
+lowercase `ContextualWisdomLab/disksage`, which has no protected-main PRD.
+ADR 0246 governs twelve atomic Voices, ADR 0256 governs evidence-bearing
+open-ended combinations and cutoff history, and ADR 0251 governs a separate
+occupational semantic layer. The cited research does not license a fixed
+compound Voice code, invented numeric weight, or population inference from a
+diagnostic sample.
+
+Ready PR #1183's pre-update head is
+`18169900bd14f6b29db56ccd9864db4a35583d56`. Its four exact-head Actions
+jobs are terminal failures with runner ID 0 and no steps. The Full test suite's
+current-head annotation attributes this to an account billing lock before any
+runner step ran. Formal reviews are
+comments on older commits, not independent approval. The live default-branch
+ruleset has only `non_fast_forward`, with no bypass actors; classic branch
+protection is absent. Accordingly normal auto-merge is off because it would
+not enforce the requested approval and successful Checks. No merge SHA or
+protected delivery is claimed. The buyer's empty Board action and regression
+are already implemented on this PR; the synthetic desktop and mobile captures
+show the action without clipping, while authenticated acceptance remains
+unproven. Two focused Board/cutoff frontend tests and six documentation-hygiene
+tests passed locally. A broader frontend run was interrupted after unrelated
+timing failures, and a first focused retry timed out starting a test worker;
+the complete frontend suite has no passing exact-head result from this pass.
+
+The live queue contains 197 open PRs, including 29 ready and 117 stacked;
+none has auto-merge enabled. Ready PR #1182 is still at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, with four failed hosted
+Checks and no independent approval. #1182 changes ADR 0212 and the Post-filter
+query/tests; #1183 changes the Board and this baseline. Their exact diffs
+do not compete over ADR, API, schema, migration ordinal, or release number.
+The broader identity, migration-ordinal, and release-version conflicts remain
+tracked by open issues #807, #1048, and #1056.
+
+The fixed `lineageweave` Compose project is running, but PostgreSQL, Valkey,
+the orchestrator, and search are unhealthy. An authenticated synthetic k6
+capacity run and saturation diagnosis therefore remain unavailable. Voice
+carrying versus derivation evidence, hidden evidence, cutoff, and paged JSON-LD
+union still lack authenticated PostgreSQL/API plus rendered UI acceptance.
+No population estimate follows from the current diagnostic evidence.
+
 ## Exact-head continuation — 2026-10-26 12:36 UTC
 
 The current PRD and ADRs 0246, 0251, and 0256 were checked against the
