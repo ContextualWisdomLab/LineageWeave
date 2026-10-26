@@ -1,5 +1,58 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 16:19 UTC
+
+The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
+checked before this pass. The linked remote authorities were read: TEPP's
+approved v0.4 PRD, ThreadWeave's PRD, fast-mlsirm's PRD, RankWeave's
+architecture, contextual-orchestrator's product plan and architecture, and
+lowercase `ContextualWisdomLab/disksage`'s README (no protected-main PRD).
+The remote organization listing confirms the canonical repository case.
+ADRs 0246 and 0256 permit twelve atomic Voices and evidence-bearing,
+open-ended combinations, not fixed compound codes; ADR 0251 governs a
+separate occupational semantic layer. No reviewed authority supplies a
+classification weight or population inference from a diagnostic sample.
+
+Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183's pre-documentation head is
+`4246356feb4016a35a2203ea95534099c1e6f602`: four Actions Checks are
+terminal failures, both bot status contexts succeed, both formal review
+threads are resolved, and all four formal reviews are older-head comments.
+There is no independent approval or auto-merge request. GitHub's REST core
+limit was exhausted during this observation, so current job annotations and
+ruleset fields were not re-established; historical billing and ruleset
+observations are not current-head proof. No normal merge or auto-merge is
+safe without the requested independent approval and successful Checks.
+Publishing this snapshot will create a new PR head; its hosted Checks and
+reviews must be read again at that new head.
+
+The selected buyer gap remains the empty Board's missing next action. #1183
+contains the minimal customer action copy and its authorized-empty/search
+regression. On this exact head, the two focused Board and historical-related
+tests passed, frontend lint and production build passed, and six
+documentation-hygiene tests passed. The synthetic 1440×900 and 390×844
+screenshots were visually inspected: the action and search remain legible
+without horizontal clipping. A concurrent full frontend run produced failures
+in unrelated Ask and ontology tests and was stopped; full-suite success is
+not claimed. These results establish a local candidate, not authenticated
+customer acceptance or protected-main delivery.
+
+GitHub reports 197 open PRs and 43 open issues. Ready PR #1182 remains at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, with four failed Actions
+Checks, no independent approval, no unresolved review thread, and no
+auto-merge request. Its ADR 0212, Post-filter API, and tests do not overlap
+#1183's changed ADR, API, schema, migration, or release-version files. The
+other ready UI/baseline branches and stacked branches still require
+parent-first reconciliation at their own new heads. No stale run was
+cancelled and no current `main` or open-PR run was interrupted.
+
+The fixed `lineageweave` Compose project is running, but PostgreSQL, Valkey,
+orchestrator, and search report unhealthy. Authenticated synthetic k6
+saturation measurements and PostgreSQL/API plus rendered desktop/mobile
+Voice acceptance for carrying versus derivation evidence, hidden evidence,
+cutoff, and paged JSON-LD union remain unavailable. No throughput or
+population claim follows from this observation.
+
 ## Exact-head continuation — 2026-10-26 15:09 UTC
 
 The LineageWeave PRD and ADRs 0246, 0251, and 0256 were read before this
