@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 06:49 UTC
+
+Before the PR loop, the current LineageWeave PRD and ADRs 0246/0251/0256
+were checked against the linked repositories' protected-main product or
+architecture authorities. Remote refs confirmed the canonical repository
+spellings `LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and lowercase
+`disksage`. The twelve atomic Voices and open-ended, evidence-bearing
+combinations remain separate from the occupational taxonomy. No authority
+supports an invented combination code, weight, or population estimate.
+
+Protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 and this checkout are
+`eb6210aef073276748cb07a6cd8c012629745eff` before this edit. Its two
+review threads are resolved and outdated; four formal reviews are comments on
+older commits, with no independent approval. Four exact-head Actions checks
+are terminal failures. The REST job-detail request hit the GitHub API rate
+limit, so this pass cannot independently assign their cause. No merge SHA
+exists. Auto-merge remains off because the observed review and check state
+does not satisfy the requested delivery conditions; the most recent ruleset
+observation in the preceding entry requires a fresh check before any merge.
+
+The selected customer gap remains the empty Board's next action. PR #1183
+implements it and tests that unsubmitted search text does not hide the
+guidance. The focused App and ontology explorer run passed 153/153 tests;
+documentation hygiene passed 6/6. The existing synthetic desktop and mobile
+captures were visually inspected in this pass: the action and search field
+remain readable without horizontal clipping. An accidental whole-suite Vitest
+invocation was stopped after unrelated five-second test timeouts; the focused
+two-file rerun passed. This is candidate evidence, not protected-main or
+authenticated customer acceptance.
+
+The `lineageweave` Compose project is running, but PostgreSQL, Valkey,
+orchestrator, and search currently report unhealthy. No nonempty authorized
+token file is configured for authenticated API acceptance or synthetic k6.
+Carrying-Post versus derivation-evidence navigation, hidden-evidence denial,
+cutoff, paged JSON-LD union, and rendered Voice acceptance therefore remain
+unverified. No concurrency, latency, error-rate, throughput, or service
+saturation conclusion follows from this pass.
+
+There are 197 open PRs and 43 open issues. Independent PR #1182 at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a` has no review threads or
+independent approval; its four hosted checks are terminal failures. Its
+authorized Post filter query and ADR 0212 do not overlap #1183's API, schema,
+migration ordinal, or release identity. The older-head automated review says
+it found no issue; that comment is not exact-head approval. PR #1181 edits
+this baseline, and #1177/#1178 overlap #1183's UI or ontology areas; their
+changes need parent-first exact-head reconciliation before integration. No
+stale run was cancelled and no current `main` or open-PR run was touched.
+
 ## Exact-head review — 2026-10-26 05:38 UTC
 
 The current PRD, ADRs 0246/0251/0252/0256, and the linked repositories'
