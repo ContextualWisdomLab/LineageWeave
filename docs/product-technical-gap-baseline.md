@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head continuation — 2026-10-26 16:23 UTC
+## Exact-head continuation — 2026-10-26 17:27 UTC
 
 The current LineageWeave PRD and accepted ADRs 0246, 0251, and 0256 were
 checked before this pass. The linked remote authorities were read: TEPP's
@@ -15,40 +15,45 @@ classification weight or population inference from a diagnostic sample.
 
 Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
 Ready PR #1183's pre-documentation head is
-`5e9d7de840e97d90c6e1791fe94ce657f572a04f`: four exact-head Actions
-Checks are terminal failures. Each job has runner ID 0, no steps, and a
-current-head annotation stating that GitHub did not start it because the
-account is locked for billing. The formal review threads are resolved, but
-all four formal reviews are older-head comments; there is no independent
-approval or auto-merge request. The live default-branch ruleset (21065108)
-enforces `non_fast_forward` only and has no bypass actors; classic branch
-protection returns 404. These controls do not enforce the requested
+`2546836d47cbc3441ab1a3e224b21ab459d409ae`. Its four exact-head Actions
+Checks are terminal failures. The Full suite and frontend jobs have runner ID
+0 and no steps; the Full suite's current-head annotation says GitHub did not
+start it because the account is locked for billing. Both formal review
+threads are resolved and outdated. All four formal reviews are older-head
+comments, with no independent approval or auto-merge request. The newer
+outside-diff comments about Counterparty evidence and person/organization
+buttons describe paths now gated out of the cutoff view; the current source
+and focused regression confirm this. The live default-branch ruleset
+(21065108) enforces `non_fast_forward` only and has no bypass actors; classic
+branch protection returns 404. These controls do not enforce the requested
 independent approval and successful Checks, so normal merge and auto-merge
-remain off. The open PR's predicted merge commit is not a merge SHA.
-Publishing this snapshot will create a new PR head; its hosted Checks and
-reviews must be read again at that new head.
+remain off. The open PR's predicted merge commit is not a merge SHA. Publishing
+this snapshot creates a new PR head; hosted Checks and reviews must be read
+again at that head.
 
 The selected buyer gap remains the empty Board's missing next action. #1183
 contains the minimal customer action copy and its authorized-empty/search
-regression. On this exact head, the two focused Board and historical-related
-tests passed, frontend lint and production build passed, and six
-documentation-hygiene tests passed. The synthetic 1440×900 and 390×844
+regression. On this exact head, the empty-Board and two cutoff-related focused
+tests passed (3/3). The scoped Voice/ontology/documentation Python run passed
+31 tests (five deselected); the layout/explorer frontend run passed 68 tests.
+Frontend lint and production build passed; the build still warns about its
+559.51 kB main chunk (issue #1012). The synthetic 1440×900 and 390×844
 screenshots were visually inspected: the action and search remain legible
-without horizontal clipping. A concurrent full frontend run produced failures
-in unrelated Ask and ontology tests and was stopped. The three failing tests
-then passed in isolated runs; full-suite success is not claimed. These
-results establish a local candidate, not authenticated
+without horizontal clipping. A full frontend suite has no passing
+current-head result. This establishes a local candidate, not authenticated
 customer acceptance or protected-main delivery.
 
-GitHub reports 197 open PRs and 43 open issues. Ready PR #1182 remains at
+GitHub reports 197 open PRs (29 ready, 117 stacked) and 43 open issues. Ready PR #1182 remains at
 `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, with four failed Actions
 Checks, no independent approval, no unresolved review thread, and no
-auto-merge request. Its ADR 0212, Post-filter API, and tests do not overlap
+auto-merge request. Its only formal review is an older-head comment with no
+finding. Its ADR 0212, Post-filter API, and tests do not overlap
 #1183's changed ADR, API, schema, migration, or release-version files. The
-focused one-query regression passed again on #1182's unchanged exact head.
 Other ready UI/baseline branches and stacked branches still require
-parent-first reconciliation at their own new heads. No stale run was
-cancelled and no current `main` or open-PR run was interrupted.
+parent-first reconciliation at their own new heads. ADR 0252/0256 overlap,
+the repeated migration ordinal, and package/runtime release identity remain
+tracked by issues #807, #1048, and #1056; no conflicting change was merged.
+No stale run was cancelled and no current `main` or open-PR run was interrupted.
 
 The fixed `lineageweave` Compose project is running, but PostgreSQL, Valkey,
 orchestrator, and search report unhealthy. Authenticated synthetic k6
