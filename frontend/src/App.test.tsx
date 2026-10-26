@@ -2747,6 +2747,8 @@ describe("App, authenticated", () => {
     );
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
     expect(within(board).queryByRole("group", { name: "Filter by VOC type" })).not.toBeInTheDocument();
+    expect(within(board).queryByRole("combobox", { name: "Filter by visibility" })).not.toBeInTheDocument();
+    expect(within(board).queryByRole("combobox", { name: "Sort posts" })).not.toBeInTheDocument();
     expect(within(board).queryByText(/make seed/)).not.toBeInTheDocument();
     await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "draft query");
     expect(within(board).getByRole("status")).toHaveTextContent(
@@ -2754,6 +2756,8 @@ describe("App, authenticated", () => {
     );
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));
     expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
+    expect(within(board).getByRole("combobox", { name: "Filter by visibility" })).toBeInTheDocument();
+    expect(within(board).getByRole("combobox", { name: "Sort posts" })).toBeInTheDocument();
   });
 
   it("hides the previous result set while a new board search is pending", async () => {

@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 04:22 UTC
+
+The current LineageWeave PRD and the linked repositories' product or
+architecture authorities were read before this pass. Remote metadata confirms
+`ContextualWisdomLab/LineageWeave`, `RankWeave`, `ThreadWeave`, `TEPP`, and
+lowercase `disksage`. ADR 0246's twelve atomic Voices and ADR 0256's
+evidence-bearing, open-ended assignments remain separate from ADR 0251's
+occupational semantics. No fixed combination, weight, or population estimate
+was inferred from these authorities or diagnostic observations.
+
+The observed protected `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 and this checkout were
+`f6a3ad853b34156b17640fa0752d88ba4db46ed1` before this edit. Its
+exact-head CodeQL and test jobs were terminal failures before steps ran; the
+Full test annotation says the account is locked for billing. The
+formal review state showed no independent approval. Its two review threads are
+resolved. The live ruleset inventory has only active no-force-push rule
+`21065108`; it does not enforce approval or successful checks. Enabling
+auto-merge here could bypass this task's independent-review and successful-check
+conditions, so it remains off. No merge SHA exists.
+
+The selected buyer gap in #1183 is the empty Board's next action. This pass
+keeps its search and access guidance visible while omitting visibility and
+sort controls that have nothing to operate on. Once a reader submits a search,
+those controls return so the no-match state remains recoverable. The existing
+Storybook Board scene and regression test cover both states. New synthetic
+1440×900 and 390×844 screenshots were visually inspected: the action remains
+readable, and neither viewport overflows horizontally. These are candidate UI
+observations, not authenticated customer acceptance.
+
+Frontend lint, production build, all 153 tests in the focused App and ontology
+explorer files, and 45 Python ontology/SHACL/docstring tests passed. The first
+frontend run had four 5-second timeouts while Storybook started concurrently;
+the rerun without that contention passed all 153 tests. The build retained its
+existing large application-chunk warning.
+
+The canonical `lineageweave` Compose project is running, but PostgreSQL,
+Valkey, orchestrator, and search report unhealthy. PostgreSQL container exec
+fails with a container-filesystem I/O error; its data volume was left intact.
+No operator-supplied synthetic access-token file is available for authenticated
+k6, so this pass establishes no concurrency, latency, error-rate, throughput,
+or service-saturation claim. Authenticated PostgreSQL/API and rendered Voice
+proof for distinct carrying and derivation Posts, hidden evidence, cutoff, and
+paged JSON-LD union remain unaccepted. PR #1182 independently edits Board
+filter queries and ADR 0212; #1181 edits this baseline; #1177 and #1178
+overlap #1183's UI or ontology tests. The observed newest candidates introduce
+no competing API, schema, migration ordinal, or release number; older
+conflicts listed below still need current-head reconciliation before merge.
+
 ## Exact-head continuation — 2026-10-26 03:00 UTC
 
 The supporting LineageWeave PRD and the protected-main product authorities for

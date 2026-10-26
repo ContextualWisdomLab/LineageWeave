@@ -4458,6 +4458,7 @@ export function PostList({
       return direction * left.created_at.localeCompare(right.created_at);
     });
   const hasBoardFilters = Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const emptyUnfilteredBoard = totalPosts === 0 && !hasBoardFilters;
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -4548,7 +4549,7 @@ export function PostList({
                 ))}
               </fieldset>
             ) : null}
-            <label>
+            {!emptyUnfilteredBoard && <label>
               {t("Filter by visibility")}
               <select
                 value={visibilityFilter}
@@ -4562,8 +4563,8 @@ export function PostList({
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
+            </label>}
+            {!emptyUnfilteredBoard && <label>
               {t("Sort posts")}
               <select
                 value={sortOrder}
@@ -4574,7 +4575,7 @@ export function PostList({
                 <option value="oldest">{t("Oldest first")}</option>
                 <option value="title">{t("Title A-Z")}</option>
               </select>
-            </label>
+            </label>}
             {hasBoardFilters && (
               <button type="reset" className="board-reset">
                 {t("Reset filters")}
