@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-## Exact-head review — 2026-10-26 13:43 UTC
+## Exact-head review — 2026-10-26 13:54 UTC
 
 The current LineageWeave PRD was read before this pass. Remote `main` is
 `91c3e1c7411f56408e4ce61417479ace36ff40cb`. The linked protected-main
@@ -14,11 +14,12 @@ compound Voice code, invented numeric weight, or population inference from a
 diagnostic sample.
 
 Ready PR #1183's pre-update head is
-`18169900bd14f6b29db56ccd9864db4a35583d56`. Its four exact-head Actions
-jobs are terminal failures with runner ID 0 and no steps. The Full test suite's
-current-head annotation attributes this to an account billing lock before any
-runner step ran. Formal reviews are
-comments on older commits, not independent approval. The live default-branch
+`d6bc5004af4abf495ff1ba6a2e688b5ab240a346`. Its four exact-head Actions
+Checks are terminal failures. Both Tests jobs have runner ID 0 and no steps.
+The Full test suite's current-head annotation attributes this to an account
+billing lock before any
+runner step ran. Both formal review threads are resolved and outdated; four
+formal reviews are comments on older commits, not independent approval. The live default-branch
 ruleset has only `non_fast_forward`, with no bypass actors; classic branch
 protection is absent. Accordingly normal auto-merge is off because it would
 not enforce the requested approval and successful Checks. No merge SHA or
@@ -36,6 +37,16 @@ none has auto-merge enabled. Ready PR #1182 is still at
 Checks and no independent approval. #1182 changes ADR 0212 and the Post-filter
 query/tests; #1183 changes the Board and this baseline. Their exact diffs
 do not compete over ADR, API, schema, migration ordinal, or release number.
+The #1182 exact-head one-query regression passed locally (1/1), while its
+authenticated PostgreSQL and load comparison remain unavailable. Other ready
+branches do overlap: #1177 and #1178 touch #1183's UI or Storybook files;
+#1181, #1174, and #1170 touch this baseline. #1130 and #1155 propose the
+same ADR 0252/0256 corrections, while #1177 also edits ADR 0256. #1133,
+#1137, and #1169 each edit `pyproject.toml`; their dependency edits differ,
+but any integration must reconcile the lock and release identity at the new
+head. #1168 proposes migration ordinal 0252. These candidates require
+parent-first reconciliation and fresh checks; overlap alone proves neither a
+merged conflict nor delivery.
 The broader identity, migration-ordinal, and release-version conflicts remain
 tracked by open issues #807, #1048, and #1056.
 
