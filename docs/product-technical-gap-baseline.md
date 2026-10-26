@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+## Exact-head review — 2026-10-26 05:38 UTC
+
+The current PRD, ADRs 0246/0251/0252/0256, and the linked repositories'
+current product or architecture authorities were read before this review.
+Remote repository metadata confirms the canonical `LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage` spellings. The twelve atomic
+Voices and evidence-bearing open-ended combinations remain distinct from the
+occupational semantic taxonomy. None of those authorities licenses fixed
+combination codes, invented weights, or population inference from diagnostic
+convenience observations.
+
+Protected `main` was `91c3e1c7411f56408e4ce61417479ace36ff40cb` and
+ready PR #1183 was `bc2618606400a010da851d058f6723f4112788a5` before
+this documentation edit. Its two formal review threads are resolved and
+outdated; all four submitted reviews are comments on older heads, with no
+independent approval. Four current-head Actions jobs failed before runner
+steps (`runner_id: 0`); the Full test annotation reports an account billing
+lock, so those checks did not test the code. The sole active `main` ruleset
+prohibits force pushes; classic branch protection is absent. Normal auto-merge
+would not enforce the requested independent review and passing checks, so it
+remains off. No merge SHA exists.
+
+The selected buyer-facing gap in this candidate is the empty Board's next
+action: a reader sees how to obtain records or access, while an unsubmitted
+search does not erase that guidance. The current desktop and mobile synthetic
+captures were inspected again; both show the action without clipping. The
+candidate also keeps dated related-information navigation on the cutoff-aware
+ontology graph; current-only relation endpoints are omitted in that view.
+These regressions and synthetic captures do not establish authenticated UI
+acceptance on protected `main`. In this pass, 152 of 153 focused frontend
+tests passed on the first run; one unrelated affiliate-tree test exceeded its
+five-second timeout under the full two-file run and passed on an isolated
+rerun together with the empty-Board and historical-cutoff regressions
+(4 passed). All six documentation-hygiene tests passed. No assertion failure
+was observed in the first run.
+
+The canonical `lineageweave` project still has an unhealthy PostgreSQL service;
+its latest health probe failed with a filesystem I/O error. The authenticated
+k6 token file is unavailable in this environment. No new authenticated Voice
+PostgreSQL/API and rendered UI acceptance, or concurrency, latency, error-rate,
+throughput, and service-saturation evidence can be claimed. The data volume
+was not reset. PR #1182 independently changes authorized Board filter queries;
+#1181 edits this baseline, while #1177/#1178 overlap UI or ontology coverage.
+No new API, schema, migration ordinal, or release-number conflict was found
+between the current #1183 and #1182 diffs; older proposals still require
+parent-first reconciliation before merge. This edit creates a new head whose
+checks and review must be collected again.
+
 ## Exact-head continuation — 2026-10-26 04:22 UTC
 
 The current LineageWeave PRD and the linked repositories' product or
