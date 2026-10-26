@@ -1,5 +1,44 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-26 11:30 UTC
+
+The current PRD and ADRs 0246, 0251, and 0256 were checked against the
+protected-main product or architecture authorities for RankWeave, ThreadWeave,
+TEPP, contextual-orchestrator, and disksage. The remote organization lists the
+last repository as lowercase `disksage`. These authorities keep the twelve
+atomic Voices, open-ended evidence-bearing combinations, occupational
+constructs, and measurement separate. They supply no fixed compound Voice
+codes, inferred weights, or population estimate for convenience samples.
+
+At this review, remote `main` is
+`91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready PR #1183 is
+`6cafc929667405757cb16b8114e28e9d1837c962`. Its two earlier review
+findings are addressed in the candidate code, but the formal reviews are
+older-head comments and no independent approval exists. Four Checks on this
+exact head failed. The Full suite annotation reports an
+account billing lock, with runner ID 0 and no steps. The live rules endpoint
+returns only `non_fast_forward`; classic branch protection returns 404.
+Normal auto-merge is therefore off: these live controls cannot enforce the
+requested independent approval and successful Checks. The open PR's predicted
+merge commit is not delivery evidence.
+
+The selected buyer gap is still the empty Board's missing next action. #1183
+contains the minimal action copy and regression. On the reviewed head, two
+focused frontend tests and six documentation-hygiene tests passed locally.
+The existing synthetic 1440×900 and 390×844 screenshots were inspected again:
+the action is legible in both. This does not establish authenticated customer
+acceptance. Ready PR #1182 is still
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`; it edits ADR 0212 and a
+backend query, while #1183 edits the Board and this baseline. Their current
+diffs have no competing ADR, API, schema, migration, or release-number edit.
+Open issues #807, #1048, and #1056 still track broader identity conflicts.
+
+The fixed `lineageweave` Compose project has unhealthy PostgreSQL, Valkey,
+orchestrator, and search services. No authenticated synthetic k6 saturation
+measurement or PostgreSQL/API plus rendered UI acceptance was obtained for
+Voice carrying versus derivation evidence, hidden evidence, cutoff, or paged
+JSON-LD union. Those outcomes remain unavailable.
+
 ## Exact-head review — 2026-10-26 10:25 UTC
 
 The LineageWeave PRD, ADRs 0246/0251/0256, and the linked product or
