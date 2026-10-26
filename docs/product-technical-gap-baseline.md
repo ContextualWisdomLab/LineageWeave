@@ -1,5 +1,54 @@
 # Product & Technical Gap Baseline
 
+## Exact-head audit — 2026-10-26 00:39 UTC
+
+Remote `main` remains `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 and this checkout were
+`eaf914500513773115dce4f71ac683fe17cc525d` at the audit. Both review
+threads are resolved and outdated; all four formal reviews are `COMMENTED` on
+older commits, with no independent approval. The exact-head full suite and
+frontend jobs failed before a runner started (`runner_id: 0`); their check
+annotation says the Actions account is locked for billing. CodeQL is also
+terminal failure. None is a hosted code-test verdict. The active ruleset only
+prevents force pushes and `main` has no classic branch protection. Normal
+auto-merge would not enforce independent approval or successful checks, so it
+remains off and there is no merge SHA. This documentation edit needs fresh
+exact-head review and Checks.
+
+The current PRD, accepted ADRs 0246/0252/0256, and current remote ecosystem
+product authorities preserve twelve atomic Voices, extensible per-assignment
+composition, authorized evidence, PROV-O derivation, truth state, and cutoff.
+ADR 0251 governs the separate occupational semantic layer. Remote repository
+identity confirms canonical `ContextualWisdomLab/LineageWeave`, `RankWeave`,
+`ThreadWeave`, `TEPP`, and lowercase `disksage`. No source establishes a fixed
+combination code, numeric weight, or population estimate.
+
+PR #1183's current implementation keeps the empty Board's add-record/access
+next action visible while a reader drafts a search and distinguishes a
+submitted no-match result. Its historical related-information path uses the
+cutoff-aware neighborhood instead of current-only relation endpoints. Local
+synthetic validation on this implementation passed 55 ontology/SHACL tests,
+18 focused Board and historical frontend tests, the two focused refocus
+regressions, frontend lint, and the production build. A broad frontend run
+reported one refocus failure while other workers were active; its isolated
+two-case rerun passed, so full-suite success is unproven. The build retains a
+559.46 kB application-chunk warning. Checked-in synthetic desktop and mobile
+Board screenshots were visually inspected: controls and next-action text are
+readable without clipping. Authenticated rendering remains unverified.
+
+The remote has 197 open PRs and 43 open issues. PR #1182 changes the authorized
+Board-filter query and ADR 0212; its exact head has no line-review comment or
+independent approval, and hosted jobs share the terminal failure state. PR
+#1181 independently edits this baseline. #1183 adds no ADR, API, schema,
+migration, or release identifier; #1182 adds no migration or release identifier.
+Shared baseline and API changes need integration review after either head
+moves. The `lineageweave` Compose project is running, but PostgreSQL, Valkey,
+orchestrator, and search are unhealthy. No authenticated synthetic k6 result
+measures concurrency, latency, errors, throughput, or service saturation on
+this head, so no bottleneck repair is claimed. Authenticated PostgreSQL/API
+and rendered Voice proof of carrying versus derivation evidence, hidden
+evidence, cutoff, and paged JSON-LD union remains unavailable.
+
 ## Exact-head audit — 2026-10-25 23:30 UTC
 
 Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
