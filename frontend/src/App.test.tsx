@@ -2326,6 +2326,35 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
+  it("clears the previous answer while a new question is pending", async () => {
+    stubBackend();
+    const backend = globalThis.fetch;
+    let secondAsk = 0;
+    let releaseSecondAsk: ((response: Response) => void) | undefined;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/ask") && init?.method === "POST" && ++secondAsk === 2) {
+        return new Promise<Response>((resolve) => { releaseSecondAsk = resolve; });
+      }
+      return backend(input, init);
+    }));
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    const question = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(question, "First question?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByText("The cited project is supported by the stored semantic evidence.")).toBeInTheDocument();
+
+    await userEvent.clear(question);
+    await userEvent.type(question, "Second question?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(screen.getByRole("button", { name: "Asking..." })).toBeDisabled();
+    expect(screen.queryByText("The cited project is supported by the stored semantic evidence.")).not.toBeInTheDocument();
+
+    releaseSecondAsk?.(jsonResponse({ ask_job_id: "ask-job-2", job_status_code: "queued" }));
+    expect(await screen.findByText("The cited project is supported by the stored semantic evidence.")).toBeInTheDocument();
+  });
+
   it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
     const fetchMock = stubBackend();
     render(<App />);

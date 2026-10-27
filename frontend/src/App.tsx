@@ -5256,6 +5256,7 @@ export function AskAgentPanel({
     }
     setAsking(true);
     setError(null);
+    setAnswer(null);
     try {
       setAnswer(
         await askAgent(

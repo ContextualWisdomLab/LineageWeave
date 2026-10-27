@@ -63,3 +63,20 @@ export const NarrowViewport: Story = {
   ...PartialHistoricalEvidence,
   globals: { viewport: { value: "mobile1", isRotated: false } },
 };
+
+export const PendingFollowup: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const question = canvas.getByLabelText("Ask a question");
+    await userEvent.type(question, "What was known about Apollo?");
+    await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
+    await expect(canvas.findByText("The retained revision supports the historical answer.")).resolves.toBeVisible();
+
+    globalThis.fetch = () => new Promise<Response>(() => undefined);
+    await userEvent.clear(question);
+    await userEvent.type(question, "What changed later?");
+    await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
+    await expect(canvas.getByRole("button", { name: "Asking..." })).toBeDisabled();
+    await expect(canvas.queryByText("The retained revision supports the historical answer.")).toBeNull();
+  },
+};

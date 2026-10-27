@@ -1,5 +1,53 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-27 04:10 UTC
+
+The LineageWeave PRD and ADRs 0246/0251 were read before this continuation,
+alongside the linked product or architecture authorities in the local
+RankWeave, ThreadWeave, TEPP, fast-mlsirm, lowercase `disksage`, and
+contextual-orchestrator checkouts. GitHub's organization listing confirmed
+the remote repository case for LineageWeave, RankWeave, ThreadWeave, TEPP,
+`disksage`, and contextual-orchestrator. The PRD remains supporting product
+authority; accepted ADRs govern the twelve atomic Voices, open-ended
+evidence-bearing combinations, and cutoff history. The cited research does
+not authorize a combination enumeration or numeric weight.
+
+Remote `main` was `91c3e1c7411f56408e4ce61417479ace36ff40cb`.
+Ready PR #1183 was open at exact head
+`8e02136e10b8b42bd8c55e7c0a86166fcc83d09b`; its two formal review
+threads were resolved, but its four recorded reviews were comments on older
+commits and there was no independent approval. Four exact-head Actions jobs
+were terminal failures; the REST rate limit prevented retrieving fresh job
+annotations or the applicable ruleset. GraphQL confirmed no auto-merge
+request. These results provide neither passing hosted checks nor a safe
+protected merge, and no merge SHA exists. Ready #1182 was independently read
+at `4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`: its four Actions jobs
+also failed and its review decision was empty. Its ADR 0212 and Post-filter
+API files have no direct file, schema, or release-identity overlap with
+#1183. The baseline and frontend overlaps with #1181/#1177/#1178 still need
+reconciliation in protected merge order; no stacked child was retargeted.
+
+The current buyer-visible gap is stale answer evidence during a second Global
+Ask request. The existing dated-citation handoff in #1183 retains the answer
+cutoff; this continuation clears the preceding answer when a new request
+starts, while showing the pending action. A synthetic regression holds the
+second request open and checks that the first answer disappears before the
+second settles. Two focused App tests, frontend lint, production and Storybook
+builds, and six documentation-hygiene tests passed locally. The Storybook
+pending scene was rendered and visually checked
+at 1440×900 and 390×844: the action remains visible and the prior answer is
+absent without horizontal clipping ([desktop](screenshots/ask-pending-followup-desktop.png),
+[mobile](screenshots/ask-pending-followup-mobile.png)). This is synthetic
+candidate evidence on #1183, not a protected-main or authenticated customer
+claim. Authenticated PostgreSQL/API and rendered-UI Voice
+acceptance remain unverified, including distinct carrying and derivation
+Posts, hidden evidence, truth/cutoff history, and paged same-subject JSON-LD
+union. The canonical `lineageweave` project is running with unhealthy
+PostgreSQL, Valkey, orchestrator, and search; synthetic authenticated k6
+latency, error, throughput, and saturation evidence is unavailable. This
+change creates a new candidate head, so exact-head checks and formal review
+must be fetched again after push.
+
 ## Exact-head continuation — 2026-10-27 02:53 UTC
 
 The current LineageWeave PRD, ADRs 0246 and 0251, and the linked product or
