@@ -93,6 +93,7 @@ import { PublicClaimVerification } from "./components/PublicClaimVerification";
 import { OrganizationAliasChip } from "./components/OrganizationAliasChip";
 import { organizationAliasCaption } from "./components/organizationAliasCaption";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
+import { StatusNotice } from "./components/StatusNotice";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { TeppAcceptedReceipt } from "./components/TeppAcceptedReceipt";
@@ -738,7 +739,7 @@ function VocEvidenceSection({
 }: {
   evidence: VocEvidence | null;
   affiliateTrees: AffiliateNode[] | null;
-  onSelectPerson: (personId: string, personName: string) => void;
+  onSelectPerson?: (personId: string, personName: string) => void;
 }) {
   if (!evidence) return <p role="status">{t("Loading VOC evidence...")}</p>;
   const assignedExcerpts = new Set(
@@ -771,7 +772,7 @@ function VocEvidenceSection({
         return (
           <div key={row.counterparty_entity_name} className="voc-counterparty">
             <p>
-              {person ? (
+              {person && onSelectPerson ? (
                 <button
                   className="keyman-select"
                   aria-label={tf("VOC Keyman: {name}", { name: row.counterparty_entity_name })}
@@ -893,6 +894,40 @@ function VerificationBadge({
   );
 }
 
+export function HistoricalRelatedPanel({ postId, accessToken, knowledgeCutoff, onSelectPost }: {
+  postId: string;
+  accessToken: string;
+  knowledgeCutoff: string;
+  onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const openPost = (nextPostId: string) => onSelectPost?.(nextPostId, {
+    liveAfterCutoff: true,
+    knowledgeCutoff,
+  });
+  return (
+    <section className="popup-section">
+      <h3>{t("Related information")}</h3>
+      <p className="popup-placeholder">{t("Only relationships supported by this date appear here. Open a post to inspect its available history.")}</p>
+      <button type="button" className="keyman-select historical-related-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        {t("View related information")}
+      </button>
+      {open ? (
+        <SurfaceBoundary>
+          <OntologyExplorer
+            accessToken={accessToken}
+            focusNodeType={NODE_POST}
+            focusNodeId={postId}
+            knowledgeCutoff={knowledgeCutoff}
+            onSelectPost={openPost}
+            onOpenEvidence={openPost}
+          />
+        </SurfaceBoundary>
+      ) : null}
+    </section>
+  );
+}
+
 function KeymanPanel({
   postId,
   accessToken,
@@ -914,7 +949,7 @@ function KeymanPanel({
   sourceAuthorContext?: SourceAuthorContext | null;
   canExtract: boolean;
   onExtracted: () => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost?: (postId: string, options?: SelectPostOptions) => void;
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
   focusTeam?: { teamId: string; teamName: string } | null;
@@ -937,6 +972,10 @@ function KeymanPanel({
   const [error, setError] = useState<string | null>(null);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
   const relatedRequest = useRef(0);
+
+  function openRelatedPost(nextPostId: string) {
+    onSelectPost?.(nextPostId);
+  }
 
   useEffect(() => {
     setOrchestratorOff(false);
@@ -1168,7 +1207,7 @@ function KeymanPanel({
                       type="button"
                       className="related-post-card"
                       aria-label={tf("Open related post: {label}", { label: node.label ?? node.node_id })}
-                      onClick={() => onSelectPost(node.node_id)}
+                      onClick={() => openRelatedPost(node.node_id)}
                     >
                       <span className="related-post-kind">{t("Graph relation")}</span>
                       <strong>{node.label ?? node.node_id}</strong>
@@ -1394,8 +1433,8 @@ function KeymanPanel({
             accessToken={accessToken}
             focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
             focusNodeId={selectedFocus?.nodeId ?? postId}
-            onSelectPost={onSelectPost}
-            onOpenEvidence={onSelectPost}
+            onSelectPost={openRelatedPost}
+            onOpenEvidence={openRelatedPost}
           />
         </SurfaceBoundary>
       ) : null}
@@ -2094,8 +2133,16 @@ function PostDetailPopup({
       .catch(() => setCounterparties([]));
   }
 
+  function openPostInCurrentView(nextPostId: string) {
+    onSelectPost?.(
+      nextPostId,
+      knowledgeCutoff ? { liveAfterCutoff: true, knowledgeCutoff } : undefined,
+    );
+  }
+
   useEffect(() => {
     setPost(null);
+    setImageContent([]);
     setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
@@ -2116,8 +2163,10 @@ function PostDetailPopup({
     setFocusTeam(null);
     let disposed = false;
     let contentPollTimer: number | undefined;
-    const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const asOf = knowledgeCutoff ?? undefined;
+    fetchPost(accessToken, postId, asOf)
+      .then((value) => { if (!disposed) setPost(value); })
+      .catch((err) => { if (!disposed) setError(String(err)); });
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -2137,35 +2186,44 @@ function PostDetailPopup({
           setStructureUnits([]);
         });
     contentReloadRef.current = reloadContent;
-    reloadContent();
+    if (!knowledgeCutoff) reloadContent();
     fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
+      .then((r) => { if (!disposed) setBookmarked(r.bookmarked); })
       .catch(() => {
-        setBookmarked(null);
+        if (!disposed) setBookmarked(null);
       });
-    fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
-    fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
-    fetchPostKeymen(accessToken, postId)
+    if (!knowledgeCutoff) fetchPostEvaluation(accessToken, postId)
+      .then((r) => { if (!disposed) setEvaluation(r.responses); })
+      .catch(() => { if (!disposed) setEvaluation([]); });
+    if (!knowledgeCutoff) fetchPostFiveW1H(accessToken, postId)
+      .then((r) => { if (!disposed) setFiveW1H(r); })
+      .catch(() => { if (!disposed) setFiveW1H(null); });
+    if (!knowledgeCutoff) fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (disposed) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (disposed) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
-    fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
-    fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    if (!knowledgeCutoff) fetchPostCounterparties(accessToken, postId)
+      .then((r) => { if (!disposed) setCounterparties(r.counterparties); })
+      .catch(() => { if (!disposed) setCounterparties([]); });
+    // This endpoint has no cutoff contract; its excerpts and links are current state.
+    if (!knowledgeCutoff) {
+      fetchPostLineage(accessToken, postId)
+        .then((r) => { if (!disposed) setLineage(r); })
+        .catch(() => { if (!disposed) setLineage(null); });
+    }
+    if (!knowledgeCutoff) fetchPostAffiliateTree(accessToken, postId)
+      .then((r) => { if (!disposed) setAffiliateTrees(r.trees); })
+      .catch(() => { if (!disposed) setAffiliateTrees([]); });
+    if (!knowledgeCutoff) fetchPostVocEvidence(accessToken, postId)
+      .then((r) => { if (!disposed) setVocEvidence(r); })
+      .catch(() => { if (!disposed) setVocEvidence(null); });
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2182,6 +2240,7 @@ function PostDetailPopup({
     setSimilarVocNextOffset(null);
     setSimilarVocLoadingMore(false);
     similarVocLoadingMoreRef.current = false;
+    if (knowledgeCutoff) return;
     fetchSimilarVoc(accessToken, postId)
       .then((result) => {
         if (disposed) return;
@@ -2196,12 +2255,13 @@ function PostDetailPopup({
     return () => {
       disposed = true;
     };
-  }, [postId, accessToken, similarVocRetry]);
+  }, [postId, accessToken, similarVocRetry, knowledgeCutoff]);
 
   useEffect(() => {
     let disposed = false;
     setSummary(null);
     setSummaryError(null);
+    if (knowledgeCutoff) return;
     fetchPostSummary(accessToken, postId)
       .then((value) => {
         if (!disposed) {
@@ -2217,7 +2277,7 @@ function PostDetailPopup({
     return () => {
       disposed = true;
     };
-  }, [postId, accessToken, summaryRetry]);
+  }, [postId, accessToken, summaryRetry, knowledgeCutoff]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2313,22 +2373,8 @@ function PostDetailPopup({
                       focusNodeType={NODE_POST}
                       focusNodeId={postId}
                       knowledgeCutoff={knowledgeCutoff ?? undefined}
-                      onSelectPost={(nextPostId) =>
-                        onSelectPost?.(
-                          nextPostId,
-                          knowledgeCutoff
-                            ? { liveAfterCutoff: true, knowledgeCutoff }
-                            : undefined,
-                        )
-                      }
-                      onOpenEvidence={(nextPostId) =>
-                        onSelectPost?.(
-                          nextPostId,
-                          knowledgeCutoff
-                            ? { liveAfterCutoff: true, knowledgeCutoff }
-                            : undefined,
-                        )
-                      }
+                      onSelectPost={openPostInCurrentView}
+                      onOpenEvidence={openPostInCurrentView}
                     />
                   </SurfaceBoundary>
                 ) : null}
@@ -2356,9 +2402,15 @@ function PostDetailPopup({
               />
             ) : null}
             <div className="post-actions" role="group" aria-label={t("Post actions")}>
-              <button type="button" onClick={() => void sharePost()}>
-                {t("Share")}
-              </button>
+              {!knowledgeCutoff ? (
+                <button type="button" onClick={() => void sharePost()}>
+                  {t("Share")}
+                </button>
+              ) : (
+                <button type="button" onClick={() => onSelectPost?.(postId)}>
+                  {t("Open current view")}
+                </button>
+              )}
               <button type="button" onClick={() => window.print()}>
                 {t("Print")}
               </button>
@@ -2371,6 +2423,13 @@ function PostDetailPopup({
                 {bookmarked ? t("Bookmarked") : t("Bookmark")}
               </button>
             </div>
+            {knowledgeCutoff ? (
+              <StatusNotice
+                kind="unavailable"
+                message={t("This dated view has no shareable link.")}
+                nextAction={t("To share this post, open its current view first.")}
+              />
+            ) : null}
             {postActionStatus && (
               <p className="post-action-status" role="status">
                 {postActionStatus}
@@ -2383,16 +2442,22 @@ function PostDetailPopup({
                 writtenAt={post.known_at.written_at}
                 cutoff={post.known_at.as_of}
               />
+            ) : knowledgeCutoff ? (
+              <StatusNotice
+                kind="unavailable"
+                message={t("Earlier body unavailable for this date.")}
+                nextAction={t("Read the current body below, then ask the source owner for the earlier version before citing it.")}
+              />
             ) : null}
             {liveBodyWarning ? (
               <p className="popup-live-body-warning" role="status" aria-label={t("Live body warning")}>
                 {liveBodyWarning}
               </p>
             ) : null}
-            <section className="popup-section post-source-body" aria-label={t("Post body")}>
-              <h3>{t("Post body")}</h3>
+            <section className="popup-section post-source-body" aria-label={t(knowledgeCutoff ? "Current body" : "Post body")}>
+              <h3>{t(knowledgeCutoff ? "Current body" : "Post body")}</h3>
               {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
+                <PostBody body={post.post_body} imageContent={knowledgeCutoff ? [] : imageContent} structureUnits={knowledgeCutoff ? [] : structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
                   {t(
@@ -2401,7 +2466,7 @@ function PostDetailPopup({
                 </p>
               )}
             </section>
-            {(post.source_stage_code ||
+            {!knowledgeCutoff && (post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
               post.source_deleted_flag ||
@@ -2535,9 +2600,9 @@ function PostDetailPopup({
               </section>
             )}
 
-					<FiveW1H slots={fiveW1H?.slots ?? null} />
+					{!knowledgeCutoff && <FiveW1H slots={fiveW1H?.slots ?? null} />}
 
-				{post.project_evidence && post.project_evidence.length > 0 ? (
+				{!knowledgeCutoff && post.project_evidence && post.project_evidence.length > 0 ? (
               <section className="popup-section" aria-label={t("Related projects")}>
                 <h3>{t("Related projects")}</h3>
                 <ul>
@@ -2575,7 +2640,7 @@ function PostDetailPopup({
               </section>
             ) : null}
 
-            <section className="popup-section">
+            {!knowledgeCutoff && <section className="popup-section">
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
@@ -2620,7 +2685,7 @@ function PostDetailPopup({
                           const catalogId = rr.catalog_node_id;
                           const catalogType = rr.catalog_node_type_code;
                           let actorName: ReactNode = <strong>{rr.actor_name}</strong>;
-                          if (catalogType === NODE_PERSON && catalogId) {
+                          if (!knowledgeCutoff && catalogType === NODE_PERSON && catalogId) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2637,7 +2702,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (person) {
+                          } else if (!knowledgeCutoff && person) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2654,7 +2719,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (catalogType === NODE_TEAM && catalogId) {
+                          } else if (!knowledgeCutoff && catalogType === NODE_TEAM && catalogId) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2668,7 +2733,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (catalogType === NODE_CORPORATE_ENTITY && catalogId) {
+                          } else if (!knowledgeCutoff && catalogType === NODE_CORPORATE_ENTITY && catalogId) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2729,9 +2794,9 @@ function PostDetailPopup({
               ) : (
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
-            </section>
+            </section>}
 
-            {!focusEventLineage && (
+            {!knowledgeCutoff && !focusEventLineage && (
               <EvaluationPanel
                 postId={postId}
                 accessToken={accessToken}
@@ -2742,22 +2807,22 @@ function PostDetailPopup({
               />
             )}
 
-            <VocEvidenceSection
+            {!knowledgeCutoff && <VocEvidenceSection
               evidence={vocEvidence}
               affiliateTrees={affiliateTrees}
-              onSelectPerson={(personId, personName) => {
+              onSelectPerson={knowledgeCutoff ? undefined : (personId, personName) => {
                 setFocusEntity(null);
                 setFocusTeam(null);
                 setFocusPerson({ personId, personName });
               }}
-            />
+            />}
 
-            <SurfaceBoundary>
+            {!knowledgeCutoff && <SurfaceBoundary>
               <SimilarVocPanel
                 sourcePostId={postId}
                 items={similarVoc}
                 error={similarVocError}
-                onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+                onOpenPost={openPostInCurrentView}
                 loadingMore={similarVocLoadingMore}
                 onRetry={() => setSimilarVocRetry((attempt) => attempt + 1)}
                 onLoadMore={similarVocNextOffset === null ? null : () => {
@@ -2784,11 +2849,14 @@ function PostDetailPopup({
                     });
                 }}
               />
-            </SurfaceBoundary>
+            </SurfaceBoundary>}
 
-            <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
+            {!knowledgeCutoff && (
+              <RelatedPostsSection lineage={lineage} onSelectPost={openPostInCurrentView} />
+            )}
 
-            <section className="popup-section">
+            {!knowledgeCutoff && (
+              <section className="popup-section">
                 <h3 id="post-event-lineage" tabIndex={-1}>
                 {t("Event Lineage")}
               </h3>
@@ -2796,14 +2864,18 @@ function PostDetailPopup({
                 lineage={lineage}
                 graph={graph}
                 postId={postId}
-                onSelectPost={onSelectPost}
+                onSelectPost={openPostInCurrentView}
                 currentNextAction={
                   focusEventLineage ? eventLineageCurrentNextAction(post.post_title) : null
                 }
               />
-            </section>
+              </section>
+            )}
 
-            {focusEventLineage && (
+            {focusEventLineage && knowledgeCutoff && (
+              <HistoricalRelatedPanel key={`${postId}:${knowledgeCutoff}`} postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
+            )}
+            {focusEventLineage && !knowledgeCutoff && (
               <KeymanPanel
                 postId={postId}
                 accessToken={accessToken}
@@ -2837,7 +2909,7 @@ function PostDetailPopup({
               />
             )}
 
-            <section className="popup-section">
+            {!knowledgeCutoff && <section className="popup-section">
               <h3>{t("Affiliate tree")}</h3>
               {affiliateTrees === null ? (
                 <p role="status">{t("Loading affiliate tree...")}</p>
@@ -2849,12 +2921,12 @@ function PostDetailPopup({
                     <AffiliateTreeNode
                       key={node.entity_id ?? node.entity_name}
                       node={node}
-                      onSelectPerson={(personId, personName) => {
+                      onSelectPerson={knowledgeCutoff ? undefined : (personId, personName) => {
                         setFocusEntity(null);
                         setFocusTeam(null);
                         setFocusPerson({ personId, personName });
                       }}
-                      onSelectEntity={(entityId, entityName) => {
+                      onSelectEntity={knowledgeCutoff ? undefined : (entityId, entityName) => {
                         setFocusPerson(null);
                         setFocusTeam(null);
                         setFocusEntity({ entityId, entityName });
@@ -2863,9 +2935,12 @@ function PostDetailPopup({
                   ))}
                 </ul>
               )}
-            </section>
+            </section>}
 
-            {!focusEventLineage && (
+            {!focusEventLineage && knowledgeCutoff && (
+              <HistoricalRelatedPanel key={`${postId}:${knowledgeCutoff}`} postId={postId} accessToken={accessToken} knowledgeCutoff={knowledgeCutoff} onSelectPost={onSelectPost} />
+            )}
+            {!focusEventLineage && !knowledgeCutoff && (
               <KeymanPanel
                 postId={postId}
                 accessToken={accessToken}
@@ -2880,15 +2955,15 @@ function PostDetailPopup({
               />
             )}
 
-            {counterparties && counterparties.length > 0 && (
+            {!knowledgeCutoff && counterparties && counterparties.length > 0 && (
               <CounterpartyPanel
                 postId={postId}
                 accessToken={accessToken}
                 counterparties={counterparties}
                 canExtract={canExtract}
                 onVerified={reloadCounterparties}
-                onSelectPost={onSelectPost}
-                onSelectEntity={(entityId, entityName) => {
+                onSelectPost={openPostInCurrentView}
+                onSelectEntity={knowledgeCutoff ? undefined : (entityId, entityName) => {
                   setFocusPerson(null);
                   setFocusTeam(null);
                   setFocusEntity({ entityId, entityName });
@@ -2896,11 +2971,11 @@ function PostDetailPopup({
               />
             )}
 
-            <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />
+            {!knowledgeCutoff && <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />}
 
-            <ActivityPanel postId={postId} accessToken={accessToken} />
+            {!knowledgeCutoff && <ActivityPanel postId={postId} accessToken={accessToken} />}
 
-            {!focusEventLineage && (
+            {!knowledgeCutoff && !focusEventLineage && (
               <ChatPanel postId={postId} accessToken={accessToken} />
             )}
           </>
@@ -4138,15 +4213,17 @@ function ReportsPanel({
 const POST_PAGE_SIZE = 50;
 type BoardSortOrder = PostSortOrder;
 
-function PostList({
+export function PostList({
   accessToken,
   showLabPanels = false,
   postIdToOpen = null,
+  postCutoffToOpen = null,
   onPostOpened,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
+  postCutoffToOpen?: string | null;
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -4179,6 +4256,7 @@ function PostList({
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
+  const lastRequestedPage = useRef(1);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -4223,15 +4301,15 @@ function PostList({
     setOpenedLeftoverPair(options?.fromLeftoverPair ?? null);
   }
 
-  const openRequestedPost = useEffectEvent((postId: string) => {
-    selectPost(postId);
+  const openRequestedPost = useEffectEvent((postId: string, knowledgeCutoff: string | null) => {
+    selectPost(postId, { knowledgeCutoff: knowledgeCutoff ?? undefined });
     onPostOpened?.();
   });
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    openRequestedPost(postIdToOpen);
-  }, [postIdToOpen]);
+    openRequestedPost(postIdToOpen, postCutoffToOpen);
+  }, [postIdToOpen, postCutoffToOpen]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -4257,6 +4335,7 @@ function PostList({
 
   const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
     const requestId = ++postsRequest.current;
+    lastRequestedPage.current = page;
     setLoadingPage(true);
     setError(null);
     try {
@@ -4276,9 +4355,9 @@ function PostList({
       setVoiceTypeCatalog(response.voice_type_catalog ?? response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
-    } catch (err) {
+    } catch {
       if (requestId !== postsRequest.current) return;
-      setError(String(err));
+      setError("Source posts could not be loaded.");
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
@@ -4303,7 +4382,7 @@ function PostList({
   }, [accessToken]);
 
   useEffect(() => {
-    if (!selectedPostId) {
+    if (!selectedPostId || openedCutoffIso) {
       setFocusedGraph(null);
       return;
     }
@@ -4319,7 +4398,7 @@ function PostList({
     return () => {
       active = false;
     };
-  }, [accessToken, selectedPostId]);
+  }, [accessToken, selectedPostId, openedCutoffIso]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -4380,7 +4459,8 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const hasBoardFilters = Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const emptyUnfilteredBoard = totalPosts === 0 && !hasBoardFilters;
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -4404,18 +4484,22 @@ function PostList({
           <h2 id="board-title">{t("Board")}</h2>
           <p>{t("Authorized posts in this board.")}</p>
         </div>
-        {posts && !error && (
+        {posts && !error && !loadingPage && (
           <p className="board-result-count" aria-live="polite">
             {t("Posts shown:")} {filteredPosts.length} / {totalPosts}
           </p>
         )}
       </header>
-      {error ? (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      ) : !posts ? (
-        <p role="status">{t("Loading posts...")}</p>
+      {!posts ? (
+        error ? (
+          <StatusNotice
+            kind="retry"
+            message={t(error)}
+            onRetry={() => void loadPostPage(lastRequestedPage.current)}
+          />
+        ) : (
+          <p role="status">{t("Loading posts...")}</p>
+        )
       ) : (
         <>
           <form
@@ -4446,26 +4530,28 @@ function PostList({
             </label>
             <button type="submit">{t("Search")}</button>
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
-            <fieldset className="board-voc-type-filter">
-              <legend>{t("Filter by VOC type")}</legend>
-              {vocTypeOptions.map((option) => (
-                <label key={option.code}>
-                  <input
-                    type="checkbox"
-                    checked={typeFilter.includes(option.code)}
-                    onChange={(event) =>
-                      setTypeFilter((current) =>
-                        event.target.checked
-                          ? [...current, option.code]
-                          : current.filter((code) => code !== option.code),
-                      )
-                    }
-                  />
-                  {t(option.label)}
-                </label>
-              ))}
-            </fieldset>
-            <label>
+            {vocTypeOptions.length > 0 ? (
+              <fieldset className="board-voc-type-filter">
+                <legend>{t("Filter by VOC type")}</legend>
+                {vocTypeOptions.map((option) => (
+                  <label key={option.code}>
+                    <input
+                      type="checkbox"
+                      checked={typeFilter.includes(option.code)}
+                      onChange={(event) =>
+                        setTypeFilter((current) =>
+                          event.target.checked
+                            ? [...current, option.code]
+                            : current.filter((code) => code !== option.code),
+                        )
+                      }
+                    />
+                    {t(option.label)}
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
+            {!emptyUnfilteredBoard && <label>
               {t("Filter by visibility")}
               <select
                 value={visibilityFilter}
@@ -4479,8 +4565,8 @@ function PostList({
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
+            </label>}
+            {!emptyUnfilteredBoard && <label>
               {t("Sort posts")}
               <select
                 value={sortOrder}
@@ -4491,18 +4577,26 @@ function PostList({
                 <option value="oldest">{t("Oldest first")}</option>
                 <option value="title">{t("Title A-Z")}</option>
               </select>
-            </label>
+            </label>}
             {hasBoardFilters && (
               <button type="reset" className="board-reset">
                 {t("Reset filters")}
               </button>
             )}
           </form>
-          {posts.length === 0 ? (
+          {error ? (
+            <StatusNotice
+              kind="retry"
+              message={t(error)}
+              onRetry={() => void loadPostPage(lastRequestedPage.current)}
+            />
+          ) : loadingPage ? (
+            <p role="status">{t("Loading posts...")}</p>
+          ) : posts.length === 0 ? (
             <p className="board-empty" role="status">
               {hasBoardFilters
                 ? t("No posts match the current filters.")
-                : t("No posts visible to this account yet -- try `make seed`.")}
+                : t("No posts are available to this account yet. Ask an administrator to add records or check your access.")}
             </p>
           ) : filteredPosts.length === 0 ? (
             <p className="board-empty" role="status">
@@ -4576,7 +4670,7 @@ function PostList({
               ))}
             </ul>
           )}
-          {totalPages > 1 && (
+          {!error && totalPages > 1 && (
             <nav className="board-pagination" aria-label={t("Board pages")}>
               <button
                 type="button"
@@ -4656,6 +4750,7 @@ function PostList({
       )}
       {selectedPostId && (
         <PostDetailPopup
+          key={`${selectedPostId}:${openedCutoffIso ?? ""}`}
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
@@ -4663,7 +4758,7 @@ function PostList({
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
-          knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
+          knowledgeCutoff={openedCutoffIso}
           focusEventLineage={openedFromReportMember}
           leftoverFocus={openedLeftoverPair}
           onClose={closeSelectedPost}
@@ -4839,6 +4934,21 @@ function CustomerMasterPanel({
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
   const [canResolveHints, setCanResolveHints] = useState(false);
+  const accessScope = useRef(accessToken);
+
+  useLayoutEffect(() => {
+    accessScope.current = accessToken;
+    setMaster(null);
+    setError(null);
+    setExpandedEntityId(null);
+    setRelatedByEntity({});
+    setRelatedLoading(null);
+    setSelectedPostId(null);
+    setSelectedPostGraph(null);
+    setResolvingHint(null);
+    setResolveError(null);
+    setCanResolveHints(false);
+  }, [accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -4857,8 +4967,12 @@ function CustomerMasterPanel({
   const loadMaster = useCallback(() => {
     setError(null);
     return fetchCustomerMaster(accessToken)
-      .then(setMaster)
-      .catch(() => setError(t("Customer master could not be loaded.")));
+      .then((response) => {
+        if (accessScope.current === accessToken) setMaster(response);
+      })
+      .catch(() => {
+        if (accessScope.current === accessToken) setError(t("Customer master could not be loaded."));
+      });
   }, [accessToken]);
 
   useEffect(() => {
@@ -4894,11 +5008,13 @@ function CustomerMasterPanel({
     setResolveError(null);
     try {
       await resolveCustomerHint(accessToken, hintCode);
-      await loadMaster();
+      if (accessScope.current === accessToken) await loadMaster();
     } catch {
-      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      if (accessScope.current === accessToken) {
+        setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+      }
     } finally {
-      setResolvingHint(null);
+      if (accessScope.current === accessToken) setResolvingHint(null);
     }
   }
 
@@ -4912,11 +5028,15 @@ function CustomerMasterPanel({
     setRelatedLoading(entityId);
     try {
       const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+      if (accessScope.current === accessToken) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+      }
     } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+      if (accessScope.current === accessToken) {
+        setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+      }
     } finally {
-      setRelatedLoading(null);
+      if (accessScope.current === accessToken) setRelatedLoading(null);
     }
   }
 
@@ -5109,7 +5229,7 @@ export function AskAgentPanel({
   onOpenPost,
 }: {
   accessToken: string;
-  onOpenPost: (postId: string) => void;
+  onOpenPost: (postId: string, knowledgeCutoff?: string | null) => void;
 }) {
   const [question, setQuestion] = useState("");
   const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
@@ -5136,6 +5256,7 @@ export function AskAgentPanel({
     }
     setAsking(true);
     setError(null);
+    setAnswer(null);
     try {
       setAnswer(
         await askAgent(
@@ -5236,7 +5357,7 @@ export function AskAgentPanel({
               <ul className="related-post-list">
                 {answer.cited_posts.map((post) => (
                   <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
+                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id, answer.knowledge_cutoff)}>
                       <strong>{post.post_title}</strong>
                       {post.source_post_revision_id ? (
                         <span className="post-meta">
@@ -5287,7 +5408,7 @@ export function AskAgentPanel({
           )}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
             <SurfaceBoundary>
-              <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+              <LineageDag graph={answer.lineage_graph} onSelectPost={(postId) => onOpenPost(postId, answer.knowledge_cutoff)} />
             </SurfaceBoundary>
           ) : null}
         </section>
@@ -5307,7 +5428,7 @@ export function AskAgentPanel({
               answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
             }
             onClose={() => setEvidenceLayerPostId(null)}
-            onOpenPost={onOpenPost}
+            onOpenPost={(postId) => onOpenPost(postId, answer.knowledge_cutoff)}
           />
         </SurfaceBoundary>
       ) : null}
@@ -5317,7 +5438,7 @@ export function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
-  const [brandName, setBrandName] = useState("LineageWeave");
+  const [brand, setBrand] = useState<{ accessToken: string; name: string } | null>(null);
   const auth = useAuth();
   const [destination, setDestination] = useState<WorkspaceDestination>(() =>
     initialWorkspaceDestination(
@@ -5329,18 +5450,25 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
   });
+  const [postCutoffToOpen, setPostCutoffToOpen] = useState<string | null>(null);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+  const brandName = brand && brand.accessToken === accessToken ? brand.name : "LineageWeave";
+  const setBrandName = (name: string) => {
+    if (accessToken) setBrand({ accessToken, name });
+  };
 
   useEffect(() => {
     if (accessToken) {
+      let active = true;
       fetchTenantConfig(accessToken).then((config) => {
-        if (config.brandName) setBrandName(config.brandName);
+        if (active && config.brandName) setBrand({ accessToken, name: config.brandName });
       }).catch(console.error);
+      return () => { active = false; };
     }
   }, [accessToken]);
 
@@ -5426,13 +5554,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
-      <main>
+      <main key={accessToken}>
         {destination === "dashboard" ? (
           <SurfaceBoundary>
             <OperationsDashboard
               accessToken={accessToken}
               onOpenPost={(postId) => {
                 setPostToOpen(postId);
+                setPostCutoffToOpen(null);
                 setDestination("board");
               }}
             />
@@ -5444,7 +5573,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
-            onPostOpened={() => setPostToOpen(null)}
+            postCutoffToOpen={postCutoffToOpen}
+            onPostOpened={() => { setPostToOpen(null); setPostCutoffToOpen(null); }}
           />
         ) : null}
         {destination === "customers" ? (
@@ -5458,6 +5588,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               heading="달력"
               onSelectPost={(postId) => {
                 setPostToOpen(postId);
+                setPostCutoffToOpen(null);
                 setDestination("board");
               }}
             />
@@ -5466,8 +5597,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         {destination === "ask" ? (
           <AskAgentPanel
             accessToken={accessToken}
-            onOpenPost={(postId) => {
+            onOpenPost={(postId, knowledgeCutoff) => {
               setPostToOpen(postId);
+              setPostCutoffToOpen(knowledgeCutoff ?? null);
               setDestination("board");
             }}
           />

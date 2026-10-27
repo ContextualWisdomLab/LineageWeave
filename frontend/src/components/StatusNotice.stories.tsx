@@ -47,6 +47,54 @@ export const Unavailable: Story = {
   },
 };
 
+export const HistoricalBodyUnavailable: Story = {
+  args: {
+    kind: "unavailable",
+    message: "Earlier body unavailable for this date.",
+    nextAction: "Read the current body below, then ask the source owner for the earlier version before citing it.",
+  },
+  play: async ({ canvasElement }) => {
+    const notice = within(canvasElement).getByRole("region", { name: /^Unavailable:/ });
+    await expect(notice).toHaveTextContent("Earlier body unavailable for this date.");
+    await expect(notice).toHaveTextContent("before citing it");
+  },
+};
+
+export const HistoricalShareUnavailable: Story = {
+  args: {
+    kind: "unavailable",
+    message: "This dated view has no shareable link.",
+    nextAction: "To share this post, open its current view first.",
+  },
+  play: async ({ canvasElement }) => {
+    const notice = within(canvasElement).getByRole("region", { name: /^Unavailable:/ });
+    await expect(notice).toHaveTextContent("This dated view has no shareable link.");
+    await expect(notice).toHaveTextContent("To share this post, open its current view first.");
+  },
+};
+
+export const HistoricalShareRecovery: Story = {
+  args: HistoricalShareUnavailable.args,
+  render: (args) => (
+    <>
+      <div className="post-actions" role="group" aria-label="Post actions">
+        <button type="button">Open current view</button>
+        <button type="button">Print</button>
+        <button type="button">Bookmark</button>
+      </div>
+      <StatusNotice {...args} />
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Open current view" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Share" })).toBeNull();
+    await expect(canvas.getByRole("region", { name: /^Unavailable:/ })).toHaveTextContent(
+      "This dated view has no shareable link.",
+    );
+  },
+};
+
 export const Retry: Story = {
   args: {
     kind: "retry",

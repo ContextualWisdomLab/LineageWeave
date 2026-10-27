@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { SurfaceBoundary } from "./App";
@@ -143,6 +143,7 @@ describe("App, authenticated", () => {
     evidenceUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
+    verificationEvidencePost?: boolean;
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
@@ -165,6 +166,7 @@ describe("App, authenticated", () => {
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
+    askCutoff?: string;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1764,6 +1766,7 @@ describe("App, authenticated", () => {
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
+                verification_evidence_post_id: options?.verificationEvidencePost ? "post-2" : null,
                 corporate_entity_id: "corp-1",
                 ...demoOrgAlias,
               },
@@ -1870,6 +1873,7 @@ describe("App, authenticated", () => {
             job_status_code: "succeeded",
             answer: {
             answer_text: "The cited project is supported by the stored semantic evidence.",
+            knowledge_cutoff: options?.askCutoff,
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             cited_post_evidence: [
@@ -2119,6 +2123,169 @@ describe("App, authenticated", () => {
     ));
   }, 15000);
 
+  it("keeps the run cutoff in related information and its evidence action", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true, verificationEvidencePost: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    expect(screen.getByText("Only relationships supported by this date appear here. Open a post to inspect its available history.")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", {
+      name: "View related information",
+    }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?focus_node_type=node_post&focus_node_id=post-1&knowledge_cutoff=2026-01-12T12%3A00%3A00Z(?:&|$)/),
+      expect.anything(),
+    ));
+    await userEvent.type(screen.getByLabelText("Catalog label"), "Oral");
+    await userEvent.click(screen.getByRole("button", { name: "Find matching records" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/occupational-constructs\/search\?.*knowledge_cutoff=2026-01-12T12%3A00%3A00Z/),
+      expect.anything(),
+    ));
+    expect(screen.queryByRole("button", { name: "R&R Keyman: Ada West" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Counterparty org: Demo Corp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "VOC Keyman: Northridge Grid" })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
+    await userEvent.click(await screen.findByRole("button", { name: "Close" }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    await userEvent.click(await screen.findByRole("button", { name: "View related information" }));
+    await userEvent.click(await within(await screen.findByRole("table", { name: "Exact values" })).findByRole("button", {
+      name: "Open evidence: Linked post",
+    }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View related information" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("table", { name: "Exact values" })).not.toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+  }, 15000);
+
+  it("discards a late response from the previous post after related navigation", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseSummary = () => {};
+    const summaryGate = new Promise<void>((resolve) => { releaseSummary = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/api/posts/post-1/summary")
+        ? summaryGate.then(() => backendFetch(input, init))
+        : backendFetch(input, init),
+    ));
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const relatedPosts = (await screen.findByRole("heading", { name: "Related posts" })).closest(".related-posts-section");
+    await userEvent.click(within(relatedPosts as HTMLElement).getByRole("button", { name: "Open related post: Linked post" }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    await act(async () => { releaseSummary(); });
+    expect(screen.queryByText("첫 번째 이벤트")).not.toBeInTheDocument();
+  });
+
+  it("does not apply a previous post's late bookmark to the opened post", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseBookmark = () => {};
+    const bookmarkGate = new Promise<void>((resolve) => { releaseBookmark = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/posts/post-1/bookmark")) {
+        return bookmarkGate.then(() => jsonResponse({ post_id: "post-1", bookmarked: true }));
+      }
+      if (url.endsWith("/api/posts/post-2/bookmark")) {
+        return Promise.resolve(jsonResponse({ post_id: "post-2", bookmarked: false }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const relatedPosts = (await screen.findByRole("heading", { name: "Related posts" })).closest(".related-posts-section");
+    await userEvent.click(within(relatedPosts as HTMLElement).getByRole("button", { name: "Open related post: Linked post" }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    const bookmark = await screen.findByRole("button", { name: "Bookmark" });
+    await waitFor(() => expect(bookmark).toBeEnabled());
+    await act(async () => { releaseBookmark(); });
+    expect(bookmark).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: "Bookmarked" })).not.toBeInTheDocument();
+  });
+
+  it("does not show a previous post's late people evidence after related navigation", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseKeymen = () => {};
+    const keymenGate = new Promise<void>((resolve) => { releaseKeymen = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/api/posts/post-1/keymen")
+        ? keymenGate.then(() => backendFetch(input, init))
+        : backendFetch(input, init),
+    ));
+
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const relatedPosts = (await screen.findByRole("heading", { name: "Related posts" })).closest(".related-posts-section");
+    await userEvent.click(within(relatedPosts as HTMLElement).getByRole("button", { name: "Open related post: Linked post" }));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    await act(async () => { releaseKeymen(); });
+    expect(screen.queryByRole("button", { name: "R&R Keyman: Ada West" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the run cutoff for an unchanged post's related information", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post: Private post",
+    }));
+    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    const popup = screen.getByRole("dialog");
+    const missingHistory = (await within(popup).findByText("Earlier body unavailable for this date.")).closest("[role='region']");
+    expect(missingHistory).toHaveTextContent("Earlier body unavailable for this date.");
+    expect(missingHistory).toHaveTextContent("ask the source owner for the earlier version before citing it");
+    expect(within(popup).getByRole("region", { name: "Current body" })).toHaveTextContent("The evidence panel should show exactly this text.");
+    expect(within(popup).queryByRole("region", { name: "Body this run knew" })).not.toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "View related information",
+    }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/ontology\/neighborhood\?focus_node_type=node_post&focus_node_id=post-2&knowledge_cutoff=2026-01-12T12%3A00%3A00Z(?:&|$)/),
+      expect.anything(),
+    ));
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/(keymen|corporate-entities|teams)\/[^?]+\/related/.test(String(url)))).toBe(false);
+  }, 15000);
+
+  it("omits current-only related posts and Event Lineage at a run cutoff", async () => {
+    const fetchMock = stubBackend({ combinedVoices: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+    }));
+    await userEvent.click(await screen.findByRole("button", {
+      name: "Open live post (updated after cutoff): Public post",
+    }));
+    expect(screen.queryByRole("button", { name: "Open related post: Linked post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Event Lineage", level: 3 })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "View related information" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/posts\/post-1\/lineage(?:\?|$)/.test(String(url)))).toBe(false);
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/lineage\?post_id=post-1(?:&|$)/.test(String(url)))).toBe(false);
+    expect(screen.queryByRole("heading", { name: "Summary", level: 3 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Affiliate tree", level: 3 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Earlier source version" })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => /\/api\/posts\/post-1\/(content|keymen|counterparties|affiliate-tree|voc-evidence|similar-voc|summary|five-w-one-h|evaluation)(?:\?|$)/.test(String(url)))).toBe(false);
+  }, 15000);
+
   it("keeps a post whose additional voice matches the board filter", async () => {
     stubBackend({ combinedVoices: true });
     render(<App />);
@@ -2159,6 +2326,35 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
+  it("clears the previous answer while a new question is pending", async () => {
+    stubBackend();
+    const backend = globalThis.fetch;
+    let secondAsk = 0;
+    let releaseSecondAsk: ((response: Response) => void) | undefined;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/ask") && init?.method === "POST" && ++secondAsk === 2) {
+        return new Promise<Response>((resolve) => { releaseSecondAsk = resolve; });
+      }
+      return backend(input, init);
+    }));
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    const question = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(question, "First question?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByText("The cited project is supported by the stored semantic evidence.")).toBeInTheDocument();
+
+    await userEvent.clear(question);
+    await userEvent.type(question, "Second question?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(screen.getByRole("button", { name: "Asking..." })).toBeDisabled();
+    expect(screen.queryByText("The cited project is supported by the stored semantic evidence.")).not.toBeInTheDocument();
+
+    releaseSecondAsk?.(jsonResponse({ ask_job_id: "ask-job-2", job_status_code: "queued" }));
+    expect(await screen.findByText("The cited project is supported by the stored semantic evidence.")).toBeInTheDocument();
+  });
+
   it("converts the local knowledge cutoff to UTC for Global Ask", async () => {
     const fetchMock = stubBackend();
     render(<App />);
@@ -2186,6 +2382,22 @@ describe("App, authenticated", () => {
       verify_external: false,
       knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
     });
+  });
+
+  it("opens a dated Ask citation at the answer cutoff", async () => {
+    const cutoff = "2026-01-12T12:00:00Z";
+    const fetchMock = stubBackend({ askCutoff: cutoff });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Linked post/ }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
   });
 
   it("localizes Ask delivery copy instead of rendering Korean literals in English", async () => {
@@ -2366,6 +2578,78 @@ describe("App, authenticated", () => {
     expect(within(soloRow as HTMLElement).queryByText("Multiple roles observed")).not.toBeInTheDocument();
   });
 
+  it("clears customer evidence when the authorized account changes", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releasePrior = () => {};
+    const priorGate = new Promise<void>((resolve) => { releasePrior = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/customer-master")) {
+        if ((init?.headers as Record<string, string> | undefined)?.Authorization === "Bearer test-access-token") {
+          return priorGate.then(() => backendFetch(input, init));
+        }
+        return Promise.resolve(jsonResponse({
+          corporate_entities: [], keymen: [], relationship_network: [],
+          source_customer_hints: [], source_author_hints: [],
+        }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    const view = render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "고객 마스터" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Loading customer master");
+    mockAuth = {
+      ...mockAuth,
+      user: { ...(mockAuth.user as object), access_token: "next-access-token" },
+    };
+    view.rerender(<App />);
+    expect(await screen.findByText("No customer entities are connected to this account.")).toBeInTheDocument();
+    await act(async () => { releasePrior(); });
+    expect(screen.queryByText("Northridge Grid")).not.toBeInTheDocument();
+  });
+
+  it("clears the open post and board evidence while a new account loads", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let releaseNext = () => {};
+    const nextGate = new Promise<void>((resolve) => { releaseNext = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/settings") {
+        if ((init?.headers as Record<string, string> | undefined)?.Authorization === "Bearer next-access-token") {
+          return nextGate.then(() => jsonResponse({ brandName: "Next workspace" }));
+        }
+        return Promise.resolve(jsonResponse({ brandName: "Prior workspace" }));
+      }
+      if (
+        url.pathname === "/api/posts" &&
+        (init?.headers as Record<string, string> | undefined)?.Authorization === "Bearer next-access-token"
+      ) {
+        return nextGate.then(() => jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    const view = render(<App />);
+    expect(await screen.findByRole("heading", { name: "Prior workspace" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+
+    mockAuth = {
+      ...mockAuth,
+      user: { ...(mockAuth.user as object), access_token: "next-access-token" },
+    };
+    view.rerender(<App />);
+    expect(screen.queryByRole("heading", { name: "Prior workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(screen.queryByText("The full body text.")).not.toBeInTheDocument();
+
+    await act(async () => { releaseNext(); });
+    expect(await screen.findByRole("heading", { name: "Next workspace" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+  });
+
   it("lets a post_admin account resolve an unresolved customer hint into a real name", async () => {
     // Feature (2026-08-19): a Customer Master hint (an opaque customer
     // code with no name) previously had no action at all -- a dead end
@@ -2490,6 +2774,165 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("gives a reader an action when the authorized board is empty", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts") {
+        return Promise.resolve(jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(await within(board).findByRole("status")).toHaveTextContent(
+      "Ask an administrator to add records or check your access.",
+    );
+    expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
+    expect(within(board).queryByRole("group", { name: "Filter by VOC type" })).not.toBeInTheDocument();
+    expect(within(board).queryByRole("combobox", { name: "Filter by visibility" })).not.toBeInTheDocument();
+    expect(within(board).queryByRole("combobox", { name: "Sort posts" })).not.toBeInTheDocument();
+    expect(within(board).queryByText(/make seed/)).not.toBeInTheDocument();
+    await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "draft query");
+    expect(within(board).getByRole("status")).toHaveTextContent(
+      "Ask an administrator to add records or check your access.",
+    );
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+    expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
+    expect(within(board).getByRole("combobox", { name: "Filter by visibility" })).toBeInTheDocument();
+    expect(within(board).getByRole("combobox", { name: "Sort posts" })).toBeInTheDocument();
+  });
+
+  it("hides the previous result set while a new board search is pending", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let finishSearch = () => {};
+    const searchGate = new Promise<void>((resolve) => { finishSearch = resolve; });
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts" && url.searchParams.get("search") === "not found") {
+        return searchGate.then(() => jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(await within(board).findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "not found");
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+
+    expect(within(board).getByRole("status")).toHaveTextContent("Loading posts...");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(within(board).queryByText(/Posts shown:/)).not.toBeInTheDocument();
+
+    await act(async () => { finishSearch(); });
+    expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
+  });
+
+  it("keeps board controls and retries the failed search without showing stale posts", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let attempts = 0;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts" && url.searchParams.get("search") === "different evidence") {
+        attempts += 1;
+        return attempts === 1
+          ? Promise.reject(new Error("synthetic provider diagnostic"))
+          : Promise.resolve(jsonResponse({ posts: [], total_count: 0, limit: 50, offset: 0 }));
+      }
+      return backendFetch(input, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(await within(board).findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.type(within(board).getByRole("searchbox", { name: "Search semantic evidence" }), "different evidence");
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+
+    const alert = await within(board).findByRole("alert");
+    expect(alert).toHaveTextContent("Source posts could not be loaded.");
+    expect(alert).not.toHaveTextContent("synthetic provider diagnostic");
+    expect(within(board).getByRole("searchbox", { name: "Search semantic evidence" })).toHaveValue("different evidence");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(within(board).queryByText(/Posts shown:/)).not.toBeInTheDocument();
+
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    expect(await within(board).findByText("No posts match the current filters.")).toBeInTheDocument();
+    expect(attempts).toBe(2);
+  });
+
+  it("recovers the board when the first post request fails", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let attempts = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts" && !url.searchParams.has("search")) {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new Error("synthetic provider diagnostic"));
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    const alert = await within(board).findByRole("alert");
+    expect(alert).toHaveTextContent("Source posts could not be loaded.");
+    expect(alert).not.toHaveTextContent("synthetic provider diagnostic");
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    expect(await within(board).findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(attempts).toBe(2);
+  });
+
+  it("retries the requested board page after a failed continuation", async () => {
+    stubBackend();
+    const backendFetch = globalThis.fetch;
+    let secondPageAttempts = 0;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "https://backend.test");
+      if (url.pathname === "/api/posts") {
+        if (url.searchParams.get("offset") === "50") {
+          secondPageAttempts += 1;
+          if (secondPageAttempts === 1) throw new Error("synthetic provider diagnostic");
+          return jsonResponse({
+            posts: [{
+              post_id: "last-page-post",
+              post_title: "Last page post",
+              post_body_excerpt: "Synthetic continuation evidence.",
+              created_at: "2026-01-01T00:00:00Z",
+              voc_type_code: "voc",
+              voc_type_label: "Voice of Customer",
+              visibility_code: "public",
+              visibility_label: "Public",
+            }],
+            total_count: 51,
+            limit: 50,
+            offset: 50,
+          });
+        }
+        const firstPage = await backendFetch(input, init);
+        return jsonResponse({ ...(await firstPage.json()), total_count: 51 });
+      }
+      return backendFetch(input, init);
+    }));
+
+    render(<App />);
+    const board = await screen.findByRole("region", { name: "Board" });
+    await within(board).findByRole("button", { name: "View post: Public post" });
+    await userEvent.click(within(board).getByRole("button", { name: "Page 2" }));
+    const alert = await within(board).findByRole("alert");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    expect(within(board).queryByRole("navigation", { name: "Board pages" })).not.toBeInTheDocument();
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+    expect(await within(board).findByRole("button", { name: "View post: Last page post" })).toBeInTheDocument();
+    expect(secondPageAttempts).toBe(2);
   });
 
   it("opens a post from a DAG node click", async () => {
@@ -3586,7 +4029,7 @@ describe("App, authenticated", () => {
   });
 
   it("warns that a cutoff-rewritten title opens the live body, not a snapshot", async () => {
-    stubBackend();
+    const fetchMock = stubBackend();
     render(<App showLabPanels />);
 
     await userEvent.click(
@@ -3605,14 +4048,20 @@ describe("App, authenticated", () => {
     );
     expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
     expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Current body" })).toHaveTextContent("The full body text.");
     expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+    expect(screen.getByText("This dated view has no shareable link.")).toBeInTheDocument();
+    expect(screen.getByText("To share this post, open its current view first.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Open post: Linked post")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View related information" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
 
-    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
-    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open current view" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument());
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/api/posts/post-1"))).toBe(true);
+    expect(screen.queryByText("This dated view has no shareable link.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(
@@ -3629,6 +4078,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
