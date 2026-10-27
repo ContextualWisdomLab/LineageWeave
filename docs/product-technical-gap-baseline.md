@@ -1,5 +1,55 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-27 01:36 UTC
+
+The current LineageWeave PRD and ADR 0216 were read before this change. The
+linked TEPP and fast-mlsirm PRDs, ThreadWeave PRD, RankWeave architecture,
+contextual-orchestrator product plan/architecture, and DiskSage product
+requirements were checked in local checkouts. The remote organization lists
+`LineageWeave`, `RankWeave`, `ThreadWeave`, and `TEPP` with that case, and
+`disksage` in lowercase. ADR 0246's twelve atomic Voices, ADR 0256's
+open-ended evidence-bearing combinations, and ADR 0252's cutoff history remain
+the governing Voice contracts; no combination list or weight is inferred.
+
+Remote `main` is `91c3e1c7411f56408e4ce61417479ace36ff40cb`. Ready PR
+#1183 was inspected at exact head `46aa6bbb02fc7a057f8e16506dd99ccd4cf95ff0`,
+which was also the clean tracked checkout before this edit. Its four formal
+reviews are comments on earlier heads, with no independent approval. All four
+exact-head Actions jobs failed without a runner step; the Full test job
+annotation says the account is locked for billing. CodeRabbit and Devin
+statuses succeeded but do not supply an approval or passing Actions run. The
+live branch rule reports only `non_fast_forward`; normal auto-merge would not
+enforce the requested independent approval and successful Checks, so it stays
+off. No merge SHA exists. This edit creates a later head and requires fresh
+hosted evidence.
+
+The next buyer-visible gap was dated Global Ask evidence navigation. ADR 0216
+requires a retained revision at the answer's knowledge cutoff, but opening a
+cited Post from the answer previously dropped that cutoff and read the live
+Post. PR #1183 now carries the answer's returned cutoff through its cited-Post,
+lineage, and evidence-layer links to the Board's Post read. An answer without a
+cutoff still opens the current view. The focused synthetic regression passed;
+frontend lint and production build passed. The existing dated Post popup has
+desktop/mobile synthetic screenshots, but this new Ask-to-Board handoff has no
+fresh desktop/mobile or authenticated PostgreSQL browser evidence, so its
+rendered acceptance remains unverified. The empty-Board next-action candidate
+from the prior audit remains in this PR, also unmerged.
+
+The live queue has 197 open PRs (29 ready, 117 stacked) and 43 open issues.
+#1182 changes ADR 0212 and the Post-filter API, with no direct file overlap
+with this repair. #1181 changes this baseline; #1178 changes this baseline and
+App CSS; #1177 changes this baseline, App code/CSS, and ADR 0256. These
+overlaps need reconciliation against the actual protected merge order. None of
+these compared PR file lists changes a migration or release number, and no
+new ADR/API/schema/release identity conflict is introduced by this navigation
+repair. Existing issues #807, #1048, and #1056 remain the broader conflict
+register. Voice acceptance still needs authenticated PostgreSQL API and
+rendered UI proof for carrying versus derivation Posts, hidden evidence,
+truth/cutoff history, and paged same-subject JSON-LD union. Current-head
+synthetic authenticated k6 throughput, latency, errors, and saturation evidence
+is unavailable while the canonical `lineageweave` stack is unhealthy; no
+population or capacity inference is made.
+
 ## Exact-head continuation — 2026-10-27 00:17 UTC
 
 The current [PRD](product-requirements.md), accepted ADRs 0246, 0252,

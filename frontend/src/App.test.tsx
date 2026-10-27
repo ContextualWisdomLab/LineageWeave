@@ -166,6 +166,7 @@ describe("App, authenticated", () => {
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
     askDelivery?: boolean;
+    askCutoff?: string;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1872,6 +1873,7 @@ describe("App, authenticated", () => {
             job_status_code: "succeeded",
             answer: {
             answer_text: "The cited project is supported by the stored semantic evidence.",
+            knowledge_cutoff: options?.askCutoff,
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             cited_post_evidence: [
@@ -2351,6 +2353,22 @@ describe("App, authenticated", () => {
       verify_external: false,
       knowledge_cutoff: new Date("2026-01-15T12:00").toISOString(),
     });
+  });
+
+  it("opens a dated Ask citation at the answer cutoff", async () => {
+    const cutoff = "2026-01-12T12:00:00Z";
+    const fetchMock = stubBackend({ askCutoff: cutoff });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Linked post/ }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/posts/post-2?as_of=2026-01-12T12%3A00%3A00Z"),
+      expect.anything(),
+    ));
   });
 
   it("localizes Ask delivery copy instead of rendering Korean literals in English", async () => {

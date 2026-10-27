@@ -4217,11 +4217,13 @@ export function PostList({
   accessToken,
   showLabPanels = false,
   postIdToOpen = null,
+  postCutoffToOpen = null,
   onPostOpened,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
+  postCutoffToOpen?: string | null;
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -4299,15 +4301,15 @@ export function PostList({
     setOpenedLeftoverPair(options?.fromLeftoverPair ?? null);
   }
 
-  const openRequestedPost = useEffectEvent((postId: string) => {
-    selectPost(postId);
+  const openRequestedPost = useEffectEvent((postId: string, knowledgeCutoff: string | null) => {
+    selectPost(postId, { knowledgeCutoff: knowledgeCutoff ?? undefined });
     onPostOpened?.();
   });
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    openRequestedPost(postIdToOpen);
-  }, [postIdToOpen]);
+    openRequestedPost(postIdToOpen, postCutoffToOpen);
+  }, [postIdToOpen, postCutoffToOpen]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -5227,7 +5229,7 @@ export function AskAgentPanel({
   onOpenPost,
 }: {
   accessToken: string;
-  onOpenPost: (postId: string) => void;
+  onOpenPost: (postId: string, knowledgeCutoff?: string | null) => void;
 }) {
   const [question, setQuestion] = useState("");
   const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
@@ -5354,7 +5356,7 @@ export function AskAgentPanel({
               <ul className="related-post-list">
                 {answer.cited_posts.map((post) => (
                   <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
+                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id, answer.knowledge_cutoff)}>
                       <strong>{post.post_title}</strong>
                       {post.source_post_revision_id ? (
                         <span className="post-meta">
@@ -5405,7 +5407,7 @@ export function AskAgentPanel({
           )}
           {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
             <SurfaceBoundary>
-              <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+              <LineageDag graph={answer.lineage_graph} onSelectPost={(postId) => onOpenPost(postId, answer.knowledge_cutoff)} />
             </SurfaceBoundary>
           ) : null}
         </section>
@@ -5425,7 +5427,7 @@ export function AskAgentPanel({
               answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
             }
             onClose={() => setEvidenceLayerPostId(null)}
-            onOpenPost={onOpenPost}
+            onOpenPost={(postId) => onOpenPost(postId, answer.knowledge_cutoff)}
           />
         </SurfaceBoundary>
       ) : null}
@@ -5447,6 +5449,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
   });
+  const [postCutoffToOpen, setPostCutoffToOpen] = useState<string | null>(null);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -5557,6 +5560,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               accessToken={accessToken}
               onOpenPost={(postId) => {
                 setPostToOpen(postId);
+                setPostCutoffToOpen(null);
                 setDestination("board");
               }}
             />
@@ -5568,7 +5572,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
-            onPostOpened={() => setPostToOpen(null)}
+            postCutoffToOpen={postCutoffToOpen}
+            onPostOpened={() => { setPostToOpen(null); setPostCutoffToOpen(null); }}
           />
         ) : null}
         {destination === "customers" ? (
@@ -5582,6 +5587,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               heading="달력"
               onSelectPost={(postId) => {
                 setPostToOpen(postId);
+                setPostCutoffToOpen(null);
                 setDestination("board");
               }}
             />
@@ -5590,8 +5596,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         {destination === "ask" ? (
           <AskAgentPanel
             accessToken={accessToken}
-            onOpenPost={(postId) => {
+            onOpenPost={(postId, knowledgeCutoff) => {
               setPostToOpen(postId);
+              setPostCutoffToOpen(knowledgeCutoff ?? null);
               setDestination("board");
             }}
           />
