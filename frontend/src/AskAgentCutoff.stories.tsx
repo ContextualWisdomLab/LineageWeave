@@ -54,7 +54,7 @@ export const PartialHistoricalEvidence: Story = {
     );
     await userEvent.click(canvas.getByRole("button", { name: "Ask" }));
     await expect(canvas.findByText(/Partially cutoff-grounded/)).resolves.toBeVisible();
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Current-only semantic channels were excluded");
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Some historical bodies or channels are unavailable.");
     await expect(canvas.getByText(/Retained revision/)).toHaveTextContent("Live source changed later");
   },
 };

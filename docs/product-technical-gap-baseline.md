@@ -1,5 +1,58 @@
 # Product & Technical Gap Baseline
 
+## Exact-head continuation — 2026-10-27 02:53 UTC
+
+The current LineageWeave PRD, ADRs 0246 and 0251, and the linked product or
+architecture authorities for RankWeave, ThreadWeave, lowercase `disksage`,
+TEPP, fast-mlsirm, and contextual-orchestrator were read before this loop.
+GitHub returned the canonical repository names. ADR 0256 and ADR 0252 remain
+the open-ended Voice-combination and cutoff-history authorities; the cited
+stakeholder research does not supply combination codes or numeric weights.
+
+Remote `main` was `91c3e1c7411f56408e4ce61417479ace36ff40cb` and ready
+PR #1183 was open at exact head `a32703ad53a860b2d0a9f06c41b1b9fde5e3ba1b`
+before this documentation and screenshot change. Its two review threads were
+resolved; four formal reviews were comments on older commits and no independent
+approval was recorded. The four Actions jobs were terminal failures after two
+or three seconds, so they are not passing exact-head test evidence. Devin's
+review was skipped because its trial had expired; CodeRabbit was skipped.
+The REST rate limit prevented a fresh applicable-ruleset read, so no new
+protection claim or auto-merge decision is inferred from an older snapshot.
+No merge SHA exists. Ready #1182 remained open at
+`4e71264c60f4c597e5f0041b793f7b1f5f8eb74a`, with failed Actions jobs
+and no formal approval. Its ADR 0212/Post-filter slice has no direct changed
+file, API, schema, or release-number overlap with #1183's Ask navigation slice;
+the current #1182 file list was read at that exact head. The baseline
+overlap with #1181 and frontend overlap with #1177/#1178 still
+require reconciliation in protected merge order. Stacked children remain on
+their parents until a parent is protected-merged.
+
+The selected buyer-visible gap is following a dated Global Ask citation into
+the Post while retaining the answer's cutoff. #1183's current candidate
+passes that cutoff from cited Post, lineage, and evidence-layer actions into
+the Board Post read. Its focused synthetic regression passed locally (1 test;
+116 other App tests were not run in that invocation). Frontend lint and
+production and Storybook builds, plus six documentation-hygiene tests, passed. The existing
+Storybook historical-answer scene was rendered and visually inspected at 1440×900 and
+390×844; the retained revision, cutoff, limitation, and cited Post remain
+legible without horizontal clipping. The screenshots are
+[`desktop`](screenshots/ask-cutoff-handoff-desktop.png) and
+[`mobile`](screenshots/ask-cutoff-handoff-mobile.png). They show the synthetic
+answer before the handoff; the component regression proves the dated Post
+request. They are not authenticated customer evidence.
+The scene's interaction assertion was corrected to check the safe limitation
+message the UI actually renders, instead of expecting raw answer detail.
+
+The canonical `lineageweave` Compose project has running services, but
+PostgreSQL, Valkey, orchestrator, and search report unhealthy. Authenticated
+PostgreSQL/API and rendered-UI Voice acceptance remains unverified for distinct
+carrying and derivation Posts, hidden evidence, truth/cutoff history, and paged
+same-subject JSON-LD union. Synthetic authenticated k6 latency, errors,
+throughput, and component saturation are also unavailable. No sample or
+capacity inference is promoted from these observations. This edit creates a
+new #1183 head, so its hosted checks and formal reviews require another exact-
+head read before protected delivery.
+
 ## Exact-head continuation — 2026-10-27 01:36 UTC
 
 The current LineageWeave PRD and ADR 0216 were read before this change. The
