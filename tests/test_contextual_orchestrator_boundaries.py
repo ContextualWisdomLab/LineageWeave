@@ -25,3 +25,11 @@ def test_known_public_token_rejected_before_runtime_import(monkeypatch):
     monkeypatch.setenv('LLM_GATEWAY_API_KEY','synthetic-only')
     monkeypatch.setenv('CONTEXTUAL_ORCHESTRATOR_TOKEN','lineageweave-orchestrator-dev-only')
     with pytest.raises(SystemExit,match='nondefault'):module.main()
+
+def test_backend_and_mcp_never_default_to_the_rejected_public_token():
+    """Clients must not ship the token start.py rejects (ADR 0045 amendment)."""
+    text=(ROOT/'docker-compose.yml').read_text()
+    for start,end in (('  backend:\n','  mcp:\n'),('  mcp:\n','  frontend:\n')):
+        section=text.split(start)[1].split(end)[0]
+        assert 'ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-}}' in section
+        assert 'lineageweave-orchestrator-dev-only' not in section
