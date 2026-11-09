@@ -50,7 +50,11 @@ authenticate: under a plain `docker compose up` (no `--env-file`) the
 orchestrator read the private token from its `env_file` while backend and
 mcp interpolated the public default, so every LLM channel failed at the
 internal authentication boundary instead of failing visibly. Backend and
-mcp therefore default to an empty credential. With no configured token the
-channels are unavailable; with one, both sides resolve the same value. This
-removes the third fallback step above and does not change the override
-order or any provider credential.
+mcp therefore default to an empty credential. With no client token the
+channels are unavailable instead of failing authentication. The orchestrator
+reads `CONTEXTUAL_ORCHESTRATOR_TOKEN` from `${HOME}/.env`, but backend and mcp
+receive it only through Compose interpolation: a plain `docker compose up`
+leaves their value empty, so their channels stay unavailable. For both
+clients to receive the token, pass `--env-file "$HOME/.env"` (as `make up`
+does) or export the token in the shell. This removes the third fallback step
+above and does not change the override order or any provider credential.
