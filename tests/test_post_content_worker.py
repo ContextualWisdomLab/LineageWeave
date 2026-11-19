@@ -437,3 +437,115 @@ def test_stale_worker_cannot_mark_recovered_attempt_succeeded() -> None:
     )
 
     assert not any("insert into post_content_ingestion_job_status_event" in query for query, _args in connection.executed)
+
+
+def _run_worker_until(monkeypatch, *, recovery_errors, consume_errors, stop_after_consumes=2):
+    """Drive the real loop with synthetic recovery/consume seams."""
+    events: list[str] = []
+    recovery_errors = list(recovery_errors)
+    consume_errors = list(consume_errors)
+
+    async def stream_tail(_client):
+        return "0-0"
+
+    async def republish(_client, _pool):
+        events.append("recovery")
+        if recovery_errors:
+            raise recovery_errors.pop(0)
+
+    done = asyncio.Event()
+
+    async def consume_once(_client, _pool, *, last_id, **_kwargs):
+        events.append("consume")
+        if consume_errors:
+            raise consume_errors.pop(0)
+        if sum(1 for e in events if e == "consume") >= stop_after_consumes:
+            done.set()
+        await asyncio.sleep(0)
+        return last_id
+
+    monkeypatch.setattr(post_content_worker, "_stream_tail", stream_tail)
+    monkeypatch.setattr(post_content_worker, "republish_queued_post_content_jobs", republish)
+    monkeypatch.setattr(post_content_worker, "consume_post_content_stream_once", consume_once)
+    monkeypatch.setattr(post_content_worker, "_RECOVERY_INTERVAL_SECONDS", 0.0)
+    monkeypatch.setattr(post_content_worker, "_BROKER_RECOVERY_DELAY_SECONDS", 0.0)
+
+    async def scenario():
+        task = asyncio.create_task(
+            post_content_worker.run_post_content_worker(
+                object(),
+                object(),
+                vision_factory=lambda: None,
+                embedding_factory=lambda: None,
+                structure_factory=lambda: None,
+            )
+        )
+        waiter = asyncio.create_task(done.wait())
+        await asyncio.wait({task, waiter}, timeout=2.0, return_when=asyncio.FIRST_COMPLETED)
+        died = task.done()
+        error = task.exception() if died and not task.cancelled() else None
+        task.cancel()
+        waiter.cancel()
+        await asyncio.gather(task, waiter, return_exceptions=True)
+        return died, error, task.cancelled()
+
+    died, error, cancelled = asyncio.run(scenario())
+    return events, died, error, cancelled
+
+
+def test_database_loss_during_recovery_does_not_kill_the_consumer(monkeypatch, caplog) -> None:
+    import asyncpg
+
+    caplog.set_level("WARNING", logger=post_content_worker.__name__)
+    events, died, error, cancelled = _run_worker_until(
+        monkeypatch,
+        recovery_errors=[asyncpg.exceptions.ConnectionDoesNotExistError("synthetic loss")],
+        consume_errors=[],
+    )
+    assert not died, error
+    assert cancelled
+    assert events[0] == "recovery"
+    assert events.count("recovery") >= 2
+    assert events.count("consume") >= 2
+    assert "ConnectionDoesNotExistError" in caplog.text
+    assert "synthetic loss" not in caplog.text
+
+
+def test_valkey_loss_during_recovery_does_not_kill_the_consumer(monkeypatch, caplog) -> None:
+    import redis.asyncio as redis
+
+    caplog.set_level("WARNING", logger=post_content_worker.__name__)
+    events, died, error, cancelled = _run_worker_until(
+        monkeypatch,
+        recovery_errors=[redis.ConnectionError("synthetic broker drop")],
+        consume_errors=[],
+    )
+    assert not died, error
+    assert cancelled
+    assert events.count("consume") >= 2
+    assert "ConnectionError" in caplog.text
+
+
+def test_database_loss_while_claiming_does_not_kill_the_consumer(monkeypatch, caplog) -> None:
+    import asyncpg
+
+    caplog.set_level("WARNING", logger=post_content_worker.__name__)
+    events, died, error, cancelled = _run_worker_until(
+        monkeypatch,
+        recovery_errors=[],
+        consume_errors=[asyncpg.exceptions.AdminShutdownError("synthetic shutdown")],
+        stop_after_consumes=3,
+    )
+    assert not died, error
+    assert cancelled
+    assert events.count("consume") >= 3
+    assert "AdminShutdownError" in caplog.text
+    assert "synthetic shutdown" not in caplog.text
+
+
+def test_worker_cancellation_still_propagates(monkeypatch) -> None:
+    events, died, error, cancelled = _run_worker_until(
+        monkeypatch, recovery_errors=[], consume_errors=[], stop_after_consumes=1
+    )
+    assert cancelled
+    assert error is None

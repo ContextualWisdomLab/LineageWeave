@@ -172,6 +172,12 @@ _GLOBAL_ASK_SCOPE_MIGRATION = (
     / "migrations"
     / "0203_global_ask_authorization_scope.sql"
 )
+_GLOBAL_ASK_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0212_global_ask_knowledge_cutoff.sql"
+)
+_GLOBAL_ASK_VERIFICATION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0218_global_ask_public_verification.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -240,10 +246,14 @@ def schema_db():
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_CUTOFF_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_VERIFICATION_MIGRATION.read_text())
                 # Exercise the production replay contract against the same
                 # PostgreSQL objects instead of merely inspecting SQL text.
                 cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_CUTOFF_MIGRATION.read_text())
+                cur.execute(_GLOBAL_ASK_VERIFICATION_MIGRATION.read_text())
                 # Match ADR 0166's production migration executor instead of
                 # maintaining a fixture-owned SQL parser.
                 subprocess.run(
@@ -323,6 +333,106 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_occupational_construct_extraction",
     }
     assert expected <= tables
+
+
+def test_postgres_stale_ask_owner_cannot_settle_after_reclaim(schema_db) -> None:
+    """#975: real PostgreSQL compare-and-set blocks the previous Ask owner."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into user_account (external_subject_id, display_name, email_address)
+            values ('ask-claim-generation', 'Ask claim generation', 'ask-claim@example.test')
+            returning user_account_id
+            """
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            """
+            insert into global_ask_job
+                (requesting_account_id, question_text, job_status_code)
+            values (%s, 'reclaim settlement', 'queued')
+            returning global_ask_job_id
+            """,
+            (account_id,),
+        )
+        job_id = cur.fetchone()[0]
+    schema_db.commit()
+
+    parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+    db_dsn = urlunsplit(
+        parsed_admin_dsn._replace(path=f"/{schema_db.get_dsn_parameters()['dbname']}")
+    )
+
+    async def race() -> None:
+        owner = await asyncpg.connect(db_dsn)
+        reclaim = await asyncpg.connect(db_dsn)
+        try:
+            claimed = await owner.fetchrow(
+                """
+                update global_ask_job set job_status_code = $2, updated_at = now()
+                where global_ask_job_id = $1 and job_status_code = $3
+                returning updated_at
+                """,
+                job_id,
+                "running",
+                "queued",
+            )
+            assert claimed is not None
+            await reclaim.execute(
+                """
+                update global_ask_job set job_status_code = $1, updated_at = now()
+                where global_ask_job_id = $2 and job_status_code = $3
+                """,
+                "queued",
+                job_id,
+                "running",
+            )
+            reclaimed = await reclaim.fetchrow(
+                """
+                update global_ask_job set job_status_code = $2, updated_at = now()
+                where global_ask_job_id = $1 and job_status_code = $3
+                returning updated_at
+                """,
+                job_id,
+                "running",
+                "queued",
+            )
+            assert reclaimed is not None
+            stale = await owner.execute(
+                """
+                update global_ask_job set job_status_code = $2,
+                    answer_payload = $3::jsonb, updated_at = now()
+                where global_ask_job_id = $1
+                  and job_status_code = $4
+                  and updated_at = $5
+                """,
+                job_id,
+                "succeeded",
+                '{"answer_text":"stale-owner"}',
+                "running",
+                claimed["updated_at"],
+            )
+            live = await reclaim.execute(
+                """
+                update global_ask_job set job_status_code = $2,
+                    answer_payload = $3::jsonb, updated_at = now()
+                where global_ask_job_id = $1
+                  and job_status_code = $4
+                  and updated_at = $5
+                """,
+                job_id,
+                "succeeded",
+                '{"answer_text":"live-owner"}',
+                "running",
+                reclaimed["updated_at"],
+            )
+            assert stale == "UPDATE 0"
+            assert live == "UPDATE 1"
+        finally:
+            await owner.close()
+            await reclaim.close()
+
+    asyncio.run(race())
 
 
 def test_occupational_catalog_metadata_columns_exist(schema_db) -> None:
@@ -961,3 +1071,70 @@ def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:
         count = cursor.fetchone()[0]
     assert ids[0] == ids[1]
     assert count == 1
+
+
+def test_postgres_ask_completion_retains_inflight_renewal(schema_db, monkeypatch) -> None:
+    """A real committed renewal cannot strand a completed Ask in running state."""
+    from backend.app import global_ask_queue
+
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into user_account (external_subject_id, display_name, email_address) "
+            "values ('ask-renewal-race', 'Synthetic renewal', 'renewal@example.test') "
+            "returning user_account_id"
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into global_ask_job "
+            "(requesting_account_id, question_text, job_status_code) "
+            "values (%s, 'Synthetic renewal race', 'queued') returning global_ask_job_id",
+            (account_id,),
+        )
+        job_id = cur.fetchone()[0]
+    schema_db.commit()
+    db_dsn = urlunsplit(urlsplit(_ADMIN_DSN)._replace(
+        path=f"/{schema_db.get_dsn_parameters()['dbname']}"
+    ))
+
+    async def exercise():
+        renewal_committed = asyncio.Event()
+        answer_finished = asyncio.Event()
+        renew = global_ask_queue._renew_ask_claim
+
+        async def delayed_renew(*args):
+            generation = await renew(*args)
+            assert generation is not None
+            renewal_committed.set()
+            await answer_finished.wait()
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            return generation
+
+        async def answer(*_args, **_kwargs):
+            await renewal_committed.wait()
+            answer_finished.set()
+            return {"answer_text": "Synthetic completed answer"}
+
+        async def visibility(*_args):
+            return set(), set(), False, True
+
+        class _Client:
+            available = True
+
+        monkeypatch.setattr(global_ask_queue, "_CLAIM_HEARTBEAT_SECONDS", 0.001)
+        monkeypatch.setattr(global_ask_queue, "_renew_ask_claim", delayed_renew)
+        monkeypatch.setattr(global_ask_queue, "compute_global_ask_answer", answer)
+        monkeypatch.setattr(global_ask_queue, "load_job_visibility", visibility)
+        async with asyncpg.create_pool(db_dsn, min_size=1, max_size=2) as pool:
+            await global_ask_queue.process_global_ask_job(
+                pool, job_id=str(job_id), chat_factory=_Client
+            )
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "select job_status_code, answer_payload from global_ask_job "
+                    "where global_ask_job_id = $1", job_id
+                )
+            assert row["job_status_code"] == "succeeded"
+            assert 'Synthetic completed answer' in row["answer_payload"]
+
+    asyncio.run(exercise())

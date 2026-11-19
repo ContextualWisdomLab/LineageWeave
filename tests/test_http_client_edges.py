@@ -198,6 +198,15 @@ def test_request_preserves_the_url_query_in_the_http_target(
 
         status = 200
 
+        def __enter__(self) -> SyntheticResponse:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            self.close()
+
+        def close(self) -> None:
+            pass
+
         @staticmethod
         def getheader(name: str) -> str | None:
             assert name == "Content-Length"

@@ -2,7 +2,34 @@
 
 from __future__ import annotations
 
+import pytest
+
 from backend.app.config import load_settings
+
+
+def test_ask_answer_timeout_defaults_to_no_elapsed_socket_limit(monkeypatch) -> None:
+    """Omitted Ask socket timeout is not a hidden 570-second hang-up."""
+    monkeypatch.delenv("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", raising=False)
+    assert load_settings().orchestrator_answer_timeout_seconds is None
+
+
+def test_ask_answer_timeout_accepts_explicit_finite_values_without_worker_deadline(
+    monkeypatch,
+) -> None:
+    """An operator-set Ask socket timeout is independent of worker liveness."""
+    monkeypatch.setenv("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
+    assert load_settings().orchestrator_answer_timeout_seconds == 570
+
+    monkeypatch.setenv("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "900")
+    assert load_settings().orchestrator_answer_timeout_seconds == 900
+
+
+def test_ask_answer_timeout_rejects_non_positive_explicit_values(monkeypatch) -> None:
+    """Zero, negative, and non-finite Ask socket timeouts remain configuration errors."""
+    for raw in ("0", "-1", "nan", "inf"):
+        monkeypatch.setenv("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", raw)
+        with pytest.raises(ValueError, match="finite number greater than 0"):
+            load_settings()
 
 
 def test_frontend_origins_are_parsed_from_comma_separated_env(monkeypatch) -> None:

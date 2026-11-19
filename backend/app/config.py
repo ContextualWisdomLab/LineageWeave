@@ -8,11 +8,6 @@ import math
 import os
 from dataclasses import dataclass, field
 
-# Hard ceiling on one Global Ask job's answer computation, shared with the
-# worker in global_ask_queue.py so config validation and execution can never
-# disagree about the bound.
-GLOBAL_ASK_JOB_DEADLINE_SECONDS = 600
-
 
 @dataclass(frozen=True)
 class Settings:
@@ -51,11 +46,10 @@ class Settings:
     frontend_origins: list[str]
     orchestrator_base_url: str
     orchestrator_api_key: str
-    # Socket timeout for one Ask answer round-trip. Must stay below the Ask
-    # worker's job deadline so the client, not the job reaper, ends a slow
-    # call — hanging up earlier discards an answer the orchestrator has
-    # already paid to generate (observed live as a BrokenPipe on its side).
-    orchestrator_answer_timeout_seconds: float
+    # Optional socket timeout for one Ask answer round-trip. Omitted/blank
+    # means no LineageWeave elapsed socket limit. Explicit values are
+    # deployment transport policy and remain independent of worker liveness.
+    orchestrator_answer_timeout_seconds: float | None
     valkey_url: str
     searxng_base_url: str
     tepp_transport_url: str
@@ -82,24 +76,24 @@ class Settings:
         return f"{self.keycloak_base_url}/realms/{self.keycloak_realm}/protocol/openid-connect/certs"
 
 
-def _validated_answer_timeout(raw: str) -> float:
-    """Parse the Ask answer timeout and hold it under the job deadline.
+def _validated_answer_timeout(raw: str | None) -> float | None:
+    """Parse an optional finite-positive Ask transport timeout.
 
-    The client must hang up before the worker's deadline reaper so a slow
-    answer settles as a clean client timeout, never a reaped job — values
-    at or above the deadline (or non-finite/non-positive ones) silently
-    break that ordering, so they are configuration errors.
+    Blank or omitted leaves no LineageWeave elapsed socket limit. Worker
+    liveness is owned by claim heartbeats and generation fencing, not by
+    this optional transport policy.
     """
+    if raw is None or not str(raw).strip():
+        return None
     try:
         value = float(raw)
     except ValueError as exc:
         raise ValueError(
             "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a number"
         ) from exc
-    if not math.isfinite(value) or not 0 < value < GLOBAL_ASK_JOB_DEADLINE_SECONDS:
+    if not math.isfinite(value) or value <= 0:
         raise ValueError(
-            "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a finite number greater"
-            f" than 0 and less than {GLOBAL_ASK_JOB_DEADLINE_SECONDS}"
+            "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a finite number greater than 0"
         )
     return value
 
@@ -201,7 +195,7 @@ def load_settings() -> Settings:
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
         orchestrator_answer_timeout_seconds=_validated_answer_timeout(
-            os.environ.get("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
+            os.environ.get("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS")
         ),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),

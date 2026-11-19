@@ -294,6 +294,19 @@ _SIMILAR_VOC_PAGE_SIZE = 8
 _SIMILAR_VOC_REQUEST_TIMEOUT_SECONDS = 180.0
 
 
+def _report_background_consumer_exit(worker_name: str, task: asyncio.Task) -> None:
+    """Report terminal consumers without changing ownership or restart policy."""
+    if task.cancelled():
+        return
+    failure = task.exception()
+    error_type = type(failure).__name__[:128] if failure is not None else "unexpected_return"
+    logger.error(
+        "background consumer terminated (worker=%s, error_type=%s)",
+        worker_name,
+        error_type,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Open one asyncpg pool and one Valkey client for the process, and
@@ -335,8 +348,7 @@ async def lifespan(app: FastAPI):
         app.state.post_content_worker = content_worker
         # Late-bound lambda so tests that monkeypatch _post_chat_client reach
         # the worker too (the name resolves in module globals at call time).
-        # Only this worker gets the long answer timeout; the per-post chat
-        # endpoint keeps the client's interactive default.
+        # Ask and per-post chat both default to a null transport timeout.
         global_ask_worker = asyncio.create_task(
             run_global_ask_worker(
                 valkey,
@@ -350,6 +362,15 @@ async def lifespan(app: FastAPI):
             )
         )
         app.state.global_ask_worker = global_ask_worker
+        # ADR 0377 proposal: report terminal consumers, never silently restart.
+        for worker_name, worker in (
+            ("analysis_run", analysis_worker),
+            ("post_content", content_worker),
+            ("global_ask", global_ask_worker),
+        ):
+            worker.add_done_callback(
+                lambda task, name=worker_name: _report_background_consumer_exit(name, task)
+            )
         yield
     finally:
         workers = tuple(
@@ -520,19 +541,16 @@ def _post_structure_client():
 def _post_chat_client(timeout: float | None = None):
     """Live orchestrator client when configured; otherwise the unavailable null.
 
-    ``timeout`` overrides the client's socket timeout. Only the Ask worker
-    passes the long answer timeout — the synchronous per-post chat endpoint
-    keeps the client default so an interactive request never hangs a reader
-    for the worker's full budget.
+    Preserve an omitted or explicit null timeout through the transport boundary.
+    The Ask worker still supplies its separately configured answer socket limit.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
-    kwargs = {} if timeout is None else {"timeout": timeout}
     return ContextualOrchestratorPostChatClient(
         base_url=settings.orchestrator_base_url,
         api_key=settings.orchestrator_api_key,
-        **kwargs,
+        timeout=timeout,
     )
 
 
