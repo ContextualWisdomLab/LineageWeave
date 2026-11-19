@@ -1,0 +1,67 @@
+# ADR 0371 — Global Ask claim-generation liveness
+
+**Decision status:** Proposed
+**Date:** 2026-09-08
+
+Amends the Global Ask worker settlement path. Independent of leftover-map
+ADRs 0272–0370 on other stacks (ADR 0370 is leftover-map comparison
+axis-singular on the #830 validation lane) and of the versioned
+translation ledger ([ADR 0362](0362-versioned-ui-translation-ledger.md)).
+
+## Context
+
+Issue #975: a live Ask job could be terminated or reclaimed from elapsed
+wall time (600 s compute deadline, 570 s invented socket hang-up) while
+a provider `TimeoutError` and a worker deadline meant different things.
+Orphan recovery flipped `running` → `queued` by `updated_at` age, and
+the original worker could still settle by job id alone.
+
+## Decision
+
+- Claim `queued` → `running` returns a generation (`updated_at`).
+- Settlement is compare-and-set on that generation; PostgreSQL
+  `UPDATE 0` is an unapplied settle, not a buyer-visible failure.
+- While computing, the owner renews `updated_at` on the recovery
+  interval. A failed renew aborts without settling as failed.
+- Cancelling the owner task cancels the inner compute task.
+- LineageWeave does not invent an Ask socket hang-up when
+  `ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS` is omitted or blank. An
+  explicit value must be finite and strictly positive; it is not
+  bounded by the removed 600 s worker deadline.
+- Live compute is not cancelled when 600 s elapse. Age-based orphan
+  recovery uses three missed heartbeats, not the old 660 s reaper.
+- If the heartbeat task ends while compute is still running, abort as a
+  lost claim rather than continuing without renewals.
+- When compute finishes, stop scheduling renewals and await any renewal
+  already in flight before admitting either its result or its failure to
+  settlement. A committed renewal must update the settlement generation;
+  cancellation during response delivery must not discard that generation.
+  A failed renewal wins over a simultaneously completed answer. External
+  owner cancellation still cancels and joins both tasks.
+- Provider `TimeoutError` stays an unavailable Ask failure.
+
+## Consequences
+
+Positive: a renewing owner can outlive the former hard deadline; a
+reclaimed job cannot be overwritten by the previous owner.
+
+Negative: crashed workers wait three heartbeat intervals to reclaim.
+
+`tests/test_schema.py` proves the settlement compare-and-set against a
+throwaway database that replayed the real `0001` and `0165` migrations.
+In-memory queue tests remain for elapsed-time and cancellation contracts.
+The completion/renewal race also uses the production queue and renewal
+functions against PostgreSQL: delay delivery of an already committed renewal,
+finish the answer, then require the stored job to reach `succeeded` with that
+answer. This is persistence evidence, not authenticated HTTP/UI acceptance.
+
+The inherited three-heartbeat recovery ratio is not established as a
+deployment capacity or failure-detector contract by these regressions. Its
+acceptance remains unresolved; this correction does not calibrate that ratio
+or establish that elapsed silence alone proves a dead owner.
+
+## Alternatives considered
+
+Keep the 600 s `asyncio.timeout` around compute: rejected because it
+cancels a live heartbeat owner. The elapsed-deadline RED proves that
+path.

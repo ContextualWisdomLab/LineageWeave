@@ -494,14 +494,18 @@ async def run_post_content_worker(
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
     """Run the at-least-once consumer and periodically recover queued rows."""
-    last_id = await _stream_tail(client)
+    # The tail is sampled inside the retry boundary so a broker that is
+    # still loading at startup cannot end the task before its first round.
+    last_id: str | None = None
     last_recovery = 0.0
     while True:
-        now = time.monotonic()
-        if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
-            await republish_queued_post_content_jobs(client, pool)
-            last_recovery = now
         try:
+            if last_id is None:
+                last_id = await _stream_tail(client)
+            now = time.monotonic()
+            if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
+                await republish_queued_post_content_jobs(client, pool)
+                last_recovery = now
             last_id = await consume_post_content_stream_once(
                 client,
                 pool,
@@ -510,8 +514,18 @@ async def run_post_content_worker(
                 embedding_factory=embedding_factory,
                 structure_factory=structure_factory,
             )
-        except (redis.RedisError, OSError) as exc:
+        except (
+            redis.RedisError,
+            OSError,
+            asyncpg.PostgresConnectionError,
+            asyncpg.exceptions.OperatorInterventionError,
+            asyncpg.InterfaceError,
+        ) as exc:
+            # Valkey and PostgreSQL connection loss are transient: the durable
+            # ledger is rescanned on the next round, so retry instead of
+            # letting the lifespan task die silently (ADR 0098).
             _logger.warning(
-                "post-content Valkey poll failed; retrying (error_type=%s)", type(exc).__name__
+                "post-content worker round failed; retrying (error_type=%s)",
+                type(exc).__name__,
             )
             await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)

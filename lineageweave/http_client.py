@@ -26,6 +26,7 @@ from .observability import current_session_id, inject_trace_context, traced
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+_SSL_CONTEXT.minimum_version = ssl.TLSVersion.TLSv1_2
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
 _SESSION_HEADER_PEERS = frozenset({"contextual-orchestrator", "tepp"})
 
@@ -89,7 +90,12 @@ def _read_response_body(
     """Read one response without allocating beyond an admitted byte limit."""
 
     limit = _validated_response_limit(maximum_response_bytes)
-    length_header = response.getheader("Content-Length")
+    # The native parser gives chunked transfer framing precedence over a
+    # conflicting Content-Length. Do not stop before its terminal chunk.
+    length_header = (
+        None if getattr(response, "chunked", False)
+        else response.getheader("Content-Length")
+    )
     if length_header is not None:
         try:
             declared_length = int(length_header)
@@ -102,6 +108,8 @@ def _read_response_body(
                 f"response exceeds maximum_response_bytes={limit}"
             )
         raw = response.read(declared_length)
+        if len(raw) != declared_length:
+            raise HttpClientError("incomplete response from remote endpoint")
     elif limit is None:
         raw = response.read()
     else:
@@ -148,7 +156,7 @@ def _request(
     *,
     body: bytes | None,
     headers: dict[str, str],
-    timeout: float,
+    timeout: float | None,
     maximum_response_bytes: int | None = None,
     expected_response_media_type: str | None = None,
 ) -> tuple[int, bytes]:
@@ -195,20 +203,20 @@ def _request(
                     server_hostname=parsed.hostname,
                 )
             connection.request(method, path, body=body, headers=headers)
-            response = connection.getresponse()
-            if (
-                expected_media_type is not None
-                and _response_media_type(response) != expected_media_type
-            ):
-                raise HttpClientError(
-                    f"unexpected response media type from {parsed.hostname}"
+            with connection.getresponse() as response:
+                if (
+                    expected_media_type is not None
+                    and _response_media_type(response) != expected_media_type
+                ):
+                    raise HttpClientError(
+                        f"unexpected response media type from {parsed.hostname}"
+                    )
+                raw = _read_response_body(
+                    response,
+                    maximum_response_bytes=limit,
                 )
-            raw = _read_response_body(
-                response,
-                maximum_response_bytes=limit,
-            )
-            return response.status, raw
-        except (OSError, ValueError, http.client.HTTPException) as exc:
+                return response.status, raw
+        except (OSError, ValueError, OverflowError, http.client.HTTPException) as exc:
             # Chain internally for operator logging; the exposed
             # message stays generic/hostname-only, never the raw exception text.
             raise HttpClientError("provider transport unavailable") from exc
@@ -248,7 +256,7 @@ def post_json(
     payload: dict,
     *,
     headers: dict[str, str],
-    timeout: float,
+    timeout: float | None,
     service_peer_name: str = "contextual-orchestrator",
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.

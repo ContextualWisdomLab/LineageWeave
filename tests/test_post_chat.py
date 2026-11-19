@@ -469,3 +469,28 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
     assert observed["payload"]["reasoning_effort"] == "auto"
     assert observed["payload"]["mode"] == "auto"
     assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]
+
+
+@pytest.mark.parametrize("creation_path", ["direct", "factory"])
+@pytest.mark.parametrize("timeout_options, expected", [({}, None), ({"timeout": None}, None), ({"timeout": 7.5}, 7.5)])
+def test_post_chat_preserves_optional_transport_timeout(monkeypatch, timeout_options, expected, creation_path) -> None:
+    """Omitted or null limits stay null; explicit limits reach transport unchanged."""
+    observed = {}
+
+    def fake_post_json(_url, _payload, *, headers, timeout):
+        observed["timeout"] = timeout
+        return {"choices": [{"message": {"content": "Answer\nCITED SOURCES: 1"}}]}
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    if creation_path == "factory":
+        from types import SimpleNamespace
+        from backend.app import main
+
+        monkeypatch.setattr(main, "load_settings", lambda: SimpleNamespace(
+            orchestrator_base_url="https://orchestrator.test", orchestrator_api_key="synthetic-token",
+        ))
+        client = main._post_chat_client(**timeout_options)
+    else:
+        client = ContextualOrchestratorPostChatClient("https://orchestrator.test", "synthetic-token", **timeout_options)
+    client.answer("Question", _SOURCES)
+    assert observed["timeout"] == expected

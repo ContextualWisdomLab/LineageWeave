@@ -134,8 +134,17 @@ async def run_analysis_run_worker(
                 tepp_client=tepp_client,
                 adjudication_client=adjudication_client,
             )
-        except (redis.RedisError, OSError) as exc:
+        except (
+            redis.RedisError,
+            OSError,
+            asyncpg.PostgresConnectionError,
+            asyncpg.exceptions.OperatorInterventionError,
+            asyncpg.InterfaceError,
+        ) as exc:
+            # Owner lookup happens before delivery's per-run error handling.
+            # Preserve the cursor so a connection loss retries the same entry.
             _worker_logger.warning(
-                "analysis-run Valkey poll failed; retrying (error_type=%s)", type(exc).__name__
+                "analysis-run worker poll failed; retrying (error_type=%s)",
+                type(exc).__name__,
             )
             await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)
