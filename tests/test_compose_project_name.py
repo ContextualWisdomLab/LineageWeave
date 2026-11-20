@@ -14,7 +14,7 @@ def test_compose_uses_canonical_project_name_outside_repository_directory(tmp_pa
     The orchestrator's required ``${HOME}/.env`` is resolved at ``config``
     time, so the test supplies its own empty file under a synthetic HOME.
     This keeps the check hermetic on runners without a private env file and
-    never loads the developer's real credentials into the rendered output.
+    does not load the developer's real ``HOME/.env`` file.
     """
     home = tmp_path / "home"
     home.mkdir()
@@ -23,6 +23,8 @@ def test_compose_uses_canonical_project_name_outside_repository_directory(tmp_pa
     project.mkdir()
     environment = os.environ.copy()
     environment.pop("COMPOSE_PROJECT_NAME", None)
+    environment.pop("COMPOSE_ENV_FILES", None)
+    environment.pop("POSTGRES_PASSWORD", None)
     # Keep Docker CLI plugin discovery (``docker compose``) on the caller's
     # configuration directory; only the Compose ``${HOME}`` interpolation moves.
     environment.setdefault("DOCKER_CONFIG", str(Path.home() / ".docker"))
@@ -53,3 +55,22 @@ def test_make_commands_pin_the_official_compose_project() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 
     assert 'COMPOSE := docker compose --env-file "$$HOME/.env" --project-name lineageweave' in makefile
+
+
+def test_compose_project_check_drops_external_env_file_and_password(tmp_path: Path, monkeypatch) -> None:
+    """Caller overrides cannot bypass the empty env file or reflect a DB password."""
+    monkeypatch.setenv("COMPOSE_ENV_FILES", str(tmp_path / "missing-caller.env"))
+    monkeypatch.setenv("POSTGRES_PASSWORD", "synthetic-password-not-for-compose")
+    calls = []
+
+    def capture_config(command, **kwargs):
+        environment = kwargs["env"]
+        assert "COMPOSE_ENV_FILES" not in environment
+        assert "POSTGRES_PASSWORD" not in environment
+        assert (Path(environment["HOME"]) / ".env").read_text(encoding="utf-8") == ""
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout='{"name": "lineageweave"}')
+
+    monkeypatch.setattr(subprocess, "run", capture_config)
+    test_compose_uses_canonical_project_name_outside_repository_directory(tmp_path)
+    assert len(calls) == 1
